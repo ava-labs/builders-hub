@@ -1,32 +1,57 @@
 ---
 title: Relayer Setup
-description: Run an ICM relayer between Fuji C-Chain and your new L1 so native-token bridging messages get delivered.
-updated: 2025-12-16
+description: Set up a hosted ICM relayer between Fuji C-Chain and your new L1 so native-token bridging messages get delivered.
+updated: 2025-12-17
 authors: [nicolasarnedo]
 icon: Terminal
 ---
 
 import { Callout } from 'fumadocs-ui/components/callout';
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
 import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx";
+import CreateManagedTestnetRelayer from "@/components/toolbox/console/testnet-infra/ManagedTestnetRelayers/CreateManagedTestnetRelayer";
 import ICMRelayer from "@/components/toolbox/console/icm/setup/ICMRelayer";
 
-Native-token bridging uses Interchain Messaging under the hood, so you must run a relayer between **Fuji C-Chain** and your **new L1**.
+# Set Up the Relayer
+
+Native-token bridging uses Interchain Messaging under the hood, so you need a relayer between **Fuji C-Chain** and your **new L1** to deliver cross-chain messages.
+
+We'll use a **hosted relayer** (no Docker required) that's perfect for testing. The relayer will automatically shut down after 3 days.
+
+<ToolboxMdxWrapper walletMode="testnet-mainnet">
+  <CreateManagedTestnetRelayer />
+</ToolboxMdxWrapper>
+
+## Instructions
+
+In the tool above:
+1. Select **Fuji C-Chain** and your **new L1** as the networks to relay between
+2. Create the hosted relayer (it will automatically start running)
+3. Fund the relayer address with enough gas on **both** chains if needed
+
+<Callout type="info">
+**Note**: Hosted relayers are free and perfect for testing. They automatically shut down after 3 days. For production or extended testing, use a self-hosted relayer.
+
+If you don't have the relayer running, cross-chain messages will be created but **never delivered**, and your bridge transfers will appear "stuck".
+</Callout>
+
+<Accordions>
+<Accordion title="Self-Hosted Relayer (Alternative)">
+
+If you prefer to run your own infrastructure or need a relayer that runs longer than 3 days, you can set up a self-hosted relayer using Docker.
 
 <ToolboxMdxWrapper walletMode="l1">
   <ICMRelayer />
 </ToolboxMdxWrapper>
 
-In the tool:
-- Select **Fuji C-Chain** and your **new L1** as the networks to relay between.
-- Fund the generated relayer address with enough gas on **both** chains.
-- Run the provided Docker command to start the relayer.
+### Instructions
 
-<Callout type="info">
-If you don’t have the relayer running, cross-chain messages will be created but **never delivered**, and your bridge transfers will appear “stuck”.
-</Callout>
+1. Select **Fuji C-Chain** and your **new L1** as the networks to relay between
+2. Fund the generated relayer address with enough gas on **both** chains
+3. Save the configuration to your machine
+4. Run the provided Docker command to start the relayer
 
-## Next Steps
-
-With the relayer running, you’re ready to deploy `NativeTokenRemote` on your L1.
+</Accordion>
+</Accordions>
 
 

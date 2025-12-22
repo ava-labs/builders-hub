@@ -64,6 +64,19 @@ Since native AVAX isn't an ERC-20 token, NativeTokenHome uses **WAVAX** internal
 Fuji C-Chain already has a deployed WAVAX contract. The toolbox will automatically detect and use it.
 </Callout>
 
+## Key Requirement: Native Minter Precompile
+
+Your L1 must have the **Native Minter precompile** enabled. This precompile:
+
+- Is a built-in Avalanche L1 feature
+- Allows authorized contracts to mint native tokens
+- Must be configured in the chain's genesis
+- Address: `0x0200000000000000000000000000000000000001`
+
+<Callout type="warning">
+**Important**: You'll create an L1 with Native Minter enabled as the first step of this chapter.
+</Callout>
+
 ## Deployment Flow
 
 Here's what we'll build:
@@ -81,9 +94,9 @@ Here's what we'll build:
 
 By the end of this section:
 
-- ✅ Your L1 uses **AVAX as the native gas token**
-- ✅ Users can bridge AVAX from Fuji to get native tokens for gas
-- ✅ The bridge is fully collateralized and secure
+- Your L1 uses **AVAX as the native gas token**
+- Users can bridge AVAX from Fuji to get native tokens for gas
+- The bridge is fully collateralized and secure
 
 <Callout type="info">
 **Token Backing**: Every native token minted on your L1 is backed 1:1 by WAVAX (wrapped AVAX) locked in the NativeTokenHome contract on Fuji.

@@ -55,6 +55,7 @@ import TeleporterRegistry from "@/components/toolbox/console/icm/setup/Teleporte
 import ICMRelayer from "@/components/toolbox/console/icm/setup/ICMRelayer";
 import Faucet from "@/components/toolbox/console/primary-network/Faucet";
 import CreateManagedTestnetNode from "@/components/toolbox/console/testnet-infra/ManagedTestnetNodes/CreateManagedTestnetNode";
+import CreateManagedTestnetRelayer from "@/components/toolbox/console/testnet-infra/ManagedTestnetRelayers/CreateManagedTestnetRelayer";
 
 export const dynamicParams = true;
 
@@ -76,6 +77,7 @@ const toolboxComponents = {
   TestSend,
   TeleporterRegistry,
   ICMRelayer,
+  CreateManagedTestnetRelayer,
   Faucet,
 };
 

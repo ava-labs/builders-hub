@@ -76,7 +76,7 @@ Your L1 must have the **Native Minter precompile** enabled. This precompile:
 
 Native-token bridging requires **collateral** to back the minted supply:
 
-1. **Initial Reserve Imbalance**: Set during NativeTokenRemote deployment (we'll use `1 USDC`)
+1. **Initial Reserve Imbalance**: Set during NativeTokenRemote deployment
 2. **Collateral Deposit**: USDC deposited to back the minted native supply
 3. **Full Collateralization**: Required before bridging is enabled
 
@@ -98,20 +98,10 @@ Since the Circle faucet gives you 1 USDC, we'll create an L1 with an initial sup
 
 By the end of this chapter:
 
-- ✅ Your L1 uses **USDC as the native gas token**
-- ✅ You've bridged 1 USDC to get 1 native token on your L1
-- ✅ The bridge is fully collateralized and secure
+- Your L1 uses **USDC as the native gas token**
+- You've bridged 1 USDC to get 1 native token on your L1
+- The bridge is fully collateralized and secure
 
 <Callout type="info">
 **Token Backing**: Every native token minted on your L1 is backed 1:1 by USDC locked in the ERC20TokenHome contract on Fuji.
 </Callout>
-
-## Before You Start
-
-Make sure you have:
-
-1. **Test AVAX** on Fuji C-Chain for gas fees ([Fuji Faucet](/console/primary-network/faucet))
-2. **1 USDC** on Fuji C-Chain from the [Circle Faucet](https://faucet.circle.com/)
-3. **Core Wallet** browser extension installed
-
-Let's get started by getting USDC and creating your L1!

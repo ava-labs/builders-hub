@@ -11,8 +11,6 @@ import { Callout } from 'fumadocs-ui/components/callout';
 import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx";
 import DeployNativeTokenRemote from "@/components/toolbox/console/ictt/setup/DeployNativeTokenRemote";
 
-# Deploy NativeTokenRemote
-
 The `NativeTokenRemote` contract is deployed on your L1. It calls the Native Minter precompile to create native tokens when USDC is bridged from Fuji.
 
 ## Understanding NativeTokenRemote
@@ -74,10 +72,10 @@ After deployment, save the **Native Token Remote Address**. You'll need it for r
 
 After deployment, your NativeTokenRemote:
 
-- ✅ Is configured to call the Native Minter precompile
-- ✅ Knows which ERC20TokenHome to communicate with
-- ❌ Is NOT registered with the home (transfers won't work yet)
-- ❌ Is NOT collateralized (minting is blocked)
+- Is configured to call the Native Minter precompile
+- Knows which ERC20TokenHome to communicate with
+- Is NOT registered with the home (transfers won't work yet)
+- Is NOT collateralized (minting is blocked)
 
 ## Next Steps
 

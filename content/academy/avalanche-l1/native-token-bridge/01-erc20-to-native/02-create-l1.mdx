@@ -17,6 +17,13 @@ import ConvertSubnetToL1 from "@/components/toolbox/console/layer-1/create/Conve
 
 First, get testnet USDC from Circle's faucet. Then create an L1 with the **Native Minter precompile** enabled.
 
+## Prerequisites
+
+Before starting, make sure you have:
+
+1. **Core Wallet** browser extension installed
+2. **Test AVAX** on Fuji C-Chain for gas fees (get it from the [Fuji Faucet](/console/primary-network/faucet) if not automatically airdropped)
+
 <Steps>
   <Step>
     ### Get 1 USDC from Circle Faucet
@@ -52,7 +59,6 @@ First, get testnet USDC from Circle's faucet. Then create an L1 with the **Nativ
       <CreateChain embedded={true} />
     </ToolboxMdxWrapper>
 
-    Save your **Subnet ID**, **Blockchain ID**, and **Chain ID** after creation.
   </Step>
 
   <Step>
@@ -84,11 +90,7 @@ First, get testnet USDC from Circle's faucet. Then create an L1 with the **Nativ
 
 ## What You Have Now
 
-- ✅ **1 USDC** in your wallet on Fuji C-Chain
-- ✅ **Native Minter precompile** enabled at `0x0200000000000000000000000000000000000001`
-- ✅ A hosted node producing blocks
-- ✅ Converted to a sovereign L1
-
-## Next Steps
-
-Next, you'll set up a relayer between Fuji C-Chain and your new L1 to deliver cross-chain messages.
+- **1 USDC** in your wallet on Fuji C-Chain
+- **Native Minter precompile** enabled at `0x0200000000000000000000000000000000000001`
+- A hosted node producing blocks
+- Converted to a sovereign L1
