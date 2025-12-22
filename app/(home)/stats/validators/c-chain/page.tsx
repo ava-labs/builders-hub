@@ -492,11 +492,12 @@ export default function CChainValidatorMetrics() {
     return num.toFixed(0);
   };
 
-  // Get total validator weight from metrics
+  // Get total weight (validator + delegator) from metrics
   const getTotalWeight = (): string => {
-    if (!metrics?.validator_weight?.current_value) return "0";
-    const weightInAvax = Number(metrics.validator_weight.current_value) / 1e9;
-    return formatLargeNumber(weightInAvax);
+    const validatorWeight = metrics?.validator_weight?.current_value ? Number(metrics.validator_weight.current_value) : 0;
+    const delegatorWeight = metrics?.delegator_weight?.current_value ? Number(metrics.delegator_weight.current_value) : 0;
+    const totalWeightInAvax = (validatorWeight + delegatorWeight) / 1e9;
+    return formatLargeNumber(totalWeightInAvax);
   };
 
   // C-Chain config from l1-chains.json
@@ -517,34 +518,34 @@ export default function CChainValidatorMetrics() {
 
   const chartConfigs = [
     {
-      title: "Validator Count",
+      title: "Primary Network Validator Count",
       icon: Monitor,
       metricKey: "validator_count" as const,
-      description: "Number of active validators",
+      description: "Number of active validators on the Primary Network",
       color: chainConfig.color,
       chartType: "bar" as const,
     },
     {
-      title: "Validator Weight",
+      title: "Primary Network Validator Stake",
       icon: Landmark,
       metricKey: "validator_weight" as const,
-      description: "Total validator weight",
+      description: "Total staked amount by validators",
       color: chainConfig.color,
       chartType: "area" as const,
     },
     {
-      title: "Delegator Count",
+      title: "Primary Network Delegator Count",
       icon: HandCoins,
       metricKey: "delegator_count" as const,
-      description: "Number of active delegators",
+      description: "Number of active delegators on the Primary Network",
       color: "#E84142",
       chartType: "bar" as const,
     },
     {
-      title: "Delegator Weight",
+      title: "Primary Network Delegated Stake",
       icon: Landmark,
       metricKey: "delegator_weight" as const,
-      description: "Total delegator weight",
+      description: "Total delegated amount across validators",
       color: "#E84142",
       chartType: "area" as const,
     },
@@ -1021,6 +1022,19 @@ export default function CChainValidatorMetrics() {
               Track network growth and validator activity over time
             </p>
           </div>
+
+          {/* Primary Network Total Stake - Stacked Area Chart */}
+          {metrics?.validator_weight && metrics?.delegator_weight && (
+            <TotalWeightStackedChartCard
+              validatorData={getChartData("validator_weight")}
+              delegatorData={getChartData("delegator_weight")}
+              validatorCurrentValue={getCurrentValue("validator_weight")}
+              delegatorCurrentValue={getCurrentValue("delegator_weight")}
+              color={chainConfig.color}
+              period={globalPeriod}
+              onPeriodChange={handlePeriodChange}
+            />
+          )}
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             {chartConfigs.map((config) => {
@@ -2984,6 +2998,468 @@ function DailyRewardsChartCard({
                   >
                     <LineChart>
                       <Line type="monotone" dataKey="value" stroke={color} strokeWidth={1} dot={false} />
+                    </LineChart>
+                  </Brush>
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Total Weight (Staked + Delegated) Stacked Area Chart
+function TotalWeightStackedChartCard({
+  validatorData,
+  delegatorData,
+  validatorCurrentValue,
+  delegatorCurrentValue,
+  color,
+  period,
+  onPeriodChange,
+}: {
+  validatorData: { day: string; value: number }[];
+  delegatorData: { day: string; value: number }[];
+  validatorCurrentValue: number | string;
+  delegatorCurrentValue: number | string;
+  color: string;
+  period: "D" | "W" | "M" | "Q" | "Y";
+  onPeriodChange: (period: "D" | "W" | "M" | "Q" | "Y") => void;
+}) {
+  const [brushIndexes, setBrushIndexes] = useState<{
+    startIndex: number;
+    endIndex: number;
+  } | null>(null);
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+  const { resolvedTheme } = useTheme();
+
+  const handleScreenshot = async () => {
+    if (!chartContainerRef.current) return;
+    try {
+      const element = chartContainerRef.current;
+      const bgColor = resolvedTheme === "dark" ? "#0a0a0a" : "#ffffff";
+      const dataUrl = await toPng(element, {
+        quality: 1,
+        pixelRatio: 2,
+        backgroundColor: bgColor,
+        cacheBust: true,
+      });
+      const link = document.createElement("a");
+      link.download = `Primary_Network_Total_Stake_${period}_${new Date().toISOString().split("T")[0]}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (error) {
+      console.error("Failed to capture screenshot:", error);
+    }
+  };
+
+  // Merge validator and delegator data by date
+  const mergedData = useMemo(() => {
+    const dateMap = new Map<string, { staked: number; delegated: number }>();
+    
+    validatorData.forEach((point) => {
+      if (!dateMap.has(point.day)) {
+        dateMap.set(point.day, { staked: 0, delegated: 0 });
+      }
+      dateMap.get(point.day)!.staked = point.value;
+    });
+    
+    delegatorData.forEach((point) => {
+      if (!dateMap.has(point.day)) {
+        dateMap.set(point.day, { staked: 0, delegated: 0 });
+      }
+      dateMap.get(point.day)!.delegated = point.value;
+    });
+    
+    return Array.from(dateMap.entries())
+      .map(([day, values]) => ({
+        day,
+        staked: values.staked,
+        delegated: values.delegated,
+        total: values.staked + values.delegated,
+      }))
+      .sort((a, b) => a.day.localeCompare(b.day));
+  }, [validatorData, delegatorData]);
+
+  // Aggregate data by period
+  const aggregatedData = useMemo(() => {
+    if (period === "D") return mergedData;
+
+    const grouped = new Map<string, { stakedSum: number; delegatedSum: number; count: number; date: string }>();
+
+    mergedData.forEach((point) => {
+      const date = new Date(point.day);
+      let key: string;
+
+      if (period === "W") {
+        const weekStart = new Date(date);
+        weekStart.setDate(date.getDate() - date.getDay());
+        key = weekStart.toISOString().split("T")[0];
+      } else if (period === "M") {
+        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+      } else if (period === "Q") {
+        const quarter = Math.floor(date.getMonth() / 3) + 1;
+        key = `${date.getFullYear()}-Q${quarter}`;
+      } else {
+        key = String(date.getFullYear());
+      }
+
+      if (!grouped.has(key)) {
+        grouped.set(key, { stakedSum: 0, delegatedSum: 0, count: 0, date: key });
+      }
+
+      const group = grouped.get(key)!;
+      group.stakedSum += point.staked;
+      group.delegatedSum += point.delegated;
+      group.count += 1;
+    });
+
+    return Array.from(grouped.values())
+      .map((group) => ({
+        day: group.date,
+        staked: group.stakedSum / group.count,
+        delegated: group.delegatedSum / group.count,
+        total: (group.stakedSum + group.delegatedSum) / group.count,
+      }))
+      .sort((a, b) => a.day.localeCompare(b.day));
+  }, [mergedData, period]);
+
+  // Initialize brush
+  useEffect(() => {
+    if (!aggregatedData || aggregatedData.length === 0) {
+      setBrushIndexes(null);
+      return;
+    }
+
+    if (period === "D") {
+      const daysToShow = 90;
+      setBrushIndexes({
+        startIndex: Math.max(0, aggregatedData.length - daysToShow),
+        endIndex: aggregatedData.length - 1,
+      });
+    } else {
+      setBrushIndexes({
+        startIndex: 0,
+        endIndex: aggregatedData.length - 1,
+      });
+    }
+  }, [period, aggregatedData]);
+
+  const displayData = useMemo(() => {
+    if (!brushIndexes || !aggregatedData || aggregatedData.length === 0) return [];
+    const start = Math.max(0, Math.min(brushIndexes.startIndex, aggregatedData.length - 1));
+    const end = Math.max(0, Math.min(brushIndexes.endIndex, aggregatedData.length - 1));
+    if (start > end) return [];
+    return aggregatedData.slice(start, end + 1);
+  }, [brushIndexes, aggregatedData]);
+
+  // Calculate total current value
+  const totalCurrentValue = useMemo(() => {
+    const staked = typeof validatorCurrentValue === 'string' ? parseFloat(validatorCurrentValue) : validatorCurrentValue;
+    const delegated = typeof delegatorCurrentValue === 'string' ? parseFloat(delegatorCurrentValue) : delegatorCurrentValue;
+    return staked + delegated;
+  }, [validatorCurrentValue, delegatorCurrentValue]);
+
+  // Calculate change over visible range
+  const dynamicChange = useMemo(() => {
+    if (!displayData || displayData.length < 2) {
+      return { change: 0, isPositive: true };
+    }
+    const firstValue = displayData[0].total;
+    const lastValue = displayData[displayData.length - 1].total;
+    if (firstValue === 0) {
+      return { change: 0, isPositive: true };
+    }
+    const changePercentage = ((lastValue - firstValue) / firstValue) * 100;
+    return {
+      change: Math.abs(changePercentage),
+      isPositive: changePercentage >= 0,
+    };
+  }, [displayData]);
+
+  // CSV download function
+  const downloadCSV = () => {
+    if (!displayData || displayData.length === 0) return;
+
+    const headers = ["Date", "Staked (nAVAX)", "Delegated (nAVAX)", "Total (nAVAX)"];
+    const rows = displayData.map((point) => 
+      [point.day, point.staked, point.delegated, point.total].join(",")
+    );
+
+    const csvContent = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `Primary_Network_Total_Stake_${period}_${new Date().toISOString().split("T")[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const formatWeight = (value: number): string => {
+    const avaxValue = value / 1e9;
+    if (avaxValue >= 1e12) return `${(avaxValue / 1e12).toFixed(2)}T`;
+    if (avaxValue >= 1e9) return `${(avaxValue / 1e9).toFixed(2)}B`;
+    if (avaxValue >= 1e6) return `${(avaxValue / 1e6).toFixed(2)}M`;
+    if (avaxValue >= 1e3) return `${(avaxValue / 1e3).toFixed(2)}K`;
+    return avaxValue.toFixed(2);
+  };
+
+  const formatWeightFull = (value: number): string => {
+    const avaxValue = value / 1e9;
+    if (avaxValue >= 1e12) return `${(avaxValue / 1e12).toFixed(2)}T AVAX`;
+    if (avaxValue >= 1e9) return `${(avaxValue / 1e9).toFixed(2)}B AVAX`;
+    if (avaxValue >= 1e6) return `${(avaxValue / 1e6).toFixed(2)}M AVAX`;
+    if (avaxValue >= 1e3) return `${(avaxValue / 1e3).toFixed(2)}K AVAX`;
+    return `${avaxValue.toFixed(2)} AVAX`;
+  };
+
+  const formatXAxis = (value: string) => {
+    if (period === "Q") {
+      const parts = value.split("-");
+      if (parts.length === 2) return `${parts[1]} '${parts[0].slice(-2)}`;
+      return value;
+    }
+    if (period === "Y") return value;
+    const date = new Date(value);
+    if (period === "M") {
+      return date.toLocaleDateString("en-US", { month: "short", year: "2-digit" });
+    }
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  };
+
+  const formatTooltipDate = (value: string) => {
+    if (period === "Y") return value;
+    if (period === "Q") {
+      const parts = value.split("-");
+      if (parts.length === 2) return `${parts[1]} ${parts[0]}`;
+      return value;
+    }
+    const date = new Date(value);
+    if (period === "M") {
+      return date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+    }
+    if (period === "W") {
+      const endDate = new Date(date);
+      endDate.setDate(date.getDate() + 6);
+      return `${date.toLocaleDateString("en-US", { month: "short", day: "numeric" })} - ${endDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
+    }
+    return date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
+  };
+
+  const formatBrushXAxis = (value: string) => {
+    if (period === "Q" || period === "Y") return value;
+    const date = new Date(value);
+    return date.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+  };
+
+  const stakedColor = color;
+  const delegatedColor = "#60a5fa"; // Light blue for better contrast
+
+  return (
+    <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700" ref={chartContainerRef}>
+      <CardContent className="p-0">
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div
+              className="rounded-full p-2 sm:p-3 flex items-center justify-center"
+              style={{ backgroundColor: `${color}20` }}
+            >
+              <Landmark className="h-5 w-5 sm:h-6 sm:w-6" style={{ color }} />
+            </div>
+            <div>
+              <h3 className="text-base sm:text-lg font-normal">Primary Network Total Stake</h3>
+              <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
+                Combined validator stake and delegated amounts
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-1">
+            <Select
+              value={period}
+              onValueChange={(value) =>
+                onPeriodChange(value as "D" | "W" | "M" | "Q" | "Y")
+              }
+            >
+              <SelectTrigger className="h-7 w-auto px-2 gap-1 text-xs sm:text-sm border-0 bg-transparent hover:bg-muted focus:ring-0 shadow-none">
+                <SelectValue>
+                  {period === "D" ? "Daily" : period === "W" ? "Weekly" : period === "M" ? "Monthly" : period === "Q" ? "Quarterly" : "Yearly"}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {(["D", "W", "M", "Q", "Y"] as const).map((p) => (
+                  <SelectItem key={p} value={p}>
+                    {p === "D" ? "Daily" : p === "W" ? "Weekly" : p === "M" ? "Monthly" : p === "Q" ? "Quarterly" : "Yearly"}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <button
+              onClick={handleScreenshot}
+              className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
+              title="Download chart as image"
+            >
+              <Camera className="h-4 w-4" />
+            </button>
+            <button
+              onClick={downloadCSV}
+              className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
+              title="Download CSV"
+            >
+              <Download className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+
+        <div className="px-5 pt-6 pb-6">
+          {/* Current Value and Legend */}
+          <div className="flex items-center gap-2 sm:gap-4 mb-3 sm:mb-4 pl-2 sm:pl-4 flex-wrap">
+            <div className="text-md sm:text-xl font-mono">
+              {formatWeightFull(totalCurrentValue)}
+            </div>
+            {dynamicChange.change > 0 && (
+              <div
+                className={`flex items-center gap-1 text-xs sm:text-sm ${
+                  dynamicChange.isPositive ? "text-green-600" : "text-red-600"
+                }`}
+                title="Change over selected time range"
+              >
+                <TrendingUp
+                  className={`h-3 w-3 sm:h-4 sm:w-4 ${
+                    dynamicChange.isPositive ? "" : "rotate-180"
+                  }`}
+                />
+                {dynamicChange.change.toFixed(1)}%
+              </div>
+            )}
+            <div className="flex items-center gap-3 ml-auto text-xs">
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-3 rounded" style={{ backgroundColor: stakedColor }} />
+                <span className="text-muted-foreground">Staked</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-3 rounded" style={{ backgroundColor: delegatedColor }} />
+                <span className="text-muted-foreground">Delegated</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Chart */}
+          <ChartWatermark className="mb-6">
+            {displayData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={350}>
+                <AreaChart data={displayData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="gradient-staked-weight" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor={stakedColor} stopOpacity={0.8} />
+                      <stop offset="95%" stopColor={stakedColor} stopOpacity={0.3} />
+                    </linearGradient>
+                    <linearGradient id="gradient-delegated-weight" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor={delegatedColor} stopOpacity={0.8} />
+                      <stop offset="95%" stopColor={delegatedColor} stopOpacity={0.3} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    className="stroke-gray-200 dark:stroke-gray-700"
+                    vertical={false}
+                  />
+                  <XAxis
+                    dataKey="day"
+                    tickFormatter={formatXAxis}
+                    className="text-xs text-gray-600 dark:text-gray-400"
+                    tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
+                    minTickGap={80}
+                    interval="preserveStartEnd"
+                  />
+                  <YAxis
+                    tickFormatter={formatWeight}
+                    className="text-xs text-gray-600 dark:text-gray-400"
+                    tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
+                  />
+                  <Tooltip
+                    cursor={{ fill: `${color}20` }}
+                    content={({ active, payload }) => {
+                      if (!active || !payload?.[0]) return null;
+                      const data = payload[0].payload;
+                      return (
+                        <div className="rounded-lg border bg-background p-2 shadow-sm font-mono">
+                          <div className="grid gap-2">
+                            <div className="font-medium text-sm">
+                              {formatTooltipDate(data.day)}
+                            </div>
+                            <div className="text-xs flex items-center gap-2">
+                              <div className="w-2 h-2 rounded" style={{ backgroundColor: stakedColor }} />
+                              Staked: {formatWeightFull(data.staked)}
+                            </div>
+                            <div className="text-xs flex items-center gap-2">
+                              <div className="w-2 h-2 rounded" style={{ backgroundColor: delegatedColor }} />
+                              Delegated: {formatWeightFull(data.delegated)}
+                            </div>
+                            <div className="text-xs font-medium border-t pt-1 mt-1">
+                              Total: {formatWeightFull(data.total)}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="staked"
+                    stackId="1"
+                    stroke={stakedColor}
+                    fill="url(#gradient-staked-weight)"
+                    strokeWidth={2}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="delegated"
+                    stackId="1"
+                    stroke={delegatedColor}
+                    fill="url(#gradient-delegated-weight)"
+                    strokeWidth={2}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-[350px] flex items-center justify-center text-muted-foreground">
+                Loading chart data...
+              </div>
+            )}
+          </ChartWatermark>
+
+          {/* Brush Slider */}
+          {aggregatedData.length > 0 && brushIndexes && 
+           !isNaN(brushIndexes.startIndex) && !isNaN(brushIndexes.endIndex) &&
+           brushIndexes.startIndex >= 0 && brushIndexes.endIndex < aggregatedData.length && (
+            <div className="bg-white dark:bg-black pl-[60px]">
+              <ResponsiveContainer width="100%" height={80}>
+                <LineChart data={aggregatedData} margin={{ top: 0, right: 30, left: 0, bottom: 5 }}>
+                  <Brush
+                    dataKey="day"
+                    height={80}
+                    stroke={color}
+                    fill={`${color}20`}
+                    alwaysShowText={false}
+                    startIndex={brushIndexes.startIndex}
+                    endIndex={brushIndexes.endIndex}
+                    onChange={(e: any) => {
+                      if (e.startIndex !== undefined && e.endIndex !== undefined &&
+                          !isNaN(e.startIndex) && !isNaN(e.endIndex)) {
+                        setBrushIndexes({ startIndex: e.startIndex, endIndex: e.endIndex });
+                      }
+                    }}
+                    travellerWidth={8}
+                    tickFormatter={formatBrushXAxis}
+                  >
+                    <LineChart>
+                      <Line type="monotone" dataKey="total" stroke={color} strokeWidth={1} dot={false} />
                     </LineChart>
                   </Brush>
                 </LineChart>
