@@ -5,33 +5,34 @@ import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { GraduationCap } from 'lucide-react';
 
-// Avalanche Logo SVG
+// Avalanche Logo SVG - Official logomark
 function AvalancheLogo({ className }: { className?: string }) {
     return (
-        <svg viewBox="0 0 254 254" fill="currentColor" className={className}>
-            <path d="M95.2 172.2H57.1c-4.3 0-6.5 0-8-0.7-1.7-0.7-3-2-3.7-3.7-0.7-1.6-0.7-3.7-0.7-8V51.1c0-4.3 0-6.5 0.7-8 0.7-1.7 2-3 3.7-3.7 1.6-0.7 3.7-0.7 8-0.7h38.1c4.3 0 6.5 0 8 0.7 1.7 0.7 3 2 3.7 3.7 0.7 1.6 0.7 3.7 0.7 8v108.7c0 4.3 0 6.5-0.7 8-0.7 1.7-2 3-3.7 3.7-1.5 0.7-3.7 0.7-8 0.7z"/>
-            <path d="M171.8 214.4h-89.6c-7.5 0-11.3 0-13.9-1.2-2.9-1.3-5.2-3.6-6.5-6.5-1.2-2.6-1.2-6.4-1.2-13.9v-10.6c0-7.5 0-11.3 1.2-13.9 1.3-2.9 3.6-5.2 6.5-6.5 2.6-1.2 6.4-1.2 13.9-1.2h89.6c7.5 0 11.3 0 13.9 1.2 2.9 1.3 5.2 3.6 6.5 6.5 1.2 2.6 1.2 6.4 1.2 13.9v10.6c0 7.5 0 11.3-1.2 13.9-1.3 2.9-3.6 5.2-6.5 6.5-2.6 1.2-6.4 1.2-13.9 1.2z"/>
-            <path d="M196.9 172.2h-38.1c-4.3 0-6.5 0-8-0.7-1.7-0.7-3-2-3.7-3.7-0.7-1.6-0.7-3.7-0.7-8V51.1c0-4.3 0-6.5 0.7-8 0.7-1.7 2-3 3.7-3.7 1.6-0.7 3.7-0.7 8-0.7h38.1c4.3 0 6.5 0 8 0.7 1.7 0.7 3 2 3.7 3.7 0.7 1.6 0.7 3.7 0.7 8v108.7c0 4.3 0 6.5-0.7 8-0.7 1.7-2 3-3.7 3.7-1.5 0.7-3.7 0.7-8 0.7z"/>
+        <svg viewBox="0 0 257 227" fill="currentColor" className={className}>
+            <path d="M160.944 226.116H246.964C254.554 226.116 259.304 217.896 255.504 211.326L212.494 136.836C208.694 130.266 199.214 130.266 195.414 136.836L152.404 211.326C148.604 217.896 153.354 226.116 160.944 226.116Z"/>
+            <path d="M171.704 66.1852L136.354 4.94523C132.784 -1.24477 123.844 -1.24477 120.274 4.94523L1.38358 210.865C-2.52642 217.645 2.36358 226.105 10.1836 226.105H80.9736C88.5236 226.105 95.4936 222.075 99.2636 215.545L171.704 90.0752C175.974 82.6852 175.974 73.5752 171.704 66.1852Z"/>
         </svg>
     );
 }
 
-// Solidity Logo SVG
+// Solidity Logo SVG - Official logo
 function SolidityLogo({ className }: { className?: string }) {
     return (
-        <svg viewBox="0 0 256 256" fill="currentColor" className={className}>
-            <path d="M165.7 0L128 69.1 90.3 0H0l37.7 69.1L0 138.3h90.3L128 69.1l37.7 69.2H256l-37.7-69.2L256 0z" opacity="0.45"/>
-            <path d="M90.3 256l37.7-69.1 37.7 69.1H256l-37.7-69.1 37.7-69.2h-90.3L128 186.9l-37.7-69.2H0l37.7 69.2L0 256z" opacity="0.6"/>
-            <path d="M128 69.1l37.7 69.2H90.3z" opacity="0.8"/>
-            <path d="M128 186.9l-37.7-69.2h75.4z" opacity="0.8"/>
+        <svg viewBox="-78.58515 -203.242 681.0713 1219.452" fill="currentColor" className={className}>
+            <path d="M391.93 0L261.226 232.302H0L130.614 0H391.93" opacity=".45"/>
+            <path d="M261.226 232.302h261.318L391.93 0H130.614z" opacity=".6"/>
+            <path d="M130.614 464.514l130.612-232.212L130.614 0 0 232.302z" opacity=".8"/>
+            <path d="M131.879 812.967l130.704-232.303h261.318L393.196 812.967H131.879" opacity=".45"/>
+            <path d="M262.582 580.665H1.265l130.613 232.303h261.317z" opacity=".6"/>
+            <path d="M393.196 348.453L262.582 580.665l130.614 232.303L523.9 580.665z" opacity=".8"/>
         </svg>
     );
 }
 
 const academyItems = [
-    { id: "avalanche", label: "Avalanche L1", href: "/academy/avalanche-l1", icon: AvalancheLogo },
-    { id: "blockchain", label: "Blockchain", href: "/academy/blockchain", icon: SolidityLogo },
-    { id: "entrepreneur", label: "Entrepreneur", href: "/academy/entrepreneur", icon: GraduationCap },
+    { id: "avalanche", label: "Avalanche L1", href: "/academy/avalanche-l1", icon: AvalancheLogo, iconSize: "w-7 h-7", padding: "14px" },
+    { id: "blockchain", label: "Blockchain", href: "/academy/blockchain", icon: SolidityLogo, iconSize: "w-9 h-9", padding: "10px" },
+    { id: "entrepreneur", label: "Entrepreneur", href: "/academy/entrepreneur", icon: GraduationCap, iconSize: "w-7 h-7", padding: "14px" },
 ];
 
 function getActiveItem(pathname: string): string {
@@ -126,14 +127,14 @@ export function AcademyBubbleNav() {
                                 "bg-white/90 dark:bg-zinc-900/90 backdrop-blur-sm shadow-lg border border-gray-200/50 dark:border-zinc-800/50",
                                 isActive
                                     ? "text-red-600 dark:text-red-400 bubble-active"
-                                    : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-all duration-300 ease-out"
+                                    : "text-zinc-900 dark:text-zinc-100 hover:text-zinc-600 dark:hover:text-zinc-300 transition-all duration-300 ease-out"
                             )}
                             style={{
-                                padding: "14px",
+                                padding: item.padding,
                             }}
                             title={item.label}
                         >
-                            <Icon className="w-7 h-7 flex-shrink-0" />
+                            <Icon className={cn(item.iconSize, "flex-shrink-0")} />
                             <div
                                 className={cn(
                                     "overflow-hidden transition-all duration-300 ease-out whitespace-nowrap",
