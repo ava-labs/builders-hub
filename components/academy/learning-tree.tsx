@@ -146,7 +146,7 @@ export default function LearningTree({
   }, [hoveredNode]);
 
   // Calculate SVG dimensions based on node positions
-  const maxY = Math.max(...learningPaths.map(node => node.position.y)) + 250;
+  const maxY = Math.max(...learningPaths.map(node => node.position.y)) + 200;
 
   // Legend component
   const Legend = ({ isMobile = false, vertical = false }: { isMobile?: boolean; vertical?: boolean }) => (
@@ -207,7 +207,7 @@ export default function LearningTree({
             const childCenterX = node.position.x;
 
             // Card dimensions
-            const cardHeight = 110;
+            const cardHeight = 95;
 
             // Lines should connect from bottom of parent to top of child
             const parentBottomY = parentNode.position.y + cardHeight;
@@ -289,7 +289,7 @@ export default function LearningTree({
                 >
                   <div
                     className={cn(
-                      "relative w-full p-4 rounded-xl transition-all duration-300",
+                      "relative w-full p-3 rounded-lg transition-all duration-300",
                       "bg-white dark:bg-zinc-900",
                       "border-2 dark:border-zinc-800",
                       "shadow-sm active:shadow-lg",
@@ -309,20 +309,20 @@ export default function LearningTree({
                   >
                     {/* Category icon */}
                     <div className={cn(
-                      "absolute -top-2 -right-2 w-8 h-8 rounded-full",
+                      "absolute -top-2 -right-2 w-7 h-7 rounded-full",
                       "bg-gradient-to-br shadow-md",
                       "flex items-center justify-center",
                       "text-white",
                       style?.gradient
                     )}>
-                      <Icon className="w-4 h-4" />
+                      <Icon className="w-3.5 h-3.5" />
                     </div>
 
                     {/* Content */}
-                    <h4 className="font-semibold text-base mb-1 text-zinc-900 dark:text-white leading-tight pr-8">
+                    <h4 className="font-semibold text-sm mb-1 text-zinc-900 dark:text-white leading-tight pr-6">
                       {node.name}
                     </h4>
-                    <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
+                    <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
                       {node.description}
                     </p>
 
@@ -352,29 +352,29 @@ export default function LearningTree({
                       const bgColorClass = categoryBgColors[node.category] || "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400";
                       
                       return (duration || tool) ? (
-                        <div className="mt-2 flex items-center justify-between">
+                        <div className="mt-1.5 flex items-center justify-between">
                           {tool && ToolIcon ? (
                             <div className={cn(
-                              "flex items-center gap-1 px-2 py-0.5 rounded-full",
+                              "flex items-center gap-1 px-1.5 py-0.5 rounded-full",
                               bgColorClass
                             )}>
-                              <ToolIcon className="w-3 h-3" />
-                              <span className="text-xs font-medium">{tool}</span>
+                              <ToolIcon className="w-2.5 h-2.5" />
+                              <span className="text-[10px] font-medium">{tool}</span>
                             </div>
                           ) : <div />}
                           {duration && (
                             <div className={cn(
-                              "flex items-center gap-1 px-2 py-0.5 rounded-full",
+                              "flex items-center gap-1 px-1.5 py-0.5 rounded-full",
                               bgColorClass
                             )}>
-                              <Clock className="w-3 h-3" />
-                              <span className="text-xs font-medium">{duration}</span>
+                              <Clock className="w-2.5 h-2.5" />
+                              <span className="text-[10px] font-medium">{duration}</span>
                             </div>
                           )}
                         </div>
                       ) : (
-                        <div className="absolute bottom-3 right-3">
-                          <ArrowRight className="w-4 h-4 text-zinc-400" />
+                        <div className="absolute bottom-2 right-2">
+                          <ArrowRight className="w-3.5 h-3.5 text-zinc-400" />
                         </div>
                       );
                     })()}
@@ -482,7 +482,7 @@ export default function LearningTree({
                 left: `${node.position.x}%`,
                 top: `${node.position.y}px`,
                 transform: 'translateX(-50%)',
-                width: '280px',
+                width: '238px',
                 zIndex: isHighlighted || isCategoryHovered ? 20 : 10
               }}
               onMouseEnter={() => {
@@ -500,7 +500,7 @@ export default function LearningTree({
               >
                 <div
                   className={cn(
-                    "relative w-full p-5 rounded-2xl transition-all duration-300 min-height-[110px]",
+                    "relative w-full p-4 rounded-xl transition-all duration-300",
                     "bg-white dark:bg-zinc-900",
                     "border-2 dark:border-zinc-800",
                     "shadow-sm",
@@ -520,20 +520,20 @@ export default function LearningTree({
                 >
                   {/* Category icon */}
                   <div className={cn(
-                    "absolute -top-3 -right-3 w-10 h-10 rounded-full",
+                    "absolute -top-2.5 -right-2.5 w-8 h-8 rounded-full",
                     "bg-gradient-to-br shadow-md",
                     "flex items-center justify-center",
                     "text-white",
                     style?.gradient
                   )}>
-                    <Icon className="w-5 h-5" />
+                    <Icon className="w-4 h-4" />
                   </div>
 
                   {/* Content */}
-                  <h4 className="font-semibold text-base mb-2 text-zinc-900 dark:text-white leading-tight pr-8">
+                  <h4 className="font-semibold text-sm mb-1.5 text-zinc-900 dark:text-white leading-tight pr-6">
                     {node.name}
                   </h4>
-                  <p className="text-sm text-zinc-600 dark:text-zinc-400 line-clamp-2 leading-relaxed">
+                  <p className="text-xs text-zinc-600 dark:text-zinc-400 line-clamp-2 leading-relaxed">
                     {node.description}
                   </p>
 
@@ -564,25 +564,25 @@ export default function LearningTree({
                     
                     return (duration || tool) ? (
                       <div className={cn(
-                        "mt-3 flex items-center justify-between overflow-hidden transition-all duration-300 ease-out",
-                        "max-h-0 opacity-0 group-hover:max-h-10 group-hover:opacity-100"
+                        "mt-2 flex items-center justify-between overflow-hidden transition-all duration-300 ease-out",
+                        "max-h-0 opacity-0 group-hover:max-h-8 group-hover:opacity-100"
                       )}>
                         {tool && ToolIcon ? (
                           <div className={cn(
-                            "flex items-center gap-1.5 px-2.5 py-1 rounded-full",
+                            "flex items-center gap-1 px-2 py-0.5 rounded-full",
                             bgColorClass
                           )}>
-                            <ToolIcon className="w-3.5 h-3.5" />
-                            <span className="text-xs font-medium whitespace-nowrap">{tool}</span>
+                            <ToolIcon className="w-3 h-3" />
+                            <span className="text-[10px] font-medium whitespace-nowrap">{tool}</span>
                           </div>
                         ) : <div />}
                         {duration && (
                           <div className={cn(
-                            "flex items-center gap-1.5 px-2.5 py-1 rounded-full",
+                            "flex items-center gap-1 px-2 py-0.5 rounded-full",
                             bgColorClass
                           )}>
-                            <Clock className="w-3.5 h-3.5" />
-                            <span className="text-xs font-medium whitespace-nowrap">{duration}</span>
+                            <Clock className="w-3 h-3" />
+                            <span className="text-[10px] font-medium whitespace-nowrap">{duration}</span>
                           </div>
                         )}
                       </div>
