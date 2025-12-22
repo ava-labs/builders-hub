@@ -11,7 +11,7 @@ Your node's storage requirements depend on which type of state you're maintainin
 
 | Property | Active State | Active State with Snapshots | Archival State |
 |----------|--------------|------------------------------|----------------|
-| **Size (C-Chain)** | ~500 GB | ~750 GB - 1 TB | ~3 TB+ (and growing) |
+| **Size (C-Chain)** | ~500 GB | ~750 GB - 1 TB | ~12 TB+ (and growing) |
 | **Contents** | Current account balances, contract storage, code | Current state + state sync snapshots for serving peers | Complete state history at every block |
 | **Required for** | Validating, sending transactions, reading current state | Same as Active State, helps other nodes bootstrap | Historical queries at any block height, block explorers, analytics |
 | **Sync method** | State sync (fast, hours) | State sync, then grows over time | Full sync from genesis (slow, days) |
@@ -54,7 +54,7 @@ Your node's final state depends on two factors: **how you bootstrap** and **whet
 | Bootstrap Method | Pruning Disabled | Pruning Enabled |
 |------------------|------------------|-----------------|
 | **State Sync** | Active + Snapshots (~750GB - 1TB) | Active State only (~500GB) |
-| **Full Sync** | Full Archival (~3TB+) | Contradictory goals |
+| **Full Sync** | Full Archival (~12TB+) | Contradictory goals |
 
 ### Key Insight
 
