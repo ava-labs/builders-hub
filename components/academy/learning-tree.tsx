@@ -42,6 +42,11 @@ export default function LearningTree({
   // Use external category if provided, otherwise use internal state
   const hoveredCategory = externalHoveredCategory ?? internalHoveredCategory;
   
+  // Sync internal state with external hover state changes
+  React.useEffect(() => {
+    setInternalHoveredCategory(externalHoveredCategory ?? null);
+  }, [externalHoveredCategory]);
+  
   const setHoveredCategory = (category: string | null) => {
     setInternalHoveredCategory(category);
     onCategoryHover?.(category);
