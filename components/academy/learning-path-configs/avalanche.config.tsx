@@ -1,4 +1,4 @@
-import { BookOpen, ArrowLeftRight, Layers, Coins, Code, Shield } from 'lucide-react';
+import { BookOpen, ArrowLeftRight, Layers, Coins, Code } from 'lucide-react';
 import type { CourseNode } from '../learning-tree';
 
 export const avalancheLearningPaths: CourseNode[] = [

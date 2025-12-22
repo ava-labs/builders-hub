@@ -48,7 +48,7 @@ const officialCourses: Course[] = [
         status: "featured",
         duration: "1 hour",
         languages: [],
-        tools: ["L1 Toolbox"],
+        tools: ["Console"],
         instructors: ["Martin Eckardt", "Ash", "Nicolas Arnedo"],
         category: "Fundamentals",
         certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/AvalancheAcademy_Certificate.pdf"
@@ -61,7 +61,7 @@ const officialCourses: Course[] = [
         status: "featured",
         duration: "2 hours",
         languages: ["JavaScript", "Typescript"],
-        tools: ["Thirdweb x402", "PayAI", "Ultravioleta DAO", "x402-rs"],
+        tools: ["Thirdweb x402"],
         instructors: ["Federico Nardelli"],
         category: "Fundamentals",
         certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/AvalancheAcademy_Certificate.pdf"
@@ -73,7 +73,7 @@ const officialCourses: Course[] = [
         icon: <MailIcon />,
         status: "featured",
         duration: "3 hours",
-        tools: ["L1 Toolbox", "Docker"],
+        tools: ["Console"],
         languages: ["Solidity"],
         instructors: ["Martin Eckardt", "Andrea Vargas", "Ash", "Nicolas Arnedo"], // + Usman
         category: "Interoperability",
@@ -99,7 +99,7 @@ const officialCourses: Course[] = [
         icon: <ArrowLeftRight />,
         status: "normal",
         duration: "2.5 hours",
-        tools: ["ICM", "Foundry"],
+        tools: ["Console"],
         languages: ["Solidity"],
         instructors: ["Martin Eckardt", "Andrea Vargas", "Ash", "Owen Wahlgren", "Sarp"],
         category: "Interoperability",
@@ -345,6 +345,19 @@ export const getCourseNameMapping = () => {
     });
     
     return mapping;
+};
+
+// Helper function to get course durations by slug
+export const getCourseDurations = (): Record<string, string> => {
+    const durations: Record<string, string> = {};
+    
+    officialCourses.forEach(course => {
+        if (course.duration) {
+            durations[course.slug] = course.duration;
+        }
+    });
+    
+    return durations;
 };
 
 export default {

@@ -3,7 +3,8 @@
 import React from "react";
 import Link from "next/link";
 import { cn } from "@/utils/cn";
-import { ArrowRight, ChevronDown, GraduationCap, BookOpen, Shield } from "lucide-react";
+import { ArrowRight, ChevronDown, GraduationCap, BookOpen, Shield, Clock } from "lucide-react";
+import { getCourseDurations } from "@/content/courses";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 // CourseNode interface definition
@@ -28,6 +29,15 @@ interface LearningTreeProps {
   externalHoveredCategory?: string | null;
   onCategoryHover?: (category: string | null) => void;
 }
+
+// Get course durations once
+const courseDurations = getCourseDurations();
+
+// Helper to extract course slug from full path (e.g., "avalanche-l1/avalanche-fundamentals" -> "avalanche-fundamentals")
+const getCourseSlug = (fullSlug: string): string => {
+  const parts = fullSlug.split('/');
+  return parts[parts.length - 1];
+};
 
 export default function LearningTree({ 
   pathType = 'avalanche',
@@ -298,10 +308,45 @@ export default function LearningTree({
                       {node.description}
                     </p>
 
-                    {/* Mobile tap indicator */}
-                    <div className="absolute bottom-3 right-3">
-                      <ArrowRight className="w-4 h-4 text-zinc-400" />
-                    </div>
+                    {/* Mobile duration indicator - below description */}
+                    {(() => {
+                      const courseSlug = getCourseSlug(node.slug);
+                      const duration = courseDurations[courseSlug];
+                      
+                      // Category-based background colors (lighter versions)
+                      const categoryBgColors: Record<string, string> = {
+                        // Avalanche categories
+                        "Fundamentals": "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300",
+                        "Interoperability": "bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300",
+                        "L1 Development": "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300",
+                        "L1 Tokenomics": "bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300",
+                        "VM Customization": "bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300",
+                        // Entrepreneur categories
+                        "Community": "bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300",
+                        "Business Strategy": "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300",
+                        "Finance": "bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300",
+                        // Blockchain categories
+                        "Development": "bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300",
+                        "Privacy": "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300",
+                      };
+                      const bgColorClass = categoryBgColors[node.category] || "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400";
+                      
+                      return duration ? (
+                        <div className="mt-2 flex items-center justify-end">
+                          <div className={cn(
+                            "flex items-center gap-1 px-2 py-0.5 rounded-full",
+                            bgColorClass
+                          )}>
+                            <Clock className="w-3 h-3" />
+                            <span className="text-xs font-medium">{duration}</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="absolute bottom-3 right-3">
+                          <ArrowRight className="w-4 h-4 text-zinc-400" />
+                        </div>
+                      );
+                    })()}
                   </div>
                 </Link>
               </div>
@@ -461,10 +506,44 @@ export default function LearningTree({
                     {node.description}
                   </p>
 
-                  {/* Hover indicator */}
-                  <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <ArrowRight className="w-5 h-5 text-zinc-400" />
-                  </div>
+                  {/* Duration indicator - appears below description on hover */}
+                  {(() => {
+                    const courseSlug = getCourseSlug(node.slug);
+                    const duration = courseDurations[courseSlug];
+                    
+                    // Category-based background colors (lighter versions)
+                    const categoryBgColors: Record<string, string> = {
+                      // Avalanche categories
+                      "Fundamentals": "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300",
+                      "Interoperability": "bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300",
+                      "L1 Development": "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300",
+                      "L1 Tokenomics": "bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300",
+                      "VM Customization": "bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300",
+                      // Entrepreneur categories
+                      "Community": "bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300",
+                      "Business Strategy": "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300",
+                      "Finance": "bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300",
+                      // Blockchain categories
+                      "Development": "bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300",
+                      "Privacy": "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300",
+                    };
+                    const bgColorClass = categoryBgColors[node.category] || "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400";
+                    
+                    return duration ? (
+                      <div className={cn(
+                        "mt-3 flex items-center justify-end overflow-hidden transition-all duration-300 ease-out",
+                        "max-h-0 opacity-0 group-hover:max-h-10 group-hover:opacity-100"
+                      )}>
+                        <div className={cn(
+                          "flex items-center gap-1.5 px-2.5 py-1 rounded-full",
+                          bgColorClass
+                        )}>
+                          <Clock className="w-3.5 h-3.5" />
+                          <span className="text-xs font-medium whitespace-nowrap">{duration}</span>
+                        </div>
+                      </div>
+                    ) : null;
+                  })()}
                 </div>
               </Link>
             </div>
