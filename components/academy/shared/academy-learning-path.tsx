@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import LearningTree, { LearningTreeLegend } from '@/components/academy/learning-tree';
+import { AcademyShortcutSection } from './academy-shortcut-section';
 import type { AcademyPathType } from './academy-types';
 
 // Typewriter effect component
@@ -88,6 +89,13 @@ export function AcademyLearningPath({ pathType }: AcademyLearningPathProps) {
                     onCategoryHover={setHoveredCategory}
                 />
             </div>
+
+            {/* Shortcut section for Avalanche and Blockchain academies */}
+            {(pathType === 'avalanche' || pathType === 'blockchain') && (
+                <div className="mt-16">
+                    <AcademyShortcutSection pathType={pathType} />
+                </div>
+            )}
         </div>
     );
 }
