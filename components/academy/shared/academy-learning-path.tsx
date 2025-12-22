@@ -98,35 +98,40 @@ interface AcademyLearningPathProps {
 export function AcademyLearningPath({ pathType }: AcademyLearningPathProps) {
     const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
 
-    const descriptionSegments: TextSegment[] = pathType === 'avalanche'
-        ? [
-            { text: '<', isCode: true },
-            { text: 'Avalanche L1', isHighlight: true },
-            { text: '> ', isCode: true },
-            { text: 'Deploy L1s, bridge tokens, and build cross-chain apps' },
-            { text: ' </', isCode: true },
-            { text: 'Avalanche L1', isHighlight: true },
-            { text: '>', isCode: true },
-        ]
-        : pathType === 'blockchain'
-        ? [
-            { text: '<', isCode: true },
-            { text: 'Blockchain', isHighlight: true },
-            { text: '> ', isCode: true },
-            { text: 'Master Solidity and deploy smart contracts' },
-            { text: ' </', isCode: true },
-            { text: 'Blockchain', isHighlight: true },
-            { text: '>', isCode: true },
-        ]
-        : [
-            { text: '<', isCode: true },
-            { text: 'Entrepreneur', isHighlight: true },
-            { text: '> ', isCode: true },
-            { text: 'Build your foundation, scale your Web3 venture' },
-            { text: ' </', isCode: true },
-            { text: 'Entrepreneur', isHighlight: true },
-            { text: '>', isCode: true },
-        ];
+    // Memoize segments so they only change when pathType changes (not on hover)
+    const descriptionSegments: TextSegment[] = useMemo(() => {
+        if (pathType === 'avalanche') {
+            return [
+                { text: '<', isCode: true },
+                { text: 'Avalanche L1', isHighlight: true },
+                { text: '> ', isCode: true },
+                { text: 'Deploy L1s, bridge tokens, and build cross-chain apps' },
+                { text: ' </', isCode: true },
+                { text: 'Avalanche L1', isHighlight: true },
+                { text: '>', isCode: true },
+            ];
+        } else if (pathType === 'blockchain') {
+            return [
+                { text: '<', isCode: true },
+                { text: 'Blockchain', isHighlight: true },
+                { text: '> ', isCode: true },
+                { text: 'Master Solidity and deploy smart contracts' },
+                { text: ' </', isCode: true },
+                { text: 'Blockchain', isHighlight: true },
+                { text: '>', isCode: true },
+            ];
+        } else {
+            return [
+                { text: '<', isCode: true },
+                { text: 'Entrepreneur', isHighlight: true },
+                { text: '> ', isCode: true },
+                { text: 'Build your foundation, scale your Web3 venture' },
+                { text: ' </', isCode: true },
+                { text: 'Entrepreneur', isHighlight: true },
+                { text: '>', isCode: true },
+            ];
+        }
+    }, [pathType]);
 
     return (
         <div id="learning-path-section" className="mb-20 scroll-mt-20">
