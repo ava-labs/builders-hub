@@ -52,10 +52,22 @@ function getActiveItem(pathname: string): string {
     return "avalanche";
 }
 
+// Check if we're on a main academy landing page (not inside a course)
+function isMainAcademyPage(pathname: string): boolean {
+    const mainPages = [
+        "/academy",
+        "/academy/avalanche-l1",
+        "/academy/blockchain",
+        "/academy/entrepreneur"
+    ];
+    return mainPages.includes(pathname);
+}
+
 export function AcademyBubbleNav() {
     const pathname = usePathname();
     const router = useRouter();
     const [activeItem, setActiveItem] = useState(() => getActiveItem(pathname));
+    const [isVisible, setIsVisible] = useState(() => isMainAcademyPage(pathname));
     const isInitialMount = useRef(true);
 
     useEffect(() => {
@@ -64,6 +76,7 @@ export function AcademyBubbleNav() {
             return;
         }
         setActiveItem(getActiveItem(pathname));
+        setIsVisible(isMainAcademyPage(pathname));
     }, [pathname]);
 
     const handleItemClick = (item: typeof academyItems[0]) => {
@@ -73,6 +86,11 @@ export function AcademyBubbleNav() {
             window.scrollTo({ top: 0, behavior: 'instant' });
         }
     };
+
+    // Don't render if not on a main academy page
+    if (!isVisible) {
+        return null;
+    }
 
     return (
         <>
@@ -92,7 +110,7 @@ export function AcademyBubbleNav() {
             }
         `}</style>
         <nav
-            className="fixed left-3 top-1/2 -translate-y-1/2 z-50 hidden lg:block"
+            className="fixed left-3 top-1/2 -translate-y-1/2 z-30 hidden lg:block"
         >
             <div className="flex flex-col items-start gap-2">
                 {academyItems.map((item) => {
