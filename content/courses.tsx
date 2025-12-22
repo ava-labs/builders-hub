@@ -360,6 +360,19 @@ export const getCourseDurations = (): Record<string, string> => {
     return durations;
 };
 
+// Helper function to get course tools by slug (returns the first/main tool)
+export const getCourseTools = (): Record<string, string> => {
+    const tools: Record<string, string> = {};
+    
+    officialCourses.forEach(course => {
+        if (course.tools && course.tools.length > 0) {
+            tools[course.slug] = course.tools[0];
+        }
+    });
+    
+    return tools;
+};
+
 export default {
     official: officialCourses.filter((course) => ["normal", "featured"].includes(course.status) && course.category !== "Entrepreneur"),
     official_featured: officialCourses.filter((course) => course.status === "featured" && course.category !== "Entrepreneur"),

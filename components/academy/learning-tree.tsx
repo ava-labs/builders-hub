@@ -3,8 +3,8 @@
 import React from "react";
 import Link from "next/link";
 import { cn } from "@/utils/cn";
-import { ArrowRight, ChevronDown, GraduationCap, BookOpen, Shield, Clock } from "lucide-react";
-import { getCourseDurations } from "@/content/courses";
+import { ArrowRight, ChevronDown, GraduationCap, BookOpen, Shield, Clock, Monitor, Terminal, MessageSquare, Hammer, Settings, Network, Code, Hexagon, Users, Wallet, Lock } from "lucide-react";
+import { getCourseDurations, getCourseTools } from "@/content/courses";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 // CourseNode interface definition
@@ -30,8 +30,26 @@ interface LearningTreeProps {
   onCategoryHover?: (category: string | null) => void;
 }
 
-// Get course durations once
+// Get course durations and tools once
 const courseDurations = getCourseDurations();
+const courseTools = getCourseTools();
+
+// Tool icon mapping
+const toolIconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+  "Console": Monitor,
+  "Avalanche CLI": Terminal,
+  "ICM": MessageSquare,
+  "Foundry": Hammer,
+  "Starter-Kit": Code,
+  "Validator Manager": Settings,
+  "P-Chain": Network,
+  "AvaCloudSDK": Code,
+  "AvaCloud API": Code,
+  "HyperSDK": Terminal,
+  "Chainlink VRF": Hexagon,
+  "Entrepreneur": Users,
+  "Thirdweb x402": Wallet,
+};
 
 // Helper to extract course slug from full path (e.g., "avalanche-l1/avalanche-fundamentals" -> "avalanche-fundamentals")
 const getCourseSlug = (fullSlug: string): string => {
@@ -308,10 +326,12 @@ export default function LearningTree({
                       {node.description}
                     </p>
 
-                    {/* Mobile duration indicator - below description */}
+                    {/* Mobile duration and tool indicator - below description */}
                     {(() => {
                       const courseSlug = getCourseSlug(node.slug);
                       const duration = courseDurations[courseSlug];
+                      const tool = courseTools[courseSlug];
+                      const ToolIcon = tool ? toolIconMap[tool] || Monitor : null;
                       
                       // Category-based background colors (lighter versions)
                       const categoryBgColors: Record<string, string> = {
@@ -331,15 +351,26 @@ export default function LearningTree({
                       };
                       const bgColorClass = categoryBgColors[node.category] || "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400";
                       
-                      return duration ? (
-                        <div className="mt-2 flex items-center justify-end">
-                          <div className={cn(
-                            "flex items-center gap-1 px-2 py-0.5 rounded-full",
-                            bgColorClass
-                          )}>
-                            <Clock className="w-3 h-3" />
-                            <span className="text-xs font-medium">{duration}</span>
-                          </div>
+                      return (duration || tool) ? (
+                        <div className="mt-2 flex items-center justify-between">
+                          {tool && ToolIcon ? (
+                            <div className={cn(
+                              "flex items-center gap-1 px-2 py-0.5 rounded-full",
+                              bgColorClass
+                            )}>
+                              <ToolIcon className="w-3 h-3" />
+                              <span className="text-xs font-medium">{tool}</span>
+                            </div>
+                          ) : <div />}
+                          {duration && (
+                            <div className={cn(
+                              "flex items-center gap-1 px-2 py-0.5 rounded-full",
+                              bgColorClass
+                            )}>
+                              <Clock className="w-3 h-3" />
+                              <span className="text-xs font-medium">{duration}</span>
+                            </div>
+                          )}
                         </div>
                       ) : (
                         <div className="absolute bottom-3 right-3">
@@ -506,10 +537,12 @@ export default function LearningTree({
                     {node.description}
                   </p>
 
-                  {/* Duration indicator - appears below description on hover */}
+                  {/* Duration and Tool indicator - appears below description on hover */}
                   {(() => {
                     const courseSlug = getCourseSlug(node.slug);
                     const duration = courseDurations[courseSlug];
+                    const tool = courseTools[courseSlug];
+                    const ToolIcon = tool ? toolIconMap[tool] || Monitor : null;
                     
                     // Category-based background colors (lighter versions)
                     const categoryBgColors: Record<string, string> = {
@@ -529,18 +562,29 @@ export default function LearningTree({
                     };
                     const bgColorClass = categoryBgColors[node.category] || "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400";
                     
-                    return duration ? (
+                    return (duration || tool) ? (
                       <div className={cn(
-                        "mt-3 flex items-center justify-end overflow-hidden transition-all duration-300 ease-out",
+                        "mt-3 flex items-center justify-between overflow-hidden transition-all duration-300 ease-out",
                         "max-h-0 opacity-0 group-hover:max-h-10 group-hover:opacity-100"
                       )}>
-                        <div className={cn(
-                          "flex items-center gap-1.5 px-2.5 py-1 rounded-full",
-                          bgColorClass
-                        )}>
-                          <Clock className="w-3.5 h-3.5" />
-                          <span className="text-xs font-medium whitespace-nowrap">{duration}</span>
-                        </div>
+                        {tool && ToolIcon ? (
+                          <div className={cn(
+                            "flex items-center gap-1.5 px-2.5 py-1 rounded-full",
+                            bgColorClass
+                          )}>
+                            <ToolIcon className="w-3.5 h-3.5" />
+                            <span className="text-xs font-medium whitespace-nowrap">{tool}</span>
+                          </div>
+                        ) : <div />}
+                        {duration && (
+                          <div className={cn(
+                            "flex items-center gap-1.5 px-2.5 py-1 rounded-full",
+                            bgColorClass
+                          )}>
+                            <Clock className="w-3.5 h-3.5" />
+                            <span className="text-xs font-medium whitespace-nowrap">{duration}</span>
+                          </div>
+                        )}
                       </div>
                     ) : null;
                   })()}
