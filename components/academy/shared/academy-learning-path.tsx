@@ -1,35 +1,90 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import LearningTree, { LearningTreeLegend } from '@/components/academy/learning-tree';
 import { AcademyShortcutSection } from './academy-shortcut-section';
 import type { AcademyPathType } from './academy-types';
 
-// Typewriter effect component
-function TypewriterText({ text, speed = 30 }: { text: string; speed?: number }) {
-    const [displayedText, setDisplayedText] = useState('');
+// Segment types for rich typewriter text
+interface TextSegment {
+    text: string;
+    isHighlight?: boolean;
+    isCode?: boolean;
+}
+
+// Typewriter effect component with support for highlighted segments
+function TypewriterText({ 
+    segments, 
+    speed = 30 
+}: { 
+    segments: TextSegment[]; 
+    speed?: number;
+}) {
     const [currentIndex, setCurrentIndex] = useState(0);
+    
+    // Flatten all text into a single string for typing
+    const fullText = useMemo(() => 
+        segments.map(s => s.text).join(''), 
+        [segments]
+    );
 
     useEffect(() => {
-        // Reset when text changes
-        setDisplayedText('');
+        // Reset when segments change
         setCurrentIndex(0);
-    }, [text]);
+    }, [segments]);
 
     useEffect(() => {
-        if (currentIndex < text.length) {
+        if (currentIndex < fullText.length) {
             const timeout = setTimeout(() => {
-                setDisplayedText(prev => prev + text[currentIndex]);
                 setCurrentIndex(prev => prev + 1);
             }, speed);
             return () => clearTimeout(timeout);
         }
-    }, [currentIndex, text, speed]);
+    }, [currentIndex, fullText, speed]);
+
+    // Render segments with proper styling up to currentIndex
+    const renderSegments = () => {
+        let charCount = 0;
+        const elements: React.ReactNode[] = [];
+
+        segments.forEach((segment, segIndex) => {
+            const segmentStart = charCount;
+            const segmentEnd = charCount + segment.text.length;
+            
+            // How much of this segment should be shown
+            const visibleChars = Math.max(0, Math.min(currentIndex - segmentStart, segment.text.length));
+            const visibleText = segment.text.substring(0, visibleChars);
+            
+            if (visibleText) {
+                if (segment.isHighlight) {
+                    elements.push(
+                        <span key={segIndex} className="text-red-500 font-semibold">
+                            {visibleText}
+                        </span>
+                    );
+                } else if (segment.isCode) {
+                    elements.push(
+                        <span key={segIndex} className="text-zinc-500 dark:text-zinc-500">
+                            {visibleText}
+                        </span>
+                    );
+                } else {
+                    elements.push(
+                        <span key={segIndex}>{visibleText}</span>
+                    );
+                }
+            }
+            
+            charCount = segmentEnd;
+        });
+
+        return elements;
+    };
 
     return (
-        <span>
-            {displayedText}
-            {currentIndex < text.length && (
+        <span className="font-mono">
+            {renderSegments()}
+            {currentIndex < fullText.length && (
                 <span className="inline-block w-0.5 h-5 bg-zinc-400 dark:bg-zinc-500 ml-0.5 animate-pulse" />
             )}
         </span>
@@ -43,18 +98,42 @@ interface AcademyLearningPathProps {
 export function AcademyLearningPath({ pathType }: AcademyLearningPathProps) {
     const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
 
-    const description = pathType === 'avalanche'
-        ? 'Learn about Avalanche infrastructure, how it works and how to deploy L1s and cross-chain bridges'
+    const descriptionSegments: TextSegment[] = pathType === 'avalanche'
+        ? [
+            { text: '<', isCode: true },
+            { text: 'Avalanche L1', isHighlight: true },
+            { text: '> ', isCode: true },
+            { text: 'Deploy L1s, bridge tokens, and build cross-chain apps' },
+            { text: ' </', isCode: true },
+            { text: 'Avalanche L1', isHighlight: true },
+            { text: '>', isCode: true },
+        ]
         : pathType === 'blockchain'
-        ? 'Master blockchain basics and smart contracts'
-        : 'Build your foundation, scale your venture';
+        ? [
+            { text: '<', isCode: true },
+            { text: 'Blockchain', isHighlight: true },
+            { text: '> ', isCode: true },
+            { text: 'Master Solidity and deploy smart contracts' },
+            { text: ' </', isCode: true },
+            { text: 'Blockchain', isHighlight: true },
+            { text: '>', isCode: true },
+        ]
+        : [
+            { text: '<', isCode: true },
+            { text: 'Entrepreneur', isHighlight: true },
+            { text: '> ', isCode: true },
+            { text: 'Build your foundation, scale your Web3 venture' },
+            { text: ' </', isCode: true },
+            { text: 'Entrepreneur', isHighlight: true },
+            { text: '>', isCode: true },
+        ];
 
     return (
         <div id="learning-path-section" className="mb-20 scroll-mt-20">
             <div className="text-center mb-10">
-                {/* Description with typewriter effect */}
-                <p className="text-lg text-zinc-600 dark:text-zinc-400 max-w-2xl mx-auto mb-8">
-                    <TypewriterText text={description} speed={25} />
+                {/* Description with typewriter effect in code notation */}
+                <p className="text-sm sm:text-base text-zinc-600 dark:text-zinc-400 max-w-3xl mx-auto mb-8 whitespace-nowrap">
+                    <TypewriterText segments={descriptionSegments} speed={25} />
                 </p>
 
                 {/* Category legend */}
