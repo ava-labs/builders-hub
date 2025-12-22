@@ -43,15 +43,17 @@ Switch your wallet to the L1 you created earlier. Ensure you have native tokens 
 
 Use the Deploy Native Token Remote tool below:
 
-1. Select **Fuji C-Chain** as the source chain
-2. Enter the **NativeTokenHome address** from the previous step
-3. Set the **initial reserve imbalance** (use `0` if no pre-existing supply)
+1. Enter or confirm the **Teleporter Registry address** on your L1 (should auto-populate if ICM is properly configured)
+2. Select **Fuji C-Chain** as the source chain
+3. Enter the **NativeTokenHome address** from the previous step
+4. Set the **initial reserve imbalance** (use `0` if no pre-existing supply)
 
 <Callout type="warning">
 Make sure you have:
 1. Connected your Core Wallet to your L1
 2. Native tokens on your L1 for gas fees
 3. Your NativeTokenHome address from the previous step
+4. The Teleporter Registry address on your L1 (required for ICM communication)
 </Callout>
 
 <ToolboxMdxWrapper>
@@ -72,6 +74,7 @@ After deployment, save the **Native Token Remote Address**. You'll need it for r
 
 After deployment, your NativeTokenRemote:
 
+- Is connected to the Teleporter Registry for ICM communication
 - Is configured to call the Native Minter precompile
 - Knows which NativeTokenHome to communicate with
 - Is NOT registered with the home (transfers won't work yet)
