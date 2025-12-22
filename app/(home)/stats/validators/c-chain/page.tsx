@@ -492,11 +492,12 @@ export default function CChainValidatorMetrics() {
     return num.toFixed(0);
   };
 
-  // Get total validator weight from metrics
+  // Get total weight (validator + delegator) from metrics
   const getTotalWeight = (): string => {
-    if (!metrics?.validator_weight?.current_value) return "0";
-    const weightInAvax = Number(metrics.validator_weight.current_value) / 1e9;
-    return formatLargeNumber(weightInAvax);
+    const validatorWeight = metrics?.validator_weight?.current_value ? Number(metrics.validator_weight.current_value) : 0;
+    const delegatorWeight = metrics?.delegator_weight?.current_value ? Number(metrics.delegator_weight.current_value) : 0;
+    const totalWeightInAvax = (validatorWeight + delegatorWeight) / 1e9;
+    return formatLargeNumber(totalWeightInAvax);
   };
 
   // C-Chain config from l1-chains.json
