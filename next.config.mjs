@@ -1812,6 +1812,16 @@ const config = {
         destination: "/academy/avalanche-l1/permissioned-l1s/03-create-an-L1/03-genesis-breakdown",
         permanent: true,
       },
+      {
+        source: "/docs/nodes/maintain/chain-state-management",
+        destination: "/docs/nodes/node-storage/chain-state-management",
+        permanent: true,
+      },
+      {
+        source: "/docs/nodes/maintain/chain-state-size-reduction",
+        destination: "/docs/nodes/node-storage/periodic-state-sync",
+        permanent: true,
+      }
     ];
   },
 };

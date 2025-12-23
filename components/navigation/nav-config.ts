@@ -40,7 +40,7 @@ export const menuSections: NavSection[] = [
     href: '/docs/primary-network',
     items: [
       { text: 'Primary Network', href: '/docs/primary-network' },
-      { text: 'Node RPCs', href: '/docs/rpcs/c-chain' },
+      { text: 'Nodes & Validators', href: '/docs/nodes' },
       { text: 'Data APIs', href: '/docs/api-reference/data-api' },
       { text: 'ACPs', href: '/docs/acps' },
       { text: 'Developer Tools', href: '/docs/tooling' },
