@@ -1,0 +1,107 @@
+---
+title: Deploy PoA Manager
+description: Deploy the PoA Manager contract with your multi-sig wallet as the owner
+updated: 2025-03-19
+authors: [nicolasarnedo]
+icon: Terminal
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx";
+import DeployPoAManager from "@/components/toolbox/console/permissioned-l1s/multisig-setup/DeployPoAManager.tsx";
+
+Now that you have your Safe/Ash wallet set up, it's time to deploy the PoA Manager contract. This contract will act as the intermediary between your multi-sig and the Validator Manager.
+
+## What the PoA Manager Does
+
+The PoA Manager is initialized with two key addresses:
+
+1. **Owner**: Your Safe/Ash multi-sig wallet address
+2. **Validator Manager**: The VMC address on C-Chain (from the previous section)
+
+```solidity
+constructor(address _owner, address _validatorManager) {
+    _transferOwnership(_owner);
+    validatorManager = IValidatorManager(_validatorManager);
+}
+```
+
+## Deployment Architecture
+
+After this deployment, you'll have:
+
+<Mermaid
+  chart="
+graph LR
+    subgraph CChain [C-Chain]
+        Safe[Safe/Ash Wallet]
+        PoA[PoA Manager]
+        VM[Validator Manager]
+    end
+    
+    Safe -->|owns| PoA
+    PoA -->|will own| VM
+    
+    subgraph PChain [P-Chain]
+        Validators[Validator Registry]
+    end
+    
+    VM -->|manages| Validators
+    
+    style Safe fill:#f0f9ff,stroke:#0369a1
+    style PoA fill:#fef3c7,stroke:#d97706
+    style VM fill:#d1fae5,stroke:#059669
+"
+/>
+
+<Callout type="info">
+**Note**: After deployment, the PoA Manager will be owned by your Safe wallet, but it won't own the Validator Manager yet. That ownership transfer happens in the next step.
+</Callout>
+
+## Deploy the Contract
+
+Use the tool below to deploy your PoA Manager. You'll need:
+
+- **Safe Address**: Your Ash/Safe wallet address from the previous section
+- **Subnet ID**: To identify your L1's Validator Manager
+
+The tool will:
+1. Automatically detect your Validator Manager address from the selected subnet
+2. Deploy the PoA Manager with your Safe as the owner
+3. Verify the deployment
+
+<ToolboxMdxWrapper walletMode="c-chain">
+    <DeployPoAManager />
+</ToolboxMdxWrapper>
+
+## Verification Checklist
+
+After deployment, verify:
+
+- ✅ **Contract Deployed**: You have a valid PoA Manager address
+- ✅ **Owner Set**: The `owner()` function returns your Safe address
+- ✅ **Validator Manager Linked**: The `validatorManager()` function returns the correct VMC address
+
+## Current Ownership State
+
+At this point, the ownership chain looks like this:
+
+```
+Safe Wallet → owns → PoA Manager
+Your EOA → owns → Validator Manager (still!)
+```
+
+We need one more step to complete the chain: transferring Validator Manager ownership to the PoA Manager.
+
+## Next Steps
+
+In the next section, you'll:
+1. Transfer Validator Manager ownership to the PoA Manager
+2. Complete the multi-sig governance setup
+
+This will establish the full ownership chain:
+
+```
+Safe Wallet → owns → PoA Manager → owns → Validator Manager
+```
+

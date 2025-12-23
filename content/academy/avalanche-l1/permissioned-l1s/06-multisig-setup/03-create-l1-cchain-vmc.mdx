@@ -1,0 +1,129 @@
+---
+title: Create L1 with VMC on C-Chain
+description: Create a new L1 blockchain with the Validator Manager deployed on the C-Chain
+updated: 2025-03-19
+authors: [nicolasarnedo]
+icon: Terminal
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Callout } from 'fumadocs-ui/components/callout';
+import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx";
+import CreateChain from "@/components/toolbox/console/layer-1/create/CreateChain";
+import ConvertToL1 from "@/components/toolbox/console/layer-1/create/ConvertToL1";
+import DeployValidatorManager from "@/components/toolbox/console/permissioned-l1s/validator-manager-setup/DeployValidatorManager.tsx";
+import Initialize from "@/components/toolbox/console/permissioned-l1s/validator-manager-setup/Initialize.tsx";
+import InitValidatorSet from "@/components/toolbox/console/permissioned-l1s/validator-manager-setup/InitValidatorSet.tsx";
+
+For the multi-sig setup, we'll deploy the Validator Manager Contract on the **C-Chain** instead of on the L1 itself. This provides better tooling support and allows validator management to remain operational independently of your L1.
+
+<Callout type="warning">
+This section assumes you've completed the earlier chapters and understand the VMC deployment process. If not, please review the [Create an L1](/academy/permissioned-l1s/03-create-an-L1/01-create-subnet) and [Validator Manager Deployment](/academy/permissioned-l1s/04-validator-manager-deployment/01-vmc-deployment-intro) sections first.
+</Callout>
+
+## Key Difference: C-Chain Deployment
+
+When deploying the VMC on C-Chain instead of your L1:
+
+| Aspect | VMC on L1 | VMC on C-Chain |
+|--------|-----------|----------------|
+| **Genesis Proxy** | Pre-deployed at `0xfacade...` | Not applicable |
+| **Contract Deployment** | Upgrade existing proxy | Fresh deployment |
+| **VMC Address** | Fixed (`0xfacade...`) | Dynamic (deployment address) |
+| **Conversion Parameter** | Points to L1 blockchain ID | Points to C-Chain blockchain ID |
+
+## Setup Process
+
+<Steps>
+<Step>
+
+### Create Subnet and Chain
+
+First, create your Subnet and blockchain as you did in the previous chapters. This step remains the same - we're creating the L1 infrastructure.
+
+<ToolboxMdxWrapper walletMode="c-chain">
+    <CreateChain embedded={true} />
+</ToolboxMdxWrapper>
+
+</Step>
+<Step>
+
+### Set Up Validator Node
+
+Launch a validator node for your L1. Use the managed testnet infrastructure or your own Docker setup.
+
+You can create a managed node at the [Testnet Infrastructure Console](/console/testnet-infra/nodes).
+
+<Callout type="info">
+The node setup is the same regardless of where the VMC is deployed. The difference is only in the contract architecture.
+</Callout>
+
+</Step>
+<Step>
+
+### Deploy Validator Manager on C-Chain
+
+Now, instead of upgrading the pre-deployed proxy on your L1, we'll deploy the Validator Manager directly on the C-Chain.
+
+**Make sure you have your wallet connected to the C-Chain (Fuji Testnet)** before deploying.
+
+<ToolboxMdxWrapper walletMode="c-chain">
+    <DeployValidatorManager />
+</ToolboxMdxWrapper>
+
+**Important**: Save the deployed contract address - you'll need it for the conversion step.
+
+</Step>
+<Step>
+
+### Convert Subnet to L1
+
+When converting, the key difference is specifying the **C-Chain blockchain ID** and your **newly deployed VMC address**:
+
+- **Validator Manager Blockchain ID**: Set to C-Chain's blockchain ID (not your L1's)
+- **Validator Manager Address**: The address from Step 3 (not `0xfacade...`)
+
+<ToolboxMdxWrapper walletMode="c-chain">
+    <ConvertToL1 />
+</ToolboxMdxWrapper>
+
+</Step>
+<Step>
+
+### Initialize Validator Manager
+
+Initialize the VMC on C-Chain with your L1's configuration. Make sure you're connected to C-Chain.
+
+<ToolboxMdxWrapper walletMode="c-chain">
+    <Initialize />
+</ToolboxMdxWrapper>
+
+</Step>
+<Step>
+
+### Initialize Validator Set
+
+Complete the setup by initializing the validator set:
+
+<ToolboxMdxWrapper walletMode="c-chain">
+    <InitValidatorSet />
+</ToolboxMdxWrapper>
+
+</Step>
+</Steps>
+
+## Verification
+
+After completing these steps, you should have:
+
+1. ✅ A new L1 blockchain running with your validator(s)
+2. ✅ A Validator Manager Contract deployed on the C-Chain
+3. ✅ The VMC initialized with your L1's subnet ID
+4. ✅ The initial validator set registered
+
+You're now ready to set up the multi-sig governance layer in the following sections.
+
+## Next Steps
+
+In the next section, you'll learn how to create a Safe/Ash wallet that will serve as the multi-sig controller for your PoA Manager.
+

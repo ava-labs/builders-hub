@@ -14,6 +14,10 @@
                 "...04-validator-manager-deployment",
                 "---Validator Manager Operations---",
                 "...05-validator-manager-operations",
+                "---Multi-Sig Setup for PoA---",
+                "...06-multisig-setup",
+                "---PoA Operations---",
+                "...07-poa-operations",
                 "---More coming soon...---",
                 "certificate"
         ]

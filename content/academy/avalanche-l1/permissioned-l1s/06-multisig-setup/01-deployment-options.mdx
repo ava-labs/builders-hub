@@ -1,0 +1,94 @@
+---
+title: Validator Manager Deployment Options
+description: Understanding the different deployment options for Validator Manager contracts
+updated: 2025-03-19
+authors: [nicolasarnedo]
+icon: Book
+---
+
+In the previous chapters, we deployed the Validator Manager Contract (VMC) directly on our L1 blockchain. However, this is not the only option available. Understanding these deployment choices is crucial for designing your L1's governance model.
+
+## Where Can You Deploy the VMC?
+
+The Validator Manager Contract can be deployed on three different chains:
+
+### 1. On Your L1 (Default)
+
+This is what we covered in the previous chapters. The VMC is deployed directly on the L1 it manages.
+
+**Advantages:**
+- Simpler architecture - everything is on one chain
+- No cross-chain communication needed for validator operations
+- Lower operational complexity
+
+**Considerations:**
+- If the L1 goes down, you can't manage validators through the contract
+- All validator management is tied to the L1's availability
+
+### 2. On the C-Chain
+
+The VMC can be deployed on Avalanche's C-Chain while managing validators for a different L1.
+
+**Advantages:**
+- C-Chain's high availability and proven stability
+- Validator management remains operational even if your L1 has issues
+- Better integration with existing DeFi and tooling on C-Chain
+- Easier multi-sig support through existing Safe/Ash wallet infrastructure
+
+**Considerations:**
+- Requires cross-chain messaging for some operations
+- Additional complexity in the architecture
+
+### 3. On Another L1
+
+You can also deploy the VMC on a completely separate L1.
+
+**Advantages:**
+- Separation of concerns - management chain vs. operational chain
+- Can have different security properties for the management chain
+
+**Considerations:**
+- Most complex setup
+- Cross-chain dependencies
+
+## Deployment Architecture Comparison
+
+<Mermaid
+  chart="
+graph TB
+    subgraph Option1 [Option 1: VMC on L1]
+        L1A[Your L1] --> VMCA[VMC]
+        VMCA --> PCA[P-Chain]
+    end
+    
+    subgraph Option2 [Option 2: VMC on C-Chain]
+        CChain[C-Chain] --> VMCB[VMC]
+        VMCB --> PCB[P-Chain]
+        L1B[Your L1] -.-> VMCB
+    end
+    
+    subgraph Option3 [Option 3: VMC on Another L1]
+        MgmtL1[Management L1] --> VMCC[VMC]
+        VMCC --> PCC[P-Chain]
+        L1C[Your L1] -.-> VMCC
+    end
+"
+/>
+
+## Which Option Should You Choose?
+
+| Factor | On L1 | On C-Chain | On Another L1 |
+|--------|-------|------------|---------------|
+| **Simplicity** | ✅ Simple | ⚡ Moderate | ❌ Complex |
+| **Multi-sig Support** | ⚡ Limited | ✅ Excellent | ⚡ Depends |
+| **Resilience** | ❌ Tied to L1 | ✅ Independent | ✅ Independent |
+| **Tooling** | ⚡ Growing | ✅ Mature | ⚡ Varies |
+
+For this course section on multi-sig setup, we'll focus on **deploying the VMC on the C-Chain** because:
+
+1. **Safe/Ash Wallet Support**: C-Chain has the most mature multi-sig wallet infrastructure
+2. **Reliability**: Your validator management remains operational regardless of L1 status
+3. **Existing Tooling**: Leverage established C-Chain tools and explorers
+
+In the following sections, you'll learn how to set up a complete multi-sig governance flow using the PoA Manager contract deployed on C-Chain.
+

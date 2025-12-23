@@ -1,0 +1,179 @@
+---
+title: Add Validator via Multi-Sig
+description: Add a new validator using Safe wallet multi-sig approval
+updated: 2025-03-19
+authors: [nicolasarnedo]
+icon: Terminal
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Callout } from 'fumadocs-ui/components/callout';
+
+Adding a validator through the multi-sig involves two phases, each requiring Safe wallet approval. This guide walks you through the complete process.
+
+## Prerequisites
+
+Before starting, ensure you have:
+
+- ✅ Access to your Safe wallet at [wallet.ash.center](https://wallet.ash.center/)
+- ✅ The required number of signers available
+- ✅ A validator node ready to be added (Node ID and BLS public key)
+- ✅ Your PoA Manager contract address
+
+## Phase 1: Initiate Validator Registration
+
+<Steps>
+<Step>
+
+### Access Your Safe Wallet
+
+1. Go to [wallet.ash.center](https://wallet.ash.center/)
+2. Connect your wallet
+3. Select your Safe from the list
+4. Navigate to **"New Transaction"** → **"Transaction Builder"**
+
+</Step>
+<Step>
+
+### Configure the Transaction
+
+Set up the transaction to call your PoA Manager:
+
+| Field | Value |
+|-------|-------|
+| **To Address** | Your PoA Manager address |
+| **Value** | 0 |
+| **Contract Method** | `addValidator` or use custom calldata |
+
+</Step>
+<Step>
+
+### Enter Validator Details
+
+You'll need to provide:
+
+- **Node ID**: The validator's node identifier (20 bytes)
+- **BLS Public Key**: The validator's BLS public key (48 bytes)
+- **Weight**: The validator's voting weight
+- **Remaining Balance Owner**: P-Chain address(es) to receive remaining balance
+- **Disable Owner**: P-Chain address(es) that can disable the validator
+
+<Callout type="info">
+The PoA Manager simplifies parameter formatting compared to calling the Validator Manager directly. Refer to your PoA Manager's ABI for exact parameter formats.
+</Callout>
+
+</Step>
+<Step>
+
+### Submit the Transaction
+
+1. Review all parameters carefully
+2. Click **"Create Batch"** or **"Submit"**
+3. Sign the transaction with your wallet
+
+</Step>
+<Step>
+
+### Collect Approvals
+
+After submitting:
+
+1. The transaction appears in the **"Queue"** tab
+2. Share the transaction details with other signers
+3. Each signer must:
+   - Connect to the Safe
+   - Review the transaction
+   - Click **"Confirm"**
+
+</Step>
+<Step>
+
+### Execute the Transaction
+
+Once the threshold is reached:
+
+1. Any signer can click **"Execute"**
+2. Pay the gas fee to execute the transaction
+3. Wait for the transaction to confirm
+
+**Result**: A Warp message is sent to the P-Chain to register the validator.
+
+</Step>
+</Steps>
+
+## Phase 2: Complete Validator Registration
+
+After the P-Chain processes the registration, you need to complete it:
+
+<Steps>
+<Step>
+
+### Monitor P-Chain Status
+
+Wait for the P-Chain to process the registration. This typically takes a few seconds to a minute.
+
+</Step>
+<Step>
+
+### Prepare Completion Transaction
+
+In your Safe wallet:
+
+1. Navigate to **"New Transaction"** → **"Transaction Builder"**
+2. Set the target to your PoA Manager address
+3. Call the `completeValidatorRegistration` function
+4. Provide the **message index** from the P-Chain response
+
+</Step>
+<Step>
+
+### Collect Approvals for Completion
+
+Same process as Phase 1:
+
+1. Submit the transaction
+2. Coordinate with signers for approvals
+3. Reach the required threshold
+
+</Step>
+<Step>
+
+### Execute Completion
+
+Execute the transaction to finalize the validator registration.
+
+**Result**: The validator is now active and participating in consensus.
+
+</Step>
+</Steps>
+
+## Verification
+
+After completion, verify the validator was added:
+
+1. Query the validator set using the [Query Validator Set tool](/academy/permissioned-l1s/05-validator-manager-operations/02-query-validator-set)
+2. Check that your new validator appears with the correct weight
+3. Monitor your validator node to ensure it's participating in consensus
+
+## Tips for Smooth Operations
+
+### Prepare Everything in Advance
+
+Before proposing the transaction:
+- Have all validator details ready
+- Confirm signer availability
+- Test with a smaller weight first if unsure
+
+### Communicate with Signers
+
+- Share the transaction link or details
+- Explain what's being proposed
+- Set a deadline for approvals
+
+### Handle Timeouts
+
+Remember: validator registrations expire after **24 hours**. If the completion phase isn't executed in time:
+- The registration becomes invalid
+- You'll need to clean up the expired registration
+- Start the process again with a new initiation
+
