@@ -1813,6 +1813,16 @@ const config = {
         permanent: true,
       },
       {
+        source: "/docs/nodes/maintain/chain-state-management",
+        destination: "/docs/nodes/node-storage/chain-state-management",
+        permanent: true,
+      },
+      {
+        source: "/docs/nodes/maintain/chain-state-size-reduction",
+        destination: "/docs/nodes/node-storage/periodic-state-sync",
+        permanent: true,
+      }
+      {
         source: "/academy/avalanche-l1/interchain-token-transfer",
         destination: "/academy/avalanche-l1/native-token-bridge",
         permanent: true,

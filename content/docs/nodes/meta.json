@@ -9,6 +9,8 @@
     "system-requirements",
     "releases",
     "run-a-node",
+    "---Node Storage---",
+    "...node-storage",
     "---AvalancheGo Configuration---",
     "configure/configs-flags",
     "chain-configs/primary-network",
