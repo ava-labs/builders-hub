@@ -8,7 +8,7 @@ icon: Book
 
 import { Callout } from 'fumadocs-ui/components/callout';
 
-Precompiles are "built-in contracts" backed by the VM implementation (typically Go), mapped to reserved addresses. From Solidity's point of view, they look like normal contracts you call via an interface — but they execute faster and can expose VM-level capabilities that regular contracts can't safely implement.
+Precompiles are "built-in contracts" backed by the VM implementation (Go for Avalanche), mapped to reserved addresses. From Solidity's point of view, they look like normal contracts you call via an interface — but they execute faster and can expose VM-level capabilities that regular contracts can't safely implement.
 
 ### Precompile Types
 
@@ -16,9 +16,12 @@ There are two main types of precompiles:
 
 - **Stateless precompiles**: Pure computation with no persistent storage. Examples include cryptographic operations like `ecrecover` (signature recovery) or `sha256`. They take input, compute a result, and return it—nothing is stored.
 
-- **Stateful precompiles**: Can read and write data to the EVM state. The AllowList precompiles we use in this course are stateful—they store role assignments (Admin, Manager, Enabled) for each address. This data persists across blocks.
+- **Stateful precompiles**: Can read and write data to the EVM state. They store role assignments (Admin, Manager, Enabled) for each address. This data persists across blocks.
 
-The Transaction AllowList and Contract Deployer AllowList are **stateful precompiles** because they need to remember which addresses have which permissions.
+We’ll focus on two stateful precompiles that use the same underlying permission model:
+
+- **Transaction AllowList**: controls who can submit transactions to the chain.
+- **Contract Deployer AllowList**: controls who can deploy smart contracts.
 
 <Callout type="info">
 For a deeper dive into how stateful precompiles work, see the [Stateful Precompiles](/academy/avalanche-l1/customizing-evm/stateful-precompiles) lesson in the Customizing the EVM course.
@@ -31,15 +34,6 @@ Access restriction isn’t a typical dApp feature — it’s a **network rule**.
 - **Performance & gas**: checks happen at the VM level and are efficient.
 - **Security**: the permission logic is centralized, audited, and not re-implemented in every contract.
 - **Consistency**: multiple precompiles can share the same permission model (via a common interface).
-
-## How you’ll use precompiles in this course
-
-We’ll focus on two default precompiles that use the same underlying permission model:
-
-- **Transaction AllowList**: controls who can submit transactions to the chain.
-- **Contract Deployer AllowList**: controls who can deploy smart contracts.
-
-In the next lesson, you’ll learn the shared permission model these precompiles use: the **AllowList interface**.
 
 ## Key Concepts
 

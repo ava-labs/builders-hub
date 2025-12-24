@@ -6,19 +6,21 @@ authors: [nicolasarnedo]
 icon: Terminal
 ---
 
-## Objectives
+## Exercise Overview
 
 By the end of this exercise, you will be able to:
 
 - Create an Avalanche L1 with a custom genesis configuration
 - Enable **Transaction AllowList** and **Contract Deployer AllowList** at genesis
 - Launch a BuilderHub hosted node and connect Core Wallet to your L1
+- Convert Subnet to an L1
+- Test both precompiles are working
 
 ## Prerequisites
 
 Before starting this exercise, ensure you have:
 
-- [BuilderHub account](https://build.avax.network/login) (create one if needed)
+- [BuilderHub account](https://build.avax.network/login) (create one if needed) to be able to launch a hosted node
 - [Core Wallet](https://core.app) installed and set to the correct network mode
 - A funded wallet (testnet AVAX) to create the Subnet + Chain transactions - get tokens from the [Console Faucet](/console/primary-network/faucet)
 
@@ -31,25 +33,23 @@ import CreateChain from "@/components/toolbox/console/layer-1/create/CreateChain
 import CreateManagedTestnetNode from "@/components/toolbox/console/testnet-infra/ManagedTestnetNodes/CreateManagedTestnetNode";
 import ConvertSubnetToL1 from "@/components/toolbox/console/layer-1/create/ConvertSubnetToL1";
 
+
+
 <Steps>
   <Step>
     ### Step 1: Create the Subnet and Chain
 
     Use Builder Console to create the Subnet and then create your chain. 
 
-    **Important**: In the **Precompiles** section, enable both allowlist precompiles under **Permissioning**:
-    - Transaction AllowList
-    - Contract Deployer AllowList
+    As you enable the precompiles under the **PERMISSIONING** tab the console tab will take you to the *genesis.json* so you can see your changes - the final result should look something like this but with your address:
+
+    ![Access Restriction Genesis Configuration](https://qizat5l3bwvomkny.public.blob.vercel-storage.com/access_restriction_genesis.png)
 
     Your connected wallet will be automatically assigned the **Admin** role for both.
 
     <ToolboxMdxWrapper walletMode="c-chain">
       <CreateChain embedded={true} />
     </ToolboxMdxWrapper>
-
-    <Callout type="info">
-    Save your **Subnet ID**, **Blockchain ID**, and **Chain ID** after creation. You'll need these later.
-    </Callout>
   </Step>
 
   <Step>
