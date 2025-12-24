@@ -35,6 +35,16 @@ async function handleCreateNode(request: NextRequest): Promise<NextResponse> {
   if (error) return error;
 
   try {
+    // Auto-cleanup: mark expired nodes before checking the limit
+    await prisma.nodeRegistration.updateMany({
+      where: {
+        user_id: userId!,
+        status: 'active',
+        expires_at: { lt: new Date() }
+      },
+      data: { status: 'expired' }
+    });
+
     // Enforce max 3 active nodes per user
     const activeNodes = await getUserNodes(userId!);
     if (activeNodes.length >= 3) {

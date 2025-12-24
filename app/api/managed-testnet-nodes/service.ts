@@ -103,19 +103,17 @@ export async function createDbNode(params: {
 }
 
 export async function getUserNodes(userId: string) {
-  const now = new Date();
-  
-  // First, mark any expired nodes as 'expired' (cleanup on fetch)
+  // Auto-cleanup: mark expired nodes before fetching
   await prisma.nodeRegistration.updateMany({
     where: {
       user_id: userId,
       status: 'active',
-      expires_at: { lt: now }
+      expires_at: { lt: new Date() }
     },
     data: { status: 'expired' }
   });
 
-  // Then fetch only active (non-expired) nodes
+  // Fetch only active (non-expired) nodes
   const nodes = await prisma.nodeRegistration.findMany({
     where: { user_id: userId, status: 'active' },
     orderBy: { created_at: 'desc' }
