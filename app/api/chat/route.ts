@@ -1,71 +1,8 @@
 import { createOpenAI } from '@ai-sdk/openai';
 import { streamText } from 'ai';
+import { captureAIGeneration } from '@/lib/posthog-server';
 
 export const runtime = 'edge';
-
-// PostHog configuration for LLM analytics
-const POSTHOG_API_KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY;
-const POSTHOG_HOST = process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com';
-
-// Capture LLM generation event to PostHog
-async function captureAIGeneration({
-  distinctId,
-  model,
-  input,
-  output,
-  inputTokens,
-  outputTokens,
-  latencyMs,
-  traceId,
-}: {
-  distinctId?: string;
-  model: string;
-  input: string;
-  output: string;
-  inputTokens?: number;
-  outputTokens?: number;
-  latencyMs: number;
-  traceId?: string;
-}) {
-  if (!POSTHOG_API_KEY) return;
-
-  try {
-    // Estimate tokens if not provided (rough estimate: 1 token ≈ 4 chars)
-    const estimatedInputTokens = inputTokens ?? Math.ceil(input.length / 4);
-    const estimatedOutputTokens = outputTokens ?? Math.ceil(output.length / 4);
-
-    // GPT-4o-mini pricing: $0.15/1M input, $0.60/1M output
-    const inputCost = (estimatedInputTokens / 1000000) * 0.15;
-    const outputCost = (estimatedOutputTokens / 1000000) * 0.60;
-
-    await fetch(`${POSTHOG_HOST}/capture/`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        api_key: POSTHOG_API_KEY,
-        event: '$ai_generation',
-        distinct_id: distinctId || 'anonymous',
-        properties: {
-          $ai_model: model,
-          $ai_provider: 'openai',
-          $ai_input: input,
-          $ai_output_choices: [{ message: { content: output } }],
-          $ai_input_tokens: estimatedInputTokens,
-          $ai_output_tokens: estimatedOutputTokens,
-          $ai_total_cost_usd: inputCost + outputCost,
-          $ai_latency: latencyMs / 1000, // Convert to seconds
-          $ai_trace_id: traceId,
-          $ai_http_status: 200,
-        },
-        timestamp: new Date().toISOString(),
-      }),
-    });
-  } catch (error) {
-    console.error('Failed to capture AI generation event:', error);
-  }
-}
 
 const openai = createOpenAI({
   apiKey: process.env.OPENAI_API_KEY,
