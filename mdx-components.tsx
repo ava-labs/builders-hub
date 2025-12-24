@@ -21,6 +21,7 @@ import { cn } from "@/utils/cn";
 import { BadgeCheck } from "lucide-react";
 import dynamic from "next/dynamic";
 import { DataAPIPage, MetricsAPIPage } from "@/components/api/api-pages";
+import Quiz from "@/components/quizzes/quiz";
 
 const Mermaid = dynamic(() => import("@/components/content-design/mermaid"), {
   ssr: false,
@@ -78,6 +79,7 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
     Gallery,
     Mermaid,
     StateGrowthChart,
+    Quiz,
     InstallTabs: ({
       items,
       children,
