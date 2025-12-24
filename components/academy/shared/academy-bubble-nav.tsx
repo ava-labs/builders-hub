@@ -64,11 +64,85 @@ function isMainAcademyPage(pathname: string): boolean {
     return mainPages.includes(pathname);
 }
 
+// Onboarding tooltip component - hand-drawn style annotation (positioned above bubble nav)
+function OnboardingTooltip({ onDismiss }: { onDismiss: () => void }) {
+    return (
+        <>
+            {/* Load Patrick Hand font from Google Fonts - lighter handwriting style */}
+            <link 
+                href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" 
+                rel="stylesheet" 
+            />
+            <style jsx>{`
+                @keyframes tooltip-fade-in {
+                    from { opacity: 0; transform: translateY(-10px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+                .onboarding-tooltip {
+                    animation: tooltip-fade-in 0.5s ease-out forwards;
+                }
+            `}</style>
+            {/* Positioned above the bubble nav - bubble nav is at top-1/2, left-3 */}
+            <div 
+                className="onboarding-tooltip fixed left-3 z-40 hidden lg:block cursor-pointer"
+                style={{ top: 'calc(50% - 200px)' }}
+                onClick={onDismiss}
+            >
+                {/* Text annotation */}
+                <p 
+                    className="text-lg text-black dark:text-white max-w-[140px] leading-snug text-center"
+                    style={{ fontFamily: "'Patrick Hand', cursive" }}
+                >
+                    Switch between our academies!
+                </p>
+                
+                {/* Hand-drawn curved arrow pointing down to bubble nav */}
+                <svg 
+                    className="mx-auto mt-1 w-[40px] h-[35px]"
+                    viewBox="0 0 40 35" 
+                    fill="none"
+                >
+                    {/* Curved arrow path pointing down - shorter */}
+                    <path 
+                        d="M20 2 Q 22 12, 20 22" 
+                        stroke="currentColor" 
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        className="text-black dark:text-white"
+                        fill="none"
+                    />
+                    {/* Second stroke for sketchy effect */}
+                    <path 
+                        d="M21 3 Q 23 13, 21 23" 
+                        stroke="currentColor" 
+                        strokeWidth="1"
+                        strokeLinecap="round"
+                        opacity="0.3"
+                        className="text-black dark:text-white"
+                        fill="none"
+                    />
+                    {/* Arrow head pointing down */}
+                    <path 
+                        d="M14 20 L20 30 L26 20" 
+                        stroke="currentColor" 
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="text-black dark:text-white"
+                        fill="none"
+                    />
+                </svg>
+            </div>
+        </>
+    );
+}
+
 export function AcademyBubbleNav() {
     const pathname = usePathname();
     const router = useRouter();
     const [activeItem, setActiveItem] = useState(() => getActiveItem(pathname));
     const [isVisible, setIsVisible] = useState(() => isMainAcademyPage(pathname));
+    const [showOnboarding, setShowOnboarding] = useState(false);
     const isInitialMount = useRef(true);
 
     useEffect(() => {
@@ -80,7 +154,32 @@ export function AcademyBubbleNav() {
         setIsVisible(isMainAcademyPage(pathname));
     }, [pathname]);
 
+    // Check if onboarding should be shown (first visit in session)
+    useEffect(() => {
+        if (typeof window !== 'undefined' && isVisible) {
+            const hasSeenOnboarding = sessionStorage.getItem('academy-onboarding-seen');
+            if (!hasSeenOnboarding) {
+                // Small delay to let the page render first
+                const timer = setTimeout(() => {
+                    setShowOnboarding(true);
+                }, 500);
+                return () => clearTimeout(timer);
+            }
+        }
+    }, [isVisible]);
+
+    const dismissOnboarding = () => {
+        setShowOnboarding(false);
+        if (typeof window !== 'undefined') {
+            sessionStorage.setItem('academy-onboarding-seen', 'true');
+        }
+    };
+
     const handleItemClick = (item: typeof academyItems[0]) => {
+        // Dismiss onboarding when user interacts with nav
+        if (showOnboarding) {
+            dismissOnboarding();
+        }
         if (item.href) {
             setActiveItem(item.id);
             router.push(item.href);
@@ -109,7 +208,19 @@ export function AcademyBubbleNav() {
             .bubble-active {
                 animation: bubble-breathe 6s ease-in-out infinite;
             }
+            @keyframes fade-in {
+                from { opacity: 0; transform: translateX(-10px) translateY(-50%); }
+                to { opacity: 1; transform: translateX(0) translateY(-50%); }
+            }
+            @keyframes bounce-horizontal {
+                0%, 100% { transform: translateX(0); }
+                50% { transform: translateX(-5px); }
+            }
         `}</style>
+        
+        {/* Onboarding tooltip */}
+        {showOnboarding && <OnboardingTooltip onDismiss={dismissOnboarding} />}
+        
         <nav
             className="fixed left-3 top-1/2 -translate-y-1/2 z-30 hidden lg:block"
         >
