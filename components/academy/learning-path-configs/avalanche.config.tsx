@@ -1,4 +1,4 @@
-import { BookOpen, ArrowLeftRight, Layers, Coins, Code, Shield } from 'lucide-react';
+import { BookOpen, ArrowLeftRight, Layers, Coins, Code } from 'lucide-react';
 import type { CourseNode } from '../learning-tree';
 
 export const avalancheLearningPaths: CourseNode[] = [
@@ -20,7 +20,7 @@ export const avalancheLearningPaths: CourseNode[] = [
         slug: "avalanche-l1/customizing-evm",
         category: "VM Customization",
         dependencies: ["avalanche-fundamentals"],
-        position: { x: 87.5, y: 250 },
+        position: { x: 87.5, y: 200 },
         mobileOrder: 2
     },
 
@@ -32,7 +32,7 @@ export const avalancheLearningPaths: CourseNode[] = [
         slug: "avalanche-l1/interchain-messaging",
         category: "Interoperability",
         dependencies: ["avalanche-fundamentals"],
-        position: { x: 62.5, y: 250 },
+        position: { x: 62.5, y: 200 },
         mobileOrder: 3
     },
     {
@@ -42,7 +42,7 @@ export const avalancheLearningPaths: CourseNode[] = [
         slug: "avalanche-l1/permissioned-l1s",
         category: "L1 Development",
         dependencies: ["avalanche-fundamentals"],
-        position: { x: 12.5, y: 250 },
+        position: { x: 12.5, y: 200 },
         mobileOrder: 6
     },
     {
@@ -52,7 +52,7 @@ export const avalancheLearningPaths: CourseNode[] = [
         slug: "avalanche-l1/l1-native-tokenomics",
         category: "L1 Tokenomics",
         dependencies: ["avalanche-fundamentals"],
-        position: { x: 37.5, y: 250 },
+        position: { x: 37.5, y: 200 },
         mobileOrder: 7
     },
     // Third Layer - Advanced topics
@@ -63,7 +63,7 @@ export const avalancheLearningPaths: CourseNode[] = [
         slug: "avalanche-l1/interchain-token-transfer",
         category: "Interoperability",
         dependencies: ["interchain-messaging"],
-        position: { x: 82.5, y: 500 },
+        position: { x: 82.5, y: 400 },
         mobileOrder: 4
     },
     {
@@ -73,7 +73,7 @@ export const avalancheLearningPaths: CourseNode[] = [
         slug: "avalanche-l1/erc20-bridge",
         category: "Interoperability",
         dependencies: ["interchain-messaging", "l1-native-tokenomics"],
-        position: { x: 52.5, y: 500 },
+        position: { x: 52.5, y: 400 },
         mobileOrder: 5
     },
     {
@@ -83,7 +83,7 @@ export const avalancheLearningPaths: CourseNode[] = [
         slug: "avalanche-l1/permissionless-l1s",
         category: "L1 Development",
         dependencies: ["permissioned-l1s", "l1-native-tokenomics"],
-        position: { x: 22.5, y: 500 },
+        position: { x: 22.5, y: 400 },
         mobileOrder: 8
     },
 ];

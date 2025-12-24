@@ -20,7 +20,7 @@ export const blockchainLearningPaths: CourseNode[] = [
         slug: "blockchain/solidity-foundry",
         category: "Development",
         dependencies: ["blockchain-fundamentals"],
-        position: { x: 50, y: 250 },
+        position: { x: 50, y: 200 },
         mobileOrder: 2
     },
     // Third Layer - NFT Deployment and Encrypted ERC
@@ -31,7 +31,7 @@ export const blockchainLearningPaths: CourseNode[] = [
         slug: "blockchain/nft-deployment",
         category: "Development",
         dependencies: ["intro-to-solidity"],
-        position: { x: 20, y: 500 },
+        position: { x: 20, y: 400 },
         mobileOrder: 3
     },
     {
@@ -41,7 +41,7 @@ export const blockchainLearningPaths: CourseNode[] = [
         slug: "blockchain/x402-payment-infrastructure",
         category: "Development",
         dependencies: ["intro-to-solidity"],
-        position: { x: 50, y: 500 },
+        position: { x: 50, y: 400 },
         mobileOrder: 4
     },
     {
@@ -51,7 +51,7 @@ export const blockchainLearningPaths: CourseNode[] = [
         slug: "blockchain/encrypted-erc",
         category: "Privacy",
         dependencies: ["intro-to-solidity"],
-        position: { x: 80, y: 500 },
+        position: { x: 80, y: 400 },
         mobileOrder: 4
     },
 ];
