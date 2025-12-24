@@ -14,6 +14,7 @@ import {
   Blocks,
   FileCode,
   Zap,
+  Rocket,
   type LucideIcon
 } from "lucide-react";
 import { cn } from "@/utils/cn";
@@ -121,8 +122,9 @@ export function AcademyShortcutSection({ pathType }: AcademyShortcutSectionProps
 
   return (
     <div className="mb-16">
-      <div className="flex items-center gap-3 mb-6">
-        <h2 className="text-sm font-medium tracking-wider text-zinc-500 dark:text-zinc-400 uppercase">
+      <div className="flex items-center gap-3 mb-8">
+        <Rocket className="h-6 w-6 text-red-600" />
+        <h2 className="text-2xl font-bold text-zinc-900 dark:text-white">
           Quick Access
         </h2>
       </div>
