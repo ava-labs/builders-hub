@@ -194,27 +194,16 @@ export function AcademyBubbleNav() {
 
     return (
         <>
-        <style jsx>{`
-            @keyframes bubble-breathe {
+        <style jsx global>{`
+            @keyframes bubble-pulse {
                 0%, 100% {
                     transform: scale(1);
-                    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+                    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1), 0 0 0 rgba(239, 68, 68, 0);
                 }
                 50% {
-                    transform: scale(1.03);
-                    box-shadow: 0 14px 20px -4px rgba(0, 0, 0, 0.12), 0 6px 8px -5px rgba(0, 0, 0, 0.1), 0 0 15px rgba(232, 65, 66, 0.15);
+                    transform: scale(1.01);
+                    box-shadow: 0 14px 20px -4px rgba(0, 0, 0, 0.15), 0 6px 10px -5px rgba(0, 0, 0, 0.12), 0 0 20px rgba(239, 68, 68, 0.25);
                 }
-            }
-            .bubble-active {
-                animation: bubble-breathe 6s ease-in-out infinite;
-            }
-            @keyframes fade-in {
-                from { opacity: 0; transform: translateX(-10px) translateY(-50%); }
-                to { opacity: 1; transform: translateX(0) translateY(-50%); }
-            }
-            @keyframes bounce-horizontal {
-                0%, 100% { transform: translateX(0); }
-                50% { transform: translateX(-5px); }
             }
         `}</style>
         
@@ -237,11 +226,14 @@ export function AcademyBubbleNav() {
                                 "group flex items-center cursor-pointer rounded-full",
                                 "bg-white/90 dark:bg-zinc-900/90 backdrop-blur-sm shadow-lg border border-gray-200/50 dark:border-zinc-800/50",
                                 isActive
-                                    ? "text-red-600 dark:text-red-400 bubble-active"
+                                    ? "text-red-600 dark:text-red-400"
                                     : "text-zinc-900 dark:text-zinc-100 hover:text-zinc-600 dark:hover:text-zinc-300 transition-all duration-300 ease-out"
                             )}
                             style={{
                                 padding: item.padding,
+                                ...(isActive && {
+                                    animation: 'bubble-pulse 1.90s ease-in-out infinite',
+                                }),
                             }}
                             title={item.label}
                         >
