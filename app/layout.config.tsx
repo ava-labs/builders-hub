@@ -225,10 +225,10 @@ export const docsMenu: LinkItemType = {
     },
     {
       icon: <Computer />,
-      text: 'Node RPCs',
+      text: 'Nodes & Validators',
       description:
-        "Explore the RPC Methods for the C-Chain, P-Chain, and X-Chain.",
-      url: '/docs/rpcs/c-chain',
+        "Learn about setting up, configuring and maintaining Avalanche nodes and validators.",
+      url: '/docs/nodes',
       menu: {
         className: 'lg:col-start-2',
       },
