@@ -1,0 +1,102 @@
+---
+title: Testing precompile activation
+description: "Hands-on exercise: Verify the allowlist precompiles are active again and you can manage roles."
+updated: 2025-12-10
+authors: [nicolasarnedo]
+icon: Terminal
+---
+
+## Objectives
+
+By the end of this exercise, you will be able to:
+
+- Verify the allowlist precompiles are active again (the tools no longer show “not available”).
+- Confirm your wallet is an admin for both allowlists (per your `upgrade.json` config).
+- Test basic functionality: sending a transaction and deploying a contract.
+
+## Prerequisites
+
+Before starting this exercise, ensure you have:
+
+- Restarted your Docker validator after appending the re-activation entries to `upgrade.json`.
+- Waited long enough for the activation timestamps to pass (a block after each timestamp must be accepted).
+- Core Wallet connected to your custom L1.
+
+## Instructions
+
+import { Steps, Step } from 'fumadocs-ui/components/steps';
+import { Callout } from 'fumadocs-ui/components/callout';
+import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx";
+import DeployerAllowlist from "@/components/toolbox/console/l1-access-restrictions/DeployerAllowlist";
+import TransactionAllowlist from "@/components/toolbox/console/l1-access-restrictions/TransactionAllowlist";
+import DeployICMDemo from "@/components/toolbox/console/icm/test-connection/DeployICMDemo";
+
+<Steps>
+  <Step>
+    ### Step 1: Confirm the precompiles are active (UI should be available)
+
+    Open both tools while connected to your custom L1:
+
+    <ToolboxMdxWrapper>
+      <TransactionAllowlist />
+    </ToolboxMdxWrapper>
+
+    <ToolboxMdxWrapper>
+      <DeployerAllowlist />
+    </ToolboxMdxWrapper>
+
+    **Expected Result**: you should see the full allowlist UI (not the “not available / not activated” state).
+  </Step>
+
+  <Step>
+    ### Step 2: Confirm your wallet is an Admin
+
+    In each tool:
+
+    1. Select `readAllowList`
+    2. Paste your wallet address
+    3. Execute/read
+
+    **Expected Result**: your role should reflect **Admin** (because you added your address to `adminAddresses` in `upgrade.json` for both precompiles).
+  </Step>
+
+  <Step>
+    ### Step 3: Test you can transact and deploy again
+
+    **Transaction test (Core Wallet)**:
+    - In Core Wallet (connected to your custom L1), attempt to send a small amount of native token to another address.
+    - The transaction should succeed once the Transaction Allowlist is active and your address is authorized.
+
+    **Deployment test (Builder Console)**:
+
+    <ToolboxMdxWrapper>
+      <DeployICMDemo />
+    </ToolboxMdxWrapper>
+
+    Click “Deploy ICMDemo” and confirm the transaction in Core Wallet.
+
+    <Callout type="info">
+    If sending or deploying still fails, use the allowlist tools to explicitly `setEnabled` for your wallet address (or confirm your admin role is correctly set and the activation timestamp has passed).
+    </Callout>
+  </Step>
+</Steps>
+
+## Expected Output
+
+- The allowlist tools render normally (no “not available” state).
+- Your wallet reads as Admin in both tools.
+- Sending a transaction and deploying a contract succeed.
+
+## Verification
+
+To verify you've completed this exercise successfully:
+
+1. `TransactionAllowlist` and `DeployerAllowlist` load normally on your L1.
+2. `readAllowList` reports your wallet as Admin for both.
+3. You can send a transaction and deploy a contract again.
+
+## Next Steps
+
+Now that you can toggle these precompiles off and on via upgrades, you can apply the same upgrade pattern to other Subnet-EVM precompiles (fee manager, native minter, etc.) using the same `upgrade.json` mechanism.
+
+

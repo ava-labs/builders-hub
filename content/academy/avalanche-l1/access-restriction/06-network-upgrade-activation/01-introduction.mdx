@@ -1,0 +1,22 @@
+---
+title: Introduction
+description: Re-enable the allowlist precompiles via upgrade.json and set your wallet as admin.
+updated: 2025-12-10
+authors: [nicolasarnedo]
+icon: Book
+---
+
+## Overview
+
+In the previous section you **disabled** the Transaction AllowList and Contract Deployer AllowList precompiles via a network upgrade. Now you’ll do the same process in reverse: **append new upgrade entries** that re-enable both precompiles.
+
+Because disabling clears precompile storage, re-enabling is effectively a fresh initialization. For these allowlist precompiles, that means you must set initial **`adminAddresses`** so you can manage roles after activation.
+
+## Key Concepts
+
+The rules from the official guide still apply:
+
+- `upgrade.json` lives at `{chain-config-dir}/{blockchainID}/upgrade.json` next to `config.json`.
+- `precompileUpgrades` must be treated as **append-only** once upgrades activate.
+- `blockTimestamp` must be **in the future** and upgrades must be in **increasing order**.
+- You must include your wallet address in `adminAddresses` for both precompiles.

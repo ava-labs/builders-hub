@@ -1,0 +1,155 @@
+---
+title: Test Contract Deployer Allowlist
+description: "Hands-on exercise: Verify the Contract Deployer Allowlist precompile is active and manage roles."
+updated: 2025-12-17
+authors: [nicolasarnedo]
+icon: Terminal
+---
+
+## Objectives
+
+By the end of this exercise, you will be able to:
+
+- Verify the Contract Deployer Allowlist precompile is active on your L1
+- Confirm your wallet has Admin permissions for deploying contracts
+- Test deploying a contract using the Builder Console
+
+## Prerequisites
+
+Before starting this exercise, ensure you have:
+
+- Completed the L1 creation with Contract Deployer Allowlist enabled at genesis
+- Your Docker-hosted node is running and synced
+- Core Wallet connected to your custom L1
+- Your wallet address was added as an admin in the genesis config
+
+## Instructions
+
+import { Steps, Step } from 'fumadocs-ui/components/steps';
+import { Callout } from 'fumadocs-ui/components/callout';
+import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx";
+import DeployerAllowlist from "@/components/toolbox/console/l1-access-restrictions/DeployerAllowlist";
+import DeployICMDemo from "@/components/toolbox/console/icm/test-connection/DeployICMDemo";
+
+<Steps>
+  <Step>
+    ### Step 1: Open the Contract Deployer Allowlist tool
+
+    Connect to your custom L1 and open the Deployer Allowlist tool:
+
+    <ToolboxMdxWrapper>
+      <DeployerAllowlist />
+    </ToolboxMdxWrapper>
+
+    **Expected Result**: The tool should load the full UI. If you see "not available" or "not activated", the precompile was not enabled at genesis.
+  </Step>
+
+  <Step>
+    ### Step 2: Verify your Admin role
+
+    1. Select `readAllowList`
+    2. Paste your wallet address
+    3. Execute the read
+
+    **Expected Result**: Your role should show as **Admin** (value `2`).
+
+    <Callout type="info">
+    Role values: `0` = None, `1` = Enabled, `2` = Manager, `3` = Admin
+    </Callout>
+  </Step>
+
+  <Step>
+    ### Step 3: Test deploying a contract
+
+    Use the ICM Demo deployment tool to verify you can deploy contracts:
+
+    <ToolboxMdxWrapper>
+      <DeployICMDemo />
+    </ToolboxMdxWrapper>
+
+    1. Click "Deploy ICMDemo"
+    2. Confirm the transaction in Core Wallet
+    3. Wait for the deployment to complete
+
+    **Expected Result**: The contract deploys successfully and you receive a contract address.
+  </Step>
+
+  <Step>
+    ### Step 4: Test granting deploy permissions
+
+    As an Admin, you can authorize other addresses to deploy contracts:
+
+    1. Go back to the Deployer Allowlist tool
+    2. Select `setEnabled`
+    3. Enter a test address
+    4. Execute the transaction and confirm in Core Wallet
+
+    After the transaction confirms, use `readAllowList` on that address to verify it now shows **Enabled**.
+
+    <Callout type="warning">
+    Be careful who you grant deploy permissions to. On a production network, unauthorized contract deployments could introduce security risks.
+    </Callout>
+  </Step>
+</Steps>
+
+## Expected Output
+
+- The Contract Deployer Allowlist tool renders the full UI (not "not available")
+- Your wallet reads as Admin (role `2` or `3`)
+- The ICMDemo contract deploys successfully
+- You can grant Enabled status to another address
+
+## Verification
+
+To verify you've completed this exercise successfully:
+
+1. `readAllowList` for your wallet returns Admin
+2. You successfully deployed the ICMDemo contract
+3. You successfully called `setEnabled` for a test address
+
+## Troubleshooting
+
+### Issue: Tool shows "not available"
+
+**Problem**: The Contract Deployer Allowlist tool shows the precompile is not activated.
+
+**Solution**: The precompile was not enabled at genesis. You'll need to either:
+- Recreate the L1 with the precompile enabled, or
+- Use a network upgrade to activate it (covered in a later section)
+
+### Issue: Contract deployment fails with authorization error
+
+**Problem**: Deployment fails even though you believe you're an admin.
+
+**Solution**: 
+1. Verify your wallet address in the genesis config matches exactly
+2. Ensure you're connected to the correct L1 network in Core Wallet
+3. Use `readAllowList` to confirm your actual role
+
+### Issue: readAllowList shows None for my wallet
+
+**Problem**: Your wallet address is not recognized as an admin.
+
+**Solution**: Verify the address in your genesis config's `contractDeployerAllowListConfig.adminAddresses` matches your connected wallet.
+
+## 🎉 Part 1 Complete!
+
+Congratulations! You've completed the **Fundamentals** section of this course. You now know how to:
+
+- Enable Transaction AllowList and Contract Deployer AllowList at genesis
+- Manage roles (Admin, Manager, Enabled) via the Builder Console
+- Test that your permissions are correctly configured
+
+**You can stop here** if you only need to configure access restrictions for a new L1.
+
+---
+
+## Continue to Advanced Topics (Optional)
+
+The remaining sections dive deeper into precompile internals and recovery patterns:
+
+- **Precompile Flow** — Understand how allowlist enforcement works at the VM level
+- **User Error** — Intentionally lock yourself out and observe the failures
+- **Network Upgrades** — Learn to deactivate and reactivate precompiles via `upgrade.json` (requires a Docker validator)
+
+These advanced topics are useful if you need to recover from misconfigurations or want a deeper understanding of how precompiles work under the hood.

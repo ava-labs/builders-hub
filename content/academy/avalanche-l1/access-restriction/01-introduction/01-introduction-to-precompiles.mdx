@@ -1,0 +1,42 @@
+---
+title: Introduction to Precompiles
+description: A quick refresher on precompiles and why Avalanche L1s use them for privileged features.
+updated: 2025-12-17
+authors: [nicolasarnedo]
+icon: Book
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+Precompiles are "built-in contracts" backed by the VM implementation (Go for Avalanche), mapped to reserved addresses. From Solidity's point of view, they look like normal contracts you call via an interface — but they execute faster and can expose VM-level capabilities that regular contracts can't safely implement.
+
+### Precompile Types
+
+There are two main types of precompiles:
+
+- **Stateless precompiles**: Pure computation with no persistent storage. Examples include cryptographic operations like `ecrecover` (signature recovery) or `sha256`. They take input, compute a result, and return it—nothing is stored.
+
+- **Stateful precompiles**: Can read and write data to the EVM state. They store role assignments (Admin, Manager, Enabled) for each address. This data persists across blocks.
+
+We’ll focus on two stateful precompiles that use the same underlying permission model:
+
+- **Transaction AllowList**: controls who can submit transactions to the chain.
+- **Contract Deployer AllowList**: controls who can deploy smart contracts.
+
+<Callout type="info">
+For a deeper dive into how stateful precompiles work, see the [Stateful Precompiles](/academy/avalanche-l1/customizing-evm/stateful-precompiles) lesson in the Customizing the EVM course.
+</Callout>
+
+## Why precompiles matter for access restriction
+
+Access restriction isn’t a typical dApp feature — it’s a **network rule**. That’s why Avalanche L1s implement these controls as precompiles:
+
+- **Performance & gas**: checks happen at the VM level and are efficient.
+- **Security**: the permission logic is centralized, audited, and not re-implemented in every contract.
+- **Consistency**: multiple precompiles can share the same permission model (via a common interface).
+
+## Key Concepts
+
+- Precompiles are VM-implemented contracts at reserved addresses, callable like normal Solidity contracts.
+- Avalanche L1s use precompiles for privileged network behavior (like access restriction).
+- Many default precompiles share a common permission pattern, which we cover next.

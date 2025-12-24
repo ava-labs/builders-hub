@@ -86,6 +86,17 @@ export const avalancheLearningPaths: CourseNode[] = [
         position: { x: 22.5, y: 500 },
         mobileOrder: 8
     },
+
+    {
+        id: "access-restriction",
+        name: "Access Restriction",
+        description: "Master access control patterns using transaction and contract deployer allowlists with hands-on precompile implementation",
+        slug: "avalanche-l1/access-restriction",
+        category: "VM Customization",
+        dependencies: ["customizing-evm"],
+        position: { x: 87.5, y: 500 },
+        mobileOrder: 10
+    }
 ];
 
 export const avalancheCategoryStyles = {

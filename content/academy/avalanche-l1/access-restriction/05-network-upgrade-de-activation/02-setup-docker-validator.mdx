@@ -1,0 +1,122 @@
+---
+title: Set Up Docker Validator
+description: Run a self-hosted Docker validator to perform network upgrades on your L1.
+updated: 2025-12-17
+authors: [nicolasarnedo]
+icon: Terminal
+---
+
+import { Steps, Step } from 'fumadocs-ui/components/steps';
+import { Callout } from 'fumadocs-ui/components/callout';
+import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx";
+import AvalancheGoDocker from "@/components/toolbox/console/layer-1/AvalancheGoDockerL1";
+
+## Why Docker?
+
+BuilderHub hosted nodes are convenient, but they don't allow direct access to configuration files. To perform **network upgrades** (like disabling/enabling precompiles), you need to:
+
+1. Edit the `upgrade.json` file in the node's config directory
+2. Restart the node to apply changes
+
+This requires running your own validator with full access to the filesystem.
+
+<Callout type="warning">
+**Important**: Your Docker validator will become the primary node for this exercise. Make sure you have Docker installed and running on your machine.
+</Callout>
+
+## Prerequisites
+
+Before starting, ensure you have:
+
+- [Docker](https://docs.docker.com/get-docker/) installed and running
+- Your **Blockchain ID** from the L1 you created earlier
+- Your **Subnet ID** from the L1 you created earlier
+
+## Instructions
+
+<Steps>
+  <Step>
+    ### Step 1: Launch Docker Validator
+
+    Use the tool below to run a self-hosted AvalancheGo node in Docker:
+
+    <ToolboxMdxWrapper walletMode="testnet-mainnet">
+      <AvalancheGoDocker />
+    </ToolboxMdxWrapper>
+
+    The tool will generate the Docker command with the correct configuration for your L1.
+  </Step>
+
+  <Step>
+    ### Step 2: Verify the Node is Running
+
+    Check that your container is running:
+
+    ```bash
+    docker ps
+    ```
+
+    You should see a container running AvalancheGo.
+  </Step>
+
+  <Step>
+    ### Step 3: Verify Bootstrap Status
+
+    Open a shell inside your container:
+
+    ```bash
+    docker exec -it <YOUR_CONTAINER_NAME_OR_ID> sh
+    ```
+
+    Then check if your chain is bootstrapped:
+
+    ```bash
+    curl -X POST --data '{
+      "jsonrpc":"2.0",
+      "id":1,
+      "method":"info.isBootstrapped",
+      "params": {
+        "chain":"YOUR_BLOCKCHAIN_ID"
+      }
+    }' -H 'content-type:application/json;' 127.0.0.1:9650/ext/info
+    ```
+
+    Replace `YOUR_BLOCKCHAIN_ID` with your L1's blockchain ID. You should see:
+
+    ```json
+    {"jsonrpc":"2.0","result":{"isBootstrapped":true},"id":1}
+    ```
+  </Step>
+
+  <Step>
+    ### Step 4: Connect Core Wallet
+
+    Add your L1's RPC to Core Wallet:
+
+    - **RPC URL**: `http://localhost:9650/ext/bc/YOUR_BLOCKCHAIN_ID/rpc`
+    - **Chain ID**: Your L1's chain ID
+
+    Verify you can see your balance and send transactions.
+  </Step>
+</Steps>
+
+## Expected Output
+
+You should have:
+
+- A running Docker container with AvalancheGo
+- Your L1 chain bootstrapped and producing blocks
+- Core Wallet connected to your local node
+
+## What You Can Now Do
+
+With your own Docker validator, you can:
+
+- Access the node's config directory at `~/.avalanchego/configs/chains/<BLOCKCHAIN_ID>/`
+- Create and modify `upgrade.json` files
+- Restart the node to apply network upgrades
+
+## Next Steps
+
+Now that your Docker validator is running, you'll learn the rules for creating network upgrades.
+

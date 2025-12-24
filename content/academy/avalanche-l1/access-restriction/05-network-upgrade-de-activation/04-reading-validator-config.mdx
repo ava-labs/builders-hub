@@ -1,0 +1,110 @@
+---
+title: Reading Validator Config
+description: "Hands-on exercise: Locate your chain config folder and prepare to add upgrade.json on your Docker validator."
+updated: 2025-12-10
+authors: [nicolasarnedo]
+icon: Terminal
+---
+
+## Objectives
+
+By the end of this exercise, you will be able to:
+
+- Locate your chain’s config directory (the folder that contains `config.json`).
+- Confirm where `upgrade.json` must be placed for your Blockchain ID.
+- Access your Docker-hosted validator terminal to edit config files safely.
+
+## Prerequisites
+
+Before starting this exercise, ensure you have:
+
+- A running Docker-hosted AvalancheGo node (set up in the previous lesson)
+- Your **Blockchain ID** for your L1 (copied during chain creation)
+- Access to the machine where the Docker container is running
+
+## Instructions
+
+import { Steps, Step } from 'fumadocs-ui/components/steps';
+
+<Steps>
+  <Step>
+    ### Step 1: Identify your Docker container
+
+    In a terminal on the machine running Docker, list running containers and find the one running AvalancheGo:
+
+    ```bash
+    docker ps
+    ```
+  </Step>
+
+  <Step>
+    ### Step 2: Open a shell inside the validator container
+
+    Use `docker exec` to get a shell:
+
+    ```bash
+    docker exec -it <YOUR_CONTAINER_NAME_OR_ID> sh
+    ```
+
+    If `sh` isn’t available, try:
+
+    ```bash
+    docker exec -it <YOUR_CONTAINER_NAME_OR_ID> bash
+    ```
+  </Step>
+
+  <Step>
+    ### Step 3: Locate your chain config directory
+
+    The upgrade guide expects `upgrade.json` to live next to `config.json` at:
+
+    - `~/.avalanchego/configs/chains/<BLOCKCHAIN_ID>/`
+
+    Inside the container, list the chain folders:
+
+    ```bash
+    ls ~/.avalanchego/configs/chains
+    ```
+
+    Then enter your chain’s folder (use your **Blockchain ID** from the earlier lesson):
+
+    ```bash
+    cd ~/.avalanchego/configs/chains/<YOUR_BLOCKCHAIN_ID>
+    ls
+    ```
+
+    You should see a `config.json` file in this directory.
+  </Step>
+</Steps>
+
+## Expected Output
+
+You should have a terminal open inside the validator container and be able to `cd` into:
+
+- `~/.avalanchego/configs/chains/<YOUR_BLOCKCHAIN_ID>/`
+
+```
+config.json
+```
+
+## Verification
+
+To verify you've completed this exercise successfully:
+
+1. You can list the chain folder and see `config.json`.
+2. You know exactly where to create `upgrade.json` for the next step.
+
+## Troubleshooting
+
+### Issue: I don’t see my Blockchain ID folder
+
+**Problem**: `~/.avalanchego/configs/chains/` doesn’t contain your Blockchain ID.
+
+**Solution**:
+- Double-check you copied the **Blockchain ID** (not Subnet ID).
+- Confirm you’re inside the correct container (the one actually running your L1).
+- If your AvalancheGo container mounts config from the host, the chain configs may live on the host filesystem; in that case, edit the host-side mounted directory.
+
+## Next Steps
+
+Next, you’ll create `upgrade.json` entries that **disable** `txAllowListConfig` and `contractDeployerAllowListConfig`.

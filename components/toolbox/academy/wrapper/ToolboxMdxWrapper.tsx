@@ -6,6 +6,7 @@ import { SessionProvider } from "next-auth/react";
 
 import { EmbeddedConsoleHeader } from "@/components/toolbox/components/console-header/embedded-console-header";
 import { WalletProvider } from "@/components/toolbox/providers/WalletProvider";
+import { LoginModal } from "@/components/login/LoginModal";
 
 export default function ToolboxMdxWrapper({ children }: { children: React.ReactNode, walletMode?: "l1" | "c-chain", enforceChainId?: number }) {
     const handleReset = () => {
@@ -29,6 +30,8 @@ export default function ToolboxMdxWrapper({ children }: { children: React.ReactN
                         {children}
                     </div>
                 </div>
+                {/* Login modal for account requirements */}
+                <LoginModal />
             </WalletProvider>
         </SessionProvider>
     </ErrorBoundary>;
