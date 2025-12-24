@@ -1821,7 +1821,7 @@ const config = {
         source: "/docs/nodes/maintain/chain-state-size-reduction",
         destination: "/docs/nodes/node-storage/periodic-state-sync",
         permanent: true,
-      }
+      },
       {
         source: "/academy/avalanche-l1/interchain-token-transfer",
         destination: "/academy/avalanche-l1/native-token-bridge",
