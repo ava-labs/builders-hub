@@ -64,13 +64,13 @@ function TypewriterText({
                     );
                 } else if (segment.isCode) {
                     elements.push(
-                        <span key={segIndex} className="text-zinc-500 dark:text-zinc-500">
+                        <span key={segIndex} className="text-zinc-800 dark:text-zinc-200">
                             {visibleText}
                         </span>
                     );
                 } else {
                     elements.push(
-                        <span key={segIndex}>{visibleText}</span>
+                        <span key={segIndex} className="text-zinc-800 dark:text-zinc-200">{visibleText}</span>
                     );
                 }
             }
@@ -137,7 +137,7 @@ export function AcademyLearningPath({ pathType }: AcademyLearningPathProps) {
         <div id="learning-path-section" className="mb-20 scroll-mt-20">
             <div className="text-center mb-10">
                 {/* Description with typewriter effect in code notation */}
-                <p className="text-sm sm:text-base text-zinc-600 dark:text-zinc-400 max-w-3xl mx-auto mb-8 px-4 sm:px-0 sm:whitespace-nowrap">
+                <p className="text-sm sm:text-base max-w-3xl mx-auto mb-8 px-4 sm:px-0 sm:whitespace-nowrap">
                     <TypewriterText segments={descriptionSegments} speed={25} />
                 </p>
 
