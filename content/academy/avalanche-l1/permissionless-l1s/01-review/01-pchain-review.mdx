@@ -7,8 +7,8 @@ icon: Book
 ---
 
 import PChainReview from '@/content/academy/avalanche-l1/permissioned-l1s/01-introduction/01-pchain-review.mdx';
-import { useMDXComponents } from '@/mdx-components';
+import defaultMdxComponents from "fumadocs-ui/mdx";
+import Quiz from "@/components/quizzes/quiz";
+import { Callout } from 'fumadocs-ui/components/callout';
 
-export const components = useMDXComponents({});
-
-<PChainReview components={components} />
+<PChainReview components={{...defaultMdxComponents, Quiz, Callout}} />
