@@ -1,7 +1,7 @@
 ---
 title: Understanding the Implementation
 description: Overview of the starter kit architecture and key files.
-updated: 2025-12-04
+updated: 2025-12-22
 authors: [Federico Nardelli]
 icon: Code
 ---
@@ -12,16 +12,25 @@ icon: Code
 x402-starter-kit/
 ├── app/
 │   ├── api/
-│   │   ├── basic/route.ts     # $0.01 endpoint
-│   │   └── premium/route.ts   # $0.15 endpoint
-│   ├── layout.tsx             # ThirdwebProvider wrapper
-│   ├── page.tsx               # Main UI
+│   │   ├── basic/route.ts       # $0.01 endpoint (Human Payment)
+│   │   ├── premium/route.ts     # $0.15 endpoint (Human Payment)
+│   │   ├── ai-chat/route.ts     # Token-based AI chat endpoint
+│   │   └── agent/route.ts       # Autonomous agent service endpoint
+│   ├── layout.tsx               # ThirdwebProvider wrapper
+│   ├── page.tsx                 # Main UI with mode switcher
 │   └── globals.css
+├── components/
+│   ├── agent/                   # Autonomous agent UI components
+│   └── ai-chat/                 # Token-based chat UI components
 ├── lib/
-│   ├── constants.ts           # Addresses, endpoints, amounts
+│   ├── constants.ts             # Addresses, endpoints, amounts
+│   ├── agent-wallet.ts          # Agent wallet management
+│   ├── token-pricing.ts         # Token cost calculations
 │   └── utils.ts
-└── components/
+└── ...
 ```
+
+This lesson focuses on the **Human Payment** implementation (basic/premium endpoints). The AI agent features are covered in dedicated lessons later in this course.
 
 ## Backend: API Route
 
