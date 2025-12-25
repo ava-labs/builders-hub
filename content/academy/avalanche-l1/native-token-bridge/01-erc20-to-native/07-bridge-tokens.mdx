@@ -1,0 +1,96 @@
+---
+title: Bridge Tokens
+description: Transfer your 1 USDC from Fuji to your L1 as native gas tokens.
+updated: 2025-12-17
+authors: [nicolasarnedo]
+icon: Terminal
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Callout } from 'fumadocs-ui/components/callout';
+import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx";
+import TestSend from "@/components/toolbox/console/ictt/token-transfer/TestSend";
+
+# Bridge USDC to Native Tokens
+
+With your bridge fully configured and collateralized, you can now transfer your **1 USDC** from Fuji to your L1, where it becomes **native gas tokens**.
+
+<Callout type="info">
+**Reminder**: You received 1 USDC from the [Circle Faucet](https://faucet.circle.com/) at the start of this chapter.
+</Callout>
+
+<Steps>
+<Step>
+### Connect to Fuji C-Chain
+
+Switch your wallet to **Fuji C-Chain** (the source chain).
+
+Verify you have:
+- **1 USDC** (from Circle faucet)
+- **Test AVAX** for gas fees
+
+</Step>
+
+<Step>
+### Bridge using the Token Transfer tool
+
+Use the tool below to bridge your USDC:
+
+1. Select your **ERC20TokenHome** as the source bridge contract
+2. Select your **NativeTokenRemote** as the destination bridge contract
+3. Enter **1** as the amount (or less if you want to keep some USDC)
+
+<Callout type="warning">
+Make sure you have:
+1. Successfully registered and collateralized your bridge
+2. USDC tokens in your wallet
+3. AVAX for gas fees on Fuji
+</Callout>
+
+<ToolboxMdxWrapper enforceChainId={43113}>
+    <TestSend />
+</ToolboxMdxWrapper>
+
+</Step>
+
+<Step>
+### Switch to your L1 and confirm
+
+Switch your wallet to **your L1** and check your native token balance.
+
+You should now have native tokens on your L1! These are backed 1:1 by the USDC locked in the ERC20TokenHome on Fuji.
+
+</Step>
+</Steps>
+
+## What Happened
+
+1. Your **1 USDC** was **locked** in the ERC20TokenHome on Fuji
+2. An ICM message was sent to your L1 via the relayer
+3. NativeTokenRemote called the **Native Minter precompile** to mint native tokens
+4. **1 native token** was credited to your address on your L1
+
+## Bridging Back
+
+To bridge native tokens back to USDC:
+
+1. Switch to your L1
+2. Use the Token Transfer tool with reversed source/destination
+3. Native tokens will be burned and USDC released on Fuji
+
+## Summary
+
+You've successfully:
+
+- Got 1 USDC from the Circle faucet
+- Created an L1 with Native Minter enabled
+- Deployed ERC20TokenHome on Fuji for USDC
+- Deployed NativeTokenRemote on your L1
+- Registered and collateralized the bridge
+- Bridged 1 USDC → 1 native token
+
+Your L1 now uses **USDC as the native gas token**!
+
+## Next Chapter
+
+In Chapter 2, you'll learn the reverse: exporting your L1's native token to C-Chain as an ERC-20.

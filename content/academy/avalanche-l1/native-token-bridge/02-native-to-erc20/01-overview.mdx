@@ -1,0 +1,87 @@
+---
+title: Introduction
+description: Learn how to export your L1's native token to C-Chain as an ERC-20.
+updated: 2025-12-17
+authors: [nicolasarnedo]
+icon: Book
+---
+
+# Native to ERC-20 Token Bridge
+
+In this section, you'll learn how to export your L1's **native token** to the C-Chain, where it becomes an **ERC-20 token** that anyone can trade and use.
+
+## The Problem
+
+You've created an L1 with a custom native token (let's call it **TEST**). Your users want to:
+
+- Trade TEST on C-Chain DEXs
+- Use TEST in C-Chain DeFi protocols
+- Bridge TEST to other Avalanche L1s
+
+## The Solution
+
+Deploy a **Native → ERC-20** bridge:
+
+```
+Your L1 (TEST is native)              C-Chain
+┌──────────────────────────────┐     ┌──────────────────────────────┐
+│                              │     │                              │
+│  TEST (Native Gas Token)     │     │  TEST (ERC-20)               │
+│       ↓                      │     │       ↑                      │
+│  NativeTokenHome  ───────────│─────│  ERC20TokenRemote            │
+│  (wraps & locks TEST)        │ ICM │  (mints ERC-20 TEST)         │
+│                              │     │                              │
+└──────────────────────────────┘     └──────────────────────────────┘
+```
+
+## Contracts Involved
+
+| Contract | Chain | Purpose |
+|----------|-------|---------|
+| **NativeTokenHome** | Your L1 | Wraps native TEST to WTEST, locks when bridging out |
+| **ERC20TokenRemote** | C-Chain | Mints ERC-20 TEST when receiving bridge messages |
+| **Wrapped Token (WTEST)** | Your L1 | ERC-20 wrapper for your native token |
+
+## Key Difference from Other Chapters
+
+| | Chapter 1 (ERC-20 → Native) | **Chapter 2 (Native → ERC-20)** | Chapter 3 (Native → Native) |
+|--|--|--|--|
+| **Direction** | Import to L1 | Export from L1 | Import to L1 |
+| **Source** | ERC-20 on C-Chain | Native on L1 | Native on C-Chain |
+| **Result** | Native gas token | ERC-20 on C-Chain | Native gas token |
+| **Native Minter** | Required on L1 | Not required | Required on L1 |
+
+## Prerequisites
+
+For this chapter, you need:
+
+1. **An existing L1** with a custom native token (or create one in this chapter)
+2. **A wrapped version** of your native token (WTEST)
+3. **A relayer** running between your L1 and C-Chain
+
+<Callout type="info">
+Unlike Chapters 1 and 3, this chapter does **not** require the Native Minter precompile since we're minting ERC-20 tokens, not native tokens.
+</Callout>
+
+## Deployment Flow
+
+| Step | Action | Chain |
+|------|--------|-------|
+| 1 | Create L1 with custom native token (or use existing) | Fuji (P-Chain) |
+| 2 | Deploy Wrapped Token (WTEST) | Your L1 |
+| 3 | Set up relayer | Local (Docker) |
+| 4 | Deploy NativeTokenHome | Your L1 |
+| 5 | Deploy ERC20TokenRemote | C-Chain |
+| 6 | Register the remote | C-Chain → Your L1 |
+| 7 | Bridge TEST → ERC-20 | Your L1 → C-Chain |
+
+## What You'll Achieve
+
+By the end of this section:
+
+- Your L1's native token is available as an **ERC-20 on C-Chain**
+- Users can bridge TEST from your L1 to C-Chain
+- TEST can be traded on C-Chain DEXs and used in DeFi
+
+Let's get started!
+

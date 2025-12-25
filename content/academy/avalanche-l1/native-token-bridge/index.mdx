@@ -1,0 +1,96 @@
+---
+title: Welcome to the Course
+description: Learn how to bridge native tokens between Avalanche L1s using Interchain Token Transfer (ICTT).
+updated: 2025-12-17
+authors: [nicolasarnedo]
+icon: Smile
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+In this course, you'll learn how to solve three common token bridging problems using Avalanche's **Interchain Token Transfer (ICTT)** protocol.
+
+## The Three Problems ICTT Solves
+
+### Problem 1: Use an ERC-20 as Your L1's Native Token
+
+**Scenario**: You want to use **USDC** (an ERC-20 on C-Chain) as the native gas token for your L1.
+
+```
+Fuji C-Chain                         Your L1
+┌─────────────────────┐             ┌─────────────────────┐
+│  USDC (ERC-20)      │ ─────────▶  │  Native Gas Token   │
+│  ERC20TokenHome     │     ICM     │  NativeTokenRemote  │
+└─────────────────────┘             └─────────────────────┘
+```
+
+<Callout type="info">
+In this chapter, you'll use **real USDC** on Fuji from the [Circle Faucet](https://faucet.circle.com/) (1 USDC per request).
+</Callout>
+
+### Problem 2: Export Your L1's Native Token to C-Chain
+
+**Scenario**: Your L1 has a custom native token (**TEST**) and you want users on C-Chain to be able to use it as an ERC-20.
+
+```
+Your L1                              Fuji C-Chain
+┌─────────────────────┐             ┌─────────────────────┐
+│  TEST (Native)      │ ─────────▶  │  TEST (ERC-20)      │
+│  NativeTokenHome    │     ICM     │  ERC20TokenRemote   │
+└─────────────────────┘             └─────────────────────┘
+```
+
+### Problem 3: Use AVAX as Your L1's Native Token
+
+**Scenario**: You want to use **AVAX** (the native token on C-Chain) as the native gas token for your L1.
+
+```
+Fuji C-Chain                         Your L1
+┌─────────────────────┐             ┌─────────────────────┐
+│  AVAX (Native)      │ ─────────▶  │  Native Gas Token   │
+│  NativeTokenHome    │     ICM     │  NativeTokenRemote  │
+└─────────────────────┘             └─────────────────────┘
+```
+
+## Course Overview
+
+| Chapter | Use Case | Source Token | Result |
+|---------|----------|--------------|--------|
+| 1 | ERC-20 → Native | USDC on Fuji C-Chain | USDC becomes your L1's gas token |
+| 2 | Native → ERC-20 | Custom token on your L1 | Your token becomes an ERC-20 on C-Chain |
+| 3 | Native → Native | AVAX on Fuji C-Chain | AVAX becomes your L1's gas token |
+
+## Prerequisites
+
+Before starting this course, we recommend completing:
+
+- [ERC20 Bridge](/academy/avalanche-l1/erc20-bridge) - ICTT mental model (TokenHome/TokenRemote), registration, and transfer basics
+- [L1 Native Tokenomics](/academy/avalanche-l1/l1-native-tokenomics) - Native vs ERC-20, wrapped tokens, and token decimals
+- [Interchain Messaging](/academy/avalanche-l1/interchain-messaging) - Cross-chain messaging and running a relayer
+
+## What You'll Need
+
+For this course, make sure you have:
+
+1. **Test AVAX** on Fuji C-Chain for gas fees ([Fuji Faucet](/console/primary-network/faucet))
+2. **Core Wallet** browser extension installed
+3. For Chapter 1: **1 USDC** from the [Circle Faucet](https://faucet.circle.com/) (select "Avalanche Fuji")
+
+## Key Concepts
+
+### Native Minter Precompile
+
+Chapters 1 and 3 require creating an L1 with the **Native Minter precompile** enabled. This precompile allows authorized contracts to mint native tokens.
+
+### Collateralization
+
+When minting native tokens, the bridge requires **collateral** to back the minted supply. This ensures 1:1 backing.
+
+### Token Homes and Remotes
+
+- **TokenHome**: Deployed on the chain where the original token lives. Locks/releases tokens.
+- **TokenRemote**: Deployed on the destination chain. Mints/burns tokens.
+
+## Let's Get Started!
+
+Each chapter is independent—complete them in order or jump to the problem you need to solve.
