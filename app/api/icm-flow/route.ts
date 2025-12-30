@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import l1ChainsData from "@/constants/l1-chains.json";
-const mainnetChains = l1ChainsData.filter(c => ('isTestnet' in c ? c.isTestnet : false) !== true);
+const mainnetChains = l1ChainsData.filter(c => (c as { isTestnet?: boolean }).isTestnet !== true);
 
 interface ICMFlowData {
   sourceChain: string;
