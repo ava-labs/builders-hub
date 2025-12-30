@@ -5,27 +5,34 @@ import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { GraduationCap } from 'lucide-react';
 
-// Avalanche Logo SVG - Official logomark
+const AVALANCHE_LOGO_SRC =
+    "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Avalanche_Logomark_Red.svg";
+const SOLIDITY_LOGO_SRC =
+    "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/solidity_logo.svg";
+
+// Avalanche Logo (hosted SVG)
 function AvalancheLogo({ className }: { className?: string }) {
     return (
-        <svg viewBox="0 0 257 227" fill="currentColor" className={className}>
-            <path d="M160.944 226.116H246.964C254.554 226.116 259.304 217.896 255.504 211.326L212.494 136.836C208.694 130.266 199.214 130.266 195.414 136.836L152.404 211.326C148.604 217.896 153.354 226.116 160.944 226.116Z"/>
-            <path d="M171.704 66.1852L136.354 4.94523C132.784 -1.24477 123.844 -1.24477 120.274 4.94523L1.38358 210.865C-2.52642 217.645 2.36358 226.105 10.1836 226.105H80.9736C88.5236 226.105 95.4936 222.075 99.2636 215.545L171.704 90.0752C175.974 82.6852 175.974 73.5752 171.704 66.1852Z"/>
-        </svg>
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+            src={AVALANCHE_LOGO_SRC}
+            alt="Avalanche"
+            className={className}
+            draggable={false}
+        />
     );
 }
 
-// Solidity Logo SVG - Official logo
+// Solidity Logo (hosted SVG)
 function SolidityLogo({ className }: { className?: string }) {
     return (
-        <svg viewBox="-78.58515 -203.242 681.0713 1219.452" fill="currentColor" className={className}>
-            <path d="M391.93 0L261.226 232.302H0L130.614 0H391.93" opacity=".45"/>
-            <path d="M261.226 232.302h261.318L391.93 0H130.614z" opacity=".6"/>
-            <path d="M130.614 464.514l130.612-232.212L130.614 0 0 232.302z" opacity=".8"/>
-            <path d="M131.879 812.967l130.704-232.303h261.318L393.196 812.967H131.879" opacity=".45"/>
-            <path d="M262.582 580.665H1.265l130.613 232.303h261.317z" opacity=".6"/>
-            <path d="M393.196 348.453L262.582 580.665l130.614 232.303L523.9 580.665z" opacity=".8"/>
-        </svg>
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+            src={SOLIDITY_LOGO_SRC}
+            alt="Solidity"
+            className={className}
+            draggable={false}
+        />
     );
 }
 
