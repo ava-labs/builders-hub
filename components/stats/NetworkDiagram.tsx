@@ -730,6 +730,8 @@ export default function NetworkDiagram({
 
       // === CLEAR CANVAS with DPR scaling ===
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // Reset transform and apply DPR scale
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
       ctx.fillStyle = '#020208';
       ctx.fillRect(0, 0, dimensions.width, dimensions.height);
 
@@ -950,45 +952,54 @@ export default function NetworkDiagram({
         });
 
         // Chain name label with logo - show ALL chains
-        const labelFontSize = Math.max(8, Math.min(11, node.radius / 3));
-        const logoSize = labelFontSize + 2;
-        const labelY = node.y + node.radius * scale + 12;
-        
+        // Round font size to integer for crisp text
+        const labelFontSize = Math.round(Math.max(8, Math.min(11, node.radius / 3)));
+        const logoSize = Math.round(labelFontSize + 2);
+        // Round label position to integers for pixel-perfect rendering
+        const labelY = Math.round(node.y + node.radius * scale + 12);
+
         // Draw logo if available
         const logoImg = logoImagesRef.current.get(node.id);
         const hasLogo = logoImg && logoImg.complete && logoImg.naturalWidth > 0;
-        
+
         ctx.font = `${isHovered ? 'bold ' : ''}${labelFontSize}px Inter, system-ui, sans-serif`;
         const textWidth = ctx.measureText(node.name).width;
         const totalWidth = hasLogo ? logoSize + 4 + textWidth : textWidth;
-        const startX = node.x - totalWidth / 2;
-        
+        // Round starting X position to integer
+        const startX = Math.round(node.x - totalWidth / 2);
+
         if (hasLogo) {
+          // Round logo coordinates for crisp rendering
+          const logoCenterX = Math.round(startX + logoSize / 2);
+          const logoDrawX = Math.round(startX);
+          const logoDrawY = Math.round(labelY - logoSize / 2);
+          const logoRadius = logoSize / 2;
+
           // Draw circular logo
           ctx.save();
           ctx.beginPath();
-          ctx.arc(startX + logoSize / 2, labelY, logoSize / 2, 0, Math.PI * 2);
+          ctx.arc(logoCenterX, labelY, logoRadius, 0, Math.PI * 2);
           ctx.clip();
-          ctx.drawImage(logoImg, startX, labelY - logoSize / 2, logoSize, logoSize);
+          ctx.drawImage(logoImg, logoDrawX, logoDrawY, logoSize, logoSize);
           ctx.restore();
-          
+
           // Draw logo border
           ctx.beginPath();
-          ctx.arc(startX + logoSize / 2, labelY, logoSize / 2, 0, Math.PI * 2);
+          ctx.arc(logoCenterX, labelY, logoRadius, 0, Math.PI * 2);
           ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-          ctx.lineWidth = 0.5;
+          ctx.lineWidth = 1;
           ctx.stroke();
         }
-        
-        // Draw chain name
-        const textX = hasLogo ? startX + logoSize + 4 : node.x;
+
+        // Draw chain name - round text position to integers
+        const textX = Math.round(hasLogo ? startX + logoSize + 4 : node.x);
         ctx.textAlign = hasLogo ? 'left' : 'center';
         ctx.textBaseline = 'middle';
-        
+
         // Text shadow
         ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
         ctx.fillText(node.name, textX + 1, labelY + 1);
-        
+
         // Text
         ctx.fillStyle = isHovered ? '#ffffff' : 'rgba(255, 255, 255, 0.9)';
         ctx.fillText(node.name, textX, labelY);
@@ -997,18 +1008,18 @@ export default function NetworkDiagram({
       // Restore transform
       ctx.restore();
 
-      // Watermark (drawn after restore so it stays fixed)
+      // Watermark (drawn after restore so it stays fixed) - use rounded coordinates
       ctx.font = 'bold 11px Inter, system-ui, sans-serif';
       ctx.textAlign = 'center';
       ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
-      ctx.fillText('AVALANCHE NETWORK', dimensions.width / 2, dimensions.height - 20);
-      
-      // Zoom indicator
+      ctx.fillText('AVALANCHE NETWORK', Math.round(dimensions.width / 2), Math.round(dimensions.height - 20));
+
+      // Zoom indicator - use rounded coordinates
       if (zoom !== 1 || panOffset.x !== 0 || panOffset.y !== 0) {
         ctx.font = '10px Inter, system-ui, sans-serif';
         ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
         ctx.textAlign = 'right';
-        ctx.fillText(`${Math.round(zoom * 100)}%`, dimensions.width - 15, 25);
+        ctx.fillText(`${Math.round(zoom * 100)}%`, Math.round(dimensions.width - 15), 25);
       }
 
       animationRef.current = requestAnimationFrame(draw);
