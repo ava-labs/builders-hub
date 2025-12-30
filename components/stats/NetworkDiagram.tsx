@@ -157,6 +157,7 @@ export default function NetworkDiagram({
   const { resolvedTheme } = useTheme();
   
   const [dimensions, setDimensions] = useState({ width: 900, height: 600 });
+  const [dpr, setDpr] = useState(1);
   const [hoveredChain, setHoveredChain] = useState<ChainNode | null>(null);
   const [selectedChain, setSelectedChain] = useState<ChainNode | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -549,34 +550,38 @@ export default function NetworkDiagram({
   useEffect(() => {
     let resizeTimeout: ReturnType<typeof setTimeout> | null = null;
     const lastDimensions = { width: 0, height: 0 };
-    
+
     const updateSize = (immediate = false) => {
       if (!containerRef.current) return;
-      
+
       const rect = containerRef.current.getBoundingClientRect();
       const newWidth = Math.round(rect.width);
       const newHeight = Math.round(rect.height);
-      
+
+      // Update device pixel ratio for crisp rendering on HiDPI displays
+      const newDpr = Math.min(window.devicePixelRatio || 1, 2); // Cap at 2 for performance
+      setDpr(newDpr);
+
       // On mobile, browser chrome (address bar) hiding/showing causes height changes
       // Only update if width changes or height changes significantly (more than 100px)
       const widthChanged = Math.abs(newWidth - lastDimensions.width) > 2;
       const heightChangedSignificantly = Math.abs(newHeight - lastDimensions.height) > 100;
-      
+
       if (immediate || widthChanged || heightChangedSignificantly) {
         lastDimensions.width = newWidth;
         lastDimensions.height = newHeight;
         setDimensions({ width: newWidth, height: newHeight });
       }
     };
-    
+
     const handleResize = () => {
       if (resizeTimeout) clearTimeout(resizeTimeout);
       resizeTimeout = setTimeout(() => updateSize(false), 150);
     };
-    
+
     // Initial update is immediate
     updateSize(true);
-    
+
     window.addEventListener('resize', handleResize);
     return () => {
       window.removeEventListener('resize', handleResize);
@@ -687,18 +692,22 @@ export default function NetworkDiagram({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    // Set canvas resolution for HiDPI displays (pixel-perfect rendering)
+    canvas.width = dimensions.width * dpr;
+    canvas.height = dimensions.height * dpr;
+
     let time = 0;
 
     const draw = () => {
       time += 0.008;
-      
+
       simulatePhysics(nodesRef.current, dimensions.width, dimensions.height, isMobile);
-      
+
       // Update link positions after physics
       if (linksRef.current.length > 0) {
         const nodeMap = new Map<string, ChainNode>();
         nodesRef.current.forEach(n => nodeMap.set(n.id, n));
-        
+
         linksRef.current.forEach(link => {
           const fromNode = nodeMap.get(link.fromId);
           const toNode = nodeMap.get(link.toId);
@@ -719,7 +728,8 @@ export default function NetworkDiagram({
         }
       });
 
-      // === CLEAR CANVAS ===
+      // === CLEAR CANVAS with DPR scaling ===
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // Reset transform and apply DPR scale
       ctx.fillStyle = '#020208';
       ctx.fillRect(0, 0, dimensions.width, dimensions.height);
 
@@ -1011,7 +1021,7 @@ export default function NetworkDiagram({
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [dimensions, resolvedTheme, simulatePhysics, zoom, panOffset, selectedChain]);
+  }, [dimensions, dpr, resolvedTheme, simulatePhysics, zoom, panOffset, selectedChain]);
 
   // Mouse interactions
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -1314,9 +1324,8 @@ export default function NetworkDiagram({
     >
       <canvas
         ref={canvasRef}
-        width={dimensions.width}
-        height={dimensions.height}
-        className={`w-full h-full ${isDragging ? 'cursor-grabbing' : 'cursor-grab'} touch-none`}
+        style={{ width: dimensions.width, height: dimensions.height }}
+        className={`${isDragging ? 'cursor-grabbing' : 'cursor-grab'} touch-none`}
         onMouseMove={handleMouseMove}
         onMouseDown={handleMouseDown}
         onMouseUp={handleMouseUp}
