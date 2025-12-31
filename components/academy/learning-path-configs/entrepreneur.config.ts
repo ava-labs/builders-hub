@@ -21,7 +21,7 @@ export const entrepreneurLearningPaths: CourseNode[] = [
         slug: "entrepreneur/go-to-market",
         category: "Business Strategy",
         dependencies: ["avalanche-foundation"],
-        position: { x: 30, y: 250 },
+        position: { x: 30, y: 200 },
         mobileOrder: 2
     },
     {
@@ -31,7 +31,7 @@ export const entrepreneurLearningPaths: CourseNode[] = [
         slug: "entrepreneur/web3-community-architect",
         category: "Community",
         dependencies: ["avalanche-foundation"],
-        position: { x: 70, y: 250 },
+        position: { x: 70, y: 200 },
         mobileOrder: 3
     },
 
@@ -43,7 +43,7 @@ export const entrepreneurLearningPaths: CourseNode[] = [
         slug: "entrepreneur/fundraising-finance",
         category: "Finance",
         dependencies: ["avalanche-web3-community-architect", "avalanche-gtm"],
-        position: { x: 50, y: 500 },
+        position: { x: 50, y: 400 },
         mobileOrder: 4
     }
 ];
