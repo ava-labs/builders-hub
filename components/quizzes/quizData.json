@@ -200,7 +200,10 @@
         "5001",
         "5002",
         "5003",
-        "5004"
+        "5004",
+        "5005",
+        "5006",
+        "5007"
       ]
     }
   },
@@ -2931,6 +2934,51 @@
       "hint": "Think about who pays the gas fees and how the facilitator submits the transaction on your behalf.",
       "explanation": "You signed an EIP-712 authorization using EIP-3009, not an ERC-20 approval. This approach provides several advantages: (1) One-time authorization for a single, specific transfer rather than unlimited future spending, (2) Gasless for users because the facilitator submits the transaction, (3) No separate transaction unlike approvals which require an on-chain transaction, and (4) More secure with no unlimited token allowances that could be exploited. The facilitator uses your signature to call transferWithAuthorization on the USDC contract, moving funds directly from your wallet to the merchant in a single transaction.",
       "chapter": "Making Your First x402 Payment"
+    },
+    "5005": {
+      "question": "Why do AI agents need a different payment approach compared to human users?",
+      "options": [
+        "AI agents prefer cryptocurrency over fiat currency",
+        "AI agents cannot complete CAPTCHA/KYC and need to make many small autonomous payments without human approval each time",
+        "AI agents are faster at processing payments",
+        "AI agents don't have internet access to traditional payment portals"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Think about the barriers AI agents face with traditional systems and the need for autonomous operation.",
+      "explanation": "AI agents cannot complete identity verification (CAPTCHA, KYC) required by traditional payment systems, and they need to make many small payments autonomously without requiring human approval for each transaction. x402's signature-based approach with pre-authorized budgets solves both problems.",
+      "chapter": "AI Agent Mode Overview"
+    },
+    "5006": {
+      "question": "In token-based AI chat, what does the 'upto' payment scheme mean?",
+      "options": [
+        "The user pays a fixed amount regardless of usage",
+        "The user authorizes a maximum amount but only pays for actual tokens consumed",
+        "The AI charges more for longer conversations",
+        "Tokens must be purchased in advance before chatting"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Think about how the payment authorization works versus the actual charge.",
+      "explanation": "The 'upto' scheme allows users to authorize a maximum payment (e.g., $0.50) but only be charged for the actual tokens consumed in the response. This enables variable pricing where you pay for what you use, not a fixed rate, while still protecting against unexpected high costs.",
+      "chapter": "Token-Based AI Chat"
+    },
+    "5007": {
+      "question": "How does the autonomous AI agent make payments without requiring user approval for each transaction?",
+      "options": [
+        "It stores the user's main wallet private key",
+        "It creates a separate agent wallet with its own encrypted private key that the user pre-funds with a budget",
+        "It uses the facilitator's wallet for all payments",
+        "It batches all payments into a single transaction at the end"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Consider how the agent can sign transactions independently while keeping the user's main wallet secure.",
+      "explanation": "The autonomous agent creates its own wallet with a private key encrypted in the browser. The user pre-funds this agent wallet with USDC (setting a budget). The agent can then sign payments autonomously using its own key, without touching the user's main wallet. This provides security (limited budget) and autonomy (no popups per payment).",
+      "chapter": "Autonomous AI Agent"
     }
   }
 }
