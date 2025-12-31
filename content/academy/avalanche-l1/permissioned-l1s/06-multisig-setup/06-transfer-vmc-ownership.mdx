@@ -1,0 +1,129 @@
+---
+title: Transfer VMC Ownership to PoA Manager
+description: Transfer the Validator Manager Contract ownership to your PoA Manager
+updated: 2025-03-19
+authors: [nicolasarnedo]
+icon: Terminal
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx";
+import { TransferOwnership } from "@/components/toolbox/console/permissioned-l1s/multisig-setup/TransferOwnership.tsx";
+
+Now that the PoA Manager is deployed and owned by your Safe wallet, we need to transfer ownership of the Validator Manager Contract to the PoA Manager.
+
+## Why This Transfer?
+
+Currently, your EOA (externally owned account) directly owns the Validator Manager. This means you alone can:
+- Add validators
+- Remove validators
+- Change validator weights
+
+By transferring ownership to the PoA Manager, you're inserting it as an intermediary that your multi-sig controls.
+
+## Before and After
+
+<Mermaid
+  chart="
+graph TB
+    subgraph Before [Current State]
+        EOA1[Your EOA] -->|owns| VM1[Validator Manager]
+        Safe1[Safe Wallet] -->|owns| PoA1[PoA Manager]
+    end
+    
+    subgraph After [After Transfer]
+        Safe2[Safe Wallet] -->|owns| PoA2[PoA Manager]
+        PoA2 -->|owns| VM2[Validator Manager]
+    end
+    
+    Before -.->|Transfer| After
+    
+    style EOA1 fill:#fee2e2,stroke:#dc2626
+    style Safe1 fill:#f0f9ff,stroke:#0369a1
+    style Safe2 fill:#f0f9ff,stroke:#0369a1
+    style PoA1 fill:#fef3c7,stroke:#d97706
+    style PoA2 fill:#fef3c7,stroke:#d97706
+    style VM1 fill:#d1fae5,stroke:#059669
+    style VM2 fill:#d1fae5,stroke:#059669
+"
+/>
+
+## Important Considerations
+
+<Callout type="warning">
+**This action is significant!** After transferring ownership, you will no longer be able to directly manage validators. All operations will need to go through the PoA Manager, which is controlled by your multi-sig.
+
+Make sure you have access to the required number of signers before proceeding.
+</Callout>
+
+### Pre-Transfer Checklist
+
+Before transferring ownership, verify:
+
+- ✅ **PoA Manager Deployed**: You have a valid PoA Manager address
+- ✅ **Safe Ownership**: Your Safe wallet owns the PoA Manager
+- ✅ **Signer Access**: You have access to the required number of signers
+- ✅ **Test Transaction**: Consider testing a simple Safe transaction first
+
+## Transfer Ownership
+
+Use the tool below to transfer Validator Manager ownership to your PoA Manager:
+
+<ToolboxMdxWrapper walletMode="c-chain">
+    <TransferOwnership />
+</ToolboxMdxWrapper>
+
+## What Happens During Transfer
+
+When you call `transferOwnership()`:
+
+1. **Verification**: The Validator Manager verifies you're the current owner
+2. **State Update**: The `_owner` state variable is updated to the PoA Manager address
+3. **Event Emission**: An `OwnershipTransferred` event is emitted
+4. **Immediate Effect**: From this moment, only the PoA Manager can call owner-restricted functions
+
+```solidity
+// Simplified transfer logic
+function transferOwnership(address newOwner) public onlyOwner {
+    require(newOwner != address(0), "New owner is zero address");
+    _transferOwnership(newOwner);
+}
+
+function _transferOwnership(address newOwner) internal {
+    address oldOwner = _owner;
+    _owner = newOwner;
+    emit OwnershipTransferred(oldOwner, newOwner);
+}
+```
+
+## Verification
+
+After the transfer completes:
+
+1. **Check VMC Owner**: The Validator Manager's `owner()` should return the PoA Manager address
+2. **Test Access**: Your EOA should no longer be able to call owner-restricted functions
+
+## Complete Ownership Chain
+
+With this transfer complete, you now have the full multi-sig governance chain:
+
+```
+Safe/Ash Wallet
+    ↓ owns
+PoA Manager
+    ↓ owns
+Validator Manager
+    ↓ manages
+P-Chain Validators
+```
+
+## Next Steps
+
+Your multi-sig setup is now complete! In the next chapter, you'll learn how to perform validator operations through this new governance structure.
+
+**Key differences in the new flow:**
+- Operations are proposed in the Safe wallet
+- Multiple signers must approve
+- Approved transactions are executed through the PoA Manager
+- The PoA Manager calls the Validator Manager
+
