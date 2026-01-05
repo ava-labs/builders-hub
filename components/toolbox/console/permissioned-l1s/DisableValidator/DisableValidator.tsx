@@ -46,6 +46,12 @@ function DisableValidator({ onSuccess }: BaseConsoleToolProps) {
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
   const [authIndex, setAuthIndex] = useState<number>(-1);
 
+  // Normalize P-Chain address by removing the "P-" prefix for comparison
+  // SDK returns addresses like "fuji1abc..." while wallet returns "P-fuji1abc..."
+  const normalizePChainAddress = (addr: string): string => {
+    return addr.replace(/^P-/i, "").toLowerCase();
+  };
+
   // Check if current wallet is authorized to disable the selected validator
   useEffect(() => {
     if (!selectedValidator || !pChainAddress) {
@@ -61,9 +67,12 @@ function DisableValidator({ onSuccess }: BaseConsoleToolProps) {
       return;
     }
 
+    // Normalize wallet address for comparison (remove P- prefix)
+    const normalizedWalletAddr = normalizePChainAddress(pChainAddress);
+
     // Find if the current P-Chain address is in the deactivation owners list
     const index = deactivationOwner.addresses.findIndex(
-      (addr) => addr.toLowerCase() === pChainAddress.toLowerCase()
+      (addr) => normalizePChainAddress(addr) === normalizedWalletAddr
     );
 
     if (index >= 0) {
@@ -222,21 +231,25 @@ function DisableValidator({ onSuccess }: BaseConsoleToolProps) {
                 <span className="font-medium">Threshold:</span> {selectedValidator.deactivationOwner.threshold} of {selectedValidator.deactivationOwner.addresses.length}
               </div>
               <div className="space-y-1">
-                {selectedValidator.deactivationOwner.addresses.map((addr, idx) => (
-                  <div
-                    key={idx}
-                    className={`text-xs font-mono p-2 rounded ${
-                      addr.toLowerCase() === pChainAddress?.toLowerCase()
-                        ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800"
-                        : "bg-zinc-100 dark:bg-zinc-700/50 text-zinc-600 dark:text-zinc-400"
-                    }`}
-                  >
-                    {addr}
-                    {addr.toLowerCase() === pChainAddress?.toLowerCase() && (
-                      <span className="ml-2 text-green-600 dark:text-green-400">(Your wallet)</span>
-                    )}
-                  </div>
-                ))}
+                {selectedValidator.deactivationOwner.addresses.map((addr, idx) => {
+                  const isCurrentWallet = pChainAddress &&
+                    normalizePChainAddress(addr) === normalizePChainAddress(pChainAddress);
+                  return (
+                    <div
+                      key={idx}
+                      className={`text-xs font-mono p-2 rounded ${
+                        isCurrentWallet
+                          ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800"
+                          : "bg-zinc-100 dark:bg-zinc-700/50 text-zinc-600 dark:text-zinc-400"
+                      }`}
+                    >
+                      {addr}
+                      {isCurrentWallet && (
+                        <span className="ml-2 text-green-600 dark:text-green-400">(Your wallet)</span>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           ) : (
