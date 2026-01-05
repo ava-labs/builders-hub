@@ -12,7 +12,6 @@ import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-
 import { Alert } from "../../../components/Alert";
 import { useDisableL1Validator, ValidatorData } from "./DisableL1ValidatorContext";
 import ValidatorSelector from "./ValidatorSelector";
-import { cb58ToHex } from "@/components/toolbox/console/utilities/format-converter/FormatConverter";
 import { formatAvaxBalance } from "@/components/toolbox/coreViem/utils/format";
 
 const metadata: ConsoleToolMetadata = {
@@ -94,18 +93,9 @@ function DisableValidator({ onSuccess }: BaseConsoleToolProps) {
     setError(null);
 
     try {
-      // Convert validation ID to hex format if needed
-      let validationIdHex = selectedValidator.validationId;
-      if (!validationIdHex.startsWith("0x")) {
-        try {
-          validationIdHex = "0x" + cb58ToHex(validationIdHex);
-        } catch {
-          // If conversion fails, assume it's already in the correct format
-        }
-      }
-
+      // Pass validation ID as-is - the SDK expects CB58 format from the P-Chain
       const hash = await coreWalletClient.disableL1Validator({
-        validationId: validationIdHex,
+        validationId: selectedValidator.validationId,
         disableAuth: [authIndex],
       });
 
