@@ -1,71 +1,11 @@
 "use client";
 import React, { useState, useEffect, useMemo, useTransition, useRef } from "react";
-import {
-  Area,
-  AreaChart,
-  Bar,
-  BarChart,
-  CartesianGrid,
-  XAxis,
-  YAxis,
-  Pie,
-  PieChart,
-  Line,
-  LineChart,
-  Brush,
-  ResponsiveContainer,
-  Tooltip,
-  ComposedChart,
-} from "recharts";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis, Pie, PieChart, Line, LineChart, Brush, ResponsiveContainer, Tooltip, ComposedChart } from "recharts";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  type ChartConfig,
-  ChartLegendContent,
-  ChartStyle,
-  ChartContainer,
-  ChartTooltip,
-  ChartLegend,
-} from "@/components/ui/chart";
-import {
-  Landmark,
-  Shield,
-  TrendingUp,
-  Monitor,
-  HandCoins,
-  Users,
-  Percent,
-  ArrowUpRight,
-  Twitter,
-  Linkedin,
-  Coins,
-  Download,
-  Camera,
-  ChevronDown,
-  ChevronRight,
-  ExternalLink,
-  Clock,
-  Key,
-  Wallet,
-  Activity,
-  Globe,
-  Loader2,
-  Copy,
-  Check,
-} from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { type ChartConfig, ChartLegendContent, ChartStyle, ChartContainer, ChartTooltip, ChartLegend } from "@/components/ui/chart";
+import { Landmark, Shield, TrendingUp, Monitor, HandCoins, Users, Percent, ArrowUpRight, Twitter, Linkedin, Coins, Download, Camera, ChevronDown, Copy, Check } from "lucide-react";
 import { ValidatorWorldMap } from "@/components/stats/ValidatorWorldMap";
 import { L1BubbleNav } from "@/components/stats/l1-bubble.config";
 import { ExplorerDropdown } from "@/components/stats/ExplorerDropdown";
@@ -78,23 +18,13 @@ import { useSectionNavigation } from "@/hooks/use-section-navigation";
 import { LinkableHeading } from "@/components/stats/LinkableHeading";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { ChartSkeletonLoader } from "@/components/ui/chart-skeleton";
-import {
-  TimeSeriesDataPoint,
-  ChartDataPoint,
-  PrimaryNetworkMetrics,
-  VersionCount,
-  L1Chain,
-} from "@/types/stats";
+import { TimeSeriesDataPoint, ChartDataPoint, PrimaryNetworkMetrics, VersionCount, L1Chain } from "@/types/stats";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import { ChartWatermark } from "@/components/stats/ChartWatermark";
 import { StatsBreadcrumb } from "@/components/navigation/StatsBreadcrumb";
 import { ChainIdChips } from "@/components/ui/copyable-id-chip";
 import { AddToWalletButton } from "@/components/ui/add-to-wallet-button";
-import {
-  VersionBreakdownCard,
-  calculateVersionStats,
-  type VersionBreakdownData,
-} from "@/components/stats/VersionBreakdown";
+import { VersionBreakdownCard, calculateVersionStats, type VersionBreakdownData } from "@/components/stats/VersionBreakdown";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { getMAConfig } from "@/utils/chart-utils";
 import { useTheme } from "next-themes";
@@ -734,8 +664,7 @@ export default function CChainValidatorMetrics() {
     
     newExpanded.add(nodeId);
     setExpandedValidators(newExpanded);
-    
-    // Fetch details if not already loaded
+
     if (!validatorDetails[nodeId] && !loadingDetails.has(nodeId)) {
       setLoadingDetails(prev => new Set(prev).add(nodeId));
       
@@ -1978,32 +1907,32 @@ export default function CChainValidatorMetrics() {
                 <table className="w-full border-collapse">
                   <thead className="bg-[#fcfcfd] dark:bg-neutral-900">
                     <tr>
-                      <th className="px-4 py-2 text-left">
+                      <th className="px-4 py-4 text-left">
                         <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
                           #
                         </span>
                       </th>
-                      <th className="px-4 py-2 text-left">
+                      <th className="px-4 py-4 text-left">
                         <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
                           Node ID
                         </span>
                       </th>
-                      <th className="px-4 py-2 text-right">
+                      <th className="px-4 py-4 text-right">
                         <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
                           Amount Staked
                         </span>
                       </th>
-                      <th className="px-4 py-2 text-right">
+                      <th className="px-4 py-4 text-right">
                         <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
                           Delegation Fee
                         </span>
                       </th>
-                      <th className="px-4 py-2 text-right">
+                      <th className="px-4 py-4 text-right">
                         <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
                           Delegators
                         </span>
                       </th>
-                      <th className="px-4 py-2 text-right">
+                      <th className="px-4 py-4 text-right">
                         <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
                           Amount Delegated
                         </span>
@@ -2050,18 +1979,18 @@ export default function CChainValidatorMetrics() {
                   <table className="w-full border-collapse">
                     <thead className="bg-[#fcfcfd] dark:bg-neutral-900">
                       <tr>
-                        <th className="px-4 py-2 text-left">
+                        <th className="px-4 py-4 text-left">
                           <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
                             #
                           </span>
                         </th>
-                        <th className="px-4 py-2 text-left">
+                        <th className="px-4 py-4 text-left">
                           <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
                             Node ID
                           </span>
                         </th>
                         <th
-                          className="px-4 py-2 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                          className="px-4 py-4 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                           onClick={() => handleSort("amountStaked")}
                         >
                           <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300 inline-flex items-center justify-end">
@@ -2070,7 +1999,7 @@ export default function CChainValidatorMetrics() {
                           </span>
                         </th>
                         <th
-                          className="px-4 py-2 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                          className="px-4 py-4 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                           onClick={() => handleSort("delegationFee")}
                         >
                           <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300 inline-flex items-center justify-end">
@@ -2079,7 +2008,7 @@ export default function CChainValidatorMetrics() {
                           </span>
                         </th>
                         <th
-                          className="px-4 py-2 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                          className="px-4 py-4 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                           onClick={() => handleSort("delegatorCount")}
                         >
                           <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300 inline-flex items-center justify-end">
@@ -2088,7 +2017,7 @@ export default function CChainValidatorMetrics() {
                           </span>
                         </th>
                         <th
-                          className="px-4 py-2 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                          className="px-4 py-4 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                           onClick={() => handleSort("amountDelegated")}
                         >
                           <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300 inline-flex items-center justify-end">
@@ -2122,7 +2051,7 @@ export default function CChainValidatorMetrics() {
                                 onClick={() => toggleValidatorExpansion(validator.nodeId)}
                                 className={`border-b border-slate-100 dark:border-neutral-800 transition-colors hover:bg-blue-50/50 dark:hover:bg-neutral-800/50 cursor-pointer ${isExpanded ? 'bg-blue-50/30 dark:bg-neutral-800/30' : ''}`}
                           >
-                            <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
+                            <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-4">
                                   <div className="flex items-center gap-1.5">
                                     <ChevronDown
                                       className={`h-4 w-4 text-zinc-400 transition-transform duration-200 ${
@@ -2134,7 +2063,7 @@ export default function CChainValidatorMetrics() {
                               </span>
                                   </div>
                             </td>
-                            <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 font-mono text-xs">
+                            <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-4 font-mono text-xs">
                               <span
                                 title={
                                   copiedId === `node-${validator.nodeId}`
@@ -2162,17 +2091,17 @@ export default function CChainValidatorMetrics() {
                                     )}...${validator.nodeId.slice(-8)}`}
                               </span>
                             </td>
-                            <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 text-right font-mono text-sm">
+                            <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-4 text-right font-mono text-sm">
                               {formatValidatorStake(validator.amountStaked)}{" "}
                               AVAX
                             </td>
-                            <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 text-right text-sm">
+                            <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-4 text-right text-sm">
                               {parseFloat(validator.delegationFee).toFixed(1)}%
                             </td>
-                            <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 text-right text-sm">
+                            <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-4 text-right text-sm">
                               {validator.delegatorCount}
                             </td>
-                            <td className="px-4 py-2 text-right font-mono text-sm">
+                            <td className="px-4 py-4 text-right font-mono text-sm">
                               {formatValidatorStake(validator.amountDelegated)}{" "}
                               AVAX
                             </td>
@@ -2183,9 +2112,58 @@ export default function CChainValidatorMetrics() {
                                 <tr className="bg-zinc-50/50 dark:bg-neutral-900/30">
                                   <td colSpan={6} className="px-6 py-5">
                                     {isLoadingDetails ? (
-                                      <div className="flex items-center justify-center py-8">
-                                        <Loader2 className="h-6 w-6 animate-spin text-zinc-400" />
-                                        <span className="ml-2 text-sm text-zinc-500">Loading validator details...</span>
+                                      <div className="animate-in fade-in duration-300">
+                                        {/* Status & Version Skeleton */}
+                                        <div className="flex items-center justify-between mb-5">
+                                          <div className="flex items-center gap-3">
+                                            <div className="h-6 w-16 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                                            <div className="h-4 w-20 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                                          </div>
+                                          <div className="h-8 w-28 bg-zinc-200 dark:bg-zinc-800 rounded-md animate-pulse" />
+                                        </div>
+
+                                        {/* First Grid Row Skeleton */}
+                                        <div className="grid md:grid-cols-3 gap-3 mb-3">
+                                          {[1, 2, 3].map((i) => (
+                                            <div key={i} className="p-3 border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-neutral-900">
+                                              <div className="h-3 w-24 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse mb-3" />
+                                              <div className="space-y-2">
+                                                <div className="h-3 w-36 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                                                <div className="h-3 w-32 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                                                <div className="h-3 w-28 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                                              </div>
+                                            </div>
+                                          ))}
+                                        </div>
+
+                                        {/* Second Grid Row Skeleton */}
+                                        <div className="grid md:grid-cols-3 gap-3 mb-4">
+                                          {[1, 2, 3].map((i) => (
+                                            <div key={i} className="p-3 border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-neutral-900">
+                                              <div className="h-3 w-20 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse mb-3" />
+                                              <div className="space-y-2">
+                                                <div className="h-3 w-32 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                                                <div className="h-3 w-28 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                                              </div>
+                                            </div>
+                                          ))}
+                                        </div>
+
+                                        {/* Technical Details Skeleton */}
+                                        <div className="border-t border-zinc-200 dark:border-zinc-700 pt-4">
+                                          <div className="h-3 w-28 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse mb-3" />
+                                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                            {[1, 2].map((i) => (
+                                              <div key={i} className="flex items-center justify-between p-2.5 bg-white dark:bg-neutral-900 border border-zinc-200 dark:border-zinc-700 rounded-lg">
+                                                <div className="flex items-center gap-2">
+                                                  <div className="h-3 w-16 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                                                  <div className="h-3 w-32 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                                                </div>
+                                                <div className="h-6 w-6 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                                              </div>
+                                            ))}
+                                          </div>
+                                        </div>
                                       </div>
                                     ) : details ? (
                                       <>
