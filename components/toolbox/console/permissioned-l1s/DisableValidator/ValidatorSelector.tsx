@@ -1,11 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Loader2, Search, Users, Coins, Calendar, ChevronDown, Check, RefreshCw } from "lucide-react";
-import { useWalletStore } from "@/components/toolbox/stores/walletStore";
-import { networkIDs } from "@avalabs/avalanchejs";
-import { GlobalParamNetwork } from "@avalabs/avacloud-sdk/models/components";
-import { AvaCloudSDK } from "@avalabs/avacloud-sdk";
+import { useAvalancheSDKChainkit } from "@/components/toolbox/stores/useAvalancheSDKChainkit";
 import { ValidatorData } from "./DisableL1ValidatorContext";
 import { formatAvaxBalance } from "@/components/toolbox/coreViem/utils/format";
 import { Button } from "../../../components/Button";
@@ -22,7 +19,7 @@ export default function ValidatorSelector({
   onSelect,
   selectedValidator,
 }: ValidatorSelectorProps) {
-  const { avalancheNetworkID, isTestnet } = useWalletStore();
+  const { listL1Validators } = useAvalancheSDKChainkit();
   const [validators, setValidators] = useState<ValidatorData[]>([]);
   const [filteredValidators, setFilteredValidators] = useState<ValidatorData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -30,12 +27,7 @@ export default function ValidatorSelector({
   const [searchTerm, setSearchTerm] = useState("");
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const networkNames: Record<number, GlobalParamNetwork> = {
-    [networkIDs.MainnetID]: "mainnet",
-    [networkIDs.FujiID]: "fuji",
-  };
-
-  const fetchValidators = async () => {
+  const fetchValidators = useCallback(async () => {
     if (!subnetId) return;
 
     setIsLoading(true);
@@ -43,28 +35,18 @@ export default function ValidatorSelector({
     onSelect(null);
 
     try {
-      const network = networkNames[Number(avalancheNetworkID)];
-      if (!network) {
-        throw new Error("Invalid network selected");
-      }
-
-      const sdk = new AvaCloudSDK({
-        serverURL: isTestnet ? "https://api.avax-test.network" : "https://api.avax.network",
-        network: network,
-      });
-
-      const result = await sdk.data.primaryNetwork.listL1Validators({
-        network: network,
+      // Use the avalanche-sdk-typescript via the hook
+      const result = await listL1Validators({
         subnetId,
+        includeInactiveL1Validators: false,
       });
 
+      // Extract validators from the response
       const allValidators: ValidatorData[] = [];
-      for await (const page of result) {
-        if ('result' in page && page.result && 'validators' in page.result) {
-          allValidators.push(...(page.result.validators as unknown as ValidatorData[]));
-        } else if ('validators' in page) {
-          allValidators.push(...(page.validators as unknown as ValidatorData[]));
-        }
+
+      // Handle the paginated response structure from avalanche-sdk
+      if (result && 'validators' in result) {
+        allValidators.push(...(result.validators as unknown as ValidatorData[]));
       }
 
       // Filter to only show active validators (weight > 0)
@@ -78,7 +60,7 @@ export default function ValidatorSelector({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [subnetId, listL1Validators, onSelect]);
 
   // Filter validators based on search
   useEffect(() => {
@@ -104,7 +86,7 @@ export default function ValidatorSelector({
       setValidators([]);
       setFilteredValidators([]);
     }
-  }, [subnetId, avalancheNetworkID]);
+  }, [subnetId]);
 
   const formatTimestamp = (timestamp: number): string => {
     return new Date(timestamp * 1000).toLocaleDateString();
@@ -187,7 +169,7 @@ export default function ValidatorSelector({
           {/* Validator List */}
           {!isLoading && !error && filteredValidators.length > 0 && (
             <div className="max-h-64 overflow-y-auto">
-              {filteredValidators.map((validator, idx) => (
+              {filteredValidators.map((validator) => (
                 <button
                   key={validator.validationId}
                   onClick={() => handleSelect(validator)}
