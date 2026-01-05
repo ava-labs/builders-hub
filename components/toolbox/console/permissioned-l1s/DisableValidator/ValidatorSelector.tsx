@@ -41,12 +41,14 @@ export default function ValidatorSelector({
         includeInactiveL1Validators: false,
       });
 
-      // Extract validators from the response
+      // Extract validators from the paginated async response
       const allValidators: ValidatorData[] = [];
 
-      // Handle the paginated response structure from avalanche-sdk
-      if (result && 'validators' in result) {
-        allValidators.push(...(result.validators as unknown as ValidatorData[]));
+      // SDK returns an async iterable - iterate through pages
+      for await (const page of result) {
+        if (page.result?.validators) {
+          allValidators.push(...(page.result.validators as unknown as ValidatorData[]));
+        }
       }
 
       // Filter to only show active validators (weight > 0)
