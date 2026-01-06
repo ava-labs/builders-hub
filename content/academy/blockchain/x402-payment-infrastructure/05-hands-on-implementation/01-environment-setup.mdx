@@ -1,7 +1,7 @@
 ---
 title: Setting Up Your x402 Development Environment
 description: Configure your development environment and set up the x402 starter kit with Thirdweb facilitator.
-updated: 2025-12-04
+updated: 2025-12-22
 authors: [Federico Nardelli]
 icon: Terminal
 ---
@@ -70,6 +70,9 @@ THIRDWEB_SERVER_WALLET_ADDRESS=
 
 # Your wallet address that receives payments (you'll add this in Step 5)
 MERCHANT_WALLET_ADDRESS=
+
+# OpenRouter API key for AI chat features (you'll add this in Step 5)
+OPENROUTER_API_KEY=
 ```
 
 ## Step 4: Create Thirdweb Account and Get Credentials
@@ -140,7 +143,22 @@ Copy and paste your wallet address (this wallet will receive USDC payments from 
 MERCHANT_WALLET_ADDRESS=0xMerchantWalletAddressHere
 ```
 
-## Step 7: Get Test USDC
+## Step 7: Get OpenRouter API Key (Optional)
+
+OpenRouter provides access to AI models for the token-based AI chat feature. This step is optional if you only want to use the basic payment features.
+
+1. Visit [OpenRouter](https://openrouter.ai/)
+2. Create an account or sign in
+3. Go to [API Keys](https://openrouter.ai/settings/keys)
+4. Click "Create Key" and copy your API key
+
+**Add to your `.env.local` file:**
+
+```bash
+OPENROUTER_API_KEY=sk-or-...
+```
+
+## Step 8: Get Test USDC
 
 Get test USDC for making test payments:
 
@@ -153,7 +171,7 @@ Fuji USDC Contract: `0x5425890298aed601595a70AB815c96711a31Bc65`
 
 You don't need test AVAX because the facilitator will pay the gas fee.
 
-## Step 8: Verify Your Configuration
+## Step 9: Verify Your Configuration
 
 Your `.env.local` file should now be completely filled in:
 
@@ -167,9 +185,12 @@ THIRDWEB_SERVER_WALLET_ADDRESS=0x1234...
 
 # A wallet address (receives payments)
 MERCHANT_WALLET_ADDRESS=0x5678...
+
+# OpenRouter API key (optional, for AI chat features)
+OPENROUTER_API_KEY=sk-or-...
 ```
 
-## Step 9: Run the Development Server
+## Step 10: Run the Development Server
 
 Start the application:
 
@@ -177,20 +198,26 @@ Start the application:
 npm run dev
 ```
 
-## Step 10: Verify Your Setup
+## Step 11: Verify Your Setup
 
 Open your browser and navigate to `http://localhost:3000`.
 
 You should see the x402 Starter Kit interface with:
 - Header with "x402 Starter Kit"
-- Two payment tiers: **Basic (\$0.01)** and **Premium (\$0.15)**
+- **Mode switcher** at the top: "Human Payment" and "AI Agent" modes
+- Two payment tiers in Human Payment mode: **Basic (\$0.01)** and **Premium (\$0.15)**
 - "Connect Wallet" button
 - Transaction log section
 
 If you see this interface, your environment is correctly configured!
+
+The starter kit supports two main modes:
+- **Human Payment Mode**: Manual payment for content tiers (covered in the next lesson)
+- **AI Agent Mode**: Autonomous payments for AI services (covered in later lessons)
 
 ## Additional Resources
 
 - [Thirdweb Documentation](https://portal.thirdweb.com/payments/x402/facilitator)
 - [x402 Starter Kit Repository](https://github.com/ava-labs/x402-starter-kit)
 - [ERC4337 Standard](https://eips.ethereum.org/EIPS/eip-4337)
+- [OpenRouter API](https://openrouter.ai/) (for AI chat features)
