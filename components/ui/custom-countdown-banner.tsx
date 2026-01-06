@@ -15,9 +15,7 @@ function RollingDigit({ value }: { value: number }) {
 
   useEffect(() => {
     if (value !== displayValue) {
-      const timeout = setTimeout(() => {
-        setDisplayValue(value);
-      }, 500);
+      const timeout = setTimeout(() => {setDisplayValue(value)}, 500);
       return () => clearTimeout(timeout);
     }
   }, [value, displayValue]);
@@ -78,91 +76,68 @@ function CountdownTimer({ targetDate, onComplete }: { targetDate: string; onComp
     const tick = () => {
       const next = calculateTimeLeft();
       setTimeLeft(next);
-
       const remainingMs = +new Date(targetDate) - +new Date();
       if (remainingMs <= 0 && !completedRef.current) {
         completedRef.current = true;
         onComplete?.();
       }
     };
-
-    // initial tick ensures immediate evaluation on mount
     tick();
     const timer = setInterval(tick, 1000);
     return () => clearInterval(timer);
   }, [targetDate, onComplete]);
 
   return (
-    <span className="font-semibold font-mono bg-white/20 px-3 py-1 rounded-md backdrop-blur-sm inline-flex items-center gap-0.5">
+    <span className="font-semibold font-mono bg-black/10 px-3 py-1 rounded-md backdrop-blur-sm inline-flex items-center gap-0.5">
       <TimeDisplay label="d" value={timeLeft.days} />
-      <span className="text-white/50">:</span>
+      <span className="opacity-50">:</span>
       <TimeDisplay label="h" value={timeLeft.hours} />
-      <span className="text-white/50">:</span>
+      <span className="opacity-50">:</span>
       <TimeDisplay label="m" value={timeLeft.minutes} />
-      <span className="text-white/50">:</span>
+      <span className="opacity-50">:</span>
       <TimeDisplay label="s" value={timeLeft.seconds} />
     </span>
   );
 }
 
-export function GraniteBanner() {
-  const activationDate = "2025-11-19T11:00:00-05:00";
-  const [activated, setActivated] = useState(false);
-
-  // Clear localStorage on mount so banner always shows on refresh
+export function CustomCountdownBanner() {
+  const deadlineDate = "2026-01-17T23:59:59-05:00";
+  const [deadlinePassed, setDeadlinePassed] = useState(false);
   useEffect(() => {
-    const bannerKey = "nd-banner-granite-banner";
+    const bannerKey = "nd-banner-hardware-banner";
     localStorage.removeItem(bannerKey);
-    // Also remove the class that hides the banner
-    document.documentElement.classList.remove("nd-banner-granite-banner");
+    document.documentElement.classList.remove("nd-banner-hardware-banner");
   }, []);
 
-  // Determine if activation has already passed on initial mount
+  // check if deadline has already passed
   useEffect(() => {
-    const isActivated = +new Date() >= +new Date(activationDate);
-    if (isActivated) {
-      setActivated(true);
-    }
+    const isPassed = +new Date() >= +new Date(deadlineDate);
+    if (isPassed) { setDeadlinePassed(true) }
   }, []);
+
+  // don't show banner after deadline
+  if (deadlinePassed) { return null }
 
   return (
-    <Banner id="granite-banner" variant="rainbow" changeLayout={false} data-granite-banner style={{ background: "linear-gradient(90deg, #FFB3F0 0%, #8FC5E6 100%)" }}>
-      {activated ? (
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-2 text-center px-2">
-          <span className="text-sm sm:text-base">
-            Avalanche Network <strong>Granite upgrade</strong> activated.
-          </span>
-          <span className="hidden sm:inline">•</span>
-          <Link href="/blog/granite-upgrade" className="text-sm sm:text-base underline underline-offset-4 hover:text-fd-primary transition-colors">
-            Learn more
-          </Link>
-        </div>
-      ) : (
-        <>
-          <div className="lg:hidden flex flex-col items-center justify-center gap-1.5 text-center px-2 py-1">
-            <span className="text-sm">Granite Upgrade Activates in</span>
-            <CountdownTimer targetDate={activationDate} onComplete={() => setActivated(true)} />
-            <Link href="/blog/granite-upgrade" className="text-xs underline underline-offset-4 hover:text-fd-primary transition-colors">
-              Learn more
-            </Link>
-          </div>
+    <Banner
+      id="hardware-banner"
+      variant="rainbow"
+      style={{background: "linear-gradient(90deg, #E53935 0%, #FF6B35 50%, #F4511E 100%)", color: "#000",}}
+    >
+      <Link href="/docs/acps/256-hardware-recommendations" className="md:hidden inline-flex items-center gap-1 flex-wrap justify-center">
+        <span><strong>Hardware Update:</strong> Use NVMe SSD by Jan 17</span>
+        <CountdownTimer targetDate={deadlineDate} onComplete={() => setDeadlinePassed(true)} />
+      </Link>
 
-          <div className="hidden lg:flex flex-row items-center justify-center gap-2 text-center">
-            <span>
-              Avalanche Network <strong>Granite upgrade</strong> released. All Mainnet
-              nodes must upgrade by <strong>11 AM ET, November 19, 2025</strong>
-            </span>
-            <span className="flex items-center gap-2">
-              <span>•</span>
-              <CountdownTimer targetDate={activationDate} onComplete={() => setActivated(true)} />
-              <span>•</span>
-              <Link href="/blog/granite-upgrade" className="underline underline-offset-4 hover:text-fd-primary transition-colors">
-                Learn more
-              </Link>
-            </span>
-          </div>
-        </>
-      )}
+      <div className="hidden md:flex flex-row items-center justify-center gap-2 text-center">
+        <span><strong>Primary Network Node Hardware Requirement Update:</strong> Use a locally-mounted NVMe SSD by Jan 17</span>
+        <span className="flex items-center gap-2">
+          <span>•</span>
+          <CountdownTimer targetDate={deadlineDate} onComplete={() => setDeadlinePassed(true)} />
+          <span className="hidden md:inline">•</span>
+          <Link href="/docs/acps/256-hardware-recommendations" className="underline underline-offset-4 hover:opacity-80 transition-opacity">Read More</Link>
+        </span>
+      </div>
     </Banner>
   );
 }
