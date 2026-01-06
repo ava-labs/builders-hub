@@ -1599,17 +1599,6 @@ const config = {
         permanent: true,
       },
       {
-        source: "/academy/avalanche-l1/interchain-token-transfer",
-        destination: "/academy/avalanche-l1/native-token-bridge",
-        permanent: true,
-      },
-      {
-        source: "/academy/avalanche-l1/interchain-token-transfer/:path*",
-        destination: "/academy/avalanche-l1/native-token-bridge/:path*",
-        permanent: true,
-      },
-      // Broken links from analytics - round 8
-      {
         source: "/docs/overview/getting-started/avalanche-consensus",
         destination: "/docs/primary-network/avalanche-consensus",
         permanent: true,
@@ -1812,6 +1801,16 @@ const config = {
         destination: "/academy/avalanche-l1/permissioned-l1s/03-create-an-L1/03-genesis-breakdown",
         permanent: true,
       },
+      {
+        source: "/docs/nodes/maintain/chain-state-management",
+        destination: "/docs/nodes/node-storage/chain-state-management",
+        permanent: true,
+      },
+      {
+        source: "/docs/nodes/maintain/chain-state-size-reduction",
+        destination: "/docs/nodes/node-storage/periodic-state-sync",
+        permanent: true,
+      }
     ];
   },
 };

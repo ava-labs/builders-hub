@@ -1,60 +1,11 @@
 "use client";
-import { useState, useEffect, useMemo, useTransition, useRef } from "react";
-import {
-  Area,
-  AreaChart,
-  Bar,
-  BarChart,
-  CartesianGrid,
-  XAxis,
-  YAxis,
-  Pie,
-  PieChart,
-  Line,
-  LineChart,
-  Brush,
-  ResponsiveContainer,
-  Tooltip,
-  ComposedChart,
-} from "recharts";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
+import React, { useState, useEffect, useMemo, useTransition, useRef } from "react";
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis, Pie, PieChart, Line, LineChart, Brush, ResponsiveContainer, Tooltip, ComposedChart } from "recharts";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  type ChartConfig,
-  ChartLegendContent,
-  ChartStyle,
-  ChartContainer,
-  ChartTooltip,
-  ChartLegend,
-} from "@/components/ui/chart";
-import {
-  Landmark,
-  Shield,
-  TrendingUp,
-  Monitor,
-  HandCoins,
-  Users,
-  Percent,
-  ArrowUpRight,
-  Twitter,
-  Linkedin,
-  Coins,
-  Download,
-  Camera,
-} from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { type ChartConfig, ChartLegendContent, ChartStyle, ChartContainer, ChartTooltip, ChartLegend } from "@/components/ui/chart";
+import { Landmark, Shield, TrendingUp, Monitor, HandCoins, Users, Percent, ArrowUpRight, Twitter, Linkedin, Coins, Download, Camera, ChevronDown, Copy, Check } from "lucide-react";
 import { ValidatorWorldMap } from "@/components/stats/ValidatorWorldMap";
 import { L1BubbleNav } from "@/components/stats/l1-bubble.config";
 import { ExplorerDropdown } from "@/components/stats/ExplorerDropdown";
@@ -67,23 +18,13 @@ import { useSectionNavigation } from "@/hooks/use-section-navigation";
 import { LinkableHeading } from "@/components/stats/LinkableHeading";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { ChartSkeletonLoader } from "@/components/ui/chart-skeleton";
-import {
-  TimeSeriesDataPoint,
-  ChartDataPoint,
-  PrimaryNetworkMetrics,
-  VersionCount,
-  L1Chain,
-} from "@/types/stats";
+import { TimeSeriesDataPoint, ChartDataPoint, PrimaryNetworkMetrics, VersionCount, L1Chain } from "@/types/stats";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import { ChartWatermark } from "@/components/stats/ChartWatermark";
 import { StatsBreadcrumb } from "@/components/navigation/StatsBreadcrumb";
 import { ChainIdChips } from "@/components/ui/copyable-id-chip";
 import { AddToWalletButton } from "@/components/ui/add-to-wallet-button";
-import {
-  VersionBreakdownCard,
-  calculateVersionStats,
-  type VersionBreakdownData,
-} from "@/components/stats/VersionBreakdown";
+import { VersionBreakdownCard, calculateVersionStats, type VersionBreakdownData } from "@/components/stats/VersionBreakdown";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { getMAConfig } from "@/utils/chart-utils";
 import { useTheme } from "next-themes";
@@ -97,6 +38,45 @@ interface ValidatorData {
   delegatorCount: number;
   amountDelegated: string;
   version?: string;
+}
+
+interface ValidatorDetails {
+  txHash: string;
+  nodeId: string;
+  subnetId: string;
+  amountStaked: string;
+  delegationFee: string;
+  startTimestamp: number;
+  endTimestamp: number;
+  blsCredentials?: {
+    publicKey: string;
+    proofOfPossession: string;
+  };
+  stakePercentage: number;
+  validatorHealth?: {
+    reachabilityPercent: number;
+    benchedPChainRequestsPercent: number;
+    benchedXChainRequestsPercent: number;
+    benchedCChainRequestsPercent: number;
+  };
+  delegatorCount: number;
+  amountDelegated: string;
+  potentialRewards?: {
+    validationRewardAmount: string;
+    delegationRewardAmount: string;
+    rewardAddresses: string[];
+  };
+  uptimePerformance: number;
+  avalancheGoVersion?: string;
+  delegationCapacity: string;
+  validationStatus: string;
+  geolocation?: {
+    city: string;
+    country: string;
+    countryCode: string;
+    latitude: number;
+    longitude: number;
+  };
 }
 
 export default function CChainValidatorMetrics() {
@@ -116,6 +96,10 @@ export default function CChainValidatorMetrics() {
   const { copiedId, copyToClipboard } = useCopyToClipboard();
   const [sortColumn, setSortColumn] = useState<string>("amountStaked");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+  const [expandedValidators, setExpandedValidators] = useState<Set<string>>(new Set());
+  const [validatorDetails, setValidatorDetails] = useState<Record<string, ValidatorDetails | null>>({});
+  const [loadingDetails, setLoadingDetails] = useState<Set<string>>(new Set());
+  const [detailsCopiedId, setDetailsCopiedId] = useState<string | null>(null);
 
   const fetchData = async () => {
     try {
@@ -492,11 +476,12 @@ export default function CChainValidatorMetrics() {
     return num.toFixed(0);
   };
 
-  // Get total validator weight from metrics
+  // Get total weight (validator + delegator) from metrics
   const getTotalWeight = (): string => {
-    if (!metrics?.validator_weight?.current_value) return "0";
-    const weightInAvax = Number(metrics.validator_weight.current_value) / 1e9;
-    return formatLargeNumber(weightInAvax);
+    const validatorWeight = metrics?.validator_weight?.current_value ? Number(metrics.validator_weight.current_value) : 0;
+    const delegatorWeight = metrics?.delegator_weight?.current_value ? Number(metrics.delegator_weight.current_value) : 0;
+    const totalWeightInAvax = (validatorWeight + delegatorWeight) / 1e9;
+    return formatLargeNumber(totalWeightInAvax);
   };
 
   // C-Chain config from l1-chains.json
@@ -666,6 +651,68 @@ export default function CChainValidatorMetrics() {
   useEffect(() => {
     setDisplayCount(50);
   }, [searchTerm]);
+
+  // Toggle validator expansion and fetch details
+  const toggleValidatorExpansion = async (nodeId: string) => {
+    const newExpanded = new Set(expandedValidators);
+    
+    if (newExpanded.has(nodeId)) {
+      newExpanded.delete(nodeId);
+      setExpandedValidators(newExpanded);
+      return;
+    }
+    
+    newExpanded.add(nodeId);
+    setExpandedValidators(newExpanded);
+
+    if (!validatorDetails[nodeId] && !loadingDetails.has(nodeId)) {
+      setLoadingDetails(prev => new Set(prev).add(nodeId));
+      
+      try {
+        const response = await fetch(`/api/validator-details/${encodeURIComponent(nodeId)}`);
+        if (response.ok) {
+          const data = await response.json();
+          setValidatorDetails(prev => ({...prev, [nodeId]: data.validatorDetails}));
+        } else {
+          setValidatorDetails(prev => ({...prev, [nodeId]: null}));
+        }
+      } catch (error) {
+        console.error(`Failed to fetch details for ${nodeId}:`, error);
+        setValidatorDetails(prev => ({...prev, [nodeId]: null}));
+      } finally {
+        setLoadingDetails(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(nodeId);
+          return newSet;
+        });
+      }
+    }
+  };
+
+  const copyDetailsToClipboard = (text: string, id: string) => {
+    navigator.clipboard.writeText(text);
+    setDetailsCopiedId(id);
+    setTimeout(() => setDetailsCopiedId(null), 2000);
+  };
+
+  // Format timestamp
+  const formatTimestamp = (timestamp: number): string => {
+    if (!timestamp) return "N/A";
+    return new Date(timestamp * 1000).toLocaleDateString("en-US", {year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit"});
+  };
+
+  // Format nAVAX to AVAX
+  const formatNavaxToAvax = (navax: string): string => {
+    const value = parseFloat(navax) / 1e9;
+    if (value >= 1e6) return `${(value / 1e6).toFixed(2)}M AVAX`;
+    if (value >= 1e3) return `${(value / 1e3).toFixed(2)}K AVAX`;
+    return `${value.toFixed(2)} AVAX`;
+  };
+
+  const truncateString = (str: string, startLen: number = 10, endLen: number = 8): string => {
+    if (str.length <= startLen + endLen + 3) return str;
+    return `${str.slice(0, startLen)}...${str.slice(-endLen)}`;
+  };
 
   if (loading) {
     return (
@@ -1860,32 +1907,32 @@ export default function CChainValidatorMetrics() {
                 <table className="w-full border-collapse">
                   <thead className="bg-[#fcfcfd] dark:bg-neutral-900">
                     <tr>
-                      <th className="px-4 py-2 text-left">
+                      <th className="px-4 py-4 text-left">
                         <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
                           #
                         </span>
                       </th>
-                      <th className="px-4 py-2 text-left">
+                      <th className="px-4 py-4 text-left">
                         <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
                           Node ID
                         </span>
                       </th>
-                      <th className="px-4 py-2 text-right">
+                      <th className="px-4 py-4 text-right">
                         <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
                           Amount Staked
                         </span>
                       </th>
-                      <th className="px-4 py-2 text-right">
+                      <th className="px-4 py-4 text-right">
                         <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
                           Delegation Fee
                         </span>
                       </th>
-                      <th className="px-4 py-2 text-right">
+                      <th className="px-4 py-4 text-right">
                         <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
                           Delegators
                         </span>
                       </th>
-                      <th className="px-4 py-2 text-right">
+                      <th className="px-4 py-4 text-right">
                         <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
                           Amount Delegated
                         </span>
@@ -1899,7 +1946,10 @@ export default function CChainValidatorMetrics() {
                         className="border-b border-slate-100 dark:border-neutral-800 animate-pulse"
                       >
                         <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-3">
-                          <div className="h-4 w-8 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                          <div className="flex items-center gap-1.5">
+                            <div className="h-4 w-4 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                            <div className="h-4 w-4 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                          </div>
                         </td>
                         <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-3">
                           <div className="h-4 w-40 bg-zinc-200 dark:bg-zinc-800 rounded" />
@@ -1929,18 +1979,18 @@ export default function CChainValidatorMetrics() {
                   <table className="w-full border-collapse">
                     <thead className="bg-[#fcfcfd] dark:bg-neutral-900">
                       <tr>
-                        <th className="px-4 py-2 text-left">
+                        <th className="px-4 py-4 text-left">
                           <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
                             #
                           </span>
                         </th>
-                        <th className="px-4 py-2 text-left">
+                        <th className="px-4 py-4 text-left">
                           <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
                             Node ID
                           </span>
                         </th>
                         <th
-                          className="px-4 py-2 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                          className="px-4 py-4 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                           onClick={() => handleSort("amountStaked")}
                         >
                           <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300 inline-flex items-center justify-end">
@@ -1949,7 +1999,7 @@ export default function CChainValidatorMetrics() {
                           </span>
                         </th>
                         <th
-                          className="px-4 py-2 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                          className="px-4 py-4 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                           onClick={() => handleSort("delegationFee")}
                         >
                           <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300 inline-flex items-center justify-end">
@@ -1958,7 +2008,7 @@ export default function CChainValidatorMetrics() {
                           </span>
                         </th>
                         <th
-                          className="px-4 py-2 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                          className="px-4 py-4 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                           onClick={() => handleSort("delegatorCount")}
                         >
                           <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300 inline-flex items-center justify-end">
@@ -1967,7 +2017,7 @@ export default function CChainValidatorMetrics() {
                           </span>
                         </th>
                         <th
-                          className="px-4 py-2 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                          className="px-4 py-4 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                           onClick={() => handleSort("amountDelegated")}
                         >
                           <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300 inline-flex items-center justify-end">
@@ -1990,29 +2040,43 @@ export default function CChainValidatorMetrics() {
                           </td>
                         </tr>
                       ) : (
-                        displayedValidators.map((validator, index) => (
-                          <tr
-                            key={validator.nodeId}
-                            className="border-b border-slate-100 dark:border-neutral-800 transition-colors hover:bg-blue-50/50 dark:hover:bg-neutral-800/50"
+                        displayedValidators.map((validator, index) => {
+                          const isExpanded = expandedValidators.has(validator.nodeId);
+                          const details = validatorDetails[validator.nodeId];
+                          const isLoadingDetails = loadingDetails.has(validator.nodeId);
+                          
+                          return (
+                            <React.Fragment key={validator.nodeId}>
+                              <tr
+                                onClick={() => toggleValidatorExpansion(validator.nodeId)}
+                                className={`border-b border-slate-100 dark:border-neutral-800 transition-colors hover:bg-blue-50/50 dark:hover:bg-neutral-800/50 cursor-pointer ${isExpanded ? 'bg-blue-50/30 dark:bg-neutral-800/30' : ''}`}
                           >
-                            <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
+                            <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-4">
+                                  <div className="flex items-center gap-1.5">
+                                    <ChevronDown
+                                      className={`h-4 w-4 text-zinc-400 transition-transform duration-200 ${
+                                        isExpanded ? "rotate-180" : ""
+                                      }`}
+                                    />
                               <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
                                 {index + 1}
                               </span>
+                                  </div>
                             </td>
-                            <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 font-mono text-xs">
+                            <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-4 font-mono text-xs">
                               <span
                                 title={
                                   copiedId === `node-${validator.nodeId}`
                                     ? "Copied!"
                                     : `Click to copy: ${validator.nodeId}`
                                 }
-                                onClick={() =>
+                                    onClick={(e) => {
+                                      e.stopPropagation();
                                   copyToClipboard(
                                     validator.nodeId,
                                     `node-${validator.nodeId}`
-                                  )
-                                }
+                                      );
+                                    }}
                                 className={`cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors ${
                                   copiedId === `node-${validator.nodeId}`
                                     ? "text-green-600 dark:text-green-400"
@@ -2027,22 +2091,283 @@ export default function CChainValidatorMetrics() {
                                     )}...${validator.nodeId.slice(-8)}`}
                               </span>
                             </td>
-                            <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 text-right font-mono text-sm">
+                            <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-4 text-right font-mono text-sm">
                               {formatValidatorStake(validator.amountStaked)}{" "}
                               AVAX
                             </td>
-                            <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 text-right text-sm">
+                            <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-4 text-right text-sm">
                               {parseFloat(validator.delegationFee).toFixed(1)}%
                             </td>
-                            <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 text-right text-sm">
+                            <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-4 text-right text-sm">
                               {validator.delegatorCount}
                             </td>
-                            <td className="px-4 py-2 text-right font-mono text-sm">
+                            <td className="px-4 py-4 text-right font-mono text-sm">
                               {formatValidatorStake(validator.amountDelegated)}{" "}
                               AVAX
                             </td>
                           </tr>
-                        ))
+                              
+                              {/* Expanded Details Section */}
+                              {isExpanded && (
+                                <tr className="bg-zinc-50/50 dark:bg-neutral-900/30">
+                                  <td colSpan={6} className="px-6 py-5">
+                                    {isLoadingDetails ? (
+                                      <div className="animate-in fade-in duration-300">
+                                        {/* Status & Version Skeleton */}
+                                        <div className="flex items-center justify-between mb-5">
+                                          <div className="flex items-center gap-3">
+                                            <div className="h-6 w-16 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                                            <div className="h-4 w-20 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                                          </div>
+                                          <div className="h-8 w-28 bg-zinc-200 dark:bg-zinc-800 rounded-md animate-pulse" />
+                                        </div>
+
+                                        {/* First Grid Row Skeleton */}
+                                        <div className="grid md:grid-cols-3 gap-3 mb-3">
+                                          {[1, 2, 3].map((i) => (
+                                            <div key={i} className="p-3 border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-neutral-900">
+                                              <div className="h-3 w-24 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse mb-3" />
+                                              <div className="space-y-2">
+                                                <div className="h-3 w-36 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                                                <div className="h-3 w-32 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                                                <div className="h-3 w-28 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                                              </div>
+                                            </div>
+                                          ))}
+                                        </div>
+
+                                        {/* Second Grid Row Skeleton */}
+                                        <div className="grid md:grid-cols-3 gap-3 mb-4">
+                                          {[1, 2, 3].map((i) => (
+                                            <div key={i} className="p-3 border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-neutral-900">
+                                              <div className="h-3 w-20 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse mb-3" />
+                                              <div className="space-y-2">
+                                                <div className="h-3 w-32 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                                                <div className="h-3 w-28 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                                              </div>
+                                            </div>
+                                          ))}
+                                        </div>
+
+                                        {/* Technical Details Skeleton */}
+                                        <div className="border-t border-zinc-200 dark:border-zinc-700 pt-4">
+                                          <div className="h-3 w-28 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse mb-3" />
+                                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                            {[1, 2].map((i) => (
+                                              <div key={i} className="flex items-center justify-between p-2.5 bg-white dark:bg-neutral-900 border border-zinc-200 dark:border-zinc-700 rounded-lg">
+                                                <div className="flex items-center gap-2">
+                                                  <div className="h-3 w-16 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                                                  <div className="h-3 w-32 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                                                </div>
+                                                <div className="h-6 w-6 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                                              </div>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    ) : details ? (
+                                      <>
+                                        {/* Status & Version */}
+                                        <div className="flex items-center justify-between mb-5">
+                                          <div className="flex items-center gap-3">
+                                            <span className={`px-2.5 py-1 text-xs font-medium rounded flex items-center gap-1.5 ${
+                                              details.validationStatus === 'active'
+                                                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                                                : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                                            }`}>
+                                              <span className={`w-1.5 h-1.5 rounded-full ${details.validationStatus === 'active' ? 'bg-emerald-500' : 'bg-yellow-500'}`} />
+                                              {details.validationStatus.charAt(0).toUpperCase() + details.validationStatus.slice(1)}
+                                            </span>
+                                            {details.avalancheGoVersion && (
+                                              <span className="text-sm text-zinc-500 dark:text-zinc-400">{details.avalancheGoVersion}</span>
+                                            )}
+                                          </div>
+                                          <a
+                                            href={`https://subnets.avax.network/validators/${validator.nodeId}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            onClick={(e) => e.stopPropagation()}
+                                            className="inline-flex items-center h-8 px-3 text-xs font-medium gap-2 border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:border-zinc-400 dark:hover:border-zinc-500 rounded-md transition-all bg-transparent"
+                                          >
+                                            View on Explorer
+                                            <ArrowUpRight className="h-3.5 w-3.5" />
+                                          </a>
+                                        </div>
+
+                                        <div className="grid md:grid-cols-3 gap-3 mb-3">
+                                          <div className="p-3 border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-neutral-900">
+                                            <h4 className="text-xs font-medium text-zinc-900 dark:text-zinc-100 mb-2">Validation Period</h4>
+                                            <div className="text-xs text-zinc-500 dark:text-zinc-400 space-y-0.5">
+                                              <p>Start: {formatTimestamp(details.startTimestamp)}</p>
+                                              <p>End: {formatTimestamp(details.endTimestamp)}</p>
+                                            </div>
+                                          </div>
+                                          <div className="p-3 border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-neutral-900">
+                                            <h4 className="text-xs font-medium text-zinc-900 dark:text-zinc-100 mb-2">Staking Details</h4>
+                                            <div className="text-xs text-zinc-500 dark:text-zinc-400 space-y-0.5">
+                                              <p>Staked: {formatNavaxToAvax(details.amountStaked)}</p>
+                                              <p>Delegated: {formatNavaxToAvax(details.amountDelegated)}</p>
+                                              <p>Stake Percentage: {details.stakePercentage.toFixed(4)}%</p>
+                                            </div>
+                                          </div>
+                                          <div className="p-3 border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-neutral-900">
+                                            <h4 className="text-xs font-medium text-zinc-900 dark:text-zinc-100 mb-2">Delegation</h4>
+                                            <div className="text-xs text-zinc-500 dark:text-zinc-400 space-y-0.5">
+                                              <p>Fee: {parseFloat(details.delegationFee).toFixed(2)}%</p>
+                                              <p>Capacity: {formatNavaxToAvax(details.delegationCapacity)}</p>
+                                              <p>Delegators: {details.delegatorCount}</p>
+                                            </div>
+                                          </div>
+                                        </div>
+
+                                        <div className="grid md:grid-cols-3 gap-3 mb-4">
+                                          <div className="p-3 border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-neutral-900">
+                                            <h4 className="text-xs font-medium text-zinc-900 dark:text-zinc-100 mb-2">Performance</h4>
+                                            <div className="text-xs space-y-0.5">
+                                              <p className="text-zinc-500 dark:text-zinc-400">
+                                                Uptime: <span className={`font-medium ${details.uptimePerformance >= 80 ? 'text-emerald-600 dark:text-emerald-400' : details.uptimePerformance >= 50 ? 'text-yellow-600 dark:text-yellow-400' : 'text-red-600 dark:text-red-400'}`}>{details.uptimePerformance.toFixed(2)}%</span>
+                                              </p>
+                                              {details.validatorHealth && (
+                                                <p className="text-zinc-500 dark:text-zinc-400">
+                                                  Reachability: <span className={`font-medium ${details.validatorHealth.reachabilityPercent >= 80 ? 'text-emerald-600 dark:text-emerald-400' : 'text-yellow-600 dark:text-yellow-400'}`}>{details.validatorHealth.reachabilityPercent}%</span>
+                                                </p>
+                                              )}
+                                            </div>
+                                          </div>
+                                          {details.potentialRewards && (
+                                            <div className="p-3 border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-neutral-900">
+                                              <h4 className="text-xs font-medium text-zinc-900 dark:text-zinc-100 mb-2">Potential Rewards</h4>
+                                              <div className="text-xs space-y-0.5">
+                                                <p className="text-zinc-500 dark:text-zinc-400">
+                                                  Validation: <span className="text-emerald-600 dark:text-emerald-400 font-medium">{formatNavaxToAvax(details.potentialRewards.validationRewardAmount)}</span>
+                                                </p>
+                                                <p className="text-zinc-500 dark:text-zinc-400">
+                                                  Delegation: <span className="text-emerald-600 dark:text-emerald-400 font-medium">{formatNavaxToAvax(details.potentialRewards.delegationRewardAmount)}</span>
+                                                </p>
+                                              </div>
+                                            </div>
+                                          )}
+                                          {details.geolocation && (
+                                            <div className="p-3 border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-neutral-900">
+                                              <h4 className="text-xs font-medium text-zinc-900 dark:text-zinc-100 mb-2">Location</h4>
+                                              <div className="text-xs text-zinc-500 dark:text-zinc-400">
+                                                <p>{details.geolocation.city}, {details.geolocation.country}</p>
+                                              </div>
+                                            </div>
+                                          )}
+                                        </div>
+
+                                        <div className="border-t border-zinc-200 dark:border-zinc-700 pt-4">
+                                          <h4 className="text-xs font-medium text-zinc-900 dark:text-zinc-100 mb-3">Technical Details</h4>
+                                          <div className="space-y-2">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                              <div className="flex items-center justify-between p-2.5 bg-white dark:bg-neutral-900 border border-zinc-200 dark:border-zinc-700 rounded-lg">
+                                                <div className="flex items-center gap-2 min-w-0">
+                                                  <span className="text-xs text-zinc-500 dark:text-zinc-400 shrink-0">TX Hash:</span>
+                                                  <a 
+                                                    href={`https://subnets.avax.network/p-chain/tx/${details.txHash}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    className="inline-flex items-center gap-1 font-mono text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors truncate"
+                                                  >
+                                                    {truncateString(details.txHash, 12, 8)}
+                                                    <ArrowUpRight className="h-3 w-3 shrink-0" />
+                                                  </a>
+                                                </div>
+                                                <button 
+                                                  onClick={(e) => { e.stopPropagation(); copyDetailsToClipboard(details.txHash, `tx-${validator.nodeId}`); }}
+                                                  className="h-6 w-6 p-0 flex items-center justify-center hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded transition-colors shrink-0"
+                                                >
+                                                  {detailsCopiedId === `tx-${validator.nodeId}` ? (
+                                                    <Check className="h-3 w-3 text-emerald-500" />
+                                                  ) : (
+                                                    <Copy className="h-3 w-3 text-zinc-400" />
+                                                  )}
+                                                </button>
+                                              </div>
+                                              {details.potentialRewards?.rewardAddresses?.[0] && (
+                                                <div className="flex items-center justify-between p-2.5 bg-white dark:bg-neutral-900 border border-zinc-200 dark:border-zinc-700 rounded-lg">
+                                                  <div className="flex items-center gap-2 min-w-0">
+                                                    <span className="text-xs text-zinc-500 dark:text-zinc-400 shrink-0">Payout Address:</span>
+                                                    <a 
+                                                      href={`https://subnets.avax.network/p-chain/address/${details.potentialRewards.rewardAddresses[0]}`}
+                                                      target="_blank"
+                                                      rel="noopener noreferrer"
+                                                      onClick={(e) => e.stopPropagation()}
+                                                      className="inline-flex items-center gap-1 font-mono text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors truncate"
+                                                    >
+                                                      {truncateString(details.potentialRewards.rewardAddresses[0], 10, 8)}
+                                                      <ArrowUpRight className="h-3 w-3 shrink-0" />
+                                                    </a>
+                                                  </div>
+                                                  <button 
+                                                    onClick={(e) => { e.stopPropagation(); copyDetailsToClipboard(details.potentialRewards!.rewardAddresses[0], `payout-${validator.nodeId}`); }}
+                                                    className="h-6 w-6 p-0 flex items-center justify-center hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded transition-colors shrink-0"
+                                                  >
+                                                    {detailsCopiedId === `payout-${validator.nodeId}` ? (
+                                                      <Check className="h-3 w-3 text-emerald-500" />
+                                                    ) : (
+                                                      <Copy className="h-3 w-3 text-zinc-400" />
+                                                    )}
+                                                  </button>
+                                                </div>
+                                              )}
+                                            </div>
+                                            {(details.blsCredentials?.publicKey || details.blsCredentials?.proofOfPossession) && (
+                                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                                {details.blsCredentials?.publicKey && (
+                                                  <div className="flex items-center justify-between p-2.5 bg-white dark:bg-neutral-900 border border-zinc-200 dark:border-zinc-700 rounded-lg">
+                                                    <div className="flex items-center gap-2 min-w-0">
+                                                      <span className="text-xs text-zinc-500 dark:text-zinc-400 shrink-0">BLS Key:</span>
+                                                      <span className="font-mono text-xs text-zinc-700 dark:text-zinc-300 truncate">{truncateString(details.blsCredentials.publicKey, 12, 8)}</span>
+                                                    </div>
+                                                    <button 
+                                                      onClick={(e) => { e.stopPropagation(); copyDetailsToClipboard(details.blsCredentials!.publicKey, `bls-${validator.nodeId}`); }}
+                                                      className="h-6 w-6 p-0 flex items-center justify-center hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded transition-colors shrink-0"
+                                                    >
+                                                      {detailsCopiedId === `bls-${validator.nodeId}` ? (
+                                                        <Check className="h-3 w-3 text-emerald-500" />
+                                                      ) : (
+                                                        <Copy className="h-3 w-3 text-zinc-400" />
+                                                      )}
+                                                    </button>
+                                                  </div>
+                                                )}
+                                                {details.blsCredentials?.proofOfPossession && (
+                                                  <div className="flex items-center justify-between p-2.5 bg-white dark:bg-neutral-900 border border-zinc-200 dark:border-zinc-700 rounded-lg">
+                                                    <div className="flex items-center gap-2 min-w-0">
+                                                      <span className="text-xs text-zinc-500 dark:text-zinc-400 shrink-0">BLS Signature:</span>
+                                                      <span className="font-mono text-xs text-zinc-700 dark:text-zinc-300 truncate">{truncateString(details.blsCredentials.proofOfPossession, 12, 8)}</span>
+                                                    </div>
+                                                    <button 
+                                                      onClick={(e) => { e.stopPropagation(); copyDetailsToClipboard(details.blsCredentials!.proofOfPossession, `blssig-${validator.nodeId}`); }}
+                                                      className="h-6 w-6 p-0 flex items-center justify-center hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded transition-colors shrink-0"
+                                                    >
+                                                      {detailsCopiedId === `blssig-${validator.nodeId}` ? (
+                                                        <Check className="h-3 w-3 text-emerald-500" />
+                                                      ) : (
+                                                        <Copy className="h-3 w-3 text-zinc-400" />
+                                                      )}
+                                                    </button>
+                                                  </div>
+                                                )}
+                                              </div>
+                                            )}
+                                          </div>
+                                        </div>
+                                      </>
+                                    ) : (
+                                      <div className="flex items-center justify-center py-8">
+                                        <span className="text-sm text-zinc-500">Unable to load validator details</span>
+                                      </div>
+                                    )}
+                                  </td>
+                                </tr>
+                              )}
+                            </React.Fragment>
+                          );
+                        })
                       )}
                     </tbody>
                   </table>
