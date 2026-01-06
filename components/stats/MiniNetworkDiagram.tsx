@@ -153,15 +153,10 @@ export default function MiniNetworkDiagram({
   
   const [dimensions, setDimensions] = useState({ width: containerSize, height: containerSize });
   const [hoveredNode, setHoveredNode] = useState<ChainNode | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
   const [dpr, setDpr] = useState(1); // Device pixel ratio for Retina/HiDPI support
-  
-  // Extra space at bottom for buttons and hint text
+
+  // Extra space at bottom for buttons
   const BOTTOM_CONTROLS_HEIGHT = 60;
-  
-  const dragStartRef = useRef({ x: 0, y: 0 });
-  const lastDragPosRef = useRef({ x: 0, y: 0 });
-  const dragVelocityRef = useRef({ x: 0, y: 0 });
 
   // Helper to proxy external images through Next.js image optimization to avoid CORS
   const getProxiedImageUrl = useCallback((url: string): string => {
@@ -260,7 +255,7 @@ export default function MiniNetworkDiagram({
       const angleOffset = ringIndex * (Math.PI / 5); // Offset each ring
       
       const x = centerX + Math.cos(angle + angleOffset) * ringRadius;
-      const y = centerY + Math.sin(angle + angleOffset) * ringRadius * 0.85; // Slightly elliptical
+      const y = centerY + Math.sin(angle + angleOffset) * ringRadius * 0.92; // Subtle ellipse
       
       // Size based on validator count (normalized)
       const validatorRatio = chain.validatorCount ? Math.sqrt(chain.validatorCount / maxValidators) : 0.3;
@@ -470,29 +465,12 @@ export default function MiniNetworkDiagram({
       ctx.resetTransform();
       ctx.scale(dpr, dpr);
 
-      // Calculate rotation
+      // Calculate rotation - auto-rotate, pause when hovering
       let deltaRotation = 0;
-
-      // Pause movement when hovering a chain
       const isHovering = hoveredNodeRef.current !== null;
 
-      if (isDragging) {
-        // While dragging, apply drag velocity directly for responsive rotation
-        deltaRotation = dragVelocityRef.current.x * 0.02;
-      } else if (!isHovering) {
-        // When not dragging and not hovering, apply auto-rotation
-        if (autoRotate) {
-          deltaRotation = autoRotateSpeed * 0.01;
-        }
-
-        // Apply momentum decay after release
-        if (Math.abs(dragVelocityRef.current.x) > 0.01) {
-          deltaRotation += dragVelocityRef.current.x * 0.015;
-          dragVelocityRef.current = {
-            x: dragVelocityRef.current.x * 0.96,
-            y: dragVelocityRef.current.y * 0.96
-          };
-        }
+      if (!isHovering && autoRotate) {
+        deltaRotation = autoRotateSpeed * 0.01;
       }
 
       rotationRef.current += deltaRotation;
@@ -717,7 +695,7 @@ export default function MiniNetworkDiagram({
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [dimensions, isDragging, autoRotate, autoRotateSpeed, simulatePhysics, isDarkMode, dpr]);
+  }, [dimensions, autoRotate, autoRotateSpeed, simulatePhysics, isDarkMode, dpr]);
 
   // Mouse/touch handlers
   const getNodeAtPosition = useCallback((x: number, y: number): number | null => {
@@ -741,17 +719,10 @@ export default function MiniNetworkDiagram({
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
-    if (isDragging) {
-      const dx = x - lastDragPosRef.current.x;
-      dragVelocityRef.current = { x: dx, y: 0 };
-      lastDragPosRef.current = { x, y };
-      return;
-    }
-
     const nodeIndex = getNodeAtPosition(x, y);
     hoveredNodeRef.current = nodeIndex;
     setHoveredNode(nodeIndex !== null ? nodesRef.current[nodeIndex] : null);
-  }, [isDragging, getNodeAtPosition]);
+  }, [getNodeAtPosition]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
@@ -762,7 +733,7 @@ export default function MiniNetworkDiagram({
     const y = e.clientY - rect.top;
 
     const nodeIndex = getNodeAtPosition(x, y);
-    
+
     if (nodeIndex !== null) {
       const node = nodesRef.current[nodeIndex];
       if (node.link) {
@@ -771,25 +742,15 @@ export default function MiniNetworkDiagram({
         const chain = chains.find(c => c.id === node.id);
         if (chain) onChainClick(chain);
       }
-    } else {
-      setIsDragging(true);
-      dragStartRef.current = { x, y };
-      lastDragPosRef.current = { x, y };
-      dragVelocityRef.current = { x: 0, y: 0 };
     }
   }, [getNodeAtPosition, chains, onChainClick]);
 
-  const handleMouseUp = useCallback(() => {
-    setIsDragging(false);
-  }, []);
-
   const handleMouseLeave = useCallback(() => {
-    setIsDragging(false);
     hoveredNodeRef.current = null;
     setHoveredNode(null);
   }, []);
 
-  // Touch handlers
+  // Touch handlers - only handle taps on nodes
   const handleTouchStart = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -800,7 +761,7 @@ export default function MiniNetworkDiagram({
     const y = touch.clientY - rect.top;
 
     const nodeIndex = getNodeAtPosition(x, y);
-    
+
     if (nodeIndex !== null) {
       const node = nodesRef.current[nodeIndex];
       if (node.link) {
@@ -809,32 +770,8 @@ export default function MiniNetworkDiagram({
         const chain = chains.find(c => c.id === node.id);
         if (chain) onChainClick(chain);
       }
-    } else {
-      setIsDragging(true);
-      dragStartRef.current = { x, y };
-      lastDragPosRef.current = { x, y };
     }
   }, [getNodeAtPosition, chains, onChainClick]);
-
-  const handleTouchMove = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
-    if (!isDragging) return;
-    
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const touch = e.touches[0];
-    const x = touch.clientX - rect.left;
-    const y = touch.clientY - rect.top;
-
-    const dx = x - lastDragPosRef.current.x;
-    dragVelocityRef.current = { x: dx, y: 0 };
-    lastDragPosRef.current = { x, y };
-  }, [isDragging]);
-
-  const handleTouchEnd = useCallback(() => {
-    setIsDragging(false);
-  }, []);
 
   if (chains.length === 0) {
     return (
@@ -880,15 +817,11 @@ export default function MiniNetworkDiagram({
         width={dimensions.width * dpr}
         height={dimensions.height * dpr}
         style={{ width: dimensions.width, height: dimensions.height }}
-        className={`${isDragging ? 'cursor-grabbing' : hoveredNode ? 'cursor-pointer' : 'cursor-grab'} touch-none`}
+        className={`${hoveredNode ? 'cursor-pointer' : 'cursor-default'}`}
         onMouseMove={handleMouseMove}
         onMouseDown={handleMouseDown}
-        onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseLeave}
         onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        onTouchCancel={handleTouchEnd}
       />
       
       {/* Hover tooltip */}
@@ -907,25 +840,20 @@ export default function MiniNetworkDiagram({
         </div>
       )}
       
-      {/* Bottom bar with CTAs and hint */}
-      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2">
-        <div className="flex items-center gap-2">
-          <a 
-            href="/stats/overview" 
-            className="px-3 py-1.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-full text-[11px] font-medium hover:opacity-80 transition-opacity"
-          >
-            View Stats
-          </a>
-          <a 
-            href="/explorer"
-            className="px-3 py-1.5 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-full text-[11px] font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-          >
-            Explorer
-          </a>
-        </div>
-        <span className="text-[10px] text-zinc-400 dark:text-zinc-500">
-          Drag to rotate
-        </span>
+      {/* Bottom bar with CTAs */}
+      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-2">
+        <a
+          href="/stats/overview"
+          className="px-3 py-1.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-full text-[11px] font-medium hover:opacity-80 transition-opacity"
+        >
+          View Stats
+        </a>
+        <a
+          href="/explorer"
+          className="px-3 py-1.5 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-full text-[11px] font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+        >
+          Explorer
+        </a>
       </div>
     </div>
   );
