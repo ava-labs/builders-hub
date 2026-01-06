@@ -70,15 +70,8 @@ interface Particle {
   speed: number;
 }
 
-// Generate consistent color from string
-function stringToColor(str: string): string {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = str.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  const hue = Math.abs(hash % 360);
-  return `hsl(${hue}, 70%, 55%)`;
-}
+// Neutral fallback color for chains without explicit color
+const NEUTRAL_CHAIN_COLOR = '#71717a'; // zinc-500
 
 // Convert color to rgba
 function toRgba(color: string, alpha: number): string {
@@ -268,7 +261,7 @@ export default function MiniNetworkDiagram({
         chainId: chain.chainId,
         name: chain.name,
         logo: chain.logo,
-        color: chain.color || stringToColor(chain.name),
+        color: chain.color || NEUTRAL_CHAIN_COLOR,
         x,
         y,
         vx: 0,
@@ -490,28 +483,23 @@ export default function MiniNetworkDiagram({
       const nodes = nodesRef.current;
       const connections = connectionsRef.current;
 
-      // Draw connections
+      // Draw connections (neutral colors)
       connections.forEach((conn, i) => {
         const fromNode = nodes[conn.from];
         const toNode = nodes[conn.to];
         if (!fromNode || !toNode) return;
 
         const pulse = 0.6 + 0.2 * Math.sin(time * 1.5 + i * 0.5);
-        
+
         ctx.beginPath();
         ctx.moveTo(fromNode.x, fromNode.y);
         ctx.lineTo(toNode.x, toNode.y);
-        
-        const gradient = ctx.createLinearGradient(
-          fromNode.x, fromNode.y, toNode.x, toNode.y
-        );
-        const baseOpacity = conn.opacity * pulse * 1.5; // More visible
-        gradient.addColorStop(0, toRgba(fromNode.color, baseOpacity));
-        gradient.addColorStop(0.5, toRgba(fromNode.color, baseOpacity * 0.6));
-        gradient.addColorStop(1, toRgba(toNode.color, baseOpacity));
-        
-        ctx.strokeStyle = gradient;
-        ctx.lineWidth = 1.5;
+
+        const baseOpacity = conn.opacity * pulse;
+        ctx.strokeStyle = isDarkMode
+          ? `rgba(161, 161, 170, ${baseOpacity})`
+          : `rgba(113, 113, 122, ${baseOpacity * 0.7})`;
+        ctx.lineWidth = 1;
         ctx.stroke();
       });
 
@@ -519,31 +507,23 @@ export default function MiniNetworkDiagram({
       particlesRef.current.forEach((particle) => {
         const conn = connections[particle.connectionIndex];
         if (!conn) return;
-        
+
         const fromNode = nodes[conn.from];
         const toNode = nodes[conn.to];
         if (!fromNode || !toNode) return;
-        
+
         const x = fromNode.x + (toNode.x - fromNode.x) * particle.progress;
         const y = fromNode.y + (toNode.y - fromNode.y) * particle.progress;
-        
-        // Interpolate color along the connection
-        const particleColor = particle.progress < 0.5 ? fromNode.color : toNode.color;
-        
-        // Particle glow
-        ctx.beginPath();
-        ctx.arc(x, y, 5, 0, Math.PI * 2);
-        ctx.fillStyle = toRgba(particleColor, 0.2);
-        ctx.fill();
-        
+
+        // Subtle neutral particle
         ctx.beginPath();
         ctx.arc(x, y, 3, 0, Math.PI * 2);
-        ctx.fillStyle = toRgba(particleColor, 0.5);
+        ctx.fillStyle = isDarkMode ? 'rgba(228, 228, 231, 0.3)' : 'rgba(82, 82, 91, 0.2)';
         ctx.fill();
-        
+
         ctx.beginPath();
         ctx.arc(x, y, 1.5, 0, Math.PI * 2);
-        ctx.fillStyle = toRgba(particleColor, 0.9);
+        ctx.fillStyle = isDarkMode ? 'rgba(228, 228, 231, 0.7)' : 'rgba(82, 82, 91, 0.5)';
         ctx.fill();
       });
 
@@ -558,99 +538,101 @@ export default function MiniNetworkDiagram({
         const scale = isHovered ? 1.15 : 1;
         const radius = node.radius * scale;
 
-        // TPS-based pulse wave effect (expanding rings)
+        // TPS-based pulse wave effect (expanding rings) - subtle neutral color
         const tpsRatio = Math.sqrt((node.tps || 0) / maxTps);
-        
+        const pulseWaveColor = isDarkMode ? 'rgba(161, 161, 170' : 'rgba(113, 113, 122'; // zinc-400/zinc-500
+
         // Draw pulse waves for ANY chain with TPS > 0 (normalized relative to others)
         if ((node.tps || 0) > 0) {
-          const pulseSpeed = 0.6 + tpsRatio * 2.0; // Match NetworkDiagram speed
-          // Dynamic wave count: min 3, max 6, scaled by TPS ratio
-          const minWaves = 3;
-          const maxWaves = 6;
-          const minDistance = 18;
-          const maxDistance = 32;
+          const pulseSpeed = 0.6 + tpsRatio * 2.0;
+          const minWaves = 2;
+          const maxWaves = 4;
+          const minDistance = 12;
+          const maxDistance = 24;
           const fadeCurve = 1.5;
           const numWaves = Math.round(minWaves + tpsRatio * (maxWaves - minWaves));
-          
+
           for (let w = 0; w < numWaves; w++) {
-            // Each wave is offset in phase (evenly distributed)
             const wavePhase = (time * pulseSpeed + w * (Math.PI * 2 / numWaves)) % (Math.PI * 2);
-            const waveProgress = wavePhase / (Math.PI * 2); // 0 to 1
-            
-            // Wave expands from chain edge outward
+            const waveProgress = wavePhase / (Math.PI * 2);
+
             const waveRadius = radius + waveProgress * (minDistance + tpsRatio * (maxDistance - minDistance));
-            // Wave fades out as it expands
-            const waveAlpha = Math.pow(1 - waveProgress, fadeCurve) * (0.35 + tpsRatio * 0.25);
-            
+            const waveAlpha = Math.pow(1 - waveProgress, fadeCurve) * (0.2 + tpsRatio * 0.15);
+
             if (waveAlpha > 0.02) {
               ctx.beginPath();
               ctx.arc(node.x, node.y, waveRadius, 0, Math.PI * 2);
-              ctx.strokeStyle = toRgba(node.color, waveAlpha);
-              ctx.lineWidth = 1.5 + (1 - waveProgress) * 1.5; // Thicker at start, thinner as expands
+              ctx.strokeStyle = `${pulseWaveColor}, ${waveAlpha})`;
+              ctx.lineWidth = 1 + (1 - waveProgress) * 1;
               ctx.stroke();
             }
           }
         }
 
-        // Outer glow
-        if (isHovered || node.isPrimary) {
-          const glowRadius = radius + (node.isPrimary ? 18 : 14);
-          const glowGradient = ctx.createRadialGradient(
-            node.x, node.y, radius * 0.5,
-            node.x, node.y, glowRadius
-          );
-          glowGradient.addColorStop(0, toRgba(node.color, node.isPrimary ? 0.4 : 0.3));
-          glowGradient.addColorStop(0.5, toRgba(node.color, 0.15));
+        // Glow behind logo for contrast/visibility
+        const glowRadius = radius * 1.4;
+        const glowGradient = ctx.createRadialGradient(
+          node.x, node.y, radius * 0.3,
+          node.x, node.y, glowRadius
+        );
+        if (isDarkMode) {
+          // Dark mode: soft white glow for contrast
+          glowGradient.addColorStop(0, isHovered ? 'rgba(255, 255, 255, 0.25)' : 'rgba(255, 255, 255, 0.15)');
+          glowGradient.addColorStop(0.5, isHovered ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.05)');
           glowGradient.addColorStop(1, 'transparent');
-          ctx.beginPath();
-          ctx.arc(node.x, node.y, glowRadius, 0, Math.PI * 2);
-          ctx.fillStyle = glowGradient;
-          ctx.fill();
+        } else {
+          // Light mode: soft shadow for depth
+          glowGradient.addColorStop(0, isHovered ? 'rgba(0, 0, 0, 0.08)' : 'rgba(0, 0, 0, 0.04)');
+          glowGradient.addColorStop(0.5, isHovered ? 'rgba(0, 0, 0, 0.03)' : 'rgba(0, 0, 0, 0.015)');
+          glowGradient.addColorStop(1, 'transparent');
         }
-
-        // Node circle - more vibrant fill
         ctx.beginPath();
-        ctx.arc(node.x, node.y, radius, 0, Math.PI * 2);
-        ctx.fillStyle = toRgba(node.color, isHovered ? 0.25 : 0.15);
+        ctx.arc(node.x, node.y, glowRadius, 0, Math.PI * 2);
+        ctx.fillStyle = glowGradient;
         ctx.fill();
 
-        // White inner fill for logo contrast
-        ctx.beginPath();
-        ctx.arc(node.x, node.y, radius * 0.85, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
-        ctx.fill();
-
-        // Border - vibrant color
-        ctx.beginPath();
-        ctx.arc(node.x, node.y, radius, 0, Math.PI * 2);
-        ctx.strokeStyle = isHovered 
-          ? toRgba(node.color, 1) 
-          : toRgba(node.color, 0.8);
-        ctx.lineWidth = isHovered ? 3 : 2.5;
-        ctx.stroke();
-
-        // Logo
+        // Logo - clipped to circle, scaled to fit
         const logoImg = logoImagesRef.current.get(node.id);
         if (logoImg && logoImg.complete && logoImg.naturalWidth > 0) {
-          const logoSize = radius * 1.3;
           ctx.save();
           ctx.beginPath();
-          ctx.arc(node.x, node.y, radius * 0.7, 0, Math.PI * 2);
+          ctx.arc(node.x, node.y, radius, 0, Math.PI * 2);
           ctx.clip();
+
+          // Scale logo to cover the circle (like CSS object-fit: cover)
+          const imgAspect = logoImg.naturalWidth / logoImg.naturalHeight;
+          const targetSize = radius * 2; // Diameter of circle
+          let drawWidth, drawHeight;
+
+          if (imgAspect > 1) {
+            // Wider than tall - fit height, crop width
+            drawHeight = targetSize;
+            drawWidth = targetSize * imgAspect;
+          } else {
+            // Taller than wide - fit width, crop height
+            drawWidth = targetSize;
+            drawHeight = targetSize / imgAspect;
+          }
+
           ctx.drawImage(
             logoImg,
-            node.x - logoSize / 2,
-            node.y - logoSize / 2,
-            logoSize,
-            logoSize
+            node.x - drawWidth / 2,
+            node.y - drawHeight / 2,
+            drawWidth,
+            drawHeight
           );
           ctx.restore();
         } else {
-          // Fallback letter
-          ctx.font = `bold ${radius * 0.8}px Inter, system-ui, sans-serif`;
+          // Fallback: simple circle with letter
+          ctx.beginPath();
+          ctx.arc(node.x, node.y, radius * 0.8, 0, Math.PI * 2);
+          ctx.fillStyle = isDarkMode ? 'rgba(63, 63, 70, 0.9)' : 'rgba(228, 228, 231, 0.9)';
+          ctx.fill();
+
+          ctx.font = `bold ${radius * 1.0}px Inter, system-ui, sans-serif`;
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
-          ctx.fillStyle = toRgba(node.color, 0.9);
+          ctx.fillStyle = isDarkMode ? 'rgba(228, 228, 231, 0.9)' : 'rgba(63, 63, 70, 0.9)';
           ctx.fillText(node.name.charAt(0), node.x, node.y);
         }
 
@@ -659,25 +641,23 @@ export default function MiniNetworkDiagram({
         ctx.font = `${isHovered ? 'bold ' : ''}${Math.max(9, Math.min(11, radius / 2))}px Inter, system-ui, sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        
+
         // Theme-aware text color with shadow for readability
         if (isDarkMode) {
-          // Dark mode: light text with dark shadow
           ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
           ctx.shadowBlur = 4;
           ctx.shadowOffsetX = 0;
           ctx.shadowOffsetY = 1;
-          ctx.fillStyle = isHovered ? toRgba(node.color, 1) : 'rgba(255, 255, 255, 0.9)';
+          ctx.fillStyle = isHovered ? 'rgba(255, 255, 255, 1)' : 'rgba(255, 255, 255, 0.9)';
         } else {
-          // Light mode: dark text with light shadow
           ctx.shadowColor = 'rgba(255, 255, 255, 0.8)';
           ctx.shadowBlur = 3;
           ctx.shadowOffsetX = 0;
           ctx.shadowOffsetY = 1;
-          ctx.fillStyle = isHovered ? toRgba(node.color, 1) : 'rgba(30, 30, 50, 0.9)';
+          ctx.fillStyle = isHovered ? 'rgba(30, 30, 50, 1)' : 'rgba(30, 30, 50, 0.9)';
         }
         ctx.fillText(node.name, node.x, labelY);
-        
+
         // Reset shadow
         ctx.shadowColor = 'transparent';
         ctx.shadowBlur = 0;

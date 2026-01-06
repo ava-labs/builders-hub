@@ -35,41 +35,8 @@ interface ICMFlowData {
 	messageCount: number;
 }
 
-// Helper function to get category-based colors
-function getCategoryColor(category?: string): string {
-	switch (category) {
-		case "Primary":
-			return "#e84142"; // Avalanche red
-		case "Gaming":
-			return "#22c55e"; // Green
-		case "DeFi":
-			return "#3b82f6"; // Blue
-		case "Enterprise":
-			return "#a855f7"; // Purple
-		case "Institutions":
-			return "#a855f7"; // Purple
-		case "Infrastructure":
-			return "#f97316"; // Orange
-		case "Creative":
-			return "#ec4899"; // Pink
-		case "RWAs":
-			return "#f59e0b"; // Amber
-		case "Payments":
-			return "#06b6d4"; // Cyan
-		default:
-			return "#8b5cf6"; // Default purple
-	}
-}
-
-// Helper to generate color from name
-function stringToColor(str: string): string {
-	let hash = 0;
-	for (let i = 0; i < str.length; i++) {
-		hash = str.charCodeAt(i) + ((hash << 5) - hash);
-	}
-	const hue = Math.abs(hash % 360);
-	return `hsl(${hue}, 70%, 55%)`;
-}
+// Neutral color for all L1 chains - clean, professional look that lets logos shine
+const NEUTRAL_CHAIN_COLOR = '#71717a'; // zinc-500 - subtle gray that works in light/dark mode
 
 export const Sponsors = () => {
 	const [metrics, setMetrics] = useState<OverviewMetrics | null>(null);
@@ -176,7 +143,7 @@ export const Sponsors = () => {
 				chainId: chain.chainId, // Include chainId for ICM matching
 				name: chain.chainName,
 				logo,
-				color: l1Chain?.color || getCategoryColor(category) || stringToColor(chain.chainName),
+				color: NEUTRAL_CHAIN_COLOR, // Clean neutral color - logos are the visual identifier
 				category,
 				link: slug ? `/stats/l1/${slug}` : undefined,
 				isPrimary: false,
