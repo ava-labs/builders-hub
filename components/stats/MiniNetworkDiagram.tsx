@@ -70,8 +70,15 @@ interface Particle {
   speed: number;
 }
 
-// Neutral fallback color for chains without explicit color
-const NEUTRAL_CHAIN_COLOR = '#71717a'; // zinc-500
+// Generate consistent color from string (fallback)
+function stringToColor(str: string): string {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const hue = Math.abs(hash % 360);
+  return `hsl(${hue}, 70%, 55%)`;
+}
 
 // Convert color to rgba
 function toRgba(color: string, alpha: number): string {
@@ -261,7 +268,7 @@ export default function MiniNetworkDiagram({
         chainId: chain.chainId,
         name: chain.name,
         logo: chain.logo,
-        color: chain.color || NEUTRAL_CHAIN_COLOR,
+        color: chain.color || stringToColor(chain.name),
         x,
         y,
         vx: 0,
@@ -358,13 +365,13 @@ export default function MiniNetworkDiagram({
         : 1;
       
       // Faster particles for higher traffic
-      const baseSpeed = 0.001 + ratio * 0.002;
-      
+      const baseSpeed = 0.002 + ratio * 0.004;
+
       for (let i = 0; i < count; i++) {
         particles.push({
           connectionIndex: index,
           progress: Math.random(),
-          speed: baseSpeed + Math.random() * 0.001,
+          speed: baseSpeed + Math.random() * 0.002,
         });
       }
     });
@@ -483,7 +490,7 @@ export default function MiniNetworkDiagram({
       const nodes = nodesRef.current;
       const connections = connectionsRef.current;
 
-      // Draw connections (neutral colors)
+      // Draw connections with category colors
       connections.forEach((conn, i) => {
         const fromNode = nodes[conn.from];
         const toNode = nodes[conn.to];
@@ -495,15 +502,20 @@ export default function MiniNetworkDiagram({
         ctx.moveTo(fromNode.x, fromNode.y);
         ctx.lineTo(toNode.x, toNode.y);
 
-        const baseOpacity = conn.opacity * pulse;
-        ctx.strokeStyle = isDarkMode
-          ? `rgba(161, 161, 170, ${baseOpacity})`
-          : `rgba(113, 113, 122, ${baseOpacity * 0.7})`;
-        ctx.lineWidth = 1;
+        const gradient = ctx.createLinearGradient(
+          fromNode.x, fromNode.y, toNode.x, toNode.y
+        );
+        const baseOpacity = conn.opacity * pulse * 1.5;
+        gradient.addColorStop(0, toRgba(fromNode.color, baseOpacity));
+        gradient.addColorStop(0.5, toRgba(fromNode.color, baseOpacity * 0.6));
+        gradient.addColorStop(1, toRgba(toNode.color, baseOpacity));
+
+        ctx.strokeStyle = gradient;
+        ctx.lineWidth = 1.5;
         ctx.stroke();
       });
 
-      // Draw particles
+      // Draw particles with category colors
       particlesRef.current.forEach((particle) => {
         const conn = connections[particle.connectionIndex];
         if (!conn) return;
@@ -515,15 +527,23 @@ export default function MiniNetworkDiagram({
         const x = fromNode.x + (toNode.x - fromNode.x) * particle.progress;
         const y = fromNode.y + (toNode.y - fromNode.y) * particle.progress;
 
-        // Subtle neutral particle
+        // Interpolate color along the connection
+        const particleColor = particle.progress < 0.5 ? fromNode.color : toNode.color;
+
+        // Particle glow
+        ctx.beginPath();
+        ctx.arc(x, y, 5, 0, Math.PI * 2);
+        ctx.fillStyle = toRgba(particleColor, 0.2);
+        ctx.fill();
+
         ctx.beginPath();
         ctx.arc(x, y, 3, 0, Math.PI * 2);
-        ctx.fillStyle = isDarkMode ? 'rgba(228, 228, 231, 0.3)' : 'rgba(82, 82, 91, 0.2)';
+        ctx.fillStyle = toRgba(particleColor, 0.5);
         ctx.fill();
 
         ctx.beginPath();
         ctx.arc(x, y, 1.5, 0, Math.PI * 2);
-        ctx.fillStyle = isDarkMode ? 'rgba(228, 228, 231, 0.7)' : 'rgba(82, 82, 91, 0.5)';
+        ctx.fillStyle = toRgba(particleColor, 0.9);
         ctx.fill();
       });
 
@@ -538,17 +558,16 @@ export default function MiniNetworkDiagram({
         const scale = isHovered ? 1.15 : 1;
         const radius = node.radius * scale;
 
-        // TPS-based pulse wave effect (expanding rings) - subtle neutral color
+        // TPS-based pulse wave effect (expanding rings) - uses category color
         const tpsRatio = Math.sqrt((node.tps || 0) / maxTps);
-        const pulseWaveColor = isDarkMode ? 'rgba(161, 161, 170' : 'rgba(113, 113, 122'; // zinc-400/zinc-500
 
         // Draw pulse waves for ANY chain with TPS > 0 (normalized relative to others)
         if ((node.tps || 0) > 0) {
           const pulseSpeed = 0.6 + tpsRatio * 2.0;
-          const minWaves = 2;
-          const maxWaves = 4;
-          const minDistance = 12;
-          const maxDistance = 24;
+          const minWaves = 3;
+          const maxWaves = 6;
+          const minDistance = 18;
+          const maxDistance = 32;
           const fadeCurve = 1.5;
           const numWaves = Math.round(minWaves + tpsRatio * (maxWaves - minWaves));
 
@@ -557,13 +576,13 @@ export default function MiniNetworkDiagram({
             const waveProgress = wavePhase / (Math.PI * 2);
 
             const waveRadius = radius + waveProgress * (minDistance + tpsRatio * (maxDistance - minDistance));
-            const waveAlpha = Math.pow(1 - waveProgress, fadeCurve) * (0.2 + tpsRatio * 0.15);
+            const waveAlpha = Math.pow(1 - waveProgress, fadeCurve) * (0.35 + tpsRatio * 0.25);
 
             if (waveAlpha > 0.02) {
               ctx.beginPath();
               ctx.arc(node.x, node.y, waveRadius, 0, Math.PI * 2);
-              ctx.strokeStyle = `${pulseWaveColor}, ${waveAlpha})`;
-              ctx.lineWidth = 1 + (1 - waveProgress) * 1;
+              ctx.strokeStyle = toRgba(node.color, waveAlpha);
+              ctx.lineWidth = 1.5 + (1 - waveProgress) * 1.5;
               ctx.stroke();
             }
           }
@@ -636,33 +655,35 @@ export default function MiniNetworkDiagram({
           ctx.fillText(node.name.charAt(0), node.x, node.y);
         }
 
-        // Label
-        const labelY = node.y + radius + 12;
-        ctx.font = `${isHovered ? 'bold ' : ''}${Math.max(9, Math.min(11, radius / 2))}px Inter, system-ui, sans-serif`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
+        // Label (skip for primary/center node)
+        if (!node.isPrimary) {
+          const labelY = node.y + radius + 12;
+          ctx.font = `${isHovered ? 'bold ' : ''}${Math.max(9, Math.min(11, radius / 2))}px Inter, system-ui, sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
 
-        // Theme-aware text color with shadow for readability
-        if (isDarkMode) {
-          ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-          ctx.shadowBlur = 4;
+          // Theme-aware text color with shadow for readability
+          if (isDarkMode) {
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+            ctx.shadowBlur = 4;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 1;
+            ctx.fillStyle = isHovered ? 'rgba(255, 255, 255, 1)' : 'rgba(255, 255, 255, 0.9)';
+          } else {
+            ctx.shadowColor = 'rgba(255, 255, 255, 0.8)';
+            ctx.shadowBlur = 3;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 1;
+            ctx.fillStyle = isHovered ? 'rgba(30, 30, 50, 1)' : 'rgba(30, 30, 50, 0.9)';
+          }
+          ctx.fillText(node.name, node.x, labelY);
+
+          // Reset shadow
+          ctx.shadowColor = 'transparent';
+          ctx.shadowBlur = 0;
           ctx.shadowOffsetX = 0;
-          ctx.shadowOffsetY = 1;
-          ctx.fillStyle = isHovered ? 'rgba(255, 255, 255, 1)' : 'rgba(255, 255, 255, 0.9)';
-        } else {
-          ctx.shadowColor = 'rgba(255, 255, 255, 0.8)';
-          ctx.shadowBlur = 3;
-          ctx.shadowOffsetX = 0;
-          ctx.shadowOffsetY = 1;
-          ctx.fillStyle = isHovered ? 'rgba(30, 30, 50, 1)' : 'rgba(30, 30, 50, 0.9)';
+          ctx.shadowOffsetY = 0;
         }
-        ctx.fillText(node.name, node.x, labelY);
-
-        // Reset shadow
-        ctx.shadowColor = 'transparent';
-        ctx.shadowBlur = 0;
-        ctx.shadowOffsetX = 0;
-        ctx.shadowOffsetY = 0;
       });
 
       animationRef.current = requestAnimationFrame(draw);
@@ -805,7 +826,7 @@ export default function MiniNetworkDiagram({
       />
       
       {/* Hover tooltip */}
-      {hoveredNode && !hoveredNode.isPrimary && (
+      {hoveredNode && (
         <div 
           className="absolute pointer-events-none z-50 px-2.5 py-1.5 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-sm border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg"
           style={{
