@@ -125,8 +125,7 @@ export function CustomCountdownBanner() {
       style={{background: "linear-gradient(90deg, #E53935 0%, #FF6B35 50%, #F4511E 100%)", color: "#000",}}
     >
       <Link href="/docs/acps/256-hardware-recommendations" className="md:hidden inline-flex items-center gap-1 flex-wrap justify-center">
-        <span><strong>Hardware Update:</strong> Use NVMe SSD by Jan 17</span>
-        <CountdownTimer targetDate={deadlineDate} onComplete={() => setDeadlinePassed(true)} />
+        <span><strong className="underline">Hardware Update:</strong> Use NVMe SSD by Jan 17</span>
       </Link>
 
       <div className="hidden md:flex flex-row items-center justify-center gap-2 text-center">
