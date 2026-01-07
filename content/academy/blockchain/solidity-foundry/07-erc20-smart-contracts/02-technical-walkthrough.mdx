@@ -3,7 +3,7 @@ title: ERC20 Technical Walkthrough
 description: Fungible Token Standard
 updated: 2024-06-28
 authors: [Andrea Vargas, Ash, martineckardt]
-icon: Book
+icon: BookOpen
 ---
 In this section, we will introduce the ERC-20 interface that all token contracts should aim to implement. Furthermore, we will go through each function that the ERC-20 contract mentions and explain what it does in-depth.
 ## ERC-20 Interface
@@ -35,11 +35,15 @@ interface IERC20 {
 ```
 The above is derived from eips.ethereum.org/EIPS/eip-20, the official proposal page for the ERC-20 standard. We will now examine each function:
 
+### Name function
+
 ```solidity
 name()
 ```
 
 As the name might suggest, this function returns the name of the token. As an example, for the Wrapped AVAX contract, this would return "Wrapped AVAX".
+
+### Symbol function
 
 ```solidity
 symbol()
@@ -47,6 +51,7 @@ symbol()
 
 This function returns the ticker representation of the token. As an example, the United States Dollar usually has the ticker symbol "USD".  For Wrapped Avax, we have "WAVAX".
 
+### Decimals function
 ```solidity
 decimals()
 ```
@@ -61,30 +66,72 @@ $$0.3 * 10 = 3$$
 
 Multiplying by a power of 10 is equivalent to shifting a number one place to the right. Therefore, for a quantity of token x (which could be a floating point number), we represent this value on-chain as x * 10^n, where n is a number greater than 0. Therefore, n is what decimals() would return.
 For the rest of this section, we will refer to the following terms:
-Numerical Representation: a quantity of the token that has been converted from a floating-point number to a whole number (via multiplying by 10^n)
-User-Representation: a quantity of the token represented in its true form (i.e. floating-point representation)
+- Numerical Representation: a quantity of the token that has been converted from a floating-point number to a whole number (via multiplying by 10^n)
+
+- User-Representation: a quantity of the token represented in its true form (i.e. floating-point representation)
+
+### TotalSupply function
+```solidity
 totalSupply()
+```
 This function returns the total number of tokens in circulation. The number returned is in terms of the token numerical representation.
+
+### BalanceOf function
+```solidity
 balanceOf(address _owner)
+```
+
 This function returns the balance of the address passed in as the argument. The number returned is in terms of the token numerical representation.
+
+### Transfer function
+```solidity
 transfer(address _to, uint256 _value)
-When called, this function transfer _value amount of tokens (in terms of the token numerical representation) from the function caller to _to. This function is success if the balance of the caller is at least equal to _value. Furthermore, a successful call of this function should emit the following event:
+```
+
+When called, this function transfer _value amount of tokens (in terms of the token numerical representation) from the function caller to _to. This function is successful if the balance of the caller is at least equal to _value. Furthermore, a successful call of this function should emit the following event:
+
+```solidity
 event Transfer(address indexed _from, address indexed _to, uint256 _value)
+```
+
+### TransferFrom function
+```solidity
 transferFrom(address _from, address _to, uint256 _value)
+```
+
 Before discussing the functionality of transferFrom(), we will first discuss the concept of allowances.
 
 As we saw with the transfer() function, holders of tokens are able to transfer their tokens to other accounts. While this is function is sufficient for a large amount of use cases, consider protocols such as decentralized exchanges which allow users to swap tokens. Generally, the logic of swaps are as follows:
+
 Take x of token A from the user
+
 Give y of token B to the user
-The limitations of the transfer() function is with regards to the first step of the logic above. With our current understanding of ERC-20, the swapper would first need to give the decentralized exchange the tokens it wants to exchange. Therefore, this would result in two transactions in order for the whole swap to be executed, something which is highly undesirable. 
+
+The limitations of the transfer() function is with regards to the first step of the logic above. With our current understanding of ERC-20, the swapper would first need to give the decentralized exchange the tokens it wants to exchange. Therefore, this would result in two transactions in order for the swap to be executed, something which is undesirable. 
 
 ERC-20, therefore, introduces the concept of allowances. By giving another account permission to take a prespecified amount of your tokens, protocols such as decentralized exchanges are able to conduct behaviors like swaps in an atomic manner. 
 
 Focusing back on transferFrom(), this function transfers _value amount of tokens (in terms of the token numerical representation) from _from to _to. For this function to be successful, _from must have previously allocated the function caller at least _value amount of tokens to spend on their behalf.
 
 This function also emits the Transfer event seen previously. Furthermore, this function updates the amount of tokens that the caller is able to spend on behalf of _from.
+
+### Approve function
+```solidity
 approve(address _spender, uint256 _value)
+```
+
 This function gives permission to _spender to spend at most _value tokens (in terms of the token numerical representation) from the balance of the function caller. If successful, this function emits the following event:
+
+```solidity
 event Approval(address indexed _owner, address indexed _spender, uint256 _value)
+```
+
+### Allowance function
+```solidity
 allowance(address _owner, address _spender)
+```
+
 This function returns the amount of tokens (in terms of the token numerical representation) that _spender is allowed to spend on behalf of _owner.
+
+<Quiz quizId="520"/>
+<Quiz quizId="521"/>

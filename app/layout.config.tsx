@@ -179,7 +179,7 @@ export const stats: LinkItemType = {
     {
       icon: <Hexagon />,
       text: "Primary Network Validators",
-      url: "/stats/validators",
+      url: "/stats/validators/c-chain",
       description:
       "View the latest metrics for the Avalanche Primary Network validators.",
       menu: {
@@ -225,10 +225,10 @@ export const docsMenu: LinkItemType = {
     },
     {
       icon: <Computer />,
-      text: 'Node RPCs',
+      text: 'Nodes & Validators',
       description:
-        "Explore the RPC Methods for the C-Chain, P-Chain, and X-Chain.",
-      url: '/docs/rpcs/c-chain',
+        "Learn about setting up, configuring and maintaining Avalanche nodes and validators.",
+      url: '/docs/nodes',
       menu: {
         className: 'lg:col-start-2',
       },
@@ -307,7 +307,7 @@ export const academyMenu: LinkItemType = {
         banner: (
           <div className='-mx-3 -mt-3'>
             <Image
-              src={"https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Codebase-Entrepreneur-Academy-banner.png"}
+              src={"https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-banner/avalanche-entrepreneur-academy-header.png"}
               alt='Entrepreneur Academy'
               width={900}
               height={400}

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Search, X, Save, Globe, Lock, Copy, Check, Pencil, Loader2, Heart, Share2, Eye, CalendarIcon, RefreshCw, LayoutDashboard, GripVertical, Plus } from "lucide-react";
+import { Search, X, Save, Globe, Lock, Copy, Check, Pencil, Loader2, Heart, Share2, Eye, CalendarIcon, RefreshCw, LayoutDashboard, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useLoginModalTrigger } from "@/hooks/useLoginModal";
@@ -25,6 +25,8 @@ interface ChartConfig {
   abbreviateNumbers?: boolean;
   startTime?: string | null; // Local start time filter (ISO string)
   endTime?: string | null; // Local end time filter (ISO string)
+  brushStartIndex?: number | null; // Brush slider start position
+  brushEndIndex?: number | null; // Brush slider end position
 }
 
 function PlaygroundContent() {
@@ -100,6 +102,7 @@ function PlaygroundContent() {
   const [searchTerm, setSearchTerm] = useState("");
   const [draggedChartId, setDraggedChartId] = useState<string | null>(null);
   const [dragOverChartId, setDragOverChartId] = useState<string | null>(null);
+  const [isDragAllowed, setIsDragAllowed] = useState(false);
   const scrollAnimationFrameRef = useRef<number | null>(null);
   const scrollDirectionRef = useRef<'up' | 'down' | null>(null);
   const scrollSpeedRef = useRef<number>(8);
@@ -155,6 +158,14 @@ function PlaygroundContent() {
     setCharts((prev) =>
       prev.map((c) =>
         c.id === chartId ? { ...c, startTime, endTime } : c
+      )
+    );
+  }, []);
+
+  const handleBrushChange = useCallback((chartId: string, startIndex: number | null, endIndex: number | null) => {
+    setCharts((prev) =>
+      prev.map((c) =>
+        c.id === chartId ? { ...c, brushStartIndex: startIndex, brushEndIndex: endIndex } : c
       )
     );
   }, []);
@@ -415,7 +426,9 @@ function PlaygroundContent() {
             stackSameMetrics: chart.stackSameMetrics || false,
             abbreviateNumbers: chart.abbreviateNumbers !== undefined ? chart.abbreviateNumbers : true,
             startTime: chart.startTime || null,
-            endTime: chart.endTime || null
+            endTime: chart.endTime || null,
+            brushStartIndex: chart.brushStartIndex ?? null,
+            brushEndIndex: chart.brushEndIndex ?? null
           }));
           setCharts(loadedCharts);
           setSavedCharts(loadedCharts.map((chart: ChartConfig) => ({
@@ -543,7 +556,9 @@ function PlaygroundContent() {
           stackSameMetrics: chart.stackSameMetrics || false,
           abbreviateNumbers: chart.abbreviateNumbers !== undefined ? chart.abbreviateNumbers : true,
           startTime: chart.startTime || null,
-          endTime: chart.endTime || null
+          endTime: chart.endTime || null,
+          brushStartIndex: chart.brushStartIndex ?? null,
+          brushEndIndex: chart.brushEndIndex ?? null
         }))
       };
       
@@ -615,7 +630,7 @@ function PlaygroundContent() {
     for (let i = 0; i < charts.length; i++) {
       const current = charts[i];
       const saved = savedCharts[i];
-      if (!saved || current.id !== saved.id || current.title !== saved.title || current.colSpan !== saved.colSpan || current.stackSameMetrics !== saved.stackSameMetrics || current.abbreviateNumbers !== saved.abbreviateNumbers || current.startTime !== saved.startTime || current.endTime !== saved.endTime) {
+      if (!saved || current.id !== saved.id || current.title !== saved.title || current.colSpan !== saved.colSpan || current.stackSameMetrics !== saved.stackSameMetrics || current.abbreviateNumbers !== saved.abbreviateNumbers || current.startTime !== saved.startTime || current.endTime !== saved.endTime || current.brushStartIndex !== saved.brushStartIndex || current.brushEndIndex !== saved.brushEndIndex) {
         return true;
       }
       
@@ -1228,13 +1243,52 @@ function PlaygroundContent() {
               className={cn(
                 chart.colSpan === 6 ? "lg:col-span-6" : "lg:col-span-12",
                 "relative",
-                isDragging && "opacity-50",
-                isDragOver && "ring-2 ring-primary ring-offset-2",
-                canDragChart && !isDragging && "cursor-move"
+                isDragging && "opacity-50 cursor-grabbing",
+                isDragOver && "outline outline-2 outline-dashed outline-primary outline-offset-2 rounded-xl",
+                canDragChart && !isDragging && "cursor-grab"
               )}
-              draggable={canDragChart}
-              onDragStart={(e) => {
+              draggable={canDragChart && isDragAllowed}
+              onMouseDown={(e) => {
                 if (!canDragChart) return;
+                
+                // Check if mousedown is on an interactive element - if so, don't allow drag
+                const target = e.target as HTMLElement;
+                const interactiveSelectors = [
+                  '.recharts-brush',
+                  '.recharts-brush-slide', 
+                  '.recharts-brush-traveller',
+                  '.brush-slider-container',
+                  '[data-no-drag="true"]',
+                  'input',
+                  'button',
+                  'select',
+                  'textarea',
+                  '[role="slider"]',
+                  'svg',
+                  'path',
+                  'rect',
+                  'line',
+                  'circle'
+                ];
+                
+                for (const selector of interactiveSelectors) {
+                  if (target.matches(selector) || target.closest(selector)) {
+                    setIsDragAllowed(false);
+                    return;
+                  }
+                }
+                
+                setIsDragAllowed(true);
+              }}
+              onMouseUp={() => {
+                setIsDragAllowed(false);
+              }}
+              onDragStart={(e) => {
+                if (!canDragChart || !isDragAllowed) {
+                  e.preventDefault();
+                  return;
+                }
+                
                 setDraggedChartId(chart.id);
                 e.dataTransfer.effectAllowed = "move";
                 e.dataTransfer.setData("text/html", chart.id);
@@ -1276,6 +1330,7 @@ function PlaygroundContent() {
               onDragEnd={() => {
                 setDraggedChartId(null);
                 setDragOverChartId(null);
+                setIsDragAllowed(false);
                 // Clear scroll animation
                 if (scrollAnimationFrameRef.current !== null) {
                   cancelAnimationFrame(scrollAnimationFrameRef.current);
@@ -1285,16 +1340,6 @@ function PlaygroundContent() {
                 initialDragYRef.current = null;
               }}
             >
-              {/* Only show drag handle when there are multiple charts */}
-              {canDragChart && (
-                <div 
-                  className="absolute top-0 right-0 z-10 flex items-center gap-1 text-gray-400 dark:text-gray-500 cursor-grab active:cursor-grabbing hover:text-gray-600 dark:hover:text-gray-300 transition-colors bg-white dark:bg-neutral-900 rounded-tr-xl rounded-bl-xl p-1 sm:p-1.5 shadow-sm border border-gray-200 dark:border-neutral-700"
-                  onMouseDown={(e) => e.stopPropagation()}
-                  draggable={false}
-                >
-                  <GripVertical className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                </div>
-              )}
               <ConfigurableChart
                 title={chart.title}
                 colSpan={chart.colSpan}
@@ -1312,6 +1357,9 @@ function PlaygroundContent() {
                 endTime={chart.endTime || globalEndTime || null}
                 onTimeFilterChange={isOwner ? (startTime, endTime) => handleChartTimeFilterChange(chart.id, startTime, endTime) : undefined}
                 reloadTrigger={reloadTrigger}
+                initialBrushStartIndex={chart.brushStartIndex}
+                initialBrushEndIndex={chart.brushEndIndex}
+                onBrushChange={isOwner ? (startIndex, endIndex) => handleBrushChange(chart.id, startIndex, endIndex) : undefined}
               />
             </div>
             );

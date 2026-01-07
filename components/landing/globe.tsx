@@ -112,14 +112,16 @@ export const Sponsors = () => {
 
 		// Avalanche C-Chain chainId
 		const AVALANCHE_CCHAIN_ID = '43114';
+		// Shrapnel chainId - excluded from display
+		const SHRAPNEL_CHAIN_ID = '2044';
 
 		// Find Avalanche C-Chain data
 		const avalancheChain = metrics.chains.find(c => c.chainId === AVALANCHE_CCHAIN_ID);
 
-		// Get L1 chains excluding Avalanche C-Chain (it will be the center)
+		// Get L1 chains excluding Avalanche C-Chain (it will be the center) and Shrapnel
 		// Score chains by multiple metrics for better representation
 		const l1Chains = metrics.chains
-			.filter(chain => chain.chainId !== AVALANCHE_CCHAIN_ID)
+			.filter(chain => chain.chainId !== AVALANCHE_CCHAIN_ID && chain.chainId !== SHRAPNEL_CHAIN_ID)
 			.map(chain => {
 				// Calculate composite activity score
 				const tpsScore = (chain.tps || 0) * 10; // Weight TPS heavily
@@ -134,7 +136,7 @@ export const Sponsors = () => {
 			})
 			.filter(chain => chain.activityScore > 0)
 			.sort((a, b) => b.activityScore - a.activityScore)
-			.slice(0, 40); // Show top 50 most active L1 chains
+			.slice(0, 40); // Show top 40 most active L1 chains
 
 		// Calculate total TPS (including Avalanche) for aggregate display
 		const totalTps = metrics.chains.reduce((sum, c) => sum + (c.tps || 0), 0);
@@ -165,6 +167,9 @@ export const Sponsors = () => {
 			const slug = l1Chain?.slug;
 			// Use API logo first, fallback to l1-chains.json logo
 			const logo = chain.chainLogoURI || l1Chain?.chainLogoURI;
+
+			// Only include chains that have a valid logo
+			if (!logo) return;
 
 			result.push({
 				id: chain.chainId,
@@ -252,7 +257,7 @@ export const Sponsors = () => {
 	}
 
 	return (
-		<div className="relative w-full h-[700px] flex items-center justify-center">
+		<div className="relative w-full h-[760px] flex items-center justify-center">
 			<MiniNetworkDiagram
 				chains={chainData}
 				icmFlows={icmFlowsData}

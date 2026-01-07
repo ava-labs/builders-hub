@@ -1,44 +1,17 @@
 "use client";
 import { useState, useMemo, useEffect, useRef } from "react";
-import {
-  Area,
-  Bar,
-  CartesianGrid,
-  Line,
-  LineChart,
-  XAxis,
-  YAxis,
-  Tooltip,
-  Brush,
-  ResponsiveContainer,
-  ComposedChart,
-} from "recharts";
+import { Area, Bar, CartesianGrid, Line, LineChart, XAxis, YAxis, Tooltip, Brush, ResponsiveContainer, ComposedChart } from "recharts";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import {
-  Search,
-  X,
-  Eye,
-  EyeOff,
-  Plus,
-  Camera,
-  Loader2,
-  ChevronLeft,
-  GripVertical,
-  Layers,
-  Pencil,
-  Maximize2,
-  Minimize2,
-  Trash2,
-  CalendarIcon,
-  RefreshCw,
-} from "lucide-react";
+import { Search, X, Eye, EyeOff, Plus, Camera, Loader2, ChevronLeft, GripVertical, Layers, Pencil, Maximize2, Minimize2, Trash2, CalendarIcon, RefreshCw } from "lucide-react";
 import l1ChainsData from "@/constants/l1-chains.json";
 import Image from "next/image";
 import { useTheme } from "next-themes";
+import { toPng } from "html-to-image";
+import { ChartWatermark } from "@/components/stats/ChartWatermark";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 
 // Types
@@ -81,6 +54,21 @@ interface ChainMetrics {
   maxGasPrice: TimeSeriesMetric;
   feesPaid: TimeSeriesMetric;
   icmMessages: ICMMetric;
+  dailyRewards?: TimeSeriesMetric;
+  cumulativeRewards?: TimeSeriesMetric;
+  // Primary Network specific metrics
+  netCumulativeEmissions?: TimeSeriesMetric;
+  netEmissionsDaily?: TimeSeriesMetric;
+  cumulativeBurn?: TimeSeriesMetric;
+  totalBurnDaily?: TimeSeriesMetric;
+  cChainFeesDaily?: TimeSeriesMetric;
+  pChainFeesDaily?: TimeSeriesMetric;
+  xChainFeesDaily?: TimeSeriesMetric;
+  validatorFeesDaily?: TimeSeriesMetric;
+  cumulativeCChainFees?: TimeSeriesMetric;
+  cumulativePChainFees?: TimeSeriesMetric;
+  cumulativeXChainFees?: TimeSeriesMetric;
+  cumulativeValidatorFees?: TimeSeriesMetric;
   last_updated: number;
 }
 
@@ -88,7 +76,7 @@ export interface DataSeries {
   id: string;
   name: string;
   color: string;
-  yAxis: "left" | "right";
+  yAxis: "left" | "right" | "y3" | "y4";
   visible: boolean;
   chartStyle: "line" | "bar" | "area";
   chainId: string;
@@ -119,6 +107,9 @@ export interface ConfigurableChartProps {
   endTime?: string | null;
   onTimeFilterChange?: (startTime: string | null, endTime: string | null) => void;
   reloadTrigger?: number;
+  initialBrushStartIndex?: number | null;
+  initialBrushEndIndex?: number | null;
+  onBrushChange?: (startIndex: number | null, endIndex: number | null) => void;
 }
 
 const DEFAULT_COLORS = [
@@ -152,7 +143,37 @@ const AVAILABLE_METRICS = [
   { id: "maxGasPrice", name: "Max Gas Price" },
   { id: "feesPaid", name: "Fees Paid" },
   { id: "icmMessages", name: "ICM Messages" },
+  { id: "dailyRewards", name: "Daily Rewards" },
+  { id: "cumulativeRewards", name: "Cumulative Rewards" },
+  // Primary Network specific metrics
+  { id: "cChainFeesDaily", name: "C-Chain Fees" },
+  { id: "pChainFeesDaily", name: "P-Chain Fees" },
+  { id: "xChainFeesDaily", name: "X-Chain Fees" },
+  { id: "validatorFeesDaily", name: "Validator Fees" },
+  { id: "cumulativeCChainFees", name: "Cumulative C-Chain Fees" },
+  { id: "cumulativePChainFees", name: "Cumulative P-Chain Fees" },
+  { id: "cumulativeXChainFees", name: "Cumulative X-Chain Fees" },
+  { id: "cumulativeValidatorFees", name: "Cumulative Validator Fees" },
+  { id: "totalBurnDaily", name: "Burn" },
+  { id: "cumulativeBurn", name: "Cumulative Burn" },
+  { id: "netEmissionsDaily", name: "Net Emissions" },
+  { id: "netCumulativeEmissions", name: "Net Cumulative Emissions" },
 ];
+
+// Metrics that are only available for the Primary Network
+const PRIMARY_NETWORK_ONLY_METRICS = [
+  "dailyRewards", "cumulativeRewards",
+  "netCumulativeEmissions", "netEmissionsDaily", "cumulativeBurn", "totalBurnDaily",
+  "cChainFeesDaily", "pChainFeesDaily", "xChainFeesDaily", "validatorFeesDaily",
+  "cumulativeCChainFees", "cumulativePChainFees", "cumulativeXChainFees", "cumulativeValidatorFees",
+];
+
+// Primary Network option for chain selector
+const PRIMARY_NETWORK_OPTION = {
+  chainId: "primary",
+  chainName: "Primary Network",
+  chainLogoURI: "", // Will use Avalanche logo
+};
 
 export default function ConfigurableChart({
   title = "Chart",
@@ -171,6 +192,9 @@ export default function ConfigurableChart({
   endTime,
   onTimeFilterChange,
   reloadTrigger = 0,
+  initialBrushStartIndex,
+  initialBrushEndIndex,
+  onBrushChange,
 }: ConfigurableChartProps) {
   const { resolvedTheme } = useTheme();
   const [isMounted, setIsMounted] = useState(false);
@@ -539,9 +563,40 @@ export default function ConfigurableChart({
     }
   }, [isResolutionEnabled, resolution]);
 
-  // Set default brush range
+  // Track if we've used the initial brush values
+  const hasUsedInitialBrush = useRef(false);
+  // Track if user has manually interacted with brush
+  const userHasInteractedWithBrush = useRef(false);
+
+  // Initialize brush from saved values (runs once when initial values are available)
   useEffect(() => {
     if (aggregatedData.length === 0) return;
+    if (hasUsedInitialBrush.current) return;
+    
+    if (initialBrushStartIndex !== undefined && initialBrushStartIndex !== null &&
+        initialBrushEndIndex !== undefined && initialBrushEndIndex !== null) {
+      hasUsedInitialBrush.current = true;
+      setBrushRange({
+        startIndex: Math.max(0, Math.min(initialBrushStartIndex, aggregatedData.length - 1)),
+        endIndex: Math.max(0, Math.min(initialBrushEndIndex, aggregatedData.length - 1)),
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aggregatedData.length]);
+
+  // Set default brush range when resolution changes (only if user hasn't interacted)
+  useEffect(() => {
+    if (aggregatedData.length === 0) return;
+    if (hasUsedInitialBrush.current && !userHasInteractedWithBrush.current) {
+      // Skip on first render when we have initial values
+      return;
+    }
+    if (userHasInteractedWithBrush.current) {
+      // User has interacted, don't reset
+      userHasInteractedWithBrush.current = false; // Reset for next resolution change
+      return;
+    }
+    
     if (resolution === "D") {
       setBrushRange({
         startIndex: Math.max(0, aggregatedData.length - 90),
@@ -768,13 +823,29 @@ export default function ConfigurableChart({
     color: "#E84142", // Avalanche red
   };
 
-  const filteredChains = [
-    // Include "All Chains" at the top if it matches the search
-    ...(ALL_CHAINS_OPTION.chainName.toLowerCase().includes(chainSearchTerm.toLowerCase()) ? [ALL_CHAINS_OPTION] : []),
-    ...l1ChainsData.filter((chain) => chain.isTestnet !== true &&
-      chain.chainName.toLowerCase().includes(chainSearchTerm.toLowerCase())
-    ),
-  ];
+  // Avalanche C-Chain option for Avalanche-only metrics
+  const AVALANCHE_CCHAIN_OPTION = {
+    chainId: "43114",
+    chainName: "Avalanche C-Chain",
+    chainLogoURI: "",
+    color: "#E84142", // Avalanche red
+  };
+
+  // Check if selected metric is Primary Network only
+  const isPrimaryNetworkOnlyMetric = selectedMetric && PRIMARY_NETWORK_ONLY_METRICS.includes(selectedMetric);
+
+  const filteredChains = isPrimaryNetworkOnlyMetric
+    ? // For Primary Network only metrics, show Primary Network option
+      [PRIMARY_NETWORK_OPTION].filter((chain) =>
+        chain.chainName.toLowerCase().includes(chainSearchTerm.toLowerCase())
+      )
+    : [
+        // Include "All Chains" at the top if it matches the search
+        ...(ALL_CHAINS_OPTION.chainName.toLowerCase().includes(chainSearchTerm.toLowerCase()) ? [ALL_CHAINS_OPTION] : []),
+        ...l1ChainsData.filter((chain) => (chain as any).isTestnet !== true &&
+          chain.chainName.toLowerCase().includes(chainSearchTerm.toLowerCase())
+        ),
+      ];
 
   const getThemedLogoUrl = (logoUrl: string): string => {
     if (!isMounted || !logoUrl) return logoUrl;
@@ -794,8 +865,9 @@ export default function ConfigurableChart({
       );
     }
 
-    const hasLeftAxis = visibleSeries.some((s) => s.yAxis === "left");
-    const hasRightAxis = visibleSeries.some((s) => s.yAxis === "right");
+    // Y3 maps to left axis, Y4 maps to right axis
+    const hasLeftAxis = visibleSeries.some((s) => s.yAxis === "left" || s.yAxis === "y3");
+    const hasRightAxis = visibleSeries.some((s) => s.yAxis === "right" || s.yAxis === "y4");
 
     return (
       <ResponsiveContainer width="100%" height={400}>
@@ -862,11 +934,12 @@ export default function ConfigurableChart({
             }}
           />
           {Object.entries(seriesByMetric).map(([metricKey, seriesList]) => {
-            const isStacked = stackSameMetrics && seriesList.length > 1;
-            const stackId = isStacked ? `stack-${metricKey}` : undefined;
+            // When stacking is enabled, stack all series together (not just same metrics)
+            const stackId = stackSameMetrics ? "stack-all" : undefined;
 
             return seriesList.map((series) => {
-              const yAxisId = series.yAxis === "left" ? "left" : "right";
+              // Map Y-axis values to left/right (only 2 axes shown on chart)
+              const yAxisId = series.yAxis === "left" || series.yAxis === "y3" ? "left" : "right";
               const dataKey = series.id;
               const isLoading = loadingMetrics.has(dataKey);
 
@@ -895,7 +968,7 @@ export default function ConfigurableChart({
                     yAxisId={yAxisId}
                     stroke={series.color}
                     fill={series.color}
-                    fillOpacity={isStacked ? 0.6 : 0.3}
+                    fillOpacity={stackSameMetrics ? 0.6 : 0.3}
                     strokeWidth={1}
                     name={series.name}
                     stackId={stackId}
@@ -927,46 +1000,20 @@ export default function ConfigurableChart({
     if (!chartContainerRef.current) return;
 
     try {
-      // Capture SVG from Recharts
-      const chartArea = chartContainerRef.current.querySelector('[class*="recharts"]') || chartContainerRef.current;
-      const svgElement = chartArea.querySelector("svg");
+      const element = chartContainerRef.current;
+      const bgColor = resolvedTheme === "dark" ? "#0a0a0a" : "#ffffff";
       
-      if (svgElement) {
-        const svgData = new XMLSerializer().serializeToString(svgElement);
-        const svgBlob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
-        const url = URL.createObjectURL(svgBlob);
-        
-        const img = document.createElement("img");
-        img.onload = () => {
-          const canvas = document.createElement("canvas");
-          const ctx = canvas.getContext("2d");
-          if (!ctx) {
-            URL.revokeObjectURL(url);
-            return;
-          }
-          
-          canvas.width = img.width;
-          canvas.height = img.height;
-          ctx.fillStyle = resolvedTheme === "dark" ? "#000000" : "#ffffff";
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-          ctx.drawImage(img, 0, 0);
-          URL.revokeObjectURL(url);
-          
-          const link = document.createElement("a");
-          link.download = `${chartTitle || "chart"}-${new Date().toISOString().split("T")[0]}.png`;
-          link.href = canvas.toDataURL("image/png");
-          link.click();
-        };
-        
-        img.onerror = () => {
-          URL.revokeObjectURL(url);
-          console.error("Failed to load SVG for screenshot");
-        };
-        
-        img.src = url;
-      } else {
-        console.error("No SVG element found in chart");
-      }
+      const dataUrl = await toPng(element, {
+        quality: 1,
+        pixelRatio: 2,
+        backgroundColor: bgColor,
+        cacheBust: true,
+      });
+      
+      const link = document.createElement("a");
+      link.download = `${chartTitle || "chart"}-${new Date().toISOString().split("T")[0]}.png`;
+      link.href = dataUrl;
+      link.click();
     } catch (error) {
       console.error("Failed to capture screenshot:", error);
     }
@@ -1126,7 +1173,7 @@ export default function ConfigurableChart({
                       <Loader2 className="h-4 w-4 animate-spin text-gray-400 flex-shrink-0" />
                     ) : (
                       <>
-                        {series.chainId === "all" ? (
+                        {series.chainId === "all" || series.chainId === "43114" || series.chainId === "primary" ? (
                           <div className="relative h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0 flex items-center justify-center">
                             <AvalancheLogo className="h-4 w-4 sm:h-5 sm:w-5" fill="#E84142" />
                           </div>
@@ -1197,6 +1244,8 @@ export default function ConfigurableChart({
                       >
                         <option value="left">Y1</option>
                         <option value="right">Y2</option>
+                        <option value="y3">Y3</option>
+                        <option value="y4">Y4</option>
                       </select>
                       <div className="relative">
                         <input
@@ -1257,7 +1306,7 @@ export default function ConfigurableChart({
                   className="text-xs text-gray-700 dark:text-gray-300 cursor-pointer flex items-center gap-1.5"
                 >
                   <Layers className="h-3.5 w-3.5" />
-                  <span>Show stacked same metrics</span>
+                  <span>Stack all series</span>
                 </label>
               </div>
 
@@ -1285,18 +1334,16 @@ export default function ConfigurableChart({
 
               <div className="ml-auto flex items-center gap-2">
                 <div className="relative">
-                  <Button
-                    variant="outline"
-                    size="sm"
+                  <button
                     onClick={() => {
                       setShowMetricFilter(!showMetricFilter);
                       setShowChainSelector(false);
                     }}
-                    className="text-xs flex items-center gap-1.5 px-3 py-2 h-8 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                    className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
+                    title="Add metric"
                   >
                     <Plus className="h-4 w-4" />
-                    <span>Add</span>
-                  </Button>
+                  </button>
                 {showMetricFilter && (
                   <div className="metric-filter-dropdown absolute right-0 top-full mt-2 w-64 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50">
                     <div className="p-3 border-b border-gray-200 dark:border-gray-700">
@@ -1371,6 +1418,8 @@ export default function ConfigurableChart({
                         const seriesId = `${chain.chainId}-${selectedMetric}`;
                         const isAdded = dataSeries.some((s) => s.id === seriesId);
                         const isAllChains = chain.chainId === "all";
+                        const isAvalancheCChain = chain.chainId === "43114";
+                        const isPrimaryNetwork = chain.chainId === "primary";
                         const isLastAllChains = isAllChains && index < filteredChains.length - 1 && filteredChains[index + 1].chainId !== "all";
                         
                         return (
@@ -1381,7 +1430,7 @@ export default function ConfigurableChart({
                               }
                               className="w-full px-4 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center gap-2 text-sm"
                             >
-                              {isAllChains ? (
+                              {isAllChains || isAvalancheCChain || isPrimaryNetwork ? (
                                 <div className="relative h-5 w-5 flex-shrink-0 flex items-center justify-center">
                                   <AvalancheLogo className="h-5 w-5" fill="#E84142" />
                                 </div>
@@ -1414,29 +1463,26 @@ export default function ConfigurableChart({
                   </div>
                 )}
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
+                <button
                   onClick={handleScreenshot}
-                  className="text-xs flex items-center gap-1.5 px-3 py-2 h-8 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                  className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
                   title="Download chart as image"
                 >
                   <Camera className="h-4 w-4" />
-                  <span className="hidden sm:inline">Export</span>
-                </Button>
+                </button>
                 {onTimeFilterChange && !disableControls && (
                   <Popover open={showTimeFilterPopover} onOpenChange={setShowTimeFilterPopover}>
                     <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className={`text-xs flex items-center justify-center px-2 py-2 h-8 w-8 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors ${
-                          (startTime || endTime) ? "bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800" : ""
+                      <button
+                        className={`p-1.5 sm:p-2 rounded-md transition-colors ${
+                          (startTime || endTime) 
+                            ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950 hover:bg-blue-100 dark:hover:bg-blue-900" 
+                            : "text-muted-foreground hover:bg-muted hover:text-foreground"
                         }`}
                         title="Set time filter"
                       >
                         <CalendarIcon className="h-4 w-4" />
-                      </Button>
+                      </button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="end">
                       <Calendar
@@ -1572,11 +1618,9 @@ export default function ConfigurableChart({
                   </Popover>
                 )}
                 {onColSpanChange && (
-                  <Button
-                    variant="outline"
-                    size="sm"
+                  <button
                     onClick={toggleColSpan}
-                    className="text-xs flex items-center gap-1.5 px-3 py-2 h-8 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                    className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
                     title={colSpan === 12 ? "Make half width" : "Make full width"}
                   >
                     {colSpan === 12 ? (
@@ -1584,18 +1628,16 @@ export default function ConfigurableChart({
                     ) : (
                       <Maximize2 className="h-4 w-4" />
                     )}
-                  </Button>
+                  </button>
                 )}
                 {onRemove && !disableControls && (
-                  <Button
-                    variant="outline"
-                    size="sm"
+                  <button
                     onClick={onRemove}
-                    className="text-xs flex items-center justify-center px-2 py-2 h-8 w-8 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 text-red-600 dark:text-red-400 transition-colors"
+                    className="p-1.5 sm:p-2 rounded-md text-red-500 hover:bg-red-500/10 hover:text-red-600 transition-colors cursor-pointer"
                     title="Remove chart"
                   >
                     <Trash2 className="h-4 w-4" />
-                  </Button>
+                  </button>
                 )}
               </div>
             </div>
@@ -1658,9 +1700,9 @@ export default function ConfigurableChart({
                   disabled={!isEnabled}
                   className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm rounded-md transition-colors ${
                     isSelected && isEnabled
-                      ? "text-white dark:text-white"
+                      ? "text-white dark:text-white cursor-pointer"
                       : isEnabled
-                      ? "text-muted-foreground hover:bg-muted"
+                      ? "text-muted-foreground hover:bg-muted cursor-pointer"
                       : "text-muted-foreground opacity-40 cursor-not-allowed"
                   }`}
                   style={
@@ -1677,24 +1719,22 @@ export default function ConfigurableChart({
           </div>
         </div>
 
-        {/* Chart Area */}
-        <div className="p-6 relative">
-          {/* Watermark */}
-          <div 
-            className="absolute inset-0 flex items-center justify-center pointer-events-none z-0"
-            style={{ opacity: 0.15 }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", transform: "scale(2)" }}>
-              <AvalancheLogo className="size-10" fill="currentColor" />
-              <span style={{ fontSize: "x-large", marginTop: "4px", fontWeight: 500 }}>Builder Hub</span>
-            </div>
-          </div>
-          <div className="relative z-10">
+        <ChartWatermark className="p-6">
             {renderChart()}
 
             {/* Brush Slider */}
             {filteredData.length > 0 && visibleSeries.length > 0 && (
-              <div className="mt-4 bg-white dark:bg-black pl-[60px]">
+              <div 
+                className="mt-4 bg-white dark:bg-black pl-[60px] brush-slider-container cursor-default"
+                onMouseDown={(e) => e.stopPropagation()}
+                onTouchStart={(e) => e.stopPropagation()}
+                onDragStart={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                draggable={false}
+                data-no-drag="true"
+              >
               <ResponsiveContainer width="100%" height={80}>
                 <LineChart
                   data={aggregatedData}
@@ -1713,10 +1753,13 @@ export default function ConfigurableChart({
                         e.startIndex !== undefined &&
                         e.endIndex !== undefined
                       ) {
+                        userHasInteractedWithBrush.current = true;
                         setBrushRange({
                           startIndex: e.startIndex,
                           endIndex: e.endIndex,
                         });
+                        // Notify parent of brush change
+                        onBrushChange?.(e.startIndex, e.endIndex);
                       }
                     }}
                     travellerWidth={8}
@@ -1736,8 +1779,7 @@ export default function ConfigurableChart({
               </ResponsiveContainer>
               </div>
             )}
-          </div>
-        </div>
+        </ChartWatermark>
       </CardContent>
     </Card>
   );

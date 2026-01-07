@@ -164,14 +164,31 @@ node.Flags = tmpnet.FlagsMap{
 }
 ```
 
+<Callout type="info" title="Dynamic Port Allocation">
+The `"http-port": "0"` and `"staking-port": "0"` values tell the OS to allocate available ports dynamically. The actual allocated ports are written to `process.json` by avalanchego at startup.
+</Callout>
+
 **Process Info** (`[node-dir]/process.json`):
+
+This file is created by **avalanchego itself** (not tmpnetctl) when the node starts. Tmpnet passes the `--process-context-file` flag to avalanchego, which writes the runtime information to this file.
+
 ```json
 {
   "pid": 12345,
-  "uri": "http://127.0.0.1:9650",
-  "stakingAddress": "127.0.0.1:9651"
+  "uri": "http://127.0.0.1:56395",
+  "stakingAddress": "127.0.0.1:56396"
 }
 ```
+
+| Field | Description |
+|-------|-------------|
+| `pid` | Process ID of the running avalanchego instance |
+| `uri` | HTTP API endpoint with the dynamically allocated port |
+| `stakingAddress` | Staking/P2P address with the dynamically allocated port |
+
+<Callout type="warning" title="Manual Setups">
+If you're running avalanchego manually (not via tmpnetctl), you must pass `--process-context-file=/path/to/process.json` for this file to be created. Without this flag, there's no way to discover which ports were allocated.
+</Callout>
 
 ## Runtime Configuration
 
@@ -500,5 +517,5 @@ node.Flags["log-level"] = "trace"
 ## See Also
 
 - [CLI Commands Reference](/docs/tooling/tmpnet/reference/cli-commands)
-- [Programmatic Usage Guide](/docs/tooling/tmpnet/guides/programmatic-usage)
+- [Runtime Environments Guide](/docs/tooling/tmpnet/guides/runtimes)
 - [Full README](https://github.com/ava-labs/avalanchego/blob/master/tests/fixture/tmpnet/README.md)

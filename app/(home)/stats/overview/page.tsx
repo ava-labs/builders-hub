@@ -3,6 +3,7 @@ import type React from "react";
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import Image from "next/image";
 import { useTheme } from "next-themes";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -11,7 +12,6 @@ import {
   ArrowDown,
   Activity,
   Search,
-  ArrowUpRight,
   ExternalLink,
   X,
   ChevronDown,
@@ -20,10 +20,15 @@ import {
   BarChart3,
   Network,
   Info,
+  Users,
+  Compass,
+  ChartArea,
+  AlertTriangle,
+  LayoutGrid,
+  Shield,
 } from "lucide-react";
 import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
 import l1ChainsData from "@/constants/l1-chains.json";
-import { L1Chain } from "@/types/stats";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import NetworkDiagram, {
   ChainCosmosData,
@@ -38,6 +43,14 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { type SubnetStats } from "@/types/validator-stats";
+import {
+  compareVersions,
+  VersionBarChart,
+  VersionLabels,
+} from "@/components/stats/VersionBreakdown";
+
+type TableView = "summary" | "validators";
 
 // Time range types matching the API
 type TimeRangeKey = "day" | "week" | "month";
@@ -240,10 +253,18 @@ interface OverviewMetrics {
   last_updated: number;
 }
 
+interface AvaxSupplyData {
+  totalPBurned: string;
+  totalCBurned: string;
+  totalXBurned: string;
+  l1ValidatorFees: string;
+}
+
 type SortDirection = "asc" | "desc";
 
 export default function AvalancheMetrics() {
   const { resolvedTheme } = useTheme();
+  const router = useRouter();
   const [isMounted, setIsMounted] = useState(false);
   const [overviewMetrics, setOverviewMetrics] =
     useState<OverviewMetrics | null>(null);
@@ -262,10 +283,126 @@ export default function AvalancheMetrics() {
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
   const categoryDropdownRef = useRef<HTMLDivElement>(null);
+  const [avaxSupplyData, setAvaxSupplyData] = useState<AvaxSupplyData | null>(null);
+
+  // Table view state
+  const [tableView, setTableView] = useState<TableView>("summary");
+  const [validatorStats, setValidatorStats] = useState<SubnetStats[]>([]);
+  const [validatorStatsLoading, setValidatorStatsLoading] = useState(false);
+  const [minVersion, setMinVersion] = useState<string>("");
+  const [availableVersions, setAvailableVersions] = useState<string[]>([]);
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  // Fetch AVAX supply data for burned amounts and L1 validator fees
+  useEffect(() => {
+    const fetchAvaxSupply = async () => {
+      try {
+        const response = await fetch("/api/avax-supply");
+        if (response.ok) {
+          const data = await response.json();
+          setAvaxSupplyData(data);
+        }
+      } catch (err) {
+        console.error("Error fetching AVAX supply data:", err);
+      }
+    };
+    fetchAvaxSupply();
+  }, []);
+
+  // Fetch validator stats when switching to validators view
+  useEffect(() => {
+    if (tableView !== "validators" || validatorStats.length > 0) return;
+
+    const fetchValidatorStats = async () => {
+      setValidatorStatsLoading(true);
+      try {
+        const response = await fetch("/api/validator-stats?network=mainnet");
+        if (!response.ok) {
+          throw new Error(`Failed to fetch validator stats: ${response.status}`);
+        }
+        const stats: SubnetStats[] = await response.json();
+        setValidatorStats(stats);
+
+        // Extract available versions
+        const versions = new Set<string>();
+        stats.forEach((subnet) => {
+          Object.keys(subnet.byClientVersion).forEach((v) => versions.add(v));
+        });
+        const sortedVersions = Array.from(versions)
+          .filter((v) => v !== "Unknown")
+          .sort()
+          .reverse();
+        setAvailableVersions(sortedVersions);
+
+        if (!minVersion && sortedVersions.length > 0) {
+          setMinVersion(sortedVersions[0]);
+        }
+      } catch (err) {
+        console.error("Error fetching validator stats:", err);
+      }
+      setValidatorStatsLoading(false);
+    };
+
+    fetchValidatorStats();
+  }, [tableView, validatorStats.length, minVersion]);
+
+  // Helper function to find the slug for a subnet ID
+  const getSlugForSubnetId = (subnetId: string): string | null => {
+    const chain = (l1ChainsData as any[]).find((c) => c.subnetId === subnetId);
+    return chain?.slug || null;
+  };
+
+  // Helper function to get category for a subnet ID
+  const getCategoryForSubnetId = (subnetId: string, subnetName: string): string => {
+    const chain = (l1ChainsData as any[]).find(
+      (c) => c.subnetId === subnetId || c.chainName?.toLowerCase() === subnetName.toLowerCase()
+    );
+    return chain?.category || "General";
+  };
+
+  // Calculate validator stats for a subnet
+  const calculateValidatorStats = (subnet: SubnetStats) => {
+    const totalStake = BigInt(subnet.totalStakeString);
+    let aboveTargetNodes = 0;
+    let belowTargetNodes = 0;
+    let aboveTargetStake = 0n;
+
+    Object.entries(subnet.byClientVersion).forEach(([version, data]) => {
+      const isAboveTarget = compareVersions(version, minVersion) >= 0;
+      if (isAboveTarget) {
+        aboveTargetNodes += data.nodes;
+        aboveTargetStake += BigInt(data.stakeString);
+      } else {
+        belowTargetNodes += data.nodes;
+      }
+    });
+
+    const totalNodes = aboveTargetNodes + belowTargetNodes;
+    const nodesPercentAbove =
+      totalNodes > 0 ? (aboveTargetNodes / totalNodes) * 100 : 0;
+    const stakePercentAbove =
+      totalStake > 0n
+        ? Number((aboveTargetStake * 10000n) / totalStake) / 100
+        : 0;
+
+    return {
+      totalNodes,
+      aboveTargetNodes,
+      belowTargetNodes,
+      nodesPercentAbove,
+      stakePercentAbove,
+      isStakeHealthy: stakePercentAbove >= 80,
+    };
+  };
+
+  const getHealthColor = (percent: number): string => {
+    if (percent === 0) return "text-red-600 dark:text-red-400";
+    if (percent < 80) return "text-orange-600 dark:text-orange-400";
+    return "text-green-600 dark:text-green-400";
+  };
 
   // Fetch ICM flows separately (only additional data needed for NetworkDiagram)
   const fetchIcmFlows = useCallback(async () => {
@@ -312,6 +449,15 @@ export default function AvalancheMetrics() {
         c.chainName.toLowerCase() === chainName.toLowerCase()
     );
     return chain?.slug || null;
+  };
+
+  const getChainRpcUrl = (chainId: string, chainName: string): string | null => {
+    const chain = l1ChainsData.find(
+      (c) =>
+        c.chainId === chainId ||
+        c.chainName.toLowerCase() === chainName.toLowerCase()
+    );
+    return chain?.rpcUrl || null;
   };
 
   // Helper to generate consistent color from chain name
@@ -536,6 +682,94 @@ export default function AvalancheMetrics() {
   const handleLoadMore = () =>
     setVisibleCount((prev) => Math.min(prev + 25, sortedData.length));
 
+  // Filter and sort validator stats
+  const filteredValidatorData = validatorStats.filter((subnet) => {
+    const subnetCategory = getCategoryForSubnetId(subnet.id, subnet.name);
+    const matchesCategory =
+      selectedCategory === "All" || subnetCategory === selectedCategory;
+    const matchesSearch =
+      subnet.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      subnet.id.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
+
+  const sortedValidatorData = [...filteredValidatorData].sort((a, b) => {
+    let aValue: any;
+    let bValue: any;
+
+    const aStats = calculateValidatorStats(a);
+    const bStats = calculateValidatorStats(b);
+
+    switch (sortField) {
+      case "chainName":
+        aValue = a.name.toLowerCase();
+        bValue = b.name.toLowerCase();
+        break;
+      case "validatorCount":
+        aValue = aStats.totalNodes;
+        bValue = bStats.totalNodes;
+        break;
+      case "nodesPercent":
+        aValue = aStats.nodesPercentAbove;
+        bValue = bStats.nodesPercentAbove;
+        break;
+      case "stakePercent":
+        aValue = aStats.stakePercentAbove;
+        bValue = bStats.stakePercentAbove;
+        break;
+      default:
+        aValue = aStats.totalNodes;
+        bValue = bStats.totalNodes;
+    }
+
+    if (typeof aValue === "string" && typeof bValue === "string") {
+      return sortDirection === "asc"
+        ? aValue.localeCompare(bValue)
+        : bValue.localeCompare(aValue);
+    }
+
+    const aNum = typeof aValue === "number" ? aValue : 0;
+    const bNum = typeof bValue === "number" ? bValue : 0;
+    return sortDirection === "asc" ? aNum - bNum : bNum - aNum;
+  });
+
+  const visibleValidatorData = sortedValidatorData.slice(0, visibleCount);
+  const hasMoreValidatorData = visibleCount < sortedValidatorData.length;
+
+  // Calculate total version breakdown across all subnets for validators view
+  const totalVersionBreakdown = validatorStats.reduce((acc, subnet) => {
+    Object.entries(subnet.byClientVersion).forEach(([version, data]) => {
+      if (!acc[version]) {
+        acc[version] = { nodes: 0 };
+      }
+      acc[version].nodes += data.nodes;
+    });
+    return acc;
+  }, {} as Record<string, { nodes: number }>);
+
+  // Calculate aggregated validator stats
+  const aggregatedValidatorStats = useMemo(() => {
+    const totalNodes = validatorStats.reduce(
+      (sum, subnet) => sum + calculateValidatorStats(subnet).totalNodes,
+      0
+    );
+    const upToDateValidators = Object.entries(totalVersionBreakdown).reduce(
+      (sum, [version, data]) => {
+        if (compareVersions(version, minVersion) >= 0) {
+          return sum + data.nodes;
+        }
+        return sum;
+      },
+      0
+    );
+    return {
+      totalSubnets: validatorStats.length,
+      l1Count: validatorStats.filter((subnet) => subnet.isL1).length,
+      totalNodes,
+      upToDatePercentage: totalNodes > 0 ? (upToDateValidators / totalNodes) * 100 : 0,
+    };
+  }, [validatorStats, minVersion, totalVersionBreakdown]);
+
   const SortButton = ({
     field,
     children,
@@ -623,6 +857,13 @@ export default function AvalancheMetrics() {
           <td className="px-4 sm:px-6 py-4">
             <div className="h-6 w-16 bg-zinc-200 dark:bg-zinc-800 rounded-full" />
           </td>
+          <td className="px-4 sm:px-6 py-4">
+            <div className="flex items-center justify-center gap-1">
+              <div className="h-8 w-8 bg-zinc-200 dark:bg-zinc-800 rounded-lg" />
+              <div className="h-8 w-8 bg-zinc-200 dark:bg-zinc-800 rounded-lg" />
+              <div className="h-8 w-8 bg-zinc-200 dark:bg-zinc-800 rounded-lg" />
+            </div>
+          </td>
         </tr>
       ))}
     </>
@@ -680,61 +921,28 @@ export default function AvalancheMetrics() {
             </span>
           </nav>
 
-          <div className="flex flex-col sm:flex-row items-start justify-between gap-6 sm:gap-8">
-            <div className="space-y-4 sm:space-y-6 flex-1">
-              <div>
-                <div className="flex items-center gap-2 sm:gap-3 mb-2">
-                  <AvalancheLogo
-                    className="w-5 h-5 sm:w-6 sm:h-6"
-                    fill="currentColor"
-                  />
-                  <p className="text-xs sm:text-sm font-medium text-red-600 dark:text-red-500 tracking-wide uppercase">
-                    Avalanche Ecosystem
-                  </p>
-                </div>
-                <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-zinc-900 dark:text-white">
-                  L1s Index
-                </h1>
+          <div className="flex flex-col sm:flex-row items-start justify-between gap-4 sm:gap-8">
+            <div>
+              <div className="flex items-center gap-2 sm:gap-3 mb-2">
+                <AvalancheLogo
+                  className="w-5 h-5 sm:w-6 sm:h-6"
+                  fill="currentColor"
+                />
+                <p className="text-xs sm:text-sm font-medium text-red-600 dark:text-red-500 tracking-wide uppercase">
+                  Avalanche Ecosystem
+                </p>
               </div>
-
-              {/* Key metrics - 2x2 grid on mobile, inline on desktop */}
-              <div className="grid grid-cols-2 sm:flex sm:items-baseline gap-y-3 gap-x-6 sm:gap-6 md:gap-12 pt-4">
-                <div className="flex items-baseline">
-                  <span className="text-2xl sm:text-3xl md:text-4xl font-semibold tabular-nums text-zinc-900 dark:text-white">
-                    {overviewMetrics.chains.length}
-                  </span>
-                  <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 ml-1 sm:ml-2">
-                    chains
-                  </span>
-                </div>
-                <div className="flex items-baseline justify-end sm:justify-start">
-                  <span className="text-2xl sm:text-3xl md:text-4xl font-semibold tabular-nums text-zinc-900 dark:text-white">
-                    <AnimatedNumber value={totalTx} />
-                  </span>
-                  <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 ml-1 sm:ml-2">
-                    txns
-                  </span>
-                </div>
-                <div className="flex items-baseline">
-                  <SpeedGauge value={parseFloat(totalTps)} />
-                </div>
-                <div className="flex items-baseline justify-end sm:justify-start">
-                  <span className="text-2xl sm:text-3xl md:text-4xl font-semibold tabular-nums text-zinc-900 dark:text-white">
-                    {formatNumber(overviewMetrics.aggregated.totalValidators)}
-                  </span>
-                  <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 ml-1 sm:ml-2">
-                    validators
-                  </span>
-                </div>
-              </div>
+              <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-zinc-900 dark:text-white">
+                L1s Index
+              </h1>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto mt-2">
+            <div className="flex gap-2 sm:gap-3 self-start sm:self-center">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => (window.location.href = "/stats/chain-list")}
-                className="w-full sm:w-auto gap-2 text-zinc-600 dark:text-zinc-400 border-zinc-300 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-600"
+                className="gap-2 text-zinc-600 dark:text-zinc-400 border-zinc-300 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-600"
               >
                 <Network className="h-3.5 w-3.5" />
                 Chain List
@@ -748,11 +956,102 @@ export default function AvalancheMetrics() {
                     "_blank"
                   )
                 }
-                className="w-full sm:w-auto gap-2 text-zinc-600 dark:text-zinc-400 border-zinc-300 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-600"
+                className="gap-2 text-zinc-600 dark:text-zinc-400 border-zinc-300 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-600"
               >
                 Submit L1
                 <ExternalLink className="h-3.5 w-3.5" />
               </Button>
+            </div>
+          </div>
+
+          {/* Key metrics row with time range selector aligned right */}
+          <div className="flex items-center justify-between gap-4 pt-4 sm:pt-6">
+            <div className="grid grid-cols-2 sm:flex sm:items-baseline gap-y-3 gap-x-6 sm:gap-6 md:gap-12">
+              <div className="flex items-baseline">
+                {tableLoading ? (
+                  <div className="h-8 sm:h-10 md:h-12 w-12 sm:w-14 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                ) : (
+                  <span className="text-2xl sm:text-3xl md:text-4xl font-semibold tabular-nums text-zinc-900 dark:text-white">
+                    {overviewMetrics.chains.length}
+                  </span>
+                )}
+                <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 ml-1 sm:ml-2">
+                  chains
+                </span>
+              </div>
+              <div className="flex items-baseline justify-end sm:justify-start">
+                {tableLoading ? (
+                  <div className="h-8 sm:h-10 md:h-12 w-20 sm:w-28 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                ) : (
+                  <span className="text-2xl sm:text-3xl md:text-4xl font-semibold tabular-nums text-zinc-900 dark:text-white">
+                    <AnimatedNumber value={totalTx} />
+                  </span>
+                )}
+                <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 ml-1 sm:ml-2">
+                  txns
+                </span>
+              </div>
+              <div className="flex items-baseline">
+                {tableLoading ? (
+                  <div className="h-8 sm:h-10 md:h-12 w-24 sm:w-32 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                ) : (
+                  <SpeedGauge value={parseFloat(totalTps)} />
+                )}
+              </div>
+              <div className="flex items-baseline justify-end sm:justify-start">
+                {tableLoading ? (
+                  <div className="h-8 sm:h-10 md:h-12 w-14 sm:w-16 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                ) : (
+                  <span className="text-2xl sm:text-3xl md:text-4xl font-semibold tabular-nums text-zinc-900 dark:text-white">
+                    {formatNumber(overviewMetrics.aggregated.totalValidators)}
+                  </span>
+                )}
+                <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 ml-1 sm:ml-2">
+                  validators
+                </span>
+              </div>
+            </div>
+
+            {/* Time range filter - minimal design */}
+            <div className="hidden sm:flex items-center gap-1 self-center">
+              {(["day", "week", "month"] as TimeRangeKey[]).map((range) => (
+                <button
+                  key={range}
+                  onClick={() => setTimeRange(range)}
+                  className={`relative px-3 py-1 text-sm font-medium cursor-pointer transition-colors ${
+                    timeRange === range
+                      ? "text-zinc-900 dark:text-white"
+                      : "text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-400"
+                  }`}
+                >
+                  {TIME_RANGE_CONFIG[range].shortLabel}
+                  {timeRange === range && (
+                    <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-0.5 bg-red-500 rounded-full" />
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Mobile time range filter */}
+          <div className="flex sm:hidden items-center justify-end pt-3">
+            <div className="flex items-center gap-1">
+              {(["day", "week", "month"] as TimeRangeKey[]).map((range) => (
+                <button
+                  key={range}
+                  onClick={() => setTimeRange(range)}
+                  className={`relative px-2.5 py-1 text-xs font-medium cursor-pointer transition-colors ${
+                    timeRange === range
+                      ? "text-zinc-900 dark:text-white"
+                      : "text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-400"
+                  }`}
+                >
+                  {TIME_RANGE_CONFIG[range].shortLabel}
+                  {timeRange === range && (
+                    <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-3 h-0.5 bg-red-500 rounded-full" />
+                  )}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -762,9 +1061,13 @@ export default function AvalancheMetrics() {
               <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
                 {timeRangeLabel} ICM:
               </span>
-              <span className="text-xs sm:text-sm font-medium text-zinc-900 dark:text-white">
-                {formatNumber(totalIcm)}
-              </span>
+              {tableLoading ? (
+                <div className="h-4 sm:h-5 w-12 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+              ) : (
+                <span className="text-xs sm:text-sm font-medium text-zinc-900 dark:text-white">
+                  {formatNumber(totalIcm)}
+                </span>
+              )}
             </div>
             <div className="hidden sm:block w-px h-4 bg-zinc-300 dark:bg-zinc-700" />
             <div className="flex items-center gap-2">
@@ -777,7 +1080,9 @@ export default function AvalancheMetrics() {
                   fill="currentColor"
                 />
                 <span className="text-xs sm:text-sm font-medium text-zinc-900 dark:text-white">
-                  8,310
+                  {avaxSupplyData
+                    ? Math.round(parseFloat(avaxSupplyData.l1ValidatorFees)).toLocaleString()
+                    : "—"}
                 </span>
               </div>
             </div>
@@ -792,9 +1097,22 @@ export default function AvalancheMetrics() {
                   fill="currentColor"
                 />
                 <span className="text-xs sm:text-sm font-medium text-zinc-900 dark:text-white">
-                  {formatNumber(4930978)}
+                  {avaxSupplyData
+                    ? Math.round(
+                        parseFloat(avaxSupplyData.totalPBurned) +
+                        parseFloat(avaxSupplyData.totalCBurned) +
+                        parseFloat(avaxSupplyData.totalXBurned)
+                      ).toLocaleString()
+                    : "—"}
                 </span>
               </div>
+            </div>
+
+            {/* Disclosure */}
+            <div className="w-full sm:w-auto sm:ml-auto">
+              <span className="text-[10px] sm:text-xs text-zinc-400 dark:text-zinc-500">
+                * Metrics are {timeRangeLabel.toLowerCase()}
+              </span>
             </div>
           </div>
         </div>
@@ -821,32 +1139,49 @@ export default function AvalancheMetrics() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
         {/* Table header */}
         <div className="mb-4">
-          {/* Title row with time range selector */}
-          <div className="flex items-center justify-between gap-4 mb-4">
+          {/* Title row with view selector */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
             <div className="flex items-baseline gap-2 sm:gap-3">
               <h2 className="text-lg sm:text-xl font-semibold text-zinc-900 dark:text-white">
                 All Chains
               </h2>
               <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
-                {sortedData.length} tracked
+                {tableView === "summary" ? sortedData.length : sortedValidatorData.length} tracked
               </span>
             </div>
 
-            {/* Time range filter */}
-            <div className="flex items-center rounded-full border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800 p-1">
-              {(["day", "week", "month"] as TimeRangeKey[]).map((range) => (
-                <button
-                  key={range}
-                  onClick={() => setTimeRange(range)}
-                  className={`px-3 sm:px-4 py-1.5 text-xs sm:text-sm font-medium rounded-full transition-all ${
-                    timeRange === range
-                      ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white shadow-sm"
-                      : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300"
-                  }`}
-                >
-                  {TIME_RANGE_CONFIG[range].shortLabel}
-                </button>
-              ))}
+            {/* View selector tabs */}
+            <div className="flex items-center border border-zinc-200 dark:border-zinc-700 rounded-lg overflow-hidden">
+              <button
+                onClick={() => {
+                  setTableView("summary");
+                  setVisibleCount(25);
+                  setSortField("activeAddresses");
+                }}
+                className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors ${
+                  tableView === "summary"
+                    ? "bg-zinc-900 dark:bg-white text-white dark:text-zinc-900"
+                    : "bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800"
+                }`}
+              >
+                <LayoutGrid className="h-4 w-4" />
+                <span>Summary</span>
+              </button>
+              <button
+                onClick={() => {
+                  setTableView("validators");
+                  setVisibleCount(25);
+                  setSortField("validatorCount");
+                }}
+                className={`flex items-center gap-2 px-4 py-2 text-sm font-medium border-l border-zinc-200 dark:border-zinc-700 transition-colors ${
+                  tableView === "validators"
+                    ? "bg-zinc-900 dark:bg-white text-white dark:text-zinc-900"
+                    : "bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800"
+                }`}
+              >
+                <Shield className="h-4 w-4" />
+                <span>Validators</span>
+              </button>
             </div>
           </div>
 
@@ -940,207 +1275,530 @@ export default function AvalancheMetrics() {
               )}
             </div>
 
-            {/* Search bar */}
-            <div className="relative w-full sm:w-auto sm:flex-shrink-0 sm:w-64">
-              <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400 dark:text-neutral-500 pointer-events-none z-10" />
-              <Input
-                placeholder="Search chains..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-10 rounded-lg border-[#e1e2ea] dark:border-neutral-700 bg-[#fcfcfd] dark:bg-neutral-800 transition-colors focus-visible:border-black dark:focus-visible:border-white focus-visible:ring-0 text-sm sm:text-base text-black dark:text-white placeholder:text-neutral-500 dark:placeholder:text-neutral-400"
-              />
-              {searchTerm && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSearchTerm("");
-                    setVisibleCount(25);
-                  }}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6 flex items-center justify-center text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-200 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-full z-20 transition-colors"
-                  aria-label="Clear search"
-                >
-                  <X className="h-4 w-4" />
-                </button>
+            {/* Search bar and version selector */}
+            <div className="flex items-center gap-3">
+              {/* Version Selector - only show in validators view */}
+              {tableView === "validators" && availableVersions.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <label
+                    htmlFor="version-select"
+                    className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 whitespace-nowrap hidden sm:inline"
+                  >
+                    Target:
+                  </label>
+                  <select
+                    id="version-select"
+                    value={minVersion}
+                    onChange={(e) => setMinVersion(e.target.value)}
+                    className="px-2 sm:px-3 py-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg text-xs sm:text-sm text-zinc-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 transition-colors"
+                  >
+                    {availableVersions.map((version) => (
+                      <option key={version} value={version}>
+                        {version}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               )}
+
+              <div className="relative w-full sm:w-auto sm:flex-shrink-0 sm:w-64">
+                <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400 dark:text-neutral-500 pointer-events-none z-10" />
+                <Input
+                  placeholder="Search chains..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-10 rounded-lg border-[#e1e2ea] dark:border-neutral-700 bg-[#fcfcfd] dark:bg-neutral-800 transition-colors focus-visible:border-black dark:focus-visible:border-white focus-visible:ring-0 text-sm sm:text-base text-black dark:text-white placeholder:text-neutral-500 dark:placeholder:text-neutral-400"
+                />
+                {searchTerm && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchTerm("");
+                      setVisibleCount(25);
+                    }}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6 flex items-center justify-center text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-200 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-full z-20 transition-colors"
+                    aria-label="Clear search"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
             </div>
           </div>
+
         </div>
 
-        {/* Table */}
-        <div className="overflow-hidden border-0 bg-white dark:bg-zinc-950">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50">
-                <tr>
-                  <th className="px-4 sm:px-6 py-4 text-left">
-                    <SortButton field="chainName" align="left">
-                      <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
-                        Name
-                      </span>
-                    </SortButton>
-                  </th>
-                  <th className="px-4 sm:px-6 py-4 text-right">
-                    <SortButton field="activeAddresses" align="right">
-                      <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
-                        {timeRangeLabel} Addresses
-                      </span>
-                    </SortButton>
-                  </th>
-                  <th className="px-4 sm:px-6 py-4 text-right">
-                    <SortButton field="txCount" align="right">
-                      <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
-                        {timeRangeLabel} Txns
-                      </span>
-                    </SortButton>
-                  </th>
-                  <th className="px-4 sm:px-6 py-4 text-right">
-                    <SortButton field="icmMessages" align="right">
-                      <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
-                        {timeRangeLabel} ICM
-                      </span>
-                    </SortButton>
-                  </th>
-                  <th className="px-4 sm:px-6 py-4 text-right">
-                    <SortButton field="validatorCount" align="right">
-                      <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
-                        Validators
-                      </span>
-                    </SortButton>
-                  </th>
-                  <th className="px-4 sm:px-6 py-4 text-right">
-                    <SortButton field="tps" align="right">
-                      <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
-                        Avg TPS
-                      </span>
-                    </SortButton>
-                  </th>
-                  <th className="px-4 sm:px-6 py-4 text-left">
-                    <SortButton field="category" align="left">
-                      <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
-                        Category
-                      </span>
-                    </SortButton>
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
-                {tableLoading ? (
-                  <TableSkeleton />
-                ) : (
-                  visibleData.map((chain) => {
-                    const chainSlug = getChainSlug(
-                      chain.chainId,
-                      chain.chainName
-                    );
-                    return (
-                      <tr
-                        key={chain.chainId}
-                        className={`group transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900/50 ${
-                          chainSlug ? "cursor-pointer" : ""
-                        }`}
-                        onClick={() =>
-                          chainSlug &&
-                          (window.location.href = `/stats/l1/${chainSlug}`)
-                        }
-                      >
-                        <td className="px-4 sm:px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800 flex-shrink-0 overflow-hidden">
-                              {chain.chainLogoURI ? (
-                                <Image
-                                  src={
-                                    getThemedLogoUrl(chain.chainLogoURI) ||
-                                    "/placeholder.svg"
-                                  }
-                                  alt={chain.chainName}
-                                  width={40}
-                                  height={40}
-                                  className="h-full w-full rounded-full object-cover"
-                                  onError={(e) => {
-                                    e.currentTarget.style.display = "none";
-                                  }}
-                                />
-                              ) : (
-                                <span className="text-base font-semibold text-zinc-600 dark:text-zinc-300">
-                                  {chain.chainName.charAt(0)}
-                                </span>
-                              )}
-                            </div>
-                            <span className="font-medium text-zinc-900 dark:text-zinc-100">
-                              {chain.chainName}
-                            </span>
-                            {chainSlug && (
-                              <ArrowUpRight className="h-4 w-4 text-zinc-400 opacity-0 transition-opacity group-hover:opacity-100" />
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-4 sm:px-6 py-4 text-right font-mono text-sm tabular-nums text-zinc-900 dark:text-zinc-100">
-                          {typeof chain.activeAddresses === "number"
-                            ? formatFullNumber(chain.activeAddresses)
-                            : "N/A"}
-                        </td>
-                        <td className="px-4 sm:px-6 py-4 text-right font-mono text-sm tabular-nums text-zinc-900 dark:text-zinc-100">
-                          {typeof chain.txCount === "number"
-                            ? formatFullNumber(Math.round(chain.txCount))
-                            : "N/A"}
-                        </td>
-                        <td className="px-4 sm:px-6 py-4 text-right font-mono text-sm tabular-nums text-zinc-900 dark:text-zinc-100">
-                          {icmFailedChainIds.includes(chain.chainId) ? (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <span className="text-amber-500 cursor-pointer inline-flex justify-end">
-                                  <Info className="w-4 h-4" />
-                                </span>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Data unavailable</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          ) : typeof chain.icmMessages === "number" ? (
-                            formatFullNumber(Math.round(chain.icmMessages))
-                          ) : (
-                            "N/A"
-                          )}
-                        </td>
-                        <td className="px-4 sm:px-6 py-4 text-right font-mono text-sm tabular-nums text-zinc-900 dark:text-zinc-100">
-                          {typeof chain.validatorCount === "number"
-                            ? formatFullNumber(chain.validatorCount)
-                            : chain.validatorCount}
-                        </td>
-                        <td className="px-4 sm:px-6 py-4 text-right font-mono text-sm tabular-nums text-zinc-900 dark:text-zinc-100">
-                          {getChainTPS(chain)}
-                        </td>
-                        <td className="px-4 sm:px-6 py-4">
-                          <span
-                            className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${getCategoryColor(
-                              getChainCategory(chain.chainId, chain.chainName)
-                            )}`}
-                          >
-                            {getChainCategory(chain.chainId, chain.chainName)}
+        {/* Summary Table */}
+        {tableView === "summary" && (
+          <>
+            <div className="overflow-hidden border-0 bg-white dark:bg-zinc-950">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50">
+                    <tr>
+                      <th className="px-4 sm:px-6 py-4 text-left whitespace-nowrap">
+                        <SortButton field="chainName" align="left">
+                          <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
+                            Name
                           </span>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+                        </SortButton>
+                      </th>
+                      <th className="px-4 sm:px-6 py-4 text-right whitespace-nowrap">
+                        <SortButton field="activeAddresses" align="right">
+                          <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
+                            {timeRangeLabel} Addresses
+                          </span>
+                        </SortButton>
+                      </th>
+                      <th className="px-4 sm:px-6 py-4 text-right whitespace-nowrap">
+                        <SortButton field="txCount" align="right">
+                          <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
+                            {timeRangeLabel} Txns
+                          </span>
+                        </SortButton>
+                      </th>
+                      <th className="px-4 sm:px-6 py-4 text-right whitespace-nowrap">
+                        <SortButton field="icmMessages" align="right">
+                          <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
+                            {timeRangeLabel} ICM
+                          </span>
+                        </SortButton>
+                      </th>
+                      <th className="px-4 sm:px-6 py-4 text-right whitespace-nowrap">
+                        <SortButton field="validatorCount" align="right">
+                          <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
+                            Validators
+                          </span>
+                        </SortButton>
+                      </th>
+                      <th className="px-4 sm:px-6 py-4 text-right whitespace-nowrap">
+                        <SortButton field="tps" align="right">
+                          <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
+                            Avg TPS
+                          </span>
+                        </SortButton>
+                      </th>
+                      <th className="px-4 sm:px-6 py-4 text-left whitespace-nowrap">
+                        <SortButton field="category" align="left">
+                          <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
+                            Category
+                          </span>
+                        </SortButton>
+                      </th>
+                      <th className="px-4 sm:px-6 py-4 text-center whitespace-nowrap">
+                        <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
+                          Actions
+                        </span>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
+                    {tableLoading ? (
+                      <TableSkeleton />
+                    ) : (
+                      visibleData.map((chain) => {
+                        const chainSlug = getChainSlug(
+                          chain.chainId,
+                          chain.chainName
+                        );
+                        const hasRpcUrl = !!getChainRpcUrl(
+                          chain.chainId,
+                          chain.chainName
+                        );
+                        return (
+                          <tr
+                            key={chain.chainId}
+                            onClick={() => chainSlug && router.push(`/stats/l1/${chainSlug}`)}
+                            className={`group transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900/50 ${chainSlug ? "cursor-pointer" : ""}`}
+                          >
+                            <td className="px-4 sm:px-6 py-4">
+                              <div className="flex items-center gap-3">
+                                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800 flex-shrink-0 overflow-hidden">
+                                  {chain.chainLogoURI ? (
+                                    <Image
+                                      src={
+                                        getThemedLogoUrl(chain.chainLogoURI) ||
+                                        "/placeholder.svg"
+                                      }
+                                      alt={chain.chainName}
+                                      width={40}
+                                      height={40}
+                                      className="h-full w-full rounded-full object-cover"
+                                      onError={(e) => {
+                                        e.currentTarget.style.display = "none";
+                                      }}
+                                    />
+                                  ) : (
+                                    <span className="text-base font-semibold text-zinc-600 dark:text-zinc-300">
+                                      {chain.chainName.charAt(0)}
+                                    </span>
+                                  )}
+                                </div>
+                                <span className="font-medium text-zinc-900 dark:text-zinc-100">
+                                  {chain.chainName}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="px-4 sm:px-6 py-4 text-right font-mono text-sm tabular-nums text-zinc-900 dark:text-zinc-100">
+                              {typeof chain.activeAddresses === "number"
+                                ? formatFullNumber(chain.activeAddresses)
+                                : "N/A"}
+                            </td>
+                            <td className="px-4 sm:px-6 py-4 text-right font-mono text-sm tabular-nums text-zinc-900 dark:text-zinc-100">
+                              {typeof chain.txCount === "number"
+                                ? formatFullNumber(Math.round(chain.txCount))
+                                : "N/A"}
+                            </td>
+                            <td className="px-4 sm:px-6 py-4 text-right font-mono text-sm tabular-nums text-zinc-900 dark:text-zinc-100">
+                              {icmFailedChainIds.includes(chain.chainId) ? (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className="text-amber-500 cursor-pointer inline-flex justify-end">
+                                      <Info className="w-4 h-4" />
+                                    </span>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Data unavailable</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              ) : typeof chain.icmMessages === "number" ? (
+                                formatFullNumber(Math.round(chain.icmMessages))
+                              ) : (
+                                "N/A"
+                              )}
+                            </td>
+                            <td className="px-4 sm:px-6 py-4 text-right font-mono text-sm tabular-nums text-zinc-900 dark:text-zinc-100">
+                              {typeof chain.validatorCount === "number"
+                                ? formatFullNumber(chain.validatorCount)
+                                : chain.validatorCount}
+                            </td>
+                            <td className="px-4 sm:px-6 py-4 text-right font-mono text-sm tabular-nums text-zinc-900 dark:text-zinc-100">
+                              {getChainTPS(chain)}
+                            </td>
+                            <td className="px-4 sm:px-6 py-4">
+                              <span
+                                className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${getCategoryColor(
+                                  getChainCategory(chain.chainId, chain.chainName)
+                                )}`}
+                              >
+                                {getChainCategory(chain.chainId, chain.chainName)}
+                              </span>
+                            </td>
+                            <td className="px-4 sm:px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                              <div className="flex items-center justify-center gap-1">
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <button
+                                      onClick={() =>
+                                        chainSlug &&
+                                        router.push(`/stats/l1/${chainSlug}`)
+                                      }
+                                      disabled={!chainSlug}
+                                      className="p-2 rounded-lg text-zinc-500 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-zinc-500"
+                                    >
+                                      <ChartArea className="h-4 w-4" />
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>View Stats</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <button
+                                      onClick={() =>
+                                        chainSlug &&
+                                        router.push(`/stats/validators/${chainSlug}`)
+                                      }
+                                      disabled={!chainSlug}
+                                      className="p-2 rounded-lg text-zinc-500 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-zinc-500"
+                                    >
+                                      <Users className="h-4 w-4" />
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>View Validators</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <button
+                                      onClick={() =>
+                                        chainSlug &&
+                                        hasRpcUrl &&
+                                        router.push(`/explorer/${chainSlug}`)
+                                      }
+                                      disabled={!chainSlug || !hasRpcUrl}
+                                      className="p-2 rounded-lg text-zinc-500 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-zinc-500"
+                                    >
+                                      <Compass className="h-4 w-4" />
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>View Explorer</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
 
-        {hasMoreData && !tableLoading && (
-          <div className="flex justify-center mt-4 sm:mt-6 pb-14">
-            <Button
-              onClick={handleLoadMore}
-              variant="outline"
-              size="lg"
-              className="px-4 sm:px-8 py-2 sm:py-3 text-sm sm:text-base border-[#e1e2ea] dark:border-neutral-700 bg-[#fcfcfd] dark:bg-neutral-900 text-black dark:text-white transition-colors hover:border-black dark:hover:border-white hover:bg-[#fcfcfd] dark:hover:bg-neutral-900"
-            >
-              <span className="hidden sm:inline">Load More Chains </span>
-              <span className="sm:hidden">Load More </span>(
-              {sortedData.length - visibleCount} remaining)
-            </Button>
-          </div>
+            {hasMoreData && !tableLoading && (
+              <div className="flex justify-center mt-4 sm:mt-6 pb-14">
+                <Button
+                  onClick={handleLoadMore}
+                  variant="outline"
+                  size="lg"
+                  className="px-4 sm:px-8 py-2 sm:py-3 text-sm sm:text-base border-[#e1e2ea] dark:border-neutral-700 bg-[#fcfcfd] dark:bg-neutral-900 text-black dark:text-white transition-colors hover:border-black dark:hover:border-white hover:bg-[#fcfcfd] dark:hover:bg-neutral-900"
+                >
+                  <span className="hidden sm:inline">Load More Chains </span>
+                  <span className="sm:hidden">Load More </span>(
+                  {sortedData.length - visibleCount} remaining)
+                </Button>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Validators Table */}
+        {tableView === "validators" && (
+          <>
+            <div className="overflow-hidden border-0 bg-white dark:bg-zinc-950">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50">
+                    <tr>
+                      <th className="px-4 sm:px-6 py-4 text-left whitespace-nowrap">
+                        <SortButton field="chainName" align="left">
+                          <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
+                            Name
+                          </span>
+                        </SortButton>
+                      </th>
+                      <th className="px-4 sm:px-6 py-4 text-right whitespace-nowrap">
+                        <SortButton field="validatorCount" align="right">
+                          <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
+                            Validators
+                          </span>
+                        </SortButton>
+                      </th>
+                      <th className="px-4 sm:px-6 py-4 text-right whitespace-nowrap">
+                        <SortButton field="nodesPercent" align="right">
+                          <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
+                            Nodes %
+                          </span>
+                        </SortButton>
+                      </th>
+                      <th className="px-4 sm:px-6 py-4 text-right whitespace-nowrap">
+                        <SortButton field="stakePercent" align="right">
+                          <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
+                            Stake %
+                          </span>
+                        </SortButton>
+                      </th>
+                      <th className="px-4 sm:px-6 py-4 text-left whitespace-nowrap">
+                        <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
+                          Version Breakdown
+                        </span>
+                      </th>
+                      <th className="px-4 sm:px-6 py-4 text-center whitespace-nowrap">
+                        <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
+                          Actions
+                        </span>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
+                    {validatorStatsLoading ? (
+                      <TableSkeleton />
+                    ) : (
+                      visibleValidatorData.map((subnet) => {
+                        const stats = calculateValidatorStats(subnet);
+                        const slug = getSlugForSubnetId(subnet.id);
+                        const isPrimaryNetwork = subnet.id === "11111111111111111111111111111111LpoYY";
+                        const canNavigate = isPrimaryNetwork || (subnet.isL1 && slug);
+                        return (
+                          <tr
+                            key={subnet.id}
+                            onClick={() => {
+                              if (isPrimaryNetwork) {
+                                router.push("/stats/validators/c-chain");
+                              } else if (slug && subnet.isL1) {
+                                router.push(`/stats/validators/${slug}`);
+                              }
+                            }}
+                            className={`group transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900/50 ${canNavigate ? "cursor-pointer" : ""}`}
+                          >
+                            <td className="px-4 sm:px-6 py-4">
+                              <div className="flex items-center gap-3">
+                                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800 flex-shrink-0 overflow-hidden">
+                                  {subnet.chainLogoURI ? (
+                                    <Image
+                                      src={
+                                        getThemedLogoUrl(subnet.chainLogoURI) ||
+                                        "/placeholder.svg"
+                                      }
+                                      alt={subnet.name}
+                                      width={40}
+                                      height={40}
+                                      className="h-full w-full rounded-full object-cover"
+                                      onError={(e) => {
+                                        e.currentTarget.style.display = "none";
+                                      }}
+                                    />
+                                  ) : (
+                                    <span className="text-base font-semibold text-zinc-600 dark:text-zinc-300">
+                                      {subnet.name.charAt(0)}
+                                    </span>
+                                  )}
+                                </div>
+                                <span className="font-medium text-zinc-900 dark:text-zinc-100">
+                                  {subnet.name}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="px-4 sm:px-6 py-4 text-right">
+                              <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                                {formatNumber(stats.totalNodes)}
+                              </span>
+                            </td>
+                            <td className="px-4 sm:px-6 py-4 text-right">
+                              <span
+                                className={`text-sm font-medium ${getHealthColor(
+                                  stats.nodesPercentAbove
+                                )}`}
+                              >
+                                {stats.nodesPercentAbove.toFixed(1)}%
+                              </span>
+                            </td>
+                            <td className="px-4 sm:px-6 py-4 text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                <span
+                                  className={`text-sm font-medium ${getHealthColor(
+                                    stats.stakePercentAbove
+                                  )}`}
+                                >
+                                  {stats.stakePercentAbove.toFixed(1)}%
+                                </span>
+                                {stats.stakePercentAbove < 80 && (
+                                  <AlertTriangle className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-4 sm:px-6 py-4">
+                              <div className="space-y-1.5 min-w-[200px]">
+                                <VersionBarChart
+                                  versionBreakdown={{
+                                    byClientVersion: subnet.byClientVersion,
+                                  }}
+                                  minVersion={minVersion}
+                                  totalNodes={stats.totalNodes}
+                                />
+                                <VersionLabels
+                                  versionBreakdown={{
+                                    byClientVersion: subnet.byClientVersion,
+                                  }}
+                                  minVersion={minVersion}
+                                  totalNodes={stats.totalNodes}
+                                  showPercentage={false}
+                                  size="sm"
+                                />
+                              </div>
+                            </td>
+                            <td className="px-4 sm:px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                              <div className="flex items-center justify-center gap-1">
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <button
+                                      onClick={() => {
+                                        if (isPrimaryNetwork) {
+                                          router.push("/stats/l1/c-chain");
+                                        } else if (slug) {
+                                          router.push(`/stats/l1/${slug}`);
+                                        }
+                                      }}
+                                      disabled={!isPrimaryNetwork && !slug}
+                                      className="p-2 rounded-lg text-zinc-500 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-zinc-500"
+                                    >
+                                      <ChartArea className="h-4 w-4" />
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>View Stats</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <button
+                                      onClick={() => {
+                                        if (isPrimaryNetwork) {
+                                          router.push("/stats/validators/c-chain");
+                                        } else if (slug && subnet.isL1) {
+                                          router.push(`/stats/validators/${slug}`);
+                                        }
+                                      }}
+                                      disabled={!canNavigate}
+                                      className="p-2 rounded-lg text-zinc-500 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-zinc-500"
+                                    >
+                                      <Users className="h-4 w-4" />
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>View Validators</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <button
+                                      onClick={() => {
+                                        if (isPrimaryNetwork) {
+                                          router.push("/explorer/c-chain");
+                                        } else if (slug) {
+                                          router.push(`/explorer/${slug}`);
+                                        }
+                                      }}
+                                      disabled={!isPrimaryNetwork && !slug}
+                                      className="p-2 rounded-lg text-zinc-500 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-zinc-500"
+                                    >
+                                      <Compass className="h-4 w-4" />
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>View Explorer</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {hasMoreValidatorData && !validatorStatsLoading && (
+              <div className="flex justify-center mt-4 sm:mt-6 pb-14">
+                <Button
+                  onClick={handleLoadMore}
+                  variant="outline"
+                  size="lg"
+                  className="px-4 sm:px-8 py-2 sm:py-3 text-sm sm:text-base border-[#e1e2ea] dark:border-neutral-700 bg-[#fcfcfd] dark:bg-neutral-900 text-black dark:text-white transition-colors hover:border-black dark:hover:border-white hover:bg-[#fcfcfd] dark:hover:bg-neutral-900"
+                >
+                  <span className="hidden sm:inline">Load More Chains </span>
+                  <span className="sm:hidden">Load More </span>(
+                  {sortedValidatorData.length - visibleCount} remaining)
+                </Button>
+              </div>
+            )}
+          </>
         )}
       </div>
 

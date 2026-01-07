@@ -40,7 +40,7 @@ export const menuSections: NavSection[] = [
     href: '/docs/primary-network',
     items: [
       { text: 'Primary Network', href: '/docs/primary-network' },
-      { text: 'Node RPCs', href: '/docs/rpcs/c-chain' },
+      { text: 'Nodes & Validators', href: '/docs/nodes' },
       { text: 'Data APIs', href: '/docs/api-reference/data-api' },
       { text: 'ACPs', href: '/docs/acps' },
       { text: 'Developer Tools', href: '/docs/tooling' },
@@ -92,7 +92,7 @@ export const menuSections: NavSection[] = [
       { text: 'Playground', href: '/stats/playground' },
       { text: 'Avalanche L1s', href: '/stats/overview' },
       { text: 'C-Chain', href: '/stats/l1/c-chain' },
-      { text: 'Primary Network Validators', href: '/stats/validators' },
+      { text: 'Validators', href: '/stats/validators' },
     ],
   },
   {
