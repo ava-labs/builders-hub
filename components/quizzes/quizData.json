@@ -1596,7 +1596,7 @@
         1
       ],
       "hint": "This parameter defines how frequently blocks should be produced.",
-      "explanation": "The `targetBlockRate` specifies the target rate of block production in seconds. For example, a target of 2 aims to produce a block every 2 seconds.",
+      "explanation": "The `targetBlockRate` specifies the target rate of block production in seconds. For example, a target of 1 aims to produce a block every 1 second. C-Chain uses a target of 1 second.",
       "chapter": "Transaction Fees"
     },
     "212": {
@@ -2886,7 +2886,7 @@
         1
       ],
       "hint": "Think about what HTTP status code x402 activates and how it integrates with web infrastructure.",
-      "explanation": "x402 activates the long-reserved HTTP 402 'Payment Required' status code, making payments a native part of internet communication. By combining HTTP with blockchain settlement, x402 enables instant (~2 seconds), permissionless payments without requiring accounts, KYC, or API keys. This is fundamentally different from creating a new cryptocurrency or improving existing card processing.",
+      "explanation": "x402 activates the long-reserved HTTP 402 'Payment Required' status code, making payments a native part of internet communication. By combining HTTP with blockchain settlement, x402 enables instant (~1-2 seconds), permissionless payments without requiring accounts, KYC, or API keys. This is fundamentally different from creating a new cryptocurrency or improving existing card processing.",
       "chapter": "Introduction to x402"
     },
     "5002": {
