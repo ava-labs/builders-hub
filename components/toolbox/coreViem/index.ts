@@ -17,6 +17,7 @@ import { RegisterL1ValidatorParams } from './methods/registerL1Validator'
 import { setL1ValidatorWeight } from './methods/setL1ValidatorWeight'
 import { SetL1ValidatorWeightParams } from './methods/setL1ValidatorWeight'
 import { increaseL1ValidatorBalance, IncreaseL1ValidatorBalanceParams } from './methods/increaseL1ValidatorBalance'
+import { disableL1Validator, DisableL1ValidatorParams } from './methods/disableL1Validator'
 import { extractL1ValidatorWeightMessage, ExtractL1ValidatorWeightMessageParams, ExtractL1ValidatorWeightMessageResponse } from './methods/extractL1ValidatorWeightMessage'
 import { extractRegisterL1ValidatorMessage, ExtractRegisterL1ValidatorMessageParams, ExtractRegisterL1ValidatorMessageResponse } from './methods/extractRegisterL1ValidatorMessage'
 import { ExtractWarpMessageFromTxResponse } from './methods/extractWarpMessageFromPChainTx'
@@ -40,6 +41,7 @@ export type CoreWalletClientType = Omit<AvalancheWalletClient, 'addChain'> & {
     registerL1Validator: (args: RegisterL1ValidatorParams) => Promise<string>;
     setL1ValidatorWeight: (args: SetL1ValidatorWeightParams) => Promise<string>;
     increaseL1ValidatorBalance: (args: IncreaseL1ValidatorBalanceParams) => Promise<string>;
+    disableL1Validator: (args: DisableL1ValidatorParams) => Promise<string>;
     extractWarpMessageFromPChainTx: (args: ExtractWarpMessageFromTxParams) => Promise<ExtractWarpMessageFromTxResponse>;
     extractL1ValidatorWeightMessage: (args: ExtractL1ValidatorWeightMessageParams) => Promise<ExtractL1ValidatorWeightMessageResponse>;
     extractRegisterL1ValidatorMessage: (args: ExtractRegisterL1ValidatorMessageParams) => Promise<ExtractRegisterL1ValidatorMessageResponse>;
@@ -92,6 +94,7 @@ export async function createCoreWalletClient(_account: `0x${string}`): Promise<C
         registerL1Validator: (args: RegisterL1ValidatorParams) => registerL1Validator(baseClient, args),
         setL1ValidatorWeight: (args: SetL1ValidatorWeightParams) => setL1ValidatorWeight(baseClient, args),
         increaseL1ValidatorBalance: (args: IncreaseL1ValidatorBalanceParams) => increaseL1ValidatorBalance(baseClient, args),
+        disableL1Validator: (args: DisableL1ValidatorParams) => disableL1Validator(baseClient, args),
         extractWarpMessageFromPChainTx: (args: ExtractWarpMessageFromTxParams) => extractWarpMessageFromPChainTx(baseClient, args),
         extractL1ValidatorWeightMessage: (args: ExtractL1ValidatorWeightMessageParams) => extractL1ValidatorWeightMessage(baseClient, args),
         extractRegisterL1ValidatorMessage: (args: ExtractRegisterL1ValidatorMessageParams) => extractRegisterL1ValidatorMessage(baseClient, args),
