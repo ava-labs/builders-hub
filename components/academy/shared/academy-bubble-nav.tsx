@@ -10,28 +10,54 @@ const AVALANCHE_LOGO_SRC =
 const SOLIDITY_LOGO_SRC =
     "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/solidity_logo.svg";
 
-// Avalanche Logo (hosted SVG)
-function AvalancheLogo({ className }: { className?: string }) {
+function MaskedSvgIcon({
+    src,
+    className,
+    alt,
+}: {
+    src: string;
+    className?: string;
+    alt: string;
+}) {
+    // Uses CSS mask so the icon color follows `currentColor` (matches Lucide icons),
+    // while still loading the SVG from Vercel storage.
     return (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-            src={AVALANCHE_LOGO_SRC}
-            alt="Avalanche"
-            className={className}
-            draggable={false}
+        <span
+            role="img"
+            aria-label={alt}
+            className={cn("inline-block bg-current", className)}
+            style={{
+                WebkitMaskImage: `url(${src})`,
+                maskImage: `url(${src})`,
+                WebkitMaskRepeat: "no-repeat",
+                maskRepeat: "no-repeat",
+                WebkitMaskSize: "contain",
+                maskSize: "contain",
+                WebkitMaskPosition: "center",
+                maskPosition: "center",
+            }}
         />
     );
 }
 
-// Solidity Logo (hosted SVG)
+// Avalanche Logo (hosted SVG, color via currentColor)
+function AvalancheLogo({ className }: { className?: string }) {
+    return (
+        <MaskedSvgIcon
+            src={AVALANCHE_LOGO_SRC}
+            alt="Avalanche"
+            className={className}
+        />
+    );
+}
+
+// Solidity Logo (hosted SVG, color via currentColor)
 function SolidityLogo({ className }: { className?: string }) {
     return (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
+        <MaskedSvgIcon
             src={SOLIDITY_LOGO_SRC}
             alt="Solidity"
             className={className}
-            draggable={false}
         />
     );
 }

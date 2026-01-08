@@ -102,33 +102,21 @@ export function AcademyLearningPath({ pathType }: AcademyLearningPathProps) {
     const descriptionSegments: TextSegment[] = useMemo(() => {
         if (pathType === 'avalanche') {
             return [
-                { text: '<', isCode: true },
                 { text: 'Avalanche L1', isHighlight: true },
-                { text: '> ', isCode: true },
+                { text: ' Learning Tree\n', isHighlight: true },
                 { text: 'Deploy L1s, bridge tokens, and build cross-chain apps' },
-                { text: ' </', isCode: true },
-                { text: 'Avalanche L1', isHighlight: true },
-                { text: '>', isCode: true },
             ];
         } else if (pathType === 'blockchain') {
             return [
-                { text: '<', isCode: true },
                 { text: 'Blockchain', isHighlight: true },
-                { text: '> ', isCode: true },
+                { text: ' Learning Tree\n', isHighlight: true },
                 { text: 'Master Solidity and deploy smart contracts' },
-                { text: ' </', isCode: true },
-                { text: 'Blockchain', isHighlight: true },
-                { text: '>', isCode: true },
             ];
         } else {
             return [
-                { text: '<', isCode: true },
                 { text: 'Entrepreneur', isHighlight: true },
-                { text: '> ', isCode: true },
+                { text: ' Learning Tree\n', isHighlight: true },
                 { text: 'Build your foundation, scale your Web3 venture' },
-                { text: ' </', isCode: true },
-                { text: 'Entrepreneur', isHighlight: true },
-                { text: '>', isCode: true },
             ];
         }
     }, [pathType]);
@@ -136,8 +124,8 @@ export function AcademyLearningPath({ pathType }: AcademyLearningPathProps) {
     return (
         <div id="learning-path-section" className="mb-20 scroll-mt-20">
             <div className="text-center mb-10">
-                {/* Description with typewriter effect in code notation */}
-                <p className="text-sm sm:text-base max-w-3xl mx-auto mb-8 px-4 sm:px-0 sm:whitespace-nowrap">
+                {/* Title + description with typewriter effect */}
+                <p className="text-sm sm:text-base max-w-3xl mx-auto mb-8 px-4 sm:px-0 whitespace-pre-line leading-snug">
                     <TypewriterText segments={descriptionSegments} speed={25} />
                 </p>
 
