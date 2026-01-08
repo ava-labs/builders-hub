@@ -100,6 +100,10 @@ export default function CChainValidatorMetrics() {
   const [validatorDetails, setValidatorDetails] = useState<Record<string, ValidatorDetails | null>>({});
   const [loadingDetails, setLoadingDetails] = useState<Set<string>>(new Set());
   const [detailsCopiedId, setDetailsCopiedId] = useState<string | null>(null);
+  const [stakingAPYData, setStakingAPYData] = useState<{
+    data: { date: string; timestamp: number; supply: number; maxAPY: number; minAPY: number }[];
+    current: { supply: number; maxAPY: number; minAPY: number };
+  } | null>(null);
 
   const fetchData = async () => {
     try {
@@ -205,6 +209,22 @@ export default function CChainValidatorMetrics() {
 
   useEffect(() => {
     fetchData();
+  }, []);
+
+  // Fetch staking APY data
+  useEffect(() => {
+    const fetchStakingAPY = async () => {
+      try {
+        const response = await fetch('/api/staking-apy');
+        if (response.ok) {
+          const data = await response.json();
+          setStakingAPYData(data);
+        }
+      } catch (err) {
+        console.error('Error fetching staking APY data:', err);
+      }
+    };
+    fetchStakingAPY();
   }, []);
 
   const formatNumber = (num: number | string): string => {
@@ -1162,6 +1182,17 @@ export default function CChainValidatorMetrics() {
               />
             )}
           </div>
+
+          {/* Historical Staking APY Chart */}
+          {stakingAPYData && stakingAPYData.data.length > 0 && (
+            <StakingAPYChartCard
+              data={stakingAPYData.data}
+              currentMaxAPY={stakingAPYData.current.maxAPY}
+              currentMinAPY={stakingAPYData.current.minAPY}
+              period={globalPeriod}
+              onPeriodChange={handlePeriodChange}
+            />
+          )}
         </section>
 
         <section className="space-y-4 sm:space-y-6">
@@ -3322,6 +3353,360 @@ function DailyRewardsChartCard({
                   >
                     <LineChart>
                       <Line type="monotone" dataKey="value" stroke={color} strokeWidth={1} dot={false} />
+                    </LineChart>
+                  </Brush>
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Historical Staking APY Chart Card
+function StakingAPYChartCard({
+  data,
+  currentMaxAPY,
+  currentMinAPY,
+  period,
+  onPeriodChange,
+}: {
+  data: { date: string; timestamp: number; supply: number; maxAPY: number; minAPY: number }[];
+  currentMaxAPY: number;
+  currentMinAPY: number;
+  period: "D" | "W" | "M" | "Q" | "Y";
+  onPeriodChange: (period: "D" | "W" | "M" | "Q" | "Y") => void;
+}) {
+  const [brushIndexes, setBrushIndexes] = useState<{
+    startIndex: number;
+    endIndex: number;
+  } | null>(null);
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+  const { resolvedTheme } = useTheme();
+
+  const handleScreenshot = async () => {
+    if (!chartContainerRef.current) return;
+    try {
+      const element = chartContainerRef.current;
+      const bgColor = resolvedTheme === "dark" ? "#0a0a0a" : "#ffffff";
+      const dataUrl = await toPng(element, {
+        quality: 1,
+        pixelRatio: 2,
+        backgroundColor: bgColor,
+        cacheBust: true,
+      });
+      const link = document.createElement("a");
+      link.download = `Staking_APY_${period}_${new Date().toISOString().split("T")[0]}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (error) {
+      console.error("Failed to capture screenshot:", error);
+    }
+  };
+
+  // Transform data to chart format
+  const chartData = useMemo(() => {
+    return data.map((point) => ({
+      day: point.date,
+      maxAPY: point.maxAPY,
+      minAPY: point.minAPY,
+    }));
+  }, [data]);
+
+  // Aggregate data by period
+  const aggregatedData = useMemo(() => {
+    if (period === "D") return chartData;
+
+    const grouped = new Map<string, { avgMaxAPY: number; avgMinAPY: number; count: number; date: string }>();
+
+    chartData.forEach((point) => {
+      const date = new Date(point.day);
+      let key: string;
+
+      if (period === "W") {
+        const weekStart = new Date(date);
+        weekStart.setDate(date.getDate() - date.getDay());
+        key = weekStart.toISOString().split("T")[0];
+      } else if (period === "M") {
+        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+      } else if (period === "Q") {
+        const quarter = Math.floor(date.getMonth() / 3) + 1;
+        key = `${date.getFullYear()}-Q${quarter}`;
+      } else {
+        key = String(date.getFullYear());
+      }
+
+      if (!grouped.has(key)) {
+        grouped.set(key, { avgMaxAPY: 0, avgMinAPY: 0, count: 0, date: key });
+      }
+
+      const group = grouped.get(key)!;
+      group.avgMaxAPY += point.maxAPY;
+      group.avgMinAPY += point.minAPY;
+      group.count++;
+    });
+
+    return Array.from(grouped.values())
+      .map((group) => ({
+        day: group.date,
+        maxAPY: group.avgMaxAPY / group.count,
+        minAPY: group.avgMinAPY / group.count,
+      }))
+      .sort((a, b) => a.day.localeCompare(b.day));
+  }, [chartData, period]);
+
+  // Initialize brush
+  useEffect(() => {
+    if (!aggregatedData || aggregatedData.length === 0) {
+      setBrushIndexes(null);
+      return;
+    }
+    setBrushIndexes({
+      startIndex: 0,
+      endIndex: aggregatedData.length - 1,
+    });
+  }, [period, aggregatedData]);
+
+  const displayData = useMemo(() => {
+    if (!brushIndexes || !aggregatedData || aggregatedData.length === 0) return [];
+    const start = Math.max(0, Math.min(brushIndexes.startIndex, aggregatedData.length - 1));
+    const end = Math.max(0, Math.min(brushIndexes.endIndex, aggregatedData.length - 1));
+    if (start > end) return [];
+    return aggregatedData.slice(start, end + 1);
+  }, [brushIndexes, aggregatedData]);
+
+  // CSV download function
+  const downloadCSV = () => {
+    if (!displayData || displayData.length === 0) return;
+
+    const headers = ["Date", "Max APY (1 Year %)", "Min APY (2 Weeks %)"];
+    const rows = displayData.map((point) => [point.day, point.maxAPY.toFixed(4), point.minAPY.toFixed(4)].join(","));
+
+    const csvContent = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `Staking_APY_${period}_${new Date().toISOString().split("T")[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const formatXAxis = (value: string) => {
+    if (period === "Q") {
+      const parts = value.split("-");
+      if (parts.length === 2) return `${parts[1]} '${parts[0].slice(-2)}`;
+      return value;
+    }
+    if (period === "Y") return value;
+    const date = new Date(value);
+    if (period === "M") {
+      return date.toLocaleDateString("en-US", { month: "short", year: "2-digit" });
+    }
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  };
+
+  const formatTooltipDate = (value: string) => {
+    if (period === "Y") return value;
+    if (period === "Q") {
+      const parts = value.split("-");
+      if (parts.length === 2) return `${parts[1]} ${parts[0]}`;
+      return value;
+    }
+    const date = new Date(value);
+    if (period === "M") {
+      return date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+    }
+    if (period === "W") {
+      const endDate = new Date(date);
+      endDate.setDate(date.getDate() + 6);
+      return `${date.toLocaleDateString("en-US", { month: "short", day: "numeric" })} - ${endDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
+    }
+    return date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
+  };
+
+  const formatBrushXAxis = (value: string) => {
+    if (period === "Q" || period === "Y") return value;
+    const date = new Date(value);
+    return date.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+  };
+
+  const maxAPYColor = "#10B981"; // Emerald for max APY (1 year)
+  const minAPYColor = "#3B82F6"; // Blue for min APY (2 weeks)
+
+  return (
+    <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700" ref={chartContainerRef}>
+      <CardContent className="p-0">
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div
+              className="rounded-full p-2 sm:p-3 flex items-center justify-center"
+              style={{ backgroundColor: `${maxAPYColor}20` }}
+            >
+              <Percent className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: maxAPYColor }} />
+            </div>
+            <div>
+              <h3 className="text-base sm:text-lg font-normal">Historical Staking APY</h3>
+              <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
+                Estimated APY based on staking duration and current supply
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-1">
+            <Select
+              value={period}
+              onValueChange={(value) => onPeriodChange(value as "D" | "W" | "M" | "Q" | "Y")}
+            >
+              <SelectTrigger className="h-7 w-auto px-2 gap-1 text-xs sm:text-sm border-0 bg-transparent hover:bg-muted focus:ring-0 shadow-none">
+                <SelectValue>
+                  {period === "D" ? "Daily" : period === "W" ? "Weekly" : period === "M" ? "Monthly" : period === "Q" ? "Quarterly" : "Yearly"}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {(["D", "W", "M", "Q", "Y"] as const).map((p) => (
+                  <SelectItem key={p} value={p}>
+                    {p === "D" ? "Daily" : p === "W" ? "Weekly" : p === "M" ? "Monthly" : p === "Q" ? "Quarterly" : "Yearly"}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <button
+              onClick={handleScreenshot}
+              className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
+              title="Download chart as image"
+            >
+              <Camera className="h-4 w-4" />
+            </button>
+            <button
+              onClick={downloadCSV}
+              className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
+              title="Download CSV"
+            >
+              <Download className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+
+        <div className="px-5 pt-6 pb-6">
+          {/* Current Values */}
+          <div className="flex items-center gap-4 sm:gap-8 mb-3 sm:mb-4 pl-2 sm:pl-4 flex-wrap">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: maxAPYColor }} />
+              <span className="text-sm text-muted-foreground">Max (1 Year):</span>
+              <span className="text-md font-mono">{currentMaxAPY.toFixed(2)}%</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: minAPYColor }} />
+              <span className="text-sm text-muted-foreground">Min (2 Weeks):</span>
+              <span className="text-md font-mono">{currentMinAPY.toFixed(2)}%</span>
+            </div>
+          </div>
+
+          {/* Chart */}
+          <ChartWatermark className="mb-6">
+            {displayData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={350}>
+                <LineChart data={displayData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-muted" />
+                  <XAxis
+                    dataKey="day"
+                    tickLine={false}
+                    axisLine={false}
+                    tickMargin={8}
+                    tickFormatter={formatXAxis}
+                    className="text-xs"
+                    tick={{ fontSize: 11 }}
+                    interval="preserveStartEnd"
+                    minTickGap={50}
+                  />
+                  <YAxis
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={(value) => `${value.toFixed(1)}%`}
+                    className="text-xs"
+                    tick={{ fontSize: 11 }}
+                    width={50}
+                    domain={['auto', 'auto']}
+                  />
+                  <Tooltip
+                    content={({ active, payload }) => {
+                      if (!active || !payload?.length) return null;
+                      const data = payload[0].payload;
+                      return (
+                        <div className="rounded-lg border bg-background p-3 shadow-lg">
+                          <p className="font-medium text-sm mb-2">{formatTooltipDate(data.day)}</p>
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: maxAPYColor }} />
+                              <span className="text-xs text-muted-foreground">Max APY (1 Year):</span>
+                              <span className="text-xs font-mono font-medium">{data.maxAPY.toFixed(2)}%</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: minAPYColor }} />
+                              <span className="text-xs text-muted-foreground">Min APY (2 Weeks):</span>
+                              <span className="text-xs font-mono font-medium">{data.minAPY.toFixed(2)}%</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="maxAPY"
+                    stroke={maxAPYColor}
+                    strokeWidth={2}
+                    dot={false}
+                    name="Max APY (1 Year)"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="minAPY"
+                    stroke={minAPYColor}
+                    strokeWidth={2}
+                    dot={false}
+                    name="Min APY (2 Weeks)"
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-[350px] flex items-center justify-center text-muted-foreground">
+                Loading chart data...
+              </div>
+            )}
+          </ChartWatermark>
+
+          {/* Brush Slider */}
+          {aggregatedData.length > 0 && brushIndexes && 
+           !isNaN(brushIndexes.startIndex) && !isNaN(brushIndexes.endIndex) &&
+           brushIndexes.startIndex >= 0 && brushIndexes.endIndex < aggregatedData.length && (
+            <div className="bg-white dark:bg-black pl-[60px]">
+              <ResponsiveContainer width="100%" height={80}>
+                <LineChart data={aggregatedData} margin={{ top: 0, right: 30, left: 0, bottom: 5 }}>
+                  <Brush
+                    dataKey="day"
+                    height={80}
+                    stroke={maxAPYColor}
+                    fill={`${maxAPYColor}20`}
+                    alwaysShowText={false}
+                    startIndex={brushIndexes.startIndex}
+                    endIndex={brushIndexes.endIndex}
+                    onChange={(e: any) => {
+                      if (e.startIndex !== undefined && e.endIndex !== undefined &&
+                          !isNaN(e.startIndex) && !isNaN(e.endIndex)) {
+                        setBrushIndexes({ startIndex: e.startIndex, endIndex: e.endIndex });
+                      }
+                    }}
+                    travellerWidth={8}
+                    tickFormatter={formatBrushXAxis}
+                  >
+                    <LineChart>
+                      <Line type="monotone" dataKey="maxAPY" stroke={maxAPYColor} strokeWidth={1} dot={false} />
                     </LineChart>
                   </Brush>
                 </LineChart>
