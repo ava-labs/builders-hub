@@ -3507,7 +3507,11 @@ function StakingAPYChartCard({
     if (period === "M") {
       return date.toLocaleDateString("en-US", { month: "short", year: "2-digit" });
     }
-    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    if (period === "W") {
+      return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" });
+    }
+    // Daily - include year
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" });
   };
 
   const formatTooltipDate = (value: string) => {
