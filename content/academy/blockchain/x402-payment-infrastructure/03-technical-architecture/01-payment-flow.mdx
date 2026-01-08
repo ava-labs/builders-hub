@@ -96,7 +96,7 @@ The `X-PAYMENT-RESPONSE` header (decoded) contains:
 }
 ```
 
-The client now has access to the resource, and the entire cycle completed in approximately 2 seconds.
+The client now has access to the resource, and the entire cycle completed in approximately 1.5-2 seconds.
 
 ## Detailed 12-Step Technical Flow
 
@@ -314,10 +314,10 @@ The entire flow completes remarkably fast:
 | 1-2: Initial request + 402 response | ~100ms | 100ms |
 | 3-4: Payment method selection | ~200ms | 300ms |
 | 5-7: Payment submission + verification | ~300ms | 600ms |
-| 8-10: Blockchain transaction + confirmation | ~1400ms | 2000ms |
-| 11-12: Settlement + content delivery | ~100ms | 2100ms |
+| 8-10: Blockchain transaction + confirmation | ~1000ms | 1600ms |
+| 11-12: Settlement + content delivery | ~100ms | 1700ms |
 
-**Total Time: ~2 seconds** from initial request to content delivery.
+**Total Time: ~1.5-2 seconds** from initial request to content delivery.
 
 ## Key Design Principles
 
@@ -349,7 +349,7 @@ For comprehensive security details, see [Security Considerations](./07-security-
 
 ## Summary
 
-The x402 payment flow transforms HTTP 402 into a functional payment request mechanism through a 4-step cycle (or 12-step detailed flow) that completes in approximately 2 seconds. By using facilitators to mediate blockchain interactions and leveraging Avalanche's fast finality, x402 makes instant, permissionless payments a reality while maintaining security and simplicity.
+The x402 payment flow transforms HTTP 402 into a functional payment request mechanism through a 4-step cycle (or 12-step detailed flow) that completes in approximately 1.5-2 seconds. By using facilitators to mediate blockchain interactions and leveraging Avalanche's fast finality, x402 makes instant, permissionless payments a reality while maintaining security and simplicity.
 
 ## Next Steps
 
