@@ -447,7 +447,7 @@ type Group1BackgroundImageAndTextProps = {
 function Group1BackgroundImageAndText({ text, additionalClassNames = "" }: Group1BackgroundImageAndTextProps) {
   return (
     <div className={clsx("content-stretch flex flex-col gap-[10px] p-[10px] relative w-full", additionalClassNames)}>
-      <div className="flex flex-col font-['Aeonik:Medium',sans-serif] justify-center leading-[0] not-italic relative shrink-0 text-[48px] text-nowrap text-white">
+      <div className="flex flex-col font-['Geist:Medium',sans-serif] font-medium justify-center leading-[0] not-italic relative shrink-0 text-[48px] text-nowrap text-white">
         <p className="leading-[72px]">{text}</p>
       </div>
     </div>
@@ -919,7 +919,7 @@ function Group1() {
                   </div>
                   <div className="basis-0 content-stretch flex flex-col grow items-center min-h-px min-w-px px-0 py-[24px] relative shrink-0">
                     <div className="content-stretch flex flex-col gap-[16px] items-center leading-[0] not-italic overflow-clip relative shrink-0 text-center text-white w-[542px]">
-                      <div className="flex flex-col font-['Aeonik_Fono:Medium',sans-serif] justify-center relative shrink-0 text-[64px] tracking-[3.2px] w-[448.834px]">
+                      <div className="flex flex-col font-['Aeonik:Medium',sans-serif] justify-center relative shrink-0 text-[64px] tracking-[3.2px] w-[448.834px]">
                         <p className="leading-none">$1,000,000</p>
                       </div>
                       <div className="flex flex-col font-['Aeonik:Medium',sans-serif] h-[27.942px] justify-center relative shrink-0 text-[24px] w-[286.47px]">
@@ -1002,7 +1002,7 @@ function Group1() {
               <div className="content-stretch flex gap-[48px] items-start p-[24px] relative w-full">
                 <div className="content-stretch flex flex-col gap-[10px] items-start overflow-clip p-[10px] relative rounded-[16px] self-stretch shrink-0 w-[478px]">
                   <div className="absolute inset-0 opacity-75 overflow-hidden pointer-events-none rounded-[16px]">
-                    <img alt="" className="absolute h-full left-[-155.13%] max-w-none top-0 w-[299.64%]" src={imgFrame27} />
+                    <img alt="" className="absolute inset-0 w-full h-full object-cover" src={imgFrame27} />
                   </div>
                   <div className="flex flex-col font-['Aeonik:Medium',sans-serif] justify-center leading-[0] not-italic relative shrink-0 text-[48px] text-white w-[306.049px]">
                     <p className="leading-none">What We're Looking For</p>
@@ -1113,7 +1113,7 @@ function Group1() {
 
 function Frame1() {
   return (
-    <div className="absolute h-[1045px] left-[2.05px] opacity-25 top-[629px] w-[1440px]">
+    <div className="absolute h-[1045px] left-1/2 -translate-x-1/2 opacity-25 top-[629px] w-full">
       <GroupBackgroundImage />
     </div>
   );
@@ -1121,7 +1121,7 @@ function Frame1() {
 
 function Frame() {
   return (
-    <div className="absolute h-[1045px] left-[2.05px] opacity-25 top-[3138.91px] w-[1440px]">
+    <div className="absolute h-[1045px] left-1/2 -translate-x-1/2 opacity-25 top-[3138.91px] w-full">
       <GroupBackgroundImage />
     </div>
   );
@@ -1129,10 +1129,12 @@ function Frame() {
 
 export default function BuildGamesPage() {
   return (
-    <div className="build-games-container relative size-full" data-name="Landing Page Example" style={{ backgroundImage: "linear-gradient(90deg, rgb(21, 45, 68) 0%, rgb(21, 45, 68) 100%), linear-gradient(90deg, rgb(18, 18, 18) 0%, rgb(18, 18, 18) 100%)" }}>
-      <Frame1 />
-      <Frame />
-      <Group1 />
+    <div className="build-games-container" style={{ backgroundImage: "linear-gradient(90deg, rgb(21, 45, 68) 0%, rgb(21, 45, 68) 100%), linear-gradient(90deg, rgb(18, 18, 18) 0%, rgb(18, 18, 18) 100%)" }}>
+      <div className="relative w-full" data-name="Landing Page Example">
+        <Frame1 />
+        <Frame />
+        <Group1 />
+      </div>
     </div>
   );
 }

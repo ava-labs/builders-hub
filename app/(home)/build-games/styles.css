@@ -1,20 +1,23 @@
+/* Import Geist from Google Fonts */
 @import url('https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
 
-/* Aeonik Font Family - Using Inter as fallback */
+/* Aeonik Font Family - Using actual Aeonik fonts */
 @font-face {
   font-family: 'Aeonik:Regular';
-  src: local('Inter'), local('sans-serif');
+  src: url('/build-games/fonts/Aeonik-Regular.ttf') format('truetype');
   font-weight: 400;
   font-style: normal;
+  font-display: swap;
 }
 
 @font-face {
   font-family: 'Aeonik:Medium';
-  src: local('Inter'), local('sans-serif');
+  src: url('/build-games/fonts/Aeonik-Medium.ttf') format('truetype');
   font-weight: 500;
   font-style: normal;
+  font-display: swap;
 }
 
 /* Aeonik Fono - Using Space Mono for the monospaced number look */
@@ -54,21 +57,156 @@
   font-style: normal;
 }
 
-/* Build Games Page Container Styles */
+/* Theme Variables - scoped to build-games-container */
 .build-games-container {
-  background: #152d44;
-  min-height: 100vh;
-  width: 100%;
+  --font-size: 16px;
+  --background: #ffffff;
+  --foreground: oklch(0.145 0 0);
+  --card: #ffffff;
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: #030213;
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.95 0.0058 264.53);
+  --secondary-foreground: #030213;
+  --muted: #ececf0;
+  --muted-foreground: #717182;
+  --accent: #e9ebef;
+  --accent-foreground: #030213;
+  --destructive: #d4183d;
+  --destructive-foreground: #ffffff;
+  --border: #3285ac;
+  --input: transparent;
+  --input-background: #f3f3f5;
+  --switch-background: #cbced4;
+  --font-weight-medium: 500;
+  --font-weight-normal: 400;
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: #030213;
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
 }
 
-/* Hide the builders-hub navbar since page has its own */
+/* Build Games Page Container Styles */
+.build-games-container {
+  background: #152d44 !important;
+  min-height: 100vh !important;
+  width: 100vw !important;
+  padding: 0 0 120px 0 !important;
+  margin: 0 !important;
+  font-size: var(--font-size);
+  position: relative;
+  z-index: 1;
+  overflow-x: hidden;
+}
+
+/* Fix the main content to flow naturally */
+.build-games-container > div[data-name="Landing Page Example"] {
+  width: 100%;
+  position: relative;
+  display: block;
+  overflow: visible;
+}
+
+/* Ensure Group1 (Main) content flows naturally without height restrictions */
+.build-games-container [data-name="Main"] {
+  position: relative !important;
+  width: 100%;
+  height: auto !important;
+}
+
+/* Ensure the parent containers don't interfere */
+body:has(.build-games-container) main {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+body:has(.build-games-container) .nd-layout-home,
+body:has(.build-games-container) [class*="layout"] {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Base resets */
+.build-games-container *,
+.build-games-container *::before,
+.build-games-container *::after {
+  box-sizing: border-box;
+  border-color: var(--border);
+}
+
+.build-games-container h1 {
+  font-size: 1.875rem;
+  font-weight: var(--font-weight-medium);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.build-games-container h2 {
+  font-size: 1.5rem;
+  font-weight: var(--font-weight-medium);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.build-games-container h3 {
+  font-size: 1.25rem;
+  font-weight: var(--font-weight-medium);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.build-games-container h4 {
+  font-size: 1rem;
+  font-weight: var(--font-weight-medium);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.build-games-container label {
+  font-size: 1rem;
+  font-weight: var(--font-weight-medium);
+  line-height: 1.5;
+}
+
+.build-games-container button {
+  font-size: 1rem;
+  font-weight: var(--font-weight-medium);
+  line-height: 1.5;
+}
+
+.build-games-container input {
+  font-size: 1rem;
+  font-weight: var(--font-weight-normal);
+  line-height: 1.5;
+}
+
+.build-games-container p {
+  margin: 0;
+}
+
+/* App overrides - Layout adjustments */
+
+/* Hide the navbar - user has their own */
 .build-games-container [data-name="Main"] > [data-name="Nav"] {
   display: none !important;
 }
 
-/* Adjust the Main container */
+/* Adjust the Main container top position since navbar is removed */
 .build-games-container [data-name="Main"] {
-  top: 0 !important;
+  top: 56px !important;
   max-width: 1440px;
   margin: 0 auto;
   left: 0 !important;
@@ -78,10 +216,11 @@
 /* Make hero section extend full viewport width */
 .build-games-container [data-name="Hero"] {
   width: 100vw !important;
-  position: relative;
+  position: relative !important;
   left: 50% !important;
   right: auto !important;
   margin-left: -50vw !important;
+  overflow: hidden !important;
 }
 
 /* Extend hero background images to full width */
@@ -128,7 +267,25 @@
   margin: 0 auto;
 }
 
-/* Additional utility classes that might be needed */
+/* Additional utility classes */
 .build-games-container .content-stretch {
   align-content: stretch;
 }
+
+/* Ensure image container maintains proper overflow */
+.build-games-container .overflow-hidden,
+.build-games-container .overflow-clip {
+  overflow: hidden !important;
+}
+
+/* Ensure images with max-w-none actually have no max-width */
+.build-games-container img.max-w-none {
+  max-width: none !important;
+}
+
+/* Preserve absolute positioned images with specific dimensions */
+.build-games-container .absolute img {
+  display: block;
+}
+
+/* No overrides - keep builders-hub navigation and footer */
