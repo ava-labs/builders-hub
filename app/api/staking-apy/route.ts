@@ -37,36 +37,42 @@ async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutM
   }
 }
 
-async function fetchNetCumulativeEmissions(): Promise<TimeSeriesDataPoint[]> {
+async function fetchCumulativeRewards(): Promise<TimeSeriesDataPoint[]> {
   try {
     const response = await fetchWithTimeout(PRIMARY_NETWORK_FEES_URL, {
       headers: { 'Accept': 'application/json' }
     });
 
     if (!response.ok) {
-      console.warn(`[fetchNetCumulativeEmissions] Failed to fetch: ${response.status}`);
+      console.warn(`[fetchCumulativeRewards] Failed to fetch: ${response.status}`);
       return [];
     }
 
     const data = await response.json();
     
     if (!data?.data?.rows || !Array.isArray(data.data.rows)) {
-      console.warn('[fetchNetCumulativeEmissions] Invalid data format');
+      console.warn('[fetchCumulativeRewards] Invalid data format');
       return [];
     }
 
     // Column mapping from the API:
     // idx[0] = date
-    // idx[3] = net cumulative emissions
+    // idx[2] = cumulative burn
+    // idx[3] = net cumulative emissions (rewards - burns)
+    // To get gross cumulative rewards: netCumulativeEmissions + cumulativeBurn
     const result: TimeSeriesDataPoint[] = [];
 
     data.data.rows.forEach((row: any[]) => {
       const dateStr = row[0];
       const timestamp = Math.floor(new Date(dateStr).getTime() / 1000);
       const date = dateStr.split('T')[0];
+      const cumulativeBurn = row[2] || 0;
       const netCumulativeEmissions = row[3] || 0;
+      
+      // Cumulative rewards = net emissions + burns (to undo the burn subtraction)
+      const cumulativeRewards = netCumulativeEmissions + cumulativeBurn;
 
-      result.push({ timestamp, value: netCumulativeEmissions, date });
+      result.push({ timestamp, value: cumulativeRewards, date });
     });
 
     // Sort by timestamp ascending (oldest first) for chart display
@@ -75,7 +81,7 @@ async function fetchNetCumulativeEmissions(): Promise<TimeSeriesDataPoint[]> {
     return result;
   } catch (error) {
     if (error instanceof Error && error.name !== 'AbortError') {
-      console.warn('[fetchNetCumulativeEmissions] Error:', error);
+      console.warn('[fetchCumulativeRewards] Error:', error);
     }
     return [];
   }
@@ -91,18 +97,18 @@ function calculateAPY(supply: number, consumptionRate: number): number {
 
 export async function GET() {
   try {
-    const emissionsData = await fetchNetCumulativeEmissions();
+    const rewardsData = await fetchCumulativeRewards();
 
-    if (emissionsData.length === 0) {
+    if (rewardsData.length === 0) {
       return NextResponse.json(
-        { error: 'Failed to fetch emissions data' },
+        { error: 'Failed to fetch rewards data' },
         { status: 500 }
       );
     }
 
     // Calculate APY for each data point
-    const apyData: APYDataPoint[] = emissionsData.map((point) => {
-      // Historical supply = Genesis supply + net cumulative emissions
+    const apyData: APYDataPoint[] = rewardsData.map((point) => {
+      // Historical supply = Genesis supply + cumulative rewards (burns NOT subtracted)
       const supply = GENESIS_SUPPLY + point.value;
       
       return {
