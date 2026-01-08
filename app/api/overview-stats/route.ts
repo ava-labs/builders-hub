@@ -103,7 +103,10 @@ function sumMessageCounts(sorted: ICMResult[], daysToSum: number): number {
 
 function getAllChains(): ChainInfo[] {
   return l1ChainsData
-    .filter(chain => !('isTestnet' in chain && chain.isTestnet === true))
+    .filter(chain =>
+      !('isTestnet' in chain && chain.isTestnet === true) &&
+      !('isActive' in chain && chain.isActive === false)
+    )
     .map(chain => ({
       chainId: chain.chainId,
       chainName: chain.chainName,

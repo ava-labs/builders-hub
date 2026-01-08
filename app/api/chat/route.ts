@@ -1,71 +1,8 @@
 import { createOpenAI } from '@ai-sdk/openai';
 import { streamText } from 'ai';
+import { captureAIGeneration } from '@/lib/posthog-server';
 
 export const runtime = 'edge';
-
-// PostHog configuration for LLM analytics
-const POSTHOG_API_KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY;
-const POSTHOG_HOST = process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com';
-
-// Capture LLM generation event to PostHog
-async function captureAIGeneration({
-  distinctId,
-  model,
-  input,
-  output,
-  inputTokens,
-  outputTokens,
-  latencyMs,
-  traceId,
-}: {
-  distinctId?: string;
-  model: string;
-  input: string;
-  output: string;
-  inputTokens?: number;
-  outputTokens?: number;
-  latencyMs: number;
-  traceId?: string;
-}) {
-  if (!POSTHOG_API_KEY) return;
-
-  try {
-    // Estimate tokens if not provided (rough estimate: 1 token ≈ 4 chars)
-    const estimatedInputTokens = inputTokens ?? Math.ceil(input.length / 4);
-    const estimatedOutputTokens = outputTokens ?? Math.ceil(output.length / 4);
-
-    // GPT-4o-mini pricing: $0.15/1M input, $0.60/1M output
-    const inputCost = (estimatedInputTokens / 1000000) * 0.15;
-    const outputCost = (estimatedOutputTokens / 1000000) * 0.60;
-
-    await fetch(`${POSTHOG_HOST}/capture/`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        api_key: POSTHOG_API_KEY,
-        event: '$ai_generation',
-        distinct_id: distinctId || 'anonymous',
-        properties: {
-          $ai_model: model,
-          $ai_provider: 'openai',
-          $ai_input: input,
-          $ai_output_choices: [{ message: { content: output } }],
-          $ai_input_tokens: estimatedInputTokens,
-          $ai_output_tokens: estimatedOutputTokens,
-          $ai_total_cost_usd: inputCost + outputCost,
-          $ai_latency: latencyMs / 1000, // Convert to seconds
-          $ai_trace_id: traceId,
-          $ai_http_status: 200,
-        },
-        timestamp: new Date().toISOString(),
-      }),
-    });
-  } catch (error) {
-    console.error('Failed to capture AI generation event:', error);
-  }
-}
 
 const openai = createOpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -151,49 +88,141 @@ async function getValidUrls(): Promise<string[]> {
   }
 }
 
+// Use MCP server for better search quality
+async function searchDocsViaMcp(query: string): Promise<Array<{ url: string; title: string; description?: string; source: string }>> {
+  try {
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ||
+                   process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` :
+                   'http://localhost:3000';
+
+    const response = await fetch(`${baseUrl}/api/mcp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: Date.now(),
+        method: 'tools/call',
+        params: {
+          name: 'avalanche_docs_search',
+          arguments: { query, limit: 10 }
+        }
+      })
+    });
+
+    if (!response.ok) {
+      console.error('MCP search failed:', response.status);
+      return [];
+    }
+
+    const result = await response.json();
+    if (result.error) {
+      console.error('MCP search error:', result.error);
+      return [];
+    }
+
+    // Parse the text response from MCP
+    const text = result.result?.content?.[0]?.text || '';
+
+    // Extract results from the formatted text
+    const results: Array<{ url: string; title: string; description?: string; source: string }> = [];
+    const lines = text.split('\n').filter((l: string) => l.startsWith('- ['));
+
+    for (const line of lines) {
+      const match = line.match(/- \[(.+?)\]\(https:\/\/build\.avax\.network(.+?)\) \((.+?)\)(?:\n\s+(.+))?/);
+      if (match) {
+        results.push({
+          title: match[1],
+          url: match[2],
+          source: match[3],
+          description: match[4]
+        });
+      }
+    }
+
+    console.log(`MCP search found ${results.length} results for "${query}"`);
+    return results;
+  } catch (error) {
+    console.error('MCP search error:', error);
+    return [];
+  }
+}
+
+// Fetch specific pages from search results
+async function fetchPageContent(url: string): Promise<string | null> {
+  try {
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ||
+                   process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` :
+                   'http://localhost:3000';
+
+    const response = await fetch(`${baseUrl}/api/mcp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: Date.now(),
+        method: 'tools/call',
+        params: {
+          name: 'avalanche_docs_fetch',
+          arguments: { url }
+        }
+      })
+    });
+
+    if (!response.ok) return null;
+
+    const result = await response.json();
+    if (result.error) return null;
+
+    return result.result?.content?.[0]?.text || null;
+  } catch (error) {
+    console.error('Page fetch error:', error);
+    return null;
+  }
+}
+
 function findRelevantSections(query: string, docs: string): string[] {
   if (!docs || !query) return [];
-  
+
   // Split documentation into individual page sections
   const sections = docs.split(/\n# /).filter(s => s.trim());
-  
+
   // Normalize query for better matching
   const queryLower = query.toLowerCase();
   const queryTerms = queryLower.split(/\s+/).filter(t => t.length > 2);
-  
+
   // Score each section based on relevance
   const scoredSections = sections.map(section => {
     const sectionLower = section.toLowerCase();
     let score = 0;
-    
+
     // Extract title (first line)
     const titleMatch = section.match(/^([^\n]+)/);
     const title = titleMatch ? titleMatch[1] : '';
     const titleLower = title.toLowerCase();
-    
+
     // Score based on query terms appearing in title and content
     queryTerms.forEach(term => {
       if (titleLower.includes(term)) score += 20;
       if (sectionLower.includes(term)) score += 5;
     });
-    
+
     // Bonus for exact phrase match
     if (sectionLower.includes(queryLower)) score += 30;
-    
+
     return { section: `# ${section}`, score, title };
   });
-  
+
   // Filter and sort by relevance
   const relevant = scoredSections
     .filter(s => s.score > 0)
     .sort((a, b) => b.score - a.score)
     .slice(0, 8); // Top 8 most relevant sections
-  
+
   console.log(`Found ${relevant.length} relevant sections for query: "${query}"`);
   if (relevant.length > 0) {
     console.log('Top 3 sections:', relevant.slice(0, 3).map(r => ({ title: r.title, score: r.score })));
   }
-  
+
   return relevant.map(r => r.section);
 }
 
@@ -210,19 +239,44 @@ export async function POST(req: Request) {
   
   let relevantContext = '';
   if (lastUserMessage) {
-    const docs = await getDocumentation();
-    const relevantSections = findRelevantSections(lastUserMessage.content, docs);
-    
-    if (relevantSections.length > 0) {
-      relevantContext = '\n\n=== RELEVANT DOCUMENTATION ===\n\n';
-      relevantContext += 'Here are the most relevant sections from the Avalanche documentation:\n\n';
-      relevantContext += relevantSections.join('\n\n---\n\n');
-      relevantContext += '\n\n=== END DOCUMENTATION ===\n';
-    } else {
-      relevantContext = '\n\n=== DOCUMENTATION ===\n';
-      relevantContext += 'No specific documentation sections matched this query.\n';
-      relevantContext += 'Provide general guidance and suggest relevant documentation sections if applicable.\n';
-      relevantContext += '=== END DOCUMENTATION ===\n';
+    // Try MCP search first (better quality), fall back to full-text search
+    const mcpResults = await searchDocsViaMcp(lastUserMessage.content);
+
+    if (mcpResults.length > 0) {
+      // Fetch content for top 3 results
+      const contentPromises = mcpResults.slice(0, 3).map(async (result) => {
+        const content = await fetchPageContent(result.url);
+        return content ? `# ${result.title}\nURL: https://build.avax.network${result.url}\nSource: ${result.source}\n\n${content}` : null;
+      });
+
+      const contents = (await Promise.all(contentPromises)).filter(Boolean);
+
+      if (contents.length > 0) {
+        relevantContext = '\n\n=== RELEVANT DOCUMENTATION ===\n\n';
+        relevantContext += 'Here are the most relevant pages from the Avalanche documentation:\n\n';
+        relevantContext += contents.join('\n\n---\n\n');
+        relevantContext += '\n\n=== END DOCUMENTATION ===\n';
+        console.log(`Using MCP search results: ${contents.length} pages`);
+      }
+    }
+
+    // Fall back to full-text search if MCP didn't return results
+    if (!relevantContext) {
+      const docs = await getDocumentation();
+      const relevantSections = findRelevantSections(lastUserMessage.content, docs);
+
+      if (relevantSections.length > 0) {
+        relevantContext = '\n\n=== RELEVANT DOCUMENTATION ===\n\n';
+        relevantContext += 'Here are the most relevant sections from the Avalanche documentation:\n\n';
+        relevantContext += relevantSections.join('\n\n---\n\n');
+        relevantContext += '\n\n=== END DOCUMENTATION ===\n';
+        console.log(`Using fallback full-text search: ${relevantSections.length} sections`);
+      } else {
+        relevantContext = '\n\n=== DOCUMENTATION ===\n';
+        relevantContext += 'No specific documentation sections matched this query.\n';
+        relevantContext += 'Provide general guidance and suggest relevant documentation sections if applicable.\n';
+        relevantContext += '=== END DOCUMENTATION ===\n';
+      }
     }
   }
   

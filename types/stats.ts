@@ -38,6 +38,8 @@ export interface PrimaryNetworkMetrics {
   delegator_count: TimeSeriesMetric;
   delegator_weight: TimeSeriesMetric;
   validator_versions: string;
+  daily_rewards?: TimeSeriesMetric;
+  cumulative_rewards?: TimeSeriesMetric;
   last_updated: number;
 }
 

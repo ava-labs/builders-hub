@@ -1,10 +1,9 @@
 import { algoliasearch } from 'algoliasearch';
 import { sync, DocumentRecord } from '../node_modules/fumadocs-core/dist/search/algolia.js';
 import * as fs from 'node:fs';
+import 'dotenv/config';
 
 async function main() {
-  if (process.env.VERCEL_ENV !== 'production') { return; } // only update index on prod deployments
-
   const filePath = {
     next: '.next/server/app/static.json.body',
     'tanstack-start': '.output/public/static.json',
@@ -12,10 +11,15 @@ async function main() {
     waku: 'dist/public/static.json',
   }['next'];
 
+  if (!process.env.ALGOLIA_WRITE_KEY) {
+    console.log('ALGOLIA_WRITE_KEY is not set, skipping index update');
+    return;
+  }
+
   try {
     const content = fs.readFileSync(filePath);
     const records = JSON.parse(content.toString()) as DocumentRecord[];
-    const client = algoliasearch('0T4ZBDJ3AF', process.env.ALGOLIA_WRITE_KEY || "");
+    const client = algoliasearch('0T4ZBDJ3AF', process.env.ALGOLIA_WRITE_KEY);
 
     await sync(client, {
       documents: records,

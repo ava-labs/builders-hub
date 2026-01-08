@@ -90,7 +90,7 @@ You can use `eth_getChainConfig` RPC call to get the current chain config. See [
 
 `gasLimit`: Sets the max amount of gas consumed per block. This restriction puts a cap on the amount of computation that can be done in a single block, which in turn sets a limit on the maximum gas usage allowed for a single transaction. For reference, C-Chain value is set to `15,000,000`.
 
-`targetBlockRate`: Sets the target rate of block production in seconds. A target of 2 will target producing a block every 2 seconds. If the network starts producing blocks at a faster rate, it indicates that more blocks than anticipated are being issued to the network, resulting in an increase in base fees. For C-chain this value is set to `2`.
+`targetBlockRate`: Sets the target rate of block production in seconds. A target of 2 will target producing a block every 2 seconds. If the network starts producing blocks at a faster rate, it indicates that more blocks than anticipated are being issued to the network, resulting in an increase in base fees. For C-chain this value is set to `1`.
 
 `minBaseFee`: Sets a lower bound on the EIP-1559 base fee of a block. Since the block's base fee sets the minimum gas price for any transaction included in that block, this effectively sets a minimum gas price for any transaction.
 

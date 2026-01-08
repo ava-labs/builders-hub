@@ -25,9 +25,12 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ImageIcon, BadgeAlert, PlusCircleIcon } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 import { Card } from '@/components/ui/card';
 import { SubmissionForm } from '../hooks/useSubmissionFormSecure';
+
+const MAX_FILE_SIZE_FOR_UPLOAD = 1; // Vercel's limit is 4.5MB, we use 4MB to be safe
 
 type MediaUploaderProps = {
   name: keyof SubmissionForm;
@@ -55,6 +58,7 @@ export default function MediaUploader({
   buttonText = 'Upload',
 }: MediaUploaderProps) {
   const form = useFormContext<SubmissionForm>();
+  const { toast } = useToast();
 
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
   const replaceInputRef = useRef<HTMLInputElement | null>(null);
@@ -62,6 +66,22 @@ export default function MediaUploader({
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+
+  // Use the smaller of maxSizeMB or the Vercel upload limit
+  const effectiveMaxSize = Math.min(maxSizeMB, MAX_FILE_SIZE_FOR_UPLOAD);
+
+  const validateFileSize = (file: File): boolean => {
+    const fileSizeMB = file.size / (1024 * 1024);
+    if (fileSizeMB > effectiveMaxSize) {
+      toast({
+        title: 'File too large',
+        description: `"${file.name}" is ${fileSizeMB.toFixed(1)}MB. Maximum allowed size is ${effectiveMaxSize}MB.`,
+        variant: 'destructive',
+      });
+      return false;
+    }
+    return true;
+  };
 
   const handleUploadClick = () => uploadInputRef.current?.click();
 
@@ -74,6 +94,13 @@ export default function MediaUploader({
     if (e.target.files && selectedIndex !== null) {
       const newFile = e.target.files[0];
       if (!newFile) return;
+
+      // Validate file size before replacing
+      if (!validateFileSize(newFile)) {
+        e.target.value = ''; // Reset input
+        return;
+      }
+
       const currentValue = form.getValues(name);
       if (maxItems === 1) {
         form.setValue(name, newFile);
@@ -213,18 +240,26 @@ export default function MediaUploader({
 
                   const files = Array.from(e.target.files);
 
+                  // Validate file sizes before adding
+                  const validFiles = files.filter(validateFileSize);
+                  if (validFiles.length === 0) {
+                    e.target.value = ''; // Reset input
+                    return;
+                  }
+
                   if (maxItems === 1) {
-                    field.onChange(files[0]);
+                    field.onChange(validFiles[0]);
                   } else {
                     const existingFiles = Array.isArray(field.value)
                       ? field.value
                       : [];
-                    const totalFiles = [...existingFiles, ...files].slice(
+                    const totalFiles = [...existingFiles, ...validFiles].slice(
                       0,
                       maxItems
                     );
                     field.onChange(totalFiles);
                   }
+                  e.target.value = ''; // Reset input for future uploads
                 }}
               />
             </FormControl>

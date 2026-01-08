@@ -30,7 +30,8 @@ import {
   SquarePlus,
   HandCoins,
   ExternalLink,
-  BookKey
+  BookKey,
+  ShieldOff
 } from "lucide-react";
 
 import {
@@ -196,6 +197,11 @@ const data = {
           title: "Remove Validator",
           url: "/console/permissioned-l1s/remove-validator",
           icon: SquareMinus,
+        },
+        {
+          title: "Disable Validator",
+          url: "/console/permissioned-l1s/disable-validator",
+          icon: ShieldOff,
         },
         {
           title: "Change Validator Weight",

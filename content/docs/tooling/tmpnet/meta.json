@@ -1,0 +1,13 @@
+{
+  "title": "tmpnet",
+  "description": "Temporary network orchestration for local testing and development",
+  "root": true,
+  "pages": [
+    "index",
+    "installation",
+    "quick-start",
+    "guides",
+    "reference",
+    "troubleshooting-runtime"
+  ]
+}

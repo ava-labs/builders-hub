@@ -8,128 +8,41 @@ import { useSession } from 'next-auth/react';
 import { useToast } from '@/hooks/use-toast';
 import { useProjectSubmission } from '../context/ProjectSubmissionContext';
 import { useRouter } from 'next/navigation';
-export const FormSchema = z
-  .object({
-    project_name: z
-      .string()
-      .min(2, { message: 'Project Name must be at least 2 characters' })
-      .max(60, { message: 'Max 60 characters allowed' }),
-    short_description: z
-      .string()
-      .min(30, { message: 'Short description must be at least 30 characters' })
-      .max(280, { message: 'Max 280 characters allowed' }),
-    full_description: z
-      .string()
-      .min(30, { message: 'Full description must be at least 30 characters' }),
-    tech_stack: z
-      .string()
-      .min(30, { message: 'Tech stack must be at least 30 characters' }),
-    github_repository: z.preprocess(
-      (val) => {
-        if (!val) return [];
-        if (typeof val === 'string') return [];
-        return val;
-      },
-      z.array(z.string().min(1, { message: 'Repository link is required' }))
-        .min(1, { message: 'At least one link is required' })
-        .refine((links) => new Set(links).size === links.length, {
-          message: 'Duplicate repository links are not allowed',
-        })
-        .superRefine((links, ctx) => {
-          const invalidLinks = links.filter((link) => {
-            if (link.startsWith('http')) {
-              try { new URL(link); return false; } catch { return true; }
-            }
-            return link.trim().length === 0;
-          });
-
-          if (invalidLinks.length > 0) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              message: 'Please enter valid links (URLs or other formats)',
-              path: [], // o ['github_repository'] si prefieres
-            });
-          }
-        })
-    ),
-    explanation: z.string().optional(),
-    demo_link: z.preprocess(
-      (val) => {
-        if (!val) return [];
-        if (typeof val === 'string') return [];
-        return val;
-      },
-      z.array(
-        z.string()
-          .min(1, { message: 'Demo link cannot be empty' })
-      )
-        .min(1, { message: 'At least one demo link is required' })
-        .refine(
-          (links) => {
-            const uniqueLinks = new Set(links);
-            return uniqueLinks.size === links.length;
-          },
-          { message: 'Duplicate demo links are not allowed' }
-        )
-        .refine(
-          (links) => {
-            return links.every(url => {
-              try {
-                new URL(url);
-                return true;
-              } catch {
-                return false;
-              }
-            });
-          },
-          { message: 'Please enter a valid URL' }
-        )
-    ),
-    is_preexisting_idea: z.boolean(),
-    logoFile: z.any().optional(),
-    coverFile: z.any().optional(),
-    screenshots: z.any().optional(),
-    demo_video_link: z
-      .string()
-      .url({ message: 'Please enter a valid URL' })
-      .optional()
-      .or(z.literal(''))
-      .refine(
-        (val) => {
-          if (!val) return true;
-          try {
-            const url = new URL(val);
-            return (
-              url.hostname.includes('youtube.com') ||
-              url.hostname.includes('youtu.be') ||
-              url.hostname.includes('loom.com')
-            );
-          } catch {
-            return false;
-          }
-        },
-        { message: 'Please enter a valid YouTube or Loom URL' }
-      ),
-    tracks: z.array(z.string()).min(1, 'track are required'),
-    logo_url: z.string().optional(),
-    cover_url: z.string().optional(),
-    hackaton_id: z.string().optional(),
-    user_id: z.string().optional(),
-    is_winner: z.boolean().optional(),
-    isDraft: z.boolean().optional(),
-  })
-  .refine(
-    (data) => {
-      if (data.is_preexisting_idea) {
-        return data.explanation && data.explanation.length >= 2;
-      }
-      return true;
+export const FormSchema = z.object({
+  project_name: z.string().min(1, { message: 'Project name is required' }),
+  short_description: z.string().min(1, { message: 'Short description is required' }),
+  full_description: z.string().optional(),
+  tech_stack: z.string().optional(),
+  github_repository: z.preprocess(
+    (val) => {
+      if (!val) return [];
+      if (typeof val === 'string') return [];
+      return val;
     },
-    {
-      message: 'explanation is required when the idea is pre-existing',
-      path: ['explanation'],
-    }
-  );
+    z.array(z.string()).optional()
+  ),
+  explanation: z.string().optional(),
+  demo_link: z.preprocess(
+    (val) => {
+      if (!val) return [];
+      if (typeof val === 'string') return [];
+      return val;
+    },
+    z.array(z.string()).optional()
+  ),
+  is_preexisting_idea: z.boolean().optional(),
+  logoFile: z.any().optional(),
+  coverFile: z.any().optional(),
+  screenshots: z.any().optional(),
+  demo_video_link: z.string().optional(),
+  tracks: z.array(z.string()).min(1, { message: 'Please select at least one track' }),
+  logo_url: z.string().optional(),
+  cover_url: z.string().optional(),
+  hackaton_id: z.string().optional(),
+  user_id: z.string().optional(),
+  is_winner: z.boolean().optional(),
+  isDraft: z.boolean().optional(),
+});
 
 export type SubmissionForm = z.infer<typeof FormSchema>;
 export const Step1Schema = FormSchema.pick({
@@ -145,18 +58,7 @@ export const Step2Schema = FormSchema.pick({
   explanation: true,
   demo_link: true,
   is_preexisting_idea: true,
-}).refine(
-  (data) => {
-    if (data.is_preexisting_idea) {
-      return data.explanation && data.explanation.length >= 2;
-    }
-    return true;
-  },
-  {
-    message: 'explanation is required when the idea is pre-existing',
-    path: ['explanation'],
-  }
-);
+});
 export const useSubmissionFormSecure = () => {
   const { data: session } = useSession();
   const { toast } = useToast();
@@ -291,23 +193,15 @@ export const useSubmissionFormSecure = () => {
         params: {
           fileName,
           hackaton_id: state.hackathonId,
-          user_id: session?.user?.id
         }
       });
       const newUrl = await uploadFile(newFile);
 
-      toast({
-        title: 'Image replaced',
-        description: 'The image has been replaced successfully.',
-      });
+   
       return newUrl;
     } catch (error: any) {
       const message = error.response?.data?.error || error.message || 'Error replacing image';
-      toast({
-        title: 'Error replacing image',
-        description: message,
-        variant: 'destructive',
-      });
+  
       throw new Error(message);
     }
   }, [state.hackathonId, session?.user?.id, uploadFile, toast]);
@@ -321,21 +215,17 @@ export const useSubmissionFormSecure = () => {
     if (!fileName) throw new Error('Invalid old image URL');
 
     try {
-      await fetch(`/api/file?fileName=${encodeURIComponent(fileName)}&hackathon_id=${state.hackathonId}&user_id=${session?.user?.id}`, {
-        method: 'DELETE',
+      await axios.delete('/api/file', {
+        params: {
+          fileName,
+          hackaton_id: state.hackathonId,
+        }
       });
 
-      toast({
-        title: 'Image deleted',
-        description: 'The image has been deleted successfully.',
-      });
+     
     } catch (error: any) {
       const message = error.response?.data?.error || error.message || 'Error deleting image';
-      toast({
-        title: 'Error deleting image',
-        description: message,
-        variant: 'destructive',
-      });
+     
       throw new Error(message);
     }
   }, [state.hackathonId, session?.user?.id, toast]);

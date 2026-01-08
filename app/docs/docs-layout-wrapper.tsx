@@ -107,7 +107,7 @@ export function DocsLayoutWrapper({
   };
 
   return (
-    <>
+    <div data-route-layout="docs">
       <NavbarDropdownInjector />
       <ForceMobileSidebar />
       <DocsNavbarToggle />
@@ -208,6 +208,6 @@ export function DocsLayoutWrapper({
       </span>
       {children}
     </DocsLayout>
-    </>
+    </div>
   );
 }

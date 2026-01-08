@@ -67,7 +67,13 @@ function AvalancheGoDockerPrimaryNetworkInner() {
     // Show advanced settings
     const [showAdvancedSettings, setShowAdvancedSettings] = useState<boolean>(false);
 
+    // Network selection (allows explicit choice independent of wallet)
+    const [selectedNetwork, setSelectedNetwork] = useState<"mainnet" | "fuji">("mainnet");
+
     const { avalancheNetworkID } = useWalletStore();
+
+    // Use selected network for configuration (1 = mainnet, 5 = fuji)
+    const effectiveNetworkID = selectedNetwork === "fuji" ? 5 : 1;
 
     const isRPC = nodeType === "public-rpc";
 
@@ -151,6 +157,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
     }, [isRPC]);
 
     const handleReset = () => {
+        setSelectedNetwork("mainnet");
         setNodeType("validator");
         setDomain("");
         setEnableDebugTrace(false);
@@ -189,9 +196,9 @@ function AvalancheGoDockerPrimaryNetworkInner() {
     // Generate Docker command for Primary Network (using file-based config)
     const getDockerCommand = () => {
         try {
-            const isTestnet = avalancheNetworkID === 5;
+            const isTestnet = effectiveNetworkID === 5;
             const versions = getContainerVersions(isTestnet);
-            
+
             const env: Record<string, string> = {
                 AVAGO_PUBLIC_IP_RESOLUTION_SERVICE: "opendns",
                 AVAGO_HTTP_HOST: "0.0.0.0",
@@ -199,7 +206,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
             };
 
             // Set network ID
-            if (avalancheNetworkID === 5) {
+            if (effectiveNetworkID === 5) {
                 env.AVAGO_NETWORK_ID = "fuji";
             }
 
@@ -275,6 +282,23 @@ function AvalancheGoDockerPrimaryNetworkInner() {
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    Network
+                                </label>
+                                <select
+                                    value={selectedNetwork}
+                                    onChange={(e) => setSelectedNetwork(e.target.value as "mainnet" | "fuji")}
+                                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                                >
+                                    <option value="mainnet">Mainnet</option>
+                                    <option value="fuji">Fuji (Testnet)</option>
+                                </select>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                    Select which Avalanche network to connect to
+                                </p>
+                            </div>
+
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                     Node Type

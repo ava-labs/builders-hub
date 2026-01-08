@@ -9,9 +9,6 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  ArrowUpDown,
-  ArrowUp,
-  ArrowDown,
   Activity,
   BarChart3,
   Search,
@@ -22,6 +19,7 @@ import {
   Users,
 } from "lucide-react";
 import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
+import { SortIcon } from "@/components/stats/SortIcon";
 import { type SubnetStats } from "@/types/validator-stats";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import l1ChainsData from "@/constants/l1-chains.json";
@@ -322,15 +320,13 @@ export default function ValidatorStatsPage() {
       onClick={() => handleSort(column)}
     >
       {children}
-      {sortColumn === column ? (
-        sortDirection === "asc" ? (
-          <ArrowUp className="h-3.5 w-3.5" />
-        ) : (
-          <ArrowDown className="h-3.5 w-3.5" />
-        )
-      ) : (
-        <ArrowUpDown className="h-3.5 w-3.5" />
-      )}
+      <SortIcon
+        column={column}
+        sortColumn={sortColumn}
+        sortDirection={sortDirection}
+        iconVariant="arrow"
+        className="h-3.5 w-3.5"
+      />
     </button>
   );
 

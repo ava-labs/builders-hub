@@ -20,13 +20,19 @@ export const Success = ({ label, value, isTestnet = true, xpChain = "P" }: Succe
     };
 
     const isPChainTxId = /^[1-9A-HJ-NP-Za-km-z]{40,60}$/.test(value);
-    const baseUrl = isTestnet ? "https://subnets-test.avax.network" : "https://subnets.avax.network";
     
     const showCopy = isAddress(value) || isPChainTxId;
     
     const getExplorerUrl = () => {
         if (isPChainTxId) {
-            return `${baseUrl}/${xpChain === "P" ? "p-chain" : "c-chain"}/tx/${value}`;
+            if (xpChain === "P") {
+                // P-Chain uses external explorer
+                const baseUrl = isTestnet ? "https://subnets-test.avax.network" : "https://subnets.avax.network";
+                return `${baseUrl}/p-chain/tx/${value}`;
+            } else {
+                // C-Chain uses internal explorer
+                return `/explorer/avalanche-c-chain/tx/${value}`;
+            }
         }
         return null;
     };
