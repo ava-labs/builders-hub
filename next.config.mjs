@@ -1599,17 +1599,6 @@ const config = {
         permanent: true,
       },
       {
-        source: "/academy/avalanche-l1/interchain-token-transfer",
-        destination: "/academy/avalanche-l1/native-token-bridge",
-        permanent: true,
-      },
-      {
-        source: "/academy/avalanche-l1/interchain-token-transfer/:path*",
-        destination: "/academy/avalanche-l1/native-token-bridge/:path*",
-        permanent: true,
-      },
-      // Broken links from analytics - round 8
-      {
         source: "/docs/overview/getting-started/avalanche-consensus",
         destination: "/docs/primary-network/avalanche-consensus",
         permanent: true,

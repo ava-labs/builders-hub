@@ -35,7 +35,7 @@ interface ICMFlowData {
 	messageCount: number;
 }
 
-// Helper function to get category-based colors
+// Category-based colors for pulse waves and ICM messages
 function getCategoryColor(category?: string): string {
 	switch (category) {
 		case "Primary":
@@ -45,7 +45,6 @@ function getCategoryColor(category?: string): string {
 		case "DeFi":
 			return "#3b82f6"; // Blue
 		case "Enterprise":
-			return "#a855f7"; // Purple
 		case "Institutions":
 			return "#a855f7"; // Purple
 		case "Infrastructure":
@@ -61,7 +60,7 @@ function getCategoryColor(category?: string): string {
 	}
 }
 
-// Helper to generate color from name
+// Generate color from chain name as fallback
 function stringToColor(str: string): string {
 	let hash = 0;
 	for (let i = 0; i < str.length; i++) {
@@ -263,7 +262,7 @@ export const Sponsors = () => {
 				icmFlows={icmFlowsData}
 				containerSize={650}
 				autoRotate={true}
-				autoRotateSpeed={0.12}
+				autoRotateSpeed={0.1}
 				className="mx-auto"
 			/>
 		</div>
