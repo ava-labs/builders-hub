@@ -1,0 +1,134 @@
+@import url('https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
+
+/* Aeonik Font Family - Using Inter as fallback */
+@font-face {
+  font-family: 'Aeonik:Regular';
+  src: local('Inter'), local('sans-serif');
+  font-weight: 400;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Aeonik:Medium';
+  src: local('Inter'), local('sans-serif');
+  font-weight: 500;
+  font-style: normal;
+}
+
+/* Aeonik Fono - Using Space Mono for the monospaced number look */
+@font-face {
+  font-family: 'Aeonik_Fono:Medium';
+  src: local('Space Mono'), local('monospace');
+  font-weight: 500;
+  font-style: normal;
+}
+
+/* Geist Font Family */
+@font-face {
+  font-family: 'Geist:Regular';
+  src: local('Geist Mono'), local('monospace');
+  font-weight: 400;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Geist:Medium';
+  src: local('Geist Mono'), local('monospace');
+  font-weight: 500;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Geist:SemiBold';
+  src: local('Geist Mono'), local('monospace');
+  font-weight: 600;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Geist_Mono:Regular';
+  src: local('Geist Mono'), local('monospace');
+  font-weight: 400;
+  font-style: normal;
+}
+
+/* Build Games Page Container Styles */
+.build-games-container {
+  background: #152d44;
+  min-height: 100vh;
+  width: 100%;
+}
+
+/* Hide the builders-hub navbar since page has its own */
+.build-games-container [data-name="Main"] > [data-name="Nav"] {
+  display: none !important;
+}
+
+/* Adjust the Main container */
+.build-games-container [data-name="Main"] {
+  top: 0 !important;
+  max-width: 1440px;
+  margin: 0 auto;
+  left: 0 !important;
+  right: 0 !important;
+}
+
+/* Make hero section extend full viewport width */
+.build-games-container [data-name="Hero"] {
+  width: 100vw !important;
+  position: relative;
+  left: 50% !important;
+  right: auto !important;
+  margin-left: -50vw !important;
+}
+
+/* Extend hero background images to full width */
+.build-games-container [data-name="Background3_R1 1"] {
+  width: 100vw !important;
+  max-width: none !important;
+  left: 50% !important;
+  transform: translateX(-50%);
+}
+
+.build-games-container [data-name="Background3_R1_Square 1"] {
+  width: 100vw !important;
+  max-width: 1920px !important;
+  left: 50% !important;
+  transform: translateX(-50%);
+}
+
+.build-games-container [data-name="Direction2_R2 1"] {
+  width: 100vw !important;
+  max-width: 1920px !important;
+  left: 50% !important;
+  transform: translateX(-50%);
+}
+
+/* Extend gradient overlay to full width */
+.build-games-container [data-name="Hero"] > div[class*="bg-gradient"] {
+  width: 100vw !important;
+  left: 50% !important;
+  margin-left: -50vw !important;
+}
+
+/* Center hero content (logo and text) within viewport */
+.build-games-container [data-name="Hero"] > div:not([data-name^="Background"]):not([class*="bg-gradient"]) {
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  max-width: 1440px;
+}
+
+/* Ensure other content sections remain centered at 1440px */
+.build-games-container [data-name="Tiles"],
+.build-games-container [data-name="CTA"],
+.build-games-container [data-name="Main"] > div:not([data-name="Nav"]):not([data-name="Hero"]) {
+  max-width: 1440px;
+  margin: 0 auto;
+}
+
+/* Additional utility classes that might be needed */
+.build-games-container .content-stretch {
+  align-content: stretch;
+}
