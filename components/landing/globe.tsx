@@ -35,7 +35,7 @@ interface ICMFlowData {
 	messageCount: number;
 }
 
-// Helper function to get category-based colors
+// Category-based colors for pulse waves and ICM messages
 function getCategoryColor(category?: string): string {
 	switch (category) {
 		case "Primary":
@@ -45,7 +45,6 @@ function getCategoryColor(category?: string): string {
 		case "DeFi":
 			return "#3b82f6"; // Blue
 		case "Enterprise":
-			return "#a855f7"; // Purple
 		case "Institutions":
 			return "#a855f7"; // Purple
 		case "Infrastructure":
@@ -61,7 +60,7 @@ function getCategoryColor(category?: string): string {
 	}
 }
 
-// Helper to generate color from name
+// Generate color from chain name as fallback
 function stringToColor(str: string): string {
 	let hash = 0;
 	for (let i = 0; i < str.length; i++) {
@@ -112,14 +111,16 @@ export const Sponsors = () => {
 
 		// Avalanche C-Chain chainId
 		const AVALANCHE_CCHAIN_ID = '43114';
+		// Shrapnel chainId - excluded from display
+		const SHRAPNEL_CHAIN_ID = '2044';
 
 		// Find Avalanche C-Chain data
 		const avalancheChain = metrics.chains.find(c => c.chainId === AVALANCHE_CCHAIN_ID);
 
-		// Get L1 chains excluding Avalanche C-Chain (it will be the center)
+		// Get L1 chains excluding Avalanche C-Chain (it will be the center) and Shrapnel
 		// Score chains by multiple metrics for better representation
 		const l1Chains = metrics.chains
-			.filter(chain => chain.chainId !== AVALANCHE_CCHAIN_ID)
+			.filter(chain => chain.chainId !== AVALANCHE_CCHAIN_ID && chain.chainId !== SHRAPNEL_CHAIN_ID)
 			.map(chain => {
 				// Calculate composite activity score
 				const tpsScore = (chain.tps || 0) * 10; // Weight TPS heavily
@@ -134,7 +135,7 @@ export const Sponsors = () => {
 			})
 			.filter(chain => chain.activityScore > 0)
 			.sort((a, b) => b.activityScore - a.activityScore)
-			.slice(0, 40); // Show top 50 most active L1 chains
+			.slice(0, 40); // Show top 40 most active L1 chains
 
 		// Calculate total TPS (including Avalanche) for aggregate display
 		const totalTps = metrics.chains.reduce((sum, c) => sum + (c.tps || 0), 0);
@@ -165,6 +166,9 @@ export const Sponsors = () => {
 			const slug = l1Chain?.slug;
 			// Use API logo first, fallback to l1-chains.json logo
 			const logo = chain.chainLogoURI || l1Chain?.chainLogoURI;
+
+			// Only include chains that have a valid logo
+			if (!logo) return;
 
 			result.push({
 				id: chain.chainId,
@@ -258,7 +262,7 @@ export const Sponsors = () => {
 				icmFlows={icmFlowsData}
 				containerSize={650}
 				autoRotate={true}
-				autoRotateSpeed={0.12}
+				autoRotateSpeed={0.1}
 				className="mx-auto"
 			/>
 		</div>

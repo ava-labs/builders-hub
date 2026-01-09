@@ -83,7 +83,10 @@ export default async function Page(props: {
 
   if (!page) notFound();
 
-  const path = `content/academy${page.url.replace('/academy/', '/')}.mdx`;
+  // Use page.path which contains the actual file path relative to collection root
+  // (e.g., "avalanche-l1/course/module/index.mdx" for an index file)
+  // This correctly handles both regular .mdx files and index.mdx files
+  const path = `content/academy/${page.path}`;
   const editUrl = `https://github.com/ava-labs/builders-hub/edit/master/${path}`;
   const MDX = page.data.body;
   // Check both official courses and entrepreneur courses

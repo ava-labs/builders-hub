@@ -1,79 +1,34 @@
 "use client";
-import { useState, useEffect, useMemo } from "react";
-import {
-  Area,
-  AreaChart,
-  Bar,
-  BarChart,
-  CartesianGrid,
-  XAxis,
-  YAxis,
-  Pie,
-  PieChart,
-  Line,
-  LineChart,
-  Brush,
-  ResponsiveContainer,
-  Tooltip,
-  ComposedChart,
-} from "recharts";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
+import React, { useState, useEffect, useMemo, useTransition, useRef } from "react";
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis, Pie, PieChart, Line, LineChart, Brush, ResponsiveContainer, Tooltip, ComposedChart } from "recharts";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {
-  type ChartConfig,
-  ChartLegendContent,
-  ChartStyle,
-  ChartContainer,
-  ChartTooltip,
-  ChartLegend,
-} from "@/components/ui/chart";
-import {
-  Landmark,
-  Shield,
-  TrendingUp,
-  Monitor,
-  HandCoins,
-  Users,
-  Percent,
-  ArrowUpRight,
-  Twitter,
-  Linkedin,
-  Coins,
-} from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { type ChartConfig, ChartLegendContent, ChartStyle, ChartContainer, ChartTooltip, ChartLegend } from "@/components/ui/chart";
+import { Landmark, Shield, TrendingUp, Monitor, HandCoins, Users, Percent, ArrowUpRight, Twitter, Linkedin, Coins, Download, Camera, ChevronDown, Copy, Check } from "lucide-react";
 import { ValidatorWorldMap } from "@/components/stats/ValidatorWorldMap";
 import { L1BubbleNav } from "@/components/stats/l1-bubble.config";
 import { ExplorerDropdown } from "@/components/stats/ExplorerDropdown";
 import { StickyNavBar } from "@/components/stats/StickyNavBar";
+import { PeriodSelector, type Period } from "@/components/stats/PeriodSelector";
 import { MobileSocialLinks } from "@/components/stats/MobileSocialLinks";
 import { SearchInputWithClear } from "@/components/stats/SearchInputWithClear";
 import { SortIcon } from "@/components/stats/SortIcon";
 import { useSectionNavigation } from "@/hooks/use-section-navigation";
+import { LinkableHeading } from "@/components/stats/LinkableHeading";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { ChartSkeletonLoader } from "@/components/ui/chart-skeleton";
-import {
-  TimeSeriesDataPoint,
-  ChartDataPoint,
-  PrimaryNetworkMetrics,
-  VersionCount,
-  L1Chain,
-} from "@/types/stats";
+import { TimeSeriesDataPoint, ChartDataPoint, PrimaryNetworkMetrics, VersionCount, L1Chain } from "@/types/stats";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
+import { ChartWatermark } from "@/components/stats/ChartWatermark";
 import { StatsBreadcrumb } from "@/components/navigation/StatsBreadcrumb";
 import { ChainIdChips } from "@/components/ui/copyable-id-chip";
 import { AddToWalletButton } from "@/components/ui/add-to-wallet-button";
-import {
-  VersionBreakdownCard,
-  calculateVersionStats,
-  type VersionBreakdownData,
-} from "@/components/stats/VersionBreakdown";
+import { VersionBreakdownCard, calculateVersionStats, type VersionBreakdownData } from "@/components/stats/VersionBreakdown";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { getMAConfig } from "@/utils/chart-utils";
+import { useTheme } from "next-themes";
+import { toPng } from "html-to-image";
 
 interface ValidatorData {
   nodeId: string;
@@ -83,6 +38,45 @@ interface ValidatorData {
   delegatorCount: number;
   amountDelegated: string;
   version?: string;
+}
+
+interface ValidatorDetails {
+  txHash: string;
+  nodeId: string;
+  subnetId: string;
+  amountStaked: string;
+  delegationFee: string;
+  startTimestamp: number;
+  endTimestamp: number;
+  blsCredentials?: {
+    publicKey: string;
+    proofOfPossession: string;
+  };
+  stakePercentage: number;
+  validatorHealth?: {
+    reachabilityPercent: number;
+    benchedPChainRequestsPercent: number;
+    benchedXChainRequestsPercent: number;
+    benchedCChainRequestsPercent: number;
+  };
+  delegatorCount: number;
+  amountDelegated: string;
+  potentialRewards?: {
+    validationRewardAmount: string;
+    delegationRewardAmount: string;
+    rewardAddresses: string[];
+  };
+  uptimePerformance: number;
+  avalancheGoVersion?: string;
+  delegationCapacity: string;
+  validationStatus: string;
+  geolocation?: {
+    city: string;
+    country: string;
+    countryCode: string;
+    latitude: number;
+    longitude: number;
+  };
 }
 
 export default function CChainValidatorMetrics() {
@@ -102,6 +96,10 @@ export default function CChainValidatorMetrics() {
   const { copiedId, copyToClipboard } = useCopyToClipboard();
   const [sortColumn, setSortColumn] = useState<string>("amountStaked");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+  const [expandedValidators, setExpandedValidators] = useState<Set<string>>(new Set());
+  const [validatorDetails, setValidatorDetails] = useState<Record<string, ValidatorDetails | null>>({});
+  const [loadingDetails, setLoadingDetails] = useState<Set<string>>(new Set());
+  const [detailsCopiedId, setDetailsCopiedId] = useState<string | null>(null);
 
   const fetchData = async () => {
     try {
@@ -478,11 +476,12 @@ export default function CChainValidatorMetrics() {
     return num.toFixed(0);
   };
 
-  // Get total validator weight from metrics
+  // Get total weight (validator + delegator) from metrics
   const getTotalWeight = (): string => {
-    if (!metrics?.validator_weight?.current_value) return "0";
-    const weightInAvax = Number(metrics.validator_weight.current_value) / 1e9;
-    return formatLargeNumber(weightInAvax);
+    const validatorWeight = metrics?.validator_weight?.current_value ? Number(metrics.validator_weight.current_value) : 0;
+    const delegatorWeight = metrics?.delegator_weight?.current_value ? Number(metrics.delegator_weight.current_value) : 0;
+    const totalWeightInAvax = (validatorWeight + delegatorWeight) / 1e9;
+    return formatLargeNumber(totalWeightInAvax);
   };
 
   // C-Chain config from l1-chains.json
@@ -503,34 +502,34 @@ export default function CChainValidatorMetrics() {
 
   const chartConfigs = [
     {
-      title: "Validator Count",
+      title: "Primary Network Validator Count",
       icon: Monitor,
       metricKey: "validator_count" as const,
-      description: "Number of active validators",
+      description: "Number of active validators on the Primary Network",
       color: chainConfig.color,
       chartType: "bar" as const,
     },
     {
-      title: "Validator Weight",
+      title: "Primary Network Validator Stake",
       icon: Landmark,
       metricKey: "validator_weight" as const,
-      description: "Total validator weight",
+      description: "Total staked amount by validators",
       color: chainConfig.color,
       chartType: "area" as const,
     },
     {
-      title: "Delegator Count",
+      title: "Primary Network Delegator Count",
       icon: HandCoins,
       metricKey: "delegator_count" as const,
-      description: "Number of active delegators",
+      description: "Number of active delegators on the Primary Network",
       color: "#E84142",
       chartType: "bar" as const,
     },
     {
-      title: "Delegator Weight",
+      title: "Primary Network Delegated Stake",
       icon: Landmark,
       metricKey: "delegator_weight" as const,
-      description: "Total delegator weight",
+      description: "Total delegated amount across validators",
       color: "#E84142",
       chartType: "area" as const,
     },
@@ -539,6 +538,23 @@ export default function CChainValidatorMetrics() {
   const [chartPeriods, setChartPeriods] = useState<
     Record<string, "D" | "W" | "M" | "Q" | "Y">
   >(Object.fromEntries(chartConfigs.map((config) => [config.metricKey, "D"])));
+
+  // Global period selector state
+  const [globalPeriod, setGlobalPeriod] = useState<Period>("D");
+  const [, startTransition] = useTransition();
+
+  const handlePeriodChange = (newPeriod: Period) => {
+    startTransition(() => {
+      setGlobalPeriod(newPeriod);
+    });
+  };
+
+  // Sync all chart periods when global period changes
+  useEffect(() => {
+    setChartPeriods(
+      Object.fromEntries(chartConfigs.map((config) => [config.metricKey, globalPeriod]))
+    );
+  }, [globalPeriod]);
 
   // Navigation categories
   const navCategories = [
@@ -635,6 +651,68 @@ export default function CChainValidatorMetrics() {
   useEffect(() => {
     setDisplayCount(50);
   }, [searchTerm]);
+
+  // Toggle validator expansion and fetch details
+  const toggleValidatorExpansion = async (nodeId: string) => {
+    const newExpanded = new Set(expandedValidators);
+    
+    if (newExpanded.has(nodeId)) {
+      newExpanded.delete(nodeId);
+      setExpandedValidators(newExpanded);
+      return;
+    }
+    
+    newExpanded.add(nodeId);
+    setExpandedValidators(newExpanded);
+
+    if (!validatorDetails[nodeId] && !loadingDetails.has(nodeId)) {
+      setLoadingDetails(prev => new Set(prev).add(nodeId));
+      
+      try {
+        const response = await fetch(`/api/validator-details/${encodeURIComponent(nodeId)}`);
+        if (response.ok) {
+          const data = await response.json();
+          setValidatorDetails(prev => ({...prev, [nodeId]: data.validatorDetails}));
+        } else {
+          setValidatorDetails(prev => ({...prev, [nodeId]: null}));
+        }
+      } catch (error) {
+        console.error(`Failed to fetch details for ${nodeId}:`, error);
+        setValidatorDetails(prev => ({...prev, [nodeId]: null}));
+      } finally {
+        setLoadingDetails(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(nodeId);
+          return newSet;
+        });
+      }
+    }
+  };
+
+  const copyDetailsToClipboard = (text: string, id: string) => {
+    navigator.clipboard.writeText(text);
+    setDetailsCopiedId(id);
+    setTimeout(() => setDetailsCopiedId(null), 2000);
+  };
+
+  // Format timestamp
+  const formatTimestamp = (timestamp: number): string => {
+    if (!timestamp) return "N/A";
+    return new Date(timestamp * 1000).toLocaleDateString("en-US", {year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit"});
+  };
+
+  // Format nAVAX to AVAX
+  const formatNavaxToAvax = (navax: string): string => {
+    const value = parseFloat(navax) / 1e9;
+    if (value >= 1e6) return `${(value / 1e6).toFixed(2)}M AVAX`;
+    if (value >= 1e3) return `${(value / 1e3).toFixed(2)}K AVAX`;
+    return `${value.toFixed(2)} AVAX`;
+  };
+
+  const truncateString = (str: string, startLen: number = 10, endLen: number = 8): string => {
+    if (str.length <= startLen + endLen + 3) return str;
+    return `${str.slice(0, startLen)}...${str.slice(-endLen)}`;
+  };
 
   if (loading) {
     return (
@@ -973,18 +1051,36 @@ export default function CChainValidatorMetrics() {
         categories={navCategories}
         activeSection={activeSection}
         onNavigate={scrollToSection}
-      />
+      >
+        <PeriodSelector
+          selected={globalPeriod}
+          onChange={handlePeriodChange}
+        />
+      </StickyNavBar>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-8 sm:space-y-12">
-        <section id="trends" className="space-y-4 sm:space-y-6 scroll-mt-32">
+        <section className="space-y-4 sm:space-y-6">
           <div className="space-y-2">
-            <h2 className="text-lg sm:text-2xl font-medium text-left">
+            <LinkableHeading as="h2" id="trends" className="text-lg sm:text-2xl font-medium text-left">
               Historical Trends
-            </h2>
+            </LinkableHeading>
             <p className="text-zinc-500 dark:text-zinc-400 text-sm sm:text-base text-left">
               Track network growth and validator activity over time
             </p>
           </div>
+
+          {/* Primary Network Total Stake - Stacked Area Chart */}
+          {metrics?.validator_weight && metrics?.delegator_weight && (
+            <TotalWeightStackedChartCard
+              validatorData={getChartData("validator_weight")}
+              delegatorData={getChartData("delegator_weight")}
+              validatorCurrentValue={getCurrentValue("validator_weight")}
+              delegatorCurrentValue={getCurrentValue("delegator_weight")}
+              color={chainConfig.color}
+              period={globalPeriod}
+              onPeriodChange={handlePeriodChange}
+            />
+          )}
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             {chartConfigs.map((config) => {
@@ -1022,11 +1118,11 @@ export default function CChainValidatorMetrics() {
         </section>
 
         {/* Rewards Distribution Section */}
-        <section id="rewards" className="space-y-4 sm:space-y-6 scroll-mt-32">
+        <section className="space-y-4 sm:space-y-6">
           <div className="space-y-2">
-            <h2 className="text-lg sm:text-2xl font-medium text-left">
+            <LinkableHeading as="h2" id="rewards" className="text-lg sm:text-2xl font-medium text-left">
               Rewards Distribution
-            </h2>
+            </LinkableHeading>
             <p className="text-zinc-500 dark:text-zinc-400 text-sm sm:text-base text-left">
               Track staking rewards for the Primary Network
             </p>
@@ -1047,6 +1143,8 @@ export default function CChainValidatorMetrics() {
                 currentValue={metrics.daily_rewards.current_value}
                 cumulativeCurrentValue={metrics.cumulative_rewards?.current_value || 0}
                 color={chainConfig.color}
+                period={globalPeriod}
+                onPeriodChange={handlePeriodChange}
               />
             )}
 
@@ -1059,19 +1157,18 @@ export default function CChainValidatorMetrics() {
                 })).reverse()}
                 currentValue={metrics.cumulative_rewards.current_value}
                 color="#a855f7"
+                period={globalPeriod}
+                onPeriodChange={handlePeriodChange}
               />
             )}
           </div>
         </section>
 
-        <section
-          id="distribution"
-          className="space-y-4 sm:space-y-6 scroll-mt-32"
-        >
+        <section className="space-y-4 sm:space-y-6">
           <div className="space-y-2">
-            <h2 className="text-lg sm:text-2xl font-medium text-left">
+            <LinkableHeading as="h2" id="distribution" className="text-lg sm:text-2xl font-medium text-left">
               Stake Distribution Analysis
-            </h2>
+            </LinkableHeading>
             <p className="text-zinc-500 dark:text-zinc-400 text-sm sm:text-base text-left">
               Analyze how stake is distributed across validators and delegation
               patterns
@@ -1105,7 +1202,7 @@ export default function CChainValidatorMetrics() {
                       </div>
                     </div>
                   </div>
-                  <div className="px-4 sm:px-5 py-4 sm:py-5">
+                  <ChartWatermark className="px-4 sm:px-5 py-4 sm:py-5">
                     <div className="flex items-center justify-start gap-6 mb-4 text-sm">
                       <div className="flex items-center gap-2">
                         <div
@@ -1215,7 +1312,7 @@ export default function CChainValidatorMetrics() {
                         />
                       </ComposedChart>
                     </ResponsiveContainer>
-                  </div>
+                  </ChartWatermark>
                 </CardContent>
               </Card>
             )}
@@ -1246,7 +1343,7 @@ export default function CChainValidatorMetrics() {
                       </div>
                     </div>
                   </div>
-                  <div className="px-4 sm:px-5 py-4 sm:py-5">
+                  <ChartWatermark className="px-4 sm:px-5 py-4 sm:py-5">
                     <div className="flex items-center justify-start gap-6 mb-4 text-sm">
                       <div className="flex items-center gap-2">
                         <div
@@ -1354,7 +1451,7 @@ export default function CChainValidatorMetrics() {
                         />
                       </ComposedChart>
                     </ResponsiveContainer>
-                  </div>
+                  </ChartWatermark>
                 </CardContent>
               </Card>
             )}
@@ -1387,7 +1484,7 @@ export default function CChainValidatorMetrics() {
                       </div>
                     </div>
                   </div>
-                  <div className="px-4 sm:px-5 py-4 sm:py-5">
+                  <ChartWatermark className="px-4 sm:px-5 py-4 sm:py-5">
                     <div className="flex items-center justify-start gap-6 mb-4 text-sm">
                       <div className="flex items-center gap-2">
                         <div
@@ -1497,7 +1594,7 @@ export default function CChainValidatorMetrics() {
                         />
                       </ComposedChart>
                     </ResponsiveContainer>
-                  </div>
+                  </ChartWatermark>
                 </CardContent>
               </Card>
             )}
@@ -1528,7 +1625,7 @@ export default function CChainValidatorMetrics() {
                       </div>
                     </div>
                   </div>
-                  <div className="px-4 sm:px-5 py-4 sm:py-5">
+                  <ChartWatermark className="px-4 sm:px-5 py-4 sm:py-5">
                     <ResponsiveContainer width="100%" height={350}>
                       <BarChart
                         data={feeDistribution}
@@ -1608,18 +1705,18 @@ export default function CChainValidatorMetrics() {
                         />
                       </BarChart>
                     </ResponsiveContainer>
-                  </div>
+                  </ChartWatermark>
                 </CardContent>
               </Card>
             )}
           </div>
         </section>
 
-        <section id="versions" className="space-y-4 sm:space-y-6 scroll-mt-32">
+        <section className="space-y-4 sm:space-y-6">
           <div className="space-y-2">
-            <h2 className="text-lg sm:text-2xl font-medium text-left">
+            <LinkableHeading as="h2" id="versions" className="text-lg sm:text-2xl font-medium text-left">
               Software Versions
-            </h2>
+            </LinkableHeading>
             <p className="text-zinc-500 dark:text-zinc-400 text-sm sm:text-base text-left">
               Distribution of AvalancheGo versions across validators
             </p>
@@ -1772,19 +1869,19 @@ export default function CChainValidatorMetrics() {
         </section>
 
         {/* Global Validator Distribution Map */}
-        <section id="map" className="space-y-4 sm:space-y-6 scroll-mt-32">
+        <section className="space-y-4 sm:space-y-6">
+          <LinkableHeading as="h2" id="map" className="text-lg sm:text-2xl font-medium text-left sr-only">
+            Validator Map
+          </LinkableHeading>
           <ValidatorWorldMap />
         </section>
 
         {/* All Validators Table */}
-        <section
-          id="validators"
-          className="space-y-4 sm:space-y-6 scroll-mt-32"
-        >
+        <section className="space-y-4 sm:space-y-6">
           <div className="space-y-2">
-            <h2 className="text-lg sm:text-2xl font-medium text-left">
+            <LinkableHeading as="h2" id="validators" className="text-lg sm:text-2xl font-medium text-left">
               Validator List
-            </h2>
+            </LinkableHeading>
             <p className="text-zinc-500 dark:text-zinc-400 text-sm sm:text-base text-left">
               Complete list of all validators on the Primary Network
             </p>
@@ -1810,32 +1907,32 @@ export default function CChainValidatorMetrics() {
                 <table className="w-full border-collapse">
                   <thead className="bg-[#fcfcfd] dark:bg-neutral-900">
                     <tr>
-                      <th className="px-4 py-2 text-left">
+                      <th className="px-4 py-4 text-left">
                         <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
                           #
                         </span>
                       </th>
-                      <th className="px-4 py-2 text-left">
+                      <th className="px-4 py-4 text-left">
                         <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
                           Node ID
                         </span>
                       </th>
-                      <th className="px-4 py-2 text-right">
+                      <th className="px-4 py-4 text-right">
                         <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
                           Amount Staked
                         </span>
                       </th>
-                      <th className="px-4 py-2 text-right">
+                      <th className="px-4 py-4 text-right">
                         <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
                           Delegation Fee
                         </span>
                       </th>
-                      <th className="px-4 py-2 text-right">
+                      <th className="px-4 py-4 text-right">
                         <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
                           Delegators
                         </span>
                       </th>
-                      <th className="px-4 py-2 text-right">
+                      <th className="px-4 py-4 text-right">
                         <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
                           Amount Delegated
                         </span>
@@ -1849,7 +1946,10 @@ export default function CChainValidatorMetrics() {
                         className="border-b border-slate-100 dark:border-neutral-800 animate-pulse"
                       >
                         <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-3">
-                          <div className="h-4 w-8 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                          <div className="flex items-center gap-1.5">
+                            <div className="h-4 w-4 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                            <div className="h-4 w-4 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                          </div>
                         </td>
                         <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-3">
                           <div className="h-4 w-40 bg-zinc-200 dark:bg-zinc-800 rounded" />
@@ -1879,18 +1979,18 @@ export default function CChainValidatorMetrics() {
                   <table className="w-full border-collapse">
                     <thead className="bg-[#fcfcfd] dark:bg-neutral-900">
                       <tr>
-                        <th className="px-4 py-2 text-left">
+                        <th className="px-4 py-4 text-left">
                           <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
                             #
                           </span>
                         </th>
-                        <th className="px-4 py-2 text-left">
+                        <th className="px-4 py-4 text-left">
                           <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
                             Node ID
                           </span>
                         </th>
                         <th
-                          className="px-4 py-2 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                          className="px-4 py-4 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                           onClick={() => handleSort("amountStaked")}
                         >
                           <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300 inline-flex items-center justify-end">
@@ -1899,7 +1999,7 @@ export default function CChainValidatorMetrics() {
                           </span>
                         </th>
                         <th
-                          className="px-4 py-2 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                          className="px-4 py-4 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                           onClick={() => handleSort("delegationFee")}
                         >
                           <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300 inline-flex items-center justify-end">
@@ -1908,7 +2008,7 @@ export default function CChainValidatorMetrics() {
                           </span>
                         </th>
                         <th
-                          className="px-4 py-2 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                          className="px-4 py-4 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                           onClick={() => handleSort("delegatorCount")}
                         >
                           <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300 inline-flex items-center justify-end">
@@ -1917,7 +2017,7 @@ export default function CChainValidatorMetrics() {
                           </span>
                         </th>
                         <th
-                          className="px-4 py-2 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                          className="px-4 py-4 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                           onClick={() => handleSort("amountDelegated")}
                         >
                           <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300 inline-flex items-center justify-end">
@@ -1940,29 +2040,43 @@ export default function CChainValidatorMetrics() {
                           </td>
                         </tr>
                       ) : (
-                        displayedValidators.map((validator, index) => (
-                          <tr
-                            key={validator.nodeId}
-                            className="border-b border-slate-100 dark:border-neutral-800 transition-colors hover:bg-blue-50/50 dark:hover:bg-neutral-800/50"
+                        displayedValidators.map((validator, index) => {
+                          const isExpanded = expandedValidators.has(validator.nodeId);
+                          const details = validatorDetails[validator.nodeId];
+                          const isLoadingDetails = loadingDetails.has(validator.nodeId);
+                          
+                          return (
+                            <React.Fragment key={validator.nodeId}>
+                              <tr
+                                onClick={() => toggleValidatorExpansion(validator.nodeId)}
+                                className={`border-b border-slate-100 dark:border-neutral-800 transition-colors hover:bg-blue-50/50 dark:hover:bg-neutral-800/50 cursor-pointer ${isExpanded ? 'bg-blue-50/30 dark:bg-neutral-800/30' : ''}`}
                           >
-                            <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
+                            <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-4">
+                                  <div className="flex items-center gap-1.5">
+                                    <ChevronDown
+                                      className={`h-4 w-4 text-zinc-400 transition-transform duration-200 ${
+                                        isExpanded ? "rotate-180" : ""
+                                      }`}
+                                    />
                               <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
                                 {index + 1}
                               </span>
+                                  </div>
                             </td>
-                            <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 font-mono text-xs">
+                            <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-4 font-mono text-xs">
                               <span
                                 title={
                                   copiedId === `node-${validator.nodeId}`
                                     ? "Copied!"
                                     : `Click to copy: ${validator.nodeId}`
                                 }
-                                onClick={() =>
+                                    onClick={(e) => {
+                                      e.stopPropagation();
                                   copyToClipboard(
                                     validator.nodeId,
                                     `node-${validator.nodeId}`
-                                  )
-                                }
+                                      );
+                                    }}
                                 className={`cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors ${
                                   copiedId === `node-${validator.nodeId}`
                                     ? "text-green-600 dark:text-green-400"
@@ -1977,22 +2091,283 @@ export default function CChainValidatorMetrics() {
                                     )}...${validator.nodeId.slice(-8)}`}
                               </span>
                             </td>
-                            <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 text-right font-mono text-sm">
+                            <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-4 text-right font-mono text-sm">
                               {formatValidatorStake(validator.amountStaked)}{" "}
                               AVAX
                             </td>
-                            <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 text-right text-sm">
+                            <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-4 text-right text-sm">
                               {parseFloat(validator.delegationFee).toFixed(1)}%
                             </td>
-                            <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 text-right text-sm">
+                            <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-4 text-right text-sm">
                               {validator.delegatorCount}
                             </td>
-                            <td className="px-4 py-2 text-right font-mono text-sm">
+                            <td className="px-4 py-4 text-right font-mono text-sm">
                               {formatValidatorStake(validator.amountDelegated)}{" "}
                               AVAX
                             </td>
                           </tr>
-                        ))
+                              
+                              {/* Expanded Details Section */}
+                              {isExpanded && (
+                                <tr className="bg-zinc-50/50 dark:bg-neutral-900/30">
+                                  <td colSpan={6} className="px-6 py-5">
+                                    {isLoadingDetails ? (
+                                      <div className="animate-in fade-in duration-300">
+                                        {/* Status & Version Skeleton */}
+                                        <div className="flex items-center justify-between mb-5">
+                                          <div className="flex items-center gap-3">
+                                            <div className="h-6 w-16 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                                            <div className="h-4 w-20 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                                          </div>
+                                          <div className="h-8 w-28 bg-zinc-200 dark:bg-zinc-800 rounded-md animate-pulse" />
+                                        </div>
+
+                                        {/* First Grid Row Skeleton */}
+                                        <div className="grid md:grid-cols-3 gap-3 mb-3">
+                                          {[1, 2, 3].map((i) => (
+                                            <div key={i} className="p-3 border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-neutral-900">
+                                              <div className="h-3 w-24 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse mb-3" />
+                                              <div className="space-y-2">
+                                                <div className="h-3 w-36 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                                                <div className="h-3 w-32 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                                                <div className="h-3 w-28 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                                              </div>
+                                            </div>
+                                          ))}
+                                        </div>
+
+                                        {/* Second Grid Row Skeleton */}
+                                        <div className="grid md:grid-cols-3 gap-3 mb-4">
+                                          {[1, 2, 3].map((i) => (
+                                            <div key={i} className="p-3 border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-neutral-900">
+                                              <div className="h-3 w-20 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse mb-3" />
+                                              <div className="space-y-2">
+                                                <div className="h-3 w-32 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                                                <div className="h-3 w-28 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                                              </div>
+                                            </div>
+                                          ))}
+                                        </div>
+
+                                        {/* Technical Details Skeleton */}
+                                        <div className="border-t border-zinc-200 dark:border-zinc-700 pt-4">
+                                          <div className="h-3 w-28 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse mb-3" />
+                                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                            {[1, 2].map((i) => (
+                                              <div key={i} className="flex items-center justify-between p-2.5 bg-white dark:bg-neutral-900 border border-zinc-200 dark:border-zinc-700 rounded-lg">
+                                                <div className="flex items-center gap-2">
+                                                  <div className="h-3 w-16 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                                                  <div className="h-3 w-32 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                                                </div>
+                                                <div className="h-6 w-6 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                                              </div>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    ) : details ? (
+                                      <>
+                                        {/* Status & Version */}
+                                        <div className="flex items-center justify-between mb-5">
+                                          <div className="flex items-center gap-3">
+                                            <span className={`px-2.5 py-1 text-xs font-medium rounded flex items-center gap-1.5 ${
+                                              details.validationStatus === 'active'
+                                                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                                                : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                                            }`}>
+                                              <span className={`w-1.5 h-1.5 rounded-full ${details.validationStatus === 'active' ? 'bg-emerald-500' : 'bg-yellow-500'}`} />
+                                              {details.validationStatus.charAt(0).toUpperCase() + details.validationStatus.slice(1)}
+                                            </span>
+                                            {details.avalancheGoVersion && (
+                                              <span className="text-sm text-zinc-500 dark:text-zinc-400">{details.avalancheGoVersion}</span>
+                                            )}
+                                          </div>
+                                          <a
+                                            href={`https://subnets.avax.network/validators/${validator.nodeId}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            onClick={(e) => e.stopPropagation()}
+                                            className="inline-flex items-center h-8 px-3 text-xs font-medium gap-2 border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:border-zinc-400 dark:hover:border-zinc-500 rounded-md transition-all bg-transparent"
+                                          >
+                                            View on Explorer
+                                            <ArrowUpRight className="h-3.5 w-3.5" />
+                                          </a>
+                                        </div>
+
+                                        <div className="grid md:grid-cols-3 gap-3 mb-3">
+                                          <div className="p-3 border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-neutral-900">
+                                            <h4 className="text-xs font-medium text-zinc-900 dark:text-zinc-100 mb-2">Validation Period</h4>
+                                            <div className="text-xs text-zinc-500 dark:text-zinc-400 space-y-0.5">
+                                              <p>Start: {formatTimestamp(details.startTimestamp)}</p>
+                                              <p>End: {formatTimestamp(details.endTimestamp)}</p>
+                                            </div>
+                                          </div>
+                                          <div className="p-3 border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-neutral-900">
+                                            <h4 className="text-xs font-medium text-zinc-900 dark:text-zinc-100 mb-2">Staking Details</h4>
+                                            <div className="text-xs text-zinc-500 dark:text-zinc-400 space-y-0.5">
+                                              <p>Staked: {formatNavaxToAvax(details.amountStaked)}</p>
+                                              <p>Delegated: {formatNavaxToAvax(details.amountDelegated)}</p>
+                                              <p>Stake Percentage: {details.stakePercentage.toFixed(4)}%</p>
+                                            </div>
+                                          </div>
+                                          <div className="p-3 border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-neutral-900">
+                                            <h4 className="text-xs font-medium text-zinc-900 dark:text-zinc-100 mb-2">Delegation</h4>
+                                            <div className="text-xs text-zinc-500 dark:text-zinc-400 space-y-0.5">
+                                              <p>Fee: {parseFloat(details.delegationFee).toFixed(2)}%</p>
+                                              <p>Capacity: {formatNavaxToAvax(details.delegationCapacity)}</p>
+                                              <p>Delegators: {details.delegatorCount}</p>
+                                            </div>
+                                          </div>
+                                        </div>
+
+                                        <div className="grid md:grid-cols-3 gap-3 mb-4">
+                                          <div className="p-3 border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-neutral-900">
+                                            <h4 className="text-xs font-medium text-zinc-900 dark:text-zinc-100 mb-2">Performance</h4>
+                                            <div className="text-xs space-y-0.5">
+                                              <p className="text-zinc-500 dark:text-zinc-400">
+                                                Uptime: <span className={`font-medium ${details.uptimePerformance >= 80 ? 'text-emerald-600 dark:text-emerald-400' : details.uptimePerformance >= 50 ? 'text-yellow-600 dark:text-yellow-400' : 'text-red-600 dark:text-red-400'}`}>{details.uptimePerformance.toFixed(2)}%</span>
+                                              </p>
+                                              {details.validatorHealth && (
+                                                <p className="text-zinc-500 dark:text-zinc-400">
+                                                  Reachability: <span className={`font-medium ${details.validatorHealth.reachabilityPercent >= 80 ? 'text-emerald-600 dark:text-emerald-400' : 'text-yellow-600 dark:text-yellow-400'}`}>{details.validatorHealth.reachabilityPercent}%</span>
+                                                </p>
+                                              )}
+                                            </div>
+                                          </div>
+                                          {details.potentialRewards && (
+                                            <div className="p-3 border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-neutral-900">
+                                              <h4 className="text-xs font-medium text-zinc-900 dark:text-zinc-100 mb-2">Potential Rewards</h4>
+                                              <div className="text-xs space-y-0.5">
+                                                <p className="text-zinc-500 dark:text-zinc-400">
+                                                  Validation: <span className="text-emerald-600 dark:text-emerald-400 font-medium">{formatNavaxToAvax(details.potentialRewards.validationRewardAmount)}</span>
+                                                </p>
+                                                <p className="text-zinc-500 dark:text-zinc-400">
+                                                  Delegation: <span className="text-emerald-600 dark:text-emerald-400 font-medium">{formatNavaxToAvax(details.potentialRewards.delegationRewardAmount)}</span>
+                                                </p>
+                                              </div>
+                                            </div>
+                                          )}
+                                          {details.geolocation && (
+                                            <div className="p-3 border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-neutral-900">
+                                              <h4 className="text-xs font-medium text-zinc-900 dark:text-zinc-100 mb-2">Location</h4>
+                                              <div className="text-xs text-zinc-500 dark:text-zinc-400">
+                                                <p>{details.geolocation.city}, {details.geolocation.country}</p>
+                                              </div>
+                                            </div>
+                                          )}
+                                        </div>
+
+                                        <div className="border-t border-zinc-200 dark:border-zinc-700 pt-4">
+                                          <h4 className="text-xs font-medium text-zinc-900 dark:text-zinc-100 mb-3">Technical Details</h4>
+                                          <div className="space-y-2">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                              <div className="flex items-center justify-between p-2.5 bg-white dark:bg-neutral-900 border border-zinc-200 dark:border-zinc-700 rounded-lg">
+                                                <div className="flex items-center gap-2 min-w-0">
+                                                  <span className="text-xs text-zinc-500 dark:text-zinc-400 shrink-0">TX Hash:</span>
+                                                  <a 
+                                                    href={`https://subnets.avax.network/p-chain/tx/${details.txHash}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    className="inline-flex items-center gap-1 font-mono text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors truncate"
+                                                  >
+                                                    {truncateString(details.txHash, 12, 8)}
+                                                    <ArrowUpRight className="h-3 w-3 shrink-0" />
+                                                  </a>
+                                                </div>
+                                                <button 
+                                                  onClick={(e) => { e.stopPropagation(); copyDetailsToClipboard(details.txHash, `tx-${validator.nodeId}`); }}
+                                                  className="h-6 w-6 p-0 flex items-center justify-center hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded transition-colors shrink-0"
+                                                >
+                                                  {detailsCopiedId === `tx-${validator.nodeId}` ? (
+                                                    <Check className="h-3 w-3 text-emerald-500" />
+                                                  ) : (
+                                                    <Copy className="h-3 w-3 text-zinc-400" />
+                                                  )}
+                                                </button>
+                                              </div>
+                                              {details.potentialRewards?.rewardAddresses?.[0] && (
+                                                <div className="flex items-center justify-between p-2.5 bg-white dark:bg-neutral-900 border border-zinc-200 dark:border-zinc-700 rounded-lg">
+                                                  <div className="flex items-center gap-2 min-w-0">
+                                                    <span className="text-xs text-zinc-500 dark:text-zinc-400 shrink-0">Payout Address:</span>
+                                                    <a 
+                                                      href={`https://subnets.avax.network/p-chain/address/${details.potentialRewards.rewardAddresses[0]}`}
+                                                      target="_blank"
+                                                      rel="noopener noreferrer"
+                                                      onClick={(e) => e.stopPropagation()}
+                                                      className="inline-flex items-center gap-1 font-mono text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors truncate"
+                                                    >
+                                                      {truncateString(details.potentialRewards.rewardAddresses[0], 10, 8)}
+                                                      <ArrowUpRight className="h-3 w-3 shrink-0" />
+                                                    </a>
+                                                  </div>
+                                                  <button 
+                                                    onClick={(e) => { e.stopPropagation(); copyDetailsToClipboard(details.potentialRewards!.rewardAddresses[0], `payout-${validator.nodeId}`); }}
+                                                    className="h-6 w-6 p-0 flex items-center justify-center hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded transition-colors shrink-0"
+                                                  >
+                                                    {detailsCopiedId === `payout-${validator.nodeId}` ? (
+                                                      <Check className="h-3 w-3 text-emerald-500" />
+                                                    ) : (
+                                                      <Copy className="h-3 w-3 text-zinc-400" />
+                                                    )}
+                                                  </button>
+                                                </div>
+                                              )}
+                                            </div>
+                                            {(details.blsCredentials?.publicKey || details.blsCredentials?.proofOfPossession) && (
+                                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                                {details.blsCredentials?.publicKey && (
+                                                  <div className="flex items-center justify-between p-2.5 bg-white dark:bg-neutral-900 border border-zinc-200 dark:border-zinc-700 rounded-lg">
+                                                    <div className="flex items-center gap-2 min-w-0">
+                                                      <span className="text-xs text-zinc-500 dark:text-zinc-400 shrink-0">BLS Key:</span>
+                                                      <span className="font-mono text-xs text-zinc-700 dark:text-zinc-300 truncate">{truncateString(details.blsCredentials.publicKey, 12, 8)}</span>
+                                                    </div>
+                                                    <button 
+                                                      onClick={(e) => { e.stopPropagation(); copyDetailsToClipboard(details.blsCredentials!.publicKey, `bls-${validator.nodeId}`); }}
+                                                      className="h-6 w-6 p-0 flex items-center justify-center hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded transition-colors shrink-0"
+                                                    >
+                                                      {detailsCopiedId === `bls-${validator.nodeId}` ? (
+                                                        <Check className="h-3 w-3 text-emerald-500" />
+                                                      ) : (
+                                                        <Copy className="h-3 w-3 text-zinc-400" />
+                                                      )}
+                                                    </button>
+                                                  </div>
+                                                )}
+                                                {details.blsCredentials?.proofOfPossession && (
+                                                  <div className="flex items-center justify-between p-2.5 bg-white dark:bg-neutral-900 border border-zinc-200 dark:border-zinc-700 rounded-lg">
+                                                    <div className="flex items-center gap-2 min-w-0">
+                                                      <span className="text-xs text-zinc-500 dark:text-zinc-400 shrink-0">BLS Signature:</span>
+                                                      <span className="font-mono text-xs text-zinc-700 dark:text-zinc-300 truncate">{truncateString(details.blsCredentials.proofOfPossession, 12, 8)}</span>
+                                                    </div>
+                                                    <button 
+                                                      onClick={(e) => { e.stopPropagation(); copyDetailsToClipboard(details.blsCredentials!.proofOfPossession, `blssig-${validator.nodeId}`); }}
+                                                      className="h-6 w-6 p-0 flex items-center justify-center hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded transition-colors shrink-0"
+                                                    >
+                                                      {detailsCopiedId === `blssig-${validator.nodeId}` ? (
+                                                        <Check className="h-3 w-3 text-emerald-500" />
+                                                      ) : (
+                                                        <Copy className="h-3 w-3 text-zinc-400" />
+                                                      )}
+                                                    </button>
+                                                  </div>
+                                                )}
+                                              </div>
+                                            )}
+                                          </div>
+                                        </div>
+                                      </>
+                                    ) : (
+                                      <div className="flex items-center justify-center py-8">
+                                        <span className="text-sm text-zinc-500">Unable to load validator details</span>
+                                      </div>
+                                    )}
+                                  </td>
+                                </tr>
+                              )}
+                            </React.Fragment>
+                          );
+                        })
                       )}
                     </tbody>
                   </table>
@@ -2047,6 +2422,30 @@ function ValidatorChartCard({
     startIndex: number;
     endIndex: number;
   } | null>(null);
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+  const { resolvedTheme } = useTheme();
+  const handleScreenshot = async () => {
+    if (!chartContainerRef.current) return;
+
+    try {
+      const element = chartContainerRef.current;
+      const bgColor = resolvedTheme === "dark" ? "#0a0a0a" : "#ffffff";
+
+      const dataUrl = await toPng(element, {
+        quality: 1,
+        pixelRatio: 2,
+        backgroundColor: bgColor,
+        cacheBust: true,
+      });
+
+      const link = document.createElement("a");
+      link.download = `${config.title.replace(/\s+/g, "_")}_${period}_${new Date().toISOString().split("T")[0]}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (error) {
+      console.error("Failed to capture screenshot:", error);
+    }
+  };
 
   const aggregatedData = useMemo(() => {
     if (period === "D") return rawData;
@@ -2128,6 +2527,25 @@ function ValidatorChartCard({
       isPositive: changePercentage >= 0,
     };
   }, [displayData]);
+
+  // CSV download function
+  const downloadCSV = () => {
+    if (!displayData || displayData.length === 0) return;
+
+    const headers = ["Date", config.title];
+    const rows = displayData.map((point: any) => [point.day, point.value].join(","));
+
+    const csvContent = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${config.title.replace(/\s+/g, "_")}_${period}_${new Date().toISOString().split("T")[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
 
   const formatXAxis = (value: string) => {
     if (period === "Q") {
@@ -2212,7 +2630,7 @@ function ValidatorChartCard({
   const Icon = config.icon;
 
   return (
-    <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700">
+    <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700" ref={chartContainerRef}>
       <CardContent className="p-0">
         <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center gap-2 sm:gap-3">
@@ -2234,25 +2652,40 @@ function ValidatorChartCard({
               </p>
             </div>
           </div>
-          <div className="flex gap-0.5 sm:gap-1">
-            {(["D", "W", "M", "Q", "Y"] as const).map((p) => (
-              <button
-                key={p}
-                onClick={() => onPeriodChange(p)}
-                className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm  rounded-md transition-colors ${
-                  period === p
-                    ? "text-white dark:text-white"
-                    : "text-muted-foreground hover:bg-muted"
-                }`}
-                style={
-                  period === p
-                    ? { backgroundColor: `${config.color}`, opacity: 0.9 }
-                    : {}
-                }
-              >
-                {p}
-              </button>
-            ))}
+          <div className="flex items-center gap-1">
+            <Select
+              value={period}
+              onValueChange={(value) =>
+                onPeriodChange(value as "D" | "W" | "M" | "Q" | "Y")
+              }
+            >
+              <SelectTrigger className="h-7 w-auto px-2 gap-1 text-xs sm:text-sm border-0 bg-transparent hover:bg-muted focus:ring-0 shadow-none">
+                <SelectValue>
+                  {period === "D" ? "Daily" : period === "W" ? "Weekly" : period === "M" ? "Monthly" : period === "Q" ? "Quarterly" : "Yearly"}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {(["D", "W", "M", "Q", "Y"] as const).map((p) => (
+                  <SelectItem key={p} value={p}>
+                    {p === "D" ? "Daily" : p === "W" ? "Weekly" : p === "M" ? "Monthly" : p === "Q" ? "Quarterly" : "Yearly"}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <button
+              onClick={handleScreenshot}
+              className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
+              title="Download chart as image"
+            >
+              <Camera className="h-4 w-4" />
+            </button>
+            <button
+              onClick={downloadCSV}
+              className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
+              title="Download CSV"
+            >
+              <Download className="h-4 w-4" />
+            </button>
           </div>
         </div>
 
@@ -2283,7 +2716,7 @@ function ValidatorChartCard({
             )}
           </div>
 
-          <div className="mb-6">
+          <ChartWatermark className="mb-6">
             <ResponsiveContainer width="100%" height={350}>
               {config.chartType === "bar" ? (
                 <BarChart
@@ -2409,7 +2842,7 @@ function ValidatorChartCard({
                 </AreaChart>
               )}
             </ResponsiveContainer>
-          </div>
+          </ChartWatermark>
 
           {/* Brush Slider */}
           <div className="mt-4 bg-white dark:bg-black pl-[60px]">
@@ -2466,18 +2899,45 @@ function DailyRewardsChartCard({
   currentValue,
   cumulativeCurrentValue,
   color,
+  period,
+  onPeriodChange,
 }: {
   data: { day: string; value: number }[];
   cumulativeData: { day: string; value: number }[];
   currentValue: number | string;
   cumulativeCurrentValue: number | string;
   color: string;
+  period: "D" | "W" | "M" | "Q" | "Y";
+  onPeriodChange: (period: "D" | "W" | "M" | "Q" | "Y") => void;
 }) {
-  const [period, setPeriod] = useState<"D" | "W" | "M" | "Q" | "Y">("D");
   const [brushIndexes, setBrushIndexes] = useState<{
     startIndex: number;
     endIndex: number;
   } | null>(null);
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+  const { resolvedTheme } = useTheme();
+  const handleScreenshot = async () => {
+    if (!chartContainerRef.current) return;
+
+    try {
+      const element = chartContainerRef.current;
+      const bgColor = resolvedTheme === "dark" ? "#0a0a0a" : "#ffffff";
+
+      const dataUrl = await toPng(element, {
+        quality: 1,
+        pixelRatio: 2,
+        backgroundColor: bgColor,
+        cacheBust: true,
+      });
+
+      const link = document.createElement("a");
+      link.download = `Daily_Rewards_${period}_${new Date().toISOString().split("T")[0]}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (error) {
+      console.error("Failed to capture screenshot:", error);
+    }
+  };
 
   // Create a map of cumulative data for quick lookup
   const cumulativeMap = useMemo(() => {
@@ -2605,6 +3065,27 @@ function DailyRewardsChartCard({
     };
   }, [data]);
 
+  // CSV download function
+  const downloadCSV = () => {
+    if (!displayData || displayData.length === 0) return;
+
+    const headers = ["Date", "Daily Rewards (AVAX)", "Moving Average (AVAX)"];
+    const rows = displayData.map((point: any) => 
+      [point.day, point.value, point.ma || ""].join(",")
+    );
+
+    const csvContent = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `Daily_Rewards_${period}_${new Date().toISOString().split("T")[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   const formatValue = (value: number): string => {
     if (value >= 1e9) return `${(value / 1e9).toFixed(2)}B`;
     if (value >= 1e6) return `${(value / 1e6).toFixed(2)}M`;
@@ -2652,7 +3133,7 @@ function DailyRewardsChartCard({
   };
 
   return (
-    <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700">
+    <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700" ref={chartContainerRef}>
       <CardContent className="p-0">
         {/* Header */}
         <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
@@ -2670,21 +3151,40 @@ function DailyRewardsChartCard({
               </p>
             </div>
           </div>
-          <div className="flex gap-0.5 sm:gap-1">
-            {(["D", "W", "M", "Q", "Y"] as const).map((p) => (
-              <button
-                key={p}
-                onClick={() => setPeriod(p)}
-                className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm rounded-md transition-colors ${
-                  period === p
-                    ? "text-white dark:text-white"
-                    : "text-muted-foreground hover:bg-muted"
-                }`}
-                style={period === p ? { backgroundColor: color, opacity: 0.9 } : {}}
-              >
-                {p}
-              </button>
-            ))}
+          <div className="flex items-center gap-1">
+            <Select
+              value={period}
+              onValueChange={(value) =>
+                onPeriodChange(value as "D" | "W" | "M" | "Q" | "Y")
+              }
+            >
+              <SelectTrigger className="h-7 w-auto px-2 gap-1 text-xs sm:text-sm border-0 bg-transparent hover:bg-muted focus:ring-0 shadow-none">
+                <SelectValue>
+                  {period === "D" ? "Daily" : period === "W" ? "Weekly" : period === "M" ? "Monthly" : period === "Q" ? "Quarterly" : "Yearly"}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {(["D", "W", "M", "Q", "Y"] as const).map((p) => (
+                  <SelectItem key={p} value={p}>
+                    {p === "D" ? "Daily": p === "W" ? "Weekly" : p === "M" ? "Monthly" : p === "Q" ? "Quarterly" : "Yearly"}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <button
+              onClick={handleScreenshot}
+              className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
+              title="Download chart as image"
+            >
+              <Camera className="h-4 w-4" />
+            </button>
+            <button
+              onClick={downloadCSV}
+              className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
+              title="Download CSV"
+            >
+              <Download className="h-4 w-4" />
+            </button>
           </div>
         </div>
 
@@ -2726,7 +3226,7 @@ function DailyRewardsChartCard({
           </div>
 
           {/* Chart */}
-          <div className="mb-6">
+          <ChartWatermark className="mb-6">
             {displayData.length > 0 ? (
               <ResponsiveContainer width="100%" height={350}>
                 <ComposedChart data={displayData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
@@ -2794,7 +3294,7 @@ function DailyRewardsChartCard({
                 Loading chart data...
               </div>
             )}
-          </div>
+          </ChartWatermark>
 
           {/* Brush Slider */}
           {aggregatedData.length > 0 && brushIndexes && 
@@ -2834,21 +3334,510 @@ function DailyRewardsChartCard({
   );
 }
 
+// Total Weight (Staked + Delegated) Stacked Area Chart
+function TotalWeightStackedChartCard({
+  validatorData,
+  delegatorData,
+  validatorCurrentValue,
+  delegatorCurrentValue,
+  color,
+  period,
+  onPeriodChange,
+}: {
+  validatorData: { day: string; value: number }[];
+  delegatorData: { day: string; value: number }[];
+  validatorCurrentValue: number | string;
+  delegatorCurrentValue: number | string;
+  color: string;
+  period: "D" | "W" | "M" | "Q" | "Y";
+  onPeriodChange: (period: "D" | "W" | "M" | "Q" | "Y") => void;
+}) {
+  const [brushIndexes, setBrushIndexes] = useState<{
+    startIndex: number;
+    endIndex: number;
+  } | null>(null);
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+  const { resolvedTheme } = useTheme();
+
+  const handleScreenshot = async () => {
+    if (!chartContainerRef.current) return;
+    try {
+      const element = chartContainerRef.current;
+      const bgColor = resolvedTheme === "dark" ? "#0a0a0a" : "#ffffff";
+      const dataUrl = await toPng(element, {
+        quality: 1,
+        pixelRatio: 2,
+        backgroundColor: bgColor,
+        cacheBust: true,
+      });
+      const link = document.createElement("a");
+      link.download = `Primary_Network_Total_Stake_${period}_${new Date().toISOString().split("T")[0]}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (error) {
+      console.error("Failed to capture screenshot:", error);
+    }
+  };
+
+  // Merge validator and delegator data by date
+  const mergedData = useMemo(() => {
+    const dateMap = new Map<string, { staked: number; delegated: number }>();
+    
+    validatorData.forEach((point) => {
+      if (!dateMap.has(point.day)) {
+        dateMap.set(point.day, { staked: 0, delegated: 0 });
+      }
+      dateMap.get(point.day)!.staked = point.value;
+    });
+    
+    delegatorData.forEach((point) => {
+      if (!dateMap.has(point.day)) {
+        dateMap.set(point.day, { staked: 0, delegated: 0 });
+      }
+      dateMap.get(point.day)!.delegated = point.value;
+    });
+    
+    return Array.from(dateMap.entries())
+      .map(([day, values]) => ({
+        day,
+        staked: values.staked,
+        delegated: values.delegated,
+        total: values.staked + values.delegated,
+      }))
+      .sort((a, b) => a.day.localeCompare(b.day));
+  }, [validatorData, delegatorData]);
+
+  // Aggregate data by period
+  const aggregatedData = useMemo(() => {
+    if (period === "D") return mergedData;
+
+    const grouped = new Map<string, { stakedSum: number; delegatedSum: number; count: number; date: string }>();
+
+    mergedData.forEach((point) => {
+      const date = new Date(point.day);
+      let key: string;
+
+      if (period === "W") {
+        const weekStart = new Date(date);
+        weekStart.setDate(date.getDate() - date.getDay());
+        key = weekStart.toISOString().split("T")[0];
+      } else if (period === "M") {
+        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+      } else if (period === "Q") {
+        const quarter = Math.floor(date.getMonth() / 3) + 1;
+        key = `${date.getFullYear()}-Q${quarter}`;
+      } else {
+        key = String(date.getFullYear());
+      }
+
+      if (!grouped.has(key)) {
+        grouped.set(key, { stakedSum: 0, delegatedSum: 0, count: 0, date: key });
+      }
+
+      const group = grouped.get(key)!;
+      group.stakedSum += point.staked;
+      group.delegatedSum += point.delegated;
+      group.count += 1;
+    });
+
+    return Array.from(grouped.values())
+      .map((group) => ({
+        day: group.date,
+        staked: group.stakedSum / group.count,
+        delegated: group.delegatedSum / group.count,
+        total: (group.stakedSum + group.delegatedSum) / group.count,
+      }))
+      .sort((a, b) => a.day.localeCompare(b.day));
+  }, [mergedData, period]);
+
+  // Initialize brush
+  useEffect(() => {
+    if (!aggregatedData || aggregatedData.length === 0) {
+      setBrushIndexes(null);
+      return;
+    }
+
+    if (period === "D") {
+      const daysToShow = 90;
+      setBrushIndexes({
+        startIndex: Math.max(0, aggregatedData.length - daysToShow),
+        endIndex: aggregatedData.length - 1,
+      });
+    } else {
+      setBrushIndexes({
+        startIndex: 0,
+        endIndex: aggregatedData.length - 1,
+      });
+    }
+  }, [period, aggregatedData]);
+
+  const displayData = useMemo(() => {
+    if (!brushIndexes || !aggregatedData || aggregatedData.length === 0) return [];
+    const start = Math.max(0, Math.min(brushIndexes.startIndex, aggregatedData.length - 1));
+    const end = Math.max(0, Math.min(brushIndexes.endIndex, aggregatedData.length - 1));
+    if (start > end) return [];
+    return aggregatedData.slice(start, end + 1);
+  }, [brushIndexes, aggregatedData]);
+
+  // Calculate total current value
+  const totalCurrentValue = useMemo(() => {
+    const staked = typeof validatorCurrentValue === 'string' ? parseFloat(validatorCurrentValue) : validatorCurrentValue;
+    const delegated = typeof delegatorCurrentValue === 'string' ? parseFloat(delegatorCurrentValue) : delegatorCurrentValue;
+    return staked + delegated;
+  }, [validatorCurrentValue, delegatorCurrentValue]);
+
+  // Calculate change over visible range
+  const dynamicChange = useMemo(() => {
+    if (!displayData || displayData.length < 2) {
+      return { change: 0, isPositive: true };
+    }
+    const firstValue = displayData[0].total;
+    const lastValue = displayData[displayData.length - 1].total;
+    if (firstValue === 0) {
+      return { change: 0, isPositive: true };
+    }
+    const changePercentage = ((lastValue - firstValue) / firstValue) * 100;
+    return {
+      change: Math.abs(changePercentage),
+      isPositive: changePercentage >= 0,
+    };
+  }, [displayData]);
+
+  // CSV download function
+  const downloadCSV = () => {
+    if (!displayData || displayData.length === 0) return;
+
+    const headers = ["Date", "Staked (nAVAX)", "Delegated (nAVAX)", "Total (nAVAX)"];
+    const rows = displayData.map((point) => 
+      [point.day, point.staked, point.delegated, point.total].join(",")
+    );
+
+    const csvContent = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `Primary_Network_Total_Stake_${period}_${new Date().toISOString().split("T")[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const formatWeight = (value: number): string => {
+    const avaxValue = value / 1e9;
+    if (avaxValue >= 1e12) return `${(avaxValue / 1e12).toFixed(2)}T`;
+    if (avaxValue >= 1e9) return `${(avaxValue / 1e9).toFixed(2)}B`;
+    if (avaxValue >= 1e6) return `${(avaxValue / 1e6).toFixed(2)}M`;
+    if (avaxValue >= 1e3) return `${(avaxValue / 1e3).toFixed(2)}K`;
+    return avaxValue.toFixed(2);
+  };
+
+  const formatWeightFull = (value: number): string => {
+    const avaxValue = value / 1e9;
+    if (avaxValue >= 1e12) return `${(avaxValue / 1e12).toFixed(2)}T AVAX`;
+    if (avaxValue >= 1e9) return `${(avaxValue / 1e9).toFixed(2)}B AVAX`;
+    if (avaxValue >= 1e6) return `${(avaxValue / 1e6).toFixed(2)}M AVAX`;
+    if (avaxValue >= 1e3) return `${(avaxValue / 1e3).toFixed(2)}K AVAX`;
+    return `${avaxValue.toFixed(2)} AVAX`;
+  };
+
+  const formatXAxis = (value: string) => {
+    if (period === "Q") {
+      const parts = value.split("-");
+      if (parts.length === 2) return `${parts[1]} '${parts[0].slice(-2)}`;
+      return value;
+    }
+    if (period === "Y") return value;
+    const date = new Date(value);
+    if (period === "M") {
+      return date.toLocaleDateString("en-US", { month: "short", year: "2-digit" });
+    }
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  };
+
+  const formatTooltipDate = (value: string) => {
+    if (period === "Y") return value;
+    if (period === "Q") {
+      const parts = value.split("-");
+      if (parts.length === 2) return `${parts[1]} ${parts[0]}`;
+      return value;
+    }
+    const date = new Date(value);
+    if (period === "M") {
+      return date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+    }
+    if (period === "W") {
+      const endDate = new Date(date);
+      endDate.setDate(date.getDate() + 6);
+      return `${date.toLocaleDateString("en-US", { month: "short", day: "numeric" })} - ${endDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
+    }
+    return date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
+  };
+
+  const formatBrushXAxis = (value: string) => {
+    if (period === "Q" || period === "Y") return value;
+    const date = new Date(value);
+    return date.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+  };
+
+  const stakedColor = color;
+  const delegatedColor = "#60a5fa"; // Light blue for better contrast
+
+  return (
+    <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700" ref={chartContainerRef}>
+      <CardContent className="p-0">
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div
+              className="rounded-full p-2 sm:p-3 flex items-center justify-center"
+              style={{ backgroundColor: `${color}20` }}
+            >
+              <Landmark className="h-5 w-5 sm:h-6 sm:w-6" style={{ color }} />
+            </div>
+            <div>
+              <h3 className="text-base sm:text-lg font-normal">Primary Network Total Stake</h3>
+              <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
+                Combined validator stake and delegated amounts
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-1">
+            <Select
+              value={period}
+              onValueChange={(value) =>
+                onPeriodChange(value as "D" | "W" | "M" | "Q" | "Y")
+              }
+            >
+              <SelectTrigger className="h-7 w-auto px-2 gap-1 text-xs sm:text-sm border-0 bg-transparent hover:bg-muted focus:ring-0 shadow-none">
+                <SelectValue>
+                  {period === "D" ? "Daily" : period === "W" ? "Weekly" : period === "M" ? "Monthly" : period === "Q" ? "Quarterly" : "Yearly"}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {(["D", "W", "M", "Q", "Y"] as const).map((p) => (
+                  <SelectItem key={p} value={p}>
+                    {p === "D" ? "Daily" : p === "W" ? "Weekly" : p === "M" ? "Monthly" : p === "Q" ? "Quarterly" : "Yearly"}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <button
+              onClick={handleScreenshot}
+              className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
+              title="Download chart as image"
+            >
+              <Camera className="h-4 w-4" />
+            </button>
+            <button
+              onClick={downloadCSV}
+              className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
+              title="Download CSV"
+            >
+              <Download className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+
+        <div className="px-5 pt-6 pb-6">
+          {/* Current Value and Legend */}
+          <div className="flex items-center gap-2 sm:gap-4 mb-3 sm:mb-4 pl-2 sm:pl-4 flex-wrap">
+            <div className="text-md sm:text-xl font-mono">
+              {formatWeightFull(totalCurrentValue)}
+            </div>
+            {dynamicChange.change > 0 && (
+              <div
+                className={`flex items-center gap-1 text-xs sm:text-sm ${
+                  dynamicChange.isPositive ? "text-green-600" : "text-red-600"
+                }`}
+                title="Change over selected time range"
+              >
+                <TrendingUp
+                  className={`h-3 w-3 sm:h-4 sm:w-4 ${
+                    dynamicChange.isPositive ? "" : "rotate-180"
+                  }`}
+                />
+                {dynamicChange.change.toFixed(1)}%
+              </div>
+            )}
+            <div className="flex items-center gap-3 ml-auto text-xs">
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-3 rounded" style={{ backgroundColor: stakedColor }} />
+                <span className="text-muted-foreground">Staked</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-3 rounded" style={{ backgroundColor: delegatedColor }} />
+                <span className="text-muted-foreground">Delegated</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Chart */}
+          <ChartWatermark className="mb-6">
+            {displayData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={350}>
+                <AreaChart data={displayData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="gradient-staked-weight" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor={stakedColor} stopOpacity={0.8} />
+                      <stop offset="95%" stopColor={stakedColor} stopOpacity={0.3} />
+                    </linearGradient>
+                    <linearGradient id="gradient-delegated-weight" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor={delegatedColor} stopOpacity={0.8} />
+                      <stop offset="95%" stopColor={delegatedColor} stopOpacity={0.3} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    className="stroke-gray-200 dark:stroke-gray-700"
+                    vertical={false}
+                  />
+                  <XAxis
+                    dataKey="day"
+                    tickFormatter={formatXAxis}
+                    className="text-xs text-gray-600 dark:text-gray-400"
+                    tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
+                    minTickGap={80}
+                    interval="preserveStartEnd"
+                  />
+                  <YAxis
+                    tickFormatter={formatWeight}
+                    className="text-xs text-gray-600 dark:text-gray-400"
+                    tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
+                  />
+                  <Tooltip
+                    cursor={{ fill: `${color}20` }}
+                    content={({ active, payload }) => {
+                      if (!active || !payload?.[0]) return null;
+                      const data = payload[0].payload;
+                      return (
+                        <div className="rounded-lg border bg-background p-2 shadow-sm font-mono">
+                          <div className="grid gap-2">
+                            <div className="font-medium text-sm">
+                              {formatTooltipDate(data.day)}
+                            </div>
+                            <div className="text-xs flex items-center gap-2">
+                              <div className="w-2 h-2 rounded" style={{ backgroundColor: stakedColor }} />
+                              Staked: {formatWeightFull(data.staked)}
+                            </div>
+                            <div className="text-xs flex items-center gap-2">
+                              <div className="w-2 h-2 rounded" style={{ backgroundColor: delegatedColor }} />
+                              Delegated: {formatWeightFull(data.delegated)}
+                            </div>
+                            <div className="text-xs font-medium border-t pt-1 mt-1">
+                              Total: {formatWeightFull(data.total)}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="staked"
+                    stackId="1"
+                    stroke={stakedColor}
+                    fill="url(#gradient-staked-weight)"
+                    strokeWidth={2}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="delegated"
+                    stackId="1"
+                    stroke={delegatedColor}
+                    fill="url(#gradient-delegated-weight)"
+                    strokeWidth={2}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-[350px] flex items-center justify-center text-muted-foreground">
+                Loading chart data...
+              </div>
+            )}
+          </ChartWatermark>
+
+          {/* Brush Slider */}
+          {aggregatedData.length > 0 && brushIndexes && 
+           !isNaN(brushIndexes.startIndex) && !isNaN(brushIndexes.endIndex) &&
+           brushIndexes.startIndex >= 0 && brushIndexes.endIndex < aggregatedData.length && (
+            <div className="bg-white dark:bg-black pl-[60px]">
+              <ResponsiveContainer width="100%" height={80}>
+                <LineChart data={aggregatedData} margin={{ top: 0, right: 30, left: 0, bottom: 5 }}>
+                  <Brush
+                    dataKey="day"
+                    height={80}
+                    stroke={color}
+                    fill={`${color}20`}
+                    alwaysShowText={false}
+                    startIndex={brushIndexes.startIndex}
+                    endIndex={brushIndexes.endIndex}
+                    onChange={(e: any) => {
+                      if (e.startIndex !== undefined && e.endIndex !== undefined &&
+                          !isNaN(e.startIndex) && !isNaN(e.endIndex)) {
+                        setBrushIndexes({ startIndex: e.startIndex, endIndex: e.endIndex });
+                      }
+                    }}
+                    travellerWidth={8}
+                    tickFormatter={formatBrushXAxis}
+                  >
+                    <LineChart>
+                      <Line type="monotone" dataKey="total" stroke={color} strokeWidth={1} dot={false} />
+                    </LineChart>
+                  </Brush>
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 // Cumulative Rewards Chart Card
 function CumulativeRewardsChartCard({
   data,
   currentValue,
   color,
+  period,
+  onPeriodChange,
 }: {
   data: { day: string; value: number }[];
   currentValue: number | string;
   color: string;
+  period: "D" | "W" | "M" | "Q" | "Y";
+  onPeriodChange: (period: "D" | "W" | "M" | "Q" | "Y") => void;
 }) {
-  const [period, setPeriod] = useState<"D" | "W" | "M" | "Q" | "Y">("D");
   const [brushIndexes, setBrushIndexes] = useState<{
     startIndex: number;
     endIndex: number;
   } | null>(null);
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+  const { resolvedTheme } = useTheme();
+  const handleScreenshot = async () => {
+    if (!chartContainerRef.current) return;
+
+    try {
+      const element = chartContainerRef.current;
+      const bgColor = resolvedTheme === "dark" ? "#0a0a0a" : "#ffffff";
+
+      const dataUrl = await toPng(element, {
+        quality: 1,
+        pixelRatio: 2,
+        backgroundColor: bgColor,
+        cacheBust: true,
+      });
+
+      const link = document.createElement("a");
+      link.download = `Cumulative_Rewards_${period}_${new Date().toISOString().split("T")[0]}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (error) {
+      console.error("Failed to capture screenshot:", error);
+    }
+  };
 
   // Aggregate data by period
   const aggregatedData = useMemo(() => {
@@ -2911,6 +3900,25 @@ function CumulativeRewardsChartCard({
     return aggregatedData.slice(start, end + 1);
   }, [brushIndexes, aggregatedData]);
 
+  // CSV download function
+  const downloadCSV = () => {
+    if (!displayData || displayData.length === 0) return;
+
+    const headers = ["Date", "Cumulative Rewards (AVAX)"];
+    const rows = displayData.map((point: any) => [point.day, point.value].join(","));
+
+    const csvContent = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `Cumulative_Rewards_${period}_${new Date().toISOString().split("T")[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   const formatValue = (value: number): string => {
     if (value >= 1e9) return `${(value / 1e9).toFixed(2)}B`;
     if (value >= 1e6) return `${(value / 1e6).toFixed(2)}M`;
@@ -2958,7 +3966,7 @@ function CumulativeRewardsChartCard({
   };
 
   return (
-    <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700">
+    <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700" ref={chartContainerRef}>
       <CardContent className="p-0">
         {/* Header */}
         <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
@@ -2976,21 +3984,40 @@ function CumulativeRewardsChartCard({
               </p>
             </div>
           </div>
-          <div className="flex gap-0.5 sm:gap-1">
-            {(["D", "W", "M", "Q", "Y"] as const).map((p) => (
-              <button
-                key={p}
-                onClick={() => setPeriod(p)}
-                className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm rounded-md transition-colors ${
-                  period === p
-                    ? "text-white dark:text-white"
-                    : "text-muted-foreground hover:bg-muted"
-                }`}
-                style={period === p ? { backgroundColor: color, opacity: 0.9 } : {}}
-              >
-                {p}
-              </button>
-            ))}
+          <div className="flex items-center gap-1">
+            <Select
+              value={period}
+              onValueChange={(value) =>
+                onPeriodChange(value as "D" | "W" | "M" | "Q" | "Y")
+              }
+            >
+              <SelectTrigger className="h-7 w-auto px-2 gap-1 text-xs sm:text-sm border-0 bg-transparent hover:bg-muted focus:ring-0 shadow-none">
+                <SelectValue>
+                  {period === "D" ? "Daily" : period === "W" ? "Weekly" : period === "M" ? "Monthly" : period === "Q" ? "Quarterly" : "Yearly"}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {(["D", "W", "M", "Q", "Y"] as const).map((p) => (
+                  <SelectItem key={p} value={p}>
+                    {p === "D" ? "Daily" : p === "W" ? "Weekly" : p === "M" ? "Monthly" : p === "Q" ? "Quarterly" : "Yearly"}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <button
+              onClick={handleScreenshot}
+              className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
+              title="Download chart as image"
+            >
+              <Camera className="h-4 w-4" />
+            </button>
+            <button
+              onClick={downloadCSV}
+              className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
+              title="Download CSV"
+            >
+              <Download className="h-4 w-4" />
+            </button>
           </div>
         </div>
 
@@ -3003,7 +4030,7 @@ function CumulativeRewardsChartCard({
           </div>
 
           {/* Chart */}
-          <div className="mb-6">
+          <ChartWatermark className="mb-6">
             {displayData.length > 0 ? (
               <ResponsiveContainer width="100%" height={350}>
                 <AreaChart data={displayData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
@@ -3063,7 +4090,7 @@ function CumulativeRewardsChartCard({
                 Loading chart data...
               </div>
             )}
-          </div>
+          </ChartWatermark>
 
           {/* Brush Slider */}
           {aggregatedData.length > 0 && brushIndexes && 

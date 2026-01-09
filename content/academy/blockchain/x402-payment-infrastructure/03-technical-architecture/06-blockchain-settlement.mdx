@@ -46,7 +46,7 @@ This eliminates chargeback fraud and provides definitive proof of payment.
 
 ### Instant Finality
 
-On Avalanche C-Chain, transactions achieve finality in approximately 2 seconds:
+On Avalanche C-Chain, transactions achieve finality in approximately 1 second:
 
 ```
 Traditional ACH:      2-7 days
@@ -54,7 +54,7 @@ Credit Card:          24-72 hours
 PayPal:               1-3 days
 Bitcoin:              ~60 minutes (6 confirmations)
 Ethereum:             ~15 minutes (2 epochs)
-Avalanche:            ~2 seconds ✓
+Avalanche:            ~1 second ✓
 ```
 
 ## The Settlement Process
@@ -80,7 +80,7 @@ The USDC contract verifies the signature on-chain and executes the transfer if v
 
 ### Phase 3: Confirmation and Finality
 
-On Avalanche, the transaction is included in a block and reaches finality in approximately **1-2 seconds**. Once finalized, the transaction cannot be reversed—the payment is permanent and immutable.
+On Avalanche, the transaction is included in a block and reaches finality in approximately **1 second**. Once finalized, the transaction cannot be reversed—the payment is permanent and immutable.
 
 The facilitator receives the transaction hash from the blockchain and returns it to the merchant. The USDC balances are permanently updated on-chain, and the payment is complete.
 
@@ -132,7 +132,7 @@ Typical transaction costs (based on current network conditions - January 2025):
 
 | Aspect | Traditional Payments | x402 on Avalanche |
 |--------|---------------------|-------------------|
-| Settlement Time | 2-7 days | ~2 seconds |
+| Settlement Time | 2-7 days | ~1 second |
 | Transaction Fees | 2.9% + \$0.30 | ~\$0.001 gas (facilitator-paid) |
 | Chargebacks | Possible | Impossible |
 | Transparency | Opaque | Fully transparent |
@@ -149,7 +149,7 @@ Different blockchains have different finality characteristics, which affects the
 
 | Blockchain | Blockchain Finality | Full x402 Process | x402 Support |
 |------------|---------------------|-------------------|--------------|
-| **Avalanche** | ~1-2 seconds | ~2-2.3 seconds | ✅ Official |
+| **Avalanche** | ~1 second | ~1.5-2 seconds | ✅ Official |
 | **Base** | ~2 seconds | ~2-2.5 seconds | ✅ Official |
 | **Ethereum** | ~12-15 minutes | ~15-20 minutes | ✅ Official |
 | **Polygon** | ~2-5 seconds | ~2-5 seconds | ⚠️ Check facilitator |
@@ -165,7 +165,7 @@ Different blockchains have different finality characteristics, which affects the
 
 ## Summary
 
-Blockchain settlement in x402 provides transparent, immutable, and instant payment finality through EIP-3009's gasless payment standard. The complete x402 process takes approximately **2-2.3 seconds** on Avalanche, with blockchain finality achieved in **1-2 seconds**.
+Blockchain settlement in x402 provides transparent, immutable, and instant payment finality through EIP-3009's gasless payment standard. The complete x402 process takes approximately **1.5-2 seconds** on Avalanche, with blockchain finality achieved in **~1 second**.
 
 Key advantages:
 - **Gasless for users**: Facilitators sponsor gas fees, eliminating the need for users to hold native tokens

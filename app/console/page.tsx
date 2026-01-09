@@ -13,17 +13,18 @@ function RedirectLogic() {
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    if (
-      status === "authenticated" &&
-      session.user.is_new_user &&
-      pathname !== "/profile"
-    ) {
-      // Store the original URL with search params (including UTM) in localStorage
-      const originalUrl = `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
-      if (typeof window !== "undefined") {
-        localStorage.setItem("redirectAfterProfile", originalUrl);
+    // Note: PostHog tracking is handled by the layout's TrackNewUser component
+    // This component only handles the redirect logic to avoid duplicate tracking
+    if (status === "authenticated" && session?.user?.is_new_user) {
+      // Redirect new users to profile page
+      if (pathname !== "/profile") {
+        // Store the original URL with search params (including UTM) in localStorage
+        const originalUrl = `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
+        if (typeof window !== "undefined") {
+          localStorage.setItem("redirectAfterProfile", originalUrl);
+        }
+        router.replace("/profile");
       }
-      router.replace("/profile");
     }
   }, [session, status, pathname, router, searchParams]);
 
