@@ -1,73 +1,5 @@
 [
   {
-    "chainId": "241121",
-    "chainName": "Andromeda",
-    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
-    "blockchainId": "0xf0b16824f7976c1d525fe747f8a3552e12775a069fd66b6980e8110bfbd318b3",
-    "subnetId": "2otZ1ZSFtu5H8Sy8fM8V5VMWacJ5VE7DNKXkELjwRqWdLgUdwD",
-    "slug": "andromeda",
-    "rpcUrl": "https://subnets.avax.network/andromeda/mainnet/rpc",
-    "networkToken": {
-      "name": "NOM",
-      "symbol": "NOM",
-      "decimals": 18,
-      "logoUri": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png"
-    },
-    "explorers": [
-      {
-        "name": "Avalanche Explorer",
-        "link": "https://explorer.avax.network/andromeda"
-      }
-    ],
-    "isTestnet": false
-  },
-  {
-    "chainId": "2044",
-    "chainName": "Shrapnel L1",
-    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/3vru4toe9KAyUXpn5XQthq/714286de3f35ee92426853037e985f77/chain-logo.png",
-    "blockchainId": "0xf8ec6b52c1f6d4509d18e182b251d02203b8d2cf6790725ae4c95dc208039919",
-    "subnetId": "Cv1gyKNUtPNAtFw8YcjbsD4a3HNRbNvinY7t2gnGK4J54rQK3",
-    "slug": "shrapnel-l1",
-    "description": "The Shrapnel Subnet is the default blockchain on Avalanche used for trustworthy, transparent, and interoperable content, commerce, and community for Shrapnel, a AAA FPS extraction shooter.",
-    "rpcUrl": "https://subnets.avax.network/shrapnel/mainnet/rpc",
-    "networkToken": {
-      "name": "SHRAPGAS",
-      "symbol": "SHRAPGAS",
-      "decimals": 18,
-      "logoUri": "https://images.ctfassets.net/gcj8jwzm6086/3bCKwLkE3vlwnMr52R0RXr/fe8ac511db870a7487986795cb14621e/token-logo.png",
-      "description": "SHRAPGAS the native token on Shrapnel Subnet and is used to pay gas for all transactions."
-    },
-    "explorers": [
-      {
-        "name": "Avalanche Explorer",
-        "link": "https://subnets.avax.network/shrapnel"
-      }
-    ],
-    "isTestnet": false
-  },
-  {
-    "chainId": "36463",
-    "chainName": "The Grotto",
-    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
-    "blockchainId": "0x4d17dde28b48d8261d0e157ff214900e6575600325f02d6efb416eebdbde4ba9",
-    "subnetId": "2qZWoi4PSG69vdYAQ9otTxMGmRh8YgAXEsm4HMbZZkMamibU76",
-    "slug": "the-grotto",
-    "rpcUrl": "https://subnets.avax.network/thegrotto/mainnet/rpc",
-    "networkToken": {
-      "name": "HERESY",
-      "symbol": "HERESY",
-      "decimals": 18,
-      "logoUri": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png"
-    },
-    "explorers": [
-      {
-        "name": "Avalanche Explorer",
-        "link": "https://explorer.avax.network/thegrotto"
-      }
-    ],
-    "isTestnet": false
-  },
-  {
     "chainId": "80000",
     "chainName": "AIB Mainnet",
     "isActive": true,
@@ -112,7 +44,7 @@
     },
     "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/7plQHTCA1MePklfF2lDgaE/1f4d00bf534a1ae180b3ea1de76308c8/SLIR8rz7_400x400.jpg",
     "subnetId": "25VdGtdQPejyffNLpTqh4BH2NABXT8Zxup6ee3B4htrMryofUB",
-    "blockchainId": "rBabVhbJKGcKTEpzm9PdpQ7ModsxNpYQZ6ALN6g9p5JKjqfw6",
+    "blockchainId": "0x6facb64b849fe1c3e86f76fb464fee8e42bc977712d0d9bb26a2b3e9df7a72f0",
     "slug": "artery",
     "color": "#8B5CF6",
     "category": "Gaming",
@@ -127,7 +59,6 @@
       }
     ],
     "rpcUrl": "https://subnets.avax.network/artery/mainnet/rpc",
-    "blockchainId": "0x6facb64b849fe1c3e86f76fb464fee8e42bc977712d0d9bb26a2b3e9df7a72f0",
     "networkToken": {
       "name": "ARTERY",
       "symbol": "ARTERY",
@@ -157,9 +88,8 @@
       "linkedin": "avalancheavax"
     },
     "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/3e4b8ff10b69bfa31e70080a4b142cd0/avalanche-avax-logo.svg",
-    "blockchainId": "0x0427d4b22a2a78bcddd456742caf91b56badbff985ee19aef14573e7343fd652",
-    "subnetId": "11111111111111111111111111111111LpoYY",
     "blockchainId": "2q9e4r6Mu3U68nU1fYjgbR6JvwrRx36CohpAX5UQxse55x1Q5",
+    "subnetId": "11111111111111111111111111111111LpoYY",
     "slug": "c-chain",
     "color": "#E57373",
     "category": "General",
@@ -388,9 +318,8 @@
       "twitter": "coqnet_io"
     },
     "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/1r0LuDAKrZv9jgKqaeEBN3/9a7efac3099b861366f9e776e6131617/Isotipo_coq.png",
-    "blockchainId": "0x898b8aa8353f2b79ee1de07c36474fcee339003d90fa06ea3a90d9e88b7d7c33",
-    "subnetId": "5moznRzaAEhzWkNTQVdT1U4Kb9EU7dbsKZQNmHwtN5MGVQRyT",
     "blockchainId": "23aQU1537YseCJmXW11XHjPra6bptBSps5D4xXupt8hN2QUeaG",
+    "subnetId": "5moznRzaAEhzWkNTQVdT1U4Kb9EU7dbsKZQNmHwtN5MGVQRyT",
     "slug": "coqnet",
     "color": "#D946EF",
     "category": "General",
@@ -1015,7 +944,7 @@
     "isActive": true,
     "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/5KPky47nVRvtHKYV0rQy5X/e0d153df56fd1eac204f58ca5bc3e133/L1-YouTube-Avatar.png",
     "subnetId": "2hoHzxcZktxrTNoqCZhR9bEctc5oCuBqSp6SpRn6uvwxzLkvnD",
-    "blockchainId": "UhReZTXT8Cqsjat9ghRtCe5kBQPQexQB5zG5Fvf3egrdYfyoJ",
+    "blockchainId": "0x3ee3aecc9f4023b80fcfe0940b83d8156c2622d7ff38d631135dda4bf2d38b6f",
     "slug": "lamina1",
     "color": "#EC4899",
     "category": "General",
@@ -1032,7 +961,6 @@
       }
     ],
     "rpcUrl": "https://subnets.avax.network/lamina1/mainnet/rpc",
-    "blockchainId": "0x3ee3aecc9f4023b80fcfe0940b83d8156c2622d7ff38d631135dda4bf2d38b6f",
     "networkToken": {
       "name": "L1",
       "symbol": "L1",
@@ -1218,7 +1146,7 @@
     },
     "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/411JTIUnbER3rI5dpOR54Y/3c0a8e47d58818a66edd868d6a03a135/numine_main_icon.png",
     "subnetId": "2nCzBViQ5jxLaxkg9TABx6oXu1UGU7chM7G6XzPvW9ehP8RfrJ",
-    "blockchainId": "2c1BN4N9qEhNmW4yCpeLK24SfjFQLyS1Z7FtgRDaYxZWFUUKxf",
+    "blockchainId": "0xd32cc4660bcf8fa7971589f666fddb5ab22aee7e75dcb30b19829a65d4fb0063",
     "slug": "numi",
     "color": "#22C55E",
     "category": "General",
@@ -1233,7 +1161,6 @@
       }
     ],
     "rpcUrl": "https://subnets.avax.network/numi/mainnet/rpc",
-    "blockchainId": "0xd32cc4660bcf8fa7971589f666fddb5ab22aee7e75dcb30b19829a65d4fb0063",
     "networkToken": {
       "name": "NUMINE",
       "symbol": "NUMINE",
@@ -1392,7 +1319,7 @@
     "isActive": true,
     "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/5jRNt6keCaCe0Z35ZQbwtL/94f81aa95f9d9229111693aa6a705437/Quboid_Logo.jpg",
     "subnetId": "26wQKuvA5kjwrKDaje7nmuJAx6Ke2bGvDDr3EiypNr53rH1pMc",
-    "blockchainId": "2GRw9HYnCxyVsr4P5pytpqcyRaymtnTuu1oZhuSWcP4DfJxojy",
+    "blockchainId": "0xa6bb466cc1b021129ee47cd4a3dfd79c909b902ba81ba19e165799bd8ba3e645",
     "slug": "qchain",
     "color": "#6366F1",
     "category": "Loyalty",
@@ -1413,7 +1340,6 @@
       }
     ],
     "rpcUrl": "https://subnets.avax.network/qchain/mainnet/rpc",
-    "blockchainId": "0xa6bb466cc1b021129ee47cd4a3dfd79c909b902ba81ba19e165799bd8ba3e645",
     "networkToken": {
       "name": "QBE",
       "symbol": "QBE",
@@ -1865,6 +1791,74 @@
       "logoUri": "https://images.ctfassets.net/gcj8jwzm6086/1lOFyhAJ0JkDkAmpeCznxL/9729fd9e4e75009f38a0e2c564259ead/icon-512.png",
       "description": "The subnet is used to facilitate gas-less transactions for the zeroone platform. A platform that allows users to create, share and collect without having to worry about fees."
     }
+  },
+  {
+    "chainId": "241121",
+    "chainName": "Andromeda",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
+    "blockchainId": "0xf0b16824f7976c1d525fe747f8a3552e12775a069fd66b6980e8110bfbd318b3",
+    "subnetId": "2otZ1ZSFtu5H8Sy8fM8V5VMWacJ5VE7DNKXkELjwRqWdLgUdwD",
+    "slug": "andromeda",
+    "rpcUrl": "https://subnets.avax.network/andromeda/mainnet/rpc",
+    "networkToken": {
+      "name": "NOM",
+      "symbol": "NOM",
+      "decimals": 18,
+      "logoUri": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png"
+    },
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://explorer.avax.network/andromeda"
+      }
+    ],
+    "isTestnet": false
+  },
+  {
+    "chainId": "2044",
+    "chainName": "Shrapnel L1",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/3vru4toe9KAyUXpn5XQthq/714286de3f35ee92426853037e985f77/chain-logo.png",
+    "blockchainId": "0xf8ec6b52c1f6d4509d18e182b251d02203b8d2cf6790725ae4c95dc208039919",
+    "subnetId": "Cv1gyKNUtPNAtFw8YcjbsD4a3HNRbNvinY7t2gnGK4J54rQK3",
+    "slug": "shrapnel-l1",
+    "description": "The Shrapnel Subnet is the default blockchain on Avalanche used for trustworthy, transparent, and interoperable content, commerce, and community for Shrapnel, a AAA FPS extraction shooter.",
+    "rpcUrl": "https://subnets.avax.network/shrapnel/mainnet/rpc",
+    "networkToken": {
+      "name": "SHRAPGAS",
+      "symbol": "SHRAPGAS",
+      "decimals": 18,
+      "logoUri": "https://images.ctfassets.net/gcj8jwzm6086/3bCKwLkE3vlwnMr52R0RXr/fe8ac511db870a7487986795cb14621e/token-logo.png",
+      "description": "SHRAPGAS the native token on Shrapnel Subnet and is used to pay gas for all transactions."
+    },
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://subnets.avax.network/shrapnel"
+      }
+    ],
+    "isTestnet": false
+  },
+  {
+    "chainId": "36463",
+    "chainName": "The Grotto",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
+    "blockchainId": "0x4d17dde28b48d8261d0e157ff214900e6575600325f02d6efb416eebdbde4ba9",
+    "subnetId": "2qZWoi4PSG69vdYAQ9otTxMGmRh8YgAXEsm4HMbZZkMamibU76",
+    "slug": "the-grotto",
+    "rpcUrl": "https://subnets.avax.network/thegrotto/mainnet/rpc",
+    "networkToken": {
+      "name": "HERESY",
+      "symbol": "HERESY",
+      "decimals": 18,
+      "logoUri": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png"
+    },
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://explorer.avax.network/thegrotto"
+      }
+    ],
+    "isTestnet": false
   },
   {
     "chainId": "76410",
@@ -2406,6 +2400,28 @@
     "isTestnet": true
   },
   {
+    "chainId": "60833",
+    "chainName": "dt0109t4td",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
+    "blockchainId": "0xb3d8a1799d2fe68119869e52d4500248388dec95fdd7c303c3ab03f9847bd07b",
+    "subnetId": "ojK8NCGVSC5gJiTQfRvR9ZbaFEwTC1AjtrA2kdF5jNfaSmEGr",
+    "slug": "dt0109t4td",
+    "rpcUrl": "https://subnets.avax.network/dt0109t4td/testnet/rpc",
+    "networkToken": {
+      "name": "SJX",
+      "symbol": "SJX",
+      "decimals": 18,
+      "logoUri": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png"
+    },
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://explorer-test.avax.network/dt0109t4td"
+      }
+    ],
+    "isTestnet": true
+  },
+  {
     "chainId": "173750",
     "chainName": "Echo L1",
     "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/7kyTY75fdtnO6mh7f0osix/4c92c93dd688082bfbb43d5d910cbfeb/Echo_Subnet_Logo.png",
@@ -2534,6 +2550,28 @@
       {
         "name": "Avalanche Explorer",
         "link": "https://explorer-test.avax.network/fm0108t1td"
+      }
+    ],
+    "isTestnet": true
+  },
+  {
+    "chainId": "83418",
+    "chainName": "FM0109T2TD",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
+    "blockchainId": "0xcd89b4a27d722511f1c2747989081fc161390231b5e29f570001ba78b884014a",
+    "subnetId": "2f7uzdZnsMGF2SmoZ3CAR4hzcTfA1vLRk2RyEGX4MrMGN4e6Rp",
+    "slug": "fm0109t2td",
+    "rpcUrl": "https://subnets.avax.network/fm0109t2td/testnet/rpc",
+    "networkToken": {
+      "name": "RYF",
+      "symbol": "RYF",
+      "decimals": 18,
+      "logoUri": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png"
+    },
+    "explorers": [
+      {
+        "name": "Avalanche Explorer",
+        "link": "https://explorer-test.avax.network/fm0109t2td"
       }
     ],
     "isTestnet": true

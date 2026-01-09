@@ -151,6 +151,7 @@ package-lock.json
 
 
 
+
 # Remote content output paths
 content/docs/acps/103-dynamic-fees.mdx
 content/docs/acps/108-evm-event-importing.mdx
@@ -202,7 +203,7 @@ content/docs/nodes/chain-configs/primary-network/x-chain.mdx
 content/docs/nodes/chain-configs/subnet-evm.mdx
 content/docs/nodes/configure/avalanche-l1-configs.mdx
 content/docs/nodes/configure/configs-flags.mdx
-content/docs/nodes/maintain/releases.mdx
+content/docs/nodes/releases.mdx
 content/docs/rpcs/c-chain/index.mdx
 content/docs/rpcs/other/health-rpc.mdx
 content/docs/rpcs/other/index-rpc.mdx
