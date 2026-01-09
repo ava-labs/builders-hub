@@ -101,11 +101,6 @@ function isMainAcademyPage(pathname: string): boolean {
 function OnboardingTooltip({ onDismiss }: { onDismiss: () => void }) {
     return (
         <>
-            {/* Load Patrick Hand font from Google Fonts - lighter handwriting style */}
-            <link 
-                href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" 
-                rel="stylesheet" 
-            />
             <style jsx>{`
                 @keyframes tooltip-fade-in {
                     from { opacity: 0; transform: translateY(-10px); }
@@ -118,13 +113,13 @@ function OnboardingTooltip({ onDismiss }: { onDismiss: () => void }) {
             {/* Positioned above the bubble nav - bubble nav is at top-1/2, left-3 */}
             <div 
                 className="onboarding-tooltip fixed left-3 z-40 hidden lg:block cursor-pointer"
-                style={{ top: 'calc(50% - 200px)' }}
+                style={{ top: 'calc(50% - 185px)' }}
                 onClick={onDismiss}
             >
                 {/* Text annotation */}
                 <p 
-                    className="text-lg text-zinc-650 dark:text-zinc-100 max-w-[140px] leading-snug text-center"
-                    style={{ fontFamily: "'Patrick Hand', cursive" }}
+                    className="text-sm text-zinc-650 dark:text-zinc-100 max-w-[140px] leading-snug text-center font-medium"
+                    style={{ fontFamily: "var(--font-handwritten), 'Caveat', cursive" }}
                 >
                     Switch between our academies!
                 </p>

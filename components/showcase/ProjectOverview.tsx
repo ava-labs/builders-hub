@@ -8,12 +8,15 @@ import TeamMembers from "./sections/TeamMembers";
 import { Project } from "@/types/showcase";
 import VideoRenderer from "./DemoVideoRenderer";
 import { TeamBadge } from "./sections/TeamBadge";
+import { UserBadge } from "@/types/badge";
 import DemoLinks from "./sections/DemoLinks";
 
 type Props = {
   project: Project;
+  badges?: UserBadge[];
 };
-export default function ProjectOverview({ project }: Props) {
+export default function ProjectOverview({ project, badges }: Props) {
+  
   return (
     <div>
       <Separator className="my-4 sm:my-8 bg-zinc-300 dark:bg-zinc-800" />
@@ -58,13 +61,15 @@ export default function ProjectOverview({ project }: Props) {
           {project.full_description && (
             <Description description={project.full_description} />
           )}
+             <TeamBadge projectId={project.id} />
           {project.members && (
             <TeamMembers
               members={project.members}
               projectName={project.project_name}
+              badges={badges}
             />
           )}
-          {/* <TeamBadge Badge={[]} /> */}
+       
           {/* {resources && <Resources resources={resources} />} */}
         </div>
       </div>
