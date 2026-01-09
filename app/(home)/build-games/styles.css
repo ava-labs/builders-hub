@@ -1,5 +1,3 @@
-/* Import Geist from Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
 
@@ -28,34 +26,6 @@
   font-style: normal;
 }
 
-/* Geist Font Family */
-@font-face {
-  font-family: 'Geist:Regular';
-  src: local('Geist Mono'), local('monospace');
-  font-weight: 400;
-  font-style: normal;
-}
-
-@font-face {
-  font-family: 'Geist:Medium';
-  src: local('Geist Mono'), local('monospace');
-  font-weight: 500;
-  font-style: normal;
-}
-
-@font-face {
-  font-family: 'Geist:SemiBold';
-  src: local('Geist Mono'), local('monospace');
-  font-weight: 600;
-  font-style: normal;
-}
-
-@font-face {
-  font-family: 'Geist_Mono:Regular';
-  src: local('Geist Mono'), local('monospace');
-  font-weight: 400;
-  font-style: normal;
-}
 
 /* Theme Variables - scoped to build-games-container */
 .build-games-container {
@@ -112,7 +82,6 @@
   overflow-x: hidden;
 }
 
-/* Fix the main content to flow naturally */
 .build-games-container > div[data-name="Landing Page Example"] {
   width: 100%;
   position: relative;
@@ -120,14 +89,12 @@
   overflow: visible;
 }
 
-/* Ensure Group1 (Main) content flows naturally without height restrictions */
 .build-games-container [data-name="Main"] {
   position: relative !important;
   width: 100%;
   height: auto !important;
 }
 
-/* Ensure the parent containers don't interfere */
 body:has(.build-games-container) main {
   padding: 0 !important;
   margin: 0 !important;
@@ -139,7 +106,6 @@ body:has(.build-games-container) [class*="layout"] {
   margin: 0 !important;
 }
 
-/* Base resets */
 .build-games-container *,
 .build-games-container *::before,
 .build-games-container *::after {
@@ -197,14 +163,10 @@ body:has(.build-games-container) [class*="layout"] {
   margin: 0;
 }
 
-/* App overrides - Layout adjustments */
-
-/* Hide the navbar - user has their own */
 .build-games-container [data-name="Main"] > [data-name="Nav"] {
   display: none !important;
 }
 
-/* Adjust the Main container top position since navbar is removed */
 .build-games-container [data-name="Main"] {
   top: 56px !important;
   max-width: 1440px;
@@ -300,28 +262,21 @@ body:has(.build-games-container) [class*="layout"] {
   position: absolute;
   inset: 0;
   border-radius: 16px;
-  padding: 1px; /* This is the border thickness */
-  
-  /* The gradient that creates the fading border - cyan at top, fading to transparent at bottom */
+  padding: 1px;
   background: linear-gradient(
     180deg,
-    rgba(56, 189, 248, 0.4) 0%,    /* Bright cyan at top */
-    rgba(56, 189, 248, 0.2) 50%,   /* Still visible in middle */
-    rgba(56, 189, 248, 0.1) 80%,   /* Start fading at 80% */
-    transparent 100%               /* Invisible at bottom */
+    rgba(56, 189, 248, 0.4) 0%,
+    rgba(56, 189, 248, 0.2) 50%,
+    rgba(56, 189, 248, 0.1) 80%,
+    transparent 100%
   );
-  
-  /* The magic - this creates a "hollow" effect */
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, 
-                linear-gradient(#fff 0 0);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
-  
   pointer-events: none;
   z-index: 1;
 }
 
-/* Gradient border section - for larger content sections */
 .gradient-border-section {
   position: relative;
 }
@@ -339,8 +294,7 @@ body:has(.build-games-container) [class*="layout"] {
     rgba(56, 189, 248, 0.1) 80%,
     transparent 100%
   );
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, 
-                linear-gradient(#fff 0 0);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
   pointer-events: none;
@@ -365,13 +319,9 @@ body:has(.build-games-container) [class*="layout"] {
     rgba(56, 189, 248, 0.1) 80%,
     transparent 100%
   );
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, 
-                linear-gradient(#fff 0 0);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
   pointer-events: none;
   z-index: 1;
 }
-
-
-/* No overrides - keep builders-hub navigation and footer */
