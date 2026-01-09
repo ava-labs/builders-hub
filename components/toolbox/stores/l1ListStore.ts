@@ -20,6 +20,7 @@ export type L1ListItem = {
     subnetId: string;
     wrappedTokenAddress: string;
     validatorManagerAddress: string;
+    rewardCalculatorAddress?: string;
     logoUrl: string;
     wellKnownTeleporterRegistryAddress?: string;
     externalFaucetUrl?: string;
@@ -115,13 +116,14 @@ const l1ListInitialStateFuji = {
             id: "dg2nLr4zu9AiCNouZkkX4PUHvY9pjqSUKREZ64wyV5NMUB7iT",
             name: "Signal",
             description: "Signal is a Testnet L1 for testing dApps utilizing ICM",
-            rpcUrl: "https://63.180.243.229.sslip.io/ext/bc/dg2nLr4zu9AiCNouZkkX4PUHvY9pjqSUKREZ64wyV5NMUB7iT/rpc",
-            evmChainId: 23995,
+            rpcUrl: "https://nodes-prod.18.182.4.86.sslip.io/ext/bc/2F1SfodznZumMGnFTDTBnFC5uupPy5HHVzypedYAuDNQ6reXaZ/rpc",
+            evmChainId: 89841,
             coinName: "SIG",
             isTestnet: true,
-            subnetId: "2K5MnaHsWFG7EPi3a9ag686UganTu1e8xKQYQ6GgGTGzp8QHGu",
+            subnetId: "2i2BsV27pGsNVHYKbeaJ72P2soqPtknNcGNkdGBiVbiYiPpxsM",
             wrappedTokenAddress: "",
-            validatorManagerAddress: "",
+            validatorManagerAddress: "0xfacade0000000000000000000000000000000000",
+            rewardCalculatorAddress: "0x59d91f46033b97c8261576fe6899c5058cd3fc4b",
             logoUrl: "https://images.ctfassets.net/gcj8jwzm6086/60XrKdf99PqQKrHiuYdwTE/908622f5204311dbb11be9c6008ead44/Dispatch_Subnet_Logo.png",
             wellKnownTeleporterRegistryAddress: "",
             hasBuilderHubFaucet: false,
