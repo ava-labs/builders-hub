@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createProject, getFilteredProjects, GetProjectOptions } from '@/server/services/projects';
+import { withAuth } from '@/lib/protectedRoute';
 
-export async function GET(req: NextRequest) {
+export const GET =  withAuth(async(req: NextRequest) => {
   try {
     const searchParams = req.nextUrl.searchParams;
     const options: GetProjectOptions = {
@@ -21,9 +22,9 @@ export async function GET(req: NextRequest) {
       { status: wrappedError.cause == 'BadRequest' ? 400 : 500 }
     );
   }
-}
+})
 
-export async function POST(req: NextRequest) {
+export const POST = withAuth(async (req: NextRequest) => {
   try {
     const body = await req.json();
     const newProject = await createProject(body);
@@ -40,4 +41,4 @@ export async function POST(req: NextRequest) {
       { status: wrappedError.cause == 'ValidationError' ? 400 : 500 }
     );
   }
-}
+})

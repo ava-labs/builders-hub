@@ -8,9 +8,6 @@
 -- AlterTable
 ALTER TABLE "Badge" DROP COLUMN "points";
 
--- AlterTable
-ALTER TABLE "UserBadge" DROP COLUMN "requirements_snapshot";
-
 /*
 -- CreateTable
 CREATE TABLE "NodeRegistration" (

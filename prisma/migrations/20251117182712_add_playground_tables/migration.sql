@@ -37,13 +37,38 @@ CREATE INDEX IF NOT EXISTS "PlaygroundFavorite_playground_id_idx" ON "Playground
 CREATE INDEX IF NOT EXISTS "PlaygroundFavorite_user_id_idx" ON "PlaygroundFavorite"("user_id");
 
 -- CreateIndex
-CREATE UNIQUE INDEX IF NOT EXISTS "PlaygroundFavorite_playground_id_user_id_key" ON "PlaygroundFavorite"("playground_id", "user_id");
+CREATE UNIQUE INDEX "PlaygroundFavorite_playground_id_user_id_key" ON "PlaygroundFavorite"("playground_id", "user_id");
 
 -- AddForeignKey
-ALTER TABLE "Playground" ADD CONSTRAINT IF NOT EXISTS "Playground_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Playground" ADD CONSTRAINT "Playground_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "PlaygroundFavorite" ADD CONSTRAINT IF NOT EXISTS "PlaygroundFavorite_playground_id_fkey" FOREIGN KEY ("playground_id") REFERENCES "Playground"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'Playground_user_id_fkey'
+  ) THEN
+    ALTER TABLE "Playground"
+      ADD CONSTRAINT "Playground_user_id_fkey"
+      FOREIGN KEY ("user_id") REFERENCES "User"("id")
+      ON DELETE CASCADE ON UPDATE CASCADE;
+  END IF;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "PlaygroundFavorite" ADD CONSTRAINT IF NOT EXISTS "PlaygroundFavorite_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'PlaygroundFavorite_user_id_fkey'
+  ) THEN
+    ALTER TABLE "PlaygroundFavorite"
+      ADD CONSTRAINT "PlaygroundFavorite_user_id_fkey"
+      FOREIGN KEY ("user_id") REFERENCES "User"("id")
+      ON DELETE CASCADE ON UPDATE CASCADE;
+  END IF;
+END $$;
+

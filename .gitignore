@@ -150,6 +150,7 @@ package-lock.json
 
 
 
+
 # Remote content output paths
 content/docs/acps/103-dynamic-fees.mdx
 content/docs/acps/108-evm-event-importing.mdx
@@ -173,6 +174,7 @@ content/docs/acps/236-continuous-staking.mdx
 content/docs/acps/24-shanghai-eips.mdx
 content/docs/acps/247-delegation-multiplier-increase-maximum-validator-weight-reduction.mdx
 content/docs/acps/25-vm-application-errors.mdx
+content/docs/acps/256-hardware-recommendations.mdx
 content/docs/acps/30-avalanche-warp-x-evm.mdx
 content/docs/acps/31-enable-subnet-ownership-transfer.mdx
 content/docs/acps/41-remove-pending-stakers.mdx

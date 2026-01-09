@@ -18,4 +18,4 @@ ADD COLUMN     "status" SMALLINT NOT NULL;
 ALTER TABLE "UserBadge" ADD COLUMN     "evidence" JSONB,
 ADD COLUMN     "requirements_snapshot" JSONB NOT NULL DEFAULT '{}',
 ADD COLUMN     "requirements_version" INTEGER NOT NULL DEFAULT 1,
-ADD COLUMN     "status" SMALLINT NOT NULL;
+ADD COLUMN     "status" SMALLINT;

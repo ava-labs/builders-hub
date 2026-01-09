@@ -36,6 +36,7 @@
     "20-ed25519-p2p",
     "13-subnet-only-validators",
     "---Best Practices Track ACPs---",
+    "256-hardware-recommendations",
     "118-warp-signature-request",
     "108-evm-event-importing",
     "---Meta Track ACPs---",
