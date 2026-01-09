@@ -1,0 +1,75 @@
+---
+title: Deploy Wrapped Token
+description: Deploy a wrapped version of your native token (WTEST).
+updated: 2025-12-17
+authors: [nicolasarnedo]
+icon: Terminal
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Callout } from 'fumadocs-ui/components/callout';
+import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx";
+import DeployWrappedNative from "@/components/toolbox/console/ictt/setup/DeployWrappedNative";
+
+Before deploying NativeTokenHome, you need a **wrapped version** of your native token. This is an ERC-20 that represents your native token 1:1.
+
+## Why Wrapped Tokens?
+
+Native tokens (like your L1's gas token) can't be directly used in ERC-20 compatible contracts. A wrapped token:
+
+- Is an **ERC-20** that wraps native tokens 1:1
+- Allows **deposit** (native → wrapped) and **withdraw** (wrapped → native)
+- Is required by **NativeTokenHome** to lock tokens
+
+<Callout type="info">
+This is the same concept as **WAVAX** on C-Chain or **WETH** on Ethereum.
+</Callout>
+
+<Steps>
+<Step>
+### Connect to Your L1
+
+Switch your wallet to your L1 where your custom native token lives.
+
+</Step>
+
+<Step>
+### Deploy Wrapped Token
+
+Use the Deploy Wrapped Native tool to deploy a wrapped version of your native token:
+
+<Callout type="warning">
+Make sure you have:
+1. Connected to your L1
+2. Native tokens (TEST) for gas fees
+</Callout>
+
+<ToolboxMdxWrapper>
+    <DeployWrappedNative />
+</ToolboxMdxWrapper>
+
+</Step>
+
+<Step>
+### Save the Contract Address
+
+After deployment, save the **Wrapped Token Address**. You'll need it when deploying NativeTokenHome.
+
+</Step>
+</Steps>
+
+## Contract Features
+
+Your wrapped token contract supports:
+
+| Function | Description |
+|----------|-------------|
+| `deposit()` | Wrap native tokens → receive wrapped tokens |
+| `withdraw(amount)` | Burn wrapped tokens → receive native tokens |
+| `balanceOf(address)` | Check wrapped token balance |
+| Standard ERC-20 | `transfer`, `approve`, `transferFrom`, etc. |
+
+## Next Steps
+
+Now set up the relayer between your L1 and C-Chain.
+

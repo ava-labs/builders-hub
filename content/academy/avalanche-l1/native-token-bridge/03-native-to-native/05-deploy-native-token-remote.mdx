@@ -1,0 +1,86 @@
+---
+title: Deploy Native Token Remote
+description: Deploy the NativeTokenRemote contract on your L1.
+updated: 2025-12-17
+authors: [nicolasarnedo]
+icon: Terminal
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Callout } from 'fumadocs-ui/components/callout';
+import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx";
+import DeployNativeTokenRemote from "@/components/toolbox/console/ictt/setup/DeployNativeTokenRemote";
+
+The `NativeTokenRemote` contract is deployed on your L1. It calls the Native Minter precompile to create native tokens when AVAX is bridged from Fuji.
+
+## Understanding NativeTokenRemote
+
+The NativeTokenRemote contract:
+
+- **Calls the Native Minter** to mint native tokens when receiving bridge messages
+- **Burns native tokens** when users bridge back to Fuji
+- **Requires collateralization** before bridging is enabled
+- **References the NativeTokenHome** on Fuji for security
+
+## Initial Reserve Imbalance
+
+When deploying NativeTokenRemote, you set an **initial reserve imbalance**. This represents native tokens that already exist on your L1 (e.g., from genesis allocations) that aren't yet backed by locked AVAX.
+
+<Callout type="info">
+If your L1 was just created with no pre-existing native tokens, you can set this to `0`.
+</Callout>
+
+<Steps>
+<Step>
+### Switch to Your L1
+
+Switch your wallet to the L1 you created earlier. Ensure you have native tokens for gas (from genesis allocation or faucet).
+
+</Step>
+
+<Step>
+### Deploy NativeTokenRemote
+
+Use the Deploy Native Token Remote tool below:
+
+1. Enter or confirm the **Teleporter Registry address** on your L1 (should auto-populate if ICM is properly configured)
+2. Select **Fuji C-Chain** as the source chain
+3. Enter the **NativeTokenHome address** from the previous step
+4. Set the **initial reserve imbalance** (use `0` if no pre-existing supply)
+
+<Callout type="warning">
+Make sure you have:
+1. Connected your Core Wallet to your L1
+2. Native tokens on your L1 for gas fees
+3. Your NativeTokenHome address from the previous step
+4. The Teleporter Registry address on your L1 (required for ICM communication)
+</Callout>
+
+<ToolboxMdxWrapper>
+    <DeployNativeTokenRemote />
+</ToolboxMdxWrapper>
+
+</Step>
+
+<Step>
+### Save the Contract Address
+
+After deployment, save the **Native Token Remote Address**. You'll need it for registration and collateralization.
+
+</Step>
+</Steps>
+
+## Contract State After Deployment
+
+After deployment, your NativeTokenRemote:
+
+- Is connected to the Teleporter Registry for ICM communication
+- Is configured to call the Native Minter precompile
+- Knows which NativeTokenHome to communicate with
+- Is NOT registered with the home (transfers won't work yet)
+- Is NOT collateralized (minting is blocked)
+
+## Next Steps
+
+Now you need to **register the remote** and **add collateral** to enable bridging.
+
