@@ -288,4 +288,90 @@ body:has(.build-games-container) [class*="layout"] {
   display: block;
 }
 
+/* Gradient border card effect */
+.gradient-border-card {
+  position: relative;
+  background: linear-gradient(180deg, rgba(15, 40, 71, 0.8) 0%, rgba(10, 22, 40, 0.9) 100%);
+  border-radius: 16px;
+}
+
+.gradient-border-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  padding: 1px; /* This is the border thickness */
+  
+  /* The gradient that creates the fading border - cyan at top, fading to transparent at bottom */
+  background: linear-gradient(
+    180deg,
+    rgba(56, 189, 248, 0.4) 0%,    /* Bright cyan at top */
+    rgba(56, 189, 248, 0.2) 50%,   /* Still visible in middle */
+    rgba(56, 189, 248, 0.1) 80%,   /* Start fading at 80% */
+    transparent 100%               /* Invisible at bottom */
+  );
+  
+  /* The magic - this creates a "hollow" effect */
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, 
+                linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Gradient border section - for larger content sections */
+.gradient-border-section {
+  position: relative;
+}
+
+.gradient-border-section::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  padding: 1px;
+  background: linear-gradient(
+    180deg,
+    rgba(56, 189, 248, 0.4) 0%,
+    rgba(56, 189, 248, 0.2) 50%,
+    rgba(56, 189, 248, 0.1) 80%,
+    transparent 100%
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, 
+                linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Variant for top-only rounded corners */
+.gradient-border-section-top {
+  position: relative;
+}
+
+.gradient-border-section-top::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 16px 16px 0 0;
+  padding: 1px;
+  background: linear-gradient(
+    180deg,
+    rgba(56, 189, 248, 0.4) 0%,
+    rgba(56, 189, 248, 0.2) 50%,
+    rgba(56, 189, 248, 0.1) 80%,
+    transparent 100%
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, 
+                linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 1;
+}
+
+
 /* No overrides - keep builders-hub navigation and footer */

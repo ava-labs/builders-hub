@@ -11,10 +11,9 @@ const imgFrame27 = "/build-games/assets/frame-27.png";
 
 function BackgroundImage11({ children }: React.PropsWithChildren<{}>) {
   return (
-    <div className="relative rounded-[16px] shrink-0">
+    <div className="gradient-border-card relative shrink-0 basis-0 grow rounded-[16px]">
       <BackgroundImage />
       <div className="content-stretch flex flex-col gap-[10px] items-start overflow-clip p-[24px] relative rounded-[inherit]">{children}</div>
-      <div aria-hidden="true" className="absolute border border-[#3285ac] border-solid inset-[-0.5px] pointer-events-none rounded-[16.5px]" />
     </div>
   );
 }
@@ -30,7 +29,7 @@ function BackgroundImage10({ children }: React.PropsWithChildren<{}>) {
 function BackgroundImage9({ children }: React.PropsWithChildren<{}>) {
   return (
     <div className="basis-0 flex flex-row grow items-center self-stretch shrink-0">
-      <div className="basis-0 grow h-full min-h-px min-w-px relative rounded-[16px] shrink-0">{children}</div>
+      <div className="gradient-border-card basis-0 grow h-full min-h-px min-w-px relative rounded-[16px] shrink-0">{children}</div>
     </div>
   );
 }
@@ -62,16 +61,11 @@ function BackgroundImage6({ children }: React.PropsWithChildren<{}>) {
   );
 }
 
-type BackgroundImage5Props = {
-  borderColor?: string;
-};
-
-function BackgroundImage5({ children, borderColor = "#3285ac" }: React.PropsWithChildren<BackgroundImage5Props>) {
+function BackgroundImage5({ children }: React.PropsWithChildren<{}>) {
   return (
-    <div className="basis-0 grow h-full min-h-px min-w-px relative rounded-[16px] shrink-0">
+    <div className="gradient-border-card basis-0 grow h-full min-h-px min-w-px relative shrink-0 rounded-[16px]">
       <BackgroundImage />
       <div className="overflow-clip rounded-[inherit] size-full">{children}</div>
-      <div aria-hidden="true" className="absolute border border-solid inset-[-0.5px] pointer-events-none rounded-[16.5px]" style={{ borderColor }} />
     </div>
   );
 }
@@ -300,7 +294,7 @@ type Group1BackgroundImageAndText6Props = {
 
 function Group1BackgroundImageAndText6({ text }: Group1BackgroundImageAndText6Props) {
   return (
-    <div className="basis-0 grow h-full min-h-px min-w-px relative rounded-[16px] shrink-0">
+    <div className="gradient-border-card basis-0 grow h-full min-h-px min-w-px relative rounded-[16px] shrink-0">
       <div className="overflow-clip rounded-[inherit] size-full">
         <div className="content-stretch flex flex-col items-start p-[24px] relative size-full">
           <div className="basis-0 grow min-h-px min-w-px relative shrink-0 w-full">
@@ -389,12 +383,11 @@ function BackgroundImageAndText1({ text, additionalClassNames = "" }: Background
 }
 type BackgroundImageAndTextProps = {
   text: string;
-  borderColor?: string;
 };
 
-function BackgroundImageAndText({ text, borderColor }: BackgroundImageAndTextProps) {
+function BackgroundImageAndText({ text }: BackgroundImageAndTextProps) {
   return (
-    <BackgroundImage5 borderColor={borderColor}>
+    <BackgroundImage5>
       <div className="content-stretch flex flex-col gap-[10px] items-start p-[24px] relative size-full">
         <div className="bg-white shrink-0 size-[42px]" />
         <BackgroundImageAndText1 text={text} additionalClassNames="py-[36px]" />
@@ -410,7 +403,7 @@ type ButtonBackgroundImageAndTextProps = {
 function ButtonBackgroundImageAndText({ text, additionalClassNames = "" }: ButtonBackgroundImageAndTextProps) {
   return (
     <div className={clsx("bg-[#66acd6] content-stretch flex h-[36px] items-center justify-center px-[36px] py-[6px] relative rounded-[3.35544e+07px] shrink-0", additionalClassNames)}>
-      <div className="flex flex-col font-['Geist:Medium',sans-serif] font-medium justify-center leading-[0] relative shrink-0 text-[#152d44] text-[14px] text-center text-nowrap">
+      <div className="flex flex-col font-['Aeonik:Medium',sans-serif] font-medium justify-center leading-[0] relative shrink-0 text-[#152d44] text-[14px] text-center text-nowrap">
         <p className="leading-[20px]">{text}</p>
       </div>
     </div>
@@ -429,7 +422,7 @@ function Group1BackgroundImage1({ text, text1, additionalClassNames = "" }: Grou
         <div className="content-stretch flex flex-col items-center relative shrink-0" data-name="Link">
           <div className="bg-[rgba(40,106,142,0.1)] content-stretch flex h-[36px] items-center justify-center px-[49px] py-[7px] relative rounded-[3.35544e+07px] shrink-0" data-name="Button">
             <div aria-hidden="true" className="absolute border border-[rgba(102,172,214,0.5)] border-solid inset-0 pointer-events-none rounded-[3.35544e+07px] shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)]" />
-            <div className="flex flex-col font-['Geist:SemiBold',sans-serif] font-semibold justify-center leading-[0] relative shrink-0 text-[#66acd6] text-[14px] text-center text-nowrap">
+            <div className="flex flex-col font-['Aeonik:Medium',sans-serif] font-medium justify-center leading-[0] relative shrink-0 text-[#66acd6] text-[14px] text-center text-nowrap">
               <p className="leading-[20px]">{text}</p>
             </div>
           </div>
@@ -447,7 +440,7 @@ type Group1BackgroundImageAndTextProps = {
 function Group1BackgroundImageAndText({ text, additionalClassNames = "" }: Group1BackgroundImageAndTextProps) {
   return (
     <div className={clsx("content-stretch flex flex-col gap-[10px] p-[10px] relative w-full", additionalClassNames)}>
-      <div className="flex flex-col font-['Geist:Medium',sans-serif] font-medium justify-center leading-[0] not-italic relative shrink-0 text-[48px] text-nowrap text-white">
+      <div className="flex flex-col font-['Aeonik:Medium',sans-serif] font-medium justify-center leading-[0] not-italic relative shrink-0 text-[48px] text-nowrap text-white">
         <p className="leading-[72px]">{text}</p>
       </div>
     </div>
@@ -469,16 +462,19 @@ type Group1BackgroundImageProps = {
 
 function Group1BackgroundImage({ text, text1 }: Group1BackgroundImageProps) {
   return (
-    <BackgroundImage5>
-      <div className="content-stretch flex flex-col font-['Aeonik:Medium',sans-serif] items-start justify-between leading-[0] not-italic px-[36px] py-[60px] relative size-full text-white">
-        <div className="flex flex-col justify-center relative shrink-0 text-[48px] w-full">
-          <p className="leading-[72px]">{text}</p>
-        </div>
-        <div className="flex flex-col justify-center relative shrink-0 text-[24px] w-full">
-          <p className="leading-[37.602px]">{text1}</p>
+    <div className="gradient-border-card basis-0 grow h-full min-h-px min-w-px relative rounded-[16px] shrink-0">
+      <BackgroundImage />
+      <div className="overflow-clip rounded-[inherit] size-full">
+        <div className="content-stretch flex flex-col font-['Aeonik:Medium',sans-serif] items-start justify-between leading-[0] not-italic px-[36px] py-[60px] relative size-full text-white">
+          <div className="flex flex-col justify-center relative shrink-0 text-[48px] w-full">
+            <p className="leading-[72px]">{text}</p>
+          </div>
+          <div className="flex flex-col justify-center relative shrink-0 text-[24px] w-full">
+            <p className="leading-[37.602px]">{text1}</p>
+          </div>
         </div>
       </div>
-    </BackgroundImage5>
+    </div>
   );
 }
 
@@ -807,8 +803,7 @@ function Group1() {
       <div className="relative shrink-0 w-full" data-name="CTA">
         <div className="flex flex-col justify-center size-full">
           <div className="content-stretch flex flex-col gap-[16px] items-start justify-center px-[186px] py-0 relative w-full">
-            <div className="relative rounded-tl-[16px] rounded-tr-[16px] shrink-0 w-full">
-              <div aria-hidden="true" className="absolute border border-[#3285ac] border-solid inset-[-0.5px] pointer-events-none rounded-tl-[16.5px] rounded-tr-[16.5px]" />
+            <div className="gradient-border-section-top relative rounded-tl-[16px] rounded-tr-[16px] shrink-0 w-full">
               <div className="content-stretch flex gap-[16px] items-start p-[24px] relative w-full">
                 <Group1BackgroundImage6>
                   {`What is `}
@@ -826,9 +821,8 @@ function Group1() {
                 </Group1BackgroundImage5>
               </div>
             </div>
-            <div className="relative rounded-[16px] shrink-0 w-full">
-              <div aria-hidden="true" className="absolute border border-[#3285ac] border-solid inset-[-0.5px] pointer-events-none rounded-[16.5px]" />
-              <div className="content-stretch flex flex-col gap-[16px] items-start p-[24px] relative w-full">
+            <div className="gradient-border-section relative rounded-[16px] shrink-0 w-full">
+              <div className="content-stretch flex flex-col gap-[16px] items-start pt-[24px] px-[24px] pb-0 relative w-full">
                 <div className="content-stretch flex items-start pb-[24px] pt-0 px-0 relative shrink-0 w-full">
                   <Group1BackgroundImage6>
                     {`Who `}
@@ -844,17 +838,17 @@ function Group1() {
                     <p>You're a fit if you:</p>
                   </Group1BackgroundImage5>
                 </div>
-                <div className="content-stretch flex h-[234px] items-start justify-between relative shrink-0 w-full">
-                  <div className="content-stretch flex gap-[10px] h-full items-center relative shrink-0 w-[1068px]">
-                    <BackgroundImageAndText text="Are a solo dev or small team with something new and original" borderColor="#5199c5" />
-                    <BackgroundImageAndText text="Want to (re)start in the Avalanche ecosystem" borderColor="#4589b8" />
-                    <BackgroundImageAndText text="Have an idea and need structure, mentorship, and a push" borderColor="#3a79aa" />
-                    <BackgroundImageAndText text="Want to learn, compete, and grow with other builders" borderColor="#3285ac" />
-                  </div>
+              </div>
+              <div className="content-stretch flex h-[234px] items-start justify-between relative shrink-0 w-full px-[1px]">
+                <div className="content-stretch flex gap-[10px] h-full items-center relative shrink-0 w-full">
+                  <BackgroundImageAndText text="Are a solo dev or small team with something new and original" />
+                  <BackgroundImageAndText text="Want to (re)start in the Avalanche ecosystem" />
+                  <BackgroundImageAndText text="Have an idea and need structure, mentorship, and a push" />
+                  <BackgroundImageAndText text="Want to learn, compete, and grow with other builders" />
                 </div>
               </div>
             </div>
-            <div className="relative rounded-[16px] shrink-0 w-full">
+            <div className="gradient-border-section relative rounded-[16px] shrink-0 w-full">
               <img alt="" className="absolute inset-0 max-w-none object-50%-50% object-cover opacity-30 pointer-events-none rounded-[16px] size-full" src={imgFrame23} />
               <div className="content-stretch flex flex-col items-start overflow-clip pb-0 pt-[24px] px-0 relative rounded-[inherit] w-full">
                 <BackgroundImage6>
@@ -906,9 +900,8 @@ function Group1() {
                   </BackgroundImage7>
                 </BackgroundImage3>
               </div>
-              <div aria-hidden="true" className="absolute border border-[#3285ac] border-solid inset-[-0.5px] pointer-events-none rounded-[16.5px]" />
             </div>
-            <div className="relative rounded-[16px] shrink-0 w-full">
+            <div className="gradient-border-section relative rounded-[16px] shrink-0 w-full">
               <img alt="" className="absolute inset-0 max-w-none object-50%-50% object-cover opacity-30 pointer-events-none rounded-[16px] size-full" src={imgFrame23} />
               <div className="content-stretch flex flex-col gap-[10px] items-start overflow-clip pb-0 pt-[24px] px-0 relative rounded-[inherit] w-full">
                 <BackgroundImage6>
@@ -940,7 +933,6 @@ function Group1() {
                       </div>
                       <BackgroundImageAndText1 text="Grand Prize" additionalClassNames="py-[16px]" />
                     </BackgroundImage10>
-                    <div aria-hidden="true" className="absolute border border-[#3285ac] border-solid inset-[-0.5px] pointer-events-none rounded-[16.5px]" />
                   </BackgroundImage9>
                   <BackgroundImage9>
                     <div aria-hidden="true" className="absolute inset-0 pointer-events-none rounded-[16px]">
@@ -955,7 +947,6 @@ function Group1() {
                       </div>
                       <BackgroundImageAndText1 text="Runner-Up" additionalClassNames="py-[16px]" />
                     </BackgroundImage10>
-                    <div aria-hidden="true" className="absolute border border-[#3285ac] border-solid inset-[-0.5px] pointer-events-none rounded-[16.5px]" />
                   </BackgroundImage9>
                 </BackgroundImage8>
                 <BackgroundImage8 additionalClassNames="h-[234px]">
@@ -970,7 +961,6 @@ function Group1() {
                       </div>
                       <BackgroundImageAndText1 text="Third Place" additionalClassNames="py-[16px]" />
                     </BackgroundImage10>
-                    <div aria-hidden="true" className="absolute border border-[#3285ac] border-solid inset-[-0.5px] pointer-events-none rounded-[16.5px]" />
                   </BackgroundImage9>
                   <BackgroundImage9>
                     <div aria-hidden="true" className="absolute inset-0 pointer-events-none rounded-[16px]">
@@ -983,7 +973,6 @@ function Group1() {
                       </div>
                       <BackgroundImageAndText1 text="Category Prizes" additionalClassNames="py-[16px]" />
                     </BackgroundImage10>
-                    <div aria-hidden="true" className="absolute border border-[#3285ac] border-solid inset-[-0.5px] pointer-events-none rounded-[16.5px]" />
                   </BackgroundImage9>
                 </BackgroundImage8>
                 <div className="content-stretch flex items-start justify-between relative shrink-0 w-full">
@@ -994,11 +983,9 @@ function Group1() {
                   </div>
                 </div>
               </div>
-              <div aria-hidden="true" className="absolute border border-[#3285ac] border-solid inset-[-0.5px] pointer-events-none rounded-[16.5px]" />
             </div>
             <div className="h-[24px] shrink-0 w-[197px]" data-name="Spacer" />
-            <div className="relative rounded-tl-[16px] rounded-tr-[16px] shrink-0 w-full">
-              <div aria-hidden="true" className="absolute border border-[#3285ac] border-solid inset-[-0.5px] pointer-events-none rounded-tl-[16.5px] rounded-tr-[16.5px]" />
+            <div className="gradient-border-section-top relative rounded-tl-[16px] rounded-tr-[16px] shrink-0 w-full">
               <div className="content-stretch flex gap-[48px] items-start p-[24px] relative w-full">
                 <div className="content-stretch flex flex-col gap-[10px] items-start overflow-clip p-[10px] relative rounded-[16px] self-stretch shrink-0 w-[478px]">
                   <div className="absolute inset-0 opacity-75 overflow-hidden pointer-events-none rounded-[16px]">
@@ -1025,8 +1012,7 @@ function Group1() {
                 </div>
               </div>
             </div>
-            <div className="relative rounded-[16px] shrink-0 w-full">
-              <div aria-hidden="true" className="absolute border border-[#3285ac] border-solid inset-[-0.5px] pointer-events-none rounded-[16.5px]" />
+            <div className="gradient-border-section relative rounded-[16px] shrink-0 w-full">
               <div className="content-stretch flex flex-col gap-[16px] items-start pb-0 pt-[24px] px-[24px] relative w-full">
                 <div className="content-stretch flex items-start pb-[24px] pt-0 px-0 relative shrink-0 w-full">
                   <Group1BackgroundImage6>Key Dates</Group1BackgroundImage6>
@@ -1036,47 +1022,46 @@ function Group1() {
                     </div>
                   </div>
                 </div>
-                <div className="content-stretch flex items-start justify-between relative shrink-0 w-full">
-                  <div className="content-stretch flex gap-[10px] items-center relative self-stretch shrink-0 w-[1068px]">
-                    <BackgroundImage11>
-                      <Group1BackgroundImage4 text="JAN" text1="XX" text2="2026" />
-                      <BackgroundImageAndText1 text="Applications Open" additionalClassNames="py-[10px]" />
-                    </BackgroundImage11>
-                    <BackgroundImage11>
-                      <Group1BackgroundImage4 text="FEB" text1="XX" text2="2026" />
-                      <BackgroundImageAndText1 text="Teams Announced" additionalClassNames="py-[10px]" />
-                    </BackgroundImage11>
-                    <BackgroundImage11>
-                      <Group1BackgroundImage4 text="FEB" text1="15" text2="2026" />
-                      <BackgroundImageAndText1 text="Competition Begins" additionalClassNames="py-[10px]" />
-                    </BackgroundImage11>
-                    <BackgroundImage11>
-                      <Group1BackgroundImage4 text="MAR" text1="XX" text2="2026" />
-                      <div className="content-stretch flex items-start px-0 py-[10px] relative shrink-0 w-full">
-                        <p className="font-['Aeonik:Regular',sans-serif] leading-[1.25] not-italic relative shrink-0 text-[18px] text-white w-[211.5px]">{`Finals & Awards`}</p>
-                      </div>
-                    </BackgroundImage11>
+              </div>
+              <div className="content-stretch flex items-start justify-between relative shrink-0 w-full px-[1px]">
+                <div className="content-stretch flex gap-[10px] items-center relative self-stretch shrink-0 w-full">
+                  <BackgroundImage11>
+                    <Group1BackgroundImage4 text="JAN" text1="XX" text2="2026" />
+                    <BackgroundImageAndText1 text="Applications Open" additionalClassNames="py-[10px]" />
+                  </BackgroundImage11>
+                  <BackgroundImage11>
+                    <Group1BackgroundImage4 text="FEB" text1="XX" text2="2026" />
+                    <BackgroundImageAndText1 text="Teams Announced" additionalClassNames="py-[10px]" />
+                  </BackgroundImage11>
+                  <BackgroundImage11>
+                    <Group1BackgroundImage4 text="FEB" text1="15" text2="2026" />
+                    <BackgroundImageAndText1 text="Competition Begins" additionalClassNames="py-[10px]" />
+                  </BackgroundImage11>
+                  <BackgroundImage11>
+                    <Group1BackgroundImage4 text="MAR" text1="XX" text2="2026" />
+                    <div className="content-stretch flex items-start px-0 py-[10px] relative shrink-0 w-full">
+                      <p className="font-['Aeonik:Regular',sans-serif] leading-[1.25] not-italic relative shrink-0 text-[18px] text-white w-[211.5px]">{`Finals & Awards`}</p>
+                    </div>
+                  </BackgroundImage11>
+                </div>
+              </div>
+              <div className="content-stretch flex items-center pb-[24px] pt-[36px] px-[24px] relative shrink-0 w-full">
+                <div className="content-stretch flex flex-col items-start overflow-clip p-[10px] relative shrink-0 w-[478px]">
+                  <div className="flex flex-col font-['Aeonik:Medium',sans-serif] justify-center leading-[0] not-italic relative shrink-0 text-[48px] text-nowrap text-white">
+                    <p className="leading-none">Agenda</p>
                   </div>
                 </div>
-                <div className="content-stretch flex items-center pb-[24px] pt-[36px] px-0 relative shrink-0 w-full">
-                  <div className="content-stretch flex flex-col items-start overflow-clip p-[10px] relative shrink-0 w-[478px]">
-                    <div className="flex flex-col font-['Aeonik:Medium',sans-serif] justify-center leading-[0] not-italic relative shrink-0 text-[48px] text-nowrap text-white">
-                      <p className="leading-none">Agenda</p>
-                    </div>
-                  </div>
-                  <div className="basis-0 grow min-h-px min-w-px relative shrink-0">
-                    <div className="flex flex-row items-center justify-end overflow-clip rounded-[inherit] size-full">
-                      <div className="content-stretch flex gap-[24px] items-center justify-end px-[24px] py-[10px] relative w-full">
-                        <p className="font-['Aeonik:Regular',sans-serif] leading-[1.5] not-italic relative shrink-0 text-[20px] text-white w-[216.941px]">Add the event agenda to your google calendar</p>
-                        <ButtonBackgroundImageAndText text="Add the Calendar" additionalClassNames="overflow-clip shadow-[0px_10px_15px_-3px_rgba(0,0,0,0.1),0px_4px_6px_-4px_rgba(0,0,0,0.1)]" />
-                      </div>
+                <div className="basis-0 grow min-h-px min-w-px relative shrink-0">
+                  <div className="flex flex-row items-center justify-end overflow-clip rounded-[inherit] size-full">
+                    <div className="content-stretch flex gap-[24px] items-center justify-end px-[24px] py-[10px] relative w-full">
+                      <p className="font-['Aeonik:Regular',sans-serif] leading-[1.5] not-italic relative shrink-0 text-[20px] text-white w-[216.941px]">Add the event agenda to your google calendar</p>
+                      <ButtonBackgroundImageAndText text="Add the Calendar" additionalClassNames="overflow-clip shadow-[0px_10px_15px_-3px_rgba(0,0,0,0.1),0px_4px_6px_-4px_rgba(0,0,0,0.1)]" />
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-            <div className="bg-[rgba(102,172,214,0.25)] relative rounded-[16px] shrink-0 w-full">
-              <div aria-hidden="true" className="absolute border border-[#3285ac] border-solid inset-[-0.5px] pointer-events-none rounded-[16.5px]" />
+            <div className="gradient-border-section bg-[rgba(102,172,214,0.25)] relative rounded-[16px] shrink-0 w-full">
               <div className="content-stretch flex flex-col gap-[16px] items-start pb-[36px] pt-[24px] px-[24px] relative w-full">
                 <div className="content-stretch flex flex-col items-center relative shrink-0 w-full">
                   <div className="relative shrink-0 w-full">
