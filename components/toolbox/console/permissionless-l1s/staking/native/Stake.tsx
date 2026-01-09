@@ -238,6 +238,7 @@ const StakeValidator: React.FC<BaseConsoleToolProps> = ({ onSuccess }) => {
                         <InitiateNativeStakeRegistration
                             key={`initiate-${resetKey}`}
                             subnetId={subnetIdL1}
+                            validatorManagerAddress={validatorManagerAddress || ''}
                             stakingManagerAddress={contractOwner || ''}
                             validators={validators}
                             contractTotalWeight={contractTotalWeight}

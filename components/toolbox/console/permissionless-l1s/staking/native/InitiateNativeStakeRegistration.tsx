@@ -7,15 +7,18 @@ import { Input } from '@/components/toolbox/components/Input';
 import { ConvertToL1Validator } from '@/components/toolbox/components/ValidatorListInput';
 import { validateStakePercentage } from '@/components/toolbox/coreViem/hooks/getTotalStake';
 import nativeTokenStakingManagerAbi from '@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json';
+import validatorManagerAbi from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
 import { Success } from '@/components/toolbox/components/Success';
 import { parseNodeID } from '@/components/toolbox/coreViem/utils/ids';
 import { fromBytes, parseEther, formatEther } from 'viem';
 import { utils } from '@avalabs/avalanchejs';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { Alert } from '@/components/toolbox/components/Alert';
+import { getValidationIdHex } from '@/components/toolbox/coreViem/hooks/getValidationID';
 
 interface InitiateNativeStakeRegistrationProps {
     subnetId: string;
+    validatorManagerAddress: string;
     stakingManagerAddress: string;
     validators: ConvertToL1Validator[];
     onSuccess: (data: {
@@ -34,6 +37,7 @@ interface InitiateNativeStakeRegistrationProps {
 
 const InitiateNativeStakeRegistration: React.FC<InitiateNativeStakeRegistrationProps> = ({
     subnetId,
+    validatorManagerAddress,
     stakingManagerAddress,
     validators,
     onSuccess,
@@ -190,6 +194,76 @@ const InitiateNativeStakeRegistration: React.FC<InitiateNativeStakeRegistrationP
         return true;
     };
 
+    const ZERO_BYTES32 = "0x0000000000000000000000000000000000000000000000000000000000000000";
+
+    const maybeResendIfAlreadyRegisteredOnEvm = async (params: {
+        account: `0x${string}`;
+        nodeId: string;
+        stakeAmountWei: bigint;
+    }) => {
+        const { account, nodeId } = params;
+
+        if (!publicClient || !coreWalletClient) return null;
+        if (!validatorManagerAddress) return null;
+
+        const nodeIdBytes = parseNodeID(nodeId);
+
+        // If the node is already tracked in EVM state (registeredValidators / getNodeValidationID),
+        // it can mean the previous initiation succeeded on EVM but the P-Chain step wasn't done.
+        const validationId = await getValidationIdHex(
+            publicClient,
+            validatorManagerAddress as `0x${string}`,
+            nodeIdBytes
+        );
+
+        if (!validationId || validationId === ZERO_BYTES32) return null;
+
+        // Heuristic: if the validator exists but hasn't started yet, it's likely PendingAdded
+        // (EVM state set, but P-Chain confirmation not completed).
+        try {
+            const v = await publicClient.readContract({
+                address: validatorManagerAddress as `0x${string}`,
+                abi: validatorManagerAbi.abi,
+                functionName: "getValidator",
+                args: [validationId],
+            }) as any;
+
+            const startTime = (v?.startTime ?? 0n) as bigint;
+            const isPending = startTime === 0n;
+            if (!isPending) return null;
+        } catch {
+            // If we can't read validator details, don't attempt the resend path.
+            return null;
+        }
+
+        // Resend the original RegisterL1ValidatorMessage from the ValidatorManager to get a fresh warp message.
+        const writePromise = coreWalletClient.writeContract({
+            address: validatorManagerAddress as `0x${string}`,
+            abi: validatorManagerAbi.abi,
+            functionName: "resendRegisterValidatorMessage",
+            args: [validationId],
+            account,
+            chain: viemChain
+        });
+
+        notify({
+            type: 'call',
+            name: 'Resend Validator Registration (Warp Message)'
+        }, writePromise, viemChain ?? undefined);
+
+        const receipt = await publicClient.waitForTransactionReceipt({ hash: await writePromise });
+        if (receipt.status === 'reverted') {
+            throw new Error(`Resend transaction reverted. Hash: ${receipt.transactionHash}`);
+        }
+
+        const unsignedWarpMessage = receipt.logs[0]?.data ?? "";
+        return {
+            txHash: receipt.transactionHash as `0x${string}`,
+            validationId,
+            unsignedWarpMessage,
+        };
+    };
+
     const handleInitiateStakingValidatorRegistration = async () => {
         setErrorState(null);
         setTxSuccess(null);
@@ -199,19 +273,25 @@ const InitiateNativeStakeRegistration: React.FC<InitiateNativeStakeRegistrationP
             return;
         }
 
-        if (!validateInputs()) {
+        if (!stakingManagerAddress) {
+            setErrorState("Staking Manager Address is required. Please select a valid L1 subnet.");
             return;
         }
 
-        if (!stakingManagerAddress) {
-            setErrorState("Staking Manager Address is required. Please select a valid L1 subnet.");
+        if (!validatorManagerAddress) {
+            setErrorState("Validator Manager Address is required. Please select a valid L1 subnet.");
+            return;
+        }
+
+        if (!validateInputs()) {
             return;
         }
 
         setIsProcessing(true);
         try {
             const validator = validators[0];
-            const [account] = await coreWalletClient.requestAddresses();
+            const [accountRaw] = await coreWalletClient.requestAddresses();
+            const account = accountRaw as `0x${string}`;
 
             // Process P-Chain Addresses
             const pChainRemainingBalanceOwnerAddressesHex = validator.remainingBalanceOwner.addresses.map(address => {
@@ -247,6 +327,28 @@ const InitiateNativeStakeRegistration: React.FC<InitiateNativeStakeRegistrationP
             let receipt;
 
             try {
+                // If the node is already registered in EVM state but hasn't been finalized (P-Chain step),
+                // resend the initiation to emit a fresh warp message instead of staking again.
+                const resendResult = await maybeResendIfAlreadyRegisteredOnEvm({
+                    account,
+                    nodeId: validator.nodeID,
+                    stakeAmountWei,
+                });
+
+                if (resendResult) {
+                    setTxSuccess(`Transaction successful! Hash: ${resendResult.txHash}`);
+                    onSuccess({
+                        txHash: resendResult.txHash,
+                        nodeId: validator.nodeID,
+                        validationId: resendResult.validationId,
+                        weight: '0',
+                        unsignedWarpMessage: resendResult.unsignedWarpMessage,
+                        validatorBalance: stakeAmount,
+                        blsProofOfPossession: validator.nodePOP.proofOfPossession,
+                    });
+                    return;
+                }
+
                 const writePromise = coreWalletClient.writeContract({
                     address: stakingManagerAddress as `0x${string}`,
                     abi: nativeTokenStakingManagerAbi.abi,
