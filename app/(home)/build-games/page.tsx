@@ -535,11 +535,11 @@ function HeroSection() {
                     <stop offset="0.32" stopColor="#CCCCCC" />
                     <stop offset="1" stopColor="white" />
                   </radialGradient>
-                  <radialGradient cx="0" cy="0" gradientTransform="translate(61.7116 18.8024) scale(5.32148 5.33603)" gradientUnits="userSpaceOnUse" id="paint4_radial_1_1152" r="1">
+                  <radialGradient cx="0" cy="0" gradientTransform="translate(23.3551 28.2949) scale(8.07559 8.09766)" gradientUnits="userSpaceOnUse" id="paint3_radial_1_1152" r="1">
                     <stop stopColor="#CCCCCC" />
                     <stop offset="1" stopColor="white" />
                   </radialGradient>
-                  <radialGradient cx="0" cy="0" gradientTransform="translate(23.3551 28.2949) scale(8.07559 8.09766)" gradientUnits="userSpaceOnUse" id="paint4_radial_1_1152" r="1">
+                  <radialGradient cx="0" cy="0" gradientTransform="translate(61.7116 18.8024) scale(5.32148 5.33603)" gradientUnits="userSpaceOnUse" id="paint4_radial_1_1152" r="1">
                     <stop stopColor="#CCCCCC" />
                     <stop offset="1" stopColor="white" />
                   </radialGradient>
@@ -710,6 +710,7 @@ function HowItWorksSection() {
             <GridLabel text="Focus" />
             <GridValue>Prototype / MVP</GridValue>
             <GridHeader text="Deliverables" gridArea="1_/_2" />
+            <GridHeader text="Support" gridArea="1_/_3" />
             <GridContent text="Demo, GitHub, short product walkthrough" gridArea="2_/_2" />
           </ThreeColumnGrid>
         </TimelineRow>
@@ -719,6 +720,7 @@ function HowItWorksSection() {
             <GridLabel text="Focus" />
             <GridValue>{`GTM Plan & Vision`}</GridValue>
             <GridHeader text="Deliverables" gridArea="1_/_2" />
+            <GridHeader text="Support" gridArea="1_/_3" />
             <GridContent text="Growth plan and progress update" gridArea="2_/_2" />
           </ThreeColumnGrid>
         </TimelineRow>
@@ -728,6 +730,7 @@ function HowItWorksSection() {
             <GridLabel text="Focus" />
             <GridValue>Finals</GridValue>
             <GridHeader text="Deliverables" gridArea="1_/_2" />
+            <GridHeader text="Support" gridArea="1_/_3" />
             <GridContent text="Judging and live showcase" gridArea="2_/_2" />
           </ThreeColumnGrid>
         </TimelineRow>
