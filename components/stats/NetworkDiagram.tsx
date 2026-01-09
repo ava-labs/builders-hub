@@ -589,14 +589,14 @@ export default function NetworkDiagram({
     };
   }, [isFullscreen]);
 
-  // Prevent page scroll when zooming with wheel or touch
+  // Prevent page scroll when zooming with Ctrl+wheel or touch
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
     const handleWheelNative = (e: WheelEvent) => {
-      // Only prevent default if the wheel event is over the container
-      if (container.contains(e.target as Node)) {
+      // Only prevent default if Ctrl is held (for zoom) - otherwise let page scroll
+      if (container.contains(e.target as Node) && (e.ctrlKey || e.metaKey)) {
         e.preventDefault();
       }
     };
@@ -1136,31 +1136,34 @@ export default function NetworkDiagram({
     }
   }, [onChainHover, selectedChain]);
 
-  // Zoom with mouse wheel (reduced sensitivity)
+  // Zoom with Ctrl+mouse wheel (reduced sensitivity)
   const handleWheel = useCallback((e: React.WheelEvent<HTMLCanvasElement>) => {
+    // Only zoom when Ctrl (or Cmd on Mac) is held - otherwise let page scroll
+    if (!e.ctrlKey && !e.metaKey) return;
+
     e.preventDefault();
     const minZoom = calculateMinZoom();
     const delta = e.deltaY > 0 ? 0.97 : 1.03; // Very gentle zoom
     const newZoom = Math.max(minZoom, Math.min(5, zoom * delta));
-    
+
     // Zoom towards mouse position
     const canvas = canvasRef.current;
     if (canvas) {
       const rect = canvas.getBoundingClientRect();
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
-      
+
       const centerX = dimensions.width / 2;
       const centerY = dimensions.height / 2;
-      
+
       // Calculate new pan to zoom towards mouse
       const zoomRatio = newZoom / zoom;
       const newPanX = mouseX - (mouseX - centerX - panOffset.x) * zoomRatio - centerX;
       const newPanY = mouseY - (mouseY - centerY - panOffset.y) * zoomRatio - centerY;
-      
+
       setPanOffset({ x: newPanX, y: newPanY });
     }
-    
+
     setZoom(newZoom);
   }, [zoom, dimensions, panOffset, calculateMinZoom]);
 
@@ -1712,7 +1715,7 @@ export default function NetworkDiagram({
           )}
         </div>
         <div className="mt-2 pt-2 border-t border-white/10 text-white/50">
-          <span>Scroll to zoom • Drag to pan</span>
+          <span>Ctrl+scroll to zoom • Drag to pan</span>
         </div>
       </div>
     </div>
