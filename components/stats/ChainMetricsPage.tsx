@@ -814,10 +814,9 @@ export default function ChainMetricsPage({
       title: "Gas Per Second",
       icon: Gauge,
       metricKey: "avgGps" as const,
-      secondaryMetricKey: "maxGps" as const,
-      description: "Average and peak gas per second",
+      description: "Average gas per second",
       color: themeColor,
-      chartType: "dual" as const,
+      chartType: "area" as const,
     },
     {
       title: "Transactions Per Second",
@@ -829,21 +828,29 @@ export default function ChainMetricsPage({
       chartType: "dual" as const,
     },
     {
-      title: "Gas Price",
-      icon: DollarSign,
-      metricKey: "avgGasPrice" as const,
-      secondaryMetricKey: "maxGasPrice" as const,
-      description: "Average and peak gas price over time",
-      color: themeColor,
-      chartType: "dual" as const,
-    },
-    {
       title: "Fees Paid",
       icon: DollarSign,
       metricKey: "feesPaid" as const,
       description: "Total transaction fees over time",
       color: themeColor,
       chartType: "bar" as const,
+    },
+    {
+      title: "Avg Gas Price",
+      icon: DollarSign,
+      metricKey: "avgGasPrice" as const,
+      description: "Average gas price over time",
+      color: themeColor,
+      chartType: "bar" as const,
+      showMovingAverage: true,
+    },
+    {
+      title: "Max Gas Price",
+      icon: DollarSign,
+      metricKey: "maxGasPrice" as const,
+      description: "Peak gas price over time",
+      color: "#a855f7",
+      chartType: "area" as const,
     },
     {
       title: "Interchain Messages",
@@ -896,9 +903,9 @@ export default function ChainMetricsPage({
     {
       id: "performance",
       label: "Performance",
-      metricKeys: ["gasUsed", "avgGps", "avgTps", "avgGasPrice"],
+      metricKeys: ["gasUsed", "avgGps", "avgTps"],
     },
-    { id: "fees", label: "Fees", metricKeys: ["feesPaid"] },
+    { id: "fees", label: "Fees", metricKeys: ["feesPaid", "avgGasPrice", "maxGasPrice"] },
     { id: "interchain", label: "Interchain", metricKeys: ["icmMessages"] },
   ];
 
@@ -1615,7 +1622,6 @@ export default function ChainMetricsPage({
                   "gasUsed",
                   "avgGps",
                   "avgTps",
-                  "avgGasPrice",
                 ]).map((config) => {
                   const period = chartPeriods[config.metricKey];
                   const rawData = getChartData(
@@ -1708,7 +1714,7 @@ export default function ChainMetricsPage({
                 </p>
               </div>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-                {getChartsByCategory(["feesPaid"]).map((config) => {
+                {getChartsByCategory(["feesPaid", "avgGasPrice", "maxGasPrice"]).map((config) => {
                   const period = chartPeriods[config.metricKey];
                   const rawData = getChartData(
                     config.metricKey as keyof Omit<
@@ -1725,14 +1731,32 @@ export default function ChainMetricsPage({
                     config.metricKey
                   );
 
-                  // All periods allowed for fees
-                  const allowedPeriods: ("D" | "W" | "M" | "Q" | "Y")[] = [
+                  // Handle secondary data for dual charts (Gas Price)
+                  let secondaryData = null;
+                  let secondaryCurrentValue = null;
+                  if (
+                    config.chartType === "dual" &&
+                    config.secondaryMetricKey
+                  ) {
+                    secondaryData = getChartData(config.secondaryMetricKey);
+                    secondaryCurrentValue = getCurrentValue(
+                      config.secondaryMetricKey
+                    );
+                  }
+
+                  // Determine allowed periods - Gas Price only available on Daily
+                  let allowedPeriods: ("D" | "W" | "M" | "Q" | "Y")[] = [
                     "D",
                     "W",
                     "M",
                     "Q",
                     "Y",
                   ];
+                  if (
+                    ["avgGasPrice", "maxGasPrice"].includes(config.metricKey)
+                  ) {
+                    allowedPeriods = ["D"];
+                  }
 
                   return (
                     <ChartCard
@@ -1740,10 +1764,10 @@ export default function ChainMetricsPage({
                       config={config}
                       rawData={rawData}
                       cumulativeData={null}
-                      secondaryData={null}
+                      secondaryData={secondaryData}
                       period={period}
                       currentValue={currentValue}
-                      secondaryCurrentValue={null}
+                      secondaryCurrentValue={secondaryCurrentValue}
                       onPeriodChange={(newPeriod) =>
                         setChartPeriods((prev) => ({
                           ...prev,
@@ -1755,7 +1779,7 @@ export default function ChainMetricsPage({
                       }
                       formatYAxisValue={formatNumber}
                       allowedPeriods={allowedPeriods}
-                      showMovingAverage={true}
+                      showMovingAverage={config.showMovingAverage || config.metricKey === "feesPaid"}
                     />
                   );
                 })}
