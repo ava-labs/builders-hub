@@ -173,7 +173,7 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
 
             // Create a curved path
             const pathData = `M ${parentCenterX} ${parentBottomY} C ${parentCenterX} ${midY}, ${childCenterX} ${midY}, ${childCenterX} ${adjustedChildTopY}`;
-
+            
             const inactiveMarker = isDarkMode ? "url(#arrow-inactive-dark)" : "url(#arrow-inactive-light)";
             const activeMarker = isDarkMode ? "url(#arrow-active-dark)" : "url(#arrow-active-light)";
             

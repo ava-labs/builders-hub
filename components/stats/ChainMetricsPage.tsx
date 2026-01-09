@@ -1,12 +1,28 @@
 "use client";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef, useTransition } from "react";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis, Tooltip, Brush, ResponsiveContainer, ComposedChart } from "recharts";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, Activity, FileText, MessageSquare, TrendingUp, UserPlus, Hash, Code2, Gauge, DollarSign, Clock, Fuel } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { getMAConfig, calculateMovingAverage } from "@/utils/chart-utils";
+import { Users, Activity, FileText, MessageCircleMore, TrendingUp, UserPlus, Hash, Code2, Gauge, DollarSign, Clock, Fuel, ArrowUpRight, Twitter, Linkedin, Download, Camera } from "lucide-react";
+import { ChainIdChips } from "@/components/ui/copyable-id-chip";
+import { AddToWalletButton } from "@/components/ui/add-to-wallet-button";
 import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
-import { ChartSkeletonLoader } from "@/components/ui/chart-skeleton";
+import { L1BubbleNav } from "@/components/stats/l1-bubble.config";
 import { ExplorerDropdown } from "@/components/stats/ExplorerDropdown";
+import { StickyNavBar } from "@/components/stats/StickyNavBar";
+import { PeriodSelector } from "@/components/stats/PeriodSelector";
+import { MobileSocialLinks } from "@/components/stats/MobileSocialLinks";
+import { LinkableHeading } from "@/components/stats/LinkableHeading";
+import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
+import { ChartWatermark } from "@/components/stats/ChartWatermark";
+import { StatsBreadcrumb } from "@/components/navigation/StatsBreadcrumb";
+import { ChainCategoryFilter, allChains } from "@/components/stats/ChainCategoryFilter";
+import { useSectionNavigation } from "@/hooks/use-section-navigation";
+import { useTheme } from "next-themes";
+import { toPng } from "html-to-image";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { L1Chain } from "@/types/stats";
 
@@ -30,12 +46,14 @@ interface ICMMetric {
   data: ICMDataPoint[];
 }
 
+interface ActiveAddressesMetric {
+  daily: TimeSeriesMetric;
+  weekly: TimeSeriesMetric;
+  monthly: TimeSeriesMetric;
+}
+
 interface CChainMetrics {
-  activeAddresses: {
-    daily: TimeSeriesMetric;
-    weekly: TimeSeriesMetric;
-    monthly: TimeSeriesMetric;
-  };
+  activeAddresses: ActiveAddressesMetric;
   activeSenders: TimeSeriesMetric;
   cumulativeAddresses: TimeSeriesMetric;
   cumulativeDeployers: TimeSeriesMetric;
@@ -59,42 +77,352 @@ interface CChainMetrics {
 interface ChainMetricsPageProps {
   chainId?: string;
   chainName?: string;
+  chainSlug?: string;
   description?: string;
   themeColor?: string;
   chainLogoURI?: string;
+  website?: string;
+  socials?: {
+    twitter?: string;
+    linkedin?: string;
+  };
+  rpcUrl?: string;
+  category?: string;
+  explorers?: Array<{
+    name: string;
+    link: string;
+  }>;
+  blockchainId?: string;
+  subnetId?: string;
 }
 
 export default function ChainMetricsPage({
   chainId = "43114",
   chainName = "Avalanche C-Chain",
+  chainSlug,
   description = "Real-time metrics and analytics for the Avalanche C-Chain",
   themeColor = "#E57373",
   chainLogoURI,
+  website,
+  socials,
+  rpcUrl,
+  category: categoryProp,
+  explorers: explorersProp,
+  blockchainId: blockchainIdProp,
+  subnetId: subnetIdProp,
 }: ChainMetricsPageProps) {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+
   const [metrics, setMetrics] = useState<CChainMetrics | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Find the current chain to get explorers
-  const currentChain = useMemo(() => {
-    return l1ChainsData.find((chain) => chain.chainId === chainId) as
-      | L1Chain
-      | undefined;
-  }, [chainId]);
+  // Cache for "all chains" data - fetched once and reused for filtering
+  const [cachedAllData, setCachedAllData] = useState<CChainMetrics | null>(
+    null
+  );
+
+  // Filtering state (only for "all chains" view)
+  const isAllChainsView =
+    chainSlug === "all" ||
+    chainSlug === "all-chains" ||
+    chainSlug === "network-metrics";
+
+  // Initialize selectedChainIds from URL params (only for all chains view)
+  const getInitialSelectedChainIds = useCallback(() => {
+    // Only read from URL params if we're on the "all" page
+    if (isAllChainsView) {
+      const excludedParam = searchParams.get("excludedChainIds");
+      if (excludedParam) {
+        const excludedIds = new Set(excludedParam.split(",").filter(Boolean));
+        // Return all chains except excluded ones
+        return new Set(
+          allChains.map((c) => c.chainId).filter((id) => !excludedIds.has(id))
+        );
+      }
+    }
+    // Default: all chains selected
+    return new Set(allChains.map((c) => c.chainId));
+  }, [searchParams, isAllChainsView]);
+
+  const [selectedChainIds, setSelectedChainIds] = useState<Set<string>>(
+    getInitialSelectedChainIds
+  );
+
+  // Track if this is user-initiated change (not from URL sync)
+  const [urlSyncNeeded, setUrlSyncNeeded] = useState(false);
+
+  // Update URL when selection changes (only for all chains view) - via useEffect to avoid setState during render
+  useEffect(() => {
+    if (!isAllChainsView || !urlSyncNeeded) return;
+
+    const excludedIds = allChains
+      .filter((c) => !selectedChainIds.has(c.chainId))
+      .map((c) => c.chainId);
+
+    const params = new URLSearchParams(searchParams.toString());
+
+    if (excludedIds.length === 0) {
+      // All selected, remove param
+      params.delete("excludedChainIds");
+    } else {
+      params.set("excludedChainIds", excludedIds.join(","));
+    }
+
+    const newUrl = params.toString()
+      ? `${pathname}?${params.toString()}`
+      : pathname;
+    router.replace(newUrl, { scroll: false });
+    setUrlSyncNeeded(false);
+  }, [
+    isAllChainsView,
+    pathname,
+    router,
+    searchParams,
+    selectedChainIds,
+    urlSyncNeeded,
+  ]);
+
+  // Sync state from URL params on initial load and when URL changes externally (only for all chains view)
+  useEffect(() => {
+    if (isAllChainsView) {
+      const initialSelected = getInitialSelectedChainIds();
+      setSelectedChainIds(initialSelected);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, isAllChainsView]);
+
+  // Handle selection change from filter component
+  const handleSelectionChange = useCallback((newSelection: Set<string>) => {
+    setSelectedChainIds(newSelection);
+    setUrlSyncNeeded(true);
+  }, []);
+
+  // Look up chain data to get category, explorers, blockchainId, subnetId if not provided
+  const chainData = chainSlug
+    ? (l1ChainsData as L1Chain[]).find((c) => c.slug === chainSlug)
+    : null;
+  const category = categoryProp || chainData?.category;
+  const blockchainId = blockchainIdProp || (chainData as any)?.blockchainId;
+  const subnetId = subnetIdProp || chainData?.subnetId;
+
+  // Build explorers list - add BuilderHub explorer first if rpcUrl is provided
+  const baseExplorers = explorersProp || chainData?.explorers || [];
+  const explorers = useMemo(() => {
+    const effectiveRpcUrl = rpcUrl || chainData?.rpcUrl;
+    if (effectiveRpcUrl && chainSlug) {
+      // Prepend BuilderHub explorer if chain has RPC URL
+      return [
+        { name: "BuilderHub", link: `/explorer/${chainSlug}` },
+        ...baseExplorers.filter((e) => e.name !== "BuilderHub"), // Avoid duplicates
+      ];
+    }
+    return baseExplorers;
+  }, [rpcUrl, chainData?.rpcUrl, chainSlug, baseExplorers]);
+
+  // Determine which chainIds are EXCLUDED (not selected)
+  const excludedChainIds = useMemo(() => {
+    if (!isAllChainsView) return [];
+    if (selectedChainIds.size === allChains.length) return []; // All selected, no exclusions
+    if (selectedChainIds.size === 0) return allChains.map((c) => c.chainId); // None selected, all excluded
+    return allChains
+      .filter((c) => !selectedChainIds.has(c.chainId))
+      .map((c) => c.chainId);
+  }, [isAllChainsView, selectedChainIds]);
+
+  // Helper function to subtract metric values
+  const subtractMetricValues = (
+    allData: CChainMetrics,
+    excludedData: CChainMetrics[]
+  ): CChainMetrics => {
+    const result = JSON.parse(JSON.stringify(allData)) as CChainMetrics;
+
+    // Helper to subtract time series data
+    const subtractTimeSeries = (allSeries: any, excludedSeries: any[]) => {
+      if (!allSeries?.data) return allSeries;
+
+      const subtracted = { ...allSeries };
+      subtracted.data = allSeries.data.map((point: any) => {
+        let value =
+          typeof point.value === "number"
+            ? point.value
+            : parseFloat(point.value) || 0;
+
+        excludedSeries.forEach((excluded) => {
+          if (excluded?.data) {
+            const matchingPoint = excluded.data.find(
+              (p: any) => p.date === point.date
+            );
+            if (matchingPoint) {
+              const excludedValue =
+                typeof matchingPoint.value === "number"
+                  ? matchingPoint.value
+                  : parseFloat(matchingPoint.value) || 0;
+              value = Math.max(0, value - excludedValue);
+            }
+          }
+        });
+
+        return { ...point, value };
+      });
+
+      // Update current value
+      if (subtracted.data.length > 0) {
+        subtracted.current_value = subtracted.data[0].value;
+      }
+
+      return subtracted;
+    };
+
+    // Subtract each metric type
+    const metricKeys = [
+      "activeSenders",
+      "cumulativeAddresses",
+      "cumulativeDeployers",
+      "txCount",
+      "cumulativeTxCount",
+      "cumulativeContracts",
+      "contracts",
+      "deployers",
+      "gasUsed",
+      "feesPaid",
+    ] as const;
+
+    metricKeys.forEach((key) => {
+      if (result[key]) {
+        result[key] = subtractTimeSeries(
+          result[key],
+          excludedData.map((d) => d[key]).filter(Boolean)
+        );
+      }
+    });
+
+    // Handle activeAddresses (nested structure)
+    if (result.activeAddresses) {
+      ["daily", "weekly", "monthly"].forEach((period) => {
+        if ((result.activeAddresses as any)[period]) {
+          (result.activeAddresses as any)[period] = subtractTimeSeries(
+            (result.activeAddresses as any)[period],
+            excludedData
+              .map((d) => (d.activeAddresses as any)?.[period])
+              .filter(Boolean)
+          );
+        }
+      });
+    }
+
+    // Handle ICM messages
+    if (result.icmMessages?.data) {
+      result.icmMessages = {
+        ...result.icmMessages,
+        data: result.icmMessages.data.map((point: any) => {
+          let messageCount = point.messageCount || 0;
+
+          excludedData.forEach((excluded) => {
+            if (excluded?.icmMessages?.data) {
+              const matchingPoint = excluded.icmMessages.data.find(
+                (p: any) => p.date === point.date
+              );
+              if (matchingPoint) {
+                messageCount = Math.max(
+                  0,
+                  messageCount - (matchingPoint.messageCount || 0)
+                );
+              }
+            }
+          });
+
+          return { ...point, messageCount };
+        }),
+        current_value: 0,
+      };
+      if (result.icmMessages.data.length > 0) {
+        result.icmMessages.current_value =
+          result.icmMessages.data[0].messageCount || 0;
+      }
+    }
+
+    return result;
+  };
 
   const fetchData = async () => {
+    // If not all chains view, use regular single chain fetch
+    if (!isAllChainsView) {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await fetch(
+          `/api/chain-stats/${chainId}?timeRange=all`
+        );
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        setMetrics(data);
+        setIsInitialLoad(false);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "An error occurred");
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
+    // If no chains selected, show empty state
+    if (selectedChainIds.size === 0) {
+      setMetrics(null);
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`/api/chain-stats/${chainId}?timeRange=all`);
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      // Use cached "all" data if available, otherwise fetch it
+      let allData: CChainMetrics;
+      if (cachedAllData) {
+        allData = cachedAllData;
+      } else {
+        const allResponse = await fetch(`/api/chain-stats/all?timeRange=all`);
+        if (!allResponse.ok) {
+          throw new Error(`HTTP error! status: ${allResponse.status}`);
+        }
+        allData = await allResponse.json();
+        setCachedAllData(allData); // Cache for future filter changes
       }
 
-      const chainData = await response.json();
-      setMetrics(chainData);
+      // If all chains are selected, just use the "all" data
+      if (excludedChainIds.length === 0) {
+        setMetrics(allData);
+      } else {
+        // Fetch data for excluded chains and subtract
+        const excludedResults = await Promise.all(
+          excludedChainIds.map(async (cid) => {
+            try {
+              const response = await fetch(
+                `/api/chain-stats/${cid}?timeRange=all`
+              );
+              if (!response.ok) return null;
+              return await response.json();
+            } catch {
+              return null;
+            }
+          })
+        );
+
+        const validExcluded = excludedResults.filter(
+          (r) => r !== null
+        ) as CChainMetrics[];
+
+        // Subtract excluded data from all data
+        const filteredMetrics = subtractMetricValues(allData, validExcluded);
+        setMetrics(filteredMetrics);
+      }
+      setIsInitialLoad(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
@@ -104,7 +432,12 @@ export default function ChainMetricsPage({
 
   useEffect(() => {
     fetchData();
-  }, [chainId]);
+  }, [
+    isAllChainsView,
+    chainId,
+    selectedChainIds.size,
+    excludedChainIds.join(","),
+  ]);
 
   const formatNumber = (num: number | string): string => {
     if (num === "N/A" || num === "") return "N/A";
@@ -171,7 +504,8 @@ export default function ChainMetricsPage({
 
   const formatEther = (avaxValue: number | string): string => {
     if (avaxValue === "N/A" || avaxValue === "") return "N/A";
-    const value = typeof avaxValue === "string" ? Number.parseFloat(avaxValue) : avaxValue;
+    const value =
+      typeof avaxValue === "string" ? Number.parseFloat(avaxValue) : avaxValue;
     if (isNaN(value)) return "N/A";
     const isC_Chain = chainName.includes("C-Chain");
     const unit = isC_Chain ? " AVAX" : "";
@@ -188,7 +522,12 @@ export default function ChainMetricsPage({
   };
 
   const getChartData = (
-    metricKey: keyof Omit<CChainMetrics, "last_updated" | "icmMessages">,
+    metricKey:
+      | keyof Omit<
+          CChainMetrics,
+          "last_updated" | "icmMessages" | "activeAddresses"
+        >
+      | "activeAddresses",
     period?: "D" | "W" | "M" | "Q" | "Y"
   ) => {
     if (!metrics) return [];
@@ -213,18 +552,31 @@ export default function ChainMetricsPage({
       return data
         .map((point: TimeSeriesDataPoint) => ({
           day: point.date,
-          value: typeof point.value === "string" ? Number.parseFloat(point.value) : point.value,
+          value:
+            typeof point.value === "string"
+              ? Number.parseFloat(point.value)
+              : point.value,
         }))
         .reverse();
     }
 
     // Handle other metrics normally
-    if (!metrics[metricKey]?.data) return [];
+    const metric =
+      metrics[
+        metricKey as keyof Omit<
+          CChainMetrics,
+          "last_updated" | "icmMessages" | "activeAddresses"
+        >
+      ];
+    if (!metric?.data) return [];
 
-    return metrics[metricKey].data
+    return metric.data
       .map((point: TimeSeriesDataPoint) => ({
         day: point.date,
-        value: typeof point.value === "string" ? Number.parseFloat(point.value) : point.value,
+        value:
+          typeof point.value === "string"
+            ? Number.parseFloat(point.value)
+            : point.value,
       }))
       .reverse();
   };
@@ -251,8 +603,10 @@ export default function ChainMetricsPage({
       "cumulativeContracts",
       "contracts",
       "deployers",
-      "icmMessages"
-    ].includes(metricKey) ? Math.round(value) : value;
+      "icmMessages",
+    ].includes(metricKey)
+      ? Math.round(value)
+      : value;
 
     switch (metricKey) {
       case "activeAddresses":
@@ -296,6 +650,70 @@ export default function ChainMetricsPage({
     }
   };
 
+  // Helper function to get the current value from raw data based on period
+  const getCurrentValueFromData = (
+    rawData: { day: string; value: number }[],
+    period: "D" | "W" | "M" | "Q" | "Y",
+    metricKey: string
+  ): number | string => {
+    if (!rawData || rawData.length === 0) return "N/A";
+
+    // For activeAddresses with W/M periods, data is already aggregated from API
+    if (metricKey === "activeAddresses" && (period === "W" || period === "M")) {
+      return rawData[rawData.length - 1].value;
+    }
+
+    // For daily period, just return the latest value
+    if (period === "D") {
+      return rawData[rawData.length - 1].value;
+    }
+
+    // For other periods, aggregate the data to get the latest period's value
+    const grouped = new Map<
+      string,
+      { sum: number; count: number; date: string }
+    >();
+
+    rawData.forEach((point) => {
+      const date = new Date(point.day);
+      let key: string;
+
+      if (period === "W") {
+        const weekStart = new Date(date);
+        weekStart.setDate(date.getDate() - date.getDay());
+        key = weekStart.toISOString().split("T")[0];
+      } else if (period === "M") {
+        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
+          2,
+          "0"
+        )}`;
+      } else if (period === "Q") {
+        const quarter = Math.floor(date.getMonth() / 3) + 1;
+        key = `${date.getFullYear()}-Q${quarter}`;
+      } else {
+        // Y
+        key = String(date.getFullYear());
+      }
+
+      if (!grouped.has(key)) {
+        grouped.set(key, { sum: 0, count: 0, date: key });
+      }
+
+      const group = grouped.get(key)!;
+      group.sum += point.value;
+      group.count += 1;
+    });
+
+    // Get the latest aggregated value
+    const aggregated = Array.from(grouped.values()).sort((a, b) =>
+      a.date.localeCompare(b.date)
+    );
+
+    return aggregated.length > 0
+      ? aggregated[aggregated.length - 1].sum
+      : "N/A";
+  };
+
   const getCurrentValue = (
     metricKey: keyof Omit<CChainMetrics, "last_updated">,
     period?: "D" | "W" | "M" | "Q" | "Y"
@@ -316,8 +734,15 @@ export default function ChainMetricsPage({
       }
     }
 
-    if (!metrics[metricKey]) return "N/A";
-    return metrics[metricKey].current_value;
+    const metric =
+      metrics[
+        metricKey as keyof Omit<
+          CChainMetrics,
+          "last_updated" | "activeAddresses"
+        >
+      ];
+    if (!metric) return "N/A";
+    return metric.current_value;
   };
 
   const chartConfigs = [
@@ -349,7 +774,7 @@ export default function ChainMetricsPage({
       title: "Total Addresses",
       icon: Hash,
       metricKey: "cumulativeAddresses" as const,
-      description: "Cumulative unique addresses since genesis",
+      description: "Total unique addresses since genesis",
       color: themeColor,
       chartType: "area" as const,
     },
@@ -357,7 +782,7 @@ export default function ChainMetricsPage({
       title: "Total Transactions",
       icon: Hash,
       metricKey: "cumulativeTxCount" as const,
-      description: "Cumulative transaction count since genesis",
+      description: "Total transaction count since genesis",
       color: themeColor,
       chartType: "area" as const,
     },
@@ -422,7 +847,7 @@ export default function ChainMetricsPage({
     },
     {
       title: "Interchain Messages",
-      icon: MessageSquare,
+      icon: MessageCircleMore,
       metricKey: "icmMessages" as const,
       description: "Interchain messaging activity",
       color: themeColor,
@@ -434,197 +859,199 @@ export default function ChainMetricsPage({
     Record<string, "D" | "W" | "M" | "Q" | "Y">
   >(Object.fromEntries(chartConfigs.map((config) => [config.metricKey, "D"])));
 
-  if (loading) {
+  // Global period selector state
+  const [globalPeriod, setGlobalPeriod] = useState<"D" | "W" | "M" | "Q" | "Y">(
+    "D"
+  );
+  const [, startTransition] = useTransition();
+
+  const handlePeriodChange = (newPeriod: "D" | "W" | "M" | "Q" | "Y") => {
+    startTransition(() => {
+      setGlobalPeriod(newPeriod);
+    });
+  };
+
+  // Sync all chart periods when global period changes
+  useEffect(() => {
+    setChartPeriods(
+      Object.fromEntries(
+        chartConfigs.map((config) => [config.metricKey, globalPeriod])
+      )
+    );
+  }, [globalPeriod]);
+
+  // Chart categories for navigation
+  const chartCategories = [
+    { id: "overview", label: "Overview" },
+    {
+      id: "activity",
+      label: "Activity",
+      metricKeys: ["activeAddresses", "activeSenders", "txCount"],
+    },
+    {
+      id: "contracts",
+      label: "Contracts",
+      metricKeys: ["contracts", "deployers"],
+    },
+    {
+      id: "performance",
+      label: "Performance",
+      metricKeys: ["gasUsed", "avgGps", "avgTps", "avgGasPrice"],
+    },
+    { id: "fees", label: "Fees", metricKeys: ["feesPaid"] },
+    { id: "interchain", label: "Interchain", metricKeys: ["icmMessages"] },
+  ];
+
+  // Section navigation using reusable hook
+  const { activeSection, scrollToSection } = useSectionNavigation({
+    categories: chartCategories,
+    offset: 180,
+    initialSection: "overview",
+  });
+
+  // Get charts for a category
+  const getChartsByCategory = (metricKeys: string[]) => {
+    return chartConfigs.filter((config) =>
+      metricKeys.includes(config.metricKey)
+    );
+  };
+
+  // Only show full skeleton on initial load, not on filter changes
+  if (loading && isInitialLoad) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 pt-8">
-        <div className="container mx-auto mt-4 p-4 sm:p-6 pb-24 space-y-8 sm:space-y-12">
-          {/* Hero Section Skeleton */}
-          <div className="relative overflow-hidden rounded-2xl p-6 sm:p-8">
-            {/* Multi-layer gradient background */}
-            <div className="absolute inset-0 bg-gradient-to-br from-black via-neutral-950 to-black" />
-            <div
-              className="absolute inset-0 opacity-50"
-              style={{
-                background: `linear-gradient(135deg, ${themeColor}99 0%, ${themeColor}44 30%, transparent 60%)`
-              }}
-            />
-            <div
-              className="absolute inset-0 opacity-30"
-              style={{
-                background: `radial-gradient(ellipse at top right, ${themeColor}88 0%, transparent 50%)`
-              }}
-            />
-            <div
-              className="absolute inset-0 opacity-20"
-              style={{
-                background: `radial-gradient(ellipse at bottom left, ${themeColor}66 0%, transparent 40%)`
-              }}
-            />
+      <div className="min-h-screen bg-white dark:bg-zinc-950">
+        {/* Hero Skeleton with gradient */}
+        <div className="relative overflow-hidden">
+          {/* Gradient decoration skeleton */}
+          <div
+            className="absolute top-0 right-0 w-2/3 h-full pointer-events-none"
+            style={{
+              background: `linear-gradient(to left, ${themeColor}35 0%, ${themeColor}20 40%, ${themeColor}08 70%, transparent 100%)`,
+            }}
+          />
 
-            {/* Content */}
-            <div className="relative z-10">
-              <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6">
-                {/* Chain Logo Skeleton - Only show if chainLogoURI exists */}
-                {chainLogoURI && (
-                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-white/20 animate-pulse shrink-0" />
-                )}
+          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-8 sm:pt-16 pb-6 sm:pb-8">
+            {/* Breadcrumb Skeleton */}
+            <div className="flex items-center gap-1.5 mb-3">
+              <div className="h-4 w-16 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+              <div className="w-3.5 h-3.5 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+              <div className="h-4 w-24 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+            </div>
 
-                <div className="flex-1 min-w-0">
-                  <h1 className="text-2xl sm:text-3xl md:text-4xl font-semibold mb-2 text-white">
-                    {chainName.includes("C-Chain")
-                      ? "Avalanche C-Chain Metrics"
-                      : `${chainName} L1 Metrics`}
-                  </h1>
-                  <p className="text-white/80 text-sm sm:text-base text-left">
-                    {chainName.includes("C-Chain")
-                      ? "Loading Avalanche C-chain activity and network usage..."
-                      : `Loading ${chainName} metrics...`}
-                  </p>
+            <div className="flex flex-col sm:flex-row items-start justify-between gap-6 sm:gap-8">
+              <div className="space-y-4 sm:space-y-6 flex-1">
+                <div>
+                  <div className="flex items-center gap-2 sm:gap-3 mb-3">
+                    <div className="w-4 h-4 sm:w-5 sm:h-5 bg-red-200 dark:bg-red-900/30 rounded animate-pulse" />
+                    <div className="h-3 sm:h-4 w-36 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                  </div>
+                  <div className="flex items-center gap-3 sm:gap-4">
+                    {chainLogoURI && (
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-xl bg-zinc-200 dark:bg-zinc-800 animate-pulse" />
+                    )}
+                    <div className="h-8 sm:h-10 md:h-12 w-64 sm:w-80 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                  </div>
+                  <div className="h-4 sm:h-5 w-full max-w-2xl bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse mt-3" />
+                  <div className="h-6 w-20 bg-zinc-200 dark:bg-zinc-800 rounded-full animate-pulse mt-3" />
                 </div>
-
-                {/* ExplorerDropdown Placeholder for L1s */}
-                {!chainName.includes("C-Chain") && (
-                  <div className="shrink-0 self-start sm:self-center">
-                    <div className="h-8 w-28 bg-white/50 dark:bg-white/20 rounded-md animate-pulse" />
-                  </div>
-                )}
               </div>
-            </div>
-          </div>
-
-          {/* Network Overview Section */}
-          <div className="space-y-4 sm:space-y-6">
-            <div className="space-y-2">
-              <h2 className="text-lg sm:text-2xl font-medium text-foreground">Network Overview</h2>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-              {/* Daily Active Addresses */}
-              <Card className="border-border">
-                <CardContent className="p-4 sm:p-6">
-                  <div className="flex items-center gap-2 mb-2 sm:mb-3">
-                    <div className="p-2 rounded-lg" style={{ backgroundColor: `${themeColor}20` }}>
-                      <Users className="h-6 w-6" style={{ color: themeColor }} />
-                    </div>
-                    <div className="text-sm text-muted-foreground">Daily Active Addresses</div>
-                  </div>
-                  <div className="h-8 bg-muted rounded w-24 animate-pulse" />
-                </CardContent>
-              </Card>
-
-              {/* Daily Transactions */}
-              <Card className="border-border">
-                <CardContent className="p-4 sm:p-6">
-                  <div className="flex items-center gap-2 mb-2 sm:mb-3">
-                    <div className="p-2 rounded-lg" style={{ backgroundColor: `${themeColor}20` }}>
-                      <Activity className="h-6 w-6" style={{ color: themeColor }} />
-                    </div>
-                    <div className="text-sm text-muted-foreground">Daily Transactions</div>
-                  </div>
-                  <div className="h-8 bg-muted rounded w-24 animate-pulse" />
-                </CardContent>
-              </Card>
-
-              {/* Total Contracts Deployed */}
-              <Card className="border-border">
-                <CardContent className="p-4 sm:p-6">
-                  <div className="flex items-center gap-2 mb-2 sm:mb-3">
-                    <div className="p-2 rounded-lg" style={{ backgroundColor: `${themeColor}20` }}>
-                      <FileText className="h-6 w-6" style={{ color: themeColor }} />
-                    </div>
-                    <div className="text-sm text-muted-foreground">Total Contracts Deployed</div>
-                  </div>
-                  <div className="h-8 bg-muted rounded w-24 animate-pulse" />
-                </CardContent>
-              </Card>
-
-              {/* Daily Interchain Messages */}
-              <Card className="border-border">
-                <CardContent className="p-4 sm:p-6">
-                  <div className="flex items-center gap-2 mb-2 sm:mb-3">
-                    <div className="p-2 rounded-lg" style={{ backgroundColor: `${themeColor}20` }}>
-                      <MessageSquare className="h-6 w-6" style={{ color: themeColor }} />
-                    </div>
-                    <div className="text-sm text-muted-foreground">Daily Interchain Messages</div>
-                  </div>
-                  <div className="h-8 bg-muted rounded w-24 animate-pulse" />
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-
-          {/* Historical Trends Section */}
-          <div className="space-y-4 sm:space-y-6">
-            <div className="space-y-2">
-              <h2 className="text-lg sm:text-2xl font-medium text-foreground">Historical Trends</h2>
-              <p className="text-zinc-400 text-sm sm:text-md text-left">
-                Track {chainName} network growth and activity over time
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-              {chartConfigs.slice(0, 8).map((config) => {
-                const Icon = config.icon;
-                return (
-                  <Card key={config.metricKey} className="border-border overflow-hidden">
-                    {/* Chart Header */}
-                    <div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-border">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-2 sm:gap-3">
-                          <Icon className="h-5 w-5" style={{ color: themeColor }} />
-                          <div>
-                            <h3 className="font-semibold text-foreground text-sm sm:text-base">{config.title}</h3>
-                            <p className="text-xs text-muted-foreground">{config.description}</p>
-                          </div>
-                        </div>
-                        {/* Period Buttons */}
-                        <div className="flex gap-1">
-                          {["D", "W", "M", "Q", "Y"].map((period) => (
-                            <Button
-                              key={period}
-                              variant={period === "D" ? "default" : "ghost"}
-                              size="sm"
-                              disabled
-                              className="h-7 w-8 p-0 text-xs"
-                            >
-                              {period}
-                            </Button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Chart Content */}
-                    <CardContent className="px-5 pt-6 pb-6">
-                      {/* Current Value Skeleton */}
-                      <div className="mb-3 sm:mb-4 flex items-baseline gap-2">
-                        <div className="h-8 bg-muted rounded w-32 animate-pulse" />
-                        <div className="h-4 bg-muted rounded w-16 animate-pulse" />
-                      </div>
-
-                      {/* Chart Area Skeleton */}
-                      <div className="h-[400px] bg-muted/30 rounded-lg animate-pulse flex items-end justify-around p-4">
-                        {[...Array(12)].map((_, barIndex) => (
-                          <div
-                            key={barIndex}
-                            className="bg-muted rounded-t"
-                            style={{
-                              width: '6%',
-                              height: `${30 + Math.random() * 70}%`
-                            }}
-                          />
-                        ))}
-                      </div>
-
-                      {/* Brush Slider Skeleton */}
-                      <div className="mt-4 h-20 bg-muted/20 rounded-lg animate-pulse" />
-                    </CardContent>
-                  </Card>
-                );
-              })}
+              {!chainName.includes("C-Chain") && (
+                <div className="h-9 w-32 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+              )}
             </div>
           </div>
         </div>
-        <StatsBubbleNav />
+
+        {/* Navbar Skeleton */}
+        <div className="sticky top-14 z-40 w-full bg-zinc-50/95 dark:bg-zinc-950/95 backdrop-blur-sm border-b border-t border-zinc-200 dark:border-zinc-800">
+          <div className="w-full">
+            <div className="flex items-center gap-2 overflow-x-auto py-3 px-4 sm:px-6 max-w-7xl mx-auto">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div
+                  key={i}
+                  className="h-7 sm:h-8 w-20 sm:w-24 bg-zinc-200 dark:bg-zinc-800 rounded-lg animate-pulse flex-shrink-0"
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-12 sm:space-y-16">
+          {/* Network Overview Skeleton */}
+          <section className="space-y-4 sm:space-y-6">
+            <div className="space-y-2">
+              <div className="h-6 sm:h-8 w-48 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {[1, 2, 3, 4].map((i) => (
+                <div
+                  key={i}
+                  className="!bg-white dark:!bg-black border border-gray-200 dark:border-zinc-800 p-4 rounded-lg"
+                >
+                  <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 text-sm mb-2">
+                    <div className="w-4 h-4 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                    <div className="h-4 w-32 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                  </div>
+                  <div className="h-8 w-24 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Charts Skeleton */}
+          <section className="space-y-4 sm:space-y-6">
+            <div className="space-y-2">
+              <div className="h-6 sm:h-8 w-40 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+              <div className="h-4 w-64 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+              {[1, 2, 3, 4].map((i) => (
+                <div
+                  key={i}
+                  className="bg-white dark:bg-black border border-gray-200 dark:border-zinc-800 rounded-lg overflow-hidden"
+                >
+                  <div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-800">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 sm:gap-3">
+                        <div className="w-5 h-5 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                        <div>
+                          <div className="h-5 w-32 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse mb-1" />
+                          <div className="h-3 w-48 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                        </div>
+                      </div>
+                      <div className="flex gap-1">
+                        {[1, 2, 3, 4, 5].map((j) => (
+                          <div
+                            key={j}
+                            className="h-7 w-8 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse"
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="px-5 pt-6 pb-6">
+                    <div className="mb-4 flex items-baseline gap-2">
+                      <div className="h-8 w-32 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                      <div className="h-4 w-16 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                    </div>
+                    <div className="h-[350px] bg-zinc-100 dark:bg-zinc-800/50 rounded-lg animate-pulse" />
+                    <div className="mt-4 h-20 bg-zinc-100 dark:bg-zinc-800/50 rounded-lg animate-pulse" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        </div>
+        {chainSlug && !isAllChainsView ? (
+          <L1BubbleNav
+            chainSlug={chainSlug}
+            themeColor={themeColor}
+            rpcUrl={rpcUrl}
+            isCustomChain={!chainData}
+          />
+        ) : (
+          <StatsBubbleNav />
+        )}
       </div>
     );
   }
@@ -642,240 +1069,759 @@ export default function ChainMetricsPage({
             </div>
           </div>
         </div>
-        <StatsBubbleNav />
+        {chainSlug && !isAllChainsView ? (
+          <L1BubbleNav
+            chainSlug={chainSlug}
+            themeColor={themeColor}
+            rpcUrl={rpcUrl}
+            isCustomChain={!chainData}
+          />
+        ) : (
+          <StatsBubbleNav />
+        )}
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 pt-8">
-      <div className="container mx-auto mt-4 p-4 sm:p-6 pb-24 space-y-8 sm:space-y-12">
-        {/* Header */}
-        <div className="relative overflow-hidden rounded-2xl p-6 sm:p-8">
-          {/* Multi-layer gradient background */}
-          <div className="absolute inset-0 bg-gradient-to-br from-black via-neutral-950 to-black" />
+    <div className="min-h-screen bg-white dark:bg-zinc-950">
+      {/* Hero - Clean typographic approach with gradient accent */}
+      <div className="relative overflow-hidden">
+        {/* Gradient decoration on the right */}
+        {chainLogoURI && (
           <div
-            className="absolute inset-0 opacity-50"
+            className="absolute top-0 right-0 w-2/3 h-full pointer-events-none"
             style={{
-              background: `linear-gradient(135deg, ${themeColor}99 0%, ${themeColor}44 30%, transparent 60%)`
+              background: `linear-gradient(to left, ${themeColor}35 0%, ${themeColor}20 40%, ${themeColor}08 70%, transparent 100%)`,
             }}
           />
+        )}
+        {!chainLogoURI && (
           <div
-            className="absolute inset-0 opacity-30"
+            className="absolute top-0 right-0 w-2/3 h-full pointer-events-none"
             style={{
-              background: `radial-gradient(ellipse at top right, ${themeColor}88 0%, transparent 50%)`
+              background: `linear-gradient(to left, rgba(239, 68, 68, 0.2) 0%, rgba(239, 68, 68, 0.12) 40%, rgba(239, 68, 68, 0.04) 70%, transparent 100%)`,
             }}
           />
-          <div
-            className="absolute inset-0 opacity-20"
-            style={{
-              background: `radial-gradient(ellipse at bottom left, ${themeColor}66 0%, transparent 40%)`
-            }}
-          />
+        )}
 
-          {/* Content */}
-          <div className="relative z-10">
-            {/* Main content row with aligned explorer button */}
-            <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6">
-              {/* Logo */}
-              {chainLogoURI && (
-                <div className="shrink-0">
-                  <img
-                    src={chainLogoURI}
-                    alt={`${chainName} logo`}
-                    className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl object-contain bg-white/10 p-2"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = 'none';
-                    }}
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-8 sm:pt-16 pb-6 sm:pb-8">
+          {/* Breadcrumb */}
+          {chainSlug && (
+            <StatsBreadcrumb
+              chainSlug={chainSlug}
+              chainName={chainName}
+              chainLogoURI={chainLogoURI}
+              showStats={true}
+              themeColor={themeColor}
+            />
+          )}
+
+          <div className="flex flex-col sm:flex-row items-start justify-between gap-6 sm:gap-8">
+            <div className="space-y-4 sm:space-y-6 flex-1">
+              <div>
+                <div className="flex items-center gap-2 sm:gap-3 mb-3">
+                  <AvalancheLogo
+                    className="w-4 h-4 sm:w-5 sm:h-5"
+                    fill="#E84142"
                   />
+                  <p className="text-xs sm:text-sm font-medium text-red-600 dark:text-red-500 tracking-wide uppercase">
+                    Avalanche Ecosystem
+                  </p>
                 </div>
-              )}
+                <div className="flex items-center gap-3 sm:gap-4">
+                  {chainLogoURI && (
+                    <img
+                      src={chainLogoURI}
+                      alt={`${chainName} logo`}
+                      className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 object-contain rounded-xl"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = "none";
+                      }}
+                    />
+                  )}
+                  <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-zinc-900 dark:text-white">
+                    {chainName.includes("C-Chain")
+                      ? "C-Chain Metrics"
+                      : `${chainName} Metrics`}
+                  </h1>
+                </div>
+                {/* Blockchain ID and Subnet ID chips + Add to Wallet */}
+                {(subnetId || blockchainId || rpcUrl || chainData?.rpcUrl) && (
+                  <div className="mt-3 -mx-4 px-4 sm:mx-0 sm:px-0">
+                    <div className="flex flex-row items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <ChainIdChips
+                          subnetId={subnetId}
+                          blockchainId={blockchainId}
+                        />
+                      </div>
+                      {(rpcUrl || chainData?.rpcUrl) && !isAllChainsView && (
+                        <div className="flex-shrink-0">
+                          <AddToWalletButton
+                            rpcUrl={(rpcUrl || chainData?.rpcUrl)!}
+                            chainName={chainName}
+                            chainId={chainId ? parseInt(chainId) : undefined}
+                            tokenSymbol={chainData?.networkToken?.symbol}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+                <div className="flex items-center gap-3 mt-3">
+                  <p className="text-sm sm:text-base text-zinc-500 dark:text-zinc-400 max-w-2xl">
+                    {description}
+                  </p>
+                </div>
+                {/* Mobile Social Links - shown below description */}
+                <MobileSocialLinks
+                  website={website}
+                  socials={socials}
+                  explorers={explorers}
+                />
+                {category && (
+                  <div className="mt-3">
+                    <span
+                      className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium"
+                      style={{
+                        backgroundColor: `${themeColor}15`,
+                        color: themeColor,
+                      }}
+                    >
+                      {category}
+                    </span>
+                  </div>
+                )}
 
-              {/* Title and description */}
-              <div className="flex-1 min-w-0">
-                <h1 className="text-2xl sm:text-3xl md:text-4xl font-semibold text-white mb-2 break-words">
-                  {chainName.includes("C-Chain")
-                    ? "Avalanche C-Chain Metrics"
-                    : `${chainName} L1 Metrics`}
-                </h1>
-                <p className="text-white/80 text-sm sm:text-base max-w-3xl">
-                  {description}
-                </p>
+                {/* Chain Filters - inline in hero for "all chains" view */}
+                {isAllChainsView && (
+                  <div className="mt-6">
+                    <ChainCategoryFilter
+                      selectedChainIds={selectedChainIds}
+                      onSelectionChange={handleSelectionChange}
+                      showChainChips={true}
+                    />
+                  </div>
+                )}
               </div>
+            </div>
 
-              {/* Explorer Dropdown aligned with title */}
-              {!chainName.includes("C-Chain") && currentChain?.explorers && (
-                <div className="shrink-0 self-start sm:self-center">
-                  <div className="[&_button]:border-neutral-700 dark:[&_button]:border-white/30 [&_button]:text-neutral-900 dark:[&_button]:text-white [&_button]:bg-white/90 dark:[&_button]:bg-transparent [&_button]:hover:bg-white dark:[&_button]:hover:bg-white/10 [&_button]:hover:border-neutral-900 dark:[&_button]:hover:border-white/50 [&_button]:backdrop-blur-sm">
+            {/* Desktop Social Links and Period Selector - hidden on mobile */}
+            <div className="hidden sm:flex flex-col items-end gap-3">
+              <div className="flex items-center gap-2">
+                {website && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    asChild
+                    className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600"
+                  >
+                    <a
+                      href={website}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2"
+                    >
+                      Website
+                      <ArrowUpRight className="h-4 w-4" />
+                    </a>
+                  </Button>
+                )}
+
+                {/* Social buttons */}
+                {socials && (socials.twitter || socials.linkedin) && (
+                  <>
+                    {socials.twitter && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        asChild
+                        className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 px-2"
+                      >
+                        <a
+                          href={`https://x.com/${socials.twitter}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label="Twitter"
+                        >
+                          <Twitter className="h-4 w-4" />
+                        </a>
+                      </Button>
+                    )}
+                    {socials.linkedin && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        asChild
+                        className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 px-2"
+                      >
+                        <a
+                          href={`https://linkedin.com/company/${socials.linkedin}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label="LinkedIn"
+                        >
+                          <Linkedin className="h-4 w-4" />
+                        </a>
+                      </Button>
+                    )}
+                  </>
+                )}
+
+                {explorers && (
+                  <div className="[&_button]:border-zinc-300 dark:[&_button]:border-zinc-700 [&_button]:text-zinc-600 dark:[&_button]:text-zinc-400 [&_button]:hover:border-zinc-400 dark:[&_button]:hover:border-zinc-600">
                     <ExplorerDropdown
-                      explorers={currentChain.explorers}
+                      explorers={explorers}
                       variant="outline"
                       size="sm"
                     />
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Network Overview */}
-        <section className="space-y-4 sm:space-y-6">
-          <div className="space-y-2">
-            <h2 className="text-lg sm:text-2xl font-medium text-left">
-              Network Overview
-            </h2>
-          </div>
+      {/* Sticky Navigation Bar - full width, positioned below main navbar */}
+      <StickyNavBar
+        categories={chartCategories}
+        activeSection={activeSection}
+        onNavigate={scrollToSection}
+      >
+        <PeriodSelector selected={globalPeriod} onChange={handlePeriodChange} />
+      </StickyNavBar>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-            {[
-              {
-                key: "activeAddresses",
-                icon: Users,
-                color: themeColor,
-                label: "Daily Active Addresses",
-              },
-              {
-                key: "txCount",
-                icon: Activity,
-                color: themeColor,
-                label: "Daily Transactions",
-              },
-              {
-                key: "cumulativeContracts",
-                icon: FileText,
-                color: themeColor,
-                label: "Total Contracts Deployed",
-              },
-              {
-                key: "icmMessages",
-                icon: MessageSquare,
-                color: themeColor,
-                label: "Daily Interchain Messages",
-              },
-            ].map((item) => {
-              const currentValue = getCurrentValue(
-                item.key as keyof Omit<CChainMetrics, "last_updated">,
-                "D" // Always use daily for overview cards
-              );
-              const Icon = item.icon;
-
-              return (
-                <div
-                  key={item.key}
-                  className="text-center p-4 sm:p-6 rounded-md bg-card border border-gray-200 dark:border-gray-700"
-                >
-                  <div className="flex items-center justify-center gap-2 mb-2 sm:mb-3">
-                    <Icon
-                      className="h-4 w-4 sm:h-5 sm:w-5"
-                      style={{ color: item.color }}
-                    />
-                    <p className="text-xs sm:text-sm text-muted-foreground truncate">
-                      {item.label}
-                    </p>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-12 sm:space-y-16">
+        {/* Loading skeleton for filter changes (not initial load) */}
+        {loading && !isInitialLoad && (
+          <div className="space-y-12 sm:space-y-16">
+            {/* Network Overview Skeleton */}
+            <section className="space-y-4 sm:space-y-6">
+              <div className="h-6 sm:h-8 w-48 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {[1, 2, 3, 4].map((i) => (
+                  <div
+                    key={i}
+                    className="!bg-white dark:!bg-black border border-gray-200 dark:border-zinc-800 p-4 rounded-lg"
+                  >
+                    <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 text-sm mb-2">
+                      <div className="w-4 h-4 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                      <div className="h-4 w-32 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                    </div>
+                    <div className="h-8 w-24 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
                   </div>
-                  <p className="text-xl sm:text-3xl font-mono font-semibold break-all">
-                    {formatNumber(currentValue)}
-                  </p>
-                </div>
-              );
-            })}
+                ))}
+              </div>
+            </section>
+
+            {/* Charts Skeleton */}
+            <section className="space-y-4 sm:space-y-6">
+              <div className="space-y-2">
+                <div className="h-6 sm:h-8 w-40 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                <div className="h-4 w-64 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                {[1, 2, 3, 4].map((i) => (
+                  <div
+                    key={i}
+                    className="bg-white dark:bg-black border border-gray-200 dark:border-zinc-800 rounded-lg overflow-hidden"
+                  >
+                    <div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-800">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 sm:gap-3">
+                          <div className="w-5 h-5 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                          <div>
+                            <div className="h-5 w-32 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse mb-1" />
+                            <div className="h-3 w-48 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                          </div>
+                        </div>
+                        <div className="flex gap-1">
+                          {[1, 2, 3, 4, 5].map((j) => (
+                            <div
+                              key={j}
+                              className="h-7 w-8 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse"
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="px-5 pt-6 pb-6">
+                      <div className="mb-4 flex items-baseline gap-2">
+                        <div className="h-8 w-32 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                        <div className="h-4 w-16 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                      </div>
+                      <div className="h-[350px] bg-zinc-100 dark:bg-zinc-800/50 rounded-lg animate-pulse" />
+                      <div className="mt-4 h-20 bg-zinc-100 dark:bg-zinc-800/50 rounded-lg animate-pulse" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
           </div>
-        </section>
+        )}
 
-        <section className="space-y-4 sm:space-y-6">
-          <div className="space-y-2">
-            <h2 className="text-lg sm:text-2xl font-medium text-left">
-              Historical Trends
-            </h2>
-            <p className="text-zinc-400 text-sm sm:text-md text-left">
-              Track {chainName} network growth and activity over time
-            </p>
-          </div>
+        {/* Actual content - hidden during filter loading */}
+        {(!loading || isInitialLoad) && (
+          <>
+            {/* Network Overview */}
+            <section className="space-y-4 sm:space-y-6">
+              <div className="space-y-2">
+                <LinkableHeading
+                  as="h2"
+                  id="overview"
+                  className="text-lg sm:text-2xl font-medium text-left"
+                >
+                  Network Overview
+                </LinkableHeading>
+              </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-            {chartConfigs
-              .filter(
-                (config) =>
-                  config.metricKey !== "cumulativeTxCount" &&
-                  config.metricKey !== "cumulativeAddresses" &&
-                  config.metricKey !== "activeSenders"
-              )
-              .map((config) => {
-                const period = chartPeriods[config.metricKey];
-
-                const rawData =
-                  config.metricKey === "icmMessages"
-                    ? getICMChartData()
-                    : getChartData(config.metricKey, period);
-                if (rawData.length === 0) return null;
-
-                const currentValue = getCurrentValue(config.metricKey, period);
-
-                // Get cumulative data for charts that need it
-                let cumulativeData = null;
-                if (config.metricKey === "txCount") {
-                  cumulativeData = getChartData("cumulativeTxCount");
-                } else if (config.metricKey === "activeAddresses") {
-                  cumulativeData = getChartData("cumulativeAddresses");
-                } else if (config.metricKey === "contracts") {
-                  cumulativeData = getChartData("cumulativeContracts");
-                } else if (config.metricKey === "deployers") {
-                  cumulativeData = getChartData("cumulativeDeployers");
-                }
-
-                // secondary data for dual y-axis charts
-                let secondaryData = null;
-                let secondaryCurrentValue = null;
-                if (config.chartType === "dual" && config.secondaryMetricKey) {
-                  secondaryData = getChartData(config.secondaryMetricKey);
-                  secondaryCurrentValue = getCurrentValue(
-                    config.secondaryMetricKey
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {[
+                  {
+                    key: "activeAddresses",
+                    icon: Users,
+                    label: "Daily Active Addresses",
+                  },
+                  {
+                    key: "txCount",
+                    icon: Activity,
+                    label: "Daily Transactions",
+                  },
+                  {
+                    key: "cumulativeContracts",
+                    icon: FileText,
+                    label: "Total Contracts Deployed",
+                  },
+                  {
+                    key: "icmMessages",
+                    icon: MessageCircleMore,
+                    label: "Daily Interchain Messages",
+                  },
+                ].map((item) => {
+                  const currentValue = getCurrentValue(
+                    item.key as keyof Omit<CChainMetrics, "last_updated">,
+                    "D" // Always use daily for overview cards
                   );
-                }
+                  const Icon = item.icon;
 
-                // Determine allowed periods based on metric type
-                let allowedPeriods: ("D" | "W" | "M" | "Q" | "Y")[] = ["D", "W", "M", "Q", "Y"];
+                  return (
+                    <Card
+                      key={item.key}
+                      className="relative overflow-hidden !bg-white dark:!bg-black border-gray-200 dark:border-zinc-800 p-4"
+                    >
+                      <div className="relative">
+                        <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 text-sm mb-2">
+                          <Icon className="w-4 h-4" />
+                          {item.label}
+                        </div>
+                        <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                          {loading ? (
+                            <div className="h-8 w-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+                          ) : (
+                            formatNumber(currentValue)
+                          )}
+                        </div>
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
+            </section>
 
-                // GPS, TPS, and Gas Price are only available on Daily
-                if (["avgGps", "maxGps", "avgTps", "maxTps", "avgGasPrice", "maxGasPrice"].includes(config.metricKey)) {
-                  allowedPeriods = ["D"];
-                }
-                // Active addresses only supports D, W, M (data fetched from API with those intervals)
-                else if (config.metricKey === "activeAddresses") {
-                  allowedPeriods = ["D", "W", "M"];
-                }
+            {/* Activity Section */}
+            <section className="space-y-4 sm:space-y-6">
+              <div className="space-y-2">
+                <LinkableHeading
+                  as="h2"
+                  id="activity"
+                  className="text-lg sm:text-2xl font-medium text-left"
+                >
+                  Activity
+                </LinkableHeading>
+                <p className="text-zinc-500 dark:text-zinc-400 text-sm">
+                  Address and transaction activity over time
+                </p>
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                {getChartsByCategory([
+                  "activeAddresses",
+                  "activeSenders",
+                  "txCount",
+                ]).map((config) => {
+                  const period = chartPeriods[config.metricKey];
 
-                return (
-                  <ChartCard
-                    key={config.metricKey}
-                    config={config}
-                    rawData={rawData}
-                    cumulativeData={cumulativeData}
-                    secondaryData={secondaryData}
-                    period={period}
-                    currentValue={currentValue}
-                    secondaryCurrentValue={secondaryCurrentValue}
-                    onPeriodChange={(newPeriod) =>
-                      setChartPeriods((prev) => ({
-                        ...prev,
-                        [config.metricKey]: newPeriod,
-                      }))
-                    }
-                    formatTooltipValue={(value) =>
-                      formatTooltipValue(value, config.metricKey)
-                    }
-                    formatYAxisValue={formatNumber}
-                    allowedPeriods={allowedPeriods}
-                  />
-                );
-              })}
-          </div>
-        </section>
+                  const rawData =
+                    config.metricKey === "icmMessages"
+                      ? getICMChartData()
+                      : getChartData(config.metricKey, period);
+                  if (rawData.length === 0) return null;
+
+                  // Get current value from aggregated data based on selected period
+                  const currentValue = getCurrentValueFromData(
+                    rawData,
+                    period,
+                    config.metricKey
+                  );
+                  let cumulativeData = null;
+                  if (config.metricKey === "txCount")
+                    cumulativeData = getChartData("cumulativeTxCount");
+                  else if (config.metricKey === "activeAddresses")
+                    cumulativeData = getChartData("cumulativeAddresses");
+                  let secondaryData = null;
+                  let secondaryCurrentValue = null;
+                  if (
+                    config.chartType === "dual" &&
+                    config.secondaryMetricKey
+                  ) {
+                    secondaryData = getChartData(config.secondaryMetricKey);
+                    secondaryCurrentValue = getCurrentValue(
+                      config.secondaryMetricKey
+                    );
+                  }
+
+                  // Determine allowed periods based on metric type
+                  let allowedPeriods: ("D" | "W" | "M" | "Q" | "Y")[] = [
+                    "D",
+                    "W",
+                    "M",
+                    "Q",
+                    "Y",
+                  ];
+                  // Active addresses only supports D, W, M (data fetched from API with those intervals)
+                  if (config.metricKey === "activeAddresses") {
+                    allowedPeriods = ["D", "W", "M"];
+                  }
+
+                  return (
+                    <ChartCard
+                      key={config.metricKey}
+                      config={config}
+                      rawData={rawData}
+                      cumulativeData={cumulativeData}
+                      secondaryData={secondaryData}
+                      period={period}
+                      currentValue={currentValue}
+                      secondaryCurrentValue={secondaryCurrentValue}
+                      onPeriodChange={(newPeriod) =>
+                        setChartPeriods((prev) => ({
+                          ...prev,
+                          [config.metricKey]: newPeriod,
+                        }))
+                      }
+                      formatTooltipValue={(value) =>
+                        formatTooltipValue(value, config.metricKey)
+                      }
+                      formatYAxisValue={formatNumber}
+                      allowedPeriods={allowedPeriods}
+                    />
+                  );
+                })}
+              </div>
+            </section>
+
+            {/* Contracts Section */}
+            <section className="space-y-4 sm:space-y-6">
+              <div className="space-y-2">
+                <LinkableHeading
+                  as="h2"
+                  id="contracts"
+                  className="text-lg sm:text-2xl font-medium text-left"
+                >
+                  Contracts
+                </LinkableHeading>
+                <p className="text-zinc-500 dark:text-zinc-400 text-sm">
+                  Smart contract deployment activity
+                </p>
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                {getChartsByCategory(["contracts", "deployers"]).map(
+                  (config) => {
+                    const period = chartPeriods[config.metricKey];
+                    const rawData = getChartData(
+                      config.metricKey as keyof Omit<
+                        CChainMetrics,
+                        "last_updated" | "icmMessages"
+                      >,
+                      period
+                    );
+                    if (rawData.length === 0) return null;
+                    // Get current value from aggregated data based on selected period
+                    const currentValue = getCurrentValueFromData(
+                      rawData,
+                      period,
+                      config.metricKey
+                    );
+                    let cumulativeData = null;
+                    if (config.metricKey === "contracts")
+                      cumulativeData = getChartData("cumulativeContracts");
+                    else if (config.metricKey === "deployers")
+                      cumulativeData = getChartData("cumulativeDeployers");
+
+                    // All periods allowed for contracts and deployers
+                    const allowedPeriods: ("D" | "W" | "M" | "Q" | "Y")[] = [
+                      "D",
+                      "W",
+                      "M",
+                      "Q",
+                      "Y",
+                    ];
+
+                    return (
+                      <ChartCard
+                        key={config.metricKey}
+                        config={config}
+                        rawData={rawData}
+                        cumulativeData={cumulativeData}
+                        secondaryData={null}
+                        period={period}
+                        currentValue={currentValue}
+                        secondaryCurrentValue={null}
+                        onPeriodChange={(newPeriod) =>
+                          setChartPeriods((prev) => ({
+                            ...prev,
+                            [config.metricKey]: newPeriod,
+                          }))
+                        }
+                        formatTooltipValue={(value) =>
+                          formatTooltipValue(value, config.metricKey)
+                        }
+                        formatYAxisValue={formatNumber}
+                        allowedPeriods={allowedPeriods}
+                      />
+                    );
+                  }
+                )}
+              </div>
+            </section>
+
+            {/* Performance Section */}
+            <section className="space-y-4 sm:space-y-6">
+              <div className="space-y-2">
+                <LinkableHeading
+                  as="h2"
+                  id="performance"
+                  className="text-lg sm:text-2xl font-medium text-left"
+                >
+                  Performance
+                </LinkableHeading>
+                <p className="text-zinc-500 dark:text-zinc-400 text-sm">
+                  Network throughput and gas metrics
+                </p>
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                {getChartsByCategory([
+                  "gasUsed",
+                  "avgGps",
+                  "avgTps",
+                  "avgGasPrice",
+                ]).map((config) => {
+                  const period = chartPeriods[config.metricKey];
+                  const rawData = getChartData(
+                    config.metricKey as keyof Omit<
+                      CChainMetrics,
+                      "last_updated" | "icmMessages"
+                    >,
+                    period
+                  );
+                  if (rawData.length === 0) return null;
+                  // Get current value from aggregated data based on selected period
+                  const currentValue = getCurrentValueFromData(
+                    rawData,
+                    period,
+                    config.metricKey
+                  );
+                  let secondaryData = null;
+                  let secondaryCurrentValue = null;
+                  if (
+                    config.chartType === "dual" &&
+                    config.secondaryMetricKey
+                  ) {
+                    secondaryData = getChartData(config.secondaryMetricKey);
+                    secondaryCurrentValue = getCurrentValue(
+                      config.secondaryMetricKey
+                    );
+                  }
+
+                  // Determine allowed periods based on metric type
+                  let allowedPeriods: ("D" | "W" | "M" | "Q" | "Y")[] = [
+                    "D",
+                    "W",
+                    "M",
+                    "Q",
+                    "Y",
+                  ];
+                  // GPS, TPS, and Gas Price are only available on Daily
+                  if (
+                    [
+                      "avgGps",
+                      "maxGps",
+                      "avgTps",
+                      "maxTps",
+                      "avgGasPrice",
+                      "maxGasPrice",
+                    ].includes(config.metricKey)
+                  ) {
+                    allowedPeriods = ["D"];
+                  }
+
+                  return (
+                    <ChartCard
+                      key={config.metricKey}
+                      config={config}
+                      rawData={rawData}
+                      cumulativeData={null}
+                      secondaryData={secondaryData}
+                      period={period}
+                      currentValue={currentValue}
+                      secondaryCurrentValue={secondaryCurrentValue}
+                      onPeriodChange={(newPeriod) =>
+                        setChartPeriods((prev) => ({
+                          ...prev,
+                          [config.metricKey]: newPeriod,
+                        }))
+                      }
+                      formatTooltipValue={(value) =>
+                        formatTooltipValue(value, config.metricKey)
+                      }
+                      formatYAxisValue={formatNumber}
+                      allowedPeriods={allowedPeriods}
+                    />
+                  );
+                })}
+              </div>
+            </section>
+
+            {/* Fees Section */}
+            <section className="space-y-4 sm:space-y-6">
+              <div className="space-y-2">
+                <LinkableHeading
+                  as="h2"
+                  id="fees"
+                  className="text-lg sm:text-2xl font-medium text-left"
+                >
+                  Fees
+                </LinkableHeading>
+                <p className="text-zinc-500 dark:text-zinc-400 text-sm">
+                  Transaction fee metrics
+                </p>
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                {getChartsByCategory(["feesPaid"]).map((config) => {
+                  const period = chartPeriods[config.metricKey];
+                  const rawData = getChartData(
+                    config.metricKey as keyof Omit<
+                      CChainMetrics,
+                      "last_updated" | "icmMessages"
+                    >,
+                    period
+                  );
+                  if (rawData.length === 0) return null;
+                  // Get current value from aggregated data based on selected period
+                  const currentValue = getCurrentValueFromData(
+                    rawData,
+                    period,
+                    config.metricKey
+                  );
+
+                  // All periods allowed for fees
+                  const allowedPeriods: ("D" | "W" | "M" | "Q" | "Y")[] = [
+                    "D",
+                    "W",
+                    "M",
+                    "Q",
+                    "Y",
+                  ];
+
+                  return (
+                    <ChartCard
+                      key={config.metricKey}
+                      config={config}
+                      rawData={rawData}
+                      cumulativeData={null}
+                      secondaryData={null}
+                      period={period}
+                      currentValue={currentValue}
+                      secondaryCurrentValue={null}
+                      onPeriodChange={(newPeriod) =>
+                        setChartPeriods((prev) => ({
+                          ...prev,
+                          [config.metricKey]: newPeriod,
+                        }))
+                      }
+                      formatTooltipValue={(value) =>
+                        formatTooltipValue(value, config.metricKey)
+                      }
+                      formatYAxisValue={formatNumber}
+                      allowedPeriods={allowedPeriods}
+                      showMovingAverage={true}
+                    />
+                  );
+                })}
+              </div>
+            </section>
+
+            {/* Interchain Section */}
+            <section className="space-y-4 sm:space-y-6">
+              <div className="space-y-2">
+                <LinkableHeading
+                  as="h2"
+                  id="interchain"
+                  className="text-lg sm:text-2xl font-medium text-left"
+                >
+                  Interchain
+                </LinkableHeading>
+                <p className="text-zinc-500 dark:text-zinc-400 text-sm">
+                  Cross-chain messaging activity
+                </p>
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                {getChartsByCategory(["icmMessages"]).map((config) => {
+                  const rawData = getICMChartData();
+                  if (rawData.length === 0) return null;
+                  const period = chartPeriods[config.metricKey];
+                  const currentValue = getCurrentValue(config.metricKey);
+                  return (
+                    <ChartCard
+                      key={config.metricKey}
+                      config={config}
+                      rawData={rawData}
+                      cumulativeData={null}
+                      secondaryData={null}
+                      period={period}
+                      currentValue={currentValue}
+                      secondaryCurrentValue={null}
+                      onPeriodChange={(newPeriod) =>
+                        setChartPeriods((prev) => ({
+                          ...prev,
+                          [config.metricKey]: newPeriod,
+                        }))
+                      }
+                      formatTooltipValue={(value) =>
+                        formatTooltipValue(value, config.metricKey)
+                      }
+                      formatYAxisValue={formatNumber}
+                    />
+                  );
+                })}
+              </div>
+            </section>
+          </>
+        )}
       </div>
 
       {/* Bubble Navigation */}
-      <StatsBubbleNav />
+      {chainSlug && !isAllChainsView ? (
+        <L1BubbleNav
+          chainSlug={chainSlug}
+          themeColor={themeColor}
+          rpcUrl={rpcUrl}
+          isCustomChain={!chainData}
+        />
+      ) : (
+        <StatsBubbleNav />
+      )}
     </div>
   );
 }
@@ -892,6 +1838,7 @@ function ChartCard({
   formatTooltipValue,
   formatYAxisValue,
   allowedPeriods = ["D", "W", "M", "Q", "Y"],
+  showMovingAverage = false,
 }: {
   config: any;
   rawData: any[];
@@ -904,21 +1851,61 @@ function ChartCard({
   formatTooltipValue: (value: number) => string;
   formatYAxisValue: (value: number) => string;
   allowedPeriods?: ("D" | "W" | "M" | "Q" | "Y")[];
+  showMovingAverage?: boolean;
 }) {
+  // Get moving average config based on period
+  const maConfig = useMemo(() => getMAConfig(period), [period]);
   const [brushIndexes, setBrushIndexes] = useState<{
     startIndex: number;
     endIndex: number;
   } | null>(null);
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+  const { resolvedTheme } = useTheme();
+
+  // Screenshot handler for downloading chart as image
+  const handleScreenshot = async () => {
+    if (!chartContainerRef.current) return;
+
+    try {
+      const element = chartContainerRef.current;
+      const bgColor = resolvedTheme === "dark" ? "#0a0a0a" : "#ffffff";
+
+      const dataUrl = await toPng(element, {
+        quality: 1,
+        pixelRatio: 2,
+        backgroundColor: bgColor,
+        cacheBust: true,
+      });
+
+      const link = document.createElement("a");
+      link.download = `${config.title.replace(/\s+/g, "_")}_${period}_${
+        new Date().toISOString().split("T")[0]
+      }.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (error) {
+      console.error("Failed to capture screenshot:", error);
+    }
+  };
 
   // Aggregate data based on selected period
   const aggregatedData = useMemo(() => {
-    if (period === "D") return rawData;
+    if (period === "D") {
+      // Add moving average if enabled for daily data
+      if (showMovingAverage) {
+        return calculateMovingAverage(rawData, maConfig.window);
+      }
+      return rawData;
+    }
 
     // For active addresses, don't aggregate since data is already fetched with proper interval
     if (
       config.metricKey === "activeAddresses" &&
       (period === "W" || period === "M")
     ) {
+      if (showMovingAverage) {
+        return calculateMovingAverage(rawData, maConfig.window);
+      }
       return rawData;
     }
 
@@ -957,13 +1944,19 @@ function ChartCard({
       group.count += 1;
     });
 
-    return Array.from(grouped.values())
+    const aggregated = Array.from(grouped.values())
       .map((group) => ({
         day: group.date,
         value: group.sum,
       }))
       .sort((a, b) => a.day.localeCompare(b.day));
-  }, [rawData, period, config.metricKey]);
+
+    // Add moving average if enabled
+    if (showMovingAverage) {
+      return calculateMovingAverage(aggregated, maConfig.window);
+    }
+    return aggregated;
+  }, [rawData, period, config.metricKey, showMovingAverage, maConfig.window]);
 
   // Aggregate cumulative data - take the last (max) value in each period
   const aggregatedCumulativeData = useMemo(() => {
@@ -1057,7 +2050,10 @@ function ChartCard({
 
   // Set default brush range based on period
   useEffect(() => {
-    if (aggregatedData.length === 0) return;
+    if (!aggregatedData || aggregatedData.length === 0) {
+      setBrushIndexes(null);
+      return;
+    }
 
     if (period === "D") {
       // Show last 90 days for daily view only
@@ -1073,11 +2069,22 @@ function ChartCard({
         endIndex: aggregatedData.length - 1,
       });
     }
-  }, [period, aggregatedData.length]);
+  }, [period, aggregatedData]);
 
-  const displayData = brushIndexes
-    ? aggregatedData.slice(brushIndexes.startIndex, brushIndexes.endIndex + 1)
-    : aggregatedData;
+  const displayData = useMemo(() => {
+    if (!brushIndexes || !aggregatedData || aggregatedData.length === 0)
+      return [];
+    const start = Math.max(
+      0,
+      Math.min(brushIndexes.startIndex, aggregatedData.length - 1)
+    );
+    const end = Math.max(
+      0,
+      Math.min(brushIndexes.endIndex, aggregatedData.length - 1)
+    );
+    if (start > end) return [];
+    return aggregatedData.slice(start, end + 1);
+  }, [brushIndexes, aggregatedData]);
 
   // Merge actual cumulative transaction data with daily data
   const displayDataWithCumulative = useMemo(() => {
@@ -1138,7 +2145,9 @@ function ChartCard({
   const formatXAxis = (value: string) => {
     if (period === "Q") {
       const parts = value.split("-");
-      if (parts.length === 2) { return `${parts[1]} '${parts[0].slice(-2)}` }
+      if (parts.length === 2) {
+        return `${parts[1]} '${parts[0].slice(-2)}`;
+      }
       return value;
     }
     if (period === "Y") return value;
@@ -1155,7 +2164,9 @@ function ChartCard({
   const formatBrushXAxis = (value: string) => {
     if (period === "Q") {
       const parts = value.split("-");
-      if (parts.length === 2) { return `${parts[1]} ${parts[0]}` }
+      if (parts.length === 2) {
+        return `${parts[1]} ${parts[0]}`;
+      }
       return value;
     }
     if (period === "Y") return value;
@@ -1167,8 +2178,10 @@ function ChartCard({
   };
 
   const formatTooltipDate = (value: string) => {
-    if (period === "Y") { return value }
-    
+    if (period === "Y") {
+      return value;
+    }
+
     if (period === "Q") {
       const parts = value.split("-");
       if (parts.length === 2) {
@@ -1176,33 +2189,33 @@ function ChartCard({
       }
       return value;
     }
-    
+
     const date = new Date(value);
-    
+
     if (period === "M") {
       return date.toLocaleDateString("en-US", {
         month: "long",
         year: "numeric",
       });
     }
-    
+
     if (period === "W") {
       const endDate = new Date(date);
       endDate.setDate(date.getDate() + 6);
-      
+
       const startMonth = date.toLocaleDateString("en-US", { month: "long" });
       const endMonth = endDate.toLocaleDateString("en-US", { month: "long" });
       const startDay = date.getDate();
       const endDay = endDate.getDate();
       const year = endDate.getFullYear();
-      
+
       if (startMonth === endMonth) {
         return `${startMonth} ${startDay}-${endDay}, ${year}`;
       } else {
         return `${startMonth} ${startDay} - ${endMonth} ${endDay}, ${year}`;
       }
     }
-    
+
     return date.toLocaleDateString("en-US", {
       day: "numeric",
       month: "long",
@@ -1212,8 +2225,57 @@ function ChartCard({
 
   const Icon = config.icon;
 
+  // CSV download function
+  const downloadCSV = () => {
+    if (!displayDataWithCumulative || displayDataWithCumulative.length === 0)
+      return;
+
+    // Build CSV headers based on available data
+    const headers = ["Date", config.title];
+    const hasSecondary = displayDataWithCumulative.some(
+      (d: any) => d.secondary !== undefined && d.secondary !== null
+    );
+    const hasCumulative = displayDataWithCumulative.some(
+      (d: any) => d.cumulative !== undefined && d.cumulative !== null
+    );
+
+    if (hasSecondary) {
+      headers.push(`${config.title} (Max)`);
+    }
+    if (hasCumulative) {
+      headers.push(`${config.title} (Cumulative)`);
+    }
+
+    const rows = displayDataWithCumulative.map((point: any) => {
+      const row = [point.day, point.value];
+      if (hasSecondary) {
+        row.push(point.secondary ?? "");
+      }
+      if (hasCumulative) {
+        row.push(point.cumulative ?? "");
+      }
+      return row.join(",");
+    });
+
+    const csvContent = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${config.title.replace(/\s+/g, "_")}_${period}_${
+      new Date().toISOString().split("T")[0]
+    }.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
-    <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700">
+    <Card
+      className="py-0 border-gray-200 rounded-md dark:border-gray-700"
+      ref={chartContainerRef}
+    >
       <CardContent className="p-0">
         <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center gap-2 sm:gap-3">
@@ -1235,527 +2297,766 @@ function ChartCard({
               </p>
             </div>
           </div>
-          <div className="flex gap-0.5 sm:gap-1">
-            {(["D", "W", "M", "Q", "Y"] as const)
-              .filter((p) => allowedPeriods.includes(p))
-              .map((p) => (
-                <button
-                  key={p}
-                  onClick={() => onPeriodChange(p)}
-                  className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm  rounded-md transition-colors ${
-                    period === p
-                      ? "text-white dark:text-white"
-                      : "text-muted-foreground hover:bg-muted"
-                  }`}
-                  style={
-                    period === p
-                      ? { backgroundColor: `${config.color}`, opacity: 0.9 }
-                      : {}
-                  }
-                >
-                  {p}
-                </button>
-              ))}
+          <div className="flex items-center gap-1">
+            <Select
+              value={period}
+              onValueChange={(value) =>
+                onPeriodChange(value as "D" | "W" | "M" | "Q" | "Y")
+              }
+            >
+              <SelectTrigger className="h-7 w-auto px-2 gap-1 text-xs sm:text-sm border-0 bg-transparent hover:bg-muted focus:ring-0 shadow-none">
+                <SelectValue>
+                  {period === "D"
+                    ? "Daily"
+                    : period === "W"
+                    ? "Weekly"
+                    : period === "M"
+                    ? "Monthly"
+                    : period === "Q"
+                    ? "Quarterly"
+                    : "Yearly"}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {(["D", "W", "M", "Q", "Y"] as const)
+                  .filter((p) => allowedPeriods.includes(p))
+                  .map((p) => (
+                    <SelectItem key={p} value={p}>
+                      {p === "D"
+                        ? "Daily"
+                        : p === "W"
+                        ? "Weekly"
+                        : p === "M"
+                        ? "Monthly"
+                        : p === "Q"
+                        ? "Quarterly"
+                        : "Yearly"}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+            <button
+              onClick={handleScreenshot}
+              className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
+              title="Download chart as image"
+            >
+              <Camera className="h-4 w-4" />
+            </button>
+            <button
+              onClick={downloadCSV}
+              className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
+              title="Download CSV"
+            >
+              <Download className="h-4 w-4" />
+            </button>
           </div>
         </div>
 
         <div className="px-5 pt-6 pb-6">
-          {/* Current Value and Change */}
-          <div className="flex items-center gap-2 sm:gap-4 mb-3 sm:mb-4 pl-2 sm:pl-4 flex-wrap">
-            {config.chartType === "dual" &&
-            secondaryCurrentValue !== null &&
-            secondaryCurrentValue !== undefined ? (
-              <div className="text-md sm:text-base font-mono">
-                Avg:{" "}
-                {formatTooltipValue(
-                  typeof currentValue === "string"
-                    ? parseFloat(currentValue)
-                    : currentValue
-                )}{" "}
-                / Max:{" "}
-                {formatTooltipValue(
-                  typeof secondaryCurrentValue === "string"
-                    ? parseFloat(secondaryCurrentValue)
-                    : secondaryCurrentValue
-                )}
-              </div>
-            ) : (
-              <div className="text-md sm:text-base font-mono break-all">
-                {formatTooltipValue(
-                  typeof currentValue === "string"
-                    ? parseFloat(currentValue)
-                    : currentValue
-                )}
-              </div>
-            )}
-            {dynamicChange.change > 0 && config.chartType !== "dual" && (
-              <div
-                className={`flex items-center gap-1 text-xs sm:text-sm ${dynamicChange.isPositive ? "text-green-600" : "text-red-600"}`}
-                title={`Change over selected time range`}
-              >
-                <TrendingUp
-                  className={`h-3 w-3 sm:h-4 sm:w-4 ${dynamicChange.isPositive ? "" : "rotate-180"}`}
-                />
-                {dynamicChange.change >= 1000
-                  ? dynamicChange.change >= 1000000
-                    ? `${(dynamicChange.change / 1000000).toFixed(1)}M%`
-                    : `${(dynamicChange.change / 1000).toFixed(1)}K%`
-                  : `${dynamicChange.change.toFixed(1)}%`}
-              </div>
-            )}
-            {/* for cumulative charts */}
-            {config.chartType === "bar" && (config.metricKey === "txCount" || config.metricKey === "activeAddresses" || config.metricKey === "contracts" || config.metricKey === "deployers") && (
-                <div className="flex items-center gap-3 ml-auto text-xs">
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-3 h-3 rounded" style={{ backgroundColor: config.color }}/>
-                    <span className="text-muted-foreground">
-                      {period === "D" ? "Daily": period === "W" ? "Weekly" : period === "M" ? "Monthly" : period === "Q" ? "Quarterly" : "Yearly"}
-                    </span>
+          {/* Check if period is supported */}
+          {!allowedPeriods.includes(period) ? (
+            <div className="flex flex-col items-center justify-center h-[350px] text-muted-foreground gap-2">
+              <p className="text-sm">
+                Data not available in{" "}
+                {period === "D"
+                  ? "daily"
+                  : period === "W"
+                  ? "weekly"
+                  : period === "M"
+                  ? "monthly"
+                  : period === "Q"
+                  ? "quarterly"
+                  : "yearly"}{" "}
+                granularity
+              </p>
+              <p className="text-xs">
+                Available:{" "}
+                {allowedPeriods
+                  .map((p) =>
+                    p === "D"
+                      ? "Daily"
+                      : p === "W"
+                      ? "Weekly"
+                      : p === "M"
+                      ? "Monthly"
+                      : p === "Q"
+                      ? "Quarterly"
+                      : "Yearly"
+                  )
+                  .join(", ")}
+              </p>
+            </div>
+          ) : (
+            <>
+              {/* Current Value and Change */}
+              <div className="flex items-center gap-2 sm:gap-4 mb-3 sm:mb-4 pl-2 flex-wrap">
+                {config.chartType === "dual" &&
+                secondaryCurrentValue !== null &&
+                secondaryCurrentValue !== undefined ? (
+                  <div className="text-md sm:text-base font-mono">
+                    Avg:{" "}
+                    {formatTooltipValue(
+                      typeof currentValue === "string"
+                        ? parseFloat(currentValue)
+                        : currentValue
+                    )}{" "}
+                    / Max:{" "}
+                    {formatTooltipValue(
+                      typeof secondaryCurrentValue === "string"
+                        ? parseFloat(secondaryCurrentValue)
+                        : secondaryCurrentValue
+                    )}
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <div
-                      className="w-3 h-0.5"
-                      style={{ backgroundColor: "#a855f7" }}
+                ) : (
+                  <div className="text-md sm:text-base font-mono break-all">
+                    {formatTooltipValue(
+                      typeof currentValue === "string"
+                        ? parseFloat(currentValue)
+                        : currentValue
+                    )}
+                  </div>
+                )}
+                {dynamicChange.change > 0 && config.chartType !== "dual" && (
+                  <div
+                    className={`flex items-center gap-1 text-xs sm:text-sm ${
+                      dynamicChange.isPositive
+                        ? "text-green-600"
+                        : "text-red-600"
+                    }`}
+                    title={`Change over selected time range`}
+                  >
+                    <TrendingUp
+                      className={`h-3 w-3 sm:h-4 sm:w-4 ${
+                        dynamicChange.isPositive ? "" : "rotate-180"
+                      }`}
                     />
-                    <span style={{ color: "#a855f7" }}>Total</span>
+                    {dynamicChange.change >= 1000
+                      ? dynamicChange.change >= 1000000
+                        ? `${(dynamicChange.change / 1000000).toFixed(1)}M%`
+                        : `${(dynamicChange.change / 1000).toFixed(1)}K%`
+                      : `${dynamicChange.change.toFixed(1)}%`}
                   </div>
-                </div>
-              )}
-            {/* for dual charts */}
-            {config.chartType === "dual" && (
-              <div className="flex items-center gap-3 ml-auto text-xs">
-                <div className="flex items-center gap-1.5">
-                  <div
-                    className="w-3 h-3 rounded"
-                    style={{ backgroundColor: config.color }}
-                  />
-                  <span className="text-muted-foreground">Avg</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div
-                    className="w-3 h-3 rounded"
-                    style={{ backgroundColor: "#a855f7" }}
-                  />
-                  <span style={{ color: "#a855f7" }}>Max</span>
-                </div>
+                )}
+                {/* for cumulative charts */}
+                {config.chartType === "bar" &&
+                  (config.metricKey === "txCount" ||
+                    config.metricKey === "activeAddresses" ||
+                    config.metricKey === "contracts" ||
+                    config.metricKey === "deployers") && (
+                    <div className="flex items-center gap-3 ml-auto text-xs">
+                      <div className="flex items-center gap-1.5">
+                        <div
+                          className="w-3 h-3 rounded"
+                          style={{ backgroundColor: config.color }}
+                        />
+                        <span className="text-muted-foreground">
+                          {period === "D"
+                            ? "Daily"
+                            : period === "W"
+                            ? "Weekly"
+                            : period === "M"
+                            ? "Monthly"
+                            : period === "Q"
+                            ? "Quarterly"
+                            : "Yearly"}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <div
+                          className="w-3 h-0.5"
+                          style={{ backgroundColor: "#a855f7" }}
+                        />
+                        <span style={{ color: "#a855f7" }}>Total</span>
+                      </div>
+                    </div>
+                  )}
+                {/* for dual charts */}
+                {config.chartType === "dual" && (
+                  <div className="flex items-center gap-3 ml-auto text-xs">
+                    <div className="flex items-center gap-1.5">
+                      <div
+                        className="w-3 h-3 rounded"
+                        style={{ backgroundColor: config.color }}
+                      />
+                      <span className="text-muted-foreground">Avg</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <div
+                        className="w-3 h-3 rounded"
+                        style={{ backgroundColor: "#a855f7" }}
+                      />
+                      <span style={{ color: "#a855f7" }}>Max</span>
+                    </div>
+                  </div>
+                )}
+                {/* for charts with moving average */}
+                {showMovingAverage &&
+                  config.chartType === "bar" &&
+                  !(
+                    config.metricKey === "txCount" ||
+                    config.metricKey === "activeAddresses" ||
+                    config.metricKey === "contracts" ||
+                    config.metricKey === "deployers"
+                  ) && (
+                    <div className="flex items-center gap-3 ml-auto text-xs">
+                      <div className="flex items-center gap-1.5">
+                        <div
+                          className="w-3 h-3 rounded"
+                          style={{ backgroundColor: config.color }}
+                        />
+                        <span className="text-muted-foreground">
+                          {period === "D"
+                            ? "Daily"
+                            : period === "W"
+                            ? "Weekly"
+                            : period === "M"
+                            ? "Monthly"
+                            : period === "Q"
+                            ? "Quarterly"
+                            : "Yearly"}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <div
+                          className="w-3 h-0.5"
+                          style={{ backgroundColor: "#22c55e" }}
+                        />
+                        <span style={{ color: "#22c55e" }}>
+                          {maConfig.label}
+                        </span>
+                      </div>
+                    </div>
+                  )}
               </div>
-            )}
-          </div>
 
-          <div className="mb-6">
-            <ResponsiveContainer width="100%" height={400}>
-              {config.chartType === "bar" &&
-              (config.metricKey === "txCount" ||
-                config.metricKey === "activeAddresses" ||
-                config.metricKey === "contracts" ||
-                config.metricKey === "deployers") ? (
-                <ComposedChart
-                  data={displayDataWithCumulative}
-                  margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
-                >
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    className="stroke-gray-200 dark:stroke-gray-700"
-                    vertical={false}
-                  />
-                  <XAxis
-                    dataKey="day"
-                    tickFormatter={formatXAxis}
-                    className="text-xs text-gray-600 dark:text-gray-400"
-                    tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
-                    minTickGap={80}
-                    interval="preserveStartEnd"
-                  />
-                  <YAxis
-                    yAxisId="left"
-                    tickFormatter={formatYAxisValue}
-                    className="text-xs text-gray-600 dark:text-gray-400"
-                    tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
-                  />
-                  <YAxis
-                    yAxisId="right"
-                    orientation="right"
-                    tickFormatter={formatYAxisValue}
-                    className="text-xs text-gray-600 dark:text-gray-400"
-                    tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
-                  />
-                  <Tooltip
-                    cursor={{ fill: `${config.color}20` }}
-                    content={({ active, payload }) => {
-                      if (!active || !payload?.[0]) return null;
-                      const formattedDate = formatTooltipDate(
-                        payload[0].payload.day
-                      );
-                      return (
-                        <div className="rounded-lg border bg-background p-2 shadow-sm font-mono">
-                          <div className="grid gap-2">
-                            <div className="font-medium text-sm">
-                              {formattedDate}
-                            </div>
-                            <div className="text-xs">
-                              {formatTooltipValue(payload[0].value as number)}
-                            </div>
-                            {payload[0].payload.cumulative && (
-                              <div className="text-xs text-muted-foreground">
-                                Total:{" "}
-                                {formatYAxisValue(
-                                  payload[0].payload.cumulative
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    }}
-                  />
-                  <Bar
-                    dataKey="value"
-                    fill={config.color}
-                    radius={[4, 4, 0, 0]}
-                    yAxisId="left"
-                    name={
-                      config.metricKey === "txCount"
-                        ? "Transactions"
-                        : config.metricKey === "activeAddresses"
-                          ? "Active Addresses"
-                          : config.metricKey === "contracts"
-                            ? "Contracts Deployed"
-                            : "Contract Deployers"
-                    }
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="cumulative"
-                    stroke="#a855f7"
-                    strokeWidth={1}
-                    dot={false}
-                    yAxisId="right"
-                    name={
-                      config.metricKey === "txCount"
-                        ? "Total Transactions"
-                        : config.metricKey === "activeAddresses"
-                          ? "Total Addresses"
-                          : config.metricKey === "contracts"
-                            ? "Total Contracts"
-                            : "Total Deployers"
-                    }
-                    strokeOpacity={0.9}
-                  />
-                </ComposedChart>
-              ) : config.chartType === "bar" ? (
-                <BarChart
-                  data={displayDataWithCumulative}
-                  margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-                >
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    className="stroke-gray-200 dark:stroke-gray-700"
-                    vertical={false}
-                  />
-                  <XAxis
-                    dataKey="day"
-                    tickFormatter={formatXAxis}
-                    className="text-xs text-gray-600 dark:text-gray-400"
-                    tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
-                    minTickGap={80}
-                    interval="preserveStartEnd"
-                  />
-                  <YAxis
-                    tickFormatter={formatYAxisValue}
-                    className="text-xs text-gray-600 dark:text-gray-400"
-                    tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
-                  />
-                  <Tooltip
-                    cursor={{ fill: `${config.color}20` }}
-                    content={({ active, payload }) => {
-                      if (!active || !payload?.[0]) return null;
-                      const formattedDate = formatTooltipDate(payload[0].payload.day);
-                      return (
-                        <div className="rounded-lg border bg-background p-2 shadow-sm font-mono">
-                          <div className="grid gap-2">
-                            <div className="font-medium text-xs">
-                              {formattedDate}
-                            </div>
-                            <div className="text-xs">
-                              {formatTooltipValue(payload[0].value as number)}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    }}
-                  />
-                  <Bar
-                    dataKey="value"
-                    fill={config.color}
-                    radius={[4, 4, 0, 0]}
-                  />
-                </BarChart>
-              ) : config.chartType === "area" ? (
-                <AreaChart
-                  data={displayDataWithCumulative}
-                  margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-                >
-                  <defs>
-                    <linearGradient
-                      id={`gradient-${config.metricKey}`}
-                      x1="0"
-                      y1="0"
-                      x2="0"
-                      y2="1"
-                    >
-                      <stop
-                        offset="5%"
-                        stopColor={config.color}
-                        stopOpacity={0.3}
-                      />
-                      <stop
-                        offset="95%"
-                        stopColor={config.color}
-                        stopOpacity={0}
-                      />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    className="stroke-gray-200 dark:stroke-gray-700"
-                    vertical={false}
-                  />
-                  <XAxis
-                    dataKey="day"
-                    tickFormatter={formatXAxis}
-                    className="text-xs text-gray-600 dark:text-gray-400"
-                    tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
-                    minTickGap={80}
-                    interval="preserveStartEnd"
-                  />
-                  <YAxis
-                    tickFormatter={formatYAxisValue}
-                    className="text-xs text-gray-600 dark:text-gray-400"
-                    tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
-                  />
-                  <Tooltip
-                    cursor={{ fill: `${config.color}20` }}
-                    content={({ active, payload }) => {
-                      if (!active || !payload?.[0]) return null;
-                      const formattedDate = formatTooltipDate(payload[0].payload.day);
-                      return (
-                        <div className="rounded-lg border bg-background p-2 shadow-sm font-mono">
-                          <div className="grid gap-2">
-                            <div className="font-medium text-xs">
-                              {formattedDate}
-                            </div>
-                            <div className="text-xs">
-                              {formatTooltipValue(payload[0].value as number)}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    }}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="value"
-                    stroke={config.color}
-                    fill={`url(#gradient-${config.metricKey})`}
-                    strokeWidth={1}
-                  />
-                </AreaChart>
-              ) : config.chartType === "dual" ? (
-                <BarChart
-                  data={displayDataWithCumulative}
-                  margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-                >
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    className="stroke-gray-200 dark:stroke-gray-700"
-                    vertical={false}
-                  />
-                  <XAxis
-                    dataKey="day"
-                    tickFormatter={formatXAxis}
-                    className="text-xs text-gray-600 dark:text-gray-400"
-                    tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
-                    minTickGap={80}
-                    interval="preserveStartEnd"
-                  />
-                  <YAxis
-                    tickFormatter={formatYAxisValue}
-                    className="text-xs text-gray-600 dark:text-gray-400"
-                    tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
-                  />
-                  <Tooltip
-                    cursor={{ fill: `${config.color}20` }}
-                    content={({ active, payload }) => {
-                      if (!active || !payload?.[0]) return null;
-                      const formattedDate = formatTooltipDate(
-                        payload[0].payload.day
-                      );
-                      return (
-                        <div className="rounded-lg border bg-background p-2 shadow-sm font-mono">
-                          <div className="grid gap-2">
-                            <div className="font-medium text-sm">
-                              {formattedDate}
-                            </div>
-                            {payload[0].payload.secondary && (
-                              <div className="text-xs flex items-center gap-1.5">
-                                <div
-                                  className="w-2 h-2 rounded"
-                                  style={{ backgroundColor: "#a855f7" }}
-                                />
-                                <span style={{ color: "#a855f7" }}>
-                                  Max:{" "}
-                                  {formatTooltipValue(
-                                    payload[0].payload.secondary
+              <ChartWatermark className="mb-6">
+                {displayData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={400}>
+                    {config.chartType === "bar" &&
+                    (config.metricKey === "txCount" ||
+                      config.metricKey === "activeAddresses" ||
+                      config.metricKey === "contracts" ||
+                      config.metricKey === "deployers") ? (
+                      <ComposedChart
+                        data={displayDataWithCumulative}
+                        margin={{ top: 10, right: 15, left: 15, bottom: 0 }}
+                      >
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          className="stroke-gray-200 dark:stroke-gray-700"
+                          vertical={false}
+                        />
+                        <XAxis
+                          dataKey="day"
+                          tickFormatter={formatXAxis}
+                          className="text-xs text-gray-600 dark:text-gray-400"
+                          tick={{
+                            className: "fill-gray-600 dark:fill-gray-400",
+                          }}
+                          minTickGap={80}
+                          interval="preserveStartEnd"
+                        />
+                        <YAxis
+                          yAxisId="left"
+                          tickFormatter={formatYAxisValue}
+                          className="text-xs text-gray-600 dark:text-gray-400"
+                          tick={{
+                            className: "fill-gray-600 dark:fill-gray-400",
+                          }}
+                        />
+                        <YAxis
+                          yAxisId="right"
+                          orientation="right"
+                          tickFormatter={formatYAxisValue}
+                          className="text-xs text-gray-600 dark:text-gray-400"
+                          tick={{
+                            className: "fill-gray-600 dark:fill-gray-400",
+                          }}
+                        />
+                        <Tooltip
+                          cursor={{ fill: `${config.color}20` }}
+                          content={({ active, payload }) => {
+                            if (!active || !payload?.[0]) return null;
+                            const formattedDate = formatTooltipDate(
+                              payload[0].payload.day
+                            );
+                            return (
+                              <div className="rounded-lg border bg-background p-2 shadow-sm font-mono">
+                                <div className="grid gap-2">
+                                  <div className="font-medium text-sm">
+                                    {formattedDate}
+                                  </div>
+                                  <div className="text-xs">
+                                    {formatTooltipValue(
+                                      payload[0].value as number
+                                    )}
+                                  </div>
+                                  {payload[0].payload.cumulative && (
+                                    <div className="text-xs text-muted-foreground">
+                                      Total:{" "}
+                                      {formatYAxisValue(
+                                        payload[0].payload.cumulative
+                                      )}
+                                    </div>
                                   )}
-                                </span>
+                                </div>
                               </div>
-                            )}
-                            <div className="text-xs flex items-center gap-1.5">
-                              <div
-                                className="w-2 h-2 rounded"
-                                style={{ backgroundColor: config.color }}
-                              />
-                              <span style={{ color: config.color }}>
-                                Avg:{" "}
-                                {formatTooltipValue(payload[0].payload.value)}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    }}
-                  />
-                  <Bar
-                    dataKey="value"
-                    stackId="stack"
-                    fill={config.color}
-                    radius={[0, 0, 0, 0]}
-                    name="Average"
-                  />
-                  <Bar
-                    dataKey="maxMinusAvg"
-                    stackId="stack"
-                    fill="#a855f7"
-                    radius={[4, 4, 0, 0]}
-                    name="Max (additional)"
-                  />
-                </BarChart>
-              ) : (
-                <LineChart
-                  data={displayDataWithCumulative}
-                  margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-                >
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    className="stroke-gray-200 dark:stroke-gray-700"
-                    vertical={false}
-                  />
-                  <XAxis
-                    dataKey="day"
-                    tickFormatter={formatXAxis}
-                    className="text-xs text-gray-600 dark:text-gray-400"
-                    tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
-                    minTickGap={80}
-                    interval="preserveStartEnd"
-                  />
-                  <YAxis
-                    tickFormatter={formatYAxisValue}
-                    className="text-xs text-gray-600 dark:text-gray-400"
-                    tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
-                  />
-                  <Tooltip
-                    cursor={{
-                      stroke: config.color,
-                      strokeWidth: 1,
-                      strokeDasharray: "5 5",
-                    }}
-                    content={({ active, payload }) => {
-                      if (!active || !payload?.[0]) return null;
-                      const formattedDate = formatTooltipDate(payload[0].payload.day);
-                      return (
-                        <div className="rounded-lg border bg-background p-2 shadow-sm font-mono">
-                          <div className="grid gap-2">
-                            <div className="font-medium text-xs">
-                              {formattedDate}
-                            </div>
-                            <div className="text-xs">
-                              {formatTooltipValue(payload[0].value as number)}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="value"
-                    stroke={config.color}
-                    strokeWidth={1}
-                    dot={false}
-                  />
-                </LineChart>
-              )}
-            </ResponsiveContainer>
-          </div>
-
-          {/* Brush Slider */}
-          <div className="mt-4 bg-white dark:bg-black pl-[60px]">
-            <ResponsiveContainer width="100%" height={80}>
-              <LineChart
-                data={aggregatedData}
-                margin={{ top: 0, right: 30, left: 0, bottom: 5 }}
-              >
-                <Brush
-                  dataKey="day"
-                  height={80}
-                  stroke={config.color}
-                  fill={`${config.color}20`}
-                  alwaysShowText={false}
-                  startIndex={brushIndexes?.startIndex ?? 0}
-                  endIndex={brushIndexes?.endIndex ?? aggregatedData.length - 1}
-                  onChange={(e: any) => {
-                    if (
-                      e.startIndex !== undefined &&
-                      e.endIndex !== undefined
-                    ) {
-                      let startIndex = e.startIndex;
-                      let endIndex = e.endIndex;
-
-                      // Limit to 100 bars maximum for daily view
-                      if (period === "D") {
-                        const maxBars = 100;
-                        const selectedBars = endIndex - startIndex + 1;
-                        if (selectedBars > maxBars) {
-                          if (e.endIndex !== brushIndexes?.endIndex) {
-                            startIndex = Math.max(0, endIndex - maxBars + 1);
-                          } else {
-                            endIndex = Math.min(aggregatedData.length - 1,startIndex + maxBars - 1);
+                            );
+                          }}
+                        />
+                        <Bar
+                          dataKey="value"
+                          fill={config.color}
+                          radius={[4, 4, 0, 0]}
+                          yAxisId="left"
+                          name={
+                            config.metricKey === "txCount"
+                              ? "Transactions"
+                              : config.metricKey === "activeAddresses"
+                              ? "Active Addresses"
+                              : config.metricKey === "contracts"
+                              ? "Contracts Deployed"
+                              : "Contract Deployers"
                           }
-                        }
-                      }
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="cumulative"
+                          stroke="#a855f7"
+                          strokeWidth={1}
+                          dot={false}
+                          yAxisId="right"
+                          name={
+                            config.metricKey === "txCount"
+                              ? "Total Transactions"
+                              : config.metricKey === "activeAddresses"
+                              ? "Total Addresses"
+                              : config.metricKey === "contracts"
+                              ? "Total Contracts"
+                              : "Total Deployers"
+                          }
+                          strokeOpacity={0.9}
+                        />
+                      </ComposedChart>
+                    ) : config.chartType === "bar" && showMovingAverage ? (
+                      <ComposedChart
+                        data={displayDataWithCumulative}
+                        margin={{ top: 10, right: 40, left: 15, bottom: 0 }}
+                      >
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          className="stroke-gray-200 dark:stroke-gray-700"
+                          vertical={false}
+                        />
+                        <XAxis
+                          dataKey="day"
+                          tickFormatter={formatXAxis}
+                          className="text-xs text-gray-600 dark:text-gray-400"
+                          tick={{
+                            className: "fill-gray-600 dark:fill-gray-400",
+                          }}
+                          minTickGap={80}
+                          interval="preserveStartEnd"
+                        />
+                        <YAxis
+                          tickFormatter={formatYAxisValue}
+                          className="text-xs text-gray-600 dark:text-gray-400"
+                          tick={{
+                            className: "fill-gray-600 dark:fill-gray-400",
+                          }}
+                        />
+                        <Tooltip
+                          cursor={{ fill: `${config.color}20` }}
+                          content={({ active, payload }) => {
+                            if (!active || !payload?.[0]) return null;
+                            const formattedDate = formatTooltipDate(
+                              payload[0].payload.day
+                            );
+                            return (
+                              <div className="rounded-lg border bg-background p-2 shadow-sm font-mono">
+                                <div className="grid gap-2">
+                                  <div className="font-medium text-xs">
+                                    {formattedDate}
+                                  </div>
+                                  <div className="text-xs">
+                                    {formatTooltipValue(
+                                      payload[0].value as number
+                                    )}
+                                  </div>
+                                  {payload[0].payload.ma !== undefined && (
+                                    <div
+                                      className="text-xs"
+                                      style={{ color: "#22c55e" }}
+                                    >
+                                      {maConfig.label}:{" "}
+                                      {formatTooltipValue(
+                                        payload[0].payload.ma
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          }}
+                        />
+                        <Bar
+                          dataKey="value"
+                          fill={config.color}
+                          radius={[4, 4, 0, 0]}
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="ma"
+                          stroke="#22c55e"
+                          strokeWidth={2}
+                          dot={false}
+                          name="Moving Average"
+                        />
+                      </ComposedChart>
+                    ) : config.chartType === "bar" ? (
+                      <BarChart
+                        data={displayDataWithCumulative}
+                        margin={{ top: 10, right: 40, left: 15, bottom: 0 }}
+                      >
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          className="stroke-gray-200 dark:stroke-gray-700"
+                          vertical={false}
+                        />
+                        <XAxis
+                          dataKey="day"
+                          tickFormatter={formatXAxis}
+                          className="text-xs text-gray-600 dark:text-gray-400"
+                          tick={{
+                            className: "fill-gray-600 dark:fill-gray-400",
+                          }}
+                          minTickGap={80}
+                          interval="preserveStartEnd"
+                        />
+                        <YAxis
+                          tickFormatter={formatYAxisValue}
+                          className="text-xs text-gray-600 dark:text-gray-400"
+                          tick={{
+                            className: "fill-gray-600 dark:fill-gray-400",
+                          }}
+                        />
+                        <Tooltip
+                          cursor={{ fill: `${config.color}20` }}
+                          content={({ active, payload }) => {
+                            if (!active || !payload?.[0]) return null;
+                            const formattedDate = formatTooltipDate(
+                              payload[0].payload.day
+                            );
+                            return (
+                              <div className="rounded-lg border bg-background p-2 shadow-sm font-mono">
+                                <div className="grid gap-2">
+                                  <div className="font-medium text-xs">
+                                    {formattedDate}
+                                  </div>
+                                  <div className="text-xs">
+                                    {formatTooltipValue(
+                                      payload[0].value as number
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          }}
+                        />
+                        <Bar
+                          dataKey="value"
+                          fill={config.color}
+                          radius={[4, 4, 0, 0]}
+                        />
+                      </BarChart>
+                    ) : config.chartType === "area" ? (
+                      <AreaChart
+                        data={displayDataWithCumulative}
+                        margin={{ top: 10, right: 40, left: 15, bottom: 0 }}
+                      >
+                        <defs>
+                          <linearGradient
+                            id={`gradient-${config.metricKey}`}
+                            x1="0"
+                            y1="0"
+                            x2="0"
+                            y2="1"
+                          >
+                            <stop
+                              offset="5%"
+                              stopColor={config.color}
+                              stopOpacity={0.3}
+                            />
+                            <stop
+                              offset="95%"
+                              stopColor={config.color}
+                              stopOpacity={0}
+                            />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          className="stroke-gray-200 dark:stroke-gray-700"
+                          vertical={false}
+                        />
+                        <XAxis
+                          dataKey="day"
+                          tickFormatter={formatXAxis}
+                          className="text-xs text-gray-600 dark:text-gray-400"
+                          tick={{
+                            className: "fill-gray-600 dark:fill-gray-400",
+                          }}
+                          minTickGap={80}
+                          interval="preserveStartEnd"
+                        />
+                        <YAxis
+                          tickFormatter={formatYAxisValue}
+                          className="text-xs text-gray-600 dark:text-gray-400"
+                          tick={{
+                            className: "fill-gray-600 dark:fill-gray-400",
+                          }}
+                        />
+                        <Tooltip
+                          cursor={{ fill: `${config.color}20` }}
+                          content={({ active, payload }) => {
+                            if (!active || !payload?.[0]) return null;
+                            const formattedDate = formatTooltipDate(
+                              payload[0].payload.day
+                            );
+                            return (
+                              <div className="rounded-lg border bg-background p-2 shadow-sm font-mono">
+                                <div className="grid gap-2">
+                                  <div className="font-medium text-xs">
+                                    {formattedDate}
+                                  </div>
+                                  <div className="text-xs">
+                                    {formatTooltipValue(
+                                      payload[0].value as number
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          }}
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="value"
+                          stroke={config.color}
+                          fill={`url(#gradient-${config.metricKey})`}
+                          strokeWidth={1}
+                        />
+                      </AreaChart>
+                    ) : config.chartType === "dual" ? (
+                      <BarChart
+                        data={displayDataWithCumulative}
+                        margin={{ top: 10, right: 40, left: 15, bottom: 0 }}
+                      >
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          className="stroke-gray-200 dark:stroke-gray-700"
+                          vertical={false}
+                        />
+                        <XAxis
+                          dataKey="day"
+                          tickFormatter={formatXAxis}
+                          className="text-xs text-gray-600 dark:text-gray-400"
+                          tick={{
+                            className: "fill-gray-600 dark:fill-gray-400",
+                          }}
+                          minTickGap={80}
+                          interval="preserveStartEnd"
+                        />
+                        <YAxis
+                          tickFormatter={formatYAxisValue}
+                          className="text-xs text-gray-600 dark:text-gray-400"
+                          tick={{
+                            className: "fill-gray-600 dark:fill-gray-400",
+                          }}
+                        />
+                        <Tooltip
+                          cursor={{ fill: `${config.color}20` }}
+                          content={({ active, payload }) => {
+                            if (!active || !payload?.[0]) return null;
+                            const formattedDate = formatTooltipDate(
+                              payload[0].payload.day
+                            );
+                            return (
+                              <div className="rounded-lg border bg-background p-2 shadow-sm font-mono">
+                                <div className="grid gap-2">
+                                  <div className="font-medium text-sm">
+                                    {formattedDate}
+                                  </div>
+                                  {payload[0].payload.secondary && (
+                                    <div className="text-xs flex items-center gap-1.5">
+                                      <div
+                                        className="w-2 h-2 rounded"
+                                        style={{ backgroundColor: "#a855f7" }}
+                                      />
+                                      <span style={{ color: "#a855f7" }}>
+                                        Max:{" "}
+                                        {formatTooltipValue(
+                                          payload[0].payload.secondary
+                                        )}
+                                      </span>
+                                    </div>
+                                  )}
+                                  <div className="text-xs flex items-center gap-1.5">
+                                    <div
+                                      className="w-2 h-2 rounded"
+                                      style={{ backgroundColor: config.color }}
+                                    />
+                                    <span style={{ color: config.color }}>
+                                      Avg:{" "}
+                                      {formatTooltipValue(
+                                        payload[0].payload.value
+                                      )}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          }}
+                        />
+                        <Bar
+                          dataKey="value"
+                          stackId="stack"
+                          fill={config.color}
+                          radius={[0, 0, 0, 0]}
+                          name="Average"
+                        />
+                        <Bar
+                          dataKey="maxMinusAvg"
+                          stackId="stack"
+                          fill="#a855f7"
+                          radius={[4, 4, 0, 0]}
+                          name="Max (additional)"
+                        />
+                      </BarChart>
+                    ) : (
+                      <LineChart
+                        data={displayDataWithCumulative}
+                        margin={{ top: 10, right: 40, left: 15, bottom: 0 }}
+                      >
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          className="stroke-gray-200 dark:stroke-gray-700"
+                          vertical={false}
+                        />
+                        <XAxis
+                          dataKey="day"
+                          tickFormatter={formatXAxis}
+                          className="text-xs text-gray-600 dark:text-gray-400"
+                          tick={{
+                            className: "fill-gray-600 dark:fill-gray-400",
+                          }}
+                          minTickGap={80}
+                          interval="preserveStartEnd"
+                        />
+                        <YAxis
+                          tickFormatter={formatYAxisValue}
+                          className="text-xs text-gray-600 dark:text-gray-400"
+                          tick={{
+                            className: "fill-gray-600 dark:fill-gray-400",
+                          }}
+                        />
+                        <Tooltip
+                          cursor={{
+                            stroke: config.color,
+                            strokeWidth: 1,
+                            strokeDasharray: "5 5",
+                          }}
+                          content={({ active, payload }) => {
+                            if (!active || !payload?.[0]) return null;
+                            const formattedDate = formatTooltipDate(
+                              payload[0].payload.day
+                            );
+                            return (
+                              <div className="rounded-lg border bg-background p-2 shadow-sm font-mono">
+                                <div className="grid gap-2">
+                                  <div className="font-medium text-xs">
+                                    {formattedDate}
+                                  </div>
+                                  <div className="text-xs">
+                                    {formatTooltipValue(
+                                      payload[0].value as number
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          }}
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="value"
+                          stroke={config.color}
+                          strokeWidth={1}
+                          dot={false}
+                        />
+                      </LineChart>
+                    )}
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-[400px] flex items-center justify-center text-muted-foreground">
+                    Loading chart data...
+                  </div>
+                )}
+              </ChartWatermark>
 
-                      setBrushIndexes({
-                        startIndex: startIndex,
-                        endIndex: endIndex,
-                      });
-                    }
-                  }}
-                  travellerWidth={8}
-                  tickFormatter={formatBrushXAxis}
-                >
-                  <LineChart>
-                    <Line
-                      type="monotone"
-                      dataKey="value"
-                      stroke={config.color}
-                      strokeWidth={1}
-                      dot={false}
-                    />
-                  </LineChart>
-                </Brush>
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+              {/* Brush Slider */}
+              {aggregatedData.length > 0 &&
+                brushIndexes &&
+                !isNaN(brushIndexes.startIndex) &&
+                !isNaN(brushIndexes.endIndex) &&
+                brushIndexes.startIndex >= 0 &&
+                brushIndexes.endIndex < aggregatedData.length && (
+                  <div className="mt-4 bg-white dark:bg-black pl-[60px]">
+                    <ResponsiveContainer width="100%" height={80}>
+                      <LineChart
+                        data={aggregatedData}
+                        margin={{ top: 0, right: 40, left: 15, bottom: 5 }}
+                      >
+                        <Brush
+                          dataKey="day"
+                          height={80}
+                          stroke={config.color}
+                          fill={`${config.color}20`}
+                          alwaysShowText={false}
+                          startIndex={brushIndexes.startIndex}
+                          endIndex={brushIndexes.endIndex}
+                          onChange={(e: any) => {
+                            if (
+                              e.startIndex !== undefined &&
+                              e.endIndex !== undefined &&
+                              !isNaN(e.startIndex) &&
+                              !isNaN(e.endIndex)
+                            ) {
+                              setBrushIndexes({
+                                startIndex: e.startIndex,
+                                endIndex: e.endIndex,
+                              });
+                            }
+                          }}
+                          travellerWidth={8}
+                          tickFormatter={formatBrushXAxis}
+                        >
+                          <LineChart>
+                            <Line
+                              type="monotone"
+                              dataKey="value"
+                              stroke={config.color}
+                              strokeWidth={1}
+                              dot={false}
+                            />
+                          </LineChart>
+                        </Brush>
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+            </>
+          )}
         </div>
       </CardContent>
     </Card>

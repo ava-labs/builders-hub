@@ -13,7 +13,7 @@ const development = [
     description:
       "Find references for all Avalanche SDKs, APIs, and tools.",
     icon: Book,
-    href: "/docs/dapps",
+    href: "/docs",
   },
   {
     id: 5,

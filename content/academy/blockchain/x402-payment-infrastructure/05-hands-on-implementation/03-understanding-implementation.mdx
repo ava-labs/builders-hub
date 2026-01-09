@@ -1,0 +1,121 @@
+---
+title: Understanding the Implementation
+description: Overview of the starter kit architecture and key files.
+updated: 2025-12-22
+authors: [Federico Nardelli]
+icon: Code
+---
+
+## Project Structure
+
+```
+x402-starter-kit/
+├── app/
+│   ├── api/
+│   │   ├── basic/route.ts       # $0.01 endpoint (Human Payment)
+│   │   ├── premium/route.ts     # $0.15 endpoint (Human Payment)
+│   │   ├── ai-chat/route.ts     # Token-based AI chat endpoint
+│   │   └── agent/route.ts       # Autonomous agent service endpoint
+│   ├── layout.tsx               # ThirdwebProvider wrapper
+│   ├── page.tsx                 # Main UI with mode switcher
+│   └── globals.css
+├── components/
+│   ├── agent/                   # Autonomous agent UI components
+│   └── ai-chat/                 # Token-based chat UI components
+├── lib/
+│   ├── constants.ts             # Addresses, endpoints, amounts
+│   ├── agent-wallet.ts          # Agent wallet management
+│   ├── token-pricing.ts         # Token cost calculations
+│   └── utils.ts
+└── ...
+```
+
+This lesson focuses on the **Human Payment** implementation (basic/premium endpoints). The AI agent features are covered in dedicated lessons later in this course.
+
+## Backend: API Route
+
+Each protected endpoint is a Next.js API route. Here's `app/api/basic/route.ts`:
+
+```typescript
+import { settlePayment, facilitator } from "thirdweb/x402";
+import { createThirdwebClient } from "thirdweb";
+import { avalancheFuji } from "thirdweb/chains";
+import { USDC_FUJI_ADDRESS, PAYMENT_AMOUNTS, API_ENDPOINTS } from "@/lib/constants";
+
+const client = createThirdwebClient({
+  secretKey: process.env.THIRDWEB_SECRET_KEY!,
+});
+
+const thirdwebFacilitator = facilitator({
+  client,
+  serverWalletAddress: process.env.THIRDWEB_SERVER_WALLET_ADDRESS!,
+});
+
+export async function GET(request: Request) {
+  const paymentData = request.headers.get("x-payment");
+
+  const result = await settlePayment({
+    resourceUrl: API_ENDPOINTS.BASIC,
+    method: "GET",
+    paymentData,
+    payTo: process.env.MERCHANT_WALLET_ADDRESS!,
+    network: avalancheFuji,
+    price: {
+      amount: PAYMENT_AMOUNTS.BASIC.amount,
+      asset: { address: USDC_FUJI_ADDRESS },
+    },
+    facilitator: thirdwebFacilitator,
+  });
+
+  if (result.status === 200) {
+    return Response.json({
+      tier: "basic",
+      data: "Welcome to Basic tier!",
+      timestamp: new Date().toISOString(),
+    });
+  } else {
+    return Response.json(result.responseBody, {
+      status: result.status,
+      headers: result.responseHeaders,
+    });
+  }
+}
+```
+
+The `settlePayment` function handles everything: if no payment header is present, it returns HTTP 402; if payment is valid, it settles on-chain and returns 200.
+
+## Constants
+
+`lib/constants.ts` centralizes configuration:
+
+```typescript
+export const USDC_FUJI_ADDRESS = "0x5425890298aed601595a70AB815c96711a31Bc65";
+
+export const API_ENDPOINTS = {
+  BASIC: `${API_BASE_URL}/api/basic`,
+  PREMIUM: `${API_BASE_URL}/api/premium`,
+};
+
+export const PAYMENT_AMOUNTS = {
+  BASIC: { amount: "10000" },    // $0.01 USDC (6 decimals)
+  PREMIUM: { amount: "150000" }, // $0.15 USDC
+};
+```
+
+## Frontend: Layout
+
+`app/layout.tsx` wraps the app with ThirdwebProvider for wallet functionality:
+
+```tsx
+import { ThirdwebProvider } from "thirdweb/react";
+
+export default function RootLayout({ children }) {
+  return (
+    <html lang="en">
+      <body>
+        <ThirdwebProvider>{children}</ThirdwebProvider>
+      </body>
+    </html>
+  );
+}
+```

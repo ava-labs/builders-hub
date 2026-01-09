@@ -37,7 +37,10 @@ export default async function Page(props: {
   if (!page) notFound();
 
   const MDX = page.data.body;
-  const path = `content/blog${page.url.replace('/blog/', '/')}.mdx`;
+  // Use page.path which contains the actual file path relative to collection root
+  // (e.g., "post-name/index.mdx" for an index file)
+  // This correctly handles both regular .mdx files and index.mdx files
+  const path = `content/blog/${page.path}`;
 
   return (
     <>

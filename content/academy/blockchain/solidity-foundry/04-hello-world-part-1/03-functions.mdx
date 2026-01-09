@@ -2,7 +2,7 @@
 title: Functions
 description: Learn about Solidity
 updated: 2024-05-31
-authors: [martineckardt]
+authors: [martineckardt, katherineavalabs]
 icon: BookOpen
 ---
 
@@ -15,7 +15,7 @@ function getOne() public pure returns(uint) {
     return 1; 
 }
 ```
-In the above, we have the code function getOne() public pure returns(uint) as the header of the function, while the code return 1; is the body of the function (the body of a function is always encapsulated by curly brackets). 
+In the above, we have the code `function getOne() public pure returns(uint)` as the **header** of the function, while the code `return 1;` is the **body** of the function (the body of a function is always encapsulated by curly brackets). 
 
 ## Function Header
 Focusing first on the header of a function, below is the required syntax that all function must have:
@@ -24,12 +24,14 @@ Focusing first on the header of a function, below is the required syntax that al
 function <function_name>(<args>) <visibility>
 ```
 
-In the parentheses, we list the parameters of the function. In addition to having a name, each parameter of a function must also be marked with its type. The only concept that might be new for most developers is the visibility of a function. In Solidity, we can mark a function with the following visibility traits:
+In the parentheses, we list the parameters of the function. In addition to having a name, each parameter of a function must also be marked with its type. The only concept that might be new for most developers is the visibility of a function. In Solidity, we can mark a function with the following visibility traits (we'll understand their descriptions):
 
-- Public
-- Private
-- Internal
-- External
+- **Public**: Accessible both externally (by other contracts or transactions) and internally (from other functions in the same contract).
+- **Private**: Accessible only within the contract where they are defined. Not accessible to derived contracts (we'll learn more about them further on) or externally.
+- **Internal**: Accessible within the contract and by derived contracts. Not accessible externally.
+- **External**: Accessible only from other contracts and transactions. Cannot be called internally using a direct function call (e.g., `f()`), but can be called using `this.f()` which performs an external call.
+
+Additionally, functions can specify their return type(s) using the `returns` keyword followed by the type(s) in parentheses. For example, `returns(uint)` indicates the function returns a single unsigned integer. When multiple return types are specified, such as `returns(uint, bool)`, the function returns a tuple (a fixed-size collection of elements) containing those values.
 
 ## Function Body
 As of right now, the only thing we know what to do inside the body of a function is declaring/defining local variables. Inside the bodies of functions, we can also use regular mathematical operations like in other programming languages; the following code demonstrates this:
@@ -40,3 +42,5 @@ function getSquare(uint num) public returns(uint) {
     return square;
 }
 ```
+
+<Quiz quizId="503"/>

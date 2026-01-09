@@ -54,7 +54,7 @@ import ICMRelayer from "@/components/toolbox/console/icm/setup/ICMRelayer";
 import Faucet from "@/components/toolbox/console/primary-network/Faucet";
 import CreateManagedTestnetNode from "@/components/toolbox/console/testnet-infra/ManagedTestnetNodes/CreateManagedTestnetNode";
 
-export const dynamicParams = false;
+export const dynamicParams = true;
 
 const toolboxComponents = {
   ToolboxMdxWrapper,
@@ -80,9 +80,13 @@ export default async function Page(props: {
 }) {
   const params = await props.params;
   const page = academy.getPage(params.slug);
+
   if (!page) notFound();
 
-  const path = `content/academy${page.url.replace('/academy/', '/')}.mdx`;
+  // Use page.path which contains the actual file path relative to collection root
+  // (e.g., "avalanche-l1/course/module/index.mdx" for an index file)
+  // This correctly handles both regular .mdx files and index.mdx files
+  const path = `content/academy/${page.path}`;
   const editUrl = `https://github.com/ava-labs/builders-hub/edit/master/${path}`;
   const MDX = page.data.body;
   // Check both official courses and entrepreneur courses
@@ -125,7 +129,9 @@ export default async function Page(props: {
       }}
     >
       <DocsTitle>{page.data.title || "Untitled"}</DocsTitle>
-      <DocsDescription>{page.data.description}</DocsDescription>
+      {page.data.description && (
+        <DocsDescription>{page.data.description}</DocsDescription>
+      )}
       <DocsBody className="text-fd-foreground/80">
         <IndexedDBComponent />
         <MDX

@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { type LinkItemType } from 'fumadocs-ui/layouts/docs';
 import { BookOpen, FileText, ArrowUpRight } from 'lucide-react';
-import Image from 'next/image';
 
 interface BlogPost {
   title: string;
@@ -12,8 +11,30 @@ interface BlogPost {
   date: string;
 }
 
+// Static fallback items that match the server-rendered blogMenu
+// This ensures hydration consistency
+const staticBlogItems = [
+  {
+    icon: <BookOpen />,
+    text: 'Latest Articles',
+    description:
+      'Read the latest guides, tutorials, and insights from the Avalanche ecosystem.',
+    url: '/guides',
+  },
+  {
+    icon: <ArrowUpRight />,
+    text: 'Browse All Posts',
+    description:
+      'Explore our complete collection of articles, guides, and community content.',
+    url: '/guides',
+    menu: {
+      className: 'lg:col-start-2',
+    },
+  },
+];
+
 export function useDynamicBlogMenu(): LinkItemType {
-  const [latestBlogs, setLatestBlogs] = useState<BlogPost[]>([]);
+  const [latestBlogs, setLatestBlogs] = useState<BlogPost[] | null>(null);
 
   useEffect(() => {
     fetch('/api/latest-blogs')
@@ -22,11 +43,21 @@ export function useDynamicBlogMenu(): LinkItemType {
       .catch(err => console.error('Failed to fetch latest blogs:', err));
   }, []);
 
+  // Use static items until data is loaded to prevent hydration mismatch
+  if (latestBlogs === null) {
+    return {
+      type: 'menu',
+      text: 'Blog',
+      url: '/guides',
+      items: staticBlogItems,
+    };
+  }
+
   const blogItems: any[] = [];
 
   // Add dynamic blog posts
   if (latestBlogs.length > 0) {
-    latestBlogs.forEach((post, index) => {
+    latestBlogs.forEach((post) => {
       blogItems.push({
         icon: <FileText />,
         text: post.title,

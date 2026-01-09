@@ -226,7 +226,7 @@ The facilitator sits between merchants and the blockchain, handling the complex 
 5. **Facilitator → Merchant**: Payment confirmation returned to merchant
 6. **Merchant → Client**: Content delivered to client with X-PAYMENT-RESPONSE header
 
-This entire flow completes in ~2 seconds on Avalanche.
+This entire flow completes in ~1.5 seconds on Avalanche.
 
 ### Multi-Chain Support
 
@@ -241,14 +241,14 @@ Facilitators often support multiple blockchains:
       "rpcUrl": "https://api.avax.network/ext/bc/C/rpc",
       "usdcAddress": "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
       "confirmations": 1,
-      "averageBlockTime": "2s"
+      "averageBlockTime": "1s"
     },
     {
       "id": "base-sepolia",
       "rpcUrl": "https://sepolia.base.org",
       "usdcAddress": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
       "confirmations": 1,
-      "averageBlockTime": "2s"
+      "averageBlockTime": "1s"
     }
   ]
 }
@@ -299,4 +299,4 @@ Facilitators are essential infrastructure in the x402 ecosystem, handling paymen
 
 Facilitators charge minimal fees (~0.1-0.5% + gas) compared to traditional payment processors (2.9% + $0.30), making micropayments economically viable for the first time.
 
-**Next**: Learn about [Blockchain Settlement](./06-blockchain-settlement) to understand how payments are finalized on-chain, or explore [available facilitators on Avalanche](/academy/x402-payment-infrastructure/04-x402-on-avalanche/03-facilitators) for implementation options.
+**Next**: Learn about [Blockchain Settlement](./06-blockchain-settlement) to understand how payments are finalized on-chain, or explore [available facilitators on Avalanche](/academy/blockchain/x402-payment-infrastructure/04-x402-on-avalanche/03-facilitators) for implementation options.

@@ -34,6 +34,7 @@ import dynamic from 'next/dynamic';
 import { useIsMobile } from '../../hooks/use-mobile';
 import React from 'react';
 import 'katex/dist/katex.min.css';
+import posthog from 'posthog-js';
 
 const Mermaid = dynamic(() => import('@/components/content-design/mermaid'), {
   ssr: false,
@@ -61,7 +62,12 @@ function SearchAIActions() {
             }),
             'text-fd-muted-foreground hover:text-fd-foreground gap-1.5',
           )}
-          onClick={() => reload()}
+          onClick={() => {
+            posthog.capture('ai_chat_regenerate', {
+              message_count: messages.length,
+            });
+            reload();
+          }}
         >
           <RefreshCw className="size-3.5" />
           Regenerate
@@ -76,7 +82,12 @@ function SearchAIActions() {
           }),
           'text-fd-muted-foreground hover:text-fd-foreground',
         )}
-        onClick={() => setMessages([])}
+        onClick={() => {
+          posthog.capture('ai_chat_cleared', {
+            message_count: messages.length,
+          });
+          setMessages([]);
+        }}
       >
         Clear Chat
       </button>
@@ -89,6 +100,12 @@ function SearchAIInput(props: FormHTMLAttributes<HTMLFormElement>) {
   const isLoading = status === 'streaming' || status === 'submitted';
   const onStart = (e?: React.FormEvent) => {
     e?.preventDefault();
+    if (input.trim()) {
+      posthog.capture('ai_chat_message_sent', {
+        query_length: input.length,
+        query: input.substring(0, 100), // First 100 chars for privacy
+      });
+    }
     handleSubmit(e);
   };
 
@@ -312,9 +329,9 @@ function Message({ message, isLast, onFollowUpClick, isStreaming, onToolReferenc
     <div className="px-6 py-4">
       <div className="max-w-[95%] space-y-4">
         <div className="flex items-start gap-4">
-          {/* <img 
-            src="/avax-gpt.png" 
-            alt="AI" 
+          {/* <img
+            src="/avax-gpt.png"
+            alt="AI"
             className="size-8 object-contain mt-1 shrink-0"
           /> */}
           <div className="flex-1 min-w-0">
@@ -562,15 +579,33 @@ function SmallViewContent({ onExpand }: { onExpand: () => void }) {
     id: 'search',
     streamProtocol: 'data',
     sendExtraMessageFields: true,
+    body: {
+      // Pass PostHog distinct ID for server-side LLM analytics
+      id: typeof window !== 'undefined' ? posthog.get_distinct_id() : undefined,
+    },
     onResponse(response) {
       if (response.status === 401) {
         console.error(response.statusText);
       }
     },
+    onFinish(message) {
+      posthog.capture('ai_chat_response_received', {
+        response_length: message.content.length,
+        message_count: chat.messages.length + 1,
+        view: 'small',
+      });
+    },
   });
 
   const messages = chat.messages.filter((msg) => msg.role !== 'system');
   const { status } = chat;
+
+  // Track chat opened in small view
+  useEffect(() => {
+    posthog.capture('ai_chat_opened', {
+      view: 'small',
+    });
+  }, []);
 
   return (
     <ChatContext value={chat}>
@@ -579,13 +614,16 @@ function SmallViewContent({ onExpand }: { onExpand: () => void }) {
           <img 
             src="/avax-gpt.png" 
             alt="AI" 
-            className="size-6 object-contain"
+            className="size-6 object-contain dark:invert"
           />
           <DialogTitle className="text-sm font-semibold">AI Assistant</DialogTitle>
         </div>
         <div className="flex items-center gap-1">
           <button
-            onClick={onExpand}
+            onClick={() => {
+              posthog.capture('ai_chat_expanded');
+              onExpand();
+            }}
             className={cn(
               buttonVariants({ size: 'icon', variant: 'ghost' }),
               'size-7 rounded-md',
@@ -613,7 +651,7 @@ function SmallViewContent({ onExpand }: { onExpand: () => void }) {
                   <img 
                     src="/avax-gpt.png" 
                     alt="AI" 
-                    className="mx-auto size-12 object-contain mb-4"
+                    className="mx-auto size-12 object-contain mb-4 dark:invert"
                   />
                   <h3 className="text-sm font-medium">How can I help?</h3>
                   <p className="text-xs text-fd-muted-foreground">
@@ -629,6 +667,9 @@ function SmallViewContent({ onExpand }: { onExpand: () => void }) {
                 message={item}
                 isLast={index === messages.length - 1}
                 onFollowUpClick={async (question) => {
+                  posthog.capture('ai_chat_followup_clicked', {
+                    question: question,
+                  });
                   await chat.append({
                     content: question,
                     role: 'user',
@@ -644,7 +685,7 @@ function SmallViewContent({ onExpand }: { onExpand: () => void }) {
                     <img 
                       src="/avax-gpt.png" 
                       alt="AI" 
-                      className="size-7 object-contain"
+                      className="size-7 object-contain dark:invert"
                     />
                     <p className="text-xs font-medium text-muted-foreground">AI Assistant</p>
                   </div>
@@ -681,16 +722,34 @@ function Content({ onToolReference, onCollapse }: { onToolReference?: (toolId: s
     id: 'search',
     streamProtocol: 'data',
     sendExtraMessageFields: true,
+    body: {
+      // Pass PostHog distinct ID for server-side LLM analytics
+      id: typeof window !== 'undefined' ? posthog.get_distinct_id() : undefined,
+    },
     onResponse(response) {
       if (response.status === 401) {
         console.error(response.statusText);
       }
+    },
+    onFinish(message) {
+      // Track when AI response is complete
+      posthog.capture('ai_chat_response_received', {
+        response_length: message.content.length,
+        message_count: chat.messages.length + 1,
+      });
     },
   });
 
   const messages = chat.messages.filter((msg) => msg.role !== 'system');
   const { status, append } = chat;
   const isLoading = status === 'streaming';
+
+  // Track chat opened
+  useEffect(() => {
+    posthog.capture('ai_chat_opened', {
+      view: 'full',
+    });
+  }, []);
 
   const suggestedQuestions = [
     "How do I create a custom L1?",
@@ -703,6 +762,9 @@ function Content({ onToolReference, onCollapse }: { onToolReference?: (toolId: s
   ];
 
   const handleSuggestionClick = async (question: string) => {
+    posthog.capture('ai_chat_suggested_question_clicked', {
+      question: question,
+    });
     await append({
       content: question,
       role: 'user',
@@ -716,14 +778,17 @@ function Content({ onToolReference, onCollapse }: { onToolReference?: (toolId: s
           <img 
             src="/avax-gpt.png" 
             alt="AI" 
-            className="size-7 object-contain"
+            className="size-7 object-contain dark:invert"
           />
           <DialogTitle className="text-lg font-semibold">AI Assistant</DialogTitle>
         </div>
         <div className="flex items-center gap-1">
           {onCollapse && (
             <button
-              onClick={onCollapse}
+              onClick={() => {
+                posthog.capture('ai_chat_collapsed');
+                onCollapse();
+              }}
               className={cn(
                 buttonVariants({ size: 'icon', variant: 'ghost' }),
                 'size-8 rounded-md',
@@ -753,7 +818,7 @@ function Content({ onToolReference, onCollapse }: { onToolReference?: (toolId: s
                 <img 
                   src="/avax-gpt.png" 
                   alt="AI" 
-                  className="mx-auto size-16 object-contain mb-6"
+                  className="mx-auto size-16 object-contain mb-6 dark:invert"
                 />
                 <h3 className="text-lg font-medium">How can I help you today?</h3>
                 <p className="text-sm text-fd-muted-foreground">
@@ -799,7 +864,7 @@ function Content({ onToolReference, onCollapse }: { onToolReference?: (toolId: s
                     <img 
                       src="/avax-gpt.png" 
                       alt="AI" 
-                      className="size-7 object-contain"
+                      className="size-7 object-contain dark:invert"
                     />
                     <p className="text-xs font-medium text-muted-foreground">AI Assistant</p>
                   </div>

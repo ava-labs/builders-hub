@@ -2,18 +2,7 @@
 
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import {
-  ArrowRight,
-  Zap,
-  Cpu,
-  Code,
-  Coins,
-  Bot,
-  Gamepad2,
-  CreditCard,
-  Shield,
-  BadgeDollarSign,
-} from "lucide-react";
+import { ArrowRight, Zap, Cpu, Code, Coins, Bot, Gamepad2, CreditCard, Shield, BadgeDollarSign } from "lucide-react";
 import Link from "next/link";
 import { HeroBackground } from "@/components/landing/hero";
 
@@ -112,10 +101,7 @@ export default function Page() {
                 icon={<Zap className="w-6 h-6 text-foreground" />}
               />
             </a>
-            <a
-              href="https://grants.team1.network/"
-              className="block hover:no-underline"
-            >
+            <a href="https://grants.team1.network/" className="block hover:no-underline">
               <ProgramCard
                 title="Team1 Mini Grants"
                 description="Supporting early stage Avalanche projects with capital, mentorship, and guidance."
@@ -124,7 +110,7 @@ export default function Page() {
             </a>
             <a href="/grants/infrabuidl" className="block hover:no-underline">
               <ProgramCard
-                title="InfraBUIDL()"
+                title="infraBUIDL ( )"
                 description="Strengthen Avalanche's infrastructure by building the foundation for next-generation applications."
                 icon={<Cpu className="w-6 h-6 text-foreground" />}
               />
@@ -134,6 +120,13 @@ export default function Page() {
                 title="Codebase by Avalanche™"
                 description="Empower developers to create innovative blockchain solutions and turn visions into reality."
                 icon={<Code className="w-6 h-6 text-foreground" />}
+              />
+            </a>
+            <a href="/grants/infrabuidlai" className="block hover:no-underline">
+              <ProgramCard
+                title="infraBUIDL (AI)"
+                description="Support projects that combine artificial intelligence with decentralized infrastructure."
+                icon={<Bot className="w-6 h-6 text-foreground" />}
               />
             </a>
             <a
@@ -146,13 +139,6 @@ export default function Page() {
                 title="Blizzard Fund"
                 description="A $200M+ fund investing in promising Avalanche projects with institutional support."
                 icon={<Coins className="w-6 h-6 text-foreground" />}
-              />
-            </a>
-            <a href="/grants/infrabuidlai" className="block hover:no-underline">
-              <ProgramCard
-                title="InfraBUIDL (AI)"
-                description="Support projects that combine artificial intelligence with decentralized infrastructure."
-                icon={<Bot className="w-6 h-6 text-foreground" />}
               />
             </a>
           </div>
