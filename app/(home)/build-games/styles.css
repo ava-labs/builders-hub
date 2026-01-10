@@ -1,0 +1,327 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
+
+/* Aeonik Font Family - Using actual Aeonik fonts */
+@font-face {
+  font-family: 'Aeonik:Regular';
+  src: url('/build-games/fonts/Aeonik-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Aeonik:Medium';
+  src: url('/build-games/fonts/Aeonik-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Aeonik Fono - Using Space Mono for the monospaced number look */
+@font-face {
+  font-family: 'Aeonik_Fono:Medium';
+  src: local('Space Mono'), local('monospace');
+  font-weight: 500;
+  font-style: normal;
+}
+
+
+/* Theme Variables - scoped to build-games-container */
+.build-games-container {
+  --font-size: 16px;
+  --background: #ffffff;
+  --foreground: oklch(0.145 0 0);
+  --card: #ffffff;
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: #030213;
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.95 0.0058 264.53);
+  --secondary-foreground: #030213;
+  --muted: #ececf0;
+  --muted-foreground: #717182;
+  --accent: #e9ebef;
+  --accent-foreground: #030213;
+  --destructive: #d4183d;
+  --destructive-foreground: #ffffff;
+  --border: #3285ac;
+  --input: transparent;
+  --input-background: #f3f3f5;
+  --switch-background: #cbced4;
+  --font-weight-medium: 500;
+  --font-weight-normal: 400;
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: #030213;
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+}
+
+/* Build Games Page Container Styles */
+.build-games-container {
+  background: #152d44 !important;
+  min-height: 100vh !important;
+  width: 100vw !important;
+  padding: 0 0 120px 0 !important;
+  margin: 0 !important;
+  font-size: var(--font-size);
+  position: relative;
+  z-index: 1;
+  overflow-x: hidden;
+}
+
+.build-games-container > div[data-name="Landing Page Example"] {
+  width: 100%;
+  position: relative;
+  display: block;
+  overflow: visible;
+}
+
+.build-games-container [data-name="Main"] {
+  position: relative !important;
+  width: 100%;
+  height: auto !important;
+}
+
+body:has(.build-games-container) main {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+body:has(.build-games-container) .nd-layout-home,
+body:has(.build-games-container) [class*="layout"] {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.build-games-container *,
+.build-games-container *::before,
+.build-games-container *::after {
+  box-sizing: border-box;
+  border-color: var(--border);
+}
+
+.build-games-container h1 {
+  font-size: 1.875rem;
+  font-weight: var(--font-weight-medium);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.build-games-container h2 {
+  font-size: 1.5rem;
+  font-weight: var(--font-weight-medium);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.build-games-container h3 {
+  font-size: 1.25rem;
+  font-weight: var(--font-weight-medium);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.build-games-container h4 {
+  font-size: 1rem;
+  font-weight: var(--font-weight-medium);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.build-games-container label {
+  font-size: 1rem;
+  font-weight: var(--font-weight-medium);
+  line-height: 1.5;
+}
+
+.build-games-container button {
+  font-size: 1rem;
+  font-weight: var(--font-weight-medium);
+  line-height: 1.5;
+}
+
+.build-games-container input {
+  font-size: 1rem;
+  font-weight: var(--font-weight-normal);
+  line-height: 1.5;
+}
+
+.build-games-container p {
+  margin: 0;
+}
+
+.build-games-container [data-name="Main"] > [data-name="Nav"] {
+  display: none !important;
+}
+
+.build-games-container [data-name="Main"] {
+  top: 56px !important;
+  max-width: 1440px;
+  margin: 0 auto;
+  left: 0 !important;
+  right: 0 !important;
+}
+
+/* Make hero section extend full viewport width */
+.build-games-container [data-name="Hero"] {
+  width: 100vw !important;
+  position: relative !important;
+  left: 50% !important;
+  right: auto !important;
+  margin-left: -50vw !important;
+  overflow: hidden !important;
+}
+
+/* Extend hero background images to full width */
+.build-games-container [data-name="Background3_R1 1"] {
+  width: 100vw !important;
+  max-width: none !important;
+  left: 50% !important;
+  transform: translateX(-50%);
+}
+
+.build-games-container [data-name="Background3_R1_Square 1"] {
+  width: 100vw !important;
+  max-width: 1920px !important;
+  left: 50% !important;
+  transform: translateX(-50%);
+}
+
+.build-games-container [data-name="Direction2_R2 1"] {
+  width: 100vw !important;
+  max-width: 1920px !important;
+  left: 50% !important;
+  transform: translateX(-50%);
+}
+
+/* Extend gradient overlay to full width */
+.build-games-container [data-name="Hero"] > div[class*="bg-gradient"] {
+  width: 100vw !important;
+  left: 50% !important;
+  margin-left: -50vw !important;
+}
+
+/* Center hero content (logo and text) within viewport */
+.build-games-container [data-name="Hero"] > div:not([data-name^="Background"]):not([class*="bg-gradient"]) {
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  max-width: 1440px;
+}
+
+/* Ensure other content sections remain centered at 1440px */
+.build-games-container [data-name="Tiles"],
+.build-games-container [data-name="CTA"],
+.build-games-container [data-name="Main"] > div:not([data-name="Nav"]):not([data-name="Hero"]) {
+  max-width: 1440px;
+  margin: 0 auto;
+}
+
+/* Additional utility classes */
+.build-games-container .content-stretch {
+  align-content: stretch;
+}
+
+/* Ensure image container maintains proper overflow */
+.build-games-container .overflow-hidden,
+.build-games-container .overflow-clip {
+  overflow: hidden !important;
+}
+
+/* Ensure images with max-w-none actually have no max-width */
+.build-games-container img.max-w-none {
+  max-width: none !important;
+}
+
+/* Preserve absolute positioned images with specific dimensions */
+.build-games-container .absolute img {
+  display: block;
+}
+
+/* Gradient border card effect */
+.gradient-border-card {
+  position: relative;
+  background: linear-gradient(180deg, rgba(15, 40, 71, 0.8) 0%, rgba(10, 22, 40, 0.9) 100%);
+  border-radius: 16px;
+}
+
+.gradient-border-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  padding: 1px;
+  background: linear-gradient(
+    180deg,
+    rgba(56, 189, 248, 0.4) 0%,
+    rgba(56, 189, 248, 0.2) 50%,
+    rgba(56, 189, 248, 0.1) 80%,
+    transparent 100%
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.gradient-border-section {
+  position: relative;
+}
+
+.gradient-border-section::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  padding: 1px;
+  background: linear-gradient(
+    180deg,
+    rgba(56, 189, 248, 0.4) 0%,
+    rgba(56, 189, 248, 0.2) 50%,
+    rgba(56, 189, 248, 0.1) 80%,
+    transparent 100%
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Variant for top-only rounded corners */
+.gradient-border-section-top {
+  position: relative;
+}
+
+.gradient-border-section-top::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 16px 16px 0 0;
+  padding: 1px;
+  background: linear-gradient(
+    180deg,
+    rgba(56, 189, 248, 0.4) 0%,
+    rgba(56, 189, 248, 0.2) 50%,
+    rgba(56, 189, 248, 0.1) 80%,
+    transparent 100%
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 1;
+}
