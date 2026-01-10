@@ -1,0 +1,127 @@
+---
+title: PoA Manager Contract
+description: Understanding the PoA Manager contract and why it simplifies multi-sig governance
+updated: 2025-03-19
+authors: [nicolasarnedo]
+icon: BookOpen
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+## Why Another Contract?
+
+You might be wondering: **Why do we need a PoA Manager when we already have the Validator Manager?**
+
+The short answer is: **you don't have to use it**. The PoA Manager is an optional convenience layer that makes multi-sig operations significantly easier.
+
+## The Problem with Direct Multi-Sig Ownership
+
+When you transfer ownership of the Validator Manager directly to a multi-sig wallet (like Safe), you encounter several challenges:
+
+### 1. Complex Transaction Building
+
+Multi-sig wallets like Safe need to construct transactions that call the Validator Manager's functions. Each validator operation (add, remove, change weight) requires building complex calldata with:
+- Node IDs
+- BLS public keys
+- Owner structs
+- Weight parameters
+
+### 2. Multi-Phase Operations
+
+Remember from the previous chapter that validator operations are **two-phase**:
+1. **Initiate** on the L1/C-Chain
+2. **Complete** after P-Chain confirmation
+
+With a direct multi-sig setup, each phase requires a separate multi-sig transaction approval, doubling the coordination overhead.
+
+### 3. Parameter Complexity
+
+The Validator Manager functions take complex parameters like `PChainOwner` structs. Building these correctly through a multi-sig UI is error-prone.
+
+## The PoA Manager Solution
+
+The PoA Manager acts as an **intermediary contract** that simplifies multi-sig governance:
+
+<Mermaid
+  chart="
+graph LR
+    MS[Multi-Sig Wallet] --> POA[PoA Manager]
+    POA --> VM[Validator Manager]
+    VM --> PC[P-Chain]
+    
+    style MS fill:#f0f9ff,stroke:#0369a1
+    style POA fill:#fef3c7,stroke:#d97706
+    style VM fill:#d1fae5,stroke:#059669
+"
+/>
+
+### How It Works
+
+1. **Ownership Transfer**: The Validator Manager's owner is set to the PoA Manager contract
+2. **Multi-Sig Control**: The PoA Manager itself is owned by your multi-sig wallet
+3. **Simplified Calls**: The PoA Manager exposes simpler function signatures that the multi-sig can easily call
+
+### Key Benefits
+
+| Aspect | Direct Multi-Sig | With PoA Manager |
+|--------|-----------------|------------------|
+| **Transaction Complexity** | High - complex calldata | Low - simple parameters |
+| **Error Risk** | Higher - manual encoding | Lower - contract handles encoding |
+| **Upgrade Path** | Difficult | Easier - only update PoA Manager |
+| **Default Parameters** | None | Can set sensible defaults |
+
+## PoA Manager Contract Structure
+
+The PoA Manager contract is designed to be a thin wrapper around the Validator Manager:
+
+```solidity
+contract PoAManager is Ownable {
+    IValidatorManager public immutable validatorManager;
+    
+    constructor(address _owner, address _validatorManager) {
+        _transferOwnership(_owner);
+        validatorManager = IValidatorManager(_validatorManager);
+    }
+    
+    // Simplified validator operations
+    function addValidator(...) external onlyOwner { ... }
+    function removeValidator(...) external onlyOwner { ... }
+    function changeValidatorWeight(...) external onlyOwner { ... }
+}
+```
+
+<Callout type="info">
+**Is PoA Manager Required?**
+
+No! You can absolutely transfer Validator Manager ownership directly to a multi-sig. The PoA Manager just makes the multi-sig experience smoother. For simple setups or if you're comfortable building complex transactions, direct ownership works fine.
+</Callout>
+
+## Architecture Overview
+
+Here's how the complete multi-sig setup looks:
+
+<Mermaid
+  chart="
+sequenceDiagram
+    participant Signers as Multi-Sig Signers
+    participant Safe as Safe Wallet
+    participant PoA as PoA Manager
+    participant VM as Validator Manager
+    participant PC as P-Chain
+
+    Signers->>Safe: Propose validator operation
+    Signers->>Safe: Collect signatures
+    Safe->>PoA: Execute approved transaction
+    PoA->>VM: Call validator function
+    VM->>PC: Send Warp message
+    PC-->>VM: Confirmation
+    Note over Safe,VM: Complete phase may need<br/>separate multi-sig approval
+"
+/>
+
+In the following sections, you'll set up this architecture step by step:
+1. Create an L1 with VMC on C-Chain
+2. Set up a Safe/Ash wallet
+3. Deploy the PoA Manager
+4. Transfer ownership through the chain
+
