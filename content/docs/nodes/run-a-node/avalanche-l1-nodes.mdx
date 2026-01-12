@@ -17,18 +17,16 @@ It is recommended that you must complete [this comprehensive guide](/docs/nodes/
 
 ## Build Avalanche L1 Binaries
 
-After building AvalancheGo successfully, you need to build the Subnet-EVM plugin. Since Subnet-EVM is now part of the AvalancheGo monorepo, the build process is simplified.
+After building AvalancheGo successfully, you need to build the Subnet-EVM plugin. Since Subnet-EVM is now part of the AvalancheGo monorepo, you build it from within the monorepo.
 
 <Steps>
 <Step>
-Navigate to the AvalancheGo directory and build the Subnet-EVM plugin:
+Navigate to the Subnet-EVM directory within AvalancheGo and run the build script. Save the plugin to the `plugins` folder of your `.avalanchego` data directory, naming it after the `VMID` of the Avalanche L1 you wish to track. The `VMID` of the WAGMI Avalanche L1 is the value beginning with **srEX...**
 
 ```bash
-cd $GOPATH/src/github.com/ava-labs/avalanchego
-./scripts/build_subnetevm.sh ~/.avalanchego/plugins/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
+cd $GOPATH/src/github.com/ava-labs/avalanchego/graft/subnet-evm
+./scripts/build.sh ~/.avalanchego/plugins/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
 ```
-
-This builds the Subnet-EVM plugin and saves it to the `plugins` folder with the `VMID` of the Avalanche L1 you wish to track. The `VMID` of the WAGMI Avalanche L1 is the value beginning with **srEX...**
 
 <Accordions>
 <Accordion title="Where can I find Avalanche L1 parameters like VMID?">
