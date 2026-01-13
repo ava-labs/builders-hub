@@ -30,6 +30,7 @@ import {
 import defaultMdxComponents from 'fumadocs-ui/mdx';
 import { cn } from '@/lib/cn';
 import { createProcessor, type Processor } from '@/components/ai/markdown-processor';
+import { MessageFeedback } from '@/components/ai/feedback';
 import Link from 'fumadocs-core/link';
 import { type Message, useChat, type UseChatHelpers } from '@ai-sdk/react';
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
@@ -202,6 +203,15 @@ function ChatMessage({ message, isLast, onFollowUpClick, isStreaming }: {
           <div className="prose prose-zinc dark:prose-invert max-w-none prose-p:leading-relaxed prose-pre:bg-zinc-900 prose-pre:border prose-pre:border-zinc-800 [&_.katex-display]:overflow-x-auto [&_.katex]:text-sm">
             <Markdown text={cleanContent} />
           </div>
+
+          {/* Feedback buttons - show after streaming completes */}
+          {!isStreaming && (
+            <MessageFeedback
+              messageId={message.id}
+              className="mt-4"
+            />
+          )}
+
           {isLast && !isStreaming && followUpQuestions.length > 0 && (
             <FollowUpSuggestions questions={followUpQuestions} onQuestionClick={onFollowUpClick} />
           )}

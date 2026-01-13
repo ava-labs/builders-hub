@@ -18,6 +18,7 @@ import defaultMdxComponents from 'fumadocs-ui/mdx';
 import { cn } from '../../lib/cn';
 import { buttonVariants } from '../ui/button';
 import { createProcessor, type Processor } from './markdown-processor';
+import { MessageFeedback } from './feedback';
 import Link from 'fumadocs-core/link';
 import {
   Dialog,
@@ -360,6 +361,14 @@ function Message({ message, isLast, onFollowUpClick, isStreaming, onToolReferenc
                   </button>
                 ))}
               </div>
+            )}
+
+            {/* Feedback buttons - show after streaming completes */}
+            {!isStreaming && (
+              <MessageFeedback
+                messageId={message.id}
+                className="mt-4"
+              />
             )}
           </div>
         </div>
