@@ -532,6 +532,8 @@ export default function ConfigurableChart({
   const filteredData = aggregatedData;
 
   // Calculate filtered date range in days to determine which resolutions to enable
+  // IMPORTANT: Use mergedData.length (original daily data) not filteredData.length (aggregated data)
+  // This ensures resolution buttons stay enabled when switching between resolutions
   const filteredDaysCount = useMemo(() => {
     if (startTime && endTime) {
       const startDate = new Date(startTime);
@@ -541,9 +543,11 @@ export default function ConfigurableChart({
       return days;
     }
     
-    // If no filter, use the data length as an estimate (assuming daily data)
-    return filteredData.length;
-  }, [startTime, endTime, filteredData.length]);
+    // If no filter, use the original merged data length (daily data) as an estimate
+    // Using mergedData instead of filteredData because filteredData is already aggregated
+    // and would give incorrect counts for non-daily resolutions
+    return mergedData.length;
+  }, [startTime, endTime, mergedData.length]);
 
   // Determine which resolutions should be enabled based on filtered days
   const isResolutionEnabled = useMemo(() => {
