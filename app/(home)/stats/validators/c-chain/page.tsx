@@ -3457,25 +3457,18 @@ function StakingAPYChartCard({
       .sort((a, b) => a.day.localeCompare(b.day));
   }, [chartData, period]);
 
-  // Initialize brush
+  // Initialize brush - show all data since genesis
   useEffect(() => {
     if (!aggregatedData || aggregatedData.length === 0) {
       setBrushIndexes(null);
       return;
     }
 
-    if (period === "D") {
-      const daysToShow = 90;
-      setBrushIndexes({
-        startIndex: Math.max(0, aggregatedData.length - daysToShow),
-        endIndex: aggregatedData.length - 1,
-      });
-    } else {
-      setBrushIndexes({
-        startIndex: 0,
-        endIndex: aggregatedData.length - 1,
-      });
-    }
+    // Show all data from the beginning (since genesis) for all periods
+    setBrushIndexes({
+      startIndex: 0,
+      endIndex: aggregatedData.length - 1,
+    });
   }, [period, aggregatedData]);
 
   const displayData = useMemo(() => {
@@ -3516,11 +3509,7 @@ function StakingAPYChartCard({
     if (period === "M") {
       return date.toLocaleDateString("en-US", { month: "short", year: "2-digit" });
     }
-    if (period === "W") {
-      return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" });
-    }
-    // Daily - include year
-    return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" });
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
   };
 
   const formatTooltipDate = (value: string) => {
@@ -3664,14 +3653,11 @@ function StakingAPYChartCard({
                   <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-muted" />
                   <XAxis
                     dataKey="day"
-                    tickLine={false}
-                    axisLine={false}
-                    tickMargin={8}
                     tickFormatter={formatXAxis}
-                    className="text-xs"
-                    tick={{ fontSize: 11 }}
+                    className="text-xs text-gray-600 dark:text-gray-400"
+                    tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
+                    minTickGap={80}
                     interval="preserveStartEnd"
-                    minTickGap={50}
                   />
                   <YAxis
                     tickLine={false}
