@@ -22,11 +22,13 @@ import {
   PanelLeftClose,
   PanelLeft,
   Trash2,
-  MoreHorizontal,
   ExternalLink,
   Moon,
   Sun,
   ChevronRight,
+  LogOut,
+  CircleUserRound,
+  Loader2,
 } from 'lucide-react';
 import defaultMdxComponents from 'fumadocs-ui/mdx';
 import { cn } from '@/lib/cn';
@@ -41,18 +43,54 @@ import React from 'react';
 import 'katex/dist/katex.min.css';
 import posthog from 'posthog-js';
 import { useTheme } from 'next-themes';
+import { useSession, signOut } from 'next-auth/react';
+import { useLoginModalTrigger } from '@/hooks/useLoginModal';
+import { LoginModal } from '@/components/login/LoginModal';
+import Image from 'next/image';
 
 const Mermaid = dynamic(() => import('@/components/content-design/mermaid'), {
   ssr: false,
 });
 
 // Types
+interface DbChatMessage {
+  id: string;
+  conversation_id: string;
+  role: string;
+  content: string;
+  created_at: string;
+}
+
+interface DbConversation {
+  id: string;
+  user_id: string;
+  title: string;
+  created_at: string;
+  updated_at: string;
+  messages: DbChatMessage[];
+}
+
 interface Conversation {
   id: string;
   title: string;
   messages: Message[];
   createdAt: number;
   updatedAt: number;
+}
+
+// Convert DB conversation to local format
+function dbToLocalConversation(db: DbConversation): Conversation {
+  return {
+    id: db.id,
+    title: db.title,
+    messages: db.messages.map(m => ({
+      id: m.id,
+      role: m.role as 'user' | 'assistant',
+      content: m.content,
+    })),
+    createdAt: new Date(db.created_at).getTime(),
+    updatedAt: new Date(db.updated_at).getTime(),
+  };
 }
 
 // Chat context
@@ -417,6 +455,13 @@ function Sidebar({
   onNewChat,
   onSelectConversation,
   onDeleteConversation,
+  isAuthenticated,
+  isLoadingAuth,
+  userImage,
+  userName,
+  onLogin,
+  onLogout,
+  isLoadingConversations,
 }: {
   isOpen: boolean;
   onToggle: () => void;
@@ -425,6 +470,13 @@ function Sidebar({
   onNewChat: () => void;
   onSelectConversation: (id: string) => void;
   onDeleteConversation: (id: string) => void;
+  isAuthenticated: boolean;
+  isLoadingAuth: boolean;
+  userImage?: string | null;
+  userName?: string | null;
+  onLogin: () => void;
+  onLogout: () => void;
+  isLoadingConversations: boolean;
 }) {
   const { theme, setTheme } = useTheme();
   const [hoveredId, setHoveredId] = useState<string | null>(null);
@@ -465,7 +517,21 @@ function Sidebar({
 
         {/* Conversation list */}
         <div className="flex-1 overflow-y-auto overscroll-contain p-2">
-          {conversations.length === 0 ? (
+          {isLoadingConversations ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : !isAuthenticated ? (
+            <div className="text-center py-8 px-4">
+              <p className="text-muted-foreground text-sm mb-3">Sign in to save your chat history</p>
+              <button
+                onClick={onLogin}
+                className="px-4 py-2 text-sm font-medium rounded-lg bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 hover:bg-zinc-700 dark:hover:bg-zinc-200 transition-colors"
+              >
+                Sign In
+              </button>
+            </div>
+          ) : conversations.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground text-sm">
               No conversations yet
             </div>
@@ -490,6 +556,7 @@ function Sidebar({
                     <button
                       onClick={(e) => { e.stopPropagation(); onDeleteConversation(conv.id); }}
                       className="p-1 rounded hover:bg-zinc-300 dark:hover:bg-zinc-700 transition-colors"
+                      title="Delete conversation"
                     >
                       <Trash2 className="w-4 h-4 text-muted-foreground hover:text-red-500" />
                     </button>
@@ -502,12 +569,50 @@ function Sidebar({
 
         {/* Sidebar footer */}
         <div className="p-3 border-t border-zinc-200 dark:border-zinc-800 space-y-1">
+          {/* User account section */}
+          {isLoadingAuth ? (
+            <div className="flex items-center gap-3 px-3 py-2 text-sm text-muted-foreground">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Loading...
+            </div>
+          ) : isAuthenticated ? (
+            <div className="flex items-center gap-3 px-3 py-2">
+              {userImage ? (
+                <Image
+                  src={userImage}
+                  alt="Profile"
+                  width={28}
+                  height={28}
+                  className="rounded-full"
+                />
+              ) : (
+                <CircleUserRound className="w-7 h-7 text-muted-foreground" />
+              )}
+              <span className="flex-1 truncate text-sm">{userName || 'User'}</span>
+              <button
+                onClick={onLogout}
+                className="p-1.5 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors"
+                title="Sign out"
+              >
+                <LogOut className="w-4 h-4 text-muted-foreground" />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={onLogin}
+              className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors text-sm w-full"
+            >
+              <CircleUserRound className="w-4 h-4" />
+              Sign In
+            </button>
+          )}
+
           <Link
             href="/"
             className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors text-sm"
           >
             <ExternalLink className="w-4 h-4" />
-            Back to Docs
+            Back to Builder Hub
           </Link>
           <button
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
@@ -539,6 +644,13 @@ export default function ChatPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
+  const [isLoadingConversations, setIsLoadingConversations] = useState(false);
+
+  // Auth state
+  const { data: session, status: authStatus } = useSession();
+  const isAuthenticated = authStatus === 'authenticated';
+  const isLoadingAuth = authStatus === 'loading';
+  const { openLoginModal } = useLoginModalTrigger();
 
   // Embedded panel state
   const [embeddedRef, setEmbeddedRef] = useState<EmbeddedReference | null>(null);
@@ -546,27 +658,77 @@ export default function ChatPage() {
   const [currentLinkIndex, setCurrentLinkIndex] = useState(0);
   const [closedRefs, setClosedRefs] = useState<Set<string>>(new Set());
 
-  // Load conversations from localStorage
+  // Load conversations from API when authenticated
   useEffect(() => {
-    const saved = localStorage.getItem('avalanche-ai-conversations');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        setConversations(parsed);
-        if (parsed.length > 0) {
-          setCurrentConversationId(parsed[0].id);
-        }
-      } catch (e) {
-        console.error('Failed to parse conversations', e);
-      }
+    if (isAuthenticated) {
+      setIsLoadingConversations(true);
+      fetch('/api/chat-history')
+        .then(res => res.json())
+        .then((data: DbConversation[]) => {
+          if (Array.isArray(data)) {
+            const convs = data.map(dbToLocalConversation);
+            setConversations(convs);
+          }
+        })
+        .catch(err => console.error('Failed to load conversations:', err))
+        .finally(() => setIsLoadingConversations(false));
+    } else {
+      setConversations([]);
+      setCurrentConversationId(null);
     }
-  }, []);
+  }, [isAuthenticated]);
 
-  // Save conversations to localStorage
-  const saveConversations = useCallback((convs: Conversation[]) => {
-    localStorage.setItem('avalanche-ai-conversations', JSON.stringify(convs));
-    setConversations(convs);
-  }, []);
+  // Save conversation to API
+  const saveConversation = useCallback(async (conv: Conversation) => {
+    if (!isAuthenticated) return;
+
+    try {
+      const res = await fetch('/api/chat-history', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: conv.id.includes('-') ? conv.id : undefined, // Only pass ID if it's a UUID (from DB)
+          title: conv.title,
+          messages: conv.messages.map(m => ({ role: m.role, content: m.content })),
+        }),
+      });
+
+      if (res.ok) {
+        const saved: DbConversation = await res.json();
+        const localConv = dbToLocalConversation(saved);
+
+        setConversations(prev => {
+          const exists = prev.some(c => c.id === localConv.id);
+          if (exists) {
+            return prev.map(c => c.id === localConv.id ? localConv : c);
+          }
+          return [localConv, ...prev];
+        });
+
+        return localConv;
+      }
+    } catch (err) {
+      console.error('Failed to save conversation:', err);
+    }
+    return null;
+  }, [isAuthenticated]);
+
+  // Delete conversation from API
+  const deleteConversation = useCallback(async (id: string) => {
+    if (!isAuthenticated) return;
+
+    try {
+      const res = await fetch(`/api/chat-history/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setConversations(prev => prev.filter(c => c.id !== id));
+        if (currentConversationId === id) {
+          setCurrentConversationId(null);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to delete conversation:', err);
+    }
+  }, [isAuthenticated, currentConversationId]);
 
   // Handle reference selection
   const handleRefSelect = (ref: EmbeddedReference) => {
@@ -599,7 +761,7 @@ export default function ChatPage() {
     streamProtocol: 'data',
     sendExtraMessageFields: true,
     body: { id: typeof window !== 'undefined' ? posthog.get_distinct_id() : undefined },
-    onFinish(message) {
+    async onFinish(message) {
       posthog.capture('ai_chat_response_received', {
         response_length: message.content.length,
         view: 'fullscreen',
@@ -616,27 +778,24 @@ export default function ChatPage() {
         }
       }
 
-      // Update conversation
-      const msgs = [...chat.messages, message].filter(m => m.role !== 'system');
-      if (currentConversationId) {
-        const updated = conversations.map(c =>
-          c.id === currentConversationId
-            ? { ...c, messages: msgs, updatedAt: Date.now() }
-            : c
-        );
-        saveConversations(updated);
-      } else if (msgs.length > 0) {
-        // Create new conversation
-        const title = msgs[0]?.content.slice(0, 50) || 'New chat';
-        const newConv: Conversation = {
-          id: Date.now().toString(),
-          title,
-          messages: msgs,
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-        };
-        setCurrentConversationId(newConv.id);
-        saveConversations([newConv, ...conversations]);
+      // Save conversation to database (only if authenticated)
+      if (isAuthenticated) {
+        const msgs = [...chat.messages, message].filter(m => m.role !== 'system');
+        if (msgs.length > 0) {
+          const title = msgs[0]?.content.slice(0, 50) || 'New chat';
+          const convToSave: Conversation = {
+            id: currentConversationId || '',
+            title,
+            messages: msgs,
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+          };
+
+          const saved = await saveConversation(convToSave);
+          if (saved && !currentConversationId) {
+            setCurrentConversationId(saved.id);
+          }
+        }
       }
     },
   });
@@ -668,20 +827,25 @@ export default function ChatPage() {
     setSidebarOpen(false); // Close on mobile
   };
 
-  const handleDeleteConversation = (id: string) => {
-    const updated = conversations.filter(c => c.id !== id);
-    saveConversations(updated);
-    if (currentConversationId === id) {
-      setCurrentConversationId(updated[0]?.id || null);
-    }
+  const handleDeleteConversation = async (id: string) => {
+    await deleteConversation(id);
   };
 
   const handleSuggestionClick = async (question: string) => {
     await append({ content: question, role: 'user' });
   };
 
+  const handleLogin = () => {
+    openLoginModal(window.location.href);
+  };
+
+  const handleLogout = () => {
+    signOut({ redirect: false });
+  };
+
   return (
     <ChatContext value={chat}>
+      <LoginModal />
       <div className="flex h-full w-full overflow-hidden">
         {/* Sidebar */}
         <Sidebar
@@ -692,6 +856,13 @@ export default function ChatPage() {
           onNewChat={handleNewChat}
           onSelectConversation={handleSelectConversation}
           onDeleteConversation={handleDeleteConversation}
+          isAuthenticated={isAuthenticated}
+          isLoadingAuth={isLoadingAuth}
+          userImage={session?.user?.image}
+          userName={session?.user?.name}
+          onLogin={handleLogin}
+          onLogout={handleLogout}
+          isLoadingConversations={isLoadingConversations}
         />
 
         {/* Main content area (chat + embedded panel) */}

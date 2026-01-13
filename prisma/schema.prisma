@@ -61,6 +61,7 @@ model User {
   statsPlaygrounds    StatsPlayground[]
   statsPlaygroundFavorites StatsPlaygroundFavorite[] @relation("StatsPlaygroundFavorites")
   faucetClaims        FaucetClaim[]
+  chatConversations   ChatConversation[]
 }
 
 model VerificationToken {
@@ -270,4 +271,29 @@ model FaucetClaim {
   @@index([destination_address])
   @@index([created_at])
   @@index([faucet_type, chain_id])
+}
+
+model ChatConversation {
+  id         String        @id @default(uuid())
+  user_id    String
+  title      String
+  created_at DateTime      @default(now()) @db.Timestamptz(3)
+  updated_at DateTime      @updatedAt @db.Timestamptz(3)
+  user       User          @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  messages   ChatMessage[]
+
+  @@index([user_id])
+  @@index([updated_at])
+}
+
+model ChatMessage {
+  id              String           @id @default(uuid())
+  conversation_id String
+  role            String           // "user" or "assistant"
+  content         String           @db.Text
+  created_at      DateTime         @default(now()) @db.Timestamptz(3)
+  conversation    ChatConversation @relation(fields: [conversation_id], references: [id], onDelete: Cascade)
+
+  @@index([conversation_id])
+  @@index([created_at])
 }
