@@ -407,40 +407,58 @@ function ChatActions() {
   );
 }
 
+// Dynamic greeting messages
+const GREETING_MESSAGES = [
+  "Ready to build something great?",
+  "What are we shipping today?",
+  "Let's build on Avalanche",
+  "Time to deploy some contracts?",
+  "Ready to launch your L1?",
+  "What's on your mind?",
+  "Let's get building",
+  "Need help with your project?",
+  "What can I help you build?",
+  "Let's make something awesome",
+];
+
 // Empty state
-function EmptyState({ onSuggestionClick }: { onSuggestionClick: (question: string) => void }) {
-  const suggestions = [
-    { title: "Create a custom L1", description: "Deploy your own Avalanche L1 blockchain" },
-    { title: "Set up a validator node", description: "Run your own node to secure the network" },
-    { title: "Cross-chain transfers with ICTT", description: "Move assets between chains seamlessly" },
-    { title: "Deploy smart contracts", description: "Get started with Solidity on Avalanche" },
-  ];
+function EmptyState({ userName }: { userName?: string | null }) {
+  const { resolvedTheme } = useTheme();
+  const [greeting, setGreeting] = useState('');
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    // Pick a random greeting on mount
+    const randomIndex = Math.floor(Math.random() * GREETING_MESSAGES.length);
+    setGreeting(GREETING_MESSAGES[randomIndex]);
+  }, []);
+
+  // Get first name from full name
+  const firstName = userName?.split(' ')[0];
 
   return (
     <div className="flex flex-col items-center justify-center h-full px-4">
-      <div className="text-center mb-10">
-        <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center shadow-lg shadow-red-500/20">
-          <img src="/avax-gpt.png" alt="Avalanche AI" className="w-10 h-10 object-contain invert" />
+      <div className="text-center max-w-2xl">
+        {/* Logo */}
+        <div className="flex justify-center mb-8">
+          {mounted && (
+            <img
+              src={resolvedTheme === 'dark' ? '/logo-white.png' : '/logo-black.png'}
+              alt="Avalanche"
+              className="h-8 object-contain opacity-60"
+            />
+          )}
         </div>
-        <h1 className="text-2xl font-semibold mb-2">Avalanche AI</h1>
-        <p className="text-muted-foreground text-sm">Your intelligent guide to building on Avalanche</p>
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-2xl">
-        {suggestions.map((s, i) => (
-          <button
-            key={i}
-            onClick={() => { posthog.capture('ai_chat_suggested_question_clicked', { question: s.title }); onSuggestionClick(s.title); }}
-            className={cn(
-              "group flex flex-col items-start text-left p-4 rounded-2xl",
-              "bg-zinc-100 dark:bg-zinc-800/50 hover:bg-zinc-200 dark:hover:bg-zinc-800",
-              "border border-zinc-200 dark:border-zinc-700/50 hover:border-zinc-300 dark:hover:border-zinc-600",
-              "transition-all duration-200"
-            )}
-          >
-            <span className="font-medium text-sm mb-1">{s.title}</span>
-            <span className="text-xs text-muted-foreground">{s.description}</span>
-          </button>
-        ))}
+
+        {/* Greeting */}
+        <h1 className="text-3xl sm:text-4xl font-light tracking-tight text-foreground/90 mb-2">
+          {firstName ? (
+            <>Hi {firstName}, <span className="text-muted-foreground">{greeting.toLowerCase()}</span></>
+          ) : (
+            <span className="text-muted-foreground">{greeting}</span>
+          )}
+        </h1>
       </div>
     </div>
   );
@@ -924,7 +942,7 @@ export default function ChatPage() {
             {/* Messages */}
             <main className="flex-1 min-h-0 flex flex-col overflow-hidden">
               {messages.length === 0 ? (
-                <EmptyState onSuggestionClick={handleSuggestionClick} />
+                <EmptyState userName={session?.user?.name} />
               ) : (
                 <MessageList>
                   <div className="max-w-3xl mx-auto w-full px-4 py-6">
