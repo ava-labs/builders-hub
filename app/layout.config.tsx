@@ -1,4 +1,4 @@
-import { type LinkItemType } from 'fumadocs-ui/layouts/docs';
+import { type LinkItemType } from 'fumadocs-ui/layouts/shared';
 import { MainItemType, type BaseLayoutProps } from 'fumadocs-ui/layouts/shared';
 import { AvalancheLogo } from '@/components/navigation/avalanche-logo';
 import {

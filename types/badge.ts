@@ -1,5 +1,3 @@
-import { metadata } from '../app/(home)/academy/page';
-
 export type BadgeMetadata = {
     course_id?: string,
     hackathon?: 'won' | 'register' | 'submission' | null
