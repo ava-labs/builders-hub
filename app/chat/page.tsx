@@ -156,7 +156,7 @@ function Markdown({ text }: { text: string }) {
   return <>{rendered || text}</>;
 }
 
-// Auto-growing textarea
+// Auto-growing textarea (resizes based on content, not draggable)
 function TextareaInput(props: TextareaHTMLAttributes<HTMLTextAreaElement> & { className?: string }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
@@ -171,11 +171,12 @@ function TextareaInput(props: TextareaHTMLAttributes<HTMLTextAreaElement> & { cl
       ref={textareaRef}
       id="chat-input"
       className={cn(
-        'flex-1 resize-none bg-transparent',
+        'flex-1 bg-transparent',
         'placeholder:text-muted-foreground/50 focus:outline-none',
         'min-h-[24px] max-h-[200px] leading-relaxed',
         props.className,
       )}
+      style={{ resize: 'none' }}
       rows={1}
       {...props}
     />
