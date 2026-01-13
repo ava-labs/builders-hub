@@ -102,21 +102,24 @@ export default function CChainValidatorMetrics() {
   const [detailsCopiedId, setDetailsCopiedId] = useState<string | null>(null);
   const [stakingAPYData, setStakingAPYData] = useState<{
     data: { date: string; timestamp: number; supply: number; maxAPY: number; minAPY: number }[];
-    current: { supply: number; maxAPY: number; minAPY: number };
+    current: { supply: number; totalBurned: number; maxAPY: number; minAPY: number };
   } | null>(null);
+  const [stakingAPYLoading, setStakingAPYLoading] = useState(true);
 
   const fetchData = async () => {
     try {
       setLoading(true);
+      setStakingAPYLoading(true);
       setError(null);
 
       // Fetch all APIs in parallel
       // Use validator-stats API for version breakdown (same as landing page)
-      const [statsResponse, validatorsResponse, validatorStatsResponse] =
+      const [statsResponse, validatorsResponse, validatorStatsResponse, stakingAPYResponse] =
         await Promise.all([
           fetch(`/api/primary-network-stats?timeRange=all`),
           fetch("/api/primary-network-validators"),
           fetch("/api/validator-stats?network=mainnet"),
+          fetch('/api/staking-apy'),
         ]);
 
       if (!statsResponse.ok) {
@@ -200,31 +203,26 @@ export default function CChainValidatorMetrics() {
         const validatorsList = validatorsData.validators || [];
         setValidators(validatorsList);
       }
+
+      // Process staking APY data
+      if (stakingAPYResponse.ok) {
+        try {
+          const stakingData = await stakingAPYResponse.json();
+          setStakingAPYData(stakingData);
+        } catch (err) {
+          console.error('Error parsing staking APY data:', err);
+        }
+      }
     } catch (err) {
       setError(`An error occurred while fetching data`);
     } finally {
       setLoading(false);
+      setStakingAPYLoading(false);
     }
   };
 
   useEffect(() => {
     fetchData();
-  }, []);
-
-  // Fetch staking APY data
-  useEffect(() => {
-    const fetchStakingAPY = async () => {
-      try {
-        const response = await fetch('/api/staking-apy');
-        if (response.ok) {
-          const data = await response.json();
-          setStakingAPYData(data);
-        }
-      } catch (err) {
-        console.error('Error fetching staking APY data:', err);
-      }
-    };
-    fetchStakingAPY();
   }, []);
 
   const formatNumber = (num: number | string): string => {
@@ -1184,15 +1182,14 @@ export default function CChainValidatorMetrics() {
           </div>
 
           {/* Historical Staking APY Chart */}
-          {stakingAPYData && stakingAPYData.data.length > 0 && (
-            <StakingAPYChartCard
-              data={stakingAPYData.data}
-              currentMaxAPY={stakingAPYData.current.maxAPY}
-              currentMinAPY={stakingAPYData.current.minAPY}
-              period={globalPeriod}
-              onPeriodChange={handlePeriodChange}
-            />
-          )}
+          <StakingAPYChartCard
+            data={stakingAPYData?.data}
+            currentMaxAPY={stakingAPYData?.current.maxAPY}
+            currentMinAPY={stakingAPYData?.current.minAPY}
+            period={globalPeriod}
+            onPeriodChange={handlePeriodChange}
+            isLoading={stakingAPYLoading}
+          />
         </section>
 
         <section className="space-y-4 sm:space-y-6">
@@ -3372,12 +3369,14 @@ function StakingAPYChartCard({
   currentMinAPY,
   period,
   onPeriodChange,
+  isLoading = false,
 }: {
-  data: { date: string; timestamp: number; supply: number; maxAPY: number; minAPY: number }[];
-  currentMaxAPY: number;
-  currentMinAPY: number;
+  data?: { date: string; timestamp: number; supply: number; maxAPY: number; minAPY: number }[];
+  currentMaxAPY?: number;
+  currentMinAPY?: number;
   period: "D" | "W" | "M" | "Q" | "Y";
   onPeriodChange: (period: "D" | "W" | "M" | "Q" | "Y") => void;
+  isLoading?: boolean;
 }) {
   const [brushIndexes, setBrushIndexes] = useState<{
     startIndex: number;
@@ -3408,6 +3407,7 @@ function StakingAPYChartCard({
 
   // Transform data to chart format
   const chartData = useMemo(() => {
+    if (!data) return [];
     return data.map((point) => ({
       day: point.date,
       maxAPY: point.maxAPY,
@@ -3463,10 +3463,19 @@ function StakingAPYChartCard({
       setBrushIndexes(null);
       return;
     }
-    setBrushIndexes({
-      startIndex: 0,
-      endIndex: aggregatedData.length - 1,
-    });
+
+    if (period === "D") {
+      const daysToShow = 90;
+      setBrushIndexes({
+        startIndex: Math.max(0, aggregatedData.length - daysToShow),
+        endIndex: aggregatedData.length - 1,
+      });
+    } else {
+      setBrushIndexes({
+        startIndex: 0,
+        endIndex: aggregatedData.length - 1,
+      });
+    }
   }, [period, aggregatedData]);
 
   const displayData = useMemo(() => {
@@ -3602,18 +3611,54 @@ function StakingAPYChartCard({
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full" style={{ backgroundColor: maxAPYColor }} />
               <span className="text-sm text-muted-foreground">Max (1 Year):</span>
-              <span className="text-md font-mono">{currentMaxAPY.toFixed(2)}%</span>
+              {isLoading ? (
+                <div className="h-4 w-14 bg-muted animate-pulse rounded" />
+              ) : (
+                <span className="text-md font-mono">{(currentMaxAPY ?? 0).toFixed(2)}%</span>
+              )}
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full" style={{ backgroundColor: minAPYColor }} />
               <span className="text-sm text-muted-foreground">Min (2 Weeks):</span>
-              <span className="text-md font-mono">{currentMinAPY.toFixed(2)}%</span>
+              {isLoading ? (
+                <div className="h-4 w-14 bg-muted animate-pulse rounded" />
+              ) : (
+                <span className="text-md font-mono">{(currentMinAPY ?? 0).toFixed(2)}%</span>
+              )}
             </div>
           </div>
 
           {/* Chart */}
           <ChartWatermark className="mb-6">
-            {displayData.length > 0 ? (
+            {isLoading ? (
+              <div className="h-[350px] flex flex-col items-center justify-center gap-4">
+                <div className="relative w-full h-full">
+                  <svg className="absolute inset-0 w-full h-full" viewBox="0 0 400 200" preserveAspectRatio="none">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <line key={`h-${i}`} x1="50" y1={30 + i * 35} x2="390" y2={30 + i * 35} className="stroke-muted" strokeWidth="0.5" strokeDasharray="4 4" />
+                    ))}
+                    <path d="M50,60 C100,65 150,70 200,80 C250,90 300,100 350,110 L390,115" fill="none" className="stroke-muted animate-pulse" strokeWidth="2" strokeLinecap="round" />
+                    <path d="M50,90 C100,95 150,100 200,110 C250,120 300,130 350,140 L390,145" fill="none" className="stroke-muted animate-pulse" strokeWidth="2" strokeLinecap="round" style={{ animationDelay: '150ms' }} />
+                  </svg>
+                  <div className="absolute left-0 top-0 bottom-8 w-12 flex flex-col justify-between py-4">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <div key={i} className="h-3 w-8 bg-muted animate-pulse rounded" style={{ animationDelay: `${i * 100}ms` }} />
+                    ))}
+                  </div>
+                  <div className="absolute bottom-0 left-12 right-0 h-8 flex justify-between items-center px-4">
+                    {Array.from({ length: 6 }).map((_, i) => (
+                      <div key={i} className="h-3 w-12 bg-muted animate-pulse rounded" style={{ animationDelay: `${i * 80}ms` }} />
+                    ))}
+                  </div>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="flex items-center gap-2 bg-background/80 px-4 py-2 rounded-lg shadow-sm border border-border/50">
+                      <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                      <span className="text-sm text-muted-foreground">Loading APY data...</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : displayData.length > 0 ? (
               <ResponsiveContainer width="100%" height={350}>
                 <LineChart data={displayData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-muted" />
@@ -3680,13 +3725,13 @@ function StakingAPYChartCard({
               </ResponsiveContainer>
             ) : (
               <div className="h-[350px] flex items-center justify-center text-muted-foreground">
-                Loading chart data...
+                No data available
               </div>
             )}
           </ChartWatermark>
 
           {/* Brush Slider */}
-          {aggregatedData.length > 0 && brushIndexes && 
+          {!isLoading && aggregatedData.length > 0 && brushIndexes && 
            !isNaN(brushIndexes.startIndex) && !isNaN(brushIndexes.endIndex) &&
            brushIndexes.startIndex >= 0 && brushIndexes.endIndex < aggregatedData.length && (
             <div className="bg-white dark:bg-black pl-[60px]">
@@ -4518,4 +4563,3 @@ function CumulativeRewardsChartCard({
     </Card>
   );
 }
-

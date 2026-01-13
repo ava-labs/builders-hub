@@ -1,51 +1,63 @@
 import { NextResponse } from 'next/server';
+import { createPChainClient } from '@avalanche-sdk/client';
+import { avalanche } from '@avalanche-sdk/client/chains';
 
 export const dynamic = 'force-dynamic';
-const CACHE_CONTROL_HEADER = 'public, max-age=14400, s-maxage=14400, stale-while-revalidate=86400';
-const REQUEST_TIMEOUT_MS = 15000;
 
-// Avalanche Network Constants
-const GENESIS_SUPPLY = 360_000_000; // 360M AVAX at genesis
-const MAX_SUPPLY = 720_000_000; // 720M AVAX max supply
-const MIN_CONSUMPTION_RATE = 0.10; // 10% for min staking duration (2 weeks)
-const MAX_CONSUMPTION_RATE = 0.12; // 12% for max staking duration (1 year)
+const CONFIG = {
+  cache: {
+    maxAge: 14400, // 4 hours
+    staleWhileRevalidate: 86400, // 24 hours
+  },
+  timeout: 15000, // 15 seconds
+  
+  // Network Constants for Primary Network Mainnet
+  network: {
+    genesisSupply: 360_000_000, // 360M AVAX unlocked at genesis
+    maxSupply: 720_000_000, // 720M AVAX maximum supply cap
+    minConsumptionRate: 0.10, // 10% for minimum staking duration
+    maxConsumptionRate: 0.12, // 12% for maximum staking duration
+    mintingPeriodDays: 365, // 1 year
+    minStakingDays: 14, // 2 weeks
+    maxStakingDays: 365, // 1 year
+  },
 
-// Official Avalanche supply API
-const AVAX_SUPPLY_API_URL = 'https://data-api.avax.network/v1/avax/supply';
+  endpoints: {
+    dataApi: 'https://data-api.avax.network/v1/avax/supply',
+    metabase: 'https://ava-labs-inc.metabaseapp.com/api/public/dashboard/38ea69a5-e373-4258-9db6-8425fcba3a1a/dashcard/9955/card/13502?parameters=%5B%5D',
+  },
+} as const;
 
-// Metabase endpoint for historical emissions data
-const PRIMARY_NETWORK_FEES_URL = 'https://ava-labs-inc.metabaseapp.com/api/public/dashboard/38ea69a5-e373-4258-9db6-8425fcba3a1a/dashcard/9955/card/13502?parameters=%5B%5D';
-
-interface TimeSeriesDataPoint {
-  timestamp: number;
-  cumulativeRewards: number;
-  cumulativeBurn: number;
-  date: string;
-}
+const pChainClient = createPChainClient({
+  chain: avalanche,
+  transport: { type: 'http' },
+});
 
 interface APYDataPoint {
   date: string;
   timestamp: number;
+  supply: number; // Supply used for APY calculation
+  maxAPY: number; // APY for 1-year staking (max rate)
+  minAPY: number; // APY for 2-week staking (min rate)
+}
+
+interface CurrentData {
   supply: number;
-  maxAPY: number; // APY for 1-year staking
-  minAPY: number; // APY for 2-week staking
+  totalBurned: number;
+  maxAPY: number;
+  minAPY: number;
 }
 
-interface OfficialSupplyData {
-  totalSupply: string;
-  circulatingSupply: string;
-  totalPBurned: string;
-  totalCBurned: string;
-  totalXBurned: string;
-  totalStaked: string;
-  totalLocked: string;
-  totalRewards: string;
-  lastUpdated: string;
-  genesisUnlock: string;
-  l1ValidatorFees: string;
+interface MetabaseRow {
+  date: string;
+  cumulativeEmissions: number;
 }
 
-async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutMs = REQUEST_TIMEOUT_MS): Promise<Response> {
+async function fetchWithTimeout(
+  url: string,
+  options: RequestInit = {},
+  timeoutMs = CONFIG.timeout
+): Promise<Response> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -55,189 +67,168 @@ async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutM
   }
 }
 
-async function fetchOfficialSupplyData(): Promise<OfficialSupplyData | null> {
+/**
+ * Calculate Effective Consumption Rate based on staking duration.
+ * The rate interpolates linearly between min and max based on how long you stake:
+ * - 2 weeks (min): ~10.08% effective rate
+ * - 1 year (max): 12.00% effective rate
+ */
+function getEffectiveConsumptionRate(stakingDays: number): number {
+  const { minConsumptionRate, maxConsumptionRate, mintingPeriodDays } = CONFIG.network;
+  const t = Math.min(1, Math.max(0, stakingDays / mintingPeriodDays));
+  return minConsumptionRate * (1 - t) + maxConsumptionRate * t;
+}
+
+/**
+ * Calculate staking APY using the official Avalanche rewards formula.
+ * Reward = (MaxSupply - Supply) × (Stake/Supply) × (StakingPeriod/MintingPeriod) × ECR
+ * APY = (MaxSupply - Supply) / Supply × ECR × 100
+ */
+function calculateAPY(supply: number, stakingDays: number): number {
+  if (supply <= 0 || supply >= CONFIG.network.maxSupply) return 0;
+  
+  const remainingToMint = CONFIG.network.maxSupply - supply;
+  const effectiveRate = getEffectiveConsumptionRate(stakingDays);
+  const apy = (remainingToMint / supply) * effectiveRate * 100;
+  
+  return Math.max(0, Number(apy.toFixed(2)));
+}
+
+async function fetchPChainSupply(): Promise<number | null> {
   try {
-    const response = await fetchWithTimeout(AVAX_SUPPLY_API_URL, {
-      headers: { 'Accept': 'application/json' }
-    });
-
-    if (!response.ok) {
-      console.warn(`[fetchOfficialSupplyData] Failed to fetch: ${response.status}`);
-      return null;
-    }
-
-    const data: OfficialSupplyData = await response.json();
-    return data;
+    // Get Primary Network supply (no subnetId needed for default)
+    const result = await pChainClient.getCurrentSupply({});
+    // Supply is returned as bigint in nanoAVAX, convert to AVAX
+    return Number(result.supply) / 1_000_000_000;
   } catch (error) {
-    if (error instanceof Error && error.name !== 'AbortError') {
-      console.warn('[fetchOfficialSupplyData] Error:', error);
-    }
+    console.error('[fetchPChainSupply] SDK error:', error);
     return null;
   }
 }
 
-async function fetchHistoricalEmissions(): Promise<TimeSeriesDataPoint[]> {
+async function fetchDataApiDetails(): Promise<{ totalBurned: number } | null> {
   try {
-    const response = await fetchWithTimeout(PRIMARY_NETWORK_FEES_URL, {
-      headers: { 'Accept': 'application/json' }
+    const response = await fetchWithTimeout(CONFIG.endpoints.dataApi, {
+      headers: { Accept: 'application/json' },
     });
 
-    if (!response.ok) {
-      console.warn(`[fetchHistoricalEmissions] Failed to fetch: ${response.status}`);
-      return [];
-    }
-
+    if (!response.ok) return null;
     const data = await response.json();
-    
-    if (!data?.data?.rows || !Array.isArray(data.data.rows)) {
-      console.warn('[fetchHistoricalEmissions] Invalid data format');
-      return [];
-    }
+    const totalBurned = (parseFloat(data.totalPBurned) || 0) + (parseFloat(data.totalCBurned) || 0) + (parseFloat(data.totalXBurned) || 0);
+    return { totalBurned };
+  } catch {
+    return null;
+  }
+}
 
-    // Column mapping from the API:
-    // idx[0] = date
-    // idx[2] = cumulative burn
-    // idx[3] = net cumulative emissions (rewards - burns)
-    const result: TimeSeriesDataPoint[] = [];
-
-    data.data.rows.forEach((row: any[]) => {
-      const dateStr = row[0];
-      const timestamp = Math.floor(new Date(dateStr).getTime() / 1000);
-      const date = dateStr.split('T')[0];
-      const cumulativeBurn = row[2] || 0;
-      const netCumulativeEmissions = row[3] || 0;
-      
-      // Cumulative rewards = net emissions + burns (to get gross rewards minted)
-      const cumulativeRewards = netCumulativeEmissions + cumulativeBurn;
-
-      result.push({ timestamp, cumulativeRewards, cumulativeBurn, date });
+async function fetchHistoricalData(): Promise<MetabaseRow[]> {
+  try {
+    const response = await fetchWithTimeout(CONFIG.endpoints.metabase, {
+      headers: { Accept: 'application/json' },
     });
 
-    // Sort by timestamp ascending (oldest first) for chart display
-    result.sort((a, b) => a.timestamp - b.timestamp);
+    if (!response.ok) return [];
+    const data = await response.json();
+    if (!data?.data?.rows || !Array.isArray(data.data.rows)) return [];
+    const rows: MetabaseRow[] = [];
+    for (const row of data.data.rows) {
+      const dateStr = row[0];
+      const emissions = row[1];    
+      if (!dateStr || typeof emissions !== 'number' || emissions <= 0) continue;
 
-    return result;
-  } catch (error) {
-    if (error instanceof Error && error.name !== 'AbortError') {
-      console.warn('[fetchHistoricalEmissions] Error:', error);
+      rows.push({
+        date: dateStr.split('T')[0],
+        cumulativeEmissions: emissions,
+      });
     }
+
+    rows.sort((a, b) => a.date.localeCompare(b.date));
+    return rows;
+  } catch {
     return [];
   }
 }
 
-function calculateAPY(supply: number, totalBurned: number, consumptionRate: number): number {
-  // APY formula with burns-adjusted max supply:
-  // Burned tokens reduce the effective max supply since they can never be re-minted
-  // APY = ((AdjustedMaxSupply - Supply) / Supply) × ConsumptionRate × 100
-  // where AdjustedMaxSupply = MaxSupply - TotalBurned
-  if (supply <= 0) return 0;
-  const adjustedMaxSupply = MAX_SUPPLY - totalBurned;
-  const remainingToEmit = adjustedMaxSupply - supply;
-  const apy = (remainingToEmit / supply) * consumptionRate * 100;
-  return Math.max(0, apy); // Ensure non-negative
-}
-
 export async function GET() {
   try {
-    // Fetch both official current data and historical data in parallel
-    const [officialData, historicalData] = await Promise.all([
-      fetchOfficialSupplyData(),
-      fetchHistoricalEmissions()
+    const [pChainSupply, dataApiDetails, historicalData] = await Promise.all([
+      fetchPChainSupply(),
+      fetchDataApiDetails(),
+      fetchHistoricalData(),
     ]);
 
-    if (!officialData && historicalData.length === 0) {
+    if (!pChainSupply && historicalData.length === 0) {
       return NextResponse.json(
-        { error: 'Failed to fetch supply data' },
-        { status: 500 }
+        { error: 'Failed to fetch supply data from all sources' },
+        { status: 503 }
       );
     }
 
-    // Calculate current APY from official API data (most accurate)
-    let currentSupply = GENESIS_SUPPLY;
-    let currentBurned = 0;
-    let currentMaxAPY = 0;
-    let currentMinAPY = 0;
+    const currentSupply = pChainSupply ?? CONFIG.network.genesisSupply;
+    const current: CurrentData = {
+      supply: currentSupply,
+      totalBurned: dataApiDetails?.totalBurned ?? 0,
+      maxAPY: calculateAPY(currentSupply, CONFIG.network.maxStakingDays),
+      minAPY: calculateAPY(currentSupply, CONFIG.network.minStakingDays),
+    };
 
-    if (officialData) {
-      const totalRewards = parseFloat(officialData.totalRewards) || 0;
-      const totalPBurned = parseFloat(officialData.totalPBurned) || 0;
-      const totalCBurned = parseFloat(officialData.totalCBurned) || 0;
-      const totalXBurned = parseFloat(officialData.totalXBurned) || 0;
-      
-      currentBurned = totalPBurned + totalCBurned + totalXBurned;
-      currentSupply = GENESIS_SUPPLY + totalRewards;
-      currentMaxAPY = calculateAPY(currentSupply, currentBurned, MAX_CONSUMPTION_RATE);
-      currentMinAPY = calculateAPY(currentSupply, currentBurned, MIN_CONSUMPTION_RATE);
-    }
+    let apyHistory: APYDataPoint[] = [];
 
-    // Calculate historical APY data points
-    const apyData: APYDataPoint[] = historicalData.map((point) => {
-      const supply = GENESIS_SUPPLY + point.cumulativeRewards;
-      const burned = point.cumulativeBurn;
-      
-      return {
-        date: point.date,
-        timestamp: point.timestamp,
-        supply,
-        maxAPY: calculateAPY(supply, burned, MAX_CONSUMPTION_RATE),
-        minAPY: calculateAPY(supply, burned, MIN_CONSUMPTION_RATE),
-      };
-    });
+    if (historicalData.length > 0 && pChainSupply) {
+      const latestMetabase = historicalData[historicalData.length - 1];
+      const metabaseLatestSupply = CONFIG.network.genesisSupply + latestMetabase.cumulativeEmissions;
+      const alignmentOffset = pChainSupply - metabaseLatestSupply;
+      apyHistory = historicalData.map((row) => {
+        const supply = CONFIG.network.genesisSupply + row.cumulativeEmissions + alignmentOffset;
+        return {
+          date: row.date,
+          timestamp: Math.floor(new Date(row.date).getTime() / 1000),
+          supply,
+          maxAPY: calculateAPY(supply, CONFIG.network.maxStakingDays),
+          minAPY: calculateAPY(supply, CONFIG.network.minStakingDays),
+        };
+      });
 
-    // If we have official data, update the most recent historical point or add it
-    if (officialData && apyData.length > 0) {
       const today = new Date().toISOString().split('T')[0];
-      const lastPoint = apyData[apyData.length - 1];
-      
-      // Update or add today's data point with official API values
+      const lastPoint = apyHistory[apyHistory.length - 1];
+
       if (lastPoint.date === today) {
         lastPoint.supply = currentSupply;
-        lastPoint.maxAPY = currentMaxAPY;
-        lastPoint.minAPY = currentMinAPY;
+        lastPoint.maxAPY = current.maxAPY;
+        lastPoint.minAPY = current.minAPY;
       } else {
-        apyData.push({
+        apyHistory.push({
           date: today,
           timestamp: Math.floor(Date.now() / 1000),
           supply: currentSupply,
-          maxAPY: currentMaxAPY,
-          minAPY: currentMinAPY,
+          maxAPY: current.maxAPY,
+          minAPY: current.minAPY,
         });
       }
     }
 
-    // Fallback to historical data if official API failed
-    if (!officialData && apyData.length > 0) {
-      const latestHistorical = apyData[apyData.length - 1];
-      currentSupply = latestHistorical.supply;
-      currentMaxAPY = latestHistorical.maxAPY;
-      currentMinAPY = latestHistorical.minAPY;
-    }
-
-    const headers: Record<string, string> = {
-      'Cache-Control': CACHE_CONTROL_HEADER,
-    };
-
-    return NextResponse.json({
-      data: apyData,
-      current: {
-        supply: currentSupply,
-        totalBurned: currentBurned,
-        maxAPY: currentMaxAPY,
-        minAPY: currentMinAPY,
-      },
+    const response = {
+      data: apyHistory,
+      current,
       constants: {
-        genesisSupply: GENESIS_SUPPLY,
-        maxSupply: MAX_SUPPLY,
-        minConsumptionRate: MIN_CONSUMPTION_RATE,
-        maxConsumptionRate: MAX_CONSUMPTION_RATE,
+        genesisSupply: CONFIG.network.genesisSupply,
+        maxSupply: CONFIG.network.maxSupply,
+        minConsumptionRate: CONFIG.network.minConsumptionRate,
+        maxConsumptionRate: CONFIG.network.maxConsumptionRate,
         minStakingDuration: '2 weeks',
         maxStakingDuration: '1 year',
       },
-    }, { headers });
+    };
+
+    return NextResponse.json(response, {
+      headers: {
+        'Cache-Control': `public, max-age=${CONFIG.cache.maxAge}, s-maxage=${CONFIG.cache.maxAge}, stale-while-revalidate=${CONFIG.cache.staleWhileRevalidate}`,
+      },
+    });
   } catch (error) {
-    console.error('[GET /api/staking-apy] Error:', error);
+    console.error('[GET /api/staking-apy] Unexpected error:', error);
     return NextResponse.json(
-      { error: 'Failed to calculate staking APY' },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }
