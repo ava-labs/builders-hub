@@ -657,6 +657,9 @@ export default function ChatPage() {
   const [detectedLinks, setDetectedLinks] = useState<EmbeddedReference[]>([]);
   const [currentLinkIndex, setCurrentLinkIndex] = useState(0);
   const [closedRefs, setClosedRefs] = useState<Set<string>>(new Set());
+  const [panelWidth, setPanelWidth] = useState(50); // Percentage width of embedded panel
+  const [isResizing, setIsResizing] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Load conversations from API when authenticated
   useEffect(() => {
@@ -752,6 +755,36 @@ export default function ChatPage() {
       setEmbeddedRef(detectedLinks[index]);
     }
   };
+
+  // Handle panel resize
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isResizing) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!containerRef.current) return;
+      const containerRect = containerRef.current.getBoundingClientRect();
+      const newWidth = ((containerRect.right - e.clientX) / containerRect.width) * 100;
+      // Clamp between 25% and 75%
+      setPanelWidth(Math.min(75, Math.max(25, newWidth)));
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizing]);
 
   const currentConversation = conversations.find(c => c.id === currentConversationId);
 
@@ -866,12 +899,15 @@ export default function ChatPage() {
         />
 
         {/* Main content area (chat + embedded panel) */}
-        <div className="flex-1 flex min-w-0 relative">
+        <div ref={containerRef} className="flex-1 flex min-w-0 relative">
           {/* Chat area */}
-          <div className={cn(
-            "flex flex-col min-w-0 transition-all duration-300",
-            embeddedRef ? "flex-1 lg:w-1/2" : "flex-1"
-          )}>
+          <div
+            className={cn(
+              "flex flex-col min-w-0",
+              !isResizing && "transition-all duration-300"
+            )}
+            style={embeddedRef ? { width: `${100 - panelWidth}%` } : { width: '100%' }}
+          >
             {/* Toggle button when sidebar closed */}
             {!sidebarOpen && <SidebarToggle onClick={() => setSidebarOpen(true)} />}
 
@@ -917,20 +953,46 @@ export default function ChatPage() {
 
           {/* Embedded Panel (right side) */}
           {embeddedRef && (
-            <div className="hidden lg:flex lg:w-1/2 flex-col border-l border-zinc-200 dark:border-zinc-800">
-              {detectedLinks.length > 1 && (
-                <EmbeddedLinkNav
-                  links={detectedLinks}
-                  currentIndex={currentLinkIndex}
-                  onSelect={handleLinkNavigation}
+            <>
+              {/* Resize handle */}
+              <div
+                onMouseDown={handleResizeStart}
+                className={cn(
+                  "hidden lg:flex w-1 cursor-col-resize items-center justify-center",
+                  "bg-zinc-200 dark:bg-zinc-800 hover:bg-zinc-300 dark:hover:bg-zinc-700",
+                  "transition-colors group",
+                  isResizing && "bg-zinc-400 dark:bg-zinc-600"
+                )}
+              >
+                <div className={cn(
+                  "w-0.5 h-8 rounded-full bg-zinc-400 dark:bg-zinc-600",
+                  "group-hover:bg-zinc-500 dark:group-hover:bg-zinc-500",
+                  isResizing && "bg-zinc-600 dark:bg-zinc-400"
+                )} />
+              </div>
+
+              {/* Panel */}
+              <div
+                className={cn(
+                  "hidden lg:flex flex-col border-l border-zinc-200 dark:border-zinc-800",
+                  !isResizing && "transition-all duration-300"
+                )}
+                style={{ width: `${panelWidth}%` }}
+              >
+                {detectedLinks.length > 1 && (
+                  <EmbeddedLinkNav
+                    links={detectedLinks}
+                    currentIndex={currentLinkIndex}
+                    onSelect={handleLinkNavigation}
+                  />
+                )}
+                <EmbeddedPanel
+                  reference={embeddedRef}
+                  onClose={handleClosePanel}
+                  className="flex-1"
                 />
-              )}
-              <EmbeddedPanel
-                reference={embeddedRef}
-                onClose={handleClosePanel}
-                className="flex-1"
-              />
-            </div>
+              </div>
+            </>
           )}
         </div>
       </div>
