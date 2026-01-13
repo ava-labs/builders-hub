@@ -11,6 +11,7 @@ import { PrivacyPolicyBox } from "@/components/privacy-policy";
 import { SearchRootProvider } from "./searchRootProvider";
 import { Body } from "./layout.client";
 import { CustomCountdownBanner } from "@/components/ui/custom-countdown-banner";
+import { HideOnChatPage } from "@/components/layout/chat-page-hider";
 
 export const metadata = createMetadata({
   title: {
@@ -38,13 +39,17 @@ export default function Layout({ children }: { children: ReactNode }) {
     >
       <PHProvider>
         <body className="flex min-h-screen flex-col">
-          <CustomCountdownBanner />
+          <HideOnChatPage>
+            <CustomCountdownBanner />
+          </HideOnChatPage>
           <Body>
             <SearchRootProvider>{children}</SearchRootProvider>
-            <Chatbot />
-            <div id="privacy-banner-root" className="relative">
-              <PrivacyPolicyBox />
-            </div>
+            <HideOnChatPage>
+              <Chatbot />
+              <div id="privacy-banner-root" className="relative">
+                <PrivacyPolicyBox />
+              </div>
+            </HideOnChatPage>
           </Body>
         </body>
       </PHProvider>
