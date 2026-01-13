@@ -9,21 +9,37 @@ export const POST = withAuth(async (req: NextRequest) => {
     const body = await req.json();
     const session = await getAuthSession();
     
-    // Check authorization based on badge type
     const userRole = session?.user.role || "user";
-    const customAttributes = session?.user.custom_attributes??[];
-    const hasPermission = badgeAssignmentService.hasRequiredRole(body, customAttributes);
+    const customAttributes = session?.user.custom_attributes ?? [];
     
-    if (!hasPermission) {
-      const requiredRole = badgeAssignmentService.getRequiredRoleForAssignment(body);
-      return NextResponse.json(
-        { 
-          error: { 
-            message: `Insufficient permissions. Required role: ${requiredRole || 'none'}, User role: ${userRole}` 
-          } 
-        },
-        { status: 403 }
-      );
+    // Get the required role for this badge type
+    const requiredRole = badgeAssignmentService.getRequiredRoleForAssignment(body);
+    const hasAdminPermission = requiredRole ? customAttributes.includes(requiredRole) : false;
+
+    // Security check: Users can only assign badges to themselves unless they have admin role
+    // - If no admin role required (academy/requirement badges): user must assign to self
+    // - If admin role required (project badges): user must have the required role (badge_admin)
+    if (requiredRole === null) {
+      // No admin role required = user can only assign to themselves
+      if (body.userId !== session?.user.id) {
+        return NextResponse.json(
+          { error: { message: "You can only assign badges to yourself" } },
+          { status: 403 }
+        );
+      }
+    } else {
+      // Admin role required - check if user has the permission
+      if (!hasAdminPermission) {
+        return NextResponse.json(
+          { 
+            error: { 
+              message: `Insufficient permissions. Required role: ${requiredRole}, User role: ${userRole}` 
+            } 
+          },
+          { status: 403 }
+        );
+      }
+      // Admin can assign to any user - no userId restriction
     }
     
     // Use the user's name as awardedBy
