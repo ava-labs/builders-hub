@@ -3733,7 +3733,8 @@ function StakingAPYChartCard({
           {/* Brush Slider */}
           {!isLoading && aggregatedData.length > 0 && brushIndexes && 
            !isNaN(brushIndexes.startIndex) && !isNaN(brushIndexes.endIndex) &&
-           brushIndexes.startIndex >= 0 && brushIndexes.endIndex < aggregatedData.length && (
+           brushIndexes.startIndex >= 0 && brushIndexes.endIndex < aggregatedData.length &&
+           brushIndexes.startIndex <= brushIndexes.endIndex && (
             <div className="bg-white dark:bg-black pl-[60px]">
               <ResponsiveContainer width="100%" height={80}>
                 <LineChart data={aggregatedData} margin={{ top: 0, right: 30, left: 0, bottom: 5 }}>
@@ -3747,7 +3748,8 @@ function StakingAPYChartCard({
                     endIndex={brushIndexes.endIndex}
                     onChange={(e: any) => {
                       if (e.startIndex !== undefined && e.endIndex !== undefined &&
-                          !isNaN(e.startIndex) && !isNaN(e.endIndex)) {
+                          !isNaN(e.startIndex) && !isNaN(e.endIndex) &&
+                          e.startIndex <= e.endIndex) {
                         setBrushIndexes({ startIndex: e.startIndex, endIndex: e.endIndex });
                       }
                     }}
