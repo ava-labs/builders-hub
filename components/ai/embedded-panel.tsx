@@ -1,0 +1,232 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { X, ExternalLink, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { cn } from '@/lib/cn';
+
+export type EmbedType = 'docs' | 'academy' | 'console' | 'integration';
+
+export interface EmbeddedReference {
+  type: EmbedType;
+  url: string;
+  title?: string;
+}
+
+interface EmbeddedPanelProps {
+  reference: EmbeddedReference | null;
+  onClose: () => void;
+  className?: string;
+}
+
+// Detect the type of internal link
+export function detectLinkType(url: string): EmbedType | null {
+  if (!url) return null;
+
+  // Relative URLs or full URLs to our domain
+  const path = url.startsWith('http')
+    ? new URL(url).pathname
+    : url;
+
+  if (path.startsWith('/docs')) return 'docs';
+  if (path.startsWith('/academy')) return 'academy';
+  if (path.startsWith('/console')) return 'console';
+  if (path.startsWith('/integrations')) return 'integration';
+
+  return null;
+}
+
+// Extract all embeddable links from markdown content
+export function extractEmbeddableLinks(content: string): EmbeddedReference[] {
+  const links: EmbeddedReference[] = [];
+
+  // Match markdown links: [text](url)
+  const markdownLinkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+  let match;
+
+  while ((match = markdownLinkRegex.exec(content)) !== null) {
+    const [, title, url] = match;
+    const type = detectLinkType(url);
+    if (type) {
+      links.push({ type, url, title });
+    }
+  }
+
+  // Also match raw URLs that start with /docs, /academy, /console, /integrations
+  const rawUrlRegex = /(?:^|\s)(\/(?:docs|academy|console|integrations)[^\s\)]*)/g;
+  while ((match = rawUrlRegex.exec(content)) !== null) {
+    const url = match[1];
+    const type = detectLinkType(url);
+    if (type && !links.some(l => l.url === url)) {
+      links.push({ type, url });
+    }
+  }
+
+  return links;
+}
+
+// Get display info for embed type
+function getEmbedTypeInfo(type: EmbedType): { label: string; color: string } {
+  switch (type) {
+    case 'docs':
+      return { label: 'Documentation', color: 'bg-blue-500' };
+    case 'academy':
+      return { label: 'Academy', color: 'bg-purple-500' };
+    case 'console':
+      return { label: 'Console Tool', color: 'bg-green-500' };
+    case 'integration':
+      return { label: 'Integration', color: 'bg-orange-500' };
+  }
+}
+
+export function EmbeddedPanel({ reference, onClose, className }: EmbeddedPanelProps) {
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (reference) {
+      setIsLoading(true);
+      setError(null);
+    }
+  }, [reference?.url]);
+
+  if (!reference) return null;
+
+  const typeInfo = getEmbedTypeInfo(reference.type);
+  const fullUrl = reference.url.startsWith('http')
+    ? reference.url
+    : `${typeof window !== 'undefined' ? window.location.origin : ''}${reference.url}`;
+
+  return (
+    <div className={cn("flex flex-col h-full bg-background", className)}>
+      {/* Panel header */}
+      <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-border">
+        <div className="flex items-center gap-3 min-w-0">
+          <span className={cn("shrink-0 px-2 py-0.5 text-xs font-medium text-white rounded", typeInfo.color)}>
+            {typeInfo.label}
+          </span>
+          <span className="text-sm font-medium truncate">
+            {reference.title || reference.url}
+          </span>
+        </div>
+        <div className="flex items-center gap-1 shrink-0">
+          <a
+            href={fullUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+            title="Open in new tab"
+          >
+            <ExternalLink className="w-4 h-4" />
+          </a>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+            title="Close panel"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      {/* Iframe content */}
+      <div className="flex-1 relative min-h-0">
+        {isLoading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-background z-10">
+            <div className="flex flex-col items-center gap-3">
+              <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">Loading content...</span>
+            </div>
+          </div>
+        )}
+
+        {error ? (
+          <div className="absolute inset-0 flex items-center justify-center bg-background">
+            <div className="text-center p-6">
+              <p className="text-sm text-muted-foreground mb-4">{error}</p>
+              <a
+                href={fullUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
+              >
+                <ExternalLink className="w-4 h-4" />
+                Open in new tab
+              </a>
+            </div>
+          </div>
+        ) : (
+          <iframe
+            src={fullUrl}
+            className="w-full h-full border-0"
+            onLoad={() => setIsLoading(false)}
+            onError={() => {
+              setIsLoading(false);
+              setError('Failed to load content');
+            }}
+            title={reference.title || 'Embedded content'}
+            sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Link navigation component for multiple detected links
+export function EmbeddedLinkNav({
+  links,
+  currentIndex,
+  onSelect,
+  className,
+}: {
+  links: EmbeddedReference[];
+  currentIndex: number;
+  onSelect: (index: number) => void;
+  className?: string;
+}) {
+  if (links.length <= 1) return null;
+
+  return (
+    <div className={cn("flex items-center gap-2 px-4 py-2 border-b border-border bg-zinc-50 dark:bg-zinc-900", className)}>
+      <button
+        onClick={() => onSelect(Math.max(0, currentIndex - 1))}
+        disabled={currentIndex === 0}
+        className="p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        <ChevronLeft className="w-4 h-4" />
+      </button>
+
+      <div className="flex-1 flex items-center gap-1 overflow-x-auto">
+        {links.map((link, index) => {
+          const typeInfo = getEmbedTypeInfo(link.type);
+          return (
+            <button
+              key={index}
+              onClick={() => onSelect(index)}
+              className={cn(
+                "shrink-0 px-2 py-1 text-xs rounded-full transition-colors",
+                index === currentIndex
+                  ? `${typeInfo.color} text-white`
+                  : "bg-zinc-200 dark:bg-zinc-700 text-muted-foreground hover:bg-zinc-300 dark:hover:bg-zinc-600"
+              )}
+            >
+              {link.title?.slice(0, 20) || link.type}
+            </button>
+          );
+        })}
+      </div>
+
+      <button
+        onClick={() => onSelect(Math.min(links.length - 1, currentIndex + 1))}
+        disabled={currentIndex === links.length - 1}
+        className="p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        <ChevronRight className="w-4 h-4" />
+      </button>
+
+      <span className="text-xs text-muted-foreground shrink-0">
+        {currentIndex + 1} / {links.length}
+      </span>
+    </div>
+  );
+}

@@ -26,11 +26,13 @@ import {
   ExternalLink,
   Moon,
   Sun,
+  ChevronRight,
 } from 'lucide-react';
 import defaultMdxComponents from 'fumadocs-ui/mdx';
 import { cn } from '@/lib/cn';
 import { createProcessor, type Processor } from '@/components/ai/markdown-processor';
 import { MessageFeedback } from '@/components/ai/feedback';
+import { EmbeddedPanel, EmbeddedLinkNav, extractEmbeddableLinks, type EmbeddedReference } from '@/components/ai/embedded-panel';
 import Link from 'fumadocs-core/link';
 import { type Message, useChat, type UseChatHelpers } from '@ai-sdk/react';
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
@@ -169,15 +171,17 @@ function FollowUpSuggestions({ questions, onQuestionClick }: {
 }
 
 // Chat message
-function ChatMessage({ message, isLast, onFollowUpClick, isStreaming }: {
+function ChatMessage({ message, isLast, onFollowUpClick, isStreaming, onRefSelect }: {
   message: Message;
   isLast: boolean;
   onFollowUpClick: (question: string) => void;
   isStreaming?: boolean;
+  onRefSelect?: (ref: EmbeddedReference) => void;
 }) {
   const isUser = message.role === 'user';
   const cleanContent = isUser ? message.content : removeFollowUpQuestions(message.content);
   const followUpQuestions = isUser ? [] : parseFollowUpQuestions(message.content);
+  const embeddableLinks = isUser ? [] : extractEmbeddableLinks(message.content);
 
   if (isUser) {
     return (
@@ -203,6 +207,28 @@ function ChatMessage({ message, isLast, onFollowUpClick, isStreaming }: {
           <div className="prose prose-zinc dark:prose-invert max-w-none prose-p:leading-relaxed prose-pre:bg-zinc-900 prose-pre:border prose-pre:border-zinc-800 [&_.katex-display]:overflow-x-auto [&_.katex]:text-sm">
             <Markdown text={cleanContent} />
           </div>
+
+          {/* Show clickable links to embedded content */}
+          {embeddableLinks.length > 0 && onRefSelect && (
+            <div className="mt-4 flex flex-wrap gap-2">
+              <p className="text-xs text-muted-foreground w-full mb-1">Referenced pages:</p>
+              {embeddableLinks.map((link, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => onRefSelect(link)}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 px-3 py-1.5 text-xs",
+                    "bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-md",
+                    "border border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600",
+                    "transition-all duration-200"
+                  )}
+                >
+                  <ChevronRight className="w-3 h-3" />
+                  {link.title || link.url}
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* Feedback buttons - show after streaming completes */}
           {!isStreaming && (
@@ -514,6 +540,12 @@ export default function ChatPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
 
+  // Embedded panel state
+  const [embeddedRef, setEmbeddedRef] = useState<EmbeddedReference | null>(null);
+  const [detectedLinks, setDetectedLinks] = useState<EmbeddedReference[]>([]);
+  const [currentLinkIndex, setCurrentLinkIndex] = useState(0);
+  const [closedRefs, setClosedRefs] = useState<Set<string>>(new Set());
+
   // Load conversations from localStorage
   useEffect(() => {
     const saved = localStorage.getItem('avalanche-ai-conversations');
@@ -536,6 +568,29 @@ export default function ChatPage() {
     setConversations(convs);
   }, []);
 
+  // Handle reference selection
+  const handleRefSelect = (ref: EmbeddedReference) => {
+    setEmbeddedRef(ref);
+    const index = detectedLinks.findIndex(l => l.url === ref.url);
+    if (index !== -1) setCurrentLinkIndex(index);
+  };
+
+  // Handle closing the panel
+  const handleClosePanel = () => {
+    if (embeddedRef) {
+      setClosedRefs(prev => new Set(prev).add(embeddedRef.url));
+    }
+    setEmbeddedRef(null);
+  };
+
+  // Handle link navigation
+  const handleLinkNavigation = (index: number) => {
+    if (detectedLinks[index]) {
+      setCurrentLinkIndex(index);
+      setEmbeddedRef(detectedLinks[index]);
+    }
+  };
+
   const currentConversation = conversations.find(c => c.id === currentConversationId);
 
   const chat = useChat({
@@ -549,6 +604,17 @@ export default function ChatPage() {
         response_length: message.content.length,
         view: 'fullscreen',
       });
+
+      // Detect embeddable links and auto-open panel
+      const links = extractEmbeddableLinks(message.content);
+      if (links.length > 0) {
+        setDetectedLinks(links);
+        const firstLink = links[0];
+        if (!closedRefs.has(firstLink.url)) {
+          setEmbeddedRef(firstLink);
+          setCurrentLinkIndex(0);
+        }
+      }
 
       // Update conversation
       const msgs = [...chat.messages, message].filter(m => m.role !== 'system');
@@ -628,48 +694,73 @@ export default function ChatPage() {
           onDeleteConversation={handleDeleteConversation}
         />
 
-        {/* Main chat area */}
-        <div className="flex-1 flex flex-col min-w-0 relative">
-          {/* Toggle button when sidebar closed */}
-          {!sidebarOpen && <SidebarToggle onClick={() => setSidebarOpen(true)} />}
+        {/* Main content area (chat + embedded panel) */}
+        <div className="flex-1 flex min-w-0 relative">
+          {/* Chat area */}
+          <div className={cn(
+            "flex flex-col min-w-0 transition-all duration-300",
+            embeddedRef ? "flex-1 lg:w-1/2" : "flex-1"
+          )}>
+            {/* Toggle button when sidebar closed */}
+            {!sidebarOpen && <SidebarToggle onClick={() => setSidebarOpen(true)} />}
 
-          {/* Header */}
-          <header className="shrink-0 flex items-center justify-center px-4 py-3 border-b border-zinc-200 dark:border-zinc-800">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center">
-                <img src="/avax-gpt.png" alt="AI" className="w-4 h-4 object-contain invert" />
-              </div>
-              <span className="text-sm font-medium">Avalanche AI</span>
-            </div>
-          </header>
-
-          {/* Messages */}
-          <main className="flex-1 min-h-0 flex flex-col overflow-hidden">
-            {messages.length === 0 ? (
-              <EmptyState onSuggestionClick={handleSuggestionClick} />
-            ) : (
-              <MessageList>
-                <div className="max-w-3xl mx-auto w-full px-4 py-6">
-                  {messages.map((message, index) => (
-                    <ChatMessage
-                      key={message.id}
-                      message={message}
-                      isLast={index === messages.length - 1}
-                      onFollowUpClick={handleSuggestionClick}
-                      isStreaming={isLoading && index === messages.length - 1 && message.role === 'assistant'}
-                    />
-                  ))}
-                  {isLoading && messages[messages.length - 1]?.role === 'user' && <TypingIndicator />}
-                  <ChatActions />
+            {/* Header */}
+            <header className="shrink-0 flex items-center justify-center px-4 py-3 border-b border-zinc-200 dark:border-zinc-800">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-full bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center">
+                  <img src="/avax-gpt.png" alt="AI" className="w-4 h-4 object-contain invert" />
                 </div>
-              </MessageList>
-            )}
-          </main>
+                <span className="text-sm font-medium">Avalanche AI</span>
+              </div>
+            </header>
 
-          {/* Input */}
-          <div className="shrink-0 pt-2 pb-4 bg-gradient-to-t from-background via-background to-transparent">
-            <ChatInput />
+            {/* Messages */}
+            <main className="flex-1 min-h-0 flex flex-col overflow-hidden">
+              {messages.length === 0 ? (
+                <EmptyState onSuggestionClick={handleSuggestionClick} />
+              ) : (
+                <MessageList>
+                  <div className="max-w-3xl mx-auto w-full px-4 py-6">
+                    {messages.map((message, index) => (
+                      <ChatMessage
+                        key={message.id}
+                        message={message}
+                        isLast={index === messages.length - 1}
+                        onFollowUpClick={handleSuggestionClick}
+                        isStreaming={isLoading && index === messages.length - 1 && message.role === 'assistant'}
+                        onRefSelect={handleRefSelect}
+                      />
+                    ))}
+                    {isLoading && messages[messages.length - 1]?.role === 'user' && <TypingIndicator />}
+                    <ChatActions />
+                  </div>
+                </MessageList>
+              )}
+            </main>
+
+            {/* Input */}
+            <div className="shrink-0 pt-2 pb-4 bg-gradient-to-t from-background via-background to-transparent">
+              <ChatInput />
+            </div>
           </div>
+
+          {/* Embedded Panel (right side) */}
+          {embeddedRef && (
+            <div className="hidden lg:flex lg:w-1/2 flex-col border-l border-zinc-200 dark:border-zinc-800">
+              {detectedLinks.length > 1 && (
+                <EmbeddedLinkNav
+                  links={detectedLinks}
+                  currentIndex={currentLinkIndex}
+                  onSelect={handleLinkNavigation}
+                />
+              )}
+              <EmbeddedPanel
+                reference={embeddedRef}
+                onClose={handleClosePanel}
+                className="flex-1"
+              />
+            </div>
+          )}
         </div>
       </div>
     </ChatContext>
