@@ -134,6 +134,7 @@ export function AcademyLearningPath({ pathType }: AcademyLearningPathProps) {
                     {/* Desktop legend */}
                     <div className="hidden sm:block">
                         <LearningTreeLegend 
+                            key={`legend-desktop-${pathType}`}
                             pathType={pathType} 
                             isMobile={false} 
                             activeCategory={hoveredCategory}
@@ -143,6 +144,7 @@ export function AcademyLearningPath({ pathType }: AcademyLearningPathProps) {
                     {/* Mobile legend */}
                     <div className="block sm:hidden">
                         <LearningTreeLegend 
+                            key={`legend-mobile-${pathType}`}
                             pathType={pathType} 
                             isMobile={true}
                             activeCategory={hoveredCategory}
@@ -156,6 +158,7 @@ export function AcademyLearningPath({ pathType }: AcademyLearningPathProps) {
             <div className="relative">
                 <div className="absolute inset-0 -top-20 bg-gradient-to-b from-transparent via-zinc-50/20 to-transparent dark:via-zinc-950/10 pointer-events-none" />
                 <LearningTree 
+                    key={pathType}
                     pathType={pathType}
                     externalHoveredCategory={hoveredCategory}
                     onCategoryHover={setHoveredCategory}
@@ -165,7 +168,7 @@ export function AcademyLearningPath({ pathType }: AcademyLearningPathProps) {
             {/* Shortcut section for Avalanche and Blockchain academies */}
             {(pathType === 'avalanche' || pathType === 'blockchain') && (
                 <div className="mt-16">
-                    <AcademyShortcutSection pathType={pathType} />
+                    <AcademyShortcutSection key={`shortcut-${pathType}`} pathType={pathType} />
                 </div>
             )}
         </div>
