@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import { usePathname } from 'next/navigation';
 import LearningTree, { LearningTreeLegend } from '@/components/academy/learning-tree';
 import { AcademyShortcutSection } from './academy-shortcut-section';
 import type { AcademyPathType } from './academy-types';
@@ -96,7 +97,13 @@ interface AcademyLearningPathProps {
 }
 
 export function AcademyLearningPath({ pathType }: AcademyLearningPathProps) {
+    const pathname = usePathname();
     const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
+    
+    // Reset hover state when path changes
+    useEffect(() => {
+        setHoveredCategory(null);
+    }, [pathname, pathType]);
 
     // Memoize segments so they only change when pathType changes (not on hover)
     const descriptionSegments: TextSegment[] = useMemo(() => {
