@@ -99,7 +99,10 @@ export default async function RewardBoard() {
           <div className="text-center py-12">
             <div className="text-gray-500 dark:text-gray-400 text-lg">
 
-              <Link href="/hackathons" className="text-blue-500 hover:text-blue-700">   Your contributions matter. Explore our dev events here </Link>
+              <Link href="/hackathons" className="text-blue-500 hover:text-blue-700">   Your contributions matter. Explore our dev events here </Link> 
+              <h2 className="text-base sm:text-base text-gray-900 dark:text-white">
+              (If you won any previous hackathons your badges will be here soon. Stay tuned!)
+              </h2>
             </div>
           </div>
         ) : (
