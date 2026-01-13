@@ -17,6 +17,45 @@ async function handleRestartRelayer(relayerId: string, request: NextRequest): Pr
   }
 
   try {
+    // First verify the relayer belongs to the user by fetching the list
+    const listResponse = await fetch(RelayerServiceURLs.list(password), {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+
+    if (!listResponse.ok) {
+      const message = await extractServiceErrorMessage(listResponse) || 'Failed to verify relayer ownership';
+      return jsonError(502, message);
+    }
+
+    const listData = await listResponse.json();
+    let allRelayers: any[] = [];
+    if (Array.isArray(listData)) {
+      allRelayers = listData;
+    } else if (listData && Array.isArray(listData.relayers)) {
+      allRelayers = listData.relayers;
+    } else if (listData && typeof listData === 'object') {
+      allRelayers = Object.values(listData);
+    }
+
+    // Find the relayer and verify it belongs to the user
+    const relayer = allRelayers.find((r: any) => {
+      const rId = r.relayerId || r.address || r.id || r.relayer_id || '';
+      return rId === relayerId || rId.toLowerCase() === relayerId.toLowerCase();
+    });
+
+    if (!relayer) {
+      return jsonError(404, 'Relayer not found');
+    }
+
+    // Verify ownership by checking the label matches userId
+    const relayerLabel = relayer.label || '';
+    if (relayerLabel.toLowerCase() !== auth.userId.toLowerCase()) {
+      return jsonError(403, 'Forbidden: You do not have permission to restart this relayer');
+    }
+
     // URL encode the relayerId to handle special characters
     const encodedRelayerId = encodeURIComponent(relayerId);
     const restartUrl = RelayerServiceURLs.restart(encodedRelayerId, password);
