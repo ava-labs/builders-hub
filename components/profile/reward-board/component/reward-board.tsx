@@ -43,7 +43,11 @@ export default async function RewardBoard() {
     };
 
   }).sort(element => { return element.is_unlocked ? -1 : 1; });
-   const rewards = hackathonBadgesUnlocked.map((reward) => (
+  
+  // Filter hackathon badges to only show unlocked ones
+  const hackathonBadgesFiltered = hackathonBadgesUnlocked.filter((badge) => badge.is_unlocked);
+  
+  const rewards = hackathonBadgesFiltered.map((reward) => (
      <RewardCard
        key={reward.name}
        icon={reward.image_path}
