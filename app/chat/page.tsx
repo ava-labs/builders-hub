@@ -182,6 +182,31 @@ function TextareaInput(props: TextareaHTMLAttributes<HTMLTextAreaElement> & { cl
   );
 }
 
+// AI Avatar with theme-aware logo
+function AIAvatar({ size = 'md' }: { size?: 'sm' | 'md' }) {
+  const { resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const sizeClasses = size === 'sm' ? 'w-6 h-6' : 'w-8 h-8';
+  const imgClasses = size === 'sm' ? 'h-3' : 'h-4';
+
+  return (
+    <div className={cn(sizeClasses, "rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center")}>
+      {mounted && (
+        <img
+          src={resolvedTheme === 'dark' ? '/logo-white.png' : '/logo-black.png'}
+          alt="AI"
+          className={cn(imgClasses, "object-contain")}
+        />
+      )}
+    </div>
+  );
+}
+
 // Follow-up suggestions
 function FollowUpSuggestions({ questions, onQuestionClick }: {
   questions: string[];
@@ -237,9 +262,7 @@ function ChatMessage({ message, isLast, onFollowUpClick, isStreaming, onRefSelec
     <div className="mb-6">
       <div className="flex items-start gap-4">
         <div className="shrink-0 mt-1">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center">
-            <img src="/avax-gpt.png" alt="AI" className="w-5 h-5 object-contain invert" />
-          </div>
+          <AIAvatar />
         </div>
         <div className="flex-1 min-w-0">
           <div className="prose prose-zinc dark:prose-invert max-w-none prose-p:leading-relaxed prose-pre:bg-zinc-900 prose-pre:border prose-pre:border-zinc-800 [&_.katex-display]:overflow-x-auto [&_.katex]:text-sm">
@@ -291,9 +314,7 @@ function TypingIndicator() {
     <div className="mb-6">
       <div className="flex items-start gap-4">
         <div className="shrink-0 mt-1">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center">
-            <img src="/avax-gpt.png" alt="AI" className="w-5 h-5 object-contain invert" />
-          </div>
+          <AIAvatar />
         </div>
         <div className="flex items-center gap-1.5 py-4">
           <span className="w-2 h-2 rounded-full bg-zinc-400 animate-bounce [animation-delay:-0.3s]" />
@@ -928,16 +949,6 @@ export default function ChatPage() {
           >
             {/* Toggle button when sidebar closed */}
             {!sidebarOpen && <SidebarToggle onClick={() => setSidebarOpen(true)} />}
-
-            {/* Header */}
-            <header className="shrink-0 flex items-center justify-center px-4 py-3 border-b border-zinc-200 dark:border-zinc-800">
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-full bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center">
-                  <img src="/avax-gpt.png" alt="AI" className="w-4 h-4 object-contain invert" />
-                </div>
-                <span className="text-sm font-medium">Avalanche AI</span>
-              </div>
-            </header>
 
             {/* Messages */}
             <main className="flex-1 min-h-0 flex flex-col overflow-hidden">
