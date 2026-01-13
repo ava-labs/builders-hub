@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getProject, createProject } from '@/server/services/projects';
 import { GetProjectByIdWithMembers, UpdateStatusMember } from '@/server/services/memberProject';
 import { createFormData } from '@/server/services/formData';
-import { prisma } from '@/prisma/prisma';
+import { getUserById } from '@/server/services/getUser';
 
 const HUBSPOT_API_KEY = process.env.HUBSPOT_API_KEY;
 const HUBSPOT_PORTAL_ID = process.env.HUBSPOT_PORTAL_ID;
@@ -33,6 +33,23 @@ export async function POST(request: Request) {
     const projectId = formData.projectId;
     const userId = formData.userId;
 
+    // Validate userId exists and is valid
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, message: 'User ID is required' },
+        { status: 401 }
+      );
+    }
+
+    // Verify that the user exists in the database
+    const user = await getUserById(userId);
+    if (!user) {
+      return NextResponse.json(
+        { success: false, message: 'Invalid user ID' },
+        { status: 401 }
+      );
+    }
+
     let finalProjectId = projectId;
 
     // Verify if project exists or create it
@@ -41,6 +58,47 @@ export async function POST(request: Request) {
       try {
         await getProject(projectId);
         finalProjectId = projectId;
+        
+        // If project exists, verify that the user is a member
+        const projectWithMembers = await GetProjectByIdWithMembers(finalProjectId);
+        
+        if (!projectWithMembers) {
+          return NextResponse.json(
+            { success: false, message: 'Project not found' },
+            { status: 404 }
+          );
+        }
+        
+        // Check if user is already a member
+        const existingMember = projectWithMembers.members?.find(
+          (member) => 
+            (member.user_id === userId) &&
+            member.status !== 'Removed'
+        );
+        
+        if (!existingMember) {
+          // User is not a member of the existing project - return error
+          return NextResponse.json(
+            { success: false, message: 'User is not a member of this project' },
+            { status: 403 }
+          );
+        }
+        
+        // Update status if needed (user is already a member)
+        if (existingMember.status !== 'Confirmed') {
+          try {
+            await UpdateStatusMember(
+              userId,
+              finalProjectId,
+              'Confirmed',
+              existingMember.email || formData.email || '',
+              false // wasInOtherProject
+            );
+          } catch (error) {
+            console.error('Error updating member status:', error);
+            // Don't fail the request if status update fails, but log it
+          }
+        }
       } catch (error) {
         return NextResponse.json(
           { success: false, message: 'Project not found' },
@@ -49,16 +107,15 @@ export async function POST(request: Request) {
       }
     } else {
       // Create new project if it doesn't exist
-      
       try {
         const newProject = await createProject({
           project_name: formData.project,
           full_description: formData.project_abstract_objective || '',
-          members: userId ? [{
+          members: [{
             user_id: userId,
             role: 'Member',
             status: 'Confirmed',
-          } as any] : undefined,
+          } as any],
           origin: "infrabuidl",
         });
         
@@ -69,58 +126,6 @@ export async function POST(request: Request) {
           { success: false, message: 'Failed to create project' },
           { status: 500 }
         );
-      }
-    }
-
-    // Verify and add user as member if not already a member
-    if (userId && finalProjectId) {
-      try {
-        // Get project with members to check if user is already a member
-        const projectWithMembers = await GetProjectByIdWithMembers(finalProjectId);
-        
-        if (!projectWithMembers) {
-          throw new Error('Project not found');
-        }
-        
-        // Check if user is already a member
-        const existingMember = projectWithMembers.members?.find(
-          (member) => 
-            (member.user_id === userId || member.email === formData.email) &&
-            member.status !== 'Removed'
-        );
-        
-        if (!existingMember) {
-          // Create new member directly
-          const user = await prisma.user.findUnique({
-            where: { id: userId },
-            select: { email: true },
-          });
-          
-          await prisma.member.create({
-            data: {
-              project_id: finalProjectId,
-              user_id: userId,
-              role: 'Member',
-              status: 'Confirmed',
-              email: user?.email || formData.email || '',
-            },
-          });
-        } else {
-          // Update status and role if needed
-          if (existingMember.status !== 'Confirmed') {
-            // Update status if member exists but is not confirmed using service
-            await UpdateStatusMember(
-              userId,
-              finalProjectId,
-              'Confirmed',
-              existingMember.email || formData.email || '',
-              false // wasInOtherProject
-            );
-          }
-        }
-      } catch (error) {
-        console.error('Error managing project membership:', error);
-        // Don't fail the request if membership update fails, but log it
       }
     }
 

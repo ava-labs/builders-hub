@@ -3,7 +3,7 @@ import { ReactNode, useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { Loader2, CalendarIcon } from "lucide-react";
+import { Loader2, CalendarIcon, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -115,9 +115,8 @@ export default function GrantApplicationForm({
 
   const savedValues = getInitialValues();
 
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
+  // Store original default values (without localStorage) for reset functionality
+  const originalDefaultValues: Partial<FormValues> = {
       // Project Overview defaults
       project: "",
       project_type: "",
@@ -253,7 +252,12 @@ export default function GrantApplicationForm({
       // Legal Compliance defaults
       gdpr: false,
       marketing_consent: false,
-      
+  };
+
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      ...originalDefaultValues,
       // Override with saved values from localStorage (excluding grant_program)
       ...Object.fromEntries(
         Object.entries(savedValues).filter(([key]) => key !== "grant_program")
@@ -446,6 +450,20 @@ export default function GrantApplicationForm({
     const lastName = parts.slice(-1)[0];
     const firstName = parts.slice(0, -1).join(" ");
     return { firstName, lastName };
+  };
+
+  // Function to reset all form fields to original defaults
+  const resetAllFormFields = () => {
+    // Clear localStorage
+    if (typeof window !== "undefined") {
+      localStorage.removeItem(storageKey);
+    }
+    
+    // Reset form to original default values
+    form.reset({
+      ...originalDefaultValues,
+      grant_program: programType,
+    });
   };
 
   // Function to fill form with project data
@@ -695,63 +713,82 @@ export default function GrantApplicationForm({
                 <FormField
                   control={form.control}
                   name="project"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="dark:text-gray-200 text-md">
-                        Project{" "}
-                        <span className="text-red-500">*</span>
-                      </FormLabel>
-                      <Select
-                        onValueChange={(value) => {
-                          // Find the selected project
-                          const selectedProject = userProjects.find((p: any) => p.id === value);
-                          if (selectedProject) {
-                            // Set the project name in the field, not the ID
-                            field.onChange(selectedProject.project_name);
-                            // Fill form with project data using the project ID
-                            fillFormWithProjectData(value);
-                          }
-                        }}
-                        value={userProjects.find((p: any) => p.project_name === field.value)?.id || field.value}
-                        disabled={isLoadingProjects || status !== "authenticated" }
-                      >
-                        <FormControl>
-                          <SelectTrigger className="border-gray-300 dark:border-zinc-800 dark:bg-zinc-800 dark:text-gray-100">
-                            <SelectValue placeholder={isLoadingProjects ? "Loading projects..." : "Select project"} />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent className="dark:bg-gray-800 dark:border-gray-700">
-                          {userProjects.length > 0 ? (
-                            userProjects.map((project: any) => (
-                              <SelectItem
-                                key={project.id}
-                                value={project.id}
-                                className="dark:text-gray-200"
-                              >
-                                {project.project_name}
-                              </SelectItem>
-                            ))
-                          ) : (
-                            <SelectItem
-                              value="no-projects"
-                              disabled
-                              className="dark:text-gray-400"
+                  render={({ field }) => {
+                    const selectedProjectId = userProjects.find((p: any) => p.project_name === field.value)?.id;
+                    const hasProjectSelected = !!selectedProjectId;
+                    
+                    return (
+                      <FormItem>
+                        <div className="flex items-center justify-between">
+                          <FormLabel className="dark:text-gray-200 text-md">
+                            Project{" "}
+                            <span className="text-red-500">*</span>
+                          </FormLabel>
+                          {hasProjectSelected && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={resetAllFormFields}
+                              className="h-8 px-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                             >
-                              {isLoadingProjects ? "Loading..." : "No projects found"}
-                            </SelectItem>
+                              <X className="h-4 w-4 mr-1" />
+                              Clear selection
+                            </Button>
                           )}
-                        </SelectContent>
-                      </Select>
-                      <FormDescription className="text-sm text-gray-500 dark:text-gray-400">
-                        {userProjects.length > 0 
-                          ? "Select a project to auto-fill the form with your project information"
-                          : session?.user?.id 
-                            ? "You don't have any projects yet. You can still fill the form manually."
-                            : "Please sign in to load your projects"}
-                      </FormDescription>
-                      <FormMessage className="dark:text-red-400" />
-                    </FormItem>
-                  )}
+                        </div>
+                        <Select
+                          onValueChange={(value) => {
+                            // Find the selected project
+                            const selectedProject = userProjects.find((p: any) => p.id === value);
+                            if (selectedProject) {
+                              // Set the project name in the field, not the ID
+                              field.onChange(selectedProject.project_name);
+                              // Fill form with project data using the project ID
+                              fillFormWithProjectData(value);
+                            }
+                          }}
+                          value={selectedProjectId || field.value}
+                          disabled={isLoadingProjects || status !== "authenticated" }
+                        >
+                          <FormControl>
+                            <SelectTrigger className="border-gray-300 dark:border-zinc-800 dark:bg-zinc-800 dark:text-gray-100">
+                              <SelectValue placeholder={isLoadingProjects ? "Loading projects..." : "Select project"} />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent className="dark:bg-gray-800 dark:border-gray-700">
+                            {userProjects.length > 0 ? (
+                              userProjects.map((project: any) => (
+                                <SelectItem
+                                  key={project.id}
+                                  value={project.id}
+                                  className="dark:text-gray-200"
+                                >
+                                  {project.project_name}
+                                </SelectItem>
+                              ))
+                            ) : (
+                              <SelectItem
+                                value="no-projects"
+                                disabled
+                                className="dark:text-gray-400"
+                              >
+                                {isLoadingProjects ? "Loading..." : "No projects found"}
+                              </SelectItem>
+                            )}
+                          </SelectContent>
+                        </Select>
+                        <FormDescription className="text-sm text-gray-500 dark:text-gray-400">
+                          {userProjects.length > 0 
+                            ? "Select a project to auto-fill the form with your project information"
+                            : session?.user?.id 
+                              ? "You don't have any projects yet. You can still fill the form manually."
+                              : "Please sign in to load your projects"}
+                        </FormDescription>
+                        <FormMessage className="dark:text-red-400" />
+                      </FormItem>
+                    );
+                  }}
                 />
               }
 
@@ -4754,21 +4791,30 @@ export default function GrantApplicationForm({
                 </div>
               </div>
             </div>
-            <div className="pt-4 flex justify-end">
-              <Button
-                type="submit"
-                disabled={isSubmitting}
-                className="px-8 py-2 bg-[#EB4C50] hover:bg-[#EB4C50]/90 dark:bg-[#EB4C50] dark:hover:bg-[#EB4C50]/90"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />{" "}
-                    Submitting...
-                  </>
-                ) : (
-                  "Submit"
-                )}
-              </Button>
+            <div className="pt-4">
+              <div className="flex justify-end">
+                <Button
+                  type="submit"
+                  disabled={isSubmitting || status != "authenticated" }
+                  className="px-8 py-2 bg-[#EB4C50] hover:bg-[#EB4C50]/90 dark:bg-[#EB4C50] dark:hover:bg-[#EB4C50]/90"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />{" "}
+                      Submitting...
+                    </>
+                  ) : (
+                    "Submit"
+                  )}
+                </Button>
+              </div>
+              { (status != "authenticated") && 
+                <div className="flex justify-end mt-2">
+                  <FormDescription>
+                    Log in to submit the form.{" "}
+                  </FormDescription>
+                </div>
+              }
             </div>
           </form>
         </Form>
