@@ -9,6 +9,7 @@ import {
   type TextareaHTMLAttributes,
   use,
   useCallback,
+  useDeferredValue,
   useEffect,
   useRef,
   useState,
@@ -239,38 +240,20 @@ marked.setOptions({
   breaks: true,
 });
 
-// Fast streaming markdown using marked (synchronous) with throttled updates
+// Fast streaming markdown using marked (synchronous)
+// Uses useDeferredValue for smooth rendering without blocking UI
 function StreamingMarkdown({ text }: { text: string }) {
-  // Throttle text updates to reduce DOM churn (update every 50ms max)
-  const [throttledText, setThrottledText] = useState(text);
-  const lastUpdateRef = useRef(0);
-
-  useEffect(() => {
-    const now = Date.now();
-    const timeSinceLastUpdate = now - lastUpdateRef.current;
-
-    if (timeSinceLastUpdate >= 50) {
-      // Update immediately if enough time has passed
-      setThrottledText(text);
-      lastUpdateRef.current = now;
-    } else {
-      // Schedule update for remaining time
-      const timeout = setTimeout(() => {
-        setThrottledText(text);
-        lastUpdateRef.current = Date.now();
-      }, 50 - timeSinceLastUpdate);
-      return () => clearTimeout(timeout);
-    }
-  }, [text]);
+  // Let React defer less urgent updates for smoother rendering
+  const deferredText = useDeferredValue(text);
 
   const html = useMemo(() => {
-    if (!throttledText) return '';
+    if (!deferredText) return '';
     try {
-      return marked.parse(throttledText, { async: false }) as string;
+      return marked.parse(deferredText, { async: false }) as string;
     } catch {
-      return throttledText;
+      return deferredText;
     }
-  }, [throttledText]);
+  }, [deferredText]);
 
   return (
     <div
