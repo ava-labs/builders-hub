@@ -190,6 +190,16 @@ svg.lucide.lucide-folder-open {
   animation-delay: calc(var(--i) * 0.5s);
 }
 
+/* Blinking cursor animation for typewriter effect */
+@keyframes blink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
 .bg-fd-foreground\/25 {
   background-color: #4bccff96;
 }

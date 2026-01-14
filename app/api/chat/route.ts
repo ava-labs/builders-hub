@@ -1724,23 +1724,7 @@ FINAL REMINDER ABOUT URLS:
 - If you cite /academy/avalanche-l1/avalanche-fundamentals/04-creating-an-l1 instead of /academy/avalanche-l1/avalanche-fundamentals/04-creating-an-l1/01-creating-an-l1, it WILL 404
 - ALWAYS use the COMPLETE URL exactly as shown in the context or valid URLs list
 
-FOLLOW-UP QUESTIONS - CRITICAL FORMAT:
-At the end of EVERY response, you MUST include exactly 3 follow-up questions in this EXACT format:
-
----FOLLOW-UP-QUESTIONS---
-1. [First follow-up question]
-2. [Second follow-up question]
-3. [Third follow-up question]
----END-FOLLOW-UP-QUESTIONS---
-
-**CRITICAL: Use EXACTLY this format with three dashes (---), no spaces before/after the markers**
-- DO NOT use "Follow-up Questions:" as a heading
-- DO NOT use any other format
-- Must number as "1. ", "2. ", "3. "
-- Plain text only, NO markdown links
-- Each question on its own line
-    
-    ${relevantContext}
+${relevantContext}
     
 ADDITIONAL RESOURCES (mention when relevant):
     - GitHub: https://github.com/ava-labs

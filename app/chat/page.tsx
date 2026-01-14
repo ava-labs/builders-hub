@@ -138,24 +138,6 @@ function useChatContext() {
 let processor: Processor | undefined;
 const markdownCache = new Map<string, ReactNode>();
 
-function parseFollowUpQuestions(content: string): string[] {
-  if (!content) return [];
-  const match = content.match(/---FOLLOW-UP-QUESTIONS---([\s\S]*?)---END-FOLLOW-UP-QUESTIONS---/);
-  if (!match) return [];
-  return match[1].trim()
-    .split('\n')
-    .map(line => line.replace(/^\d+\.\s*/, '').trim())
-    .filter(q => q.length > 0);
-}
-
-function removeFollowUpQuestions(content: string): string {
-  if (!content) return '';
-  return content
-    .replace(/---FOLLOW-UP-QUESTIONS---[\s\S]*?---END-FOLLOW-UP-QUESTIONS---/g, '')
-    .replace(/---FOLLOW-UP-QUESTIONS---[\s\S]*$/g, '')
-    .trim();
-}
-
 // Remove AI "thinking" patterns that shouldn't be shown to users
 function removeThinkingPatterns(content: string): string {
   if (!content) return '';
@@ -319,45 +301,17 @@ function AIAvatar({ size = 'md' }: { size?: 'sm' | 'md' }) {
   );
 }
 
-// Follow-up suggestions
-function FollowUpSuggestions({ questions, onQuestionClick }: {
-  questions: string[];
-  onQuestionClick: (question: string) => void;
-}) {
-  if (questions.length === 0) return null;
-  return (
-    <div className="mt-4 flex flex-wrap gap-2 animate-in fade-in duration-300">
-      {questions.map((question, index) => (
-        <button
-          key={index}
-          onClick={() => onQuestionClick(question)}
-          className={cn(
-            "px-3 py-1.5 text-sm rounded-full",
-            "bg-zinc-100 dark:bg-zinc-800 text-muted-foreground",
-            "hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:text-foreground",
-            "transition-all duration-200"
-          )}
-        >
-          {question}
-        </button>
-      ))}
-    </div>
-  );
-}
-
 // Chat message
-function ChatMessage({ message, isLast, onFollowUpClick, isStreaming, onRefSelect }: {
+function ChatMessage({ message, isLast, isStreaming, onRefSelect }: {
   message: Message;
   isLast: boolean;
-  onFollowUpClick: (question: string) => void;
   isStreaming?: boolean;
   onRefSelect?: (ref: EmbeddedReference) => void;
 }) {
   const isUser = message.role === 'user';
   const textContent = getMessageText(message);
-  // For assistant messages: remove follow-up questions and thinking patterns
-  const cleanContent = isUser ? textContent : removeThinkingPatterns(removeFollowUpQuestions(textContent));
-  const followUpQuestions = isUser ? [] : parseFollowUpQuestions(textContent);
+  // For assistant messages: remove thinking patterns
+  const cleanContent = isUser ? textContent : removeThinkingPatterns(textContent);
   const embeddableLinks = isUser ? [] : extractEmbeddableLinks(textContent);
 
   if (isUser) {
@@ -418,10 +372,6 @@ function ChatMessage({ message, isLast, onFollowUpClick, isStreaming, onRefSelec
               className="mt-4"
             />
           )}
-
-          {isLast && !isStreaming && followUpQuestions.length > 0 && (
-            <FollowUpSuggestions questions={followUpQuestions} onQuestionClick={onFollowUpClick} />
-          )}
         </div>
       </div>
     </div>
@@ -446,13 +396,25 @@ function TypingIndicator() {
   );
 }
 
-// Message list with auto-scroll
+// Message list with smart auto-scroll (only scrolls if user is near bottom)
 function MessageList({ children }: { children: ReactNode }) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const isNearBottomRef = useRef(true);
+
+  // Track if user is near bottom (within 100px)
+  const handleScroll = useCallback(() => {
+    if (!containerRef.current) return;
+    const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
+    isNearBottomRef.current = scrollHeight - scrollTop - clientHeight < 100;
+  }, []);
+
   useEffect(() => {
     if (!containerRef.current) return;
     const scrollToBottom = () => {
-      containerRef.current?.scrollTo({ top: containerRef.current.scrollHeight, behavior: 'smooth' });
+      // Only auto-scroll if user is near bottom (not scrolled up)
+      if (isNearBottomRef.current && containerRef.current) {
+        containerRef.current.scrollTo({ top: containerRef.current.scrollHeight, behavior: 'smooth' });
+      }
     };
     const observer = new ResizeObserver(scrollToBottom);
     scrollToBottom();
@@ -462,7 +424,11 @@ function MessageList({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <div ref={containerRef} className="flex-1 overflow-y-auto overscroll-contain scrollbar-hide">
+    <div
+      ref={containerRef}
+      onScroll={handleScroll}
+      className="flex-1 overflow-y-auto overscroll-contain scrollbar-hide"
+    >
       {children}
     </div>
   );
@@ -647,13 +613,13 @@ function EmptyState({ userName, onSuggestionClick }: { userName?: string | null;
               Hi {firstName},{' '}
               <span className="text-muted-foreground">
                 {displayText}
-                <span className="inline-block w-[2px] h-[1em] bg-muted-foreground/60 ml-0.5 align-middle animate-pulse" />
+                <span className="inline-block w-[2px] h-[1em] bg-muted-foreground/60 ml-0.5 align-middle animate-[blink_1s_step-end_infinite]" />
               </span>
             </>
           ) : (
             <span className="text-muted-foreground">
               {displayText}
-              <span className="inline-block w-[2px] h-[1em] bg-muted-foreground/60 ml-0.5 align-middle animate-pulse" />
+              <span className="inline-block w-[2px] h-[1em] bg-muted-foreground/60 ml-0.5 align-middle animate-[blink_1s_step-end_infinite]" />
             </span>
           )}
         </h1>
@@ -1253,7 +1219,6 @@ export default function ChatPage() {
                         key={message.id}
                         message={message}
                         isLast={index === messages.length - 1}
-                        onFollowUpClick={handleSuggestionClick}
                         isStreaming={isLoading && index === messages.length - 1 && message.role === 'assistant'}
                         onRefSelect={handleRefSelect}
                       />
