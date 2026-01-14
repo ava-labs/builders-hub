@@ -48,7 +48,7 @@ export function EvmNetworkWallet() {
   // Find the selected token info
   const selectedTokenInfo = useMemo(() => {
     if (!selectedToken || !currentNetwork) return null;
-    return currentNetwork.wellKnownERC20s?.find(t => t.address === selectedToken) || null;
+    return currentNetwork.wellKnownERC20s?.find((t: any) => t.address === selectedToken) || null;
   }, [selectedToken, currentNetwork])
 
   const {
