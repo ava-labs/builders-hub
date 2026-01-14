@@ -48,7 +48,7 @@ export default function PerformanceMonitor() {
     const [dataMap, setDataMap] = useState<Map<number, BucketedData>>(new Map());
     const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
     const [recentBlocks, setRecentBlocks] = useState<BlockInfo[]>([]);
-    const [blockTimestampsMs, setBlockTimestampsMs] = useState<Map<number, number>>(new Map()); // block timestamp (sec) -> timestampMs
+    const [blockTimestampsMs, setBlockTimestampsMs] = useState<Map<number, { timestamp: number; timestampMs: number }>>(new Map()); // block number -> {timestamp (sec), timestampMs}
     const [gasLimit, setGasLimit] = useState<number | null>(null);
 
     const blockWatcherRef = useRef<BlockWatcher | null>(null);
@@ -215,10 +215,10 @@ export default function PerformanceMonitor() {
                     return newBlocks.slice(0, 10);
                 });
 
-                // Store block timestamp in milliseconds (keyed by timestamp in seconds for range filtering)
+                // Store block timestamp in milliseconds (keyed by block number to handle sub-second blocks)
                 setBlockTimestampsMs(prev => {
                     const newMap = new Map(prev);
-                    newMap.set(blockInfo.timestamp, blockInfo.timestampMs);
+                    newMap.set(blockInfo.blockNumber, { timestamp: blockInfo.timestamp, timestampMs: blockInfo.timestampMs });
                     return newMap;
                 });
             });
@@ -262,11 +262,11 @@ export default function PerformanceMonitor() {
         const minTime = Math.min(...visibleTimestamps);
         const maxTime = Math.max(...visibleTimestamps);
 
-        // Filter block timestamps to visible range and sort
-        const visibleBlockTimestampsMs = Array.from(blockTimestampsMs.entries())
-            .filter(([ts]) => ts >= minTime && ts <= maxTime + 60) // +60 to include blocks in last bucket
-            .sort((a, b) => a[1] - b[1]) // sort by timestampMs
-            .map(([, ms]) => ms);
+        // Filter block timestamps to visible range and sort by millisecond timestamp
+        const visibleBlockTimestampsMs = Array.from(blockTimestampsMs.values())
+            .filter(({ timestamp }) => timestamp >= minTime && timestamp <= maxTime + 60) // +60 to include blocks in last bucket
+            .sort((a, b) => a.timestampMs - b.timestampMs) // sort by timestampMs
+            .map(({ timestampMs }) => timestampMs);
 
         if (visibleBlockTimestampsMs.length < 2) return 0;
 
