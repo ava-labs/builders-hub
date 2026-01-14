@@ -45,15 +45,17 @@ type Message = UIMessage;
 
 // Helper to extract text content from UIMessage parts
 function extractTextFromMessage(message: UIMessage): string {
-  if ('content' in message && typeof (message as any).content === 'string') {
-    // Legacy format
-    return (message as any).content;
-  }
-  if (message.parts) {
-    return message.parts
-      .filter((p): p is { type: 'text'; text: string } => p.type === 'text')
+  // Try parts first (v6 format)
+  if (message.parts && message.parts.length > 0) {
+    const textParts = message.parts
+      .filter((p): p is { type: 'text'; text: string } => p.type === 'text' && typeof p.text === 'string')
       .map(p => p.text)
       .join('');
+    if (textParts) return textParts;
+  }
+  // Fallback to content field (legacy or streaming)
+  if ('content' in message && typeof (message as any).content === 'string') {
+    return (message as any).content;
   }
   return '';
 }
@@ -241,19 +243,16 @@ marked.setOptions({
 });
 
 // Fast streaming markdown using marked (synchronous)
-// Uses useDeferredValue for smooth rendering without blocking UI
 function StreamingMarkdown({ text }: { text: string }) {
-  // Let React defer less urgent updates for smoother rendering
-  const deferredText = useDeferredValue(text);
-
+  // Simple direct parsing - no deferred values or throttling
   const html = useMemo(() => {
-    if (!deferredText) return '';
+    if (!text) return '';
     try {
-      return marked.parse(deferredText, { async: false }) as string;
+      return marked.parse(text, { async: false }) as string;
     } catch {
-      return deferredText;
+      return text;
     }
-  }, [deferredText]);
+  }, [text]);
 
   return (
     <div
@@ -315,8 +314,9 @@ function ChatMessage({ message, isLast, isStreaming, onRefSelect }: {
 }) {
   const isUser = message.role === 'user';
   const textContent = getMessageText(message);
-  // For assistant messages: remove thinking patterns
-  const cleanContent = isUser ? textContent : removeThinkingPatterns(textContent);
+  // For assistant messages: only remove thinking patterns AFTER streaming completes
+  // During streaming, show raw text to avoid flickering when patterns partially match
+  const cleanContent = isUser ? textContent : (isStreaming ? textContent : removeThinkingPatterns(textContent));
   const embeddableLinks = isUser ? [] : extractEmbeddableLinks(textContent);
 
   if (isUser) {

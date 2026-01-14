@@ -202,29 +202,9 @@ svg.lucide.lucide-folder-open {
 
 /* Smooth streaming text rendering */
 .streaming-markdown {
-  /* Optimize for frequent content changes */
-  will-change: contents;
-  /* Isolate layout to prevent jank */
-  contain: layout style;
-  /* Prevent text from jumping during render */
-  text-rendering: optimizeSpeed;
   /* Smooth font rendering */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-}
-
-/* Ensure streaming content doesn't cause layout shifts */
-.streaming-markdown > * {
-  animation: fadeInText 0.1s ease-out;
-}
-
-@keyframes fadeInText {
-  from {
-    opacity: 0.7;
-  }
-  to {
-    opacity: 1;
-  }
 }
 
 .bg-fd-foreground\/25 {
