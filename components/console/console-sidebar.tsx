@@ -31,7 +31,8 @@ import {
   HandCoins,
   ExternalLink,
   BookKey,
-  ShieldOff
+  ShieldOff,
+  Activity
 } from "lucide-react";
 
 import {
@@ -128,6 +129,11 @@ const data = {
           title: "Explorer Setup",
           url: "/console/layer-1/explorer-setup",
           icon: Telescope,
+        },
+        {
+          title: "Performance Monitor",
+          url: "/console/layer-1/performance-monitor",
+          icon: Activity,
         },
       ],
     },
