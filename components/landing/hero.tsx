@@ -262,27 +262,26 @@ function HeroSearchBox() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="w-full sm:w-auto min-w-[160px]">
-      <div
-        className={cn(
-          "group premium-button flex items-center gap-3 px-8 py-4 rounded-xl transition-all duration-300",
-          "bg-white/10 glass-effect border border-slate-200/30 dark:border-slate-700/40",
-          "hover:bg-white/20 hover:scale-[1.02]",
-          isFocused && "bg-white/20 scale-[1.02] border-slate-300/50 dark:border-slate-600/50"
-        )}
-      >
-        <Sparkles className="w-5 h-5 sm:w-5 sm:h-5 text-slate-500 dark:text-slate-400 flex-shrink-0" />
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
-          placeholder="Ask AI..."
-          className="flex-1 bg-transparent text-slate-900 dark:text-white placeholder:text-slate-500 dark:placeholder:text-slate-500 text-lg sm:text-base font-bold tracking-[-0.015em] outline-none"
-        />
-        <ArrowRight className="w-5 h-5 sm:w-5 sm:h-5 text-slate-500 dark:text-slate-400 flex-shrink-0" />
-      </div>
+    <form
+      onSubmit={handleSubmit}
+      className={cn(
+        "group premium-button inline-flex items-center justify-center gap-3 px-8 py-4 rounded-xl transition-all duration-300 min-w-[160px]",
+        "bg-white/10 glass-effect border border-slate-200/30 dark:border-slate-700/40",
+        "hover:bg-white/20 hover:scale-[1.02]",
+        isFocused && "bg-white/20 scale-[1.02] border-slate-300/50 dark:border-slate-600/50"
+      )}
+    >
+      <Sparkles className="w-6 h-6 sm:w-5 sm:h-5 text-slate-500 dark:text-slate-400 flex-shrink-0" />
+      <input
+        type="text"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => setIsFocused(false)}
+        placeholder="Ask AI..."
+        className="bg-transparent text-slate-900 dark:text-white placeholder:text-slate-500 dark:placeholder:text-slate-500 text-lg sm:text-base font-bold tracking-[-0.015em] outline-none w-20"
+      />
+      <ArrowRight className="w-6 h-6 sm:w-5 sm:h-5 text-slate-500 dark:text-slate-400 flex-shrink-0" />
     </form>
   );
 }
@@ -344,7 +343,7 @@ export default function Hero() {
                 </svg>
               </Link>
 
-              <div className="hidden sm:flex w-full sm:w-auto">
+              <div className="hidden sm:block">
                 <HeroSearchBox />
               </div>
             </div>
