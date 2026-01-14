@@ -47,6 +47,13 @@ export const menuSections: NavSection[] = [
     ],
   },
   {
+    title: 'Chat',
+    href: '/chat',
+    items: [
+      { text: 'Ask AI', href: '/chat' },
+    ],
+  },
+  {
     title: 'Console',
     href: '/console',
     items: [
@@ -115,5 +122,4 @@ export const menuSections: NavSection[] = [
  */
 export const singleItems: NavItem[] = [
   { text: 'Explorer', href: '/explorer' },
-  { text: 'Chat', href: '/chat' },
 ];
