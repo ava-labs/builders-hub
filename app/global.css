@@ -207,6 +207,50 @@ svg.lucide.lucide-folder-open {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Code block styling during streaming (before syntax highlighting kicks in) */
+.streaming-markdown pre {
+  background-color: #18181b;
+  border: 1px solid #27272a;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  overflow-x: auto;
+  margin: 1rem 0;
+}
+
+.streaming-markdown pre code {
+  background: transparent;
+  padding: 0;
+  font-size: 0.875rem;
+  line-height: 1.7;
+  color: #e4e4e7;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+/* Inline code during streaming */
+.streaming-markdown code:not(pre code) {
+  background-color: #27272a;
+  padding: 0.2em 0.4em;
+  border-radius: 0.25rem;
+  font-size: 0.875em;
+  color: #e4e4e7;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+/* Light mode streaming code blocks */
+:root:not(.dark) .streaming-markdown pre {
+  background-color: #fafafa;
+  border-color: #e4e4e7;
+}
+
+:root:not(.dark) .streaming-markdown pre code {
+  color: #18181b;
+}
+
+:root:not(.dark) .streaming-markdown code:not(pre code) {
+  background-color: #f4f4f5;
+  color: #18181b;
+}
+
 .bg-fd-foreground\/25 {
   background-color: #4bccff96;
 }

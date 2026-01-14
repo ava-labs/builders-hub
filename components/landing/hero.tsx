@@ -246,43 +246,47 @@ function RotatingText() {
   );
 }
 
+// Placeholder questions based on actual docs/academy content
+const PLACEHOLDER_QUESTIONS = [
+  "How do I create my own L1?",
+  "Deploy a smart contract on C-Chain",
+  "Send tokens between L1s with ICTT",
+  "Run a validator node",
+  "What are the staking requirements?",
+  "Set up Interchain Messaging",
+  "Use Avalanche CLI to deploy",
+  "Create a custom gas token",
+  "How does Avalanche consensus work?",
+  "Bridge tokens to my L1",
+  "Add a custom precompile",
+  "Set up a local testnet",
+];
+
 // Hero Search Box Component - matches the glassmorphism style of CTA buttons
 function HeroSearchBox() {
-  const router = useRouter();
-  const [query, setQuery] = useState("");
-  const [isFocused, setIsFocused] = useState(false);
+  const [question, setQuestion] = useState(PLACEHOLDER_QUESTIONS[0]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (query.trim()) {
-      router.push(`/chat?q=${encodeURIComponent(query.trim())}`);
-    } else {
-      router.push('/chat');
-    }
-  };
+  // Pick a random question on mount
+  useEffect(() => {
+    setQuestion(PLACEHOLDER_QUESTIONS[Math.floor(Math.random() * PLACEHOLDER_QUESTIONS.length)]);
+  }, []);
 
   return (
-    <form
-      onSubmit={handleSubmit}
+    <Link
+      href={`/chat?q=${encodeURIComponent(question)}`}
       className={cn(
-        "group premium-button inline-flex items-center justify-center gap-3 px-8 py-4 rounded-xl transition-all duration-300 min-w-[160px]",
-        "bg-white/10 glass-effect border border-slate-200/30 dark:border-slate-700/40",
-        "hover:bg-white/20 hover:scale-[1.02]",
-        isFocused && "bg-white/20 scale-[1.02] border-slate-300/50 dark:border-slate-600/50"
+        "group premium-button flex items-center gap-3 px-8 py-4 rounded-xl transition-all duration-300",
+        "w-full sm:w-[336px]",
+        "bg-white/60 dark:bg-zinc-800/80 glass-effect border border-slate-200/50 dark:border-slate-600/50",
+        "hover:bg-white/80 dark:hover:bg-zinc-800/90 hover:scale-[1.02]"
       )}
     >
       <Sparkles className="w-6 h-6 sm:w-5 sm:h-5 text-slate-500 dark:text-slate-400 flex-shrink-0" />
-      <input
-        type="text"
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        onFocus={() => setIsFocused(true)}
-        onBlur={() => setIsFocused(false)}
-        placeholder="Ask AI..."
-        className="bg-transparent text-slate-900 dark:text-white placeholder:text-slate-500 dark:placeholder:text-slate-500 text-lg sm:text-base font-bold tracking-[-0.015em] outline-none w-20"
-      />
-      <ArrowRight className="w-6 h-6 sm:w-5 sm:h-5 text-slate-500 dark:text-slate-400 flex-shrink-0" />
-    </form>
+      <span className="flex-1 text-slate-600 dark:text-slate-400 text-lg sm:text-base font-bold tracking-[-0.015em]">
+        {question}
+      </span>
+      <ArrowRight className="w-6 h-6 sm:w-5 sm:h-5 text-slate-500 dark:text-slate-400 group-hover:translate-x-1 transition-transform flex-shrink-0" />
+    </Link>
   );
 }
 

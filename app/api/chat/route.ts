@@ -630,11 +630,11 @@ export async function POST(req: Request) {
     },
     tools: {
       github_search_code: tool({
-        description: 'Search for code in the Avalanche core repositories (avalanchego and icm-services). Use this to find functions, types, implementations, or understand how Avalanche works internally. Returns file paths and code snippets.',
+        description: 'Search for code in Avalanche repositories (avalanchego, icm-services, builders-hub). Use this to find functions, types, implementations, or understand how Avalanche works internally. Returns file paths and code snippets.',
         inputSchema: z.object({
           query: z.string().describe('Search query - keywords, function names, type names, or concepts'),
-          repo: z.enum(['avalanchego', 'icm-services', 'both']).default('both').describe('Which repository to search'),
-          language: z.enum(['go', 'solidity', 'any']).default('any').describe('Filter by programming language'),
+          repo: z.enum(['avalanchego', 'icm-services', 'builders-hub', 'all']).default('all').describe('Which repository to search'),
+          language: z.enum(['go', 'solidity', 'typescript', 'any']).default('any').describe('Filter by programming language'),
         }),
         execute: async (input) => {
           const { query, repo, language } = input;
@@ -665,9 +665,9 @@ export async function POST(req: Request) {
       }),
 
       github_get_file: tool({
-        description: 'Read the contents of a specific file from avalanchego or icm-services. Use this after searching to read the full code of a relevant file.',
+        description: 'Read the contents of a specific file from avalanchego, icm-services, or builders-hub. Use this after searching to read the full code of a relevant file.',
         inputSchema: z.object({
-          repo: z.enum(['avalanchego', 'icm-services']).describe('Repository name'),
+          repo: z.enum(['avalanchego', 'icm-services', 'builders-hub']).describe('Repository name'),
           path: z.string().describe('File path within the repository (e.g., "vms/platformvm/block/builder.go")'),
         }),
         execute: async (input) => {
@@ -1451,9 +1451,10 @@ export async function POST(req: Request) {
 
 ## CODE SEARCH CAPABILITIES
 
-You have access to search and read code from the Avalanche core repositories:
+You have access to search and read code from Avalanche repositories:
 - **avalanchego**: The Go implementation of an Avalanche node (consensus, networking, VMs)
 - **icm-services**: Interchain Messaging contracts (Teleporter, ICTT, validator management)
+- **builders-hub**: This documentation site itself (React/Next.js, components, API routes)
 
 **When users ask about Avalanche internals or "how does X work":**
 1. Do 1-2 targeted searches with \`github_search_code\` to find relevant files
