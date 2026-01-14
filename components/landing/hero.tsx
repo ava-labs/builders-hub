@@ -4,9 +4,9 @@ import React, { useState, useEffect } from "react";
 import { cn } from "@/utils/cn";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { Sponsors } from '@/components/landing/globe';
-import { GraduationCap } from 'lucide-react';
-import Chatbot from '@/components/ui/chatbot';
+import { GraduationCap, Search, Sparkles } from 'lucide-react';
 
 // Premium animation styles
 const premiumStyles = `
@@ -246,6 +246,57 @@ function RotatingText() {
   );
 }
 
+// Hero Search Box Component
+function HeroSearchBox() {
+  const router = useRouter();
+  const [query, setQuery] = useState("");
+  const [isFocused, setIsFocused] = useState(false);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (query.trim()) {
+      router.push(`/chat?q=${encodeURIComponent(query.trim())}`);
+    } else {
+      router.push('/chat');
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="w-full max-w-md">
+      <div
+        className={cn(
+          "relative flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300",
+          "bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm",
+          "border border-slate-200/50 dark:border-slate-700/50",
+          "shadow-lg shadow-slate-200/50 dark:shadow-slate-900/50",
+          isFocused && "ring-2 ring-red-500/30 border-red-500/50 shadow-xl shadow-red-500/10"
+        )}
+      >
+        <Sparkles className="w-5 h-5 text-red-500 flex-shrink-0" />
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
+          placeholder="Ask anything about Avalanche..."
+          className="flex-1 bg-transparent text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 text-base outline-none"
+        />
+        <button
+          type="submit"
+          className={cn(
+            "flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-200",
+            "bg-red-500 hover:bg-red-600 text-white",
+            "hover:scale-105 active:scale-95"
+          )}
+        >
+          <Search className="w-4 h-4" />
+        </button>
+      </div>
+    </form>
+  );
+}
+
 // Extract Background Component
 export function HeroBackground() {
   return (
@@ -303,11 +354,8 @@ export default function Hero() {
                 </svg>
               </Link>
 
-              <div className="hidden sm:block">
-                <Chatbot 
-                  variant="static" 
-                  className="ml-2" 
-                />
+              <div className="hidden sm:flex w-full sm:w-auto">
+                <HeroSearchBox />
               </div>
             </div>
           </div>

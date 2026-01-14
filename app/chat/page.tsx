@@ -13,7 +13,9 @@ import {
   useEffect,
   useRef,
   useState,
+  Suspense,
 } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
   RefreshCw,
   StopCircle,
@@ -919,8 +921,12 @@ function MobileSidebarToggle({ onClick, isOpen }: { onClick: () => void; isOpen:
   );
 }
 
-// Main page component
-export default function ChatPage() {
+// Inner chat component that uses searchParams
+function ChatPageInner() {
+  const searchParams = useSearchParams();
+  const initialQuery = searchParams.get('q');
+  const hasSubmittedInitialQuery = useRef(false);
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
@@ -1150,6 +1156,14 @@ export default function ChatPage() {
     posthog.capture('ai_chat_opened', { view: 'fullscreen' });
   }, []);
 
+  // Auto-submit initial query from URL parameter
+  useEffect(() => {
+    if (initialQuery && !hasSubmittedInitialQuery.current && messages.length === 0 && status === 'ready') {
+      hasSubmittedInitialQuery.current = true;
+      sendMessage({ text: initialQuery });
+    }
+  }, [initialQuery, messages.length, status, sendMessage]);
+
   const handleNewChat = () => {
     setCurrentConversationId(null);
     setMessages([]);
@@ -1286,5 +1300,18 @@ export default function ChatPage() {
         </div>
       </div>
     </ChatContext>
+  );
+}
+
+// Main page component with Suspense boundary for useSearchParams
+export default function ChatPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-full w-full items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-zinc-400" />
+      </div>
+    }>
+      <ChatPageInner />
+    </Suspense>
   );
 }
