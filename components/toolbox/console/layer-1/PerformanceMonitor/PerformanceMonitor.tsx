@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { createPublicClient, http } from 'viem';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { Play, Square, Activity, Fuel, Blocks, Clock, AlertCircle } from "lucide-react";
 import { BlockWatcher, BlockInfo } from "./BlockWatcher";
@@ -49,6 +48,7 @@ export default function PerformanceMonitor() {
     const [dataMap, setDataMap] = useState<Map<number, BucketedData>>(new Map());
     const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
     const [recentBlocks, setRecentBlocks] = useState<BlockInfo[]>([]);
+    const [blockTimestampsMs, setBlockTimestampsMs] = useState<Map<number, number>>(new Map()); // block timestamp (sec) -> timestampMs
     const [gasLimit, setGasLimit] = useState<number | null>(null);
 
     const blockWatcherRef = useRef<BlockWatcher | null>(null);
@@ -167,21 +167,30 @@ export default function PerformanceMonitor() {
             setDataMap(new Map());
             setChartData([]);
             setRecentBlocks([]);
+            setBlockTimestampsMs(new Map());
             setGasLimit(null);
 
-            const publicClient = createPublicClient({
-                transport: http(rpcUrl),
-            });
-
             // Test connection and get gas limit from latest block
-            const latestBlock = await publicClient.getBlock({ blockTag: 'latest' });
-            setGasLimit(Number(latestBlock.gasLimit));
+            const response = await fetch(rpcUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    jsonrpc: '2.0',
+                    method: 'eth_getBlockByNumber',
+                    params: ['latest', false],
+                    id: 1
+                })
+            });
+            const json = await response.json();
+            if (json.error) throw new Error(json.error.message);
+            const latestBlock = json.result;
+            setGasLimit(Number(BigInt(latestBlock.gasLimit)));
 
-            const lastBlock = Number(latestBlock.number);
+            const lastBlock = Number(BigInt(latestBlock.number));
             const blockHistoryNum = parseInt(blockHistory);
             const startFromBlock = Math.max(lastBlock - 10, 1);
 
-            const blockWatcher = new BlockWatcher(publicClient, (blockInfo) => {
+            const blockWatcher = new BlockWatcher(rpcUrl, (blockInfo) => {
                 const bucketTime = getBucketTimestamp(blockInfo.timestamp);
 
                 setDataMap(prevMap => {
@@ -204,6 +213,13 @@ export default function PerformanceMonitor() {
                 setRecentBlocks(prevBlocks => {
                     const newBlocks = [blockInfo, ...prevBlocks];
                     return newBlocks.slice(0, 10);
+                });
+
+                // Store block timestamp in milliseconds (keyed by timestamp in seconds for range filtering)
+                setBlockTimestampsMs(prev => {
+                    const newMap = new Map(prev);
+                    newMap.set(blockInfo.timestamp, blockInfo.timestampMs);
+                    return newMap;
                 });
             });
 
@@ -236,6 +252,32 @@ export default function PerformanceMonitor() {
     const avgBlocks = chartData.length > 0
         ? chartData.reduce((sum, point) => sum + point.blockCount, 0) / chartData.length
         : 0;
+
+    // Calculate average block delay in milliseconds from blocks in visible time range
+    const avgBlockDelayMs = (() => {
+        if (chartData.length === 0) return 0;
+
+        // Get visible time range (in seconds)
+        const visibleTimestamps = chartData.map(d => d.timestamp);
+        const minTime = Math.min(...visibleTimestamps);
+        const maxTime = Math.max(...visibleTimestamps);
+
+        // Filter block timestamps to visible range and sort
+        const visibleBlockTimestampsMs = Array.from(blockTimestampsMs.entries())
+            .filter(([ts]) => ts >= minTime && ts <= maxTime + 60) // +60 to include blocks in last bucket
+            .sort((a, b) => a[1] - b[1]) // sort by timestampMs
+            .map(([, ms]) => ms);
+
+        if (visibleBlockTimestampsMs.length < 2) return 0;
+
+        // Calculate delays between consecutive blocks
+        let totalDelay = 0;
+        for (let i = 1; i < visibleBlockTimestampsMs.length; i++) {
+            totalDelay += visibleBlockTimestampsMs[i] - visibleBlockTimestampsMs[i - 1];
+        }
+
+        return totalDelay / (visibleBlockTimestampsMs.length - 1);
+    })();
 
     return (
         <div className="space-y-6">
@@ -477,7 +519,7 @@ export default function PerformanceMonitor() {
                                 <h3 className="font-medium text-zinc-900 dark:text-zinc-100">Blocks per Second</h3>
                             </div>
                             <div className="text-sm text-zinc-500 dark:text-zinc-400">
-                                Avg: <span className="text-cyan-500 font-medium">{avgBlocks.toFixed(2)}</span>
+                                Avg delay: <span className="text-cyan-500 font-medium">{avgBlockDelayMs.toFixed(0)} ms</span>
                             </div>
                         </div>
                         <ResponsiveContainer width="100%" height={220}>
