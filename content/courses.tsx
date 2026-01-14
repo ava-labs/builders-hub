@@ -48,7 +48,7 @@ const officialCourses: Course[] = [
         status: "featured",
         duration: "1 hour",
         languages: [],
-        tools: ["L1 Toolbox"],
+        tools: ["Console"],
         instructors: ["Martin Eckardt", "Ash", "Nicolas Arnedo"],
         category: "Fundamentals",
         certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/AvalancheAcademy_Certificate.pdf"
@@ -61,7 +61,7 @@ const officialCourses: Course[] = [
         status: "featured",
         duration: "2 hours",
         languages: ["JavaScript", "Typescript"],
-        tools: ["Thirdweb x402", "PayAI", "Ultravioleta DAO", "x402-rs"],
+        tools: ["Thirdweb x402"],
         instructors: ["Federico Nardelli"],
         category: "Fundamentals",
         certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/AvalancheAcademy_Certificate.pdf"
@@ -73,7 +73,7 @@ const officialCourses: Course[] = [
         icon: <MailIcon />,
         status: "featured",
         duration: "3 hours",
-        tools: ["L1 Toolbox", "Docker"],
+        tools: ["Console"],
         languages: ["Solidity"],
         instructors: ["Martin Eckardt", "Andrea Vargas", "Ash", "Nicolas Arnedo"], // + Usman
         category: "Interoperability",
@@ -99,7 +99,7 @@ const officialCourses: Course[] = [
         icon: <ArrowLeftRight />,
         status: "featured",
         duration: "2.5 hours",
-        tools: ["ICM", "Foundry"],
+        tools: ["Console"],
         languages: ["Solidity"],
         instructors: ["Martin Eckardt", "Owen Wahlgren", "Nicolas Arnedo"],
         category: "Interoperability",
@@ -112,7 +112,7 @@ const officialCourses: Course[] = [
         icon: <SquareCode />,
         duration: "4 hours",
         status: "featured",
-        tools: ["Avalanche CLI"],
+        tools: ["Remix IDE"],
         languages: ["Go"],
         instructors: ["Martin Eckardt", "Ash"],
         category: "L1 Development",
@@ -125,7 +125,7 @@ const officialCourses: Course[] = [
         icon: <Coins />,
         duration: "2 hours",
         status: "featured",
-        tools: ["Avalanche CLI", "ICM"],
+        tools: ["ICM"],
         languages: ["Solidity"],
         instructors: ["Martin Eckardt", "Owen Wahlgren", "Sarp", "Nicolas Arnedo"],
         category: "L1 Development",
@@ -204,7 +204,7 @@ const officialCourses: Course[] = [
         status: "featured",
         duration: "1 hour",
         languages: [],
-        tools: ["Entrepreneur"],
+        tools: ["Venture Foundations"],
         instructors: ["Michael Martin", "Doro Unger-Lee", "Nicolas Arnedo"],
         category: "Entrepreneur",
         certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-certificates/FillableAvalanche_EntrepreneurAcademy_Certificate_FW3V_R1.pdf"
@@ -217,7 +217,7 @@ const officialCourses: Course[] = [
         status: "featured",
         duration: "1 hour",
         languages: [],
-        tools: ["Entrepreneur"],
+        tools: ["Go-To-Market"],
         instructors: ["Michael Martin", "Doro Unger-Lee", "Nicolas Arnedo"],
         category: "Entrepreneur",
         certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-certificates/FillableAvalanche_EntrepreneurAcademy_Certificate_W3GTM_R1.pdf"
@@ -230,7 +230,7 @@ const officialCourses: Course[] = [
         status: "featured",
         duration: "1 hour",
         languages: [],
-        tools: ["Entrepreneur"],
+        tools: ["Community Building"],
         instructors: ["Michael Martin", "Doro Unger-Lee", "Nicolas Arnedo"],
         category: "Entrepreneur",
         certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-certificates/FillableAvalanche_EntrepreneurAcademy_Certificate_W3CA_R1.pdf"
@@ -243,7 +243,7 @@ const officialCourses: Course[] = [
         status: "featured",
         duration: "1 hour",
         languages: [],
-        tools: ["Entrepreneur"],
+        tools: ["Fundraising"],
         instructors: ["Michael Martin", "Doro Unger-Lee", "Nicolas Arnedo"],
         category: "Entrepreneur",
         certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-certificates/FillableAvalanche_EntrepreneurAcademy_Certificate_W3FFP_R1.pdf"
@@ -277,7 +277,7 @@ const officialCourses: Course[] = [
         slug:"hypersdk",
         icon: Blocks,
         duration: "4 hours",
-        tools: ["Avalanche-CLI"],
+        tools: [],
         languages: ["Go"]
      },*/
 ];
@@ -289,7 +289,7 @@ const ecosystemCourses: Course[] = [
         slug:"gogopool-minipool",
         icon: Blocks,
         duration: "2 hours",
-        tools: ["Avalanche-CLI"],
+        tools: [],
         languages: ["Go"]
    },
    {
@@ -298,7 +298,7 @@ const ecosystemCourses: Course[] = [
         slug:"safe-on-an-avalanche-chain",
         icon: Blocks,
         duration: "4 hours",
-        tools: ["Avalanche-CLI"],
+        tools: [],
         languages: ["Go"]
    }*/
 ];
@@ -332,6 +332,32 @@ export const getCourseNameMapping = () => {
     });
     
     return mapping;
+};
+
+// Helper function to get course durations by slug
+export const getCourseDurations = (): Record<string, string> => {
+    const durations: Record<string, string> = {};
+    
+    officialCourses.forEach(course => {
+        if (course.duration) {
+            durations[course.slug] = course.duration;
+        }
+    });
+    
+    return durations;
+};
+
+// Helper function to get course tools by slug (returns the first/main tool)
+export const getCourseTools = (): Record<string, string> => {
+    const tools: Record<string, string> = {};
+    
+    officialCourses.forEach(course => {
+        if (course.tools && course.tools.length > 0) {
+            tools[course.slug] = course.tools[0];
+        }
+    });
+    
+    return tools;
 };
 
 export default {

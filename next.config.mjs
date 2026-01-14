@@ -1811,6 +1811,43 @@ const config = {
         destination: "/docs/nodes/node-storage/periodic-state-sync",
         permanent: true,
       },
+      // Academy query parameter redirects - January 2026
+      {
+        source: "/academy",
+        has: [
+          {
+            type: 'query',
+            key: 'path',
+            value: 'avalanche-l1',
+          },
+        ],
+        destination: "/academy/avalanche-l1",
+        permanent: true,
+      },
+      {
+        source: "/academy",
+        has: [
+          {
+            type: 'query',
+            key: 'path',
+            value: 'blockchain',
+          },
+        ],
+        destination: "/academy/blockchain",
+        permanent: true,
+      },
+      {
+        source: "/academy",
+        has: [
+          {
+            type: 'query',
+            key: 'path',
+            value: 'entrepreneur',
+          },
+        ],
+        destination: "/academy/entrepreneur",
+        permanent: true,
+      },
       {
         source: "/academy/avalanche-l1/interchain-token-transfer",
         destination: "/academy/avalanche-l1/native-token-bridge",

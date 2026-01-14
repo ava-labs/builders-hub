@@ -1,4 +1,4 @@
-import { BookOpen, ArrowLeftRight, Layers, Coins, Code, Shield } from 'lucide-react';
+import { BookOpen, ArrowLeftRight, Layers, Coins, Code } from 'lucide-react';
 import type { CourseNode } from '../learning-tree';
 
 export const avalancheLearningPaths: CourseNode[] = [
@@ -57,6 +57,7 @@ export const avalancheLearningPaths: CourseNode[] = [
     },
     // Third Layer - Advanced topics
     {
+<<<<<<< HEAD:components/academy/learning-path-configs/avalanche.config.ts
         id: "erc20-bridge",
         name: "ERC20 Bridge",
         description: "Bridge ERC20 tokens between chains using Interchain Token Transfer",
@@ -74,6 +75,25 @@ export const avalancheLearningPaths: CourseNode[] = [
         category: "Interoperability",
         dependencies: ["erc20-bridge", "l1-native-tokenomics"],
         position: { x: 50, y: 525 },
+=======
+        id: "interchain-token-transfer",
+        name: "Interchain Token Transfer",
+        description: "Transfer assets between chains using Interchain Messaging",
+        slug: "avalanche-l1/interchain-token-transfer",
+        category: "Interoperability",
+        dependencies: ["interchain-messaging"],
+        position: { x: 82.5, y: 400 },
+        mobileOrder: 4
+    },
+    {
+        id: "erc20-to-erc20-bridge",
+        name: "ERC20 to ERC20 Bridge",
+        description: "Bridge ERC20 tokens between chains using Interchain Token Transfer",
+        slug: "avalanche-l1/erc20-bridge",
+        category: "Interoperability",
+        dependencies: ["interchain-messaging", "l1-native-tokenomics"],
+        position: { x: 52.5, y: 400 },
+>>>>>>> origin/master:components/academy/learning-path-configs/avalanche.config.tsx
         mobileOrder: 5
     },
     {
@@ -83,7 +103,11 @@ export const avalancheLearningPaths: CourseNode[] = [
         slug: "avalanche-l1/permissionless-l1s",
         category: "L1 Development",
         dependencies: ["permissioned-l1s", "l1-native-tokenomics"],
+<<<<<<< HEAD:components/academy/learning-path-configs/avalanche.config.ts
         position: { x: 25, y: 375 },
+=======
+        position: { x: 22.5, y: 400 },
+>>>>>>> origin/master:components/academy/learning-path-configs/avalanche.config.tsx
         mobileOrder: 8
     },
 ];
