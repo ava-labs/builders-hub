@@ -3,11 +3,12 @@ import { Check, Trash2, ChevronRight, ChevronDown } from 'lucide-react'
 import { L1ListItem } from '@/components/toolbox/stores/l1ListStore'
 import { ChainLogo } from './ChainLogo'
 import { useState } from 'react'
+import { useWalletStore } from '@/components/toolbox/stores/walletStore'
 
 interface NetworkMenuItemProps {
   network: L1ListItem
   isActive: boolean
-  onSelect: (network: L1ListItem) => void
+  onSelect: (network: L1ListItem, tokenAddress?: string | null) => void
   isEditMode?: boolean
   onRemove?: (network: L1ListItem) => void
   balance?: number | string
@@ -26,7 +27,9 @@ export function NetworkMenuItem({
   balance = 0
 }: NetworkMenuItemProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const { selectedToken } = useWalletStore();
   const hasTokens = network.wellKnownERC20s && network.wellKnownERC20s.length > 0;
+  const isTokenSelected = isActive && selectedToken !== null;
 
   const formatBalance = (balance: number | string) => {
     const num = typeof balance === 'string' ? parseFloat(balance) : balance
@@ -41,12 +44,25 @@ export function NetworkMenuItem({
       onRemove(network)
     } else if (!isEditMode) {
       if (hasTokens) {
-        // If network has tokens, toggle expansion instead of selecting
+        // If network has tokens, toggle expansion
         setIsExpanded(!isExpanded);
       } else {
-        onSelect(network)
+        // Select network with native token (null)
+        onSelect(network, null)
       }
     }
+  }
+  
+  const handleTokenSelect = (tokenAddress: string) => (e: Event) => {
+    e.preventDefault();
+    onSelect(network, tokenAddress);
+    setIsExpanded(false); // Collapse after selection
+  }
+  
+  const handleNativeSelect = (e: Event) => {
+    e.preventDefault();
+    onSelect(network, null); // null means native token
+    setIsExpanded(false);
   }
 
   const canRemove = isEditMode && !isCChain(network.evmChainId)
@@ -85,39 +101,60 @@ export function NetworkMenuItem({
               <ChevronDown className="w-4 h-4 text-muted-foreground" /> : 
               <ChevronRight className="w-4 h-4 text-muted-foreground" />
           )}
-          {!isEditMode && isActive && !hasTokens && (
+          {!isEditMode && isActive && !isTokenSelected && !hasTokens && (
             <Check className="w-4 h-4 text-green-600" />
           )}
         </div>
       </DropdownMenuItem>
       
-      {/* Show tokens when expanded */}
-      {!isEditMode && hasTokens && isExpanded && network.wellKnownERC20s?.map((token) => (
-        <DropdownMenuItem
-          key={token.address}
-          onSelect={(e) => {
-            e.preventDefault();
-            onSelect(network); // Select the parent network
-            // Could add token-specific logic here if needed
-          }}
-          className="pl-12 pr-3 py-2 cursor-pointer"
-        >
-          <div className="flex items-center gap-2 flex-1">
-            <img 
-              src={token.logoUrl} 
-              alt={token.symbol} 
-              className="w-4 h-4 rounded-full"
-              onError={(e) => {
-                (e.target as HTMLImageElement).style.display = 'none';
-              }}
-            />
-            <div className="flex flex-col">
-              <span className="text-sm font-medium">{token.symbol}</span>
-              <span className="text-xs text-muted-foreground">{token.name}</span>
+      {/* Show native token + ERC20 tokens when expanded */}
+      {!isEditMode && hasTokens && isExpanded && (
+        <>
+          {/* Native token option */}
+          <DropdownMenuItem
+            onSelect={handleNativeSelect}
+            className="pl-12 pr-3 py-2 cursor-pointer"
+          >
+            <div className="flex items-center gap-2 flex-1">
+              <ChainLogo logoUrl={network.logoUrl} chainName={network.name} className="w-4 h-4" />
+              <div className="flex flex-col flex-1">
+                <span className="text-sm font-medium">{network.coinName}</span>
+                <span className="text-xs text-muted-foreground">Native Token</span>
+              </div>
+              {isActive && selectedToken === null && (
+                <Check className="w-4 h-4 text-green-600" />
+              )}
             </div>
-          </div>
-        </DropdownMenuItem>
-      ))}
+          </DropdownMenuItem>
+          
+          {/* ERC20 tokens */}
+          {network.wellKnownERC20s?.map((token) => (
+            <DropdownMenuItem
+              key={token.address}
+              onSelect={handleTokenSelect(token.address)}
+              className="pl-12 pr-3 py-2 cursor-pointer"
+            >
+              <div className="flex items-center gap-2 flex-1">
+                <img 
+                  src={token.logoUrl} 
+                  alt={token.symbol} 
+                  className="w-4 h-4 rounded-full"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
+                />
+                <div className="flex flex-col flex-1">
+                  <span className="text-sm font-medium">{token.symbol}</span>
+                  <span className="text-xs text-muted-foreground">{token.name}</span>
+                </div>
+                {isActive && selectedToken === token.address && (
+                  <Check className="w-4 h-4 text-green-600" />
+                )}
+              </div>
+            </DropdownMenuItem>
+          ))}
+        </>
+      )}
     </>
   )
 }
