@@ -92,9 +92,15 @@ export function EmbeddedPanel({ reference, onClose, className }: EmbeddedPanelPr
   if (!reference) return null;
 
   const typeInfo = getEmbedTypeInfo(reference.type);
-  const fullUrl = reference.url.startsWith('http')
+
+  // Build URL with embed query parameter to trigger embed-specific styling
+  const baseUrl = reference.url.startsWith('http')
     ? reference.url
     : `${typeof window !== 'undefined' ? window.location.origin : ''}${reference.url}`;
+
+  const fullUrl = new URL(baseUrl, typeof window !== 'undefined' ? window.location.origin : 'http://localhost');
+  fullUrl.searchParams.set('embed', 'true');
+  const embedUrl = fullUrl.toString();
 
   return (
     <div className={cn("flex flex-col h-full bg-background", className)}>
@@ -110,7 +116,7 @@ export function EmbeddedPanel({ reference, onClose, className }: EmbeddedPanelPr
         </div>
         <div className="flex items-center gap-1 shrink-0">
           <a
-            href={fullUrl}
+            href={baseUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
@@ -144,7 +150,7 @@ export function EmbeddedPanel({ reference, onClose, className }: EmbeddedPanelPr
             <div className="text-center p-6">
               <p className="text-sm text-muted-foreground mb-4">{error}</p>
               <a
-                href={fullUrl}
+                href={baseUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
@@ -156,7 +162,7 @@ export function EmbeddedPanel({ reference, onClose, className }: EmbeddedPanelPr
           </div>
         ) : (
           <iframe
-            src={fullUrl}
+            src={embedUrl}
             className="w-full h-full border-0"
             onLoad={() => setIsLoading(false)}
             onError={() => {

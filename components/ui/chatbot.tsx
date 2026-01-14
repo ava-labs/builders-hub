@@ -12,6 +12,12 @@ interface ChatbotProps {
 const Chatbot: React.FC<ChatbotProps> = ({ variant = "fixed", className }) => {
   const pathname = usePathname();
   const isStatsPage = pathname?.startsWith("/stats");
+  const isChatPage = pathname === "/chat";
+
+  // Don't render on /chat page - it already IS the chat
+  if (variant === "fixed" && isChatPage) {
+    return null;
+  }
 
   return (
     <AISearchTrigger

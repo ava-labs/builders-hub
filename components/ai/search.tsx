@@ -30,7 +30,10 @@ import {
   type DialogProps,
   DialogTitle,
 } from '@radix-ui/react-dialog';
-import { type Message, useChat, type UseChatHelpers } from '@ai-sdk/react';
+import { type UIMessage, useChat, type UseChatHelpers } from '@ai-sdk/react';
+
+// Type alias for backward compatibility
+type Message = UIMessage;
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import dynamic from 'next/dynamic';
 import { useIsMobile } from '../../hooks/use-mobile';
@@ -42,13 +45,13 @@ const Mermaid = dynamic(() => import('@/components/content-design/mermaid'), {
   ssr: false,
 });
 
-const ChatContext = createContext<UseChatHelpers | null>(null);
+const ChatContext = createContext<UseChatHelpers<Message> | null>(null);
 function useChatContext() {
   return use(ChatContext)!;
 }
 
 function SearchAIActions() {
-  const { messages, status, setMessages, reload } = useChatContext();
+  const { messages, status, setMessages, regenerate } = useChatContext();
   const isLoading = status === 'streaming';
 
   if (messages.length === 0) return null;
@@ -68,7 +71,7 @@ function SearchAIActions() {
             posthog.capture('ai_chat_regenerate', {
               message_count: messages.length,
             });
-            reload();
+            regenerate();
           }}
         >
           <RefreshCw className="size-3.5" />
@@ -98,17 +101,20 @@ function SearchAIActions() {
 }
 
 function SearchAIInput(props: FormHTMLAttributes<HTMLFormElement>) {
-  const { status, input, setInput, handleSubmit, stop } = useChatContext();
+  const { status, sendMessage, stop } = useChatContext();
+  const [inputValue, setInputValue] = useState('');
   const isLoading = status === 'streaming' || status === 'submitted';
+
   const onStart = (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (input.trim()) {
+    if (inputValue.trim()) {
       posthog.capture('ai_chat_message_sent', {
-        query_length: input.length,
-        query: input.substring(0, 100), // First 100 chars for privacy
+        query_length: inputValue.length,
+        query: inputValue.substring(0, 100), // First 100 chars for privacy
       });
+      sendMessage({ text: inputValue });
+      setInputValue('');
     }
-    handleSubmit(e);
   };
 
   useEffect(() => {
@@ -126,12 +132,12 @@ function SearchAIInput(props: FormHTMLAttributes<HTMLFormElement>) {
     >
       <div className="flex-1 relative flex items-end bg-transparent border-0 group w-full">
         <Input
-          value={input}
+          value={inputValue}
           placeholder="Ask anything..."
           className="w-full px-4 py-4 text-lg bg-transparent border-b border-border/20 focus:border-blue-500/50 rounded-none transition-all min-h-[50px] placeholder:text-muted-foreground/30 resize-none"
           disabled={status === 'streaming' || status === 'submitted'}
           onChange={(e) => {
-            setInput(e.target.value);
+            setInputValue(e.target.value);
           }}
           onKeyDown={(event) => {
             if (!event.shiftKey && event.key === 'Enter') {
@@ -146,11 +152,11 @@ function SearchAIInput(props: FormHTMLAttributes<HTMLFormElement>) {
             'absolute right-2 bottom-3 p-2 rounded-full transition-all shrink-0',
             isLoading
               ? 'bg-transparent text-muted-foreground'
-              : input.length > 0
+              : inputValue.length > 0
                 ? 'bg-blue-600 text-white hover:bg-blue-700 hover:scale-110 shadow-lg shadow-blue-500/20'
                 : 'text-muted-foreground/30 cursor-not-allowed',
           )}
-          disabled={!isLoading && input.length === 0}
+          disabled={!isLoading && inputValue.length === 0}
           onClick={isLoading ? stop : undefined}
         >
           {isLoading ? (
@@ -305,12 +311,20 @@ function Message({ message, isLast, onFollowUpClick, isStreaming, onRefSelect }:
   const isUser = message.role === 'user';
   const isMobile = useIsMobile();
 
+  // Extract text from message (v6 uses parts array, not content)
+  const messageContent = 'parts' in message
+    ? message.parts
+        .filter((p: any): p is { type: 'text'; text: string } => p.type === 'text')
+        .map((p: any) => p.text)
+        .join('')
+    : (message as any).content || '';
+
   // Parse content immediately
-  const cleanContent = isUser ? message.content : removeFollowUpQuestions(message.content);
-  const followUpQuestions = isUser ? [] : parseFollowUpQuestions(message.content);
+  const cleanContent = isUser ? messageContent : removeFollowUpQuestions(messageContent);
+  const followUpQuestions = isUser ? [] : parseFollowUpQuestions(messageContent);
 
   // Extract embeddable links from this message
-  const embeddableLinks = isUser ? [] : extractEmbeddableLinks(message.content);
+  const embeddableLinks = isUser ? [] : extractEmbeddableLinks(messageContent);
 
   if (isUser) {
     // User message - right aligned
@@ -572,23 +586,37 @@ export default function AISearch(props: DialogProps & { onToolSelect?: (toolId: 
   );
 }
 
+// Helper to extract text content from AI SDK v6 message
+// In v6, messages have 'parts' array instead of 'content'
+function getMessageText(message: Message | any): string {
+  // Handle direct UIMessage
+  if (message && typeof message === 'object') {
+    // Check if it's a UIMessage with parts
+    if ('parts' in message) {
+      return message.parts
+        .filter((p: any): p is { type: 'text'; text: string } => p.type === 'text')
+        .map((p: any) => p.text)
+        .join('');
+    }
+    // Legacy content field
+    if ('content' in message && typeof message.content === 'string') {
+      return message.content;
+    }
+  }
+  if (typeof message === 'string') return message;
+  return '';
+}
+
 function SmallViewContent({ onExpand }: { onExpand: () => void }) {
   const chat = useChat({
     id: 'search',
-    streamProtocol: 'data',
-    sendExtraMessageFields: true,
-    body: {
-      // Pass PostHog distinct ID for server-side LLM analytics
-      id: typeof window !== 'undefined' ? posthog.get_distinct_id() : undefined,
+    onError(error) {
+      console.error('Chat error:', error);
     },
-    onResponse(response) {
-      if (response.status === 401) {
-        console.error(response.statusText);
-      }
-    },
-    onFinish(message) {
+    onFinish({ message }) {
+      const messageText = getMessageText(message);
       posthog.capture('ai_chat_response_received', {
-        response_length: message.content.length,
+        response_length: messageText.length,
         message_count: chat.messages.length + 1,
         view: 'small',
       });
@@ -668,10 +696,7 @@ function SmallViewContent({ onExpand }: { onExpand: () => void }) {
                   posthog.capture('ai_chat_followup_clicked', {
                     question: question,
                   });
-                  await chat.append({
-                    content: question,
-                    role: 'user',
-                  });
+                  await chat.sendMessage({ text: question });
                 }}
                 isStreaming={status === 'streaming' && index === messages.length - 1 && item.role === 'assistant'}
               />
@@ -722,26 +747,19 @@ function Content({ onRefSelect, onLinksDetected, onCollapse }: {
 }) {
   const chat = useChat({
     id: 'search',
-    streamProtocol: 'data',
-    sendExtraMessageFields: true,
-    body: {
-      // Pass PostHog distinct ID for server-side LLM analytics
-      id: typeof window !== 'undefined' ? posthog.get_distinct_id() : undefined,
+    onError(error) {
+      console.error('Chat error:', error);
     },
-    onResponse(response) {
-      if (response.status === 401) {
-        console.error(response.statusText);
-      }
-    },
-    onFinish(message) {
+    onFinish({ message }) {
+      const messageText = getMessageText(message);
       // Track when AI response is complete
       posthog.capture('ai_chat_response_received', {
-        response_length: message.content.length,
+        response_length: messageText.length,
         message_count: chat.messages.length + 1,
       });
 
       // Detect embeddable links in the response
-      const links = extractEmbeddableLinks(message.content);
+      const links = extractEmbeddableLinks(messageText);
       if (links.length > 0 && onLinksDetected) {
         onLinksDetected(links);
       }
@@ -749,7 +767,7 @@ function Content({ onRefSelect, onLinksDetected, onCollapse }: {
   });
 
   const messages = chat.messages.filter((msg) => msg.role !== 'system');
-  const { status, append } = chat;
+  const { status, sendMessage } = chat;
   const isLoading = status === 'streaming';
 
   // Track chat opened
@@ -773,10 +791,7 @@ function Content({ onRefSelect, onLinksDetected, onCollapse }: {
     posthog.capture('ai_chat_suggested_question_clicked', {
       question: question,
     });
-    await append({
-      content: question,
-      role: 'user',
-    });
+    await sendMessage({ text: question });
   };
 
   return (

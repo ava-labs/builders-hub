@@ -22,7 +22,7 @@ import {
   PanelLeftClose,
   PanelLeft,
   Trash2,
-  ExternalLink,
+  Home,
   Moon,
   Sun,
   ChevronRight,
@@ -36,11 +36,31 @@ import { createProcessor, type Processor } from '@/components/ai/markdown-proces
 import { MessageFeedback } from '@/components/ai/feedback';
 import { EmbeddedPanel, EmbeddedLinkNav, extractEmbeddableLinks, type EmbeddedReference } from '@/components/ai/embedded-panel';
 import Link from 'fumadocs-core/link';
-import { type Message, useChat, type UseChatHelpers } from '@ai-sdk/react';
+import { type UIMessage, useChat, type UseChatHelpers } from '@ai-sdk/react';
+
+// In v6, UIMessage has 'parts' array instead of 'content'
+// Create a compatible Message type for our app
+type Message = UIMessage;
+
+// Helper to extract text content from UIMessage parts
+function extractTextFromMessage(message: UIMessage): string {
+  if ('content' in message && typeof (message as any).content === 'string') {
+    // Legacy format
+    return (message as any).content;
+  }
+  if (message.parts) {
+    return message.parts
+      .filter((p): p is { type: 'text'; text: string } => p.type === 'text')
+      .map(p => p.text)
+      .join('');
+  }
+  return '';
+}
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import dynamic from 'next/dynamic';
-import React from 'react';
+import React, { useMemo } from 'react';
 import 'katex/dist/katex.min.css';
+import { marked } from 'marked';
 import posthog from 'posthog-js';
 import { useTheme } from 'next-themes';
 import { useSession, signOut } from 'next-auth/react';
@@ -79,6 +99,7 @@ interface Conversation {
 }
 
 // Convert DB conversation to local format
+// In v6, messages need 'parts' array instead of 'content'
 function dbToLocalConversation(db: DbConversation): Conversation {
   return {
     id: db.id,
@@ -86,15 +107,15 @@ function dbToLocalConversation(db: DbConversation): Conversation {
     messages: db.messages.map(m => ({
       id: m.id,
       role: m.role as 'user' | 'assistant',
-      content: m.content,
+      parts: [{ type: 'text' as const, text: m.content }],
     })),
     createdAt: new Date(db.created_at).getTime(),
     updatedAt: new Date(db.updated_at).getTime(),
   };
 }
 
-// Chat context
-const ChatContext = createContext<UseChatHelpers | null>(null);
+// Chat context - use any to avoid complex generic issues with AI SDK v6
+const ChatContext = createContext<UseChatHelpers<Message> | null>(null);
 function useChatContext() {
   return use(ChatContext)!;
 }
@@ -119,6 +140,66 @@ function removeFollowUpQuestions(content: string): string {
     .replace(/---FOLLOW-UP-QUESTIONS---[\s\S]*?---END-FOLLOW-UP-QUESTIONS---/g, '')
     .replace(/---FOLLOW-UP-QUESTIONS---[\s\S]*$/g, '')
     .trim();
+}
+
+// Remove AI "thinking" patterns that shouldn't be shown to users
+function removeThinkingPatterns(content: string): string {
+  if (!content) return '';
+
+  // Patterns that indicate AI is thinking/searching (common prefixes)
+  const thinkingPatterns = [
+    // Search/lookup patterns
+    /^I'll search for[^.]*\.\s*/i,
+    /^Let me search[^.]*\.\s*/i,
+    /^I'll look for[^.]*\.\s*/i,
+    /^Let me look[^.]*\.\s*/i,
+    /^I'll find[^.]*\.\s*/i,
+    /^Let me find[^.]*\.\s*/i,
+    /^Searching for[^.]*\.\s*/i,
+    /^Looking for[^.]*\.\s*/i,
+    // Information gathering patterns
+    /^I'll gather[^.]*\.\s*/i,
+    /^Let me gather[^.]*\.\s*/i,
+    /^I'll check[^.]*\.\s*/i,
+    /^Let me check[^.]*\.\s*/i,
+    // Analysis patterns
+    /^Based on my search[^,]*,\s*/i,
+    /^After searching[^,]*,\s*/i,
+    /^From my search[^,]*,\s*/i,
+    // More specific patterns the user reported
+    /^I'll search for information about[^.]*\.\s*/i,
+    /^Let me search more broadly[^.]*[.:]\s*/i,
+    /^Based on my search of the[^,]*,\s*/i,
+  ];
+
+  let cleaned = content;
+  for (const pattern of thinkingPatterns) {
+    cleaned = cleaned.replace(pattern, '');
+  }
+
+  return cleaned;
+}
+
+// Helper to extract text content from AI SDK v6 message
+// In v6, messages have 'parts' array instead of 'content'
+function getMessageText(message: Message | any): string {
+  // Handle direct UIMessage
+  if (message && typeof message === 'object') {
+    // Check if it's a UIMessage with parts
+    if ('parts' in message) {
+      return extractTextFromMessage(message);
+    }
+    // Legacy content field
+    if ('content' in message && typeof message.content === 'string') {
+      return message.content;
+    }
+    // Direct content value passed (legacy usage)
+    if (typeof message === 'string') {
+      return message;
+    }
+  }
+  if (typeof message === 'string') return message;
+  return '';
 }
 
 function Pre(props: ComponentProps<'pre'>) {
@@ -156,6 +237,31 @@ function Markdown({ text }: { text: string }) {
   return <>{rendered || text}</>;
 }
 
+// Configure marked for streaming - synchronous and fast
+marked.setOptions({
+  gfm: true,
+  breaks: true,
+});
+
+// Fast streaming markdown using marked (synchronous)
+function StreamingMarkdown({ text }: { text: string }) {
+  const html = useMemo(() => {
+    if (!text) return '';
+    try {
+      return marked.parse(text, { async: false }) as string;
+    } catch {
+      return text;
+    }
+  }, [text]);
+
+  return (
+    <div
+      className="streaming-markdown"
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
+  );
+}
+
 // Auto-growing textarea (resizes based on content, not draggable)
 function TextareaInput(props: TextareaHTMLAttributes<HTMLTextAreaElement> & { className?: string }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -183,27 +289,18 @@ function TextareaInput(props: TextareaHTMLAttributes<HTMLTextAreaElement> & { cl
   );
 }
 
-// AI Avatar with theme-aware logo
+// AI Avatar with Avalanche logo
 function AIAvatar({ size = 'md' }: { size?: 'sm' | 'md' }) {
-  const { resolvedTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
   const sizeClasses = size === 'sm' ? 'w-6 h-6' : 'w-8 h-8';
-  const imgClasses = size === 'sm' ? 'h-3' : 'h-4';
+  const imgClasses = size === 'sm' ? 'h-4' : 'h-5';
 
   return (
     <div className={cn(sizeClasses, "rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center")}>
-      {mounted && (
-        <img
-          src={resolvedTheme === 'dark' ? '/logo-white.png' : '/logo-black.png'}
-          alt="AI"
-          className={cn(imgClasses, "object-contain")}
-        />
-      )}
+      <img
+        src="/small-logo.png"
+        alt="AI"
+        className={cn(imgClasses, "object-contain")}
+      />
     </div>
   );
 }
@@ -243,16 +340,18 @@ function ChatMessage({ message, isLast, onFollowUpClick, isStreaming, onRefSelec
   onRefSelect?: (ref: EmbeddedReference) => void;
 }) {
   const isUser = message.role === 'user';
-  const cleanContent = isUser ? message.content : removeFollowUpQuestions(message.content);
-  const followUpQuestions = isUser ? [] : parseFollowUpQuestions(message.content);
-  const embeddableLinks = isUser ? [] : extractEmbeddableLinks(message.content);
+  const textContent = getMessageText(message);
+  // For assistant messages: remove follow-up questions and thinking patterns
+  const cleanContent = isUser ? textContent : removeThinkingPatterns(removeFollowUpQuestions(textContent));
+  const followUpQuestions = isUser ? [] : parseFollowUpQuestions(textContent);
+  const embeddableLinks = isUser ? [] : extractEmbeddableLinks(textContent);
 
   if (isUser) {
     return (
       <div className="flex justify-end mb-6">
         <div className="max-w-[85%] lg:max-w-[70%]">
-          <div className="bg-zinc-200 dark:bg-zinc-700 rounded-3xl px-5 py-3">
-            <p className="text-[15px] leading-relaxed whitespace-pre-wrap">{cleanContent}</p>
+          <div className="bg-zinc-200 dark:bg-zinc-700 rounded-3xl px-5 py-3 overflow-hidden">
+            <p className="text-[15px] leading-relaxed whitespace-pre-wrap break-words">{cleanContent}</p>
           </div>
         </div>
       </div>
@@ -267,7 +366,13 @@ function ChatMessage({ message, isLast, onFollowUpClick, isStreaming, onRefSelec
         </div>
         <div className="flex-1 min-w-0">
           <div className="prose prose-zinc dark:prose-invert max-w-none prose-p:leading-relaxed prose-pre:bg-zinc-900 prose-pre:border prose-pre:border-zinc-800 [&_.katex-display]:overflow-x-auto [&_.katex]:text-sm">
-            <Markdown text={cleanContent} />
+            {isStreaming ? (
+              // During streaming: fast synchronous markdown with marked
+              <StreamingMarkdown text={cleanContent} />
+            ) : (
+              // After streaming: full markdown with syntax highlighting & KaTeX
+              <Markdown text={cleanContent} />
+            )}
           </div>
 
           {/* Show clickable links to embedded content */}
@@ -343,7 +448,7 @@ function MessageList({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <div ref={containerRef} className="flex-1 overflow-y-auto overscroll-contain">
+    <div ref={containerRef} className="flex-1 overflow-y-auto overscroll-contain scrollbar-hide">
       {children}
     </div>
   );
@@ -351,19 +456,21 @@ function MessageList({ children }: { children: ReactNode }) {
 
 // Chat input
 function ChatInput() {
-  const { status, input, setInput, handleSubmit, stop } = useChatContext();
+  const { status, sendMessage, stop } = useChatContext();
+  const [inputValue, setInputValue] = useState('');
   const isLoading = status === 'streaming' || status === 'submitted';
 
   const onSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (input.trim()) {
+    if (inputValue.trim()) {
       posthog.capture('ai_chat_message_sent', {
-        query_length: input.length,
-        query: input.substring(0, 100),
+        query_length: inputValue.length,
+        query: inputValue.substring(0, 100),
         view: 'fullscreen',
       });
+      sendMessage({ text: inputValue });
+      setInputValue('');
     }
-    handleSubmit(e);
   };
 
   return (
@@ -371,11 +478,11 @@ function ChatInput() {
       <form onSubmit={onSubmit} className="relative">
         <div className="relative flex items-end bg-zinc-100 dark:bg-zinc-800 rounded-3xl border border-zinc-200 dark:border-zinc-700">
           <TextareaInput
-            value={input}
+            value={inputValue}
             placeholder="Message Avalanche AI..."
             className="w-full px-5 py-4 pr-14 text-[15px]"
             disabled={isLoading}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={(event) => {
               if (!event.shiftKey && event.key === 'Enter') {
                 onSubmit();
@@ -386,12 +493,12 @@ function ChatInput() {
           <button
             type={isLoading ? 'button' : 'submit'}
             onClick={isLoading ? stop : undefined}
-            disabled={!isLoading && input.length === 0}
+            disabled={!isLoading && inputValue.length === 0}
             className={cn(
               "absolute right-3 bottom-3 p-2 rounded-full transition-all",
               isLoading
                 ? "bg-zinc-300 dark:bg-zinc-600 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-400 dark:hover:bg-zinc-500"
-                : input.length > 0
+                : inputValue.length > 0
                   ? "bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 hover:bg-zinc-700 dark:hover:bg-zinc-200"
                   : "bg-zinc-300 dark:bg-zinc-600 text-zinc-400 dark:text-zinc-500 cursor-not-allowed"
             )}
@@ -409,7 +516,7 @@ function ChatInput() {
 
 // Chat actions
 function ChatActions() {
-  const { messages, status, setMessages, reload } = useChatContext();
+  const { messages, status, setMessages, regenerate } = useChatContext();
   const isLoading = status === 'streaming';
   if (messages.length === 0) return null;
 
@@ -418,7 +525,7 @@ function ChatActions() {
       {!isLoading && messages.at(-1)?.role === 'assistant' && (
         <button
           type="button"
-          onClick={() => { posthog.capture('ai_chat_regenerate'); reload(); }}
+          onClick={() => { posthog.capture('ai_chat_regenerate'); regenerate(); }}
           className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
           <RefreshCw className="w-4 h-4" />
@@ -431,29 +538,75 @@ function ChatActions() {
 
 // Dynamic greeting messages
 const GREETING_MESSAGES = [
-  "Ready to build something great?",
-  "What are we shipping today?",
-  "Let's build on Avalanche",
-  "Time to deploy some contracts?",
-  "Ready to launch your L1?",
-  "What's on your mind?",
-  "Let's get building",
-  "Need help with your project?",
-  "What can I help you build?",
-  "Let's make something awesome",
+  "what are we shipping today?",
+  "ready to build something great?",
+  "let's build on Avalanche",
+  "time to deploy some contracts?",
+  "ready to launch your L1?",
+  "what's on your mind?",
+  "let's get building",
+  "need help with your project?",
+  "what can I help you build?",
+  "let's make something awesome",
 ];
 
+// Suggested starter questions
+const SUGGESTED_QUESTIONS = [
+  "How do I deploy a smart contract on Avalanche?",
+  "What's the difference between C-Chain and an L1?",
+  "How do I create my own Avalanche L1?",
+  "Explain Avalanche consensus mechanism",
+];
+
+// Typewriter hook for cycling through messages
+function useTypewriter(messages: string[], typingSpeed = 50, pauseDuration = 3000) {
+  const [messageIndex, setMessageIndex] = useState(0);
+  const [displayText, setDisplayText] = useState('');
+  const [isTyping, setIsTyping] = useState(true);
+
+  useEffect(() => {
+    const currentMessage = messages[messageIndex];
+
+    if (isTyping) {
+      // Typing phase
+      if (displayText.length < currentMessage.length) {
+        const timeout = setTimeout(() => {
+          setDisplayText(currentMessage.slice(0, displayText.length + 1));
+        }, typingSpeed);
+        return () => clearTimeout(timeout);
+      } else {
+        // Finished typing, pause before next message
+        const timeout = setTimeout(() => {
+          setIsTyping(false);
+        }, pauseDuration);
+        return () => clearTimeout(timeout);
+      }
+    } else {
+      // Erasing phase - quick erase then move to next
+      if (displayText.length > 0) {
+        const timeout = setTimeout(() => {
+          setDisplayText(displayText.slice(0, -1));
+        }, typingSpeed / 2);
+        return () => clearTimeout(timeout);
+      } else {
+        // Move to next message
+        setMessageIndex((prev) => (prev + 1) % messages.length);
+        setIsTyping(true);
+      }
+    }
+  }, [displayText, isTyping, messageIndex, messages, typingSpeed, pauseDuration]);
+
+  return { displayText, isTyping };
+}
+
 // Empty state
-function EmptyState({ userName }: { userName?: string | null }) {
+function EmptyState({ userName, onSuggestionClick }: { userName?: string | null; onSuggestionClick: (question: string) => void }) {
   const { resolvedTheme } = useTheme();
-  const [greeting, setGreeting] = useState('');
   const [mounted, setMounted] = useState(false);
+  const { displayText, isTyping } = useTypewriter(GREETING_MESSAGES, 40, 10000);
 
   useEffect(() => {
     setMounted(true);
-    // Pick a random greeting on mount
-    const randomIndex = Math.floor(Math.random() * GREETING_MESSAGES.length);
-    setGreeting(GREETING_MESSAGES[randomIndex]);
   }, []);
 
   // Get first name from full name
@@ -474,19 +627,47 @@ function EmptyState({ userName }: { userName?: string | null }) {
         </div>
 
         {/* Greeting */}
-        <h1 className="text-3xl sm:text-4xl font-light tracking-tight text-foreground/90 mb-2">
+        <h1 className="text-3xl sm:text-4xl font-light tracking-tight text-foreground/90 mb-8">
           {firstName ? (
-            <>Hi {firstName}, <span className="text-muted-foreground">{greeting.toLowerCase()}</span></>
+            <>
+              Hi {firstName},{' '}
+              <span className="text-muted-foreground">
+                {displayText}
+                <span className="inline-block w-[2px] h-[1em] bg-muted-foreground/60 ml-0.5 align-middle animate-pulse" />
+              </span>
+            </>
           ) : (
-            <span className="text-muted-foreground">{greeting}</span>
+            <span className="text-muted-foreground">
+              {displayText}
+              <span className="inline-block w-[2px] h-[1em] bg-muted-foreground/60 ml-0.5 align-middle animate-pulse" />
+            </span>
           )}
         </h1>
+
+        {/* Suggested questions */}
+        <div className="flex flex-wrap justify-center gap-2">
+          {SUGGESTED_QUESTIONS.map((question, index) => (
+            <button
+              key={index}
+              onClick={() => onSuggestionClick(question)}
+              className={cn(
+                "px-4 py-2.5 text-sm rounded-full",
+                "bg-zinc-100 dark:bg-zinc-800 text-muted-foreground",
+                "hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:text-foreground",
+                "border border-zinc-200 dark:border-zinc-700",
+                "transition-all duration-200"
+              )}
+            >
+              {question}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );
 }
 
-// Sidebar
+// Simple Sidebar - expands/collapses with consistent spatial layout
 function Sidebar({
   isOpen,
   onToggle,
@@ -534,145 +715,219 @@ function Sidebar({
       {/* Sidebar */}
       <div className={cn(
         "fixed lg:relative inset-y-0 left-0 z-50 lg:z-auto",
-        "w-72 bg-zinc-50 dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-800",
-        "flex flex-col transition-transform duration-300 ease-in-out",
-        isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0 lg:w-0 lg:border-0 lg:overflow-hidden"
+        "bg-[#171720] flex flex-col transition-all duration-200 ease-in-out",
+        isOpen
+          ? "w-64 translate-x-0"
+          : "w-[52px] -translate-x-full lg:translate-x-0"
       )}>
-        {/* Sidebar header */}
-        <div className="flex items-center justify-between p-3 border-b border-zinc-200 dark:border-zinc-800">
+        {/* Logo/Brand header - links back to main site */}
+        <div className="p-1.5 border-b border-zinc-800/50">
+          <Link
+            href="/"
+            className={cn(
+              "w-full h-10 flex items-center rounded-lg hover:bg-white/5 transition-colors group",
+              isOpen ? "px-3 gap-3" : "justify-center"
+            )}
+            title="Back to Builder Hub"
+          >
+            <div className="w-7 h-7 flex items-center justify-center">
+              <img
+                src="/small-logo.png"
+                alt="Avalanche"
+                className="h-5 w-5 object-contain opacity-70 group-hover:opacity-100 transition-opacity"
+              />
+            </div>
+            {isOpen && (
+              <span className="text-sm font-medium text-zinc-300 group-hover:text-white transition-colors">
+                Avalanche AI
+              </span>
+            )}
+          </Link>
+        </div>
+
+        {/* Top section - Toggle + New Chat */}
+        <div className="p-1.5 space-y-1">
+          {/* Toggle button */}
           <button
             onClick={onToggle}
-            className="p-2 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors"
+            className={cn(
+              "w-full h-10 flex items-center rounded-lg hover:bg-white/10 transition-colors",
+              isOpen ? "px-3 gap-3" : "justify-center"
+            )}
+            title={isOpen ? "Close sidebar" : "Open sidebar"}
           >
-            <PanelLeftClose className="w-5 h-5" />
+            {isOpen ? <PanelLeftClose className="w-5 h-5 text-zinc-400" /> : <PanelLeft className="w-5 h-5 text-zinc-400" />}
+            {isOpen && <span className="text-sm text-zinc-400">Close</span>}
           </button>
+
+          {/* New chat button */}
           <button
             onClick={onNewChat}
-            className="p-2 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors"
+            className={cn(
+              "w-full h-10 flex items-center rounded-lg border border-zinc-700 hover:bg-white/10 hover:border-zinc-600 transition-colors",
+              isOpen ? "px-3 gap-3" : "justify-center"
+            )}
             title="New chat"
           >
-            <Plus className="w-5 h-5" />
+            <Plus className="w-5 h-5 text-zinc-300" />
+            {isOpen && <span className="text-sm text-zinc-300 font-medium">New chat</span>}
           </button>
         </div>
 
-        {/* Conversation list */}
-        <div className="flex-1 overflow-y-auto overscroll-contain p-2">
-          {isLoadingConversations ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-            </div>
-          ) : !isAuthenticated ? (
-            <div className="text-center py-8 px-4">
-              <p className="text-muted-foreground text-sm mb-3">Sign in to save your chat history</p>
-              <button
-                onClick={onLogin}
-                className="px-4 py-2 text-sm font-medium rounded-lg bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 hover:bg-zinc-700 dark:hover:bg-zinc-200 transition-colors"
-              >
-                Sign In
-              </button>
-            </div>
-          ) : conversations.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground text-sm">
-              No conversations yet
+        {/* Middle section - Conversations or quick icons */}
+        <div className="flex-1 overflow-y-auto overscroll-contain">
+          {isOpen ? (
+            // Expanded: show conversation list
+            <div className="px-1.5">
+              {isLoadingConversations ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-5 h-5 animate-spin text-zinc-400" />
+                </div>
+              ) : !isAuthenticated ? (
+                <div className="text-center py-8 px-2">
+                  <p className="text-zinc-400 text-sm mb-3">Sign in to save chats</p>
+                  <button
+                    onClick={onLogin}
+                    className="px-4 py-2 text-sm font-medium rounded-lg bg-white/10 text-white hover:bg-white/20 transition-colors"
+                  >
+                    Sign In
+                  </button>
+                </div>
+              ) : conversations.length === 0 ? (
+                <div className="text-center py-8 text-zinc-500 text-sm">
+                  No conversations yet
+                </div>
+              ) : (
+                <div className="space-y-0.5">
+                  {conversations.map((conv) => (
+                    <div
+                      key={conv.id}
+                      onMouseEnter={() => setHoveredId(conv.id)}
+                      onMouseLeave={() => setHoveredId(null)}
+                      className={cn(
+                        "group flex items-center gap-3 px-3 h-10 rounded-lg cursor-pointer transition-colors",
+                        currentConversationId === conv.id
+                          ? "bg-white/10"
+                          : "hover:bg-white/5"
+                      )}
+                      onClick={() => onSelectConversation(conv.id)}
+                    >
+                      <MessageSquare className="w-5 h-5 shrink-0 text-zinc-400" />
+                      <span className="flex-1 truncate text-sm text-zinc-200">{conv.title}</span>
+                      {hoveredId === conv.id && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); onDeleteConversation(conv.id); }}
+                          className="p-1 rounded hover:bg-white/10 transition-colors"
+                          title="Delete"
+                        >
+                          <Trash2 className="w-4 h-4 text-zinc-400 hover:text-red-400" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           ) : (
-            <div className="space-y-1">
-              {conversations.map((conv) => (
-                <div
-                  key={conv.id}
-                  onMouseEnter={() => setHoveredId(conv.id)}
-                  onMouseLeave={() => setHoveredId(null)}
-                  className={cn(
-                    "group relative flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-colors",
-                    currentConversationId === conv.id
-                      ? "bg-zinc-200 dark:bg-zinc-800"
-                      : "hover:bg-zinc-100 dark:hover:bg-zinc-800/50"
-                  )}
-                  onClick={() => onSelectConversation(conv.id)}
-                >
-                  <MessageSquare className="w-4 h-4 shrink-0 text-muted-foreground" />
-                  <span className="flex-1 truncate text-sm">{conv.title}</span>
-                  {hoveredId === conv.id && (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); onDeleteConversation(conv.id); }}
-                      className="p-1 rounded hover:bg-zinc-300 dark:hover:bg-zinc-700 transition-colors"
-                      title="Delete conversation"
-                    >
-                      <Trash2 className="w-4 h-4 text-muted-foreground hover:text-red-500" />
-                    </button>
-                  )}
-                </div>
-              ))}
+            // Collapsed: show icon for chat history
+            <div className="flex flex-col items-center px-1.5 py-1">
+              <button
+                onClick={onToggle}
+                className="w-full h-10 flex items-center justify-center rounded-lg hover:bg-white/10 transition-colors"
+                title="Chat history"
+              >
+                <MessageSquare className="w-5 h-5 text-zinc-400" />
+              </button>
             </div>
           )}
         </div>
 
-        {/* Sidebar footer */}
-        <div className="p-3 border-t border-zinc-200 dark:border-zinc-800 space-y-1">
-          {/* User account section */}
+        {/* Bottom section - Actions + User */}
+        <div className="border-t border-zinc-800/50 p-1.5 space-y-0.5">
+          {/* Home / Docs link */}
+          <Link
+            href="/"
+            className={cn(
+              "w-full h-10 flex items-center rounded-lg hover:bg-white/10 transition-colors",
+              isOpen ? "px-3 gap-3" : "justify-center"
+            )}
+            title="Go to Docs"
+          >
+            <Home className="w-5 h-5 text-zinc-400" />
+            {isOpen && <span className="text-sm text-zinc-300">Docs</span>}
+          </Link>
+
+          {/* Theme toggle */}
+          <button
+            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            className={cn(
+              "w-full h-10 flex items-center rounded-lg hover:bg-white/10 transition-colors",
+              isOpen ? "px-3 gap-3" : "justify-center"
+            )}
+            title={theme === 'dark' ? 'Light mode' : 'Dark mode'}
+          >
+            {theme === 'dark' ? <Sun className="w-5 h-5 text-zinc-400" /> : <Moon className="w-5 h-5 text-zinc-400" />}
+            {isOpen && <span className="text-sm text-zinc-300">{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>}
+          </button>
+
+          {/* User section */}
           {isLoadingAuth ? (
-            <div className="flex items-center gap-3 px-3 py-2 text-sm text-muted-foreground">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Loading...
+            <div className={cn(
+              "w-full h-10 flex items-center",
+              isOpen ? "px-3 gap-3" : "justify-center"
+            )}>
+              <Loader2 className="w-5 h-5 animate-spin text-zinc-400" />
+              {isOpen && <span className="text-sm text-zinc-400">Loading...</span>}
             </div>
           ) : isAuthenticated ? (
-            <div className="flex items-center gap-3 px-3 py-2">
-              {userImage ? (
-                <Image
-                  src={userImage}
-                  alt="Profile"
-                  width={28}
-                  height={28}
-                  className="rounded-full"
-                />
-              ) : (
-                <CircleUserRound className="w-7 h-7 text-muted-foreground" />
-              )}
-              <span className="flex-1 truncate text-sm">{userName || 'User'}</span>
+            <div className={cn(
+              "w-full h-10 flex items-center rounded-lg hover:bg-white/10 transition-colors",
+              isOpen ? "px-3 gap-3" : "justify-center"
+            )}>
               <button
-                onClick={onLogout}
-                className="p-1.5 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors"
-                title="Sign out"
+                onClick={isOpen ? undefined : onToggle}
+                className={cn("flex items-center", isOpen ? "gap-3 flex-1 min-w-0" : "")}
+                title={isOpen ? undefined : "Account"}
               >
-                <LogOut className="w-4 h-4 text-muted-foreground" />
+                {userImage ? (
+                  <Image src={userImage} alt="Profile" width={28} height={28} className="rounded-full shrink-0" />
+                ) : (
+                  <CircleUserRound className="w-7 h-7 text-zinc-400 shrink-0" />
+                )}
+                {isOpen && <span className="text-sm text-zinc-200 truncate">{userName || 'User'}</span>}
               </button>
+              {isOpen && (
+                <button onClick={onLogout} className="p-1.5 rounded-lg hover:bg-white/10 transition-colors ml-auto" title="Sign out">
+                  <LogOut className="w-4 h-4 text-zinc-400" />
+                </button>
+              )}
             </div>
           ) : (
             <button
               onClick={onLogin}
-              className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors text-sm w-full"
+              className={cn(
+                "w-full h-10 flex items-center rounded-lg hover:bg-white/10 transition-colors",
+                isOpen ? "px-3 gap-3" : "justify-center"
+              )}
+              title="Sign in"
             >
-              <CircleUserRound className="w-4 h-4" />
-              Sign In
+              <CircleUserRound className="w-5 h-5 text-zinc-400" />
+              {isOpen && <span className="text-sm text-zinc-300">Sign In</span>}
             </button>
           )}
-
-          <Link
-            href="/"
-            className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors text-sm"
-          >
-            <ExternalLink className="w-4 h-4" />
-            Back to Builder Hub
-          </Link>
-          <button
-            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors text-sm w-full"
-          >
-            {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-            {theme === 'dark' ? 'Light mode' : 'Dark mode'}
-          </button>
         </div>
       </div>
     </>
   );
 }
 
-// Toggle button when sidebar is closed
-function SidebarToggle({ onClick }: { onClick: () => void }) {
+// Mobile sidebar toggle (only visible on mobile when sidebar closed)
+function MobileSidebarToggle({ onClick, isOpen }: { onClick: () => void; isOpen: boolean }) {
+  if (isOpen) return null;
   return (
     <button
       onClick={onClick}
-      className="fixed top-3 left-3 z-30 p-2 rounded-lg bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors lg:absolute"
+      className="fixed top-3 left-3 z-30 p-2 rounded-lg bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors lg:hidden"
     >
       <PanelLeft className="w-5 h-5" />
     </button>
@@ -681,7 +936,7 @@ function SidebarToggle({ onClick }: { onClick: () => void }) {
 
 // Main page component
 export default function ChatPage() {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
   const [isLoadingConversations, setIsLoadingConversations] = useState(false);
@@ -697,7 +952,7 @@ export default function ChatPage() {
   const [detectedLinks, setDetectedLinks] = useState<EmbeddedReference[]>([]);
   const [currentLinkIndex, setCurrentLinkIndex] = useState(0);
   const [closedRefs, setClosedRefs] = useState<Set<string>>(new Set());
-  const [panelWidth, setPanelWidth] = useState(50); // Percentage width of embedded panel
+  const [panelWidth, setPanelWidth] = useState(35); // Percentage width of embedded panel (chat gets 65%)
   const [isResizing, setIsResizing] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -732,7 +987,7 @@ export default function ChatPage() {
         body: JSON.stringify({
           id: conv.id.includes('-') ? conv.id : undefined, // Only pass ID if it's a UUID (from DB)
           title: conv.title,
-          messages: conv.messages.map(m => ({ role: m.role, content: m.content })),
+          messages: conv.messages.map(m => ({ role: m.role, content: getMessageText(m) })),
         }),
       });
 
@@ -796,27 +1051,44 @@ export default function ChatPage() {
     }
   };
 
-  // Handle panel resize
+  // Handle panel resize with refs to avoid stale closures
+  const isResizingRef = useRef(false);
+  const containerRefForResize = containerRef;
+
   const handleResizeStart = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
+    e.stopPropagation();
+    isResizingRef.current = true;
     setIsResizing(true);
+
+    // Prevent text selection and set cursor globally
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
   }, []);
 
   useEffect(() => {
-    if (!isResizing) return;
-
     const handleMouseMove = (e: MouseEvent) => {
-      if (!containerRef.current) return;
-      const containerRect = containerRef.current.getBoundingClientRect();
+      if (!isResizingRef.current || !containerRefForResize.current) return;
+
+      e.preventDefault();
+      const containerRect = containerRefForResize.current.getBoundingClientRect();
       const newWidth = ((containerRect.right - e.clientX) / containerRect.width) * 100;
       // Clamp between 25% and 75%
       setPanelWidth(Math.min(75, Math.max(25, newWidth)));
     };
 
     const handleMouseUp = () => {
+      if (!isResizingRef.current) return;
+
+      isResizingRef.current = false;
       setIsResizing(false);
+
+      // Restore cursor and selection
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
     };
 
+    // Always listen - the ref check inside handles when to act
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
 
@@ -824,24 +1096,24 @@ export default function ChatPage() {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isResizing]);
+  }, []);
 
   const currentConversation = conversations.find(c => c.id === currentConversationId);
 
   const chat = useChat({
     id: currentConversationId || 'new',
-    initialMessages: currentConversation?.messages || [],
-    streamProtocol: 'data',
-    sendExtraMessageFields: true,
-    body: { id: typeof window !== 'undefined' ? posthog.get_distinct_id() : undefined },
-    async onFinish(message) {
+    onError(error) {
+      console.error('Chat error:', error);
+    },
+    async onFinish({ message }) {
+      const messageText = getMessageText(message);
       posthog.capture('ai_chat_response_received', {
-        response_length: message.content.length,
+        response_length: messageText.length,
         view: 'fullscreen',
       });
 
       // Detect embeddable links and auto-open panel
-      const links = extractEmbeddableLinks(message.content);
+      const links = extractEmbeddableLinks(messageText);
       if (links.length > 0) {
         setDetectedLinks(links);
         const firstLink = links[0];
@@ -855,7 +1127,8 @@ export default function ChatPage() {
       if (isAuthenticated) {
         const msgs = [...chat.messages, message].filter(m => m.role !== 'system');
         if (msgs.length > 0) {
-          const title = msgs[0]?.content.slice(0, 50) || 'New chat';
+          const titleText = getMessageText(msgs[0]);
+          const title = titleText.slice(0, 50) || 'New chat';
           const convToSave: Conversation = {
             id: currentConversationId || '',
             title,
@@ -883,8 +1156,9 @@ export default function ChatPage() {
   }, [currentConversationId]);
 
   const messages = chat.messages.filter((msg) => msg.role !== 'system');
-  const { status, append, setMessages } = chat;
+  const { status, sendMessage, setMessages } = chat;
   const isLoading = status === 'streaming';
+  const isWaitingForStream = status === 'submitted';
 
   useEffect(() => {
     posthog.capture('ai_chat_opened', { view: 'fullscreen' });
@@ -905,7 +1179,7 @@ export default function ChatPage() {
   };
 
   const handleSuggestionClick = async (question: string) => {
-    await append({ content: question, role: 'user' });
+    await sendMessage({ text: question });
   };
 
   const handleLogin = () => {
@@ -940,21 +1214,22 @@ export default function ChatPage() {
 
         {/* Main content area (chat + embedded panel) */}
         <div ref={containerRef} className="flex-1 flex min-w-0 relative">
+          {/* Overlay during resize to capture all mouse events (prevents iframe from stealing them) */}
+          {isResizing && (
+            <div className="fixed inset-0 z-50 cursor-col-resize" />
+          )}
           {/* Chat area */}
           <div
-            className={cn(
-              "flex flex-col min-w-0",
-              !isResizing && "transition-all duration-300"
-            )}
-            style={embeddedRef ? { width: `${100 - panelWidth}%` } : { width: '100%' }}
+            className="flex flex-col min-w-0"
+            style={{ width: embeddedRef ? `${100 - panelWidth}%` : '100%' }}
           >
-            {/* Toggle button when sidebar closed */}
-            {!sidebarOpen && <SidebarToggle onClick={() => setSidebarOpen(true)} />}
+            {/* Mobile toggle button */}
+            <MobileSidebarToggle onClick={() => setSidebarOpen(true)} isOpen={sidebarOpen} />
 
             {/* Messages */}
             <main className="flex-1 min-h-0 flex flex-col overflow-hidden">
               {messages.length === 0 ? (
-                <EmptyState userName={session?.user?.name} />
+                <EmptyState userName={session?.user?.name} onSuggestionClick={handleSuggestionClick} />
               ) : (
                 <MessageList>
                   <div className="max-w-3xl mx-auto w-full px-4 py-6">
@@ -968,7 +1243,7 @@ export default function ChatPage() {
                         onRefSelect={handleRefSelect}
                       />
                     ))}
-                    {isLoading && messages[messages.length - 1]?.role === 'user' && <TypingIndicator />}
+                    {(isLoading || isWaitingForStream) && messages[messages.length - 1]?.role === 'user' && <TypingIndicator />}
                     <ChatActions />
                   </div>
                 </MessageList>
@@ -984,29 +1259,28 @@ export default function ChatPage() {
           {/* Embedded Panel (right side) */}
           {embeddedRef && (
             <>
-              {/* Resize handle */}
+              {/* Resize handle - wider hit area for easier grabbing */}
               <div
                 onMouseDown={handleResizeStart}
                 className={cn(
-                  "hidden lg:flex w-1 cursor-col-resize items-center justify-center",
-                  "bg-zinc-200 dark:bg-zinc-800 hover:bg-zinc-300 dark:hover:bg-zinc-700",
-                  "transition-colors group",
-                  isResizing && "bg-zinc-400 dark:bg-zinc-600"
+                  "hidden lg:flex w-2 cursor-col-resize items-center justify-center",
+                  "hover:bg-zinc-200 dark:hover:bg-zinc-800",
+                  "group relative select-none",
+                  isResizing && "bg-zinc-300 dark:bg-zinc-700"
                 )}
               >
+                {/* Visual indicator */}
                 <div className={cn(
-                  "w-0.5 h-8 rounded-full bg-zinc-400 dark:bg-zinc-600",
-                  "group-hover:bg-zinc-500 dark:group-hover:bg-zinc-500",
-                  isResizing && "bg-zinc-600 dark:bg-zinc-400"
+                  "w-1 h-12 rounded-full",
+                  "bg-zinc-300 dark:bg-zinc-700",
+                  "group-hover:bg-zinc-400 dark:group-hover:bg-zinc-500",
+                  isResizing && "bg-zinc-500 dark:bg-zinc-400"
                 )} />
               </div>
 
-              {/* Panel */}
+              {/* Panel - no transitions during resize for smooth dragging */}
               <div
-                className={cn(
-                  "hidden lg:flex flex-col border-l border-zinc-200 dark:border-zinc-800",
-                  !isResizing && "transition-all duration-300"
-                )}
+                className="hidden lg:flex flex-col border-l border-zinc-200 dark:border-zinc-800"
                 style={{ width: `${panelWidth}%` }}
               >
                 {detectedLinks.length > 1 && (
