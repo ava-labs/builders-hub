@@ -332,7 +332,7 @@ export default function Hero() {
                 <GraduationCap className="w-6 h-6 sm:w-5 sm:h-5 mr-3" />
                 Start Learning
               </Link>
-              
+
               <Link
                 href="/docs/primary-network"
                 className="group premium-button inline-flex items-center justify-center px-8 py-4 text-lg sm:text-base font-bold tracking-[-0.015em] rounded-xl bg-white/10 glass-effect border border-slate-200/30 text-slate-900 dark:text-white hover:bg-white/20 hover:scale-[1.02] transition-all duration-300 backdrop-blur-sm dark:border-slate-700/40 min-w-[160px]"
@@ -342,10 +342,11 @@ export default function Hero() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                 </svg>
               </Link>
+            </div>
 
-              <div className="hidden sm:block">
-                <HeroSearchBox />
-              </div>
+            {/* AI Search Box - below CTA buttons */}
+            <div className="hidden sm:flex justify-center lg:justify-start">
+              <HeroSearchBox />
             </div>
           </div>
 
