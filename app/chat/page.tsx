@@ -68,6 +68,20 @@ import { useLoginModalTrigger } from '@/hooks/useLoginModal';
 import { LoginModal } from '@/components/login/LoginModal';
 import Image from 'next/image';
 
+// Hook to detect if we're on large screens (matches Tailwind's lg breakpoint)
+const LG_BREAKPOINT = 1024;
+function useIsLargeScreen() {
+  const [isLarge, setIsLarge] = useState(false);
+  useEffect(() => {
+    const mql = window.matchMedia(`(min-width: ${LG_BREAKPOINT}px)`);
+    const onChange = () => setIsLarge(mql.matches);
+    mql.addEventListener('change', onChange);
+    setIsLarge(mql.matches);
+    return () => mql.removeEventListener('change', onChange);
+  }, []);
+  return isLarge;
+}
+
 const Mermaid = dynamic(() => import('@/components/content-design/mermaid'), {
   ssr: false,
 });
@@ -351,7 +365,7 @@ function ChatMessage({ message, isLast, onFollowUpClick, isStreaming, onRefSelec
       <div className="flex justify-end mb-6">
         <div className="max-w-[85%] lg:max-w-[70%]">
           <div className="bg-zinc-200 dark:bg-zinc-700 rounded-3xl px-5 py-3 overflow-hidden">
-            <p className="text-[15px] leading-relaxed whitespace-pre-wrap break-words">{cleanContent}</p>
+            <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{cleanContent}</p>
           </div>
         </div>
       </div>
@@ -365,7 +379,7 @@ function ChatMessage({ message, isLast, onFollowUpClick, isStreaming, onRefSelec
           <AIAvatar />
         </div>
         <div className="flex-1 min-w-0">
-          <div className="prose prose-zinc dark:prose-invert max-w-none prose-p:leading-relaxed prose-pre:bg-zinc-900 prose-pre:border prose-pre:border-zinc-800 [&_.katex-display]:overflow-x-auto [&_.katex]:text-sm">
+          <div className="prose prose-sm prose-zinc dark:prose-invert max-w-none prose-p:leading-relaxed prose-pre:bg-zinc-900 prose-pre:border prose-pre:border-zinc-800 [&_.katex-display]:overflow-x-auto [&_.katex]:text-sm">
             {isStreaming ? (
               // During streaming: fast synchronous markdown with marked
               <StreamingMarkdown text={cleanContent} />
@@ -474,13 +488,13 @@ function ChatInput() {
   };
 
   return (
-    <div className="w-full max-w-3xl mx-auto px-4 pb-4">
+    <div className="w-full max-w-4xl mx-auto px-4 pb-4">
       <form onSubmit={onSubmit} className="relative">
         <div className="relative flex items-end bg-zinc-100 dark:bg-zinc-800 rounded-3xl border border-zinc-200 dark:border-zinc-700">
           <TextareaInput
             value={inputValue}
             placeholder="Message Avalanche AI..."
-            className="w-full px-5 py-4 pr-14 text-[15px]"
+            className="w-full px-5 py-4 pr-14 text-sm"
             disabled={isLoading}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={(event) => {
@@ -955,6 +969,7 @@ export default function ChatPage() {
   const [panelWidth, setPanelWidth] = useState(35); // Percentage width of embedded panel (chat gets 65%)
   const [isResizing, setIsResizing] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const isLargeScreen = useIsLargeScreen(); // Detect if we're on desktop (lg breakpoint)
 
   // Load conversations from API when authenticated
   useEffect(() => {
@@ -1221,7 +1236,7 @@ export default function ChatPage() {
           {/* Chat area */}
           <div
             className="flex flex-col min-w-0"
-            style={{ width: embeddedRef ? `${100 - panelWidth}%` : '100%' }}
+            style={{ width: embeddedRef && isLargeScreen ? `${100 - panelWidth}%` : '100%' }}
           >
             {/* Mobile toggle button */}
             <MobileSidebarToggle onClick={() => setSidebarOpen(true)} isOpen={sidebarOpen} />
@@ -1232,7 +1247,7 @@ export default function ChatPage() {
                 <EmptyState userName={session?.user?.name} onSuggestionClick={handleSuggestionClick} />
               ) : (
                 <MessageList>
-                  <div className="max-w-3xl mx-auto w-full px-4 py-6">
+                  <div className="max-w-4xl mx-auto w-full px-4 py-6">
                     {messages.map((message, index) => (
                       <ChatMessage
                         key={message.id}
