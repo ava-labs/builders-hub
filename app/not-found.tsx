@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { HomeLayout } from "fumadocs-ui/layouts/home";
+import { RootProvider } from "fumadocs-ui/provider/next";
 import { baseOptions } from "@/app/layout.config";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from 'react';
@@ -92,8 +93,9 @@ export default function NotFound() {
   const issueURL = createGitHubIssueURL(currentPath);
 
   return (
-    <HomeLayout {...baseOptions}>
-      <div className="min-h-[calc(100vh-180px)] flex items-center justify-center px-4 sm:px-6 py-8 md:py-12">
+    <RootProvider>
+      <HomeLayout {...baseOptions}>
+        <div className="min-h-[calc(100vh-180px)] flex items-center justify-center px-4 sm:px-6 py-8 md:py-12">
         <div className="w-full max-w-5xl mx-auto">
           {/* Main Content */}
           <div className={`text-center transition-all duration-700 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
@@ -205,6 +207,7 @@ export default function NotFound() {
           </div>
         </div>
       </div>
-    </HomeLayout>
+      </HomeLayout>
+    </RootProvider>
   );
 }
