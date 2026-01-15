@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserId, jsonOk, jsonError, sanitizeUrl } from '../utils';
+import { getUserId, jsonOk, jsonError } from '../utils';
 import { RelayerServiceURLs } from '../constants';
 
 /**
