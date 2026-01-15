@@ -27,14 +27,15 @@ import {
     isValidAllowlistPrecompileConfig
 } from "@/components/toolbox/components/genesis/types";
 
-// --- Constants --- 
+// --- Constants ---
+// Testnet-optimized defaults: fast blocks, cheap fees, high throughput
 const DEFAULT_FEE_CONFIG: FeeConfigType = {
     baseFeeChangeDenominator: 48,
-    blockGasCostStep: 200000,
-    maxBlockGasCost: 1000000,
-    minBaseFee: 25000000000,
+    blockGasCostStep: 0,          // Disabled for static pricing
+    maxBlockGasCost: 0,           // Disabled for static pricing
+    minBaseFee: 1000000000,       // 1 gwei - cheap for testing
     minBlockGasCost: 0,
-    targetGas: 15000000
+    targetGas: 100000000          // 100M - matches gasLimit for static pricing
 };
 
 // Chain Configuration Constants
@@ -45,8 +46,9 @@ const PLACEHOLDER_ADDRESS = '0x0000000000000000000000000000000000000001';
 
 // Gas Limit Constants
 const MIN_GAS_LIMIT = 1000000;
-const MAX_GAS_LIMIT = 100000000;
+const MAX_GAS_LIMIT = 500000000;  // 500M - increased for high-throughput configs
 const RECOMMENDED_MIN_GAS_LIMIT = 8000000;
+const HIGH_GAS_LIMIT_THRESHOLD = 100000000;  // 100M - warn above this
 
 // Target Gas Constants
 const MIN_TARGET_GAS = 1000000;
@@ -84,8 +86,9 @@ function GenesisBuilderInner({
     const [blockTimestamp] = useState<number>(() => Math.floor(Date.now() / 1000));
     const [tokenName, setTokenName] = useState<string>("COIN");
     const [tokenSymbol, setTokenSymbol] = useState<string>("COIN");
-    const [gasLimit, setGasLimit] = useState<number>(15000000);
-    const [targetBlockRate, setTargetBlockRate] = useState<number>(2);
+    // Testnet-optimized defaults: high throughput, fast finality
+    const [gasLimit, setGasLimit] = useState<number>(100000000);  // 100M for high throughput
+    const [targetBlockRate, setTargetBlockRate] = useState<number>(1);  // 1 second blocks
 
     // Token allocations - managed entirely within this component
     const [tokenAllocations, setTokenAllocations] = useState<AllocationEntry[]>(() => {
@@ -157,7 +160,8 @@ function GenesisBuilderInner({
 
         // Gas Limit
         if (gasLimit < MIN_GAS_LIMIT) errors.gasLimit = `Gas limit must be at least ${MIN_GAS_LIMIT.toLocaleString()}`;
-        else if (gasLimit > MAX_GAS_LIMIT) warnings.gasLimit = "High gas limits may impact performance";
+        else if (gasLimit > MAX_GAS_LIMIT) errors.gasLimit = `Gas limit cannot exceed ${MAX_GAS_LIMIT.toLocaleString()}`;
+        else if (gasLimit > HIGH_GAS_LIMIT_THRESHOLD) warnings.gasLimit = "High gas limits require more validator resources";
         else if (gasLimit < RECOMMENDED_MIN_GAS_LIMIT) warnings.gasLimit = `Gas limit below ${RECOMMENDED_MIN_GAS_LIMIT.toLocaleString()} may be too restrictive`;
 
         // Target Block Rate

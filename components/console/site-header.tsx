@@ -11,6 +11,7 @@ import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
 import dynamic from "next/dynamic";
+import { ThemeToggle } from "fumadocs-ui/components/layout/theme-toggle";
 import { Fragment } from "react";
 import { useBreadcrumbs } from "@/hooks/use-breadcrumbs";
 import { pathToBreadcrumb } from "./breadcrumbs-mapping";
@@ -69,6 +70,7 @@ export function SiteHeader() {
             </Button>
           </Link>
           <BuilderHubAccountButton />
+          <ThemeToggle />
         </div>
       </div>
     </header>

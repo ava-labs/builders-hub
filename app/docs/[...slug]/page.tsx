@@ -71,7 +71,9 @@ export default async function Page(props: {
           </>
         ),
       }}
-      className="max-sm:pb-16"
+      article={{
+        className: "max-sm:pb-16",
+      }}
     >
       <DocsTitle>{page.data.title || "Untitled"}</DocsTitle>
       {page.data.description && (

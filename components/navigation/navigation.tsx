@@ -28,9 +28,9 @@ import {
   Podcast,
   Wallet,
 } from "lucide-react";
-import { SidebarTabsDropdown, type SidebarTabWithProps } from "fumadocs-ui/components/sidebar/tabs/dropdown";
+import { RootToggle } from "fumadocs-ui/components/layout/root-toggle";
 
-interface Option extends SidebarTabWithProps {
+interface Option {
   title: string;
   description: string;
   icon: React.ReactNode;
@@ -111,7 +111,7 @@ export function DocsDropdown({
     },
   ];
 
-  return <SidebarTabsDropdown options={options} />;
+  return <RootToggle options={options} />;
 }
 
 export function AcademyDropdown() {
@@ -171,7 +171,7 @@ export function AcademyDropdown() {
       url: "https://academy.avax.network/course/hypersdk",
     },
   ];
-  return <SidebarTabsDropdown options={options} />;
+  return <RootToggle options={options} />;
 }
 
 export function GrantsDropdown() {
@@ -210,7 +210,7 @@ export function GrantsDropdown() {
       url: "https://www.blizzard.fund/",
     },
   ];
-  return <SidebarTabsDropdown options={options} />;
+  return <RootToggle options={options} />;
 }
 
 export function IntegrationsDropdown() {
@@ -264,7 +264,7 @@ export function IntegrationsDropdown() {
       url: "/integrations#Wallet%20SDKs",
     },
   ];
-  return <SidebarTabsDropdown options={options} />;
+  return <RootToggle options={options} />;
 }
 
 export function DropDownBar(): React.ReactElement {

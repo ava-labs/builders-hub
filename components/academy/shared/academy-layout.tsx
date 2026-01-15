@@ -1,5 +1,6 @@
 'use client';
 
+import { usePathname } from 'next/navigation';
 import { HeroBackground } from '@/components/landing/hero';
 import { AcademyLearningPath } from './academy-learning-path';
 import { AcademyBubbleNav } from './academy-bubble-nav';
@@ -17,7 +18,11 @@ export function AcademyLayout({
     children,
     afterLearningPath,
 }: AcademyLayoutProps) {
+    const pathname = usePathname();
     const pathType: AcademyPathType = config.pathType;
+    
+    // Use pathname to force complete re-render when route changes
+    const componentKey = `${pathType}-${pathname}`;
 
     return (
         <>
@@ -27,7 +32,7 @@ export function AcademyLayout({
                     <div className="mx-auto max-w-7xl px-6 lg:px-8">
                         {children}
 
-                        <AcademyLearningPath pathType={pathType} />
+                        <AcademyLearningPath key={componentKey} pathType={pathType} />
 
                         {afterLearningPath}
                     </div>
