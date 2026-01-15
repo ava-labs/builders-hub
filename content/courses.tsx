@@ -80,7 +80,7 @@ const officialCourses: Course[] = [
         certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/AvalancheAcademy_Certificate.pdf"
     },
     {
-        name: "ERC20 Bridge",
+        name: "ERC-20 to ERC-20 Bridge",
         description: "Learn how to bridge ERC-20 tokens between Avalanche L1s using Interchain Token Transfer",
         slug: "erc20-bridge",
         icon: <ArrowLeftRight />,
@@ -93,15 +93,15 @@ const officialCourses: Course[] = [
         certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/AvalancheAcademy_Certificate.pdf"
     },
     {
-        name: "Native Token Bridge",
-        description: "Bridge native tokens between Avalanche blockchains using Interchain Token Transfer",
-        slug: "native-token-bridge",
+        name: "Interchain Token Transfer",
+        description: "Deploy Avalanche Interchain Token Transfer to transfer assets between Avalanche blockchains",
+        slug: "interchain-token-transfer",
         icon: <ArrowLeftRight />,
-        status: "featured",
+        status: "normal",
         duration: "2.5 hours",
         tools: ["Console"],
         languages: ["Solidity"],
-        instructors: ["Martin Eckardt", "Owen Wahlgren", "Nicolas Arnedo"],
+        instructors: ["Martin Eckardt", "Andrea Vargas", "Ash", "Owen Wahlgren", "Sarp"],
         category: "Interoperability",
         certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/AvalancheAcademy_Certificate.pdf"
     },
@@ -181,6 +181,19 @@ const officialCourses: Course[] = [
         languages: ["Solidity"],
         instructors: ["Andrea Vargas"],
         category: "Smart Contract Development",
+        certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/AvalancheAcademy_Certificate.pdf"
+    },
+    {
+        name: "HyperSDK",
+        description: "Learn how to build a high-performance blockchain using HyperSDK",
+        slug: "hypersdk",
+        icon: <TerminalIcon />,
+        duration: "1 hour",
+        status: "hidden",
+        tools: ["HyperSDK"],
+        languages: ["Go", "Typescript"],
+        instructors: ["Aaron Buchwald", "Ilya", "Rodrigo Villar", "Martin Eckardt", "Owen Wahlgren"],
+        category: "L1 Development",
         certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/AvalancheAcademy_Certificate.pdf"
     },
     {

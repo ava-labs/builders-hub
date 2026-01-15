@@ -49,7 +49,7 @@ export function NetworkMenuItem({
       } else {
         // Select network with native token (null)
         onSelect(network, null)
-      }
+    }
     }
   }
   
@@ -69,32 +69,32 @@ export function NetworkMenuItem({
 
   return (
     <>
-      <DropdownMenuItem
-        onSelect={handleSelect}
-        className={`flex items-center justify-between p-3 ${canRemove ? 'cursor-pointer hover:bg-red-50 dark:hover:bg-red-950/20' :
-            isEditMode && isCChain(network.evmChainId) ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
-          }`}
-      >
-        <div className="flex items-center gap-3">
-          <div className="flex-shrink-0 w-5 h-5 flex items-center justify-center">
-            {isEditMode && !isCChain(network.evmChainId) ? (
-              <Trash2 className="w-4 h-4 text-red-500" />
-            ) : (
-              <ChainLogo logoUrl={network.logoUrl} chainName={network.name} />
-            )}
-          </div>
-          <div className="flex flex-col">
-            <span className={`font-medium ${canRemove ? 'text-red-600 dark:text-red-400' : ''
-              }`}>
-              {network.name}
-            </span>
-            <span className="text-xs text-muted-foreground">
-              {isEditMode && !isCChain(network.evmChainId) ? 'Click to remove' :
-                isEditMode && isCChain(network.evmChainId) ? 'Cannot be removed' :
-                  `Balance: ${formatBalance(balance)} ${network.coinName}`}
-            </span>
-          </div>
+    <DropdownMenuItem
+      onSelect={handleSelect}
+      className={`flex items-center justify-between p-3 ${canRemove ? 'cursor-pointer hover:bg-red-50 dark:hover:bg-red-950/20' :
+          isEditMode && isCChain(network.evmChainId) ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
+        }`}
+    >
+      <div className="flex items-center gap-3">
+        <div className="flex-shrink-0 w-5 h-5 flex items-center justify-center">
+          {isEditMode && !isCChain(network.evmChainId) ? (
+            <Trash2 className="w-4 h-4 text-red-500" />
+          ) : (
+            <ChainLogo logoUrl={network.logoUrl} chainName={network.name} />
+          )}
         </div>
+        <div className="flex flex-col">
+          <span className={`font-medium ${canRemove ? 'text-red-600 dark:text-red-400' : ''
+            }`}>
+            {network.name}
+          </span>
+          <span className="text-xs text-muted-foreground">
+            {isEditMode && !isCChain(network.evmChainId) ? 'Click to remove' :
+              isEditMode && isCChain(network.evmChainId) ? 'Cannot be removed' :
+                `Balance: ${formatBalance(balance)} ${network.coinName}`}
+          </span>
+        </div>
+      </div>
         <div className="flex items-center gap-2">
           {!isEditMode && hasTokens && (
             isExpanded ? 
@@ -123,9 +123,9 @@ export function NetworkMenuItem({
               </div>
               {isActive && selectedToken === null && (
                 <Check className="w-4 h-4 text-green-600" />
-              )}
+      )}
             </div>
-          </DropdownMenuItem>
+    </DropdownMenuItem>
           
           {/* ERC20 tokens */}
           {network.wellKnownERC20s?.map((token) => (
