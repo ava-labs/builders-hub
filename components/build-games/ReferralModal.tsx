@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Copy, Check } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { generateReferralLink, generateXShareUrl, generateLinkedInShareUrl } from "@/lib/referral";
 
@@ -73,7 +74,7 @@ export default function ReferralModal({ isOpen, onClose }: ReferralModalProps) {
           <div className="flex flex-col gap-2">
             <label htmlFor="x-handle" className="text-sm text-gray-300">Your X (Twitter) Handle</label>
             <div className="flex gap-2">
-              <input id="x-handle" placeholder="@yourhandle" className="flex-1 px-4 py-2 bg-[#152d44] border border-[rgba(102,172,214,0.3)] rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#66acd6] transition-colors" onKeyDown={(e) => e.key === "Enter" && handleGenerateLink()} />
+              <input id="x-handle" type="text" value={handle} onChange={(e) => setHandle(e.target.value)} placeholder="@yourhandle" className="flex-1 px-4 py-2 bg-[#152d44] border border-[rgba(102,172,214,0.3)] rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#66acd6] transition-colors" onKeyDown={(e) => e.key === "Enter" && handleGenerateLink()} />
               <button onClick={handleGenerateLink} disabled={!handle.trim()} className="px-4 py-2 bg-[#66acd6] text-[#152d44] font-medium rounded-lg hover:bg-[#7bbde3] transition-colors disabled:opacity-50 disabled:cursor-not-allowed">Generate</button>
             </div>
           </div>
@@ -84,8 +85,8 @@ export default function ReferralModal({ isOpen, onClose }: ReferralModalProps) {
                 <label className="text-sm text-gray-300">Your Referral Link</label>
                 <div className="flex gap-2">
                   <input type="text" value={referralLink} readOnly className="flex-1 px-3 py-2 bg-[#0b1e30] border border-[rgba(102,172,214,0.2)] rounded text-sm text-gray-200 truncate" />
-                  <button onClick={handleCopyLink} className="px-3 py-2 bg-[rgba(102,172,214,0.1)] border border-[rgba(102,172,214,0.5)] text-[#66acd6] text-sm rounded hover:bg-[rgba(102,172,214,0.2)] transition-colors">
-                    {copied ? "Copied!" : "Copy"}
+                  <button onClick={handleCopyLink} className="p-2 bg-[rgba(102,172,214,0.1)] border border-[rgba(102,172,214,0.5)] text-[#66acd6] rounded hover:bg-[rgba(102,172,214,0.2)] transition-colors">
+                    {copied ? <Check size={18} /> : <Copy size={18} />}
                   </button>
                 </div>
               </div>
