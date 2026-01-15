@@ -893,23 +893,10 @@ const HackathonsEdit = () => {
     return paragraphs
       .map(paragraph => {
         const trimmed = paragraph.trim();
-        if (!trimmed) return '';
-        if (trimmed.startsWith('#')) {
-          return trimmed;
-        }
-        if (trimmed.startsWith('-') || trimmed.startsWith('*')) {
-          return trimmed;
-        }
-        if (trimmed.startsWith('---')) {
-          return trimmed;
-        }
-        if (trimmed.includes('**') || trimmed.includes('*') || trimmed.includes('`')) {
-          return trimmed;
-        }
-        return trimmed.replace(/\n/g, '\\n');
+        return trimmed;
       })
       .filter(p => p.length > 0)
-      .join('\\n\\n');
+      .join('\n\n');
   };
 
   const convertToHTML = (text: string) => {
