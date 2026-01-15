@@ -55,8 +55,8 @@ export const avalancheLearningPaths: CourseNode[] = [
     },
     // Third Layer - Advanced topics
     {
-        id: "erc20-to-erc20-bridge",
-        name: "ERC20 to ERC20 Bridge",
+        id: "erc20-bridge",
+        name: "ERC20 Bridge",
         description: "Bridge ERC20 tokens between chains using Interchain Token Transfer",
         slug: "avalanche-l1/erc20-bridge",
         category: "Interoperability",
@@ -75,12 +75,12 @@ export const avalancheLearningPaths: CourseNode[] = [
         mobileOrder: 8
     },
     {
-        id: "cross-chain-l1",
-        name: "Cross-Chain L1",
+        id: "native-token-bridge",
+        name: "Native Token Bridge",
         description: "Build a cross-chain L1 with native tokenomics and token bridging",
-        slug: "avalanche-l1/cross-chain-l1",
+        slug: "avalanche-l1/native-token-bridge",
         category: "Interoperability",
-        dependencies: ["l1-native-tokenomics", "erc20-to-erc20-bridge"],
+        dependencies: ["l1-native-tokenomics", "erc20-bridge"],
         position: { x: 50, y: 500 },
         mobileOrder: 9
     },
