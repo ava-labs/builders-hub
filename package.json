@@ -111,6 +111,7 @@
     "pdf-lib": "^1.17.1",
     "posthog-js": "^1.266.0",
     "prismjs": "^1.30.0",
+    "qrcode.react": "^4.2.0",
     "react": "^19.2.2",
     "react-day-picker": "8.10.1",
     "react-dom": "^19.2.2",
