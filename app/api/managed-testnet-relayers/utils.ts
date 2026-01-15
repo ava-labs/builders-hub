@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAuthSession } from '@/lib/auth/authSession';
+import { ServiceErrorSchema } from './types';
 
 export async function getUserId(): Promise<{ userId: string | null; error?: NextResponse }> {
   const isDevelopment = process.env.NODE_ENV === 'development';
