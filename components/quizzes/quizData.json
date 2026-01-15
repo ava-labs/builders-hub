@@ -223,24 +223,6 @@
         "6007",
         "6008"
       ]
-    },
-    "access-restriction-fundamentals": {
-      "title": "Access Restriction: Fundamentals",
-      "quizzes": [
-        "6001",
-        "6002",
-        "6003",
-        "6004"
-      ]
-    },
-    "access-restriction-advanced": {
-      "title": "Access Restriction: Advanced",
-      "quizzes": [
-        "6005",
-        "6006",
-        "6007",
-        "6008"
-      ]
     }
   },
   "quizzes": {
