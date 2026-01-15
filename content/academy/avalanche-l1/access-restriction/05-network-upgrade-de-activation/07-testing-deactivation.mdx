@@ -1,0 +1,100 @@
+---
+title: Testing in console precompiles no longer activated
+description: "Hands-on exercise: Verify in the Builder Console that the allowlist precompiles are no longer available."
+updated: 2025-12-10
+authors: [nicolasarnedo]
+icon: Terminal
+---
+
+## Objectives
+
+By the end of this exercise, you will be able to:
+
+- Connect Core Wallet to your custom L1 and open the allowlist Console tools.
+- Confirm the console detects that the precompiles are **not active**.
+- Distinguish “precompile not active” from “I’m not authorized”.
+
+## Prerequisites
+
+Before starting this exercise, ensure you have:
+
+- Restarted your Docker validator after adding `upgrade.json` disable entries (previous lesson).
+- Core Wallet connected to the **same custom L1** you created earlier.
+
+## Instructions
+
+import { Steps, Step } from 'fumadocs-ui/components/steps';
+import { Callout } from 'fumadocs-ui/components/callout';
+import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx";
+import DeployerAllowlist from "@/components/toolbox/console/l1-access-restrictions/DeployerAllowlist";
+import TransactionAllowlist from "@/components/toolbox/console/l1-access-restrictions/TransactionAllowlist";
+
+<Steps>
+  <Step>
+    ### Step 1: Verify Transaction Allowlist is not available
+
+    Open the Transaction Allowlist tool below while your wallet is connected to your custom L1:
+
+    <ToolboxMdxWrapper>
+      <TransactionAllowlist />
+    </ToolboxMdxWrapper>
+
+    **Expected Result**: the component should render a “not available” / “precompile not activated” state (an image + message), because `txAllowListConfig` is now disabled via network upgrade.
+  </Step>
+
+  <Step>
+    ### Step 2: Verify Deployer Allowlist is not available
+
+    Repeat for the Deployer Allowlist tool:
+
+    <ToolboxMdxWrapper>
+      <DeployerAllowlist />
+    </ToolboxMdxWrapper>
+
+    **Expected Result**: the component should render a “not available” / “precompile not activated” state, because `contractDeployerAllowListConfig` is now disabled.
+  </Step>
+
+  <Step>
+    ### Step 3: Confirm you’re on the right network
+
+    If you don’t see the “not available” state, confirm:
+
+    - Your Core Wallet is connected to your **custom L1** (not C-Chain / Fuji / another network).
+    - Your Docker validator is running the chain created in:
+      - `/academy/avalanche-l1/access-restriction/02-genesis-activation/03-console-creation-l1-with-self-hosted-node`
+
+    <Callout type="info">
+    This check verifies “the precompile is inactive”, which is different from “the precompile is active but my address is not authorized”.
+    </Callout>
+  </Step>
+</Steps>
+
+## Expected Output
+
+Both embedded console components show a “not available / not activated” state when connected to your custom L1.
+
+```
+Precompile not activated / Not available on this network
+```
+
+## Verification
+
+To verify you've completed this exercise successfully:
+
+1. `TransactionAllowlist` displays the “not available” state.
+2. `DeployerAllowlist` displays the “not available” state.
+
+## Troubleshooting
+
+### Issue: The tools still show the full allowlist UI
+
+**Problem**: The precompiles may still be active, or you’re connected to a different network.
+
+**Solution**:
+- Re-check the Docker node logs to confirm the `upgrade.json` was loaded.
+- Confirm your `upgrade.json` timestamps have passed (a block after the timestamp must be accepted).
+- Confirm your wallet is connected to the correct L1.
+
+## Next Steps
+
+Next, you’ll perform the opposite operation: re-enable these precompiles via another network upgrade and set your wallet as the admin for both.

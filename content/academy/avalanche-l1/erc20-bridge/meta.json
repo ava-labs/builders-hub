@@ -1,9 +1,9 @@
 {
-    "title": "ERC-20 to ERC-20 Bridge",
+    "title": "ERC20 Bridge",
     "icon": "ArrowLeftRight",
     "root": true,
     "pages": [
-        "---ERC-20 to ERC-20 Bridge---",
+        "---ERC20 Bridge---",
         "index",
         "---Token Bridging---",
         "...01-token-bridging",

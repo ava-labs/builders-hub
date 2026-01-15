@@ -157,7 +157,7 @@ function AvalanchegoDockerInner() {
             // RPC node defaults - optimized for query performance
             setPruningEnabled(false); // RPC nodes typically need full history
             setLogLevel("info");
-            setAllowUnfinalizedQueries(true); // Enable real-time queries
+            setAllowUnfinalizedQueries(false); // Default to finalized queries for safety
             setStateSyncEnabled(false); // RPC nodes need full historical data
             // Larger caches for better RPC performance
             setTrieCleanCache(1024); // 2x for better read performance
@@ -171,7 +171,7 @@ function AvalanchegoDockerInner() {
             setPruningEnabled(false); // Need full history for RPC queries
             setLogLevel("info");
             setMinDelayTarget(500); // Block production timing
-            setAllowUnfinalizedQueries(true); // Enable real-time queries
+            setAllowUnfinalizedQueries(false); // Default to finalized queries for safety
             setStateSyncEnabled(false); // Need full historical data for RPC queries
             // Larger caches for RPC performance while validating
             setTrieCleanCache(1024);

@@ -63,11 +63,11 @@ export function getApisConfigs(): FileConfig[] {
       contentUrl: "https://github.com/ava-labs/avalanchego/blob/master/graft/coreth/plugin/evm/",
     },
     {
-      sourceUrl: "https://raw.githubusercontent.com/ava-labs/subnet-evm/master/plugin/evm/service.md",
+      sourceUrl: "https://raw.githubusercontent.com/ava-labs/avalanchego/master/graft/subnet-evm/plugin/evm/service.md",
       outputPath: "content/docs/rpcs/subnet-evm/index.mdx",
       title: "Subnet-EVM RPC",
       description: "This page describes the RPC endpoints available for Subnet-EVM based blockchains.",
-      contentUrl: "https://github.com/ava-labs/subnet-evm/blob/master/plugin/evm/",
+      contentUrl: "https://github.com/ava-labs/avalanchego/blob/master/graft/subnet-evm/plugin/evm/",
     },
     {
       sourceUrl: "https://raw.githubusercontent.com/ava-labs/avalanchego/master/vms/proposervm/service.md",
