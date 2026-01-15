@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserId, jsonOk, jsonError, extractServiceErrorMessage } from '../utils';
+import { getUserId, jsonOk, jsonError, sanitizeUrl } from '../utils';
 import { RelayerServiceURLs } from '../constants';
 
 /**
@@ -26,8 +26,8 @@ async function handleDeleteRelayer(relayerId: string, request: NextRequest): Pro
     });
 
     if (!listResponse.ok) {
-      const message = await extractServiceErrorMessage(listResponse) || 'Failed to verify relayer ownership';
-      return jsonError(502, message);
+      console.error(`[Relayers] Failed to verify relayer ownership (status: ${listResponse.status})`);
+      return jsonError(502, 'Failed to verify relayer ownership');
     }
 
     const listData = await listResponse.json();
@@ -60,8 +60,7 @@ async function handleDeleteRelayer(relayerId: string, request: NextRequest): Pro
     const encodedRelayerId = encodeURIComponent(relayerId);
     const deleteUrl = RelayerServiceURLs.delete(encodedRelayerId, password);
     
-    console.log(`[Relayers] Deleting relayer ${relayerId} (encoded: ${encodedRelayerId})`);
-    console.log(`[Relayers] Request URL: ${deleteUrl}`);
+    console.log(`[Relayers] Deleting relayer ${encodedRelayerId}`);
     
     const response = await fetch(deleteUrl, {
       method: 'DELETE',
@@ -81,12 +80,12 @@ async function handleDeleteRelayer(relayerId: string, request: NextRequest): Pro
       });
     }
 
-    const message = await extractServiceErrorMessage(response) || 'Failed to delete relayer from Builder Hub.';
-    return jsonError(502, message);
+    console.error(`[Relayers] Delete failed (status: ${response.status})`);
+    return jsonError(502, 'Failed to delete relayer from Builder Hub.');
 
   } catch (hubError) {
-    console.error('Builder Hub request failed:', hubError);
-    return jsonError(503, 'Builder Hub was unreachable.', hubError);
+    console.error('[Relayers] Builder Hub request failed');
+    return jsonError(503, 'Builder Hub was unreachable.');
   }
 }
 
