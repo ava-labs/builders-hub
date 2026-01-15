@@ -10,6 +10,7 @@ export function useNetworkActions() {
     updateAllBalances,
     setAvalancheNetworkID,
     setIsTestnet,
+    setSelectedToken,
     isTestnet,
     walletEVMAddress,
     balances,
@@ -18,7 +19,9 @@ export function useNetworkActions() {
   const l1List = useL1List()
   const { markChainAsNeeded } = useChainTokenTracker()
 
-  const handleNetworkChange = async (network: any) => {
+  const handleNetworkChange = async (network: any, tokenAddress?: string | null) => {
+    // Set the selected token
+    setSelectedToken(tokenAddress !== undefined ? tokenAddress : null);
     try {
       if (network.isTestnet !== isTestnet) {
         setIsTestnet(network.isTestnet)

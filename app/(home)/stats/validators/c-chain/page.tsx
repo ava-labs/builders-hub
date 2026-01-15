@@ -1,60 +1,11 @@
 "use client";
-import { useState, useEffect, useMemo, useTransition, useRef } from "react";
-import {
-  Area,
-  AreaChart,
-  Bar,
-  BarChart,
-  CartesianGrid,
-  XAxis,
-  YAxis,
-  Pie,
-  PieChart,
-  Line,
-  LineChart,
-  Brush,
-  ResponsiveContainer,
-  Tooltip,
-  ComposedChart,
-} from "recharts";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
+import React, { useState, useEffect, useMemo, useTransition, useRef } from "react";
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis, Pie, PieChart, Line, LineChart, Brush, ResponsiveContainer, Tooltip, ComposedChart } from "recharts";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  type ChartConfig,
-  ChartLegendContent,
-  ChartStyle,
-  ChartContainer,
-  ChartTooltip,
-  ChartLegend,
-} from "@/components/ui/chart";
-import {
-  Landmark,
-  Shield,
-  TrendingUp,
-  Monitor,
-  HandCoins,
-  Users,
-  Percent,
-  ArrowUpRight,
-  Twitter,
-  Linkedin,
-  Coins,
-  Download,
-  Camera,
-} from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { type ChartConfig, ChartLegendContent, ChartStyle, ChartContainer, ChartTooltip, ChartLegend } from "@/components/ui/chart";
+import { Landmark, Shield, TrendingUp, Monitor, HandCoins, Users, Percent, ArrowUpRight, Twitter, Linkedin, Coins, Download, Camera, ChevronDown, Copy, Check } from "lucide-react";
 import { ValidatorWorldMap } from "@/components/stats/ValidatorWorldMap";
 import { L1BubbleNav } from "@/components/stats/l1-bubble.config";
 import { ExplorerDropdown } from "@/components/stats/ExplorerDropdown";
@@ -67,23 +18,13 @@ import { useSectionNavigation } from "@/hooks/use-section-navigation";
 import { LinkableHeading } from "@/components/stats/LinkableHeading";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { ChartSkeletonLoader } from "@/components/ui/chart-skeleton";
-import {
-  TimeSeriesDataPoint,
-  ChartDataPoint,
-  PrimaryNetworkMetrics,
-  VersionCount,
-  L1Chain,
-} from "@/types/stats";
+import { TimeSeriesDataPoint, ChartDataPoint, PrimaryNetworkMetrics, VersionCount, L1Chain } from "@/types/stats";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import { ChartWatermark } from "@/components/stats/ChartWatermark";
 import { StatsBreadcrumb } from "@/components/navigation/StatsBreadcrumb";
 import { ChainIdChips } from "@/components/ui/copyable-id-chip";
 import { AddToWalletButton } from "@/components/ui/add-to-wallet-button";
-import {
-  VersionBreakdownCard,
-  calculateVersionStats,
-  type VersionBreakdownData,
-} from "@/components/stats/VersionBreakdown";
+import { VersionBreakdownCard, calculateVersionStats, type VersionBreakdownData } from "@/components/stats/VersionBreakdown";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { getMAConfig } from "@/utils/chart-utils";
 import { useTheme } from "next-themes";
@@ -97,6 +38,45 @@ interface ValidatorData {
   delegatorCount: number;
   amountDelegated: string;
   version?: string;
+}
+
+interface ValidatorDetails {
+  txHash: string;
+  nodeId: string;
+  subnetId: string;
+  amountStaked: string;
+  delegationFee: string;
+  startTimestamp: number;
+  endTimestamp: number;
+  blsCredentials?: {
+    publicKey: string;
+    proofOfPossession: string;
+  };
+  stakePercentage: number;
+  validatorHealth?: {
+    reachabilityPercent: number;
+    benchedPChainRequestsPercent: number;
+    benchedXChainRequestsPercent: number;
+    benchedCChainRequestsPercent: number;
+  };
+  delegatorCount: number;
+  amountDelegated: string;
+  potentialRewards?: {
+    validationRewardAmount: string;
+    delegationRewardAmount: string;
+    rewardAddresses: string[];
+  };
+  uptimePerformance: number;
+  avalancheGoVersion?: string;
+  delegationCapacity: string;
+  validationStatus: string;
+  geolocation?: {
+    city: string;
+    country: string;
+    countryCode: string;
+    latitude: number;
+    longitude: number;
+  };
 }
 
 export default function CChainValidatorMetrics() {
@@ -116,19 +96,30 @@ export default function CChainValidatorMetrics() {
   const { copiedId, copyToClipboard } = useCopyToClipboard();
   const [sortColumn, setSortColumn] = useState<string>("amountStaked");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+  const [expandedValidators, setExpandedValidators] = useState<Set<string>>(new Set());
+  const [validatorDetails, setValidatorDetails] = useState<Record<string, ValidatorDetails | null>>({});
+  const [loadingDetails, setLoadingDetails] = useState<Set<string>>(new Set());
+  const [detailsCopiedId, setDetailsCopiedId] = useState<string | null>(null);
+  const [stakingAPYData, setStakingAPYData] = useState<{
+    data: { date: string; timestamp: number; supply: number; maxAPY: number; minAPY: number }[];
+    current: { supply: number; totalBurned: number; maxAPY: number; minAPY: number };
+  } | null>(null);
+  const [stakingAPYLoading, setStakingAPYLoading] = useState(true);
 
   const fetchData = async () => {
     try {
       setLoading(true);
+      setStakingAPYLoading(true);
       setError(null);
 
       // Fetch all APIs in parallel
       // Use validator-stats API for version breakdown (same as landing page)
-      const [statsResponse, validatorsResponse, validatorStatsResponse] =
+      const [statsResponse, validatorsResponse, validatorStatsResponse, stakingAPYResponse] =
         await Promise.all([
           fetch(`/api/primary-network-stats?timeRange=all`),
           fetch("/api/primary-network-validators"),
           fetch("/api/validator-stats?network=mainnet"),
+          fetch('/api/staking-apy'),
         ]);
 
       if (!statsResponse.ok) {
@@ -212,10 +203,21 @@ export default function CChainValidatorMetrics() {
         const validatorsList = validatorsData.validators || [];
         setValidators(validatorsList);
       }
+
+      // Process staking APY data
+      if (stakingAPYResponse.ok) {
+        try {
+          const stakingData = await stakingAPYResponse.json();
+          setStakingAPYData(stakingData);
+        } catch (err) {
+          console.error('Error parsing staking APY data:', err);
+        }
+      }
     } catch (err) {
       setError(`An error occurred while fetching data`);
     } finally {
       setLoading(false);
+      setStakingAPYLoading(false);
     }
   };
 
@@ -668,6 +670,68 @@ export default function CChainValidatorMetrics() {
     setDisplayCount(50);
   }, [searchTerm]);
 
+  // Toggle validator expansion and fetch details
+  const toggleValidatorExpansion = async (nodeId: string) => {
+    const newExpanded = new Set(expandedValidators);
+    
+    if (newExpanded.has(nodeId)) {
+      newExpanded.delete(nodeId);
+      setExpandedValidators(newExpanded);
+      return;
+    }
+    
+    newExpanded.add(nodeId);
+    setExpandedValidators(newExpanded);
+
+    if (!validatorDetails[nodeId] && !loadingDetails.has(nodeId)) {
+      setLoadingDetails(prev => new Set(prev).add(nodeId));
+      
+      try {
+        const response = await fetch(`/api/validator-details/${encodeURIComponent(nodeId)}`);
+        if (response.ok) {
+          const data = await response.json();
+          setValidatorDetails(prev => ({...prev, [nodeId]: data.validatorDetails}));
+        } else {
+          setValidatorDetails(prev => ({...prev, [nodeId]: null}));
+        }
+      } catch (error) {
+        console.error(`Failed to fetch details for ${nodeId}:`, error);
+        setValidatorDetails(prev => ({...prev, [nodeId]: null}));
+      } finally {
+        setLoadingDetails(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(nodeId);
+          return newSet;
+        });
+      }
+    }
+  };
+
+  const copyDetailsToClipboard = (text: string, id: string) => {
+    navigator.clipboard.writeText(text);
+    setDetailsCopiedId(id);
+    setTimeout(() => setDetailsCopiedId(null), 2000);
+  };
+
+  // Format timestamp
+  const formatTimestamp = (timestamp: number): string => {
+    if (!timestamp) return "N/A";
+    return new Date(timestamp * 1000).toLocaleDateString("en-US", {year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit"});
+  };
+
+  // Format nAVAX to AVAX
+  const formatNavaxToAvax = (navax: string): string => {
+    const value = parseFloat(navax) / 1e9;
+    if (value >= 1e6) return `${(value / 1e6).toFixed(2)}M AVAX`;
+    if (value >= 1e3) return `${(value / 1e3).toFixed(2)}K AVAX`;
+    return `${value.toFixed(2)} AVAX`;
+  };
+
+  const truncateString = (str: string, startLen: number = 10, endLen: number = 8): string => {
+    if (str.length <= startLen + endLen + 3) return str;
+    return `${str.slice(0, startLen)}...${str.slice(-endLen)}`;
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
@@ -1116,6 +1180,16 @@ export default function CChainValidatorMetrics() {
               />
             )}
           </div>
+
+          {/* Historical Staking APY Chart */}
+          <StakingAPYChartCard
+            data={stakingAPYData?.data}
+            currentMaxAPY={stakingAPYData?.current.maxAPY}
+            currentMinAPY={stakingAPYData?.current.minAPY}
+            period={globalPeriod}
+            onPeriodChange={handlePeriodChange}
+            isLoading={stakingAPYLoading}
+          />
         </section>
 
         <section className="space-y-4 sm:space-y-6">
@@ -1861,32 +1935,32 @@ export default function CChainValidatorMetrics() {
                 <table className="w-full border-collapse">
                   <thead className="bg-[#fcfcfd] dark:bg-neutral-900">
                     <tr>
-                      <th className="px-4 py-2 text-left">
+                      <th className="px-4 py-4 text-left">
                         <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
                           #
                         </span>
                       </th>
-                      <th className="px-4 py-2 text-left">
+                      <th className="px-4 py-4 text-left">
                         <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
                           Node ID
                         </span>
                       </th>
-                      <th className="px-4 py-2 text-right">
+                      <th className="px-4 py-4 text-right">
                         <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
                           Amount Staked
                         </span>
                       </th>
-                      <th className="px-4 py-2 text-right">
+                      <th className="px-4 py-4 text-right">
                         <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
                           Delegation Fee
                         </span>
                       </th>
-                      <th className="px-4 py-2 text-right">
+                      <th className="px-4 py-4 text-right">
                         <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
                           Delegators
                         </span>
                       </th>
-                      <th className="px-4 py-2 text-right">
+                      <th className="px-4 py-4 text-right">
                         <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
                           Amount Delegated
                         </span>
@@ -1900,7 +1974,10 @@ export default function CChainValidatorMetrics() {
                         className="border-b border-slate-100 dark:border-neutral-800 animate-pulse"
                       >
                         <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-3">
-                          <div className="h-4 w-8 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                          <div className="flex items-center gap-1.5">
+                            <div className="h-4 w-4 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                            <div className="h-4 w-4 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                          </div>
                         </td>
                         <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-3">
                           <div className="h-4 w-40 bg-zinc-200 dark:bg-zinc-800 rounded" />
@@ -1930,18 +2007,18 @@ export default function CChainValidatorMetrics() {
                   <table className="w-full border-collapse">
                     <thead className="bg-[#fcfcfd] dark:bg-neutral-900">
                       <tr>
-                        <th className="px-4 py-2 text-left">
+                        <th className="px-4 py-4 text-left">
                           <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
                             #
                           </span>
                         </th>
-                        <th className="px-4 py-2 text-left">
+                        <th className="px-4 py-4 text-left">
                           <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
                             Node ID
                           </span>
                         </th>
                         <th
-                          className="px-4 py-2 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                          className="px-4 py-4 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                           onClick={() => handleSort("amountStaked")}
                         >
                           <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300 inline-flex items-center justify-end">
@@ -1950,7 +2027,7 @@ export default function CChainValidatorMetrics() {
                           </span>
                         </th>
                         <th
-                          className="px-4 py-2 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                          className="px-4 py-4 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                           onClick={() => handleSort("delegationFee")}
                         >
                           <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300 inline-flex items-center justify-end">
@@ -1959,7 +2036,7 @@ export default function CChainValidatorMetrics() {
                           </span>
                         </th>
                         <th
-                          className="px-4 py-2 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                          className="px-4 py-4 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                           onClick={() => handleSort("delegatorCount")}
                         >
                           <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300 inline-flex items-center justify-end">
@@ -1968,7 +2045,7 @@ export default function CChainValidatorMetrics() {
                           </span>
                         </th>
                         <th
-                          className="px-4 py-2 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                          className="px-4 py-4 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                           onClick={() => handleSort("amountDelegated")}
                         >
                           <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300 inline-flex items-center justify-end">
@@ -1991,29 +2068,43 @@ export default function CChainValidatorMetrics() {
                           </td>
                         </tr>
                       ) : (
-                        displayedValidators.map((validator, index) => (
-                          <tr
-                            key={validator.nodeId}
-                            className="border-b border-slate-100 dark:border-neutral-800 transition-colors hover:bg-blue-50/50 dark:hover:bg-neutral-800/50"
+                        displayedValidators.map((validator, index) => {
+                          const isExpanded = expandedValidators.has(validator.nodeId);
+                          const details = validatorDetails[validator.nodeId];
+                          const isLoadingDetails = loadingDetails.has(validator.nodeId);
+                          
+                          return (
+                            <React.Fragment key={validator.nodeId}>
+                              <tr
+                                onClick={() => toggleValidatorExpansion(validator.nodeId)}
+                                className={`border-b border-slate-100 dark:border-neutral-800 transition-colors hover:bg-blue-50/50 dark:hover:bg-neutral-800/50 cursor-pointer ${isExpanded ? 'bg-blue-50/30 dark:bg-neutral-800/30' : ''}`}
                           >
-                            <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
+                            <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-4">
+                                  <div className="flex items-center gap-1.5">
+                                    <ChevronDown
+                                      className={`h-4 w-4 text-zinc-400 transition-transform duration-200 ${
+                                        isExpanded ? "rotate-180" : ""
+                                      }`}
+                                    />
                               <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
                                 {index + 1}
                               </span>
+                                  </div>
                             </td>
-                            <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 font-mono text-xs">
+                            <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-4 font-mono text-xs">
                               <span
                                 title={
                                   copiedId === `node-${validator.nodeId}`
                                     ? "Copied!"
                                     : `Click to copy: ${validator.nodeId}`
                                 }
-                                onClick={() =>
+                                    onClick={(e) => {
+                                      e.stopPropagation();
                                   copyToClipboard(
                                     validator.nodeId,
                                     `node-${validator.nodeId}`
-                                  )
-                                }
+                                      );
+                                    }}
                                 className={`cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors ${
                                   copiedId === `node-${validator.nodeId}`
                                     ? "text-green-600 dark:text-green-400"
@@ -2028,22 +2119,283 @@ export default function CChainValidatorMetrics() {
                                     )}...${validator.nodeId.slice(-8)}`}
                               </span>
                             </td>
-                            <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 text-right font-mono text-sm">
+                            <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-4 text-right font-mono text-sm">
                               {formatValidatorStake(validator.amountStaked)}{" "}
                               AVAX
                             </td>
-                            <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 text-right text-sm">
+                            <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-4 text-right text-sm">
                               {parseFloat(validator.delegationFee).toFixed(1)}%
                             </td>
-                            <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 text-right text-sm">
+                            <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-4 text-right text-sm">
                               {validator.delegatorCount}
                             </td>
-                            <td className="px-4 py-2 text-right font-mono text-sm">
+                            <td className="px-4 py-4 text-right font-mono text-sm">
                               {formatValidatorStake(validator.amountDelegated)}{" "}
                               AVAX
                             </td>
                           </tr>
-                        ))
+                              
+                              {/* Expanded Details Section */}
+                              {isExpanded && (
+                                <tr className="bg-zinc-50/50 dark:bg-neutral-900/30">
+                                  <td colSpan={6} className="px-6 py-5">
+                                    {isLoadingDetails ? (
+                                      <div className="animate-in fade-in duration-300">
+                                        {/* Status & Version Skeleton */}
+                                        <div className="flex items-center justify-between mb-5">
+                                          <div className="flex items-center gap-3">
+                                            <div className="h-6 w-16 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                                            <div className="h-4 w-20 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                                          </div>
+                                          <div className="h-8 w-28 bg-zinc-200 dark:bg-zinc-800 rounded-md animate-pulse" />
+                                        </div>
+
+                                        {/* First Grid Row Skeleton */}
+                                        <div className="grid md:grid-cols-3 gap-3 mb-3">
+                                          {[1, 2, 3].map((i) => (
+                                            <div key={i} className="p-3 border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-neutral-900">
+                                              <div className="h-3 w-24 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse mb-3" />
+                                              <div className="space-y-2">
+                                                <div className="h-3 w-36 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                                                <div className="h-3 w-32 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                                                <div className="h-3 w-28 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                                              </div>
+                                            </div>
+                                          ))}
+                                        </div>
+
+                                        {/* Second Grid Row Skeleton */}
+                                        <div className="grid md:grid-cols-3 gap-3 mb-4">
+                                          {[1, 2, 3].map((i) => (
+                                            <div key={i} className="p-3 border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-neutral-900">
+                                              <div className="h-3 w-20 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse mb-3" />
+                                              <div className="space-y-2">
+                                                <div className="h-3 w-32 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                                                <div className="h-3 w-28 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                                              </div>
+                                            </div>
+                                          ))}
+                                        </div>
+
+                                        {/* Technical Details Skeleton */}
+                                        <div className="border-t border-zinc-200 dark:border-zinc-700 pt-4">
+                                          <div className="h-3 w-28 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse mb-3" />
+                                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                            {[1, 2].map((i) => (
+                                              <div key={i} className="flex items-center justify-between p-2.5 bg-white dark:bg-neutral-900 border border-zinc-200 dark:border-zinc-700 rounded-lg">
+                                                <div className="flex items-center gap-2">
+                                                  <div className="h-3 w-16 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                                                  <div className="h-3 w-32 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                                                </div>
+                                                <div className="h-6 w-6 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                                              </div>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    ) : details ? (
+                                      <>
+                                        {/* Status & Version */}
+                                        <div className="flex items-center justify-between mb-5">
+                                          <div className="flex items-center gap-3">
+                                            <span className={`px-2.5 py-1 text-xs font-medium rounded flex items-center gap-1.5 ${
+                                              details.validationStatus === 'active'
+                                                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                                                : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                                            }`}>
+                                              <span className={`w-1.5 h-1.5 rounded-full ${details.validationStatus === 'active' ? 'bg-emerald-500' : 'bg-yellow-500'}`} />
+                                              {details.validationStatus.charAt(0).toUpperCase() + details.validationStatus.slice(1)}
+                                            </span>
+                                            {details.avalancheGoVersion && (
+                                              <span className="text-sm text-zinc-500 dark:text-zinc-400">{details.avalancheGoVersion}</span>
+                                            )}
+                                          </div>
+                                          <a
+                                            href={`https://subnets.avax.network/validators/${validator.nodeId}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            onClick={(e) => e.stopPropagation()}
+                                            className="inline-flex items-center h-8 px-3 text-xs font-medium gap-2 border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:border-zinc-400 dark:hover:border-zinc-500 rounded-md transition-all bg-transparent"
+                                          >
+                                            View on Explorer
+                                            <ArrowUpRight className="h-3.5 w-3.5" />
+                                          </a>
+                                        </div>
+
+                                        <div className="grid md:grid-cols-3 gap-3 mb-3">
+                                          <div className="p-3 border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-neutral-900">
+                                            <h4 className="text-xs font-medium text-zinc-900 dark:text-zinc-100 mb-2">Validation Period</h4>
+                                            <div className="text-xs text-zinc-500 dark:text-zinc-400 space-y-0.5">
+                                              <p>Start: {formatTimestamp(details.startTimestamp)}</p>
+                                              <p>End: {formatTimestamp(details.endTimestamp)}</p>
+                                            </div>
+                                          </div>
+                                          <div className="p-3 border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-neutral-900">
+                                            <h4 className="text-xs font-medium text-zinc-900 dark:text-zinc-100 mb-2">Staking Details</h4>
+                                            <div className="text-xs text-zinc-500 dark:text-zinc-400 space-y-0.5">
+                                              <p>Staked: {formatNavaxToAvax(details.amountStaked)}</p>
+                                              <p>Delegated: {formatNavaxToAvax(details.amountDelegated)}</p>
+                                              <p>Stake Percentage: {details.stakePercentage.toFixed(4)}%</p>
+                                            </div>
+                                          </div>
+                                          <div className="p-3 border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-neutral-900">
+                                            <h4 className="text-xs font-medium text-zinc-900 dark:text-zinc-100 mb-2">Delegation</h4>
+                                            <div className="text-xs text-zinc-500 dark:text-zinc-400 space-y-0.5">
+                                              <p>Fee: {parseFloat(details.delegationFee).toFixed(2)}%</p>
+                                              <p>Capacity: {formatNavaxToAvax(details.delegationCapacity)}</p>
+                                              <p>Delegators: {details.delegatorCount}</p>
+                                            </div>
+                                          </div>
+                                        </div>
+
+                                        <div className="grid md:grid-cols-3 gap-3 mb-4">
+                                          <div className="p-3 border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-neutral-900">
+                                            <h4 className="text-xs font-medium text-zinc-900 dark:text-zinc-100 mb-2">Performance</h4>
+                                            <div className="text-xs space-y-0.5">
+                                              <p className="text-zinc-500 dark:text-zinc-400">
+                                                Uptime: <span className={`font-medium ${details.uptimePerformance >= 80 ? 'text-emerald-600 dark:text-emerald-400' : details.uptimePerformance >= 50 ? 'text-yellow-600 dark:text-yellow-400' : 'text-red-600 dark:text-red-400'}`}>{details.uptimePerformance.toFixed(2)}%</span>
+                                              </p>
+                                              {details.validatorHealth && (
+                                                <p className="text-zinc-500 dark:text-zinc-400">
+                                                  Reachability: <span className={`font-medium ${details.validatorHealth.reachabilityPercent >= 80 ? 'text-emerald-600 dark:text-emerald-400' : 'text-yellow-600 dark:text-yellow-400'}`}>{details.validatorHealth.reachabilityPercent}%</span>
+                                                </p>
+                                              )}
+                                            </div>
+                                          </div>
+                                          {details.potentialRewards && (
+                                            <div className="p-3 border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-neutral-900">
+                                              <h4 className="text-xs font-medium text-zinc-900 dark:text-zinc-100 mb-2">Potential Rewards</h4>
+                                              <div className="text-xs space-y-0.5">
+                                                <p className="text-zinc-500 dark:text-zinc-400">
+                                                  Validation: <span className="text-emerald-600 dark:text-emerald-400 font-medium">{formatNavaxToAvax(details.potentialRewards.validationRewardAmount)}</span>
+                                                </p>
+                                                <p className="text-zinc-500 dark:text-zinc-400">
+                                                  Delegation: <span className="text-emerald-600 dark:text-emerald-400 font-medium">{formatNavaxToAvax(details.potentialRewards.delegationRewardAmount)}</span>
+                                                </p>
+                                              </div>
+                                            </div>
+                                          )}
+                                          {details.geolocation && (
+                                            <div className="p-3 border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-neutral-900">
+                                              <h4 className="text-xs font-medium text-zinc-900 dark:text-zinc-100 mb-2">Location</h4>
+                                              <div className="text-xs text-zinc-500 dark:text-zinc-400">
+                                                <p>{details.geolocation.city}, {details.geolocation.country}</p>
+                                              </div>
+                                            </div>
+                                          )}
+                                        </div>
+
+                                        <div className="border-t border-zinc-200 dark:border-zinc-700 pt-4">
+                                          <h4 className="text-xs font-medium text-zinc-900 dark:text-zinc-100 mb-3">Technical Details</h4>
+                                          <div className="space-y-2">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                              <div className="flex items-center justify-between p-2.5 bg-white dark:bg-neutral-900 border border-zinc-200 dark:border-zinc-700 rounded-lg">
+                                                <div className="flex items-center gap-2 min-w-0">
+                                                  <span className="text-xs text-zinc-500 dark:text-zinc-400 shrink-0">TX Hash:</span>
+                                                  <a 
+                                                    href={`https://subnets.avax.network/p-chain/tx/${details.txHash}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    className="inline-flex items-center gap-1 font-mono text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors truncate"
+                                                  >
+                                                    {truncateString(details.txHash, 12, 8)}
+                                                    <ArrowUpRight className="h-3 w-3 shrink-0" />
+                                                  </a>
+                                                </div>
+                                                <button 
+                                                  onClick={(e) => { e.stopPropagation(); copyDetailsToClipboard(details.txHash, `tx-${validator.nodeId}`); }}
+                                                  className="h-6 w-6 p-0 flex items-center justify-center hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded transition-colors shrink-0"
+                                                >
+                                                  {detailsCopiedId === `tx-${validator.nodeId}` ? (
+                                                    <Check className="h-3 w-3 text-emerald-500" />
+                                                  ) : (
+                                                    <Copy className="h-3 w-3 text-zinc-400" />
+                                                  )}
+                                                </button>
+                                              </div>
+                                              {details.potentialRewards?.rewardAddresses?.[0] && (
+                                                <div className="flex items-center justify-between p-2.5 bg-white dark:bg-neutral-900 border border-zinc-200 dark:border-zinc-700 rounded-lg">
+                                                  <div className="flex items-center gap-2 min-w-0">
+                                                    <span className="text-xs text-zinc-500 dark:text-zinc-400 shrink-0">Payout Address:</span>
+                                                    <a 
+                                                      href={`https://subnets.avax.network/p-chain/address/${details.potentialRewards.rewardAddresses[0]}`}
+                                                      target="_blank"
+                                                      rel="noopener noreferrer"
+                                                      onClick={(e) => e.stopPropagation()}
+                                                      className="inline-flex items-center gap-1 font-mono text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors truncate"
+                                                    >
+                                                      {truncateString(details.potentialRewards.rewardAddresses[0], 10, 8)}
+                                                      <ArrowUpRight className="h-3 w-3 shrink-0" />
+                                                    </a>
+                                                  </div>
+                                                  <button 
+                                                    onClick={(e) => { e.stopPropagation(); copyDetailsToClipboard(details.potentialRewards!.rewardAddresses[0], `payout-${validator.nodeId}`); }}
+                                                    className="h-6 w-6 p-0 flex items-center justify-center hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded transition-colors shrink-0"
+                                                  >
+                                                    {detailsCopiedId === `payout-${validator.nodeId}` ? (
+                                                      <Check className="h-3 w-3 text-emerald-500" />
+                                                    ) : (
+                                                      <Copy className="h-3 w-3 text-zinc-400" />
+                                                    )}
+                                                  </button>
+                                                </div>
+                                              )}
+                                            </div>
+                                            {(details.blsCredentials?.publicKey || details.blsCredentials?.proofOfPossession) && (
+                                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                                {details.blsCredentials?.publicKey && (
+                                                  <div className="flex items-center justify-between p-2.5 bg-white dark:bg-neutral-900 border border-zinc-200 dark:border-zinc-700 rounded-lg">
+                                                    <div className="flex items-center gap-2 min-w-0">
+                                                      <span className="text-xs text-zinc-500 dark:text-zinc-400 shrink-0">BLS Key:</span>
+                                                      <span className="font-mono text-xs text-zinc-700 dark:text-zinc-300 truncate">{truncateString(details.blsCredentials.publicKey, 12, 8)}</span>
+                                                    </div>
+                                                    <button 
+                                                      onClick={(e) => { e.stopPropagation(); copyDetailsToClipboard(details.blsCredentials!.publicKey, `bls-${validator.nodeId}`); }}
+                                                      className="h-6 w-6 p-0 flex items-center justify-center hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded transition-colors shrink-0"
+                                                    >
+                                                      {detailsCopiedId === `bls-${validator.nodeId}` ? (
+                                                        <Check className="h-3 w-3 text-emerald-500" />
+                                                      ) : (
+                                                        <Copy className="h-3 w-3 text-zinc-400" />
+                                                      )}
+                                                    </button>
+                                                  </div>
+                                                )}
+                                                {details.blsCredentials?.proofOfPossession && (
+                                                  <div className="flex items-center justify-between p-2.5 bg-white dark:bg-neutral-900 border border-zinc-200 dark:border-zinc-700 rounded-lg">
+                                                    <div className="flex items-center gap-2 min-w-0">
+                                                      <span className="text-xs text-zinc-500 dark:text-zinc-400 shrink-0">BLS Signature:</span>
+                                                      <span className="font-mono text-xs text-zinc-700 dark:text-zinc-300 truncate">{truncateString(details.blsCredentials.proofOfPossession, 12, 8)}</span>
+                                                    </div>
+                                                    <button 
+                                                      onClick={(e) => { e.stopPropagation(); copyDetailsToClipboard(details.blsCredentials!.proofOfPossession, `blssig-${validator.nodeId}`); }}
+                                                      className="h-6 w-6 p-0 flex items-center justify-center hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded transition-colors shrink-0"
+                                                    >
+                                                      {detailsCopiedId === `blssig-${validator.nodeId}` ? (
+                                                        <Check className="h-3 w-3 text-emerald-500" />
+                                                      ) : (
+                                                        <Copy className="h-3 w-3 text-zinc-400" />
+                                                      )}
+                                                    </button>
+                                                  </div>
+                                                )}
+                                              </div>
+                                            )}
+                                          </div>
+                                        </div>
+                                      </>
+                                    ) : (
+                                      <div className="flex items-center justify-center py-8">
+                                        <span className="text-sm text-zinc-500">Unable to load validator details</span>
+                                      </div>
+                                    )}
+                                  </td>
+                                </tr>
+                              )}
+                            </React.Fragment>
+                          );
+                        })
                       )}
                     </tbody>
                   </table>
@@ -3010,6 +3362,400 @@ function DailyRewardsChartCard({
   );
 }
 
+// Historical Staking APY Chart Card
+function StakingAPYChartCard({
+  data,
+  currentMaxAPY,
+  currentMinAPY,
+  period,
+  onPeriodChange,
+  isLoading = false,
+}: {
+  data?: { date: string; timestamp: number; supply: number; maxAPY: number; minAPY: number }[];
+  currentMaxAPY?: number;
+  currentMinAPY?: number;
+  period: "D" | "W" | "M" | "Q" | "Y";
+  onPeriodChange: (period: "D" | "W" | "M" | "Q" | "Y") => void;
+  isLoading?: boolean;
+}) {
+  const [brushIndexes, setBrushIndexes] = useState<{
+    startIndex: number;
+    endIndex: number;
+  } | null>(null);
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+  const { resolvedTheme } = useTheme();
+
+  const handleScreenshot = async () => {
+    if (!chartContainerRef.current) return;
+    try {
+      const element = chartContainerRef.current;
+      const bgColor = resolvedTheme === "dark" ? "#0a0a0a" : "#ffffff";
+      const dataUrl = await toPng(element, {
+        quality: 1,
+        pixelRatio: 2,
+        backgroundColor: bgColor,
+        cacheBust: true,
+      });
+      const link = document.createElement("a");
+      link.download = `Staking_APY_${period}_${new Date().toISOString().split("T")[0]}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (error) {
+      console.error("Failed to capture screenshot:", error);
+    }
+  };
+
+  // Transform data to chart format
+  const chartData = useMemo(() => {
+    if (!data) return [];
+    return data.map((point) => ({
+      day: point.date,
+      maxAPY: point.maxAPY,
+      minAPY: point.minAPY,
+    }));
+  }, [data]);
+
+  // Aggregate data by period
+  const aggregatedData = useMemo(() => {
+    if (period === "D") return chartData;
+
+    const grouped = new Map<string, { avgMaxAPY: number; avgMinAPY: number; count: number; date: string }>();
+
+    chartData.forEach((point) => {
+      const date = new Date(point.day);
+      let key: string;
+
+      if (period === "W") {
+        const weekStart = new Date(date);
+        weekStart.setDate(date.getDate() - date.getDay());
+        key = weekStart.toISOString().split("T")[0];
+      } else if (period === "M") {
+        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+      } else if (period === "Q") {
+        const quarter = Math.floor(date.getMonth() / 3) + 1;
+        key = `${date.getFullYear()}-Q${quarter}`;
+      } else {
+        key = String(date.getFullYear());
+      }
+
+      if (!grouped.has(key)) {
+        grouped.set(key, { avgMaxAPY: 0, avgMinAPY: 0, count: 0, date: key });
+      }
+
+      const group = grouped.get(key)!;
+      group.avgMaxAPY += point.maxAPY;
+      group.avgMinAPY += point.minAPY;
+      group.count++;
+    });
+
+    return Array.from(grouped.values())
+      .map((group) => ({
+        day: group.date,
+        maxAPY: group.avgMaxAPY / group.count,
+        minAPY: group.avgMinAPY / group.count,
+      }))
+      .sort((a, b) => a.day.localeCompare(b.day));
+  }, [chartData, period]);
+
+  // Initialize brush - show all data since genesis
+  useEffect(() => {
+    if (!aggregatedData || aggregatedData.length === 0) {
+      setBrushIndexes(null);
+      return;
+    }
+
+    // Show all data from the beginning (since genesis) for all periods
+    setBrushIndexes({
+      startIndex: 0,
+      endIndex: aggregatedData.length - 1,
+    });
+  }, [period, aggregatedData]);
+
+  const displayData = useMemo(() => {
+    if (!brushIndexes || !aggregatedData || aggregatedData.length === 0) return [];
+    const start = Math.max(0, Math.min(brushIndexes.startIndex, aggregatedData.length - 1));
+    const end = Math.max(0, Math.min(brushIndexes.endIndex, aggregatedData.length - 1));
+    if (start > end) return [];
+    return aggregatedData.slice(start, end + 1);
+  }, [brushIndexes, aggregatedData]);
+
+  // CSV download function
+  const downloadCSV = () => {
+    if (!displayData || displayData.length === 0) return;
+
+    const headers = ["Date", "Max APY (1 Year %)", "Min APY (2 Weeks %)"];
+    const rows = displayData.map((point) => [point.day, point.maxAPY.toFixed(4), point.minAPY.toFixed(4)].join(","));
+
+    const csvContent = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `Staking_APY_${period}_${new Date().toISOString().split("T")[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const formatXAxis = (value: string) => {
+    if (period === "Q") {
+      const parts = value.split("-");
+      if (parts.length === 2) return `${parts[1]} '${parts[0].slice(-2)}`;
+      return value;
+    }
+    if (period === "Y") return value;
+    const date = new Date(value);
+    if (period === "M") {
+      return date.toLocaleDateString("en-US", { month: "short", year: "2-digit" });
+    }
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  };
+
+  const formatTooltipDate = (value: string) => {
+    if (period === "Y") return value;
+    if (period === "Q") {
+      const parts = value.split("-");
+      if (parts.length === 2) return `${parts[1]} ${parts[0]}`;
+      return value;
+    }
+    const date = new Date(value);
+    if (period === "M") {
+      return date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+    }
+    if (period === "W") {
+      const endDate = new Date(date);
+      endDate.setDate(date.getDate() + 6);
+      return `${date.toLocaleDateString("en-US", { month: "short", day: "numeric" })} - ${endDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
+    }
+    return date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
+  };
+
+  const formatBrushXAxis = (value: string) => {
+    if (period === "Q" || period === "Y") return value;
+    const date = new Date(value);
+    return date.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+  };
+
+  const maxAPYColor = "#10B981"; // Emerald for max APY (1 year)
+  const minAPYColor = "#3B82F6"; // Blue for min APY (2 weeks)
+
+  return (
+    <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700" ref={chartContainerRef}>
+      <CardContent className="p-0">
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div
+              className="rounded-full p-2 sm:p-3 flex items-center justify-center"
+              style={{ backgroundColor: `${maxAPYColor}20` }}
+            >
+              <Percent className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: maxAPYColor }} />
+            </div>
+            <div>
+              <h3 className="text-base sm:text-lg font-normal">Historical Staking APY</h3>
+              <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
+                Estimated APY based on staking duration and current supply
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-1">
+            <Select
+              value={period}
+              onValueChange={(value) => onPeriodChange(value as "D" | "W" | "M" | "Q" | "Y")}
+            >
+              <SelectTrigger className="h-7 w-auto px-2 gap-1 text-xs sm:text-sm border-0 bg-transparent hover:bg-muted focus:ring-0 shadow-none">
+                <SelectValue>
+                  {period === "D" ? "Daily" : period === "W" ? "Weekly" : period === "M" ? "Monthly" : period === "Q" ? "Quarterly" : "Yearly"}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {(["D", "W", "M", "Q", "Y"] as const).map((p) => (
+                  <SelectItem key={p} value={p}>
+                    {p === "D" ? "Daily" : p === "W" ? "Weekly" : p === "M" ? "Monthly" : p === "Q" ? "Quarterly" : "Yearly"}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <button
+              onClick={handleScreenshot}
+              className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
+              title="Download chart as image"
+            >
+              <Camera className="h-4 w-4" />
+            </button>
+            <button
+              onClick={downloadCSV}
+              className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
+              title="Download CSV"
+            >
+              <Download className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+
+        <div className="px-5 pt-6 pb-6">
+          {/* Current Values */}
+          <div className="flex items-center gap-4 sm:gap-8 mb-3 sm:mb-4 pl-2 sm:pl-4 flex-wrap">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: maxAPYColor }} />
+              <span className="text-sm text-muted-foreground">Max (1 Year):</span>
+              {isLoading ? (
+                <div className="h-4 w-14 bg-muted animate-pulse rounded" />
+              ) : (
+                <span className="text-md font-mono">{(currentMaxAPY ?? 0).toFixed(2)}%</span>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: minAPYColor }} />
+              <span className="text-sm text-muted-foreground">Min (2 Weeks):</span>
+              {isLoading ? (
+                <div className="h-4 w-14 bg-muted animate-pulse rounded" />
+              ) : (
+                <span className="text-md font-mono">{(currentMinAPY ?? 0).toFixed(2)}%</span>
+              )}
+            </div>
+          </div>
+
+          {/* Chart */}
+          <ChartWatermark className="mb-6">
+            {isLoading ? (
+              <div className="h-[350px] flex flex-col items-center justify-center gap-4">
+                <div className="relative w-full h-full">
+                  <svg className="absolute inset-0 w-full h-full" viewBox="0 0 400 200" preserveAspectRatio="none">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <line key={`h-${i}`} x1="50" y1={30 + i * 35} x2="390" y2={30 + i * 35} className="stroke-muted" strokeWidth="0.5" strokeDasharray="4 4" />
+                    ))}
+                    <path d="M50,60 C100,65 150,70 200,80 C250,90 300,100 350,110 L390,115" fill="none" className="stroke-muted animate-pulse" strokeWidth="2" strokeLinecap="round" />
+                    <path d="M50,90 C100,95 150,100 200,110 C250,120 300,130 350,140 L390,145" fill="none" className="stroke-muted animate-pulse" strokeWidth="2" strokeLinecap="round" style={{ animationDelay: '150ms' }} />
+                  </svg>
+                  <div className="absolute left-0 top-0 bottom-8 w-12 flex flex-col justify-between py-4">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <div key={i} className="h-3 w-8 bg-muted animate-pulse rounded" style={{ animationDelay: `${i * 100}ms` }} />
+                    ))}
+                  </div>
+                  <div className="absolute bottom-0 left-12 right-0 h-8 flex justify-between items-center px-4">
+                    {Array.from({ length: 6 }).map((_, i) => (
+                      <div key={i} className="h-3 w-12 bg-muted animate-pulse rounded" style={{ animationDelay: `${i * 80}ms` }} />
+                    ))}
+                  </div>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="flex items-center gap-2 bg-background/80 px-4 py-2 rounded-lg shadow-sm border border-border/50">
+                      <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                      <span className="text-sm text-muted-foreground">Loading APY data...</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : displayData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={350}>
+                <LineChart data={displayData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-muted" />
+                  <XAxis
+                    dataKey="day"
+                    tickFormatter={formatXAxis}
+                    className="text-xs text-gray-600 dark:text-gray-400"
+                    tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
+                    minTickGap={80}
+                    interval="preserveStartEnd"
+                  />
+                  <YAxis
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={(value) => `${value.toFixed(1)}%`}
+                    className="text-xs"
+                    tick={{ fontSize: 11 }}
+                    width={50}
+                    domain={['auto', 'auto']}
+                  />
+                  <Tooltip
+                    content={({ active, payload }) => {
+                      if (!active || !payload?.length) return null;
+                      const data = payload[0].payload;
+                      return (
+                        <div className="rounded-lg border bg-background p-3 shadow-lg">
+                          <p className="font-medium text-sm mb-2">{formatTooltipDate(data.day)}</p>
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: maxAPYColor }} />
+                              <span className="text-xs text-muted-foreground">Max APY (1 Year):</span>
+                              <span className="text-xs font-mono font-medium">{data.maxAPY.toFixed(2)}%</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: minAPYColor }} />
+                              <span className="text-xs text-muted-foreground">Min APY (2 Weeks):</span>
+                              <span className="text-xs font-mono font-medium">{data.minAPY.toFixed(2)}%</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="maxAPY"
+                    stroke={maxAPYColor}
+                    strokeWidth={2}
+                    dot={false}
+                    name="Max APY (1 Year)"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="minAPY"
+                    stroke={minAPYColor}
+                    strokeWidth={2}
+                    dot={false}
+                    name="Min APY (2 Weeks)"
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-[350px] flex items-center justify-center text-muted-foreground">
+                No data available
+              </div>
+            )}
+          </ChartWatermark>
+
+          {/* Brush Slider */}
+          {!isLoading && aggregatedData.length > 0 && brushIndexes && 
+           !isNaN(brushIndexes.startIndex) && !isNaN(brushIndexes.endIndex) &&
+           brushIndexes.startIndex >= 0 && brushIndexes.endIndex < aggregatedData.length &&
+           brushIndexes.startIndex <= brushIndexes.endIndex && (
+            <div className="bg-white dark:bg-black pl-[60px]">
+              <ResponsiveContainer width="100%" height={80}>
+                <LineChart data={aggregatedData} margin={{ top: 0, right: 30, left: 0, bottom: 5 }}>
+                  <Brush
+                    dataKey="day"
+                    height={80}
+                    stroke={maxAPYColor}
+                    fill={`${maxAPYColor}20`}
+                    alwaysShowText={false}
+                    startIndex={brushIndexes.startIndex}
+                    endIndex={brushIndexes.endIndex}
+                    onChange={(e: any) => {
+                      if (e.startIndex !== undefined && e.endIndex !== undefined &&
+                          !isNaN(e.startIndex) && !isNaN(e.endIndex) &&
+                          e.startIndex <= e.endIndex) {
+                        setBrushIndexes({ startIndex: e.startIndex, endIndex: e.endIndex });
+                      }
+                    }}
+                    travellerWidth={8}
+                    tickFormatter={formatBrushXAxis}
+                  >
+                    <LineChart>
+                      <Line type="monotone" dataKey="maxAPY" stroke={maxAPYColor} strokeWidth={1} dot={false} />
+                    </LineChart>
+                  </Brush>
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 // Total Weight (Staked + Delegated) Stacked Area Chart
 function TotalWeightStackedChartCard({
   validatorData,
@@ -3805,4 +4551,3 @@ function CumulativeRewardsChartCard({
     </Card>
   );
 }
-
