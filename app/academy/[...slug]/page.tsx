@@ -56,6 +56,9 @@ import ICMRelayer from "@/components/toolbox/console/icm/setup/ICMRelayer";
 import Faucet from "@/components/toolbox/console/primary-network/Faucet";
 import CreateManagedTestnetNode from "@/components/toolbox/console/testnet-infra/ManagedTestnetNodes/CreateManagedTestnetNode";
 import CreateManagedTestnetRelayer from "@/components/toolbox/console/testnet-infra/ManagedTestnetRelayers/CreateManagedTestnetRelayer";
+import DeployerAllowlist from "@/components/toolbox/console/l1-access-restrictions/DeployerAllowlist";
+import TransactionAllowlist from "@/components/toolbox/console/l1-access-restrictions/TransactionAllowlist";
+import DeployICMDemo from "@/components/toolbox/console/icm/test-connection/DeployICMDemo";
 
 export const dynamicParams = true;
 
@@ -79,6 +82,9 @@ const toolboxComponents = {
   ICMRelayer,
   CreateManagedTestnetRelayer,
   Faucet,
+  DeployerAllowlist,
+  TransactionAllowlist,
+  DeployICMDemo,
 };
 
 export default async function Page(props: {

@@ -7,7 +7,7 @@
     "interchain-messaging",
     "erc20-bridge",
     "native-token-bridge",
-    "customizing-evm"
+    "customizing-evm",
+    "access-restriction"
   ]
 }
-
