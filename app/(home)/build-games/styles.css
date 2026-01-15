@@ -175,6 +175,11 @@ body:has(.build-games-container) [class*="layout"] {
   right: 0 !important;
 }
 
+/* Desktop: Move "In Prizes" text to right side */
+.build-games-container [data-name="Hero"] > .absolute > .absolute.left-\[958\.67px\] .items-start {
+  align-items: flex-end !important;
+}
+
 /* Make hero section extend full viewport width */
 .build-games-container [data-name="Hero"] {
   width: 100vw !important;
@@ -182,7 +187,7 @@ body:has(.build-games-container) [class*="layout"] {
   left: 50% !important;
   right: auto !important;
   margin-left: -50vw !important;
-  overflow: hidden !important;
+  overflow: visible !important;
 }
 
 /* Extend hero background images to full width */
@@ -324,4 +329,622 @@ body:has(.build-games-container) [class*="layout"] {
   mask-composite: exclude;
   pointer-events: none;
   z-index: 1;
+}
+
+/* ==========================================
+   MOBILE RESPONSIVE STYLES
+   ========================================== */
+
+@media screen and (max-width: 768px) {
+  /* CRITICAL: Convert absolute positioned main to relative */
+  .build-games-container [data-name="Main"] {
+    position: relative !important;
+    top: 0 !important;
+  }
+
+  /* Hide decorative background SVGs */
+  .build-games-container > div > .opacity-25 {
+    display: none !important;
+  }
+
+  /* Base padding adjustments */
+  .build-games-container {
+    padding-bottom: 60px !important;
+  }
+
+  /* ==========================================
+     HERO SECTION - Show background image with Build Games logo centered
+     ========================================== */
+  .build-games-container [data-name="Hero"] {
+    height: 280px !important;
+    width: 100% !important;
+    left: 0 !important;
+    margin-left: 0 !important;
+    margin-top: 56px !important;
+    position: relative !important;
+    overflow: hidden !important;
+  }
+
+  /* Show Direction2_R2 image as background */
+  .build-games-container [data-name="Direction2_R2 1"] {
+    display: block !important;
+    position: absolute !important;
+    width: 100% !important;
+    height: 100% !important;
+    left: 0 !important;
+    top: 0 !important;
+    transform: none !important;
+  }
+  .build-games-container [data-name="Direction2_R2 1"] > div {
+    position: absolute !important;
+    inset: 0 !important;
+  }
+  .build-games-container [data-name="Direction2_R2 1"] img {
+    width: 100% !important;
+    height: 100% !important;
+    top: 0 !important;
+    left: 0 !important;
+    object-fit: cover !important;
+    object-position: center top !important;
+  }
+
+  /* Override inline top-[-29.47%] class */
+  .build-games-container [data-name="Direction2_R2 1"] .top-\[-29\.47\%\] {
+    top: 0 !important;
+  }
+  .build-games-container [data-name="Direction2_R2 1"] .h-\[129\.47\%\] {
+    height: 100% !important;
+  }
+
+  /* Hide other background elements */
+  .build-games-container [data-name="Background3_R1 1"],
+  .build-games-container [data-name="Background3_R1_Square 1"],
+  .build-games-container [data-name="Hero"] > .bg-gradient-to-b {
+    display: none !important;
+  }
+
+  /* Content wrapper - make it fill hero and center contents */
+  .build-games-container [data-name="Hero"] > .absolute.h-\[352\.506px\] {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    position: absolute !important;
+    width: 100% !important;
+    height: 100% !important;
+    left: 0 !important;
+    top: 0 !important;
+    z-index: 2 !important;
+  }
+
+  /* The left column that contains Layer_1 - hide it, we'll position Layer_1 directly */
+  .build-games-container [data-name="Hero"] > .absolute > .absolute.h-\[352\.506px\].w-\[479\.333px\] {
+    position: absolute !important;
+    width: 100% !important;
+    height: 100% !important;
+    left: 0 !important;
+    top: 0 !important;
+  }
+
+  /* CENTER THE LOGO - Absolute position in center of hero, shifted slightly left */
+  .build-games-container [data-name="Hero"] [data-name="Layer_1"] {
+    display: block !important;
+    position: absolute !important;
+    width: 200px !important;
+    height: 140px !important;
+    left: calc(50% - 20px) !important;
+    top: 50% !important;
+    right: auto !important;
+    transform: translate(-50%, -50%) !important;
+  }
+
+  /* Hide the prize text and empty columns on mobile */
+  .build-games-container [data-name="Hero"] > .absolute > .absolute.left-\[958\.67px\],
+  .build-games-container [data-name="Hero"] > .absolute > .absolute.left-\[479\.33px\] {
+    display: none !important;
+  }
+
+  /* Hide the prize text container specifically */
+  .build-games-container [data-name="Hero"] .content-stretch.flex.flex-col.h-\[352\.506px\] {
+    display: none !important;
+  }
+
+  /* ==========================================
+     HERO TILES SECTION
+     ========================================== */
+  .build-games-container [data-name="Tiles"] {
+    height: auto !important;
+  }
+  .build-games-container [data-name="Tiles"] .px-\[186px\] {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+  .build-games-container [data-name="Tiles"] .w-\[1068px\] {
+    width: 100% !important;
+    flex-direction: column !important;
+  }
+  .build-games-container [data-name="Tiles"] .gradient-border-card {
+    width: 100% !important;
+    min-height: 100px !important;
+  }
+  .build-games-container [data-name="Tiles"] .px-\[36px\] {
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+  }
+  .build-games-container [data-name="Tiles"] .py-\[60px\] {
+    padding-top: 20px !important;
+    padding-bottom: 20px !important;
+  }
+  .build-games-container [data-name="Tiles"] .text-\[48px\] {
+    font-size: 28px !important;
+  }
+  .build-games-container [data-name="Tiles"] .text-\[48px\] p {
+    line-height: 1.2 !important;
+  }
+  .build-games-container [data-name="Tiles"] .text-\[24px\] {
+    font-size: 16px !important;
+  }
+  .build-games-container [data-name="Tiles"] .h-\[284px\] {
+    height: auto !important;
+  }
+
+  /* ==========================================
+     APPLY TODAY CTA - Center aligned buttons
+     ========================================== */
+  .build-games-container .h-\[232px\] {
+    height: auto !important;
+    padding: 24px 16px !important;
+  }
+  .build-games-container [data-name="CTA"] .px-\[186px\] {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+  .build-games-container [data-name="CTA"] .gap-\[16px\] {
+    flex-direction: column !important;
+    align-items: center !important;
+    width: 100% !important;
+  }
+  .build-games-container [data-name="CTA"] .items-end {
+    align-items: center !important;
+  }
+  /* Center the button group container */
+  .build-games-container [data-name="CTA"] .flex-row.items-center {
+    justify-content: center !important;
+    width: 100% !important;
+  }
+  .build-games-container [data-name="CTA"] .basis-0.grow {
+    display: flex !important;
+    justify-content: center !important;
+    width: 100% !important;
+  }
+  .build-games-container [data-name="CTA"] .basis-0.flex-row.grow {
+    justify-content: center !important;
+    width: 100% !important;
+  }
+  /* CTAButtonGroup - center the buttons */
+  .build-games-container [data-name="CTA"] .gap-\[10px\].items-center {
+    justify-content: center !important;
+    width: 100% !important;
+  }
+
+  /* ==========================================
+     GENERAL WIDTH FIXES
+     ========================================== */
+  .build-games-container .px-\[186px\] {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+  .build-games-container .w-\[1068px\] {
+    width: 100% !important;
+    flex-direction: column !important;
+  }
+  .build-games-container .w-\[478px\] {
+    width: 100% !important;
+  }
+  .build-games-container .w-\[306\.049px\] {
+    width: 100% !important;
+  }
+  .build-games-container .w-\[405px\] {
+    width: 100% !important;
+  }
+  .build-games-container .w-\[211\.5px\] {
+    width: 100% !important;
+  }
+
+  /* ==========================================
+     TEXT SIZE ADJUSTMENTS - Increased title sizes
+     ========================================== */
+  .build-games-container .text-\[48px\] {
+    font-size: 32px !important;
+  }
+  .build-games-container .text-\[48px\] p {
+    line-height: 1.2 !important;
+  }
+  .build-games-container .text-\[64px\] {
+    font-size: 38px !important;
+  }
+  .build-games-container .text-\[24px\] {
+    font-size: 18px !important;
+  }
+  .build-games-container .text-\[20px\] {
+    font-size: 16px !important;
+  }
+  .build-games-container .text-\[18px\] {
+    font-size: 15px !important;
+  }
+  .build-games-container .text-nowrap {
+    white-space: normal !important;
+  }
+
+  /* ==========================================
+     WHAT IS BUILD GAMES & WHO SHOULD APPLY
+     ========================================== */
+  .build-games-container .gradient-border-section-top > .flex {
+    flex-direction: column !important;
+    gap: 16px !important;
+  }
+
+  /* Who Should Apply - cards container with h-[234px] */
+  .build-games-container .gradient-border-section > .h-\[234px\].items-start.justify-between {
+    height: auto !important;
+    padding: 0 16px 16px 16px !important;
+  }
+  .build-games-container .gradient-border-section > .h-\[234px\] > .flex.w-full {
+    width: 100% !important;
+    flex-wrap: wrap !important;
+    gap: 10px !important;
+    height: auto !important;
+  }
+  .build-games-container .gradient-border-section > .h-\[234px\] > .flex.w-full > .basis-0 {
+    flex: 0 0 calc(50% - 5px) !important;
+    height: auto !important;
+  }
+  .build-games-container .gradient-border-section > .h-\[234px\] > .flex.w-full > .basis-0 > .gradient-border-card {
+    height: auto !important;
+    min-height: 120px !important;
+  }
+
+  /* ==========================================
+     HOW IT WORKS - TIMELINE
+     ========================================== */
+  /* Timeline row content - stack vertically */
+  .build-games-container .gradient-border-section .bg-\[rgba\(255\2c 255\2c 255\2c 0\.15\)\] .flex-row,
+  .build-games-container .gradient-border-section .bg-\[rgba\(255\2c 255\2c 255\2c 0\.1\)\] .flex-row,
+  .build-games-container .gradient-border-section .bg-\[rgba\(255\2c 255\2c 255\2c 0\.06\)\] .flex-row,
+  .build-games-container .gradient-border-section .bg-\[rgba\(255\2c 255\2c 255\2c 0\.02\)\] .flex-row {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+  }
+
+  /* Timeline grid - convert to vertical stack */
+  .build-games-container .grid-cols-\[repeat\(3\2c _minmax\(0px\2c _1fr\)\)\] {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+  }
+  .build-games-container .grid-cols-\[repeat\(3\2c _minmax\(0px\2c _1fr\)\)\] > * {
+    grid-area: auto !important;
+  }
+  /* Reorder grid items: Focus label & value first, then Deliverables header+content, then Support header+content */
+  .build-games-container .grid-cols-\[repeat\(3\2c _minmax\(0px\2c _1fr\)\)\] > .\[grid-area\:1_\/_2\] {
+    order: 3 !important;
+    margin-top: 8px !important;
+  }
+  .build-games-container .grid-cols-\[repeat\(3\2c _minmax\(0px\2c _1fr\)\)\] > .\[grid-area\:2_\/_2\] {
+    order: 4 !important;
+    margin-top: 0 !important;
+  }
+  .build-games-container .grid-cols-\[repeat\(3\2c _minmax\(0px\2c _1fr\)\)\] > .\[grid-area\:1_\/_3\] {
+    order: 5 !important;
+    margin-top: 8px !important;
+  }
+  .build-games-container .grid-cols-\[repeat\(3\2c _minmax\(0px\2c _1fr\)\)\] > .\[grid-area\:2_\/_3\] {
+    order: 6 !important;
+    margin-top: 0 !important;
+  }
+
+  /* Grid header (h-[19.617px]) - fix height and positioning */
+  .build-games-container .grid-cols-\[repeat\(3\2c _minmax\(0px\2c _1fr\)\)\] .h-\[19\.617px\] {
+    height: auto !important;
+    min-height: 20px !important;
+  }
+  .build-games-container .grid-cols-\[repeat\(3\2c _minmax\(0px\2c _1fr\)\)\] .h-\[19\.617px\] > div {
+    position: static !important;
+    top: auto !important;
+    transform: none !important;
+    height: auto !important;
+    font-size: 12px !important;
+  }
+
+  /* Grid content (h-[32px]) - fix height and positioning */
+  .build-games-container .grid-cols-\[repeat\(3\2c _minmax\(0px\2c _1fr\)\)\] .h-\[32px\] {
+    height: auto !important;
+    min-height: 24px !important;
+  }
+  .build-games-container .grid-cols-\[repeat\(3\2c _minmax\(0px\2c _1fr\)\)\] .h-\[32px\] > div {
+    position: static !important;
+    top: auto !important;
+    transform: none !important;
+    height: auto !important;
+  }
+  .build-games-container .w-\[93\.233px\],
+  .build-games-container .w-\[151px\],
+  .build-games-container .w-\[174px\] {
+    width: 100% !important;
+  }
+  .build-games-container .\[grid-area\:1_\/_1\],
+  .build-games-container .\[grid-area\:2_\/_1\],
+  .build-games-container .\[grid-area\:1_\/_2\],
+  .build-games-container .\[grid-area\:2_\/_2\],
+  .build-games-container .\[grid-area\:1_\/_3\],
+  .build-games-container .\[grid-area\:2_\/_3\] {
+    grid-area: auto !important;
+  }
+
+  /* ==========================================
+     PRIZES SECTION - "What You're Competing For"
+     ========================================== */
+  .build-games-container .w-\[542px\] {
+    width: 100% !important;
+  }
+  .build-games-container .w-\[448\.834px\] {
+    width: 100% !important;
+  }
+  .build-games-container .w-\[286\.47px\] {
+    width: 100% !important;
+  }
+  .build-games-container .h-\[117px\] {
+    height: auto !important;
+  }
+  .build-games-container .w-\[277\.333px\] {
+    width: 100% !important;
+  }
+
+  /* Prize row containers - remove fixed heights, stack cards */
+  .build-games-container .gradient-border-section > .flex-col > .content-stretch.flex-col.w-full {
+    height: auto !important;
+  }
+
+  /* The second prize row has h-[234px] - remove it */
+  .build-games-container .gradient-border-section > .flex-col > .content-stretch.flex-col.h-\[234px\] {
+    height: auto !important;
+  }
+
+  /* Prize cards inner container - stack vertically */
+  .build-games-container .gradient-border-section > .flex-col > .content-stretch.flex-col > .flex.gap-\[10px\].w-\[1068px\] {
+    width: 100% !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+    padding: 0 16px !important;
+  }
+
+  /* Each prize card wrapper */
+  .build-games-container .gradient-border-section > .flex-col > .content-stretch.flex-col > .flex.gap-\[10px\] > .basis-0.flex-row.grow {
+    width: 100% !important;
+  }
+
+  /* Prize card itself - ensure equal sizing */
+  .build-games-container .gradient-border-section > .flex-col > .content-stretch.flex-col > .flex.gap-\[10px\] > .basis-0 > .gradient-border-card {
+    min-height: 130px !important;
+    height: auto !important;
+  }
+
+  /* Benefit cards row */
+  .build-games-container .gradient-border-section > .flex-col > .flex.items-start.justify-between > .flex.h-\[117px\] {
+    height: auto !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    padding: 0 16px !important;
+  }
+  .build-games-container .gradient-border-section > .flex-col > .flex.items-start.justify-between > .flex.h-\[117px\] > .basis-0 {
+    width: 100% !important;
+  }
+
+  /* ==========================================
+     WHAT WE'RE LOOKING FOR - Increased background height
+     ========================================== */
+  .build-games-container .gap-\[48px\] {
+    flex-direction: column !important;
+    gap: 20px !important;
+  }
+  .build-games-container .h-\[116px\] {
+    display: none !important;
+  }
+  .build-games-container .size-\[50px\] {
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+  }
+  .build-games-container .gap-\[24px\] {
+    gap: 12px !important;
+  }
+  /* Increase the background image container height */
+  .build-games-container .gradient-border-section-top .gap-\[48px\] > .w-\[478px\] {
+    min-height: 180px !important;
+    padding: 20px !important;
+  }
+  .build-games-container .gradient-border-section-top .gap-\[48px\] > .w-\[478px\] .absolute.inset-0 {
+    position: absolute !important;
+  }
+
+  /* ==========================================
+     KEY DATES - 2 cards per row
+     ========================================== */
+  .build-games-container .size-\[75px\] {
+    width: 60px !important;
+    height: 60px !important;
+  }
+  /* Make date badge text smaller - month */
+  .build-games-container .size-\[75px\] .text-\[16px\] {
+    font-size: 11px !important;
+  }
+  /* Make date badge text smaller - day */
+  .build-games-container .size-\[75px\] .text-\[24px\] {
+    font-size: 16px !important;
+  }
+  /* Make date badge text smaller - year */
+  .build-games-container .size-\[75px\] .text-\[12px\] {
+    font-size: 9px !important;
+  }
+  .build-games-container .w-\[57\.146px\] {
+    width: auto !important;
+  }
+  .build-games-container .w-\[216\.941px\] {
+    width: 100% !important;
+  }
+  /* Make date cards 2 per row */
+  .build-games-container .gradient-border-section > .flex.items-start.justify-between > .flex.gap-\[10px\] {
+    flex-wrap: wrap !important;
+    gap: 12px !important;
+  }
+  .build-games-container .gradient-border-section > .flex.items-start.justify-between > .flex.gap-\[10px\] > .gradient-border-card {
+    flex: 0 0 calc(50% - 6px) !important;
+    max-width: calc(50% - 6px) !important;
+    min-width: calc(50% - 6px) !important;
+  }
+  /* Agenda section - optimized layout */
+  .build-games-container .pb-\[24px\].pt-\[36px\] {
+    padding: 16px !important;
+  }
+  .build-games-container .pb-\[24px\].pt-\[36px\] > .flex {
+    flex-direction: column !important;
+    gap: 16px !important;
+    align-items: flex-start !important;
+  }
+  /* Agenda right side - stack text and button vertically */
+  .build-games-container .pb-\[24px\].pt-\[36px\] .basis-0.grow {
+    width: 100% !important;
+  }
+  .build-games-container .pb-\[24px\].pt-\[36px\] .gap-\[24px\] {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+    width: 100% !important;
+    padding: 0 !important;
+  }
+  .build-games-container .pb-\[24px\].pt-\[36px\] .gap-\[24px\] p {
+    width: 100% !important;
+    text-align: left !important;
+  }
+  .build-games-container .pb-\[24px\].pt-\[36px\] .gap-\[24px\] > div:last-child {
+    align-self: flex-start !important;
+  }
+
+  /* ==========================================
+     FINAL CTA (Apply Today section with bg-[rgba(102,172,214,0.25)])
+     ========================================== */
+  /* Reduce gap between "Spots are limited" and "Start your next chapter" */
+  .build-games-container .gradient-border-section.bg-\[rgba\(102\2c 172\2c 214\2c 0\.25\)\] .gap-\[10px\].items-center.justify-center.w-\[1068px\] {
+    gap: 0 !important;
+  }
+  /* Reduce padding on InfoBanner containers */
+  .build-games-container .gradient-border-section.bg-\[rgba\(102\2c 172\2c 214\2c 0\.25\)\] .gap-\[10px\].items-center.justify-center.w-\[1068px\] .p-\[24px\] {
+    padding: 6px !important;
+  }
+  /* Increase gap before button area */
+  .build-games-container .gradient-border-section.bg-\[rgba\(102\2c 172\2c 214\2c 0\.25\)\] .h-\[77px\] {
+    margin-top: 16px !important;
+  }
+  .build-games-container .w-\[401\.336px\] {
+    width: 100% !important;
+  }
+  .build-games-container .h-\[77px\] {
+    height: auto !important;
+  }
+
+  /* ==========================================
+     PADDING ADJUSTMENTS
+     ========================================== */
+  .build-games-container .p-\[24px\] {
+    padding: 16px !important;
+  }
+  .build-games-container .px-\[24px\] {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+  .build-games-container .py-\[25px\] {
+    padding-top: 16px !important;
+    padding-bottom: 16px !important;
+  }
+  .build-games-container .pt-\[24px\] {
+    padding-top: 16px !important;
+  }
+  .build-games-container .pb-\[24px\] {
+    padding-bottom: 16px !important;
+  }
+  .build-games-container .px-\[36px\] {
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+  }
+  .build-games-container .px-\[49px\] {
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+  }
+
+  /* ==========================================
+     FLEX FIXES
+     ========================================== */
+  .build-games-container .basis-0.grow {
+    flex-basis: auto !important;
+    width: 100% !important;
+  }
+  .build-games-container .shrink-0 {
+    flex-shrink: 1 !important;
+  }
+  .build-games-container .min-w-px {
+    min-width: 0 !important;
+  }
+  .build-games-container .min-h-px {
+    min-height: 0 !important;
+  }
+}
+
+/* ==========================================
+   SMALL MOBILE (< 480px)
+   ========================================== */
+@media screen and (max-width: 480px) {
+  .build-games-container [data-name="Hero"] .text-\[82px\] {
+    font-size: 36px !important;
+  }
+  .build-games-container [data-name="Hero"] .text-\[36px\] {
+    font-size: 18px !important;
+  }
+  .build-games-container [data-name="Hero"] [data-name="Layer_1"] {
+    width: 140px !important;
+    height: 100px !important;
+    left: calc(50% - 125px) !important;
+    top: 210px !important;
+  }
+  .build-games-container .text-\[48px\] {
+    font-size: 26px !important;
+  }
+  .build-games-container .text-\[64px\] {
+    font-size: 30px !important;
+  }
+  .build-games-container .text-\[24px\] {
+    font-size: 16px !important;
+  }
+  .build-games-container .text-\[20px\] {
+    font-size: 15px !important;
+  }
+  .build-games-container .text-\[18px\] {
+    font-size: 14px !important;
+  }
+  .build-games-container .size-\[50px\] {
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+  }
+  .build-games-container .size-\[75px\] {
+    width: 50px !important;
+    height: 50px !important;
+  }
+  /* Key dates cards still 2 per row on small screens */
+  .build-games-container .gradient-border-section > .flex.items-start.justify-between > .flex.gap-\[10px\] > .gradient-border-card {
+    flex: 0 0 calc(50% - 6px) !important;
+    max-width: calc(50% - 6px) !important;
+  }
+  /* Who Should Apply - stack all 4 cards vertically on very small screens */
+  .build-games-container .gradient-border-section > .h-\[234px\] > .flex.w-full > .basis-0 {
+    flex: 0 0 100% !important;
+  }
 }
