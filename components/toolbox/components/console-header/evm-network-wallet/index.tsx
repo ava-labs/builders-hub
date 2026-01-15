@@ -147,10 +147,10 @@ export function EvmNetworkWallet() {
                     }}
                   />
                 ) : (
-                  <ChainLogo
-                    logoUrl={(currentNetwork as any)?.logoUrl}
-                    chainName={currentNetwork.name}
-                  />
+                <ChainLogo
+                  logoUrl={(currentNetwork as any)?.logoUrl}
+                  chainName={currentNetwork.name}
+                />
                 )}
               </div>
               <div className="flex gap-2 items-center">

@@ -36,7 +36,7 @@ interface WalletState {
     l1Chains: Record<string, boolean>; // Key: chainId, Value: loading state
   };
   bootstrapped: boolean;
-  
+
   // Selected ERC20 token (null means native token)
   selectedToken: string | null; // Token address or null for native
 

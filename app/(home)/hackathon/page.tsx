@@ -207,7 +207,8 @@ export default function HackathonPage() {
       ],
       resources: [
         { name: 'InterChain Messaging', url: 'https://academy.avax.network/course/interchain-messaging' },
-        { name: 'InterChain Token Transfer', url: 'https://academy.avax.network/course/interchain-token-transfer' },
+        { name: 'ERC20 Bridge', url: 'https://academy.avax.network/course/erc20-bridge' },
+        { name: 'Native Token Bridge', url: 'https://academy.avax.network/course/native-token-bridge' },
         { name: 'Cross-Chain Communication', url: 'https://build.avax.network/docs/build/avalanchego/cross-chain' }
       ]
     },
