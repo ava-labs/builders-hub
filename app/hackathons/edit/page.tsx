@@ -2515,7 +2515,7 @@ const HackathonsEdit = () => {
                       type="text"
                       name="custom_link"
                       placeholder="e.g., https://hackathon.custom..."
-                      value={formDataLatest.custom_link}
+                      value={formDataLatest.custom_link ?? ''}
                       onChange={(e) => {
                         setFormDataLatest(prev => ({ ...prev, custom_link: e.target.value }));
                       }}
@@ -2539,7 +2539,7 @@ const HackathonsEdit = () => {
                       type="text"
                       name="submission_custom_link"
                       placeholder="e.g., https://hackathon.custom..."
-                      value={formDataContent.submission_custom_link}
+                      value={formDataContent.submission_custom_link ?? ''}
                       onChange={(e) => {
                         setFormDataContent(prev => ({ ...prev, submission_custom_link: e.target.value }));
                       }}
