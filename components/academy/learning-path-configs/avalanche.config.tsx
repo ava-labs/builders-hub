@@ -91,7 +91,7 @@ export const avalancheLearningPaths: CourseNode[] = [
         slug: "avalanche-l1/access-restriction",
         category: "VM Customization",
         dependencies: ["customizing-evm"],
-        position: { x: 92.5, y: 450 },
+        position: { x: 92.5, y: 325 },
         mobileOrder: 10
     }
 ];
