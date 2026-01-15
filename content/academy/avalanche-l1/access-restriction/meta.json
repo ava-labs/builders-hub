@@ -1,0 +1,28 @@
+{
+  "title": "Access Restriction",
+  "icon": "Shield",
+  "root": true,
+  "pages": [
+    "index",
+    "---",
+    "---📘 FUNDAMENTALS---",
+    "---Introduction---",
+    "...01-introduction",
+    "---Genesis Activation---",
+    "...02-genesis-activation",
+    "---Fundamentals Certificate---",
+    "certificate-fundamentals",
+    "---",
+    "---🔬 ADVANCED TOPICS---",
+    "---Precompile Flow (Optional)---",
+    "...03-precompile-flow",
+    "---User Error---",
+    "...04-user-error",
+    "---Network Upgrade: Deactivation---",
+    "...05-network-upgrade-de-activation",
+    "---Network Upgrade: Activation---",
+    "...06-network-upgrade-activation",
+    "---Advanced Certificate---",
+    "certificate-advanced"
+  ]
+}

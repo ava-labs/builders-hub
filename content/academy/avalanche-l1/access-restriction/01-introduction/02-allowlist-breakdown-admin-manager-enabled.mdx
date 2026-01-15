@@ -1,0 +1,44 @@
+---
+title: Allowlist Interface
+description: Understand the AllowList interface used by many Avalanche L1 precompiles and how its roles work.
+updated: 2025-12-10
+authors: [nicolasarnedo]
+icon: BookOpen
+---
+
+
+Avalanche L1s ship multiple default precompiles that need access control, this is done via the same audited permission interface: the **AllowList interface**.
+
+### Permission levels
+
+The roles are:
+
+- **Admin**: can manage all roles (Admin, Manager, Enabled).
+- **Manager**: can manage Enabled addresses only.
+- **Enabled**: can use the precompile’s functionality (what that means depends on the specific precompile).
+- **None**: no access.
+
+This is a *role-based access control* pattern, implemented consistently across precompiles that opt into it.
+
+## AllowList interface
+
+This interface exposes a small set of functions to manage roles for addresses:
+
+### Functions
+
+- `setAdmin(address addr)`: give `addr` **Admin** role.
+- `setManager(address addr)`: give `addr` **Manager** role.
+- `setEnabled(address addr)`: give `addr` **Enabled** role.
+- `setNone(address addr)`: remove any role from `addr` (back to **None**).
+- `readAllowList(address addr) -> uint256`: read the current role value.
+
+
+## Precompiles that use AllowList
+
+Several default Avalanche L1 precompiles implement this interface (examples):
+
+- [Deployer AllowList](/docs/avalanche-l1s/precompiles/deployer-allowlist)
+- [Transaction AllowList](/docs/avalanche-l1s/precompiles/transaction-allowlist)
+- [Native Minter](/docs/avalanche-l1s/precompiles/native-minter)
+- [Fee Manager](/docs/avalanche-l1s/precompiles/fee-manager)
+- [Reward Manager](/docs/avalanche-l1s/precompiles/reward-manager)

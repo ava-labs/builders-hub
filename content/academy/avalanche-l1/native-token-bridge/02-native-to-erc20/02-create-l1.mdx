@@ -1,0 +1,75 @@
+---
+title: Create L1 with Custom Token
+description: Create an L1 with a custom native token that you'll export to C-Chain.
+updated: 2025-12-17
+authors: [nicolasarnedo]
+icon: Terminal
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Callout } from 'fumadocs-ui/components/callout';
+import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx";
+import CreateChain from "@/components/toolbox/console/layer-1/create/CreateChain";
+import CreateManagedTestnetNode from "@/components/toolbox/console/testnet-infra/ManagedTestnetNodes/CreateManagedTestnetNode";
+import ConvertSubnetToL1 from "@/components/toolbox/console/layer-1/create/ConvertSubnetToL1.tsx";
+
+# Create Your L1
+
+For this chapter, you need an L1 with a custom native token. If you already have one, you can skip this step.
+
+<Callout type="info">
+Unlike Chapters 1 and 3, you do **not** need the Native Minter precompile for this chapter. We're exporting your native token, not importing one.
+</Callout>
+
+<Steps>
+  <Step>
+    ### Create an L1 with a custom native token
+
+    Use the Create Chain tool below. Give your chain a custom token name and symbol (e.g., **TEST**).
+
+    <ToolboxMdxWrapper walletMode="c-chain">
+      <CreateChain embedded={true} />
+    </ToolboxMdxWrapper>
+
+    Save your **Subnet ID**, **Blockchain ID**, and **Chain ID** after creation.
+  </Step>
+
+  <Step>
+    ### Launch a BuilderHub hosted node
+
+    Start a hosted node for your L1:
+
+    <ToolboxMdxWrapper walletMode="testnet-mainnet">
+      <CreateManagedTestnetNode />
+    </ToolboxMdxWrapper>
+
+    Wait until the node is healthy and your chain is producing blocks.
+  </Step>
+
+  <Step>
+    ### Convert your Subnet to an L1
+
+    Convert the Subnet into a sovereign L1:
+
+    <Callout type="warning">
+    This conversion is **irreversible**. Double-check you're converting the correct Subnet.
+    </Callout>
+
+    <ToolboxMdxWrapper walletMode="c-chain">
+      <ConvertSubnetToL1 />
+    </ToolboxMdxWrapper>
+  </Step>
+</Steps>
+
+## What You've Built
+
+Your L1 is now ready with:
+
+- A custom native token (e.g., TEST)
+- A hosted node producing blocks
+- Converted to a sovereign L1
+
+## Next Steps
+
+Next, you'll deploy a wrapped version of your native token (WTEST) and set up the relayer.
+

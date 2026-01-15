@@ -1,0 +1,171 @@
+---
+title: Direct Precompile Calls
+description: How to interact with allowlist precompiles directly via Solidity to manage roles.
+updated: 2025-12-17
+authors: [nicolasarnedo]
+icon: Book
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import Mermaid from "@/components/content-design/mermaid";
+
+When you call a precompile from Solidity, you're not calling a deployed smart contract—you're invoking **Go code built into the VM**. This lesson explains how direct precompile calls work.
+
+## When Do You Call the Precompile Directly?
+
+You call the precompile directly when you want to **manage the allowlist**:
+
+- Add an address as Admin, Manager, or Enabled
+- Remove an address (set to None)
+- Read an address's current role
+
+<Mermaid chart={`
+graph LR
+    A[Admin Wallet] -->|"setEnabled(0xBob)"| B[TxAllowList Precompile<br/>0x0200...0002]
+    B -->|SetState| C[Storage Trie]
+    C -->|"keccak256(0xBob) = 0x02"| D[Bob is now Enabled]
+    
+    style B fill:#FFE4B5
+    style D fill:#90EE90
+`} />
+
+## The Call Flow
+
+When your transaction calls a precompile (like the Transaction AllowList), here's what happens:
+
+<Mermaid chart={`
+sequenceDiagram
+    participant User as Admin Wallet
+    participant EVM as EVM
+    participant Hook as PrecompileOverride
+    participant Module as Precompile (Go)
+    participant State as StateDB
+
+    User->>EVM: Call 0x0200...0002 with setEnabled(0xBob)
+    EVM->>Hook: Is this address a precompile?
+    Hook->>Hook: Yes - get registered module
+    Hook->>Module: Execute Run() with input data
+    Module->>Module: Parse function selector (first 4 bytes)
+    Module->>State: Read caller's role
+    State-->>Module: Role = Admin
+    Module->>State: Write new role for 0xBob
+    Module-->>Hook: Return success + gas used
+    Hook-->>EVM: Result
+    EVM-->>User: Transaction succeeded
+`} />
+
+## Step-by-Step Breakdown
+
+### 1. Your Solidity Call
+
+When you call a precompile from Solidity, it looks like any other contract call:
+
+```solidity
+IAllowList allowlist = IAllowList(0x0200000000000000000000000000000000000002);
+allowlist.setEnabled(0xBob);
+```
+
+The compiler generates a `CALL` opcode targeting the precompile address with your function call encoded as ABI data.
+
+### 2. EVM Recognizes the Precompile Address
+
+When the EVM encounters a call to an address in the reserved range (`0x0200...`), it checks if there's a registered precompile:
+
+```go
+// PrecompileOverride checks if address has a registered precompile
+func (r RulesExtra) PrecompileOverride(addr common.Address) (libevm.PrecompiledContract, bool) {
+    module, ok := modules.GetPrecompileModuleByAddress(addr)
+    if !ok {
+        return nil, false  // Not a precompile, use normal execution
+    }
+    return makePrecompile(module.Contract), true  // Route to Go code
+}
+```
+
+<Callout type="info">
+Reserved address ranges for precompiles:
+- `0x0100...00` to `0x0100...ff`
+- `0x0200...00` to `0x0200...ff` (where allowlist precompiles live)
+- `0x0300...00` to `0x0300...ff`
+</Callout>
+
+### 3. Function Selector Dispatch
+
+The precompile parses the **function selector** (first 4 bytes) to determine which function you're calling:
+
+```go
+func (c *Contract) Run(
+    accessibleState contract.AccessibleState,
+    caller common.Address,
+    addr common.Address,
+    input []byte,
+    suppliedGas uint64,
+    readOnly bool,
+) (ret []byte, remainingGas uint64, err error) {
+    
+    selector := input[:4]
+    
+    switch {
+    case bytes.Equal(selector, setAdminSelector):
+        return c.setAdmin(accessibleState, caller, input[4:], suppliedGas)
+    case bytes.Equal(selector, setEnabledSelector):
+        return c.setEnabled(accessibleState, caller, input[4:], suppliedGas)
+    case bytes.Equal(selector, readAllowListSelector):
+        return c.readAllowList(accessibleState, input[4:], suppliedGas)
+    }
+}
+```
+
+### 4. Permission Check & State Write
+
+Before modifying state, the precompile checks the caller's permission level:
+
+<Mermaid chart={`
+graph TD
+    A[Caller Address] --> B[Read from StateDB]
+    B --> C{Caller Role?}
+    C -->|Admin| D[Can modify any role]
+    C -->|Manager| E[Can only set Enabled]
+    C -->|Enabled/None| F[Revert: Unauthorized]
+    D --> G[Write new role to StateDB]
+    E --> G
+`} />
+
+The state is stored using `GetState` and `SetState`:
+
+```go
+// Write a role to storage
+func setAllowListRole(state StateDB, addr common.Address, role uint8) {
+    key := crypto.Keccak256Hash(addr.Bytes())
+    value := common.BytesToHash([]byte{role})
+    state.SetState(PrecompileAddress, key, value)
+}
+```
+
+## Gas Costs
+
+Precompiles have fixed gas costs:
+
+| Operation | Gas Cost |
+|-----------|----------|
+| Read role | 5,000 |
+| Write role | 20,000 |
+
+## Key Takeaways
+
+| Concept | What Happens |
+|---------|--------------|
+| **Solidity Call** | Generates `CALL` opcode to precompile address with ABI-encoded data |
+| **EVM Routing** | `PrecompileOverride` intercepts calls to reserved addresses |
+| **Function Dispatch** | First 4 bytes of input determine which Go function runs |
+| **State Storage** | Precompiles use same `GetState`/`SetState` as regular contracts |
+
+## What This Accomplishes
+
+Direct precompile calls let you **manage the allowlist**:
+- Grant permissions to addresses
+- Revoke permissions from addresses
+- Query current permission levels
+
+But this is only half the story. In the next lesson, you'll learn how the blockchain **enforces** these permissions when users try to send transactions or deploy contracts.
+

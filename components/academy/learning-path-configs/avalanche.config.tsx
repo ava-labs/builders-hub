@@ -20,11 +20,9 @@ export const avalancheLearningPaths: CourseNode[] = [
         slug: "avalanche-l1/customizing-evm",
         category: "VM Customization",
         dependencies: ["avalanche-fundamentals"],
-        position: { x: 87.5, y: 200 },
+        position: { x: 87.5, y: 175 },
         mobileOrder: 2
     },
-
-    // Third Layer - Branching paths
     {
         id: "interchain-messaging",
         name: "Interchain Messaging",
@@ -32,7 +30,7 @@ export const avalancheLearningPaths: CourseNode[] = [
         slug: "avalanche-l1/interchain-messaging",
         category: "Interoperability",
         dependencies: ["avalanche-fundamentals"],
-        position: { x: 62.5, y: 200 },
+        position: { x: 62.5, y: 175 },
         mobileOrder: 3
     },
     {
@@ -42,7 +40,7 @@ export const avalancheLearningPaths: CourseNode[] = [
         slug: "avalanche-l1/permissioned-l1s",
         category: "L1 Development",
         dependencies: ["avalanche-fundamentals"],
-        position: { x: 12.5, y: 200 },
+        position: { x: 12.5, y: 175 },
         mobileOrder: 6
     },
     {
@@ -52,28 +50,18 @@ export const avalancheLearningPaths: CourseNode[] = [
         slug: "avalanche-l1/l1-native-tokenomics",
         category: "L1 Tokenomics",
         dependencies: ["avalanche-fundamentals"],
-        position: { x: 37.5, y: 200 },
+        position: { x: 37.5, y: 175 },
         mobileOrder: 7
     },
     // Third Layer - Advanced topics
     {
-        id: "interchain-token-transfer",
-        name: "Interchain Token Transfer",
-        description: "Transfer assets between chains using Interchain Messaging",
-        slug: "avalanche-l1/interchain-token-transfer",
-        category: "Interoperability",
-        dependencies: ["interchain-messaging"],
-        position: { x: 82.5, y: 400 },
-        mobileOrder: 4
-    },
-    {
-        id: "erc20-to-erc20-bridge",
-        name: "ERC20 to ERC20 Bridge",
+        id: "erc20-bridge",
+        name: "ERC20 Bridge",
         description: "Bridge ERC20 tokens between chains using Interchain Token Transfer",
         slug: "avalanche-l1/erc20-bridge",
         category: "Interoperability",
-        dependencies: ["interchain-messaging", "l1-native-tokenomics"],
-        position: { x: 52.5, y: 400 },
+        dependencies: ["interchain-messaging"],
+        position: { x: 62.5, y: 325 },
         mobileOrder: 5
     },
     {
@@ -83,9 +71,29 @@ export const avalancheLearningPaths: CourseNode[] = [
         slug: "avalanche-l1/permissionless-l1s",
         category: "L1 Development",
         dependencies: ["permissioned-l1s", "l1-native-tokenomics"],
-        position: { x: 22.5, y: 400 },
+        position: { x: 22.5, y: 325 },
         mobileOrder: 8
     },
+    {
+        id: "native-token-bridge",
+        name: "Native Token Bridge",
+        description: "Build a cross-chain L1 with native tokenomics and token bridging",
+        slug: "avalanche-l1/native-token-bridge",
+        category: "Interoperability",
+        dependencies: ["l1-native-tokenomics", "erc20-bridge"],
+        position: { x: 50, y: 500 },
+        mobileOrder: 9
+    },
+    {
+        id: "access-restriction",
+        name: "Access Restriction",
+        description: "Master access control patterns using transaction and contract deployer allowlists with hands-on precompile implementation",
+        slug: "avalanche-l1/access-restriction",
+        category: "VM Customization",
+        dependencies: ["customizing-evm"],
+        position: { x: 92.5, y: 325 },
+        mobileOrder: 10
+    }
 ];
 
 export const avalancheCategoryStyles = {

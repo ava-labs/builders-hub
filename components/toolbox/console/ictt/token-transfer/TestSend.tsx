@@ -9,6 +9,7 @@ import { Button } from "@/components/toolbox/components/Button";
 import { Success } from "@/components/toolbox/components/Success";
 import ERC20TokenHomeABI from "@/contracts/icm-contracts/compiled/ERC20TokenHome.json";
 import NativeTokenHomeABI from "@/contracts/icm-contracts/compiled/NativeTokenHome.json";
+import NativeTokenRemoteABI from "@/contracts/icm-contracts/compiled/NativeTokenRemote.json";
 import ExampleERC20ABI from "@/contracts/icm-contracts/compiled/ExampleERC20.json";
 import ITeleporterMessenger from "@/contracts/example-contracts/compiled/ITeleporterMessenger.json";
 import { createPublicClient, http, formatUnits, parseUnits, Address, zeroAddress, decodeEventLog, AbiEvent } from "viem";
@@ -36,6 +37,7 @@ export default function TokenBridge() {
     // Contract addresses
     const [sourceContractAddress, setSourceContractAddress] = useState<Address | "">("");
     const [sourceToken, setSourceToken] = useState<any | null>(null);
+    const [sourceTransferrerType, setSourceTransferrerType] = useState<"unknown" | "home" | "nativeRemote">("unknown");
     const [destinationContractAddress, setDestinationContractAddress] = useState<Address | "">("");
     const [destinationToken, setDestinationToken] = useState<any | null>(null);
 
@@ -136,6 +138,21 @@ export default function TokenBridge() {
     useEffect(() => {
         const fetchSuggestions = async () => {
             const suggestions: Suggestion[] = [];
+            // If the destination chain has a TokenHome deployed, it's also a valid destination transferrer
+            if (destToolboxStore?.nativeTokenHomeAddress) {
+                suggestions.push({
+                    title: destToolboxStore.nativeTokenHomeAddress,
+                    value: destToolboxStore.nativeTokenHomeAddress,
+                    description: `NativeTokenHome on ${destL1?.name}`,
+                });
+            }
+            if (destToolboxStore?.erc20TokenHomeAddress) {
+                suggestions.push({
+                    title: destToolboxStore.erc20TokenHomeAddress,
+                    value: destToolboxStore.erc20TokenHomeAddress,
+                    description: `ERC20TokenHome on ${destL1?.name}`,
+                });
+            }
             if (destToolboxStore?.erc20TokenRemoteAddress) {
                 suggestions.push({
                     title: destToolboxStore.erc20TokenRemoteAddress,
@@ -157,7 +174,7 @@ export default function TokenBridge() {
         if (!destL1) return;
 
         fetchSuggestions();
-    }, [destToolboxStore?.erc20TokenRemoteAddress, destToolboxStore?.nativeTokenRemoteAddress, destL1?.id]);
+    }, [destToolboxStore?.erc20TokenRemoteAddress, destToolboxStore?.nativeTokenRemoteAddress, destToolboxStore?.nativeTokenHomeAddress, destToolboxStore?.erc20TokenHomeAddress, destL1?.id]);
 
     // Fetch token info from bridge contract on current chain
     const fetchTokenInfoFromBridgeContract = useCallback(async (address: Address, direction: "source" | "destination", updateState: boolean = true) => {
@@ -176,38 +193,66 @@ export default function TokenBridge() {
 
 
             let tokenAddress = address;
+            let detectedSourceType: "unknown" | "home" | "nativeRemote" = "unknown";
+            let forceNativeBalance = false;
+            let tokenName: string | null = null;
+            let tokenSymbol: string | null = null;
+            let tokenDecimalsLocal: number | null = null;
 
             if (direction === "source") {
-                // Try to get the token address from the bridge contract
+                // 1) Home transferrers expose getTokenAddress()
                 const fetchedTokenAddress = await publicClient.readContract({
                     address: address,
                     abi: ERC20TokenHomeABI.abi,
                     functionName: 'getTokenAddress',
                 }).catch(() => null) as Address | null;
 
-                if (!fetchedTokenAddress) {
-                    throw new Error("Could not determine token address from bridge contract");
-                }
+                if (fetchedTokenAddress) {
+                    tokenAddress = fetchedTokenAddress;
+                    detectedSourceType = "home";
+                } else {
+                    // 2) NativeTokenRemote doesn't expose getTokenAddress(), but does expose getTokenHomeAddress() + ERC20-like metadata.
+                    const tokenHomeAddr = await publicClient.readContract({
+                        address: address,
+                        abi: NativeTokenRemoteABI.abi,
+                        functionName: 'getTokenHomeAddress',
+                    }).catch(() => null) as Address | null;
 
-                tokenAddress = fetchedTokenAddress;
+                    if (tokenHomeAddr) {
+                        detectedSourceType = "nativeRemote";
+                        forceNativeBalance = true;
+                        const [d, n, s] = await Promise.all([
+                            publicClient.readContract({ address, abi: NativeTokenRemoteABI.abi, functionName: 'decimals' }).catch(() => null),
+                            publicClient.readContract({ address, abi: NativeTokenRemoteABI.abi, functionName: 'name' }).catch(() => null),
+                            publicClient.readContract({ address, abi: NativeTokenRemoteABI.abi, functionName: 'symbol' }).catch(() => null),
+                        ]);
+                        tokenDecimalsLocal = d !== null ? Number(d as number) : 18;
+                        tokenName = (n as string | null) ?? selectedL1?.coinName ?? "Native Token";
+                        tokenSymbol = (s as string | null) ?? selectedL1?.coinName ?? "NATIVE";
+                        // Use a non-empty address so the UI enables inputs; for native balance we won't use ERC20 reads.
+                        tokenAddress = zeroAddress;
+                    } else {
+                        detectedSourceType = "unknown";
+                    }
+                }
             }
 
 
             const code = await publicClient.getCode({ address: tokenAddress });
-            const isWrapped = code?.includes('d0e30db0') && code.includes('2e1a7d4d');
+            const isWrapped = forceNativeBalance ? true : (code?.includes('d0e30db0') && code.includes('2e1a7d4d'));
 
             const [fetchedDecimals, fetchedName, fetchedSymbol, fetchedBalance, fetchedAllowance] = await Promise.all([
-                publicClient.readContract({
+                tokenDecimalsLocal !== null ? Promise.resolve(BigInt(tokenDecimalsLocal)) : publicClient.readContract({
                     address: tokenAddress,
                     abi: ExampleERC20ABI.abi,
                     functionName: 'decimals'
                 }),
-                publicClient.readContract({
+                tokenName !== null ? Promise.resolve(tokenName) : publicClient.readContract({
                     address: tokenAddress,
                     abi: ExampleERC20ABI.abi,
                     functionName: 'name'
                 }),
-                publicClient.readContract({
+                tokenSymbol !== null ? Promise.resolve(tokenSymbol) : publicClient.readContract({
                     address: tokenAddress,
                     abi: ExampleERC20ABI.abi,
                     functionName: 'symbol'
@@ -220,7 +265,8 @@ export default function TokenBridge() {
                     functionName: 'balanceOf',
                     args: [walletEVMAddress === "" ? zeroAddress : walletEVMAddress as Address]
                 }),
-                publicClient.readContract({
+                // Allowance is only meaningful for ERC20-style tokens; for native value transfers treat as unlimited.
+                isWrapped === true ? Promise.resolve(0n) : publicClient.readContract({
                     address: tokenAddress,
                     abi: ExampleERC20ABI.abi,
                     functionName: 'allowance',
@@ -230,12 +276,12 @@ export default function TokenBridge() {
 
             const token: Token = {
                 address: tokenAddress,
-                name: (isWrapped === true ? selectedL1?.coinName : fetchedName) as string,
-                symbol: (isWrapped === true ? selectedL1?.coinName : fetchedSymbol) as string,
+                name: (isWrapped === true && detectedSourceType !== "nativeRemote" ? selectedL1?.coinName : fetchedName) as string,
+                symbol: (isWrapped === true && detectedSourceType !== "nativeRemote" ? selectedL1?.coinName : fetchedSymbol) as string,
                 decimals: Number(fetchedDecimals as bigint),
                 balance: fetchedBalance as bigint,
                 allowance: fetchedAllowance as bigint,
-                isNative: isWrapped || false,
+                isNative: forceNativeBalance ? true : (isWrapped || false),
                 chain: {
                     name: direction === "source" ? selectedL1!.name : destL1!.name,
                     id: direction === "source" ? selectedL1!.id : destL1!.id,
@@ -246,6 +292,7 @@ export default function TokenBridge() {
             if (updateState) {
                 if (direction === "source") {
                     setSourceToken(token);
+                    setSourceTransferrerType(detectedSourceType);
                     setTokenAddress(tokenAddress);
                     setTokenDecimals(token?.decimals);
                     setTokenSymbol(token?.symbol);
@@ -367,12 +414,17 @@ export default function TokenBridge() {
                 multiHopFallback: zeroAddress,
             };
 
+            const isNativeValueTransfer = sourceToken.isNative === true;
             const { request } = await publicClient.simulateContract({
                 address: sourceContractAddress as Address,
-                abi: sourceToken.isNative === true ? NativeTokenHomeABI.abi : ERC20TokenHomeABI.abi,
+                abi: sourceTransferrerType === "nativeRemote"
+                    ? NativeTokenRemoteABI.abi
+                    : (isNativeValueTransfer ? NativeTokenHomeABI.abi : ERC20TokenHomeABI.abi),
                 functionName: 'send',
-                args: sourceToken.isNative === true ? [sendInput] : [sendInput, amountParsed],
-                value: sourceToken.isNative === true ? amountParsed : 0n,
+                args: sourceTransferrerType === "nativeRemote"
+                    ? [sendInput]
+                    : (isNativeValueTransfer ? [sendInput] : [sendInput, amountParsed]),
+                value: (sourceTransferrerType === "nativeRemote" || isNativeValueTransfer) ? amountParsed : 0n,
                 account: coreWalletClient.account,
                 chain: viemChain,
             });

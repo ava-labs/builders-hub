@@ -1,0 +1,89 @@
+---
+title: Deploy ERC20 Token Home
+description: Deploy the ERC20TokenHome contract on Fuji for USDC.
+updated: 2025-12-17
+authors: [nicolasarnedo]
+icon: Terminal
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Callout } from 'fumadocs-ui/components/callout';
+import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx";
+import DeployTokenHome from "@/components/toolbox/console/ictt/setup/DeployTokenHome";
+
+The `ERC20TokenHome` contract is deployed on Fuji C-Chain. It locks USDC when users bridge to your L1 and releases USDC when they bridge back.
+
+## USDC on Fuji
+
+We're using the official Circle USDC on Fuji testnet:
+
+| Property | Value |
+|----------|-------|
+| **Contract Address** | `0x5425890298aed601595a70AB815c96711a31Bc65` |
+| **Symbol** | USDC |
+| **Decimals** | 6 |
+| **Faucet** | [Circle Faucet](https://faucet.circle.com/) |
+
+<Callout type="info">
+Make sure you already have **1 USDC** in your wallet from the Circle faucet (Step 1 of this chapter).
+</Callout>
+
+## Understanding ERC20TokenHome
+
+The ERC20TokenHome contract:
+
+- **Locks USDC** when users bridge to your L1
+- **Releases USDC** when users bridge back from your L1
+- **Manages remote contract registrations** for security
+- **Communicates via ICM** (Interchain Messaging)
+
+<Steps>
+<Step>
+### Connect to Fuji C-Chain
+
+Ensure your wallet is connected to **Fuji C-Chain** (Chain ID: 43113).
+
+</Step>
+
+<Step>
+### Deploy ERC20TokenHome
+
+Use the Deploy Token Home tool below:
+
+1. Select **"ERC-20 Token"** as the Transferrer Type
+2. Enter the USDC token address: `0x5425890298aed601595a70AB815c96711a31Bc65`
+3. Confirm the **Teleporter Registry** address is set
+
+<Callout type="warning">
+Make sure you have:
+1. Connected your Core Wallet to Fuji testnet
+2. Sufficient test AVAX for gas fees
+3. Selected "ERC-20 Token" as the transferrer type
+</Callout>
+
+<ToolboxMdxWrapper enforceChainId={43113}>
+    <DeployTokenHome />
+</ToolboxMdxWrapper>
+
+</Step>
+
+<Step>
+### Save the Contract Address
+
+After deployment, save the **Token Home Address**. You'll need it when deploying the NativeTokenRemote contract on your L1.
+
+</Step>
+</Steps>
+
+## Contract State After Deployment
+
+After deployment, your ERC20TokenHome:
+
+- Is linked to USDC (`0x5425890298aed601595a70AB815c96711a31Bc65`)
+- Is connected to the Teleporter Registry for ICM
+- Is ready to accept remote contract registrations
+- Has no remote contracts registered yet
+
+## Next Steps
+
+Now deploy `NativeTokenRemote` on your L1 to complete the bridge setup.

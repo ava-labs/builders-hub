@@ -1,0 +1,18 @@
+---
+title: Access Control Use-cases
+description: Why institutions and regulated businesses need transaction and contract deployment controls.
+updated: 2025-12-10
+authors: [nicolasarnedo]
+icon: BookOpen
+---
+
+In permissioned or semi-permissioned environments, “open access” is often not acceptable. Organizations may need to control **who can submit transactions** (“transactors”) and **who can deploy contracts** (“deployers”) for operational risk management and compliance.
+
+Here are common use-cases (non-exhaustive):
+
+- **KYC / AML gating**: Only onboarded entities can transact or deploy contracts.
+- **Consortium networks**: A set of known participants (banks, enterprises, or agencies) share a network; membership changes over time.
+- **Staged rollouts**: Start with restricted access during pilot phases, then broaden access once monitoring and incident response are mature.
+- **Reducing exploit surface**: Limiting deployers reduces the risk of malicious contract deployments; limiting transactors mitigates spam and abuse.
+- **Operational controls**: Restrict privileged actions to approved operators (e.g., deployments via CI/CD wallets) and separate duties between teams.
+- **Regulatory requirements**: Some businesses must prove control over participants, auditability of access changes, and governance over who can run what.
