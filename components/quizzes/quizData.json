@@ -51,8 +51,8 @@
         "215"
       ]
     },
-    "interchain-token-transfer": {
-      "title": "Interchain Token Transfer",
+    "native-token-bridge": {
+      "title": "Native Token Bridge",
       "quizzes": [
         "118",
         "119",

@@ -111,7 +111,7 @@ export function AcademyLearningPath({ pathType }: AcademyLearningPathProps) {
             return [
                 { text: 'Avalanche L1', isHighlight: true },
                 { text: ' Learning Tree\n', isHighlight: true },
-                { text: 'Deploy L1s, bridge tokens, and build cross-chain apps' },
+                { text: 'Deploy L1s, bridge tokens, run  and customize your own infrastructure' },
             ];
         } else if (pathType === 'blockchain') {
             return [
