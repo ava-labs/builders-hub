@@ -3,6 +3,7 @@
 import React, { useState, useEffect, memo, useCallback } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Trash, ChevronDown, ChevronRight, ExternalLink } from 'lucide-react';
 import { t } from './translations';
@@ -44,7 +45,7 @@ const MyHackathonsList = ({ myHackathons, language, onSelect, selectedId, isDevr
     return (
       <div className="mb-6">
         <h2 className="text-xl font-semibold mb-2">
-          {isDevrel ? (language === 'en' ? 'All Active Hackathons' : 'Todos los Hackathons Activos') : t[language].myHackathons}
+          {isDevrel ? (language === 'en' ? 'All Hackathons' : 'Todos los Hackathons') : t[language].myHackathons}
         </h2>
         <div className="flex justify-center items-center py-8">
           <svg className="animate-spin h-8 w-8 text-red-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -59,7 +60,7 @@ const MyHackathonsList = ({ myHackathons, language, onSelect, selectedId, isDevr
   return (
     <div className="mb-6">
       <h2 className="text-xl font-semibold mb-2">
-        {isDevrel ? (language === 'en' ? 'All Active Hackathons' : 'Todos los Hackathons Activos') : t[language].myHackathons}
+        {isDevrel ? (language === 'en' ? 'All Hackathons' : 'Todos los Hackathons') : t[language].myHackathons}
       </h2>
       <ul className="flex flex-wrap gap-2">
         {myHackathons.map((hackathon) => (
@@ -775,14 +776,9 @@ const HackathonsEdit = () => {
         }
       );
       if (response.data?.hackathons?.length > 0) {
-        const currentDate = new Date();
-        const unfinishedHackathons = response.data.hackathons.filter((hackathon: any) => {
-          if (!hackathon.end_date) return true; 
-          const endDate = new Date(hackathon.end_date);
-          return endDate > currentDate;
-        });
-        console.log({response: response.data.hackathons, unfinishedHackathons});
-        setMyHackathons(unfinishedHackathons);
+        const hackathons = response.data.hackathons;
+        console.log({response: hackathons });
+        setMyHackathons(hackathons);
       }
     } catch (error) {
       console.error('Error loading hackathons:', error);
@@ -856,6 +852,8 @@ const HackathonsEdit = () => {
       banner: hackathon.banner ?? '',
       icon: hackathon.icon ?? '',
       small_banner: hackathon.small_banner ?? '',
+      custom_link: hackathon.custom_link ?? null,
+      top_most: hackathon.top_most ?? false,
     });
     setShowForm(true);
   };
@@ -1147,9 +1145,7 @@ const HackathonsEdit = () => {
       ...formDataMain,
       content,
       ...latest,
-      top_most: true,
-      organizers: null,
-      custom_link: null,
+      custom_link: formDataLatest.custom_link ? formDataLatest.custom_link : null,
       status: selectedHackathon?.status ?? "UPCOMING"
     };
   };
@@ -1461,7 +1457,9 @@ const HackathonsEdit = () => {
       timezone: "America/New_York",
       banner: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/hackathon-images/Avalanche%20Chile/bannerchilehor.png",
       icon: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/hackathon-images/Avalanche%20Chile/bannerchilehor.png",
-      small_banner: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/hackathon-images/Avalanche%20Chile/bannerchile.png"
+      small_banner: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/hackathon-images/Avalanche%20Chile/bannerchile.png",
+      custom_link: null,
+      top_most: false
     });
 
     setFormDataContent({
@@ -1908,7 +1906,7 @@ const HackathonsEdit = () => {
                   </div>
                   
                   
-                  {/* Icon Image 
+                  {/* Icon Image */}
                   <div className="mb-6">
                     <label className="font-medium text-xl mb-2 block">Icon:</label>
                     <div className="mb-2 text-zinc-400 text-sm">The small icon displayed next to your hackathon title</div>
@@ -1966,7 +1964,6 @@ const HackathonsEdit = () => {
                       )}
                     </div>
                   </div>
-                  */}
 
                   <div className="mb-6">
                     <label className="font-medium text-xl mb-2 block">Small Banner:</label>
@@ -2072,7 +2069,6 @@ const HackathonsEdit = () => {
                     className="w-full mb-4"
                     required
                   />
-                  {/*
                   <div className="mb-2 text-zinc-400 text-sm">Organizer Name/Organization</div>
                   <Input
                     type="text"
@@ -2086,7 +2082,6 @@ const HackathonsEdit = () => {
                     className="w-full mb-4"
                     required
                   />
-                  */}
                   <div className="mb-2 text-zinc-400 text-sm">Total Prize Pool (USD)</div>
                   <Input
                     type="number"
@@ -2499,6 +2494,57 @@ const HackathonsEdit = () => {
               {!collapsed.last && (
                 <>
                   <div className="space-y-4">
+                    {/* Top Most checkbox
+                    <div className="flex items-center gap-2 mb-4">
+                      <Checkbox
+                        id="top_most"
+                        name="top_most"
+                        checked={formDataLatest.top_most}
+                        onCheckedChange={(checked) => {
+                          setFormDataLatest(prev => ({ ...prev, top_most: checked }));
+                        }}
+                      />
+                      <label htmlFor="top_most" className="text-zinc-400 text-sm cursor-pointer">
+                        Top most
+                      </label>
+                    </div>
+                    */}
+                    <label className="font-medium text-xl mb-2 block">{t[language].customLink}:</label>
+                    <div className="mb-2 text-zinc-400 text-sm">{t[language].customLinkHelp}</div>
+                    <Input
+                      type="text"
+                      name="custom_link"
+                      placeholder="e.g., https://hackathon.custom..."
+                      value={formDataLatest.custom_link}
+                      onChange={(e) => {
+                        setFormDataLatest(prev => ({ ...prev, custom_link: e.target.value }));
+                      }}
+                      className="w-full mb-4"
+                    />
+                    <label className="font-medium text-xl mb-2 block">{t[language].joinCustomLink}:</label>
+                    <div className="mb-2 text-zinc-400 text-sm">{t[language].joinCustomLinkHelp}</div>
+                    <Input
+                      type="text"
+                      name="join_custom_link"
+                      placeholder="e.g., https://hackathon.custom..."
+                      value={formDataContent.join_custom_link}
+                      onChange={(e) => {
+                        setFormDataContent(prev => ({ ...prev, join_custom_link: e.target.value }));
+                      }}
+                      className="w-full mb-4"
+                    />
+                    <label className="font-medium text-xl mb-2 block">{t[language].submissionCustomLink}:</label>
+                    <div className="mb-2 text-zinc-400 text-sm">{t[language].submissionCustomLinkHelp}</div>
+                    <Input
+                      type="text"
+                      name="submission_custom_link"
+                      placeholder="e.g., https://hackathon.custom..."
+                      value={formDataContent.submission_custom_link}
+                      onChange={(e) => {
+                        setFormDataContent(prev => ({ ...prev, submission_custom_link: e.target.value }));
+                      }}
+                      className="w-full mb-4"
+                    />
                     <div>
                       <label className="font-medium text-xl mb-2 block">{t[language].startDate}:</label>
                       <div className="mb-2 text-zinc-400 text-sm">{t[language].startDateHelp}</div>

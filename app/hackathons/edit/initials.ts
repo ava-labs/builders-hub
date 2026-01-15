@@ -73,6 +73,8 @@ export interface IDataMain {
     banner: string;
     icon: string;
     small_banner: string;
+    custom_link?: string;
+    top_most: boolean;
   }
   
   export const initialData = {
@@ -137,5 +139,7 @@ export interface IDataMain {
           banner: '',
           icon: '',
           small_banner: '',
+          custom_link: null,
+          top_most: false,
       }
   }
