@@ -36,6 +36,9 @@ interface WalletState {
     l1Chains: Record<string, boolean>; // Key: chainId, Value: loading state
   };
   bootstrapped: boolean;
+  
+  // Selected ERC20 token (null means native token)
+  selectedToken: string | null; // Token address or null for native
 
 
 }
@@ -91,6 +94,9 @@ interface WalletActions {
 
   getBootstrapped: () => boolean;
   setBootstrapped: (bootstrapped: boolean) => void;
+  
+  // Token selection
+  setSelectedToken: (tokenAddress: string | null) => void;
 
 
 }
@@ -125,6 +131,7 @@ export const useWalletStore = create<WalletStore>((set, get) => {
       l1Chains: {},
     },
     bootstrapped: false,
+    selectedToken: null,
 
     // Actions
     updateWalletConnection: (data: { coreWalletClient?: CoreWalletClientType | null; walletEVMAddress?: string; walletChainId?: number; pChainAddress?: string; coreEthAddress?: string; }) => {
@@ -235,6 +242,8 @@ export const useWalletStore = create<WalletStore>((set, get) => {
 
     getBootstrapped: () => get().bootstrapped,
     setBootstrapped: (bootstrapped: boolean) => set({ bootstrapped: bootstrapped }),
+    
+    setSelectedToken: (tokenAddress: string | null) => set({ selectedToken: tokenAddress }),
 
   };
 
