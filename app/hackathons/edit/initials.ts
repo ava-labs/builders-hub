@@ -73,7 +73,7 @@ export interface IDataMain {
     banner: string;
     icon: string;
     small_banner: string;
-    custom_link?: string;
+    custom_link: string | null;
     top_most: boolean;
   }
   
