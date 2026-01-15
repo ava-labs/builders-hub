@@ -5,8 +5,15 @@ import { Area, AreaChart, Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, 
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { getMAConfig, calculateMovingAverage } from "@/utils/chart-utils";
-import { Users, Activity, FileText, MessageCircleMore, TrendingUp, UserPlus, Hash, Code2, Gauge, DollarSign, Clock, Fuel, ArrowUpRight, Twitter, Linkedin, Download, Camera } from "lucide-react";
+import { Users, Activity, FileText, MessageCircleMore, TrendingUp, UserPlus, Hash, Code2, Gauge, DollarSign, Clock, Fuel, ArrowUpRight, Twitter, Linkedin, Download, Camera, Sparkles } from "lucide-react";
+import { ImageExportStudio } from "@/components/stats/image-export";
 import { ChainIdChips } from "@/components/ui/copyable-id-chip";
 import { AddToWalletButton } from "@/components/ui/add-to-wallet-button";
 import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
@@ -2052,6 +2059,7 @@ function ChartCard({
   } | null>(null);
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const { resolvedTheme } = useTheme();
+  const [showImageStudio, setShowImageStudio] = useState(false);
 
   // Screenshot handler for downloading chart as image
   const handleScreenshot = async () => {
@@ -2526,13 +2534,26 @@ function ChartCard({
                   ))}
               </SelectContent>
             </Select>
-            <button
-              onClick={handleScreenshot}
-              className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
-              title="Download chart as image"
-            >
-              <Camera className="h-4 w-4" />
-            </button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
+                  title="Image options"
+                >
+                  <Camera className="h-4 w-4" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem onClick={() => setShowImageStudio(true)}>
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  Open in studio
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleScreenshot}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Download as image
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <button
               onClick={downloadChartCSV}
               className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
@@ -3250,6 +3271,39 @@ function ChartCard({
           )}
         </div>
       </CardContent>
+
+      {/* Image Export Studio Modal */}
+      <ImageExportStudio
+        isOpen={showImageStudio}
+        onClose={() => setShowImageStudio(false)}
+        period={period}
+        onPeriodChange={onPeriodChange}
+        allowedPeriods={allowedPeriods}
+        dataArray={aggregatedData}
+        seriesInfo={[{
+          id: "value",
+          name: config.title,
+          color: config.color,
+          yAxis: "left",
+        }]}
+        chartData={{
+          title: config.title,
+          source: "Token Terminal",
+          sourceDescription: config.description,
+          chainName: "Avalanche",
+          metricValue: currentValue !== undefined && currentValue !== null
+            ? typeof currentValue === 'number'
+              ? currentValue >= 1e9
+                ? `$${(currentValue / 1e9).toFixed(1)} B`
+                : currentValue >= 1e6
+                ? `$${(currentValue / 1e6).toFixed(1)} M`
+                : currentValue.toLocaleString()
+              : String(currentValue)
+            : undefined,
+          metricLabel: "Latest",
+          pageUrl: typeof window !== "undefined" ? window.location.href : undefined,
+        }}
+      />
     </Card>
   );
 }
