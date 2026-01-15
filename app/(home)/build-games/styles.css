@@ -1,10 +1,10 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
 
-/* Aeonik Font Family - Using actual Aeonik fonts */
+/* Aeonik Font Family - Official licensed fonts */
 @font-face {
   font-family: 'Aeonik:Regular';
-  src: url('/build-games/fonts/Aeonik-Regular.ttf') format('truetype');
+  src: url('/build-games/fonts/Aeonik-Regular.woff2') format('woff2');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -12,7 +12,7 @@
 
 @font-face {
   font-family: 'Aeonik:Medium';
-  src: url('/build-games/fonts/Aeonik-Medium.ttf') format('truetype');
+  src: url('/build-games/fonts/Aeonik-Medium.woff2') format('woff2');
   font-weight: 500;
   font-style: normal;
   font-display: swap;
