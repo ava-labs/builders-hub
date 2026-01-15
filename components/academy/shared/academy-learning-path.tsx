@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import { usePathname } from 'next/navigation';
 import LearningTree, { LearningTreeLegend } from '@/components/academy/learning-tree';
 import { AcademyShortcutSection } from './academy-shortcut-section';
 import type { AcademyPathType } from './academy-types';
@@ -96,7 +97,13 @@ interface AcademyLearningPathProps {
 }
 
 export function AcademyLearningPath({ pathType }: AcademyLearningPathProps) {
+    const pathname = usePathname();
     const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
+    
+    // Reset hovered category when path changes
+    useEffect(() => {
+        setHoveredCategory(null);
+    }, [pathname]);
 
     // Memoize segments so they only change when pathType changes (not on hover)
     const descriptionSegments: TextSegment[] = useMemo(() => {
@@ -122,11 +129,11 @@ export function AcademyLearningPath({ pathType }: AcademyLearningPathProps) {
     }, [pathType]);
 
     return (
-        <div id="learning-path-section" className="mb-20 scroll-mt-20">
+        <div id="learning-path-section" key={pathname} className="mb-20 scroll-mt-20">
             <div className="text-center mb-10">
                 {/* Title + description with typewriter effect */}
                 <p className="text-sm sm:text-base max-w-3xl mx-auto mb-8 px-4 sm:px-0 whitespace-pre-line leading-snug">
-                    <TypewriterText segments={descriptionSegments} speed={25} />
+                    <TypewriterText key={pathType} segments={descriptionSegments} speed={25} />
                 </p>
 
                 {/* Category legend */}
@@ -134,6 +141,7 @@ export function AcademyLearningPath({ pathType }: AcademyLearningPathProps) {
                     {/* Desktop legend */}
                     <div className="hidden sm:block">
                         <LearningTreeLegend 
+                            key={`legend-desktop-${pathType}-${pathname}`}
                             pathType={pathType} 
                             isMobile={false} 
                             activeCategory={hoveredCategory}
@@ -143,6 +151,7 @@ export function AcademyLearningPath({ pathType }: AcademyLearningPathProps) {
                     {/* Mobile legend */}
                     <div className="block sm:hidden">
                         <LearningTreeLegend 
+                            key={`legend-mobile-${pathType}-${pathname}`}
                             pathType={pathType} 
                             isMobile={true}
                             activeCategory={hoveredCategory}
@@ -156,6 +165,7 @@ export function AcademyLearningPath({ pathType }: AcademyLearningPathProps) {
             <div className="relative">
                 <div className="absolute inset-0 -top-20 bg-gradient-to-b from-transparent via-zinc-50/20 to-transparent dark:via-zinc-950/10 pointer-events-none" />
                 <LearningTree 
+                    key={`${pathType}-${pathname}`}
                     pathType={pathType}
                     externalHoveredCategory={hoveredCategory}
                     onCategoryHover={setHoveredCategory}
@@ -165,7 +175,7 @@ export function AcademyLearningPath({ pathType }: AcademyLearningPathProps) {
             {/* Shortcut section for Avalanche and Blockchain academies */}
             {(pathType === 'avalanche' || pathType === 'blockchain') && (
                 <div className="mt-16">
-                    <AcademyShortcutSection pathType={pathType} />
+                    <AcademyShortcutSection key={`shortcut-${pathType}-${pathname}`} pathType={pathType} />
                 </div>
             )}
         </div>
