@@ -1,5 +1,6 @@
 import clsx from "clsx";
 import "./styles.css";
+import ReferralButton from "@/components/build-games/ReferralButton";
 
 const imgBackground3R11 = "/build-games/background3-r1-1.png";
 const imgBackground3R1Square1 = "/build-games/background3-r1-square-1.png";
@@ -608,7 +609,12 @@ function ApplyTodayCTA() {
             <div className="basis-0 flex flex-row grow items-center self-stretch shrink-0">
               <div className="basis-0 grow h-full min-h-px min-w-px relative shrink-0">
                 <div className="flex flex-row items-center overflow-clip rounded-[inherit] size-full">
-                  <CTAButtonGroup secondaryText="Login" primaryText="Apply Today" className="py-[10px]" />
+                  <div className="content-stretch flex items-center relative size-full py-[10px]">
+                    <div className="content-stretch flex gap-[10px] items-center relative shrink-0">
+                      <ReferralButton />
+                      <PrimaryButton text="Apply Today" className="shadow-[0px_0px_25px_0px_rgba(46,177,255,0.55)]" />
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -935,7 +941,12 @@ function FinalCTASection() {
           </div>
           <div className="h-[77px] relative shrink-0 w-full">
             <div className="flex flex-row items-center justify-center overflow-clip rounded-[inherit] size-full">
-              <CTAButtonGroup secondaryText="Learn More" primaryText="Apply Today" className="justify-center py-0" />
+              <div className="content-stretch flex items-center justify-center relative size-full py-0">
+                <div className="content-stretch flex gap-[10px] items-center relative shrink-0">
+                  <ReferralButton />
+                  <PrimaryButton text="Apply Today" className="shadow-[0px_0px_25px_0px_rgba(46,177,255,0.55)]" />
+                </div>
+              </div>
             </div>
           </div>
         </div>
