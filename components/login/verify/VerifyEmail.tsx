@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { signIn } from "next-auth/react";
+import { signIn, useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -16,6 +16,7 @@ import Link from "next/link";
 import { VerifyEmailProps } from "@/types/verifyEmailProps";
 import axios from "axios";
 import { LoadingButton } from "@/components/ui/loading-button";
+import { useLoginModalState } from "@/hooks/useLoginModal";
 const verifySchema = z.object({
   code: z
     .string()
@@ -34,6 +35,9 @@ export function VerifyEmail({
   const [isVerifying, setIsVerifying] = useState(false);
   const [sentTries, setSentTries] = useState(0);
   const [expired, setExpired] = useState(false);
+  const [pendingRedirectUrl, setPendingRedirectUrl] = useState<string | null>(null);
+  const { data: session, update } = useSession();
+  const { closeLoginModal } = useLoginModalState();
 
   const formMethods = useForm<z.infer<typeof verifySchema>>({
     resolver: zodResolver(verifySchema),
@@ -48,6 +52,25 @@ export function VerifyEmail({
       return () => clearInterval(interval);
     }
   }, [resendCooldown]);
+
+  // Handle redirect after session updates for non-new users
+  useEffect(() => {
+    if (pendingRedirectUrl && session?.user) {
+      
+      if (!session.user.is_new_user) {
+        
+        const url = pendingRedirectUrl;
+        setPendingRedirectUrl(null);
+        setTimeout(() => {
+          window.location.href = url;
+        }, 300);
+      } else {
+        
+        // Clear pending redirect - LoginModalWrapper will handle showing terms
+        setPendingRedirectUrl(null);
+      }
+    }
+  }, [session, pendingRedirectUrl]);
 
   const handleVerify = async (values: z.infer<typeof verifySchema>) => {
     setIsVerifying(true);
@@ -85,10 +108,31 @@ export function VerifyEmail({
             setMessage("Error with OTP try again.");
             break;
         }
-      } else if (result?.url) {
-        window.location.href = result.url;
+      } else if (result?.ok) {
+        // Authentication successful
+        
+        // Update session to get the latest user data including is_new_user
+        await update();
+        
+        // Wait a bit for session to propagate
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        
+        
+        // Close the login modal - LoginModalWrapper will handle showing terms for new users
+        closeLoginModal();
+        
+        // Store redirect URL - we'll handle it after session updates
+        if (result?.url) {
+          setPendingRedirectUrl(result.url);
+        }
+        
+        // The useEffect hook will handle the redirect when session updates
+        // If user is new, LoginModalWrapper will show terms and prevent redirect
+        // If user is not new, the useEffect will redirect after session updates
       }
     } catch (error) {
+      console.error('[VerifyEmail] Error during verification:', error);
       setMessage("Error with OTP try again.");
     } finally {
       setIsVerifying(false);
