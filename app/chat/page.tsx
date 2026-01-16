@@ -32,6 +32,7 @@ import {
   LogOut,
   CircleUserRound,
   Loader2,
+  Share2,
 } from 'lucide-react';
 import defaultMdxComponents from 'fumadocs-ui/mdx';
 import { cn } from '@/lib/cn';
@@ -941,19 +942,6 @@ function Sidebar({
   );
 }
 
-// Mobile sidebar toggle (only visible on mobile when sidebar closed)
-function MobileSidebarToggle({ onClick, isOpen }: { onClick: () => void; isOpen: boolean }) {
-  if (isOpen) return null;
-  return (
-    <button
-      onClick={onClick}
-      className="fixed top-3 left-3 z-30 p-2 rounded-lg bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors lg:hidden"
-    >
-      <PanelLeft className="w-5 h-5" />
-    </button>
-  );
-}
-
 // Inner chat component that uses searchParams
 function ChatPageInner() {
   const searchParams = useSearchParams();
@@ -1312,8 +1300,81 @@ function ChatPageInner() {
             className="flex flex-col min-w-0"
             style={{ width: embeddedRef && isLargeScreen ? `${100 - panelWidth}%` : '100%' }}
           >
-            {/* Mobile toggle button */}
-            <MobileSidebarToggle onClick={() => setSidebarOpen(true)} isOpen={sidebarOpen} />
+            {/* Header with mobile toggle and share button */}
+            <div className="shrink-0 flex items-center justify-between px-3 py-2 border-b border-zinc-200 dark:border-zinc-800/50">
+              {/* Left: Mobile sidebar toggle */}
+              <div className="flex items-center">
+                {!sidebarOpen && (
+                  <button
+                    onClick={() => setSidebarOpen(true)}
+                    className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors lg:hidden"
+                  >
+                    <PanelLeft className="w-5 h-5" />
+                  </button>
+                )}
+                {/* Conversation title on desktop */}
+                {currentConversation && (
+                  <span className="hidden lg:block text-sm text-muted-foreground truncate max-w-[200px] ml-2">
+                    {currentConversation.title}
+                  </span>
+                )}
+              </div>
+
+              {/* Right: Share button */}
+              <div className="flex items-center gap-2">
+                {messages.length > 0 && (
+                  <button
+                    onClick={async () => {
+                      if (!isAuthenticated) {
+                        // Prompt for login
+                        openLoginModal(window.location.href);
+                        return;
+                      }
+
+                      // If we have a current conversation, open share modal directly
+                      if (currentConversation) {
+                        handleShareConversation(currentConversation);
+                        return;
+                      }
+
+                      // If no conversation saved yet, save it first then open share modal
+                      const titleText = getMessageText(messages[0]);
+                      const title = titleText.slice(0, 50) || 'New chat';
+                      const convToSave: Conversation = {
+                        id: '',
+                        title,
+                        messages,
+                        createdAt: Date.now(),
+                        updatedAt: Date.now(),
+                        isShared: false,
+                        shareToken: null,
+                        sharedAt: null,
+                        expiresAt: null,
+                        viewCount: 0,
+                      };
+
+                      const saved = await saveConversation(convToSave);
+                      if (saved) {
+                        setCurrentConversationId(saved.id);
+                        handleShareConversation(saved);
+                      }
+                    }}
+                    className={cn(
+                      "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors",
+                      "hover:bg-zinc-100 dark:hover:bg-zinc-800",
+                      "border border-zinc-200 dark:border-zinc-700",
+                      currentConversation?.isShared && "text-emerald-600 dark:text-emerald-400 border-emerald-300 dark:border-emerald-600"
+                    )}
+                    title={!isAuthenticated ? "Sign in to share" : currentConversation?.isShared ? "Manage sharing" : "Share conversation"}
+                  >
+                    <Share2 className="w-4 h-4" />
+                    <span className="hidden sm:inline">
+                      {currentConversation?.isShared ? "Shared" : "Share"}
+                    </span>
+                  </button>
+                )}
+              </div>
+            </div>
 
             {/* Messages */}
             <main className="flex-1 min-h-0 flex flex-col overflow-hidden">
