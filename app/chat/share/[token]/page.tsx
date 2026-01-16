@@ -5,6 +5,10 @@ import { prisma } from '@/prisma/prisma';
 import Link from 'next/link';
 import { Clock, AlertCircle } from 'lucide-react';
 
+// Force dynamic rendering to ensure fresh data for shared links
+// This prevents caching issues when a share link is first created
+export const dynamic = 'force-dynamic';
+
 interface Props {
   params: Promise<{ token: string }>;
 }

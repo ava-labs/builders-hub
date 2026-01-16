@@ -487,7 +487,7 @@ function ChatInput() {
         <div className="relative flex items-end bg-zinc-100 dark:bg-zinc-800 rounded-3xl border border-zinc-200 dark:border-zinc-700">
           <TextareaInput
             value={inputValue}
-            placeholder="Message Avalanche AI..."
+            placeholder="Message Avalanche AI"
             className="w-full px-5 py-4 pr-14 text-sm"
             disabled={isLoading}
             onChange={(e) => setInputValue(e.target.value)}
@@ -510,6 +510,7 @@ function ChatInput() {
                   ? "bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 hover:bg-zinc-700 dark:hover:bg-zinc-200"
                   : "bg-zinc-300 dark:bg-zinc-600 text-zinc-400 dark:text-zinc-500 cursor-not-allowed"
             )}
+            title={isLoading ? "Stop generating" : "Send message"}
           >
             {isLoading ? <StopCircle className="w-5 h-5" /> : <ArrowUp className="w-5 h-5" />}
           </button>
@@ -535,6 +536,7 @@ function ChatActions() {
           type="button"
           onClick={() => { posthog.capture('ai_chat_regenerate'); regenerate(); }}
           className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          title="Regenerate response"
         >
           <RefreshCw className="w-4 h-4" />
           Regenerate
@@ -1238,8 +1240,9 @@ function ChatPageInner() {
     await deleteConversation(id);
   };
 
-  const handleSuggestionClick = async (question: string) => {
-    await sendMessage({ text: question });
+  const handleSuggestionClick = (question: string) => {
+    // Fire-and-forget to avoid blocking UI (fixes INP performance issue)
+    void sendMessage({ text: question });
   };
 
   const handleLogin = () => {
@@ -1310,13 +1313,17 @@ function ChatPageInner() {
                   <button
                     onClick={() => setSidebarOpen(true)}
                     className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors lg:hidden"
+                    title="Open sidebar"
                   >
                     <PanelLeft className="w-5 h-5" />
                   </button>
                 )}
                 {/* Conversation title on desktop */}
                 {currentConversation && (
-                  <span className="hidden lg:block text-sm text-muted-foreground truncate max-w-[200px] ml-2">
+                  <span
+                    className="hidden lg:block text-sm text-muted-foreground truncate max-w-[200px] ml-2"
+                    title={currentConversation.title}
+                  >
                     {currentConversation.title}
                   </span>
                 )}
