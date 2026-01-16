@@ -24,7 +24,7 @@ export async function POST(
     const { id } = await params;
 
     // Parse optional expiration from body
-    let expiresInDays = 30; // Default: 30 days
+    let expiresInDays = 7; // Default: 7 days
     try {
       const body = await req.json();
       if (body.expiresInDays && typeof body.expiresInDays === 'number') {
