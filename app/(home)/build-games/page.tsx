@@ -169,11 +169,11 @@ function ApplicantCard({ children }: React.PropsWithChildren) {
   );
 }
 
-function ApplicantCardWithText({ text }: { text: string }) {
+function ApplicantCardWithText({ text, icon }: { text: string; icon: string }) {
   return (
     <ApplicantCard>
       <div className="content-stretch flex flex-col gap-[10px] items-start p-[24px] relative size-full">
-        <div className="bg-white shrink-0 size-[42px]" /><CardDescription text={text} className="py-[36px]" />
+        <img src={icon} alt="" className="shrink-0 size-[42px] object-contain" /><CardDescription text={text} className="py-[36px]" />
       </div>
     </ApplicantCard>
   );
@@ -666,16 +666,16 @@ function WhoShouldApplySection() {
               <br aria-hidden="true" />
               <br aria-hidden="true" />
             </p>
-            <p>You're a fit if you:</p>
+            <p>You're a fit if:</p>
           </BodyTextParagraph>
         </div>
       </div>
       <div className="content-stretch flex h-[234px] items-start justify-between relative shrink-0 w-full px-[1px]">
         <div className="content-stretch flex gap-[10px] h-full items-center relative shrink-0 w-full">
-          <ApplicantCardWithText text="Are a solo dev or small team with something new and original" />
-          <ApplicantCardWithText text="Want to (re)start in the Avalanche ecosystem" />
-          <ApplicantCardWithText text="Have an idea and need structure, mentorship, and a push" />
-          <ApplicantCardWithText text="Want to learn, compete, and grow with other builders" />
+          <ApplicantCardWithText text="You are a solo dev or small team with something new and original" icon="/build-games/1_SoloDev.svg" />
+          <ApplicantCardWithText text="You want to (re)start in the Avalanche ecosystem" icon="/build-games/2_StartAvalanche.svg" />
+          <ApplicantCardWithText text="You have an idea and need structure, mentorship, and a push" icon="/build-games/3_Idea.svg" />
+          <ApplicantCardWithText text="You want to learn, compete, and grow with other builders" icon="/build-games/4_Compete.svg" />
         </div>
       </div>
     </div>
@@ -904,7 +904,7 @@ function KeyDatesSection() {
               <p className="font-['Aeonik:Regular',sans-serif] leading-[1.5] not-italic relative shrink-0 text-[20px] text-white w-[216.941px]">
                 Add the event agenda to your google calendar
               </p>
-              <PrimaryButton text="Add the Calendar" className="overflow-clip shadow-[0px_10px_15px_-3px_rgba(0,0,0,0.1),0px_4px_6px_-4px_rgba(0,0,0,0.1)]" />
+              <a href="https://calendar.google.com/calendar/u/0/r?cid=Y19mNzExYTJkN2NjZDJhZTY2MWFjYmJlMjE5MDM4ZDZmYzcwMjRjNmFiMzJjNGVmZDhhNmVkYTIxMDY1MGRiODdiQGdyb3VwLmNhbGVuZGFyLmdvb2dsZS5jb20" target="_blank" rel="noopener noreferrer"><PrimaryButton text="Add the Calendar" className="overflow-clip shadow-[0px_10px_15px_-3px_rgba(0,0,0,0.1),0px_4px_6px_-4px_rgba(0,0,0,0.1)]" /></a>
             </div>
           </div>
         </div>
