@@ -80,7 +80,13 @@ async function searchCode(params: SearchCodeParams) {
         suggestion: 'GitHub allows ~30 searches per minute for authenticated users.'
       };
     }
-    throw new Error(`GitHub API error: ${response.status}`);
+    // Return error instead of throwing to avoid disrupting the AI stream
+    return {
+      total_count: 0,
+      items: [],
+      error: `GitHub API error: ${response.status}`,
+      details: error.substring(0, 500)
+    };
   }
 
   const data = await response.json();
@@ -107,7 +113,10 @@ async function getFileContents(params: GetFileParams) {
   // Validate repo is in allowed list
   const fullRepo = `${owner}/${repo}`;
   if (!ALLOWED_REPOS.includes(fullRepo)) {
-    throw new Error(`Repository ${fullRepo} is not in the allowed list`);
+    return {
+      error: `Repository ${fullRepo} is not in the allowed list`,
+      allowedRepos: ALLOWED_REPOS
+    };
   }
 
   const url = `${GITHUB_API}/repos/${owner}/${repo}/contents/${path}?ref=${ref}`;
@@ -137,7 +146,13 @@ async function getFileContents(params: GetFileParams) {
         path: path
       };
     }
-    throw new Error(`GitHub API error: ${response.status}`);
+    // Return error instead of throwing to avoid disrupting the AI stream
+    const errorText = await response.text().catch(() => '');
+    return {
+      error: `GitHub API error: ${response.status}`,
+      details: errorText.substring(0, 500),
+      path: path
+    };
   }
 
   const data = await response.json();

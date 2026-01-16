@@ -23,6 +23,8 @@ function getTextFromMessage(message: any): string {
 
 // Changed from 'edge' to 'nodejs' to support code search (zlib operations)
 export const runtime = 'nodejs';
+// Extend timeout for AI streaming + tool calls (default 10s is too short)
+export const maxDuration = 60;
 
 const anthropic = createAnthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
