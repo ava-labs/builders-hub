@@ -5,7 +5,7 @@
   "scripts": {
     "build": "tsc --noEmit && next build",
     "dev": "next dev --turbopack",
-    "build:remote": "tsx ./utils/remote-content.mts && tsx ./scripts/generate-api-reference.mts && tsx ./scripts/enrich-chains.mts",
+    "build:remote": "tsx ./utils/remote-content.mts && tsx ./scripts/generate-api-reference.mts && tsx ./scripts/enrich-chains.mts && tsx ./scripts/index-repos.mts",
     "update-index": "tsx ./utils/update-index.ts",
     "start": "pnpm build:remote && next build && next start",
     "check-links": "tsx .github/linkChecker.ts",
