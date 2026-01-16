@@ -177,10 +177,12 @@ export const convertAngleBracketLinks: TransformFunction = (content) => {
 
 export const convertMermaidBlocks: TransformFunction = (content) => {
   // Convert standard Mermaid code blocks to <Mermaid> component format
+  // This works in conjunction with the shared MDX components in components/mdx/shared-components.tsx
+  // which provides a unified Mermaid component registration across all pages (docs, blog, academy)
   return content.replace(/```mermaid\n([\s\S]*?)\n```/g, (match, diagramContent) => {
     // Escape backticks in the diagram content for the template literal
     const escapedContent = diagramContent.replace(/`/g, '\\`').replace(/\$\{/g, '\\${');
-    
+
     // Return the Mermaid component with the diagram content
     return `<Mermaid chart={\`${escapedContent}\`} />`;
   });
