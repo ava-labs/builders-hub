@@ -1320,7 +1320,7 @@ function ChatPageInner() {
                 )}
               </div>
 
-              {/* Right: Share button */}
+              {/* Right: Share button - disabled while generating */}
               <div className="flex items-center gap-2">
                 {messages.length > 0 && (
                   <button
@@ -1359,13 +1359,20 @@ function ChatPageInner() {
                         handleShareConversation(saved);
                       }
                     }}
+                    disabled={isLoading || isWaitingForStream}
                     className={cn(
                       "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors",
-                      "hover:bg-zinc-100 dark:hover:bg-zinc-800",
                       "border border-zinc-200 dark:border-zinc-700",
+                      (isLoading || isWaitingForStream)
+                        ? "opacity-50 cursor-not-allowed"
+                        : "hover:bg-zinc-100 dark:hover:bg-zinc-800",
                       currentConversation?.isShared && "text-emerald-600 dark:text-emerald-400 border-emerald-300 dark:border-emerald-600"
                     )}
-                    title={!isAuthenticated ? "Sign in to share" : currentConversation?.isShared ? "Manage sharing" : "Share conversation"}
+                    title={
+                      (isLoading || isWaitingForStream) ? "Wait for response to complete" :
+                      !isAuthenticated ? "Sign in to share" :
+                      currentConversation?.isShared ? "Manage sharing" : "Share conversation"
+                    }
                   >
                     <Share2 className="w-4 h-4" />
                     <span className="hidden sm:inline">
