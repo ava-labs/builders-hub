@@ -2,6 +2,8 @@ import { createAnthropic } from '@ai-sdk/anthropic';
 import { streamText, tool, stepCountIs, convertToModelMessages } from 'ai';
 import { z } from 'zod';
 import { captureAIGeneration } from '@/lib/posthog-server';
+import { searchCode, formatCodeContext, type SearchResult } from '@/lib/code-search';
+import { embedQuery, analyzeQueryIntent } from '@/lib/embeddings';
 
 // Helper to extract text from v6 UIMessage
 function getTextFromMessage(message: any): string {
@@ -19,7 +21,8 @@ function getTextFromMessage(message: any): string {
   return '';
 }
 
-export const runtime = 'edge';
+// Changed from 'edge' to 'nodejs' to support code search (zlib operations)
+export const runtime = 'nodejs';
 
 const anthropic = createAnthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -549,6 +552,46 @@ export async function POST(req: Request) {
 
   // Get valid URLs for link validation
   const validUrls = await getValidUrls();
+
+  // Code search for DeepWiki-style functionality
+  let codeContext = '';
+  if (lastUserMessageText) {
+    const intent = analyzeQueryIntent(lastUserMessageText);
+    console.log(`[CodeSearch] Intent analysis: isCodeQuestion=${intent.isCodeQuestion}, keywords=${intent.keywords.join(',')}`);
+
+    if (intent.isCodeQuestion) {
+      try {
+        const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ||
+                       process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` :
+                       'http://localhost:3000';
+        console.log(`[CodeSearch] Using base URL: ${baseUrl}`);
+
+        console.log(`[CodeSearch] Generating query embedding...`);
+        const queryEmbedding = await embedQuery(lastUserMessageText);
+        console.log(`[CodeSearch] Embedding generated, length: ${queryEmbedding.length}`);
+
+        console.log(`[CodeSearch] Searching code...`);
+        const codeResults = await searchCode(queryEmbedding, baseUrl, {
+          topK: 5,
+          repos: intent.suggestedRepos,
+          minScore: 0.25, // Lowered from 0.35 - semantic search typically scores 0.2-0.6
+        });
+        console.log(`[CodeSearch] Search returned ${codeResults.length} results`);
+
+        if (codeResults.length > 0) {
+          codeContext = '\n\n=== RELEVANT CODE FROM AVA-LABS REPOSITORIES ===\n\n';
+          codeContext += '**IMPORTANT: When referencing this code, ALWAYS include the GitHub links provided below!**\n\n';
+          codeContext += formatCodeContext(codeResults);
+          codeContext += '\n\n=== END CODE CONTEXT ===\n';
+          console.log(`[CodeSearch] ✅ Added ${codeResults.length} code chunks to context`);
+          // Log the GitHub URLs being included
+          codeResults.forEach((r, i) => console.log(`[CodeSearch]   ${i+1}. ${r.url}`));
+        }
+      } catch (error) {
+        console.error('[CodeSearch] ❌ Failed:', error);
+      }
+    }
+  }
 
   let relevantContext = '';
   if (lastUserMessage && lastUserMessageText) {
@@ -1451,16 +1494,37 @@ export async function POST(req: Request) {
 
 ## CODE SEARCH CAPABILITIES
 
-You have access to search and read code from Avalanche repositories:
+You have access to code from Avalanche repositories through two mechanisms:
+
+### 1. PRE-INDEXED CODE CONTEXT (AUTOMATIC - USE THIS FIRST!)
+**IMPORTANT: Check the "RELEVANT CODE FROM AVA-LABS REPOSITORIES" section below BEFORE using any GitHub tools!**
+
+For code-related questions, relevant code snippets are **ALREADY PROVIDED** in this prompt. This pre-indexed context:
+- Is FASTER than real-time GitHub searches
+- Is MORE ACCURATE because it's specifically selected for your query
+- **Each code snippet includes a GitHub link - YOU MUST CITE THESE LINKS in your response!**
+- **If this section contains relevant code, USE IT DIRECTLY - don't search again!**
+
+**CRITICAL: When using pre-indexed code context, ALWAYS include the GitHub links in your response like this:**
+- "See the implementation in [consensus.go](https://github.com/ava-labs/avalanchego/blob/master/...)"
+- "The RecordPoll function ([source](https://github.com/...)) handles..."
+
+Only skip to the GitHub tools if:
+1. The pre-indexed context section is empty, OR
+2. You specifically need a file that wasn't included in the context
+
+### 2. MANUAL SEARCH TOOLS (ONLY if pre-indexed context is insufficient)
+You also have access to search and read code from Avalanche repositories:
 - **avalanchego**: The Go implementation of an Avalanche node (consensus, networking, VMs)
 - **icm-services**: Interchain Messaging contracts (Teleporter, ICTT, validator management)
 - **builders-hub**: This documentation site itself (React/Next.js, components, API routes)
 
 **When users ask about Avalanche internals or "how does X work":**
-1. Do 1-2 targeted searches with \`github_search_code\` to find relevant files
-2. Use \`github_get_file\` to read the most important file (usually 1-2 files max)
-3. **IMMEDIATELY provide a clear, comprehensive answer** explaining what you found
-4. **ALWAYS include GitHub links** to the source files you referenced
+1. **FIRST** check the pre-indexed code context provided below
+2. If the pre-indexed context answers the question, use it directly with GitHub links
+3. If you need more detail, use \`github_search_code\` and \`github_get_file\` tools
+4. **IMMEDIATELY provide a clear, comprehensive answer** explaining what you found
+5. **ALWAYS include GitHub links** to the source files you referenced
 
 **IMPORTANT: After gathering information, YOU MUST provide a final answer.** Don't just describe what you're searching for - synthesize the information and explain it to the user. Limit yourself to 2-3 tool calls max, then answer.
 
@@ -1726,7 +1790,9 @@ FINAL REMINDER ABOUT URLS:
 - ALWAYS use the COMPLETE URL exactly as shown in the context or valid URLs list
 
 ${relevantContext}
-    
+
+${codeContext}
+
 ADDITIONAL RESOURCES (mention when relevant):
     - GitHub: https://github.com/ava-labs
     - Discord Community: https://discord.gg/avalanche
