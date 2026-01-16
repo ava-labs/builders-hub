@@ -1168,8 +1168,10 @@ function ChatPageInner() {
       }
 
       // Save conversation to database (only if authenticated)
+      // Note: chat.messages already contains the completed message when onFinish fires,
+      // so we don't need to add `message` again - that would cause duplicates
       if (isAuthenticated) {
-        const msgs = [...chat.messages, message].filter(m => m.role !== 'system');
+        const msgs = chat.messages.filter(m => m.role !== 'system');
         if (msgs.length > 0) {
           const titleText = getMessageText(msgs[0]);
           const title = titleText.slice(0, 50) || 'New chat';
