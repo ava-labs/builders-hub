@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { HackathonHeader } from "@/types/hackathons";
-import { getProject, updateProject, isUserProjectMember } from "@/server/services/projects";
+import { getProject, updateProject } from "@/server/services/projects";
+import { isUserProjectMember } from "@/server/services/fileValidation";
 import { withAuth } from '@/lib/protectedRoute';
 
 export const GET = withAuth(async (req: NextRequest, context: any, session: any) => {
