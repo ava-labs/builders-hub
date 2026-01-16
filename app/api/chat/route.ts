@@ -4,6 +4,13 @@ import { z } from 'zod';
 import { captureAIGeneration } from '@/lib/posthog-server';
 import { searchCode, formatCodeContext, type SearchResult } from '@/lib/code-search';
 import { embedQuery, analyzeQueryIntent } from '@/lib/embeddings';
+import { getAuthSession } from '@/lib/auth/authSession';
+import {
+  checkChatRateLimit,
+  getClientIP,
+  createRateLimitHeaders,
+  formatResetTime,
+} from '@/lib/chat/rateLimit';
 
 // Helper to extract text from v6 UIMessage
 function getTextFromMessage(message: any): string {
@@ -547,7 +554,34 @@ export async function POST(req: Request) {
   const { messages, id: visitorId } = await req.json();
   const startTime = Date.now();
   const traceId = `trace_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  
+
+  // Check rate limit based on authentication status
+  const session = await getAuthSession();
+  const isAuthenticated = !!session?.user?.id;
+  const identifier = isAuthenticated ? session.user.id : getClientIP(req);
+
+  const rateLimitResult = checkChatRateLimit(identifier, isAuthenticated);
+
+  if (!rateLimitResult.allowed) {
+    const resetTimeFormatted = formatResetTime(rateLimitResult.resetTime);
+    return new Response(
+      JSON.stringify({
+        error: 'Rate limit exceeded',
+        message: isAuthenticated
+          ? `You've sent too many messages. Please try again ${resetTimeFormatted}.`
+          : `Message limit reached. Please sign in for higher limits or try again ${resetTimeFormatted}.`,
+        resetTime: rateLimitResult.resetTime.toISOString(),
+      }),
+      {
+        status: 429,
+        headers: {
+          'Content-Type': 'application/json',
+          ...createRateLimitHeaders(rateLimitResult),
+        },
+      }
+    );
+  }
+
   // Get the last user message to search for relevant docs
   const lastUserMessage = messages.filter((m: any) => m.role === 'user').pop();
   const lastUserMessageText = lastUserMessage ? getTextFromMessage(lastUserMessage) : '';
