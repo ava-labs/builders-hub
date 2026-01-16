@@ -14,6 +14,7 @@ import { Body } from "./layout.client";
 import { CustomCountdownBanner } from "@/components/ui/custom-countdown-banner";
 import { HideOnChatPage } from "@/components/layout/chat-page-hider";
 import { EmbedModeDetector } from "@/components/layout/embed-mode-detector";
+import { ThemeProvider } from "@/components/content-design/theme-observer";
 
 export const metadata = createMetadata({
   title: {
@@ -49,13 +50,15 @@ export default function Layout({ children }: { children: ReactNode }) {
             <CustomCountdownBanner />
           </HideOnChatPage>
           <Body>
-            <SearchRootProvider>{children}</SearchRootProvider>
-            <HideOnChatPage>
-              <Chatbot />
-              <div id="privacy-banner-root" className="relative">
-                <PrivacyPolicyBox />
-              </div>
-            </HideOnChatPage>
+            <ThemeProvider>
+              <SearchRootProvider>{children}</SearchRootProvider>
+              <HideOnChatPage>
+                <Chatbot />
+                <div id="privacy-banner-root" className="relative">
+                  <PrivacyPolicyBox />
+                </div>
+              </HideOnChatPage>
+            </ThemeProvider>
           </Body>
         </body>
       </PHProvider>

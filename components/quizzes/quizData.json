@@ -22,15 +22,6 @@
         "106",
         "107",
         "108",
-        "109",
-        "110",
-        "111",
-        "112",
-        "113",
-        "114",
-        "115",
-        "116",
-        "117",
         "1201",
         "1202",
         "1203",
@@ -51,8 +42,8 @@
         "215"
       ]
     },
-    "interchain-token-transfer": {
-      "title": "Interchain Token Transfer",
+    "native-token-bridge": {
+      "title": "Native Token Bridge",
       "quizzes": [
         "118",
         "119",
@@ -204,6 +195,24 @@
         "5005",
         "5006",
         "5007"
+      ]
+    },
+    "access-restriction-fundamentals": {
+      "title": "Access Restriction: Fundamentals",
+      "quizzes": [
+        "6001",
+        "6002",
+        "6003",
+        "6004"
+      ]
+    },
+    "access-restriction-advanced": {
+      "title": "Access Restriction: Advanced",
+      "quizzes": [
+        "6005",
+        "6006",
+        "6007",
+        "6008"
       ]
     }
   },
@@ -2979,6 +2988,126 @@
       "hint": "Consider how the agent can sign transactions independently while keeping the user's main wallet secure.",
       "explanation": "The autonomous agent creates its own wallet with a private key encrypted in the browser. The user pre-funds this agent wallet with USDC (setting a budget). The agent can then sign payments autonomously using its own key, without touching the user's main wallet. This provides security (limited budget) and autonomy (no popups per payment).",
       "chapter": "Autonomous AI Agent"
+    },
+    "6001": {
+      "question": "What is the main advantage of implementing access control as precompiles rather than regular smart contracts?",
+      "options": [
+        "Precompiles are written in Solidity which is more secure",
+        "Precompiles execute at the VM level with centralized, audited logic and better gas efficiency",
+        "Precompiles can be updated without network upgrades",
+        "Precompiles don't require any gas to execute"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Think about where precompiles execute and why that matters for security and performance.",
+      "explanation": "Precompiles are implemented in Go at the VM level, providing several advantages: they execute more efficiently (better gas costs), the permission logic is centralized and audited (not reimplemented in every contract), and they can enforce network-level rules consistently. Unlike regular contracts, they're built into the blockchain itself.",
+      "chapter": "Introduction to Precompiles"
+    },
+    "6002": {
+      "question": "In the AllowList permission model, what is the key difference between an Admin and a Manager role?",
+      "options": [
+        "Admins can only read roles, Managers can modify them",
+        "Admins can set any role (Admin, Manager, Enabled), Managers can only grant Enabled status",
+        "Managers have more privileges than Admins",
+        "There is no difference, both roles are equivalent"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Consider the hierarchy of permissions and what each role can grant to others.",
+      "explanation": "Admins have full control and can assign any role: Admin, Manager, or Enabled. Managers have limited control—they can only grant the Enabled role to other addresses, not promote someone to Manager or Admin. This creates a privilege hierarchy: Admin > Manager > Enabled > None.",
+      "chapter": "AllowList Interface"
+    },
+    "6003": {
+      "question": "Which genesis configuration keys are used to enable the Transaction AllowList and Contract Deployer AllowList precompiles?",
+      "options": [
+        "transactionAllowList and contractDeployer",
+        "txAllowListConfig and contractDeployerAllowListConfig",
+        "allowListTx and allowListDeployer",
+        "permissionsTx and permissionsDeployer"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Remember the exact config key names used in the genesis JSON.",
+      "explanation": "The genesis configuration uses txAllowListConfig to control who can submit transactions and contractDeployerAllowListConfig to control who can deploy contracts. Both configs include adminAddresses to specify initial admins.",
+      "chapter": "Genesis Activation"
+    },
+    "6004": {
+      "question": "Why would a financial institution want to use the Transaction AllowList precompile on their L1?",
+      "options": [
+        "To reduce gas fees for all transactions",
+        "To ensure only KYC-verified entities can transact, meeting regulatory and compliance requirements",
+        "To make the blockchain faster",
+        "To enable cross-chain transactions"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Think about regulatory requirements in traditional finance.",
+      "explanation": "Financial institutions often have KYC/AML requirements that mandate knowing who is transacting on their platforms. The Transaction AllowList allows them to restrict the network to only approved, verified participants—essential for regulatory compliance and operational risk management.",
+      "chapter": "Access Control Use-Cases"
+    },
+    "6005": {
+      "question": "When you call setEnabled() on the Transaction AllowList precompile, what actually happens at the VM level?",
+      "options": [
+        "A Solidity smart contract executes the function",
+        "The EVM routes the call to Go code that writes the role to the precompile's storage in the state trie",
+        "The transaction is rejected because precompiles can't be called directly",
+        "A new smart contract is deployed with the updated permissions"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Remember that precompiles are backed by Go implementations, not Solidity bytecode.",
+      "explanation": "When you call a precompile function, the EVM recognizes the reserved address (0x0200...) and routes the call to the registered Go module instead of executing bytecode. The Go code parses the function selector, checks caller permissions, and writes the new role to the precompile's storage in the state trie using GetState/SetState operations.",
+      "chapter": "Precompile Flow"
+    },
+    "6006": {
+      "question": "If a non-allowlisted address tries to send a simple ETH transfer (not calling the precompile directly), at what point is the transaction rejected?",
+      "options": [
+        "Only when the transaction reaches the receiver",
+        "During block finalization after all transactions execute",
+        "At the mempool validation stage, before being included in a block",
+        "The transaction is never rejected, only the precompile calls fail"
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "Think about the multi-layered validation process and the first line of defense.",
+      "explanation": "The Transaction AllowList is enforced at multiple points, but the first check happens during mempool validation (validateTx). The node reads the sender's role from the precompile's storage, and if not Enabled, the transaction is rejected before ever entering the mempool. This prevents unauthorized transactions from consuming network resources.",
+      "chapter": "Automatic Enforcement"
+    },
+    "6007": {
+      "question": "What is a critical requirement when adding entries to upgrade.json for a network upgrade?",
+      "options": [
+        "The timestamps can be in the past to apply changes retroactively",
+        "The timestamps must be in the future relative to the chain head, and entries are append-only",
+        "Previous entries can be modified or deleted before applying",
+        "Network upgrades don't require timestamps"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Consider what would happen if you tried to apply upgrades to already-processed blocks.",
+      "explanation": "Network upgrades via upgrade.json have strict rules: timestamps must be in the future (the node will fail on startup with past timestamps), and the precompileUpgrades array is append-only—you can only add new entries, never modify or remove existing ones. This ensures deterministic, consistent behavior across all validators.",
+      "chapter": "Network Upgrades"
+    },
+    "6008": {
+      "question": "After disabling both allowlist precompiles via upgrade.json, what happens to the previously stored role data?",
+      "options": [
+        "The role data persists and will be restored when re-enabled",
+        "The role data is cleared, and re-enabling requires specifying new adminAddresses",
+        "The role data becomes read-only but accessible",
+        "Disabling a precompile is not possible, only enabling"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Think about what 'disable: true' means for the precompile's state.",
+      "explanation": "When you disable a precompile with 'disable: true' in upgrade.json, it clears the precompile's storage. This means all previously assigned roles (Admin, Manager, Enabled) are wiped. When you re-enable the precompile, you must specify new adminAddresses to bootstrap the permission system again.",
+      "chapter": "Network Upgrades"
     }
   }
 }

@@ -30,9 +30,9 @@ export const menuSections: NavSection[] = [
     title: 'Academy',
     href: '/academy',
     items: [
-      { text: 'Avalanche L1 Academy', href: '/academy?path=avalanche-l1' },
-      { text: 'Entrepreneur Academy', href: '/academy?path=entrepreneur' },
-      { text: 'Blockchain Academy', href: '/academy?path=blockchain' },
+      { text: 'Avalanche L1 Academy', href: '/academy/avalanche-l1' },
+      { text: 'Entrepreneur Academy', href: '/academy/entrepreneur' },
+      { text: 'Blockchain Academy', href: '/academy/blockchain' },
     ],
   },
   {

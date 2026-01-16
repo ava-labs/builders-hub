@@ -1,0 +1,95 @@
+---
+title: Restarting Node
+description: "Hands-on exercise: Restart your Docker validator to load upgrade.json and verify it was applied."
+updated: 2025-12-10
+authors: [nicolasarnedo]
+icon: Terminal
+---
+
+## Objectives
+
+By the end of this exercise, you will be able to:
+
+- Restart the Docker validator container safely.
+- Confirm (via logs) that the node loaded your `UpgradeConfig`.
+- Recognize and fix the common “timestamp is in the past” startup failure.
+
+## Prerequisites
+
+Before starting this exercise, ensure you have:
+
+- Created `upgrade.json` with disable entries in:
+  - `~/.avalanchego/configs/chains/<YOUR_BLOCKCHAIN_ID>/upgrade.json`
+- Access to a terminal on the Docker host (to run `docker` commands).
+
+## Instructions
+
+import { Steps, Step } from 'fumadocs-ui/components/steps';
+import { Callout } from 'fumadocs-ui/components/callout';
+
+<Steps>
+  <Step>
+    ### Step 1: Exit the container shell (if needed)
+
+    If you’re currently inside the container shell, exit back to your host terminal:
+
+    ```bash
+    exit
+    ```
+  </Step>
+
+  <Step>
+    ### Step 2: Restart the validator container
+
+    Restart the container so AvalancheGo reloads configuration files:
+
+    ```bash
+    docker restart <YOUR_CONTAINER_NAME_OR_ID>
+    ```
+
+    Then follow the logs as it starts back up:
+
+    ```bash
+    docker logs -f <YOUR_CONTAINER_NAME_OR_ID>
+    ```
+  </Step>
+
+  <Step>
+    ### Step 3: Confirm the upgrade config was loaded
+
+    On startup, Subnet-EVM prints the chain configuration. You’re looking for log output that includes an `UpgradeConfig` / `precompileUpgrades` section containing your two disable entries.
+
+    <Callout type="info">
+    If you don’t see the upgrade config reflected in logs, double-check you created `upgrade.json` in the correct directory: it must be next to `config.json` inside `~/.avalanchego/configs/chains/<YOUR_BLOCKCHAIN_ID>/`.
+    </Callout>
+  </Step>
+</Steps>
+
+## Expected Output
+
+Your node restarts successfully and logs show it parsed an `UpgradeConfig` that includes your disable upgrades.
+
+```
+... Initialised chain configuration ... UpgradeConfig: {"precompileUpgrades":[ ... ]}
+```
+
+## Verification
+
+To verify you've completed this exercise successfully:
+
+1. The container is running (`docker ps` shows it up).
+2. The logs include your `precompileUpgrades` entries.
+
+## Troubleshooting
+
+### Issue: The node fails on startup after adding the upgrade
+
+**Problem**: A common cause is a `blockTimestamp` being **in the past** relative to chain head.
+
+**Solution**:
+- Update the timestamps to a larger value (e.g., `now + 10 minutes`) and restart again.
+- Keep the two upgrades in increasing timestamp order.
+
+## Next Steps
+
+Next, you’ll verify in the Builder Console that the Transaction/Deployer allowlist precompiles are no longer available.

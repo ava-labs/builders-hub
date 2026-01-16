@@ -1,0 +1,107 @@
+---
+title: Introduction
+description: Learn how to bridge USDC from Fuji C-Chain to become the native gas token on your L1.
+updated: 2025-12-17
+authors: [nicolasarnedo]
+icon: Book
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# ERC-20 to Native Token Bridge
+
+In this chapter, you'll bridge **real USDC** from Fuji C-Chain to your own L1, where it becomes the **native gas token**.
+
+## The Exercise
+
+You will:
+
+1. Get **1 USDC** from the Circle faucet on Fuji
+2. Create an L1 with **Native Minter** enabled
+3. Deploy a bridge that converts USDC → Native tokens
+4. Bridge your 1 USDC to become 1 native token on your L1
+
+<Callout type="info">
+**USDC on Fuji C-Chain**: `0x5425890298aed601595a70AB815c96711a31Bc65`
+
+Get testnet USDC from the [Circle Faucet](https://faucet.circle.com/) (select "Avalanche Fuji" network, 1 USDC per request).
+</Callout>
+
+## Use Case
+
+This bridge type is ideal when:
+
+- You want to use an **established stablecoin** (like USDC) as your chain's gas currency
+- You need **predictable gas costs** for users (no volatile native token)
+- You're building for **enterprise or regulated environments** that prefer fiat-pegged tokens
+
+## Architecture Overview
+
+```
+Fuji C-Chain                              Your L1
+┌──────────────────────────────┐         ┌──────────────────────────────┐
+│                              │         │                              │
+│  USDC (ERC-20)               │         │  Native Token (USDC-backed)  │
+│  0x5425890298aed...1Bc65     │         │       ↑                      │
+│       ↓                      │         │  NativeTokenRemote           │
+│  ERC20TokenHome   ───────────│─────────│  (calls Native Minter)       │
+│  (locks USDC)                │   ICM   │                              │
+│                              │         │                              │
+└──────────────────────────────┘         └──────────────────────────────┘
+```
+
+## Contracts Involved
+
+| Contract | Chain | Purpose |
+|----------|-------|---------|
+| **USDC** | Fuji C-Chain | The ERC-20 token we're bridging (`0x5425890298aed601595a70AB815c96711a31Bc65`) |
+| **ERC20TokenHome** | Fuji C-Chain | Locks USDC when bridging out, releases when bridging back |
+| **NativeTokenRemote** | Your L1 | Calls Native Minter to create native tokens |
+| **Native Minter Precompile** | Your L1 | System contract that mints native tokens |
+
+## Key Requirement: Native Minter Precompile
+
+Your L1 must have the **Native Minter precompile** enabled. This precompile:
+
+- Is a built-in Avalanche L1 feature
+- Allows authorized contracts to mint native tokens
+- Must be configured in the chain's genesis
+- Address: `0x0200000000000000000000000000000000000001`
+
+<Callout type="warning">
+**Important**: You'll create an L1 with Native Minter enabled as the first step of this chapter.
+</Callout>
+
+## Collateral Requirement
+
+Native-token bridging requires **collateral** to back the minted supply:
+
+1. **Initial Reserve Imbalance**: Set during NativeTokenRemote deployment
+2. **Collateral Deposit**: USDC deposited to back the minted native supply
+3. **Full Collateralization**: Required before bridging is enabled
+
+Since the Circle faucet gives you 1 USDC, we'll create an L1 with an initial supply backed by that 1 USDC.
+
+## Deployment Flow
+
+| Step | Action | Chain |
+|------|--------|-------|
+| 1 | Get 1 USDC from Circle faucet | Fuji C-Chain |
+| 2 | Create L1 with Native Minter | Fuji (P-Chain) |
+| 3 | Set up relayer | Local (Docker) |
+| 4 | Deploy ERC20TokenHome for USDC | Fuji C-Chain |
+| 5 | Deploy NativeTokenRemote | Your L1 |
+| 6 | Register + Collateralize with 1 USDC | Your L1 → Fuji |
+| 7 | Bridge USDC → Native | Fuji → Your L1 |
+
+## What You'll Achieve
+
+By the end of this chapter:
+
+- Your L1 uses **USDC as the native gas token**
+- You've bridged 1 USDC to get 1 native token on your L1
+- The bridge is fully collateralized and secure
+
+<Callout type="info">
+**Token Backing**: Every native token minted on your L1 is backed 1:1 by USDC locked in the ERC20TokenHome contract on Fuji.
+</Callout>

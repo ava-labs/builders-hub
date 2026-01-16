@@ -1,0 +1,96 @@
+---
+title: Get USDC & Create L1
+description: Get testnet USDC from Circle and create an L1 with Native Minter enabled.
+updated: 2025-12-17
+authors: [nicolasarnedo]
+icon: Terminal
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Callout } from 'fumadocs-ui/components/callout';
+import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx";
+import CreateChain from "@/components/toolbox/console/layer-1/create/CreateChain";
+import CreateManagedTestnetNode from "@/components/toolbox/console/testnet-infra/ManagedTestnetNodes/CreateManagedTestnetNode";
+import ConvertSubnetToL1 from "@/components/toolbox/console/layer-1/create/ConvertSubnetToL1.tsx";
+
+# Get USDC & Create Your L1
+
+First, get testnet USDC from Circle's faucet. Then create an L1 with the **Native Minter precompile** enabled.
+
+## Prerequisites
+
+Before starting, make sure you have:
+
+1. **Core Wallet** browser extension installed
+2. **Test AVAX** on Fuji C-Chain for gas fees (get it from the [Fuji Faucet](/console/primary-network/faucet) if not automatically airdropped)
+
+<Steps>
+  <Step>
+    ### Get 1 USDC from Circle Faucet
+
+    1. Go to the [Circle Faucet](https://faucet.circle.com/)
+    2. Select **"USDC"** as the token
+    3. Select **"Avalanche Fuji"** as the network
+    4. Enter your wallet address
+    5. Click **"Send 1 USDC"**
+
+    <Callout type="info">
+    **USDC Contract Address on Fuji**: `0x5425890298aed601595a70AB815c96711a31Bc65`
+    
+    You can request 1 USDC every 2 hours per address. This 1 USDC will be used to collateralize your bridge.
+    </Callout>
+
+    After receiving USDC, you can verify the balance in your Core Wallet or by checking the [Fuji Explorer](https://testnet.snowtrace.io/address/0x5425890298aed601595a70AB815c96711a31Bc65).
+
+  </Step>
+
+  <Step>
+    ### Create an L1 with Native Minter enabled
+
+    Use the Create Chain tool below. In the **Genesis JSON / precompiles** section, enable:
+
+    - **Native Minter** (required)
+
+    <Callout type="info">
+    For this chapter, you only need **Native Minter**. Other precompiles like Reward Manager are optional.
+    </Callout>
+
+    <ToolboxMdxWrapper walletMode="c-chain">
+      <CreateChain embedded={true} />
+    </ToolboxMdxWrapper>
+
+  </Step>
+
+  <Step>
+    ### Launch a BuilderHub hosted node
+
+    Start a hosted node for your L1 (no Docker required):
+
+    <ToolboxMdxWrapper walletMode="testnet-mainnet">
+      <CreateManagedTestnetNode />
+    </ToolboxMdxWrapper>
+
+    Wait until the node is healthy and your chain is producing blocks.
+  </Step>
+
+  <Step>
+    ### Convert your Subnet to an L1
+
+    Convert the Subnet into a sovereign L1:
+
+    <Callout type="warning">
+    This conversion is **irreversible**. Double-check you're converting the correct Subnet.
+    </Callout>
+
+    <ToolboxMdxWrapper walletMode="c-chain">
+      <ConvertSubnetToL1 />
+    </ToolboxMdxWrapper>
+  </Step>
+</Steps>
+
+## What You Have Now
+
+- **1 USDC** in your wallet on Fuji C-Chain
+- **Native Minter precompile** enabled at `0x0200000000000000000000000000000000000001`
+- A hosted node producing blocks
+- Converted to a sovereign L1

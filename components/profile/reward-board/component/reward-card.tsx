@@ -1,61 +1,107 @@
-import React from "react";
-import Image from "next/image";
-import { BadgeCardProps } from "../types/badgeCard";
-import { getLucideIcon } from "./get-lucide-icon";
+"use client";
+import React, { useState } from "react";
+import { Canvas } from "@react-three/fiber";
+import * as THREE from "three";
+import type { BadgeCardProps } from "../types/badgeCard";
+import { RequirementsPanel } from "./requirement-panel";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
+import { StaticMedal } from "./static-metal";
+import { AutoRotateMedal } from "./auto-rotate-badge";
+
+const DISC = { radius: 1.3, segments: 200 };
 
 export const RewardCard = ({
-  icon,
   name,
   description,
   className,
-  category,
   image,
+  is_unlocked,
+  requirements,
 }: BadgeCardProps) => {
-  return (
-    <div
-      className={
-        "rounded-2xl border shadow-lg hover:shadow-xl transition-all duration-300 w-full max-w-sm mx-auto overflow-hidden  hover:scale-105 " +
-        (className ?? "")
-      }
-    >
-      <div className="relative px-4 sm:px-6 pt-4 sm:pt-6 pb-3 flex flex-col items-center min-h-[100px] sm:min-h-[120px]">
-        <div className="relative w-16 h-16 sm:w-20 sm:h-20">
-          <Image
-            src={image}
-            alt={name + " icon"}
-            width={128}
-            height={128}
-            className="object-contain w-full h-full"
-            draggable={false}
-            quality={90}
-            priority={false}
-            unoptimized={false}
-            style={{
-              imageRendering: 'crisp-edges',
-            }}
-          />
-        </div>
+  const [open, setOpen] = useState(false);
 
-        {/* Top right category icon */}
-        {/* TODO: we have to decide if we want to show the category icon or not */}
-        {/* <div className="absolute top-3 sm:top-4 right-3 sm:right-4 w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center shadow-md ">
-          <span className="text-blue-700 w-4 h-4 sm:w-6 sm:h-6 flex items-center justify-center">
-            {getLucideIcon(category.trim(), {
-              size: 16,
-              strokeWidth: 2.5,
-              absoluteStrokeWidth: true,
-            })}
-          </span>
-        </div> */}
-      </div>
-      <div className="px-4 sm:px-6 pb-4 sm:pb-6 text-center">
-        <div className="text-base sm:text-lg font-bold dark:text-white text-gray-900 mb-1 sm:mb-2 line-clamp-2">
-          {name}
+  return (
+    <>
+      <div
+        className={` ${className ?? ""}`}
+        style={{ userSelect: "none" }}
+      >
+        <div
+
+          className=" h-[230px] cursor-pointer"
+          onClick={() => setOpen(true)}
+        >
+          <Canvas
+
+            shadows={false}
+            dpr={[1, 2]}
+            camera={{ position: [0, 0, 4.1], fov: 45 }}
+            frameloop="demand"
+            gl={{
+              antialias: true,
+              alpha: true,
+              outputColorSpace: THREE.SRGBColorSpace,
+              toneMapping: THREE.ACESFilmicToneMapping,
+              toneMappingExposure: 0.8,
+
+            }}
+
+          >
+            <ambientLight intensity={1} />
+            <directionalLight position={[2.2, 3, 5]} intensity={1.15} />
+            <directionalLight position={[-3, -2, -4]} intensity={0.45} />
+            <StaticMedal image={image} is_unlocked={is_unlocked} Disc={DISC} />
+          </Canvas>
         </div>
-        <div className="text-sm sm:text-base text-gray-600 dark:text-gray-300 line-clamp-3">
-          {description}
-        </div>
       </div>
-    </div>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <VisuallyHidden>
+          <DialogTitle>{name ?? "Badge details"}</DialogTitle>
+        </VisuallyHidden>
+        <DialogContent
+          hideCloseButton={true}
+          onOpenAutoFocus={(e) => e.preventDefault()}
+          onCloseAutoFocus={(e) => e.preventDefault()}
+          className="max-w-lg   bg-transparent shadow-none border-none  p-0 flex flex-col items-center"
+          style={{ filter: "none", WebkitFilter: "none" }}
+        >
+          <div style={{ width: "100%", height: 250 }}>
+            <Canvas
+              className="block align-top"
+              dpr={[1, 2]}
+              camera={{ position: [0, 0, 4.3], fov: 45 }}
+              gl={{
+                antialias: true,
+                alpha: true,
+                outputColorSpace: THREE.SRGBColorSpace,
+                toneMapping: THREE.ACESFilmicToneMapping,
+                toneMappingExposure: 1.0,
+              }}
+              style={{ background: "transparent" }}
+            >
+              <ambientLight intensity={0.9} />
+              <directionalLight position={[2.5, 3, 5]} intensity={1.2} />
+              <directionalLight position={[-3, -2, -4]} intensity={0.5} />
+              <AutoRotateMedal
+                name={name}
+                description={description}
+                image={image}
+                is_unlocked={is_unlocked}
+                speed={0.35}
+                Disc={DISC}
+              />
+            </Canvas>
+          </div>
+
+          {requirements && requirements.length > 0 && (
+            <div >
+              <RequirementsPanel requirements={requirements as any} title={name} />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
