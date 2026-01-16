@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { type LinkItemType } from 'fumadocs-ui/layouts/docs';
+import { type LinkItemType } from 'fumadocs-ui/layouts/shared';
 import { BookOpen, FileText, ArrowUpRight } from 'lucide-react';
 
 interface BlogPost {

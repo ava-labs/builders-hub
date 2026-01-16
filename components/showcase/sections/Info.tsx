@@ -1,8 +1,10 @@
+"use client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Project } from "@/types/showcase";
 import { MapPin, Trophy, Code2 } from "lucide-react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import {
   Tooltip,
   TooltipContent,
@@ -30,11 +32,21 @@ function getRepoPath(url: string): string {
   }
 }
 
-
 type Props = {
   project: Project;
 };
 export default function Info({ project }: Props) {
+  const parseLinks = (linkString: string | null | undefined): string[] => {
+    if (!linkString) return [];
+    return linkString.split(',').map(link => link.trim()).filter(link => link.length > 0);
+  };
+  const [demoLinks, setDemoLinks] = useState<string[]>([]);
+  const [githubLinks, setGithubLinks] = useState<string[]>([]);
+
+  useEffect(() => {
+    setDemoLinks(parseLinks(project.demo_link));
+    setGithubLinks(parseLinks(project.github_repository));
+  }, [project.demo_link, project.github_repository]);
   return (
     <div className="flex flex-col gap-6 sm:gap-8">
       <div className="flex flex-col sm:flex-row justify-between gap-8 lg:gap-24">
