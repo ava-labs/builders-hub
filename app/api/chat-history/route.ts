@@ -19,6 +19,7 @@ export async function GET() {
           orderBy: { created_at: 'asc' },
         },
       },
+      // Include sharing fields in response (they're part of the model)
       take: 50, // Limit to last 50 conversations
     });
 

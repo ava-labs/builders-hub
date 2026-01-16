@@ -72,6 +72,8 @@ import { useSession, signOut } from 'next-auth/react';
 import { useLoginModalTrigger } from '@/hooks/useLoginModal';
 import { LoginModal } from '@/components/login/LoginModal';
 import Image from 'next/image';
+import { ShareButton } from '@/components/chat/share-button';
+import { ShareModal } from '@/components/chat/share-modal';
 
 // Hook to detect if we're on large screens (matches Tailwind's lg breakpoint)
 const LG_BREAKPOINT = 1024;
@@ -107,6 +109,12 @@ interface DbConversation {
   created_at: string;
   updated_at: string;
   messages: DbChatMessage[];
+  // Sharing fields
+  is_shared: boolean;
+  share_token: string | null;
+  shared_at: string | null;
+  share_expires_at: string | null;
+  view_count: number;
 }
 
 interface Conversation {
@@ -115,6 +123,12 @@ interface Conversation {
   messages: Message[];
   createdAt: number;
   updatedAt: number;
+  // Sharing fields
+  isShared: boolean;
+  shareToken: string | null;
+  sharedAt: string | null;
+  expiresAt: string | null;
+  viewCount: number;
 }
 
 // Convert DB conversation to local format
@@ -130,6 +144,12 @@ function dbToLocalConversation(db: DbConversation): Conversation {
     })),
     createdAt: new Date(db.created_at).getTime(),
     updatedAt: new Date(db.updated_at).getTime(),
+    // Sharing fields
+    isShared: db.is_shared,
+    shareToken: db.share_token,
+    sharedAt: db.shared_at,
+    expiresAt: db.share_expires_at,
+    viewCount: db.view_count,
   };
 }
 
@@ -663,6 +683,7 @@ function Sidebar({
   onNewChat,
   onSelectConversation,
   onDeleteConversation,
+  onShareConversation,
   isAuthenticated,
   isLoadingAuth,
   userImage,
@@ -678,6 +699,7 @@ function Sidebar({
   onNewChat: () => void;
   onSelectConversation: (id: string) => void;
   onDeleteConversation: (id: string) => void;
+  onShareConversation: (conv: Conversation) => void;
   isAuthenticated: boolean;
   isLoadingAuth: boolean;
   userImage?: string | null;
@@ -801,14 +823,25 @@ function Sidebar({
                     >
                       <MessageSquare className="w-5 h-5 shrink-0 text-zinc-400" />
                       <span className="flex-1 truncate text-sm text-zinc-200">{conv.title}</span>
+                      {/* Share indicator (always visible if shared) */}
+                      {conv.isShared && hoveredId !== conv.id && (
+                        <div className="w-2 h-2 rounded-full bg-emerald-500" title="Shared" />
+                      )}
+                      {/* Action buttons on hover */}
                       {hoveredId === conv.id && (
-                        <button
-                          onClick={(e) => { e.stopPropagation(); onDeleteConversation(conv.id); }}
-                          className="p-1 rounded hover:bg-white/10 transition-colors"
-                          title="Delete"
-                        >
-                          <Trash2 className="w-4 h-4 text-zinc-400 hover:text-red-400" />
-                        </button>
+                        <div className="flex items-center gap-0.5">
+                          <ShareButton
+                            isShared={conv.isShared}
+                            onClick={() => onShareConversation(conv)}
+                          />
+                          <button
+                            onClick={(e) => { e.stopPropagation(); onDeleteConversation(conv.id); }}
+                            className="p-1 rounded hover:bg-white/10 transition-colors"
+                            title="Delete"
+                          >
+                            <Trash2 className="w-4 h-4 text-zinc-400 hover:text-red-400" />
+                          </button>
+                        </div>
                       )}
                     </div>
                   ))}
@@ -938,6 +971,10 @@ function ChatPageInner() {
   const isLoadingAuth = authStatus === 'loading';
   const { openLoginModal } = useLoginModalTrigger();
 
+  // Share modal state
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [shareModalConversation, setShareModalConversation] = useState<Conversation | null>(null);
+
   // Embedded panel state
   const [embeddedRef, setEmbeddedRef] = useState<EmbeddedReference | null>(null);
   const [detectedLinks, setDetectedLinks] = useState<EmbeddedReference[]>([]);
@@ -1019,6 +1056,33 @@ function ChatPageInner() {
       console.error('Failed to delete conversation:', err);
     }
   }, [isAuthenticated, currentConversationId]);
+
+  // Handle share conversation
+  const handleShareConversation = useCallback((conv: Conversation) => {
+    setShareModalConversation(conv);
+    setShareModalOpen(true);
+  }, []);
+
+  // Handle share toggle (called when share status changes)
+  const handleShareToggle = useCallback(() => {
+    // Refresh conversations to get updated share status
+    if (isAuthenticated) {
+      fetch('/api/chat-history')
+        .then(res => res.json())
+        .then((data: DbConversation[]) => {
+          if (Array.isArray(data)) {
+            const convs = data.map(dbToLocalConversation);
+            setConversations(convs);
+            // Update the modal conversation if it's still open
+            if (shareModalConversation) {
+              const updated = convs.find(c => c.id === shareModalConversation.id);
+              if (updated) setShareModalConversation(updated);
+            }
+          }
+        })
+        .catch(err => console.error('Failed to refresh conversations:', err));
+    }
+  }, [isAuthenticated, shareModalConversation]);
 
   // Handle reference selection
   const handleRefSelect = (ref: EmbeddedReference) => {
@@ -1127,6 +1191,12 @@ function ChatPageInner() {
             messages: msgs,
             createdAt: Date.now(),
             updatedAt: Date.now(),
+            // Default sharing fields (will be updated from server response)
+            isShared: false,
+            shareToken: null,
+            sharedAt: null,
+            expiresAt: null,
+            viewCount: 0,
           };
 
           const saved = await saveConversation(convToSave);
@@ -1193,6 +1263,24 @@ function ChatPageInner() {
   return (
     <ChatContext value={chat}>
       <LoginModal />
+      {/* Share Modal */}
+      {shareModalConversation && (
+        <ShareModal
+          isOpen={shareModalOpen}
+          onClose={() => {
+            setShareModalOpen(false);
+            setShareModalConversation(null);
+          }}
+          conversationId={shareModalConversation.id}
+          conversationTitle={shareModalConversation.title}
+          isShared={shareModalConversation.isShared}
+          shareToken={shareModalConversation.shareToken}
+          sharedAt={shareModalConversation.sharedAt}
+          expiresAt={shareModalConversation.expiresAt}
+          viewCount={shareModalConversation.viewCount}
+          onShareToggle={handleShareToggle}
+        />
+      )}
       <div className="flex h-full w-full overflow-hidden">
         {/* Sidebar */}
         <Sidebar
@@ -1203,6 +1291,7 @@ function ChatPageInner() {
           onNewChat={handleNewChat}
           onSelectConversation={handleSelectConversation}
           onDeleteConversation={handleDeleteConversation}
+          onShareConversation={handleShareConversation}
           isAuthenticated={isAuthenticated}
           isLoadingAuth={isLoadingAuth}
           userImage={session?.user?.image}
