@@ -1442,9 +1442,9 @@ const HackathonsEdit = () => {
       start_date: "2025-10-15T09:00",
       end_date: "2025-10-17T18:00",
       timezone: "America/New_York",
-      banner: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/hackathon-images/Avalanche%20Chile/bannerchilehor.png",
-      icon: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/hackathon-images/Avalanche%20Chile/bannerchilehor.png",
-      small_banner: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/hackathon-images/Avalanche%20Chile/bannerchile.png",
+      banner: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Hackathon_assets/Template/main_banner_template.png",
+      icon: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Hackathon_assets/Template/icon_template.png",
+      small_banner: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Hackathon_assets/Template/small_banner_template.png",
       custom_link: null,
       top_most: false
     });
