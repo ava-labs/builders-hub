@@ -27,7 +27,7 @@ export function AcademyLayout({
     return (
         <>
             <HeroBackground />
-            <main className="container mx-auto relative pt-8" key={componentKey}>
+            <main className="relative pt-8 w-full">
                 <div className="pb-32 sm:pb-36">
                     <div className="mx-auto max-w-7xl px-6 lg:px-8">
                         {children}
