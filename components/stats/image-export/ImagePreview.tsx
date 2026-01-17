@@ -132,9 +132,10 @@ export const ImagePreview = forwardRef<HTMLDivElement, ImagePreviewProps>(
           return "bg-white text-zinc-950";
         case "dark":
           return "bg-zinc-950 text-white";
-        case "auto":
+        case "rich":
+          return "bg-zinc-900 text-white";
         default:
-          return "bg-white dark:bg-zinc-950";
+          return "bg-white text-zinc-950";
       }
     };
 
@@ -144,10 +145,10 @@ export const ImagePreview = forwardRef<HTMLDivElement, ImagePreviewProps>(
         case "light":
           return "text-zinc-950";
         case "dark":
+        case "rich":
           return "text-white";
-        case "auto":
         default:
-          return "text-foreground";
+          return "text-zinc-950";
       }
     };
 
@@ -157,10 +158,10 @@ export const ImagePreview = forwardRef<HTMLDivElement, ImagePreviewProps>(
         case "light":
           return "text-zinc-500";
         case "dark":
+        case "rich":
           return "text-zinc-400";
-        case "auto":
         default:
-          return "text-muted-foreground";
+          return "text-zinc-500";
       }
     };
 
@@ -171,9 +172,10 @@ export const ImagePreview = forwardRef<HTMLDivElement, ImagePreviewProps>(
           return "border-gray-200";
         case "dark":
           return "border-zinc-800";
-        case "auto":
+        case "rich":
+          return "border-zinc-700";
         default:
-          return "border-gray-200 dark:border-zinc-800";
+          return "border-gray-200";
       }
     };
 
@@ -266,6 +268,13 @@ export const ImagePreview = forwardRef<HTMLDivElement, ImagePreviewProps>(
                 </div>
               )}
 
+              {/* Custom description */}
+              {settings.description && (
+                <p className={cn("text-sm mb-2 shrink-0", getMutedTextColorClass())}>
+                  {settings.description}
+                </p>
+              )}
+
               {/* Metric value display */}
               {chartData.metricValue && (
                 <div className="mb-4 shrink-0">
@@ -293,7 +302,7 @@ export const ImagePreview = forwardRef<HTMLDivElement, ImagePreviewProps>(
 
               {/* Stats badges */}
               {stats && (chartDisplay.showSummaryStats || chartDisplay.showTrendIndicator) && (
-                <div className="flex flex-col gap-2 mt-2">
+                <div className="flex flex-col gap-2 -mt-1">
                   {/* Multi-series stats */}
                   {stats.allSeries && stats.allSeries.length > 1 ? (
                     stats.allSeries.map((s) => (
@@ -392,7 +401,7 @@ export const ImagePreview = forwardRef<HTMLDivElement, ImagePreviewProps>(
               >
                 <div className="flex items-start gap-3">
                   {/* Text content (sources + URL + date) */}
-                  <div className="flex-1 space-y-1.5">
+                  <div className="flex-1 min-w-0 space-y-1.5">
                     {/* Sources */}
                     {footer.showSources && sourceText && (
                       <div className="flex items-start gap-2">
@@ -407,14 +416,14 @@ export const ImagePreview = forwardRef<HTMLDivElement, ImagePreviewProps>(
                             <path strokeWidth="2" d="M12 16v-4M12 8h.01" />
                           </svg>
                         </span>
-                        <span className="leading-relaxed">{sourceText}</span>
+                        <span className="leading-relaxed break-words">{sourceText}</span>
                       </div>
                     )}
                     {/* URL */}
                     {footer.showUrl && chartData.pageUrl && (
-                      <div className="flex items-center gap-2">
-                        <Link2 className="h-3.5 w-3.5 shrink-0" />
-                        <span className="truncate">{chartData.pageUrl}</span>
+                      <div className="flex items-start gap-2">
+                        <Link2 className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                        <span className="break-all leading-relaxed">{chartData.pageUrl}</span>
                       </div>
                     )}
                     {/* Capture date */}
@@ -450,7 +459,7 @@ export const ImagePreview = forwardRef<HTMLDivElement, ImagePreviewProps>(
           >
             <div className="flex items-start gap-3">
               {/* Text content (sources + URL + date) */}
-              <div className="flex-1 space-y-1.5">
+              <div className="flex-1 min-w-0 space-y-1.5">
                 {/* Sources */}
                 {footer.showSources && sourceText && (
                   <div className="flex items-start gap-2">
@@ -465,14 +474,14 @@ export const ImagePreview = forwardRef<HTMLDivElement, ImagePreviewProps>(
                         <path strokeWidth="2" d="M12 16v-4M12 8h.01" />
                       </svg>
                     </span>
-                    <span className="leading-relaxed">{sourceText}</span>
+                    <span className="leading-relaxed break-words">{sourceText}</span>
                   </div>
                 )}
                 {/* URL */}
                 {footer.showUrl && chartData.pageUrl && (
-                  <div className="flex items-center gap-2">
-                    <Link2 className="h-3.5 w-3.5 shrink-0" />
-                    <span className="truncate">{chartData.pageUrl}</span>
+                  <div className="flex items-start gap-2">
+                    <Link2 className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                    <span className="break-all leading-relaxed">{chartData.pageUrl}</span>
                   </div>
                 )}
                 {/* Capture date */}

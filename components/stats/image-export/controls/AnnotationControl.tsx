@@ -101,10 +101,10 @@ export function AnnotationControl({
               type="button"
               onClick={() => onToolSelect(activeToolType === tool.type ? null : tool.type)}
               className={cn(
-                "flex-1 flex items-center justify-center gap-1.5 px-2 py-2 rounded-md text-xs font-medium transition-colors",
+                "flex-1 flex items-center justify-center gap-1.5 px-2 py-2 rounded-md text-xs font-medium transition-colors border",
                 activeToolType === tool.type
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80"
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-muted text-muted-foreground border-border hover:text-foreground hover:bg-muted/80 hover:border-foreground/30"
               )}
             >
               {tool.icon}
@@ -175,10 +175,10 @@ export function AnnotationControl({
                   type="button"
                   onClick={() => handleSelectedSizeChange(option.value)}
                   className={cn(
-                    "flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors",
+                    "flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors border",
                     (selectedAnnotation && "size" in selectedAnnotation ? selectedAnnotation.size : selectedSize) === option.value
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80"
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-muted text-muted-foreground border-border hover:text-foreground hover:bg-muted/80 hover:border-foreground/30"
                   )}
                 >
                   {option.label}
@@ -199,7 +199,7 @@ export function AnnotationControl({
               step="10"
               value={selectedAnnotation?.opacity ?? selectedOpacity}
               onChange={(e) => handleSelectedOpacityChange(Number(e.target.value))}
-              className="w-full h-1.5 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+              className="w-full h-1.5 bg-muted border border-border rounded-lg appearance-none cursor-pointer accent-primary"
             />
           </div>
         </div>

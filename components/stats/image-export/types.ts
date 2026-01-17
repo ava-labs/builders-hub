@@ -1,15 +1,15 @@
 // Types for the Image Export Studio feature
 
-export type AspectRatio = "landscape" | "square" | "portrait" | "instagram" | "social-card";
+export type AspectRatio = "landscape" | "square" | "portrait" | "instagram" | "social-card" | "collage";
 export type Padding = 0 | 8 | 16 | 24 | 32;
 export type LogoPosition = "inline" | "header";
 export type TitleStyle = "bold" | "normal";
 export type TitleSize = "small" | "medium" | "large";
 export type FooterPosition = "inside" | "outside";
-export type PresetType = "default" | "social-media" | "slide-deck" | "customize";
+export type PresetType = "default" | "social-media" | "slide-deck" | "collage" | "customize";
 export type ChartType = "line" | "bar" | "area";
 export type DateRangePreset = "1M" | "3M" | "6M" | "1Y" | "ALL";
-export type ExportTheme = "light" | "dark" | "auto";
+export type ExportTheme = "light" | "dark" | "rich";
 export type ExportResolution = "1x" | "2x" | "3x";
 export type ExportFormat = "png" | "jpeg" | "svg";
 export type GradientDirection = "to-right" | "to-left" | "to-bottom" | "to-top" | "to-br" | "to-bl" | "to-tr" | "to-tl";
@@ -48,9 +48,18 @@ export interface FooterSettings {
   visible: boolean;
 }
 
+export type WatermarkPosition =
+  | "top-left" | "top-center" | "top-right"
+  | "center-left" | "center" | "center-right"
+  | "bottom-left" | "bottom-center" | "bottom-right";
+
+export type WatermarkLayer = "back" | "front";
+
 export interface WatermarkSettings {
   visible: boolean;
   opacity: number;
+  position?: WatermarkPosition;
+  layer?: WatermarkLayer;
 }
 
 export interface ChartDisplaySettings {
@@ -124,6 +133,7 @@ export interface ExportSettings {
   watermark: WatermarkSettings;
   chartDisplay: ChartDisplaySettings;
   exportQuality: ExportQualitySettings;
+  description?: string;
 }
 
 export interface ChartExportData {
@@ -163,4 +173,34 @@ export const ASPECT_RATIO_DIMENSIONS: Record<AspectRatio, AspectRatioDimensions>
   portrait: { width: 1080, height: 1920, ratio: "9:16" },
   instagram: { width: 1080, height: 1350, ratio: "4:5" },
   "social-card": { width: 1200, height: 628, ratio: "1.91:1" },
+  collage: { width: 1800, height: 1200, ratio: "3:2" },
 };
+
+// Collage Mode Types
+export type ExportMode = "single" | "collage";
+
+export interface CollageMetricConfig {
+  metricKey: string;
+  title: string;
+  description: string;
+  color: string;
+}
+
+export interface ChartDataPoint {
+  date?: string;
+  day?: string;
+  value?: number;
+  [key: string]: string | number | undefined;
+}
+
+export interface CollageMetricData {
+  config: CollageMetricConfig;
+  data: ChartDataPoint[];
+  isLoading: boolean;
+  error?: string;
+}
+
+export interface CollageSettings {
+  showIndividualTitles: boolean;
+  chartSpacing: number;
+}

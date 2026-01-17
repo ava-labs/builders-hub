@@ -22,9 +22,10 @@ interface PresetSelectorProps {
 }
 
 const PRESET_OPTIONS: { id: PresetType; label: string; description: string }[] = [
-  { id: "default", label: "Social Card", description: "X, LinkedIn (1.91:1)" },
-  { id: "social-media", label: "Social Post", description: "Instagram, Square (1:1)" },
-  { id: "slide-deck", label: "Presentation", description: "Landscape (16:9)" },
+  { id: "default", label: "Social Card", description: "X, LinkedIn (1.91:1) 1200×628" },
+  { id: "social-media", label: "Social Post", description: "Instagram, Square (1:1) 1080×1080" },
+  { id: "slide-deck", label: "Presentation", description: "Landscape (16:9) 1200×675" },
+  { id: "collage", label: "Collage", description: "Multi-chart grid (3:2) 1800×1200" },
   { id: "customize", label: "Customize", description: "Full control" },
 ];
 

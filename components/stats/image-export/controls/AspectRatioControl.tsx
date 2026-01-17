@@ -76,6 +76,20 @@ const RATIO_OPTIONS: {
       </svg>
     ),
   },
+  {
+    id: "collage",
+    label: "Collage",
+    description: "3:2 ratio",
+    bestFor: "Multi-chart dashboards",
+    icon: (
+      <svg className="w-6 h-4" viewBox="0 0 24 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+        <rect x="1" y="1" width="10" height="6" rx="1" />
+        <rect x="13" y="1" width="10" height="6" rx="1" />
+        <rect x="1" y="9" width="10" height="6" rx="1" />
+        <rect x="13" y="9" width="10" height="6" rx="1" />
+      </svg>
+    ),
+  },
 ];
 
 export function AspectRatioControl({ value, onChange }: AspectRatioControlProps) {
@@ -92,10 +106,10 @@ export function AspectRatioControl({ value, onChange }: AspectRatioControlProps)
                   type="button"
                   onClick={() => onChange(option.id)}
                   className={cn(
-                    "flex items-center justify-center w-10 h-10 rounded-md transition-colors",
+                    "flex items-center justify-center w-10 h-10 rounded-md transition-colors border",
                     value === option.id
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-muted text-muted-foreground border-border hover:bg-muted/80 hover:text-foreground hover:border-foreground/30"
                   )}
                 >
                   {option.icon}

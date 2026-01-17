@@ -35,15 +35,19 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
+import { useTheme } from "next-themes";
 import { PresetSelector } from "./PresetSelector";
 import { CustomizationPanel } from "./CustomizationPanel";
 import { ImagePreview } from "./ImagePreview";
+import { CollagePreview } from "./CollagePreview";
+import { CollageMetricSelector } from "./CollageMetricSelector";
 import { useImageExportSettings } from "./hooks/useImageExportSettings";
 import { useImageExport } from "./hooks/useImageExport";
 import { useCustomTemplates } from "./hooks/useCustomTemplates";
 import { useAnnotations } from "./hooks/useAnnotations";
+import { useCollageMetrics } from "./hooks/useCollageMetrics";
 import { AnnotationOverlay } from "./AnnotationOverlay";
-import type { ChartExportData, PresetType, Period, ChartType, DateRangePreset, BrushRange } from "./types";
+import type { ChartExportData, PresetType, Period, ChartType, DateRangePreset, BrushRange, ExportMode, CollageMetricConfig, CollageSettings } from "./types";
 import { ASPECT_RATIO_DIMENSIONS } from "./types";
 import { DATE_RANGE_PRESETS } from "./constants";
 import { cn } from "@/lib/utils";
@@ -76,6 +80,10 @@ interface ImageExportStudioProps {
   period?: Period;
   onPeriodChange?: (period: Period) => void;
   allowedPeriods?: Period[];
+  // Collage mode props
+  chainId?: string;
+  chainName?: string;
+  availableMetrics?: CollageMetricConfig[];
 }
 
 const CHART_TYPE_ICONS: Record<ChartType, React.ReactNode> = {
@@ -106,6 +114,9 @@ export function ImageExportStudio({
   period,
   onPeriodChange,
   allowedPeriods = ["D", "W", "M", "Q", "Y"],
+  chainId,
+  chainName,
+  availableMetrics = [],
 }: ImageExportStudioProps) {
   const exportRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -124,11 +135,13 @@ export function ImageExportStudio({
     setWatermark,
     setChartDisplay,
     setExportQuality,
+    setDescription,
     resetToPreset,
   } = useImageExportSettings("default");
 
   const { isExporting, downloadImage, copyToClipboard } = useImageExport();
   const { toast } = useToast();
+  const { resolvedTheme: siteTheme } = useTheme();
   const { templates, saveTemplate, updateTemplate, deleteTemplate, renameTemplate, duplicateTemplate, getTemplate, exportTemplate, exportAllTemplates, importTemplates, canSaveMore, storageError, clearStorageError } = useCustomTemplates();
   const {
     annotations,
@@ -159,6 +172,26 @@ export function ImageExportStudio({
   const [isCreatingTemplate, setIsCreatingTemplate] = useState(false);
   const [newTemplateName, setNewTemplateName] = useState("");
   const [saveSuccess, setSaveSuccess] = useState(false);
+
+  // Collage mode state
+  const [activeMode, setActiveMode] = useState<ExportMode>("single");
+  const [selectedMetrics, setSelectedMetrics] = useState<string[]>([]);
+  const [collageSettings, setCollageSettings] = useState<CollageSettings>({
+    showIndividualTitles: true,
+    chartSpacing: 8,
+  });
+
+  // Collage metrics data hook
+  const { metricsData } = useCollageMetrics(
+    chainId,
+    selectedMetrics,
+    availableMetrics,
+    period
+  );
+
+  // Check if collage mode is available
+  const hasCollageMode = availableMetrics.length > 0;
+  const isCollageMode = activeMode === "collage";
 
   const showCustomizePanel = settings.preset === "customize";
 
@@ -196,6 +229,17 @@ export function ImageExportStudio({
 
   // Track previous data length to detect period changes
   const prevDataLengthRef = useRef<number>(0);
+  // Track previous collage data length to detect period changes in collage mode
+  const prevCollageDataLengthRef = useRef<number>(0);
+  // Track previous mode to detect mode switches (single↔collage)
+  const prevModeRef = useRef<ExportMode>(activeMode);
+
+  // Auto-set export theme based on site theme when modal opens
+  useEffect(() => {
+    if (isOpen && siteTheme) {
+      setTheme(siteTheme === "dark" ? "dark" : "light");
+    }
+  }, [isOpen, siteTheme, setTheme]);
 
   // Reset brush range and capture date when modal opens
   useEffect(() => {
@@ -237,6 +281,57 @@ export function ImageExportStudio({
     }
   }, [isOpen, dataArray.length, activePreset, period]);
 
+  // Re-initialize brush range when switching between single/collage modes
+  // or when collage data changes due to period change
+  useEffect(() => {
+    if (!isOpen) return;
+
+    // Only reset to 3M when actually switching modes, not when data updates
+    const modeChanged = prevModeRef.current !== activeMode;
+    prevModeRef.current = activeMode;
+
+    if (isCollageMode) {
+      // In collage mode, wait for first metric data to be available
+      if (selectedMetrics.length > 0) {
+        const firstMetric = metricsData.get(selectedMetrics[0]);
+        if (firstMetric && firstMetric.data.length > 0 && !firstMetric.isLoading) {
+          const collageDataLength = firstMetric.data.length;
+          const collageDataChanged = prevCollageDataLengthRef.current !== collageDataLength && prevCollageDataLengthRef.current > 0;
+
+          if (modeChanged) {
+            // Switching to collage mode - reset to 3M
+            const range = getDefaultBrushRange(collageDataLength, period);
+            setBrushRange(range);
+            setActivePreset("3M");
+          } else if (collageDataChanged) {
+            // Period changed in collage mode - recalculate brush based on current preset
+            const endIndex = collageDataLength - 1;
+            const presetConfig = DATE_RANGE_PRESETS.find(p => p.id === activePreset);
+
+            let startIndex = 0;
+            if (presetConfig?.days) {
+              const dataPoints = calculateDataPointsForPreset(presetConfig.days, period);
+              if (dataPoints) {
+                startIndex = Math.max(0, endIndex - dataPoints + 1);
+              }
+            }
+            setBrushRange({ startIndex, endIndex });
+          }
+          prevCollageDataLengthRef.current = collageDataLength;
+        }
+      }
+    } else {
+      // In single mode
+      if (dataArray.length > 0 && modeChanged) {
+        // Switching to single mode - reset to 3M
+        const range = getDefaultBrushRange(dataArray.length, period);
+        setBrushRange(range);
+        setActivePreset("3M");
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isCollageMode, selectedMetrics.length, metricsData, activeMode, activePreset, period]);
+
   // Calculate data points for a preset based on the current period
   const calculateDataPointsForPreset = (days: number | null, currentPeriod: Period | undefined) => {
     if (!days) return null; // ALL preset
@@ -258,11 +353,25 @@ export function ImageExportStudio({
     }
   };
 
-  // Handle date range preset change
-  const handleDateRangePreset = (preset: DateRangePreset) => {
-    if (dataArray.length === 0) return;
+  // Get reference data for brush (single mode: dataArray, collage mode: first metric's data)
+  const brushReferenceData = useMemo(() => {
+    if (!isCollageMode) return dataArray;
 
-    const endIndex = dataArray.length - 1;
+    // For collage mode, use the first selected metric's data as reference
+    if (selectedMetrics.length > 0) {
+      const firstMetric = metricsData.get(selectedMetrics[0]);
+      if (firstMetric && firstMetric.data.length > 0) {
+        return firstMetric.data;
+      }
+    }
+    return [];
+  }, [isCollageMode, dataArray, selectedMetrics, metricsData]);
+
+  // Handle date range preset change (works with both single and collage modes)
+  const handleDateRangePreset = (preset: DateRangePreset) => {
+    if (brushReferenceData.length === 0) return;
+
+    const endIndex = brushReferenceData.length - 1;
     const presetConfig = DATE_RANGE_PRESETS.find(p => p.id === preset);
 
     let startIndex = 0;
@@ -288,6 +397,38 @@ export function ImageExportStudio({
     if (start > end) return dataArray;
     return dataArray.slice(start, end + 1);
   }, [brushRange, dataArray]);
+
+  // Compute filtered collage metrics based on brush range
+  const filteredCollageMetrics = useMemo(() => {
+    if (!isCollageMode || !brushRange || brushReferenceData.length === 0) {
+      return selectedMetrics.map((key) => metricsData.get(key)).filter((m): m is NonNullable<typeof m> => !!m);
+    }
+
+    // Get the date range from the brush reference data
+    const startDate = brushReferenceData[brushRange.startIndex]?.date;
+    const endDate = brushReferenceData[brushRange.endIndex]?.date;
+
+    if (!startDate || !endDate) {
+      return selectedMetrics.map((key) => metricsData.get(key)).filter((m): m is NonNullable<typeof m> => !!m);
+    }
+
+    // Filter each metric's data to the date range
+    return selectedMetrics.map((key) => {
+      const metric = metricsData.get(key);
+      if (!metric) return null;
+
+      const filteredData = metric.data.filter((point) => {
+        const pointDate = point.date;
+        if (!pointDate) return true;
+        return pointDate >= startDate && pointDate <= endDate;
+      });
+
+      return {
+        ...metric,
+        data: filteredData,
+      };
+    }).filter((m): m is NonNullable<typeof m> => !!m);
+  }, [isCollageMode, brushRange, brushReferenceData, selectedMetrics, metricsData]);
 
   // Calculate chart stats from display data for all series
   const chartStats = useMemo(() => {
@@ -341,9 +482,9 @@ export function ImageExportStudio({
     };
   }, [displayData, seriesInfo]);
 
-  // Safe brush range for the component
+  // Safe brush range for the component (uses brushReferenceData for collage mode)
   const safeBrushRange = useMemo(() => {
-    const maxIndex = Math.max(0, dataArray.length - 1);
+    const maxIndex = Math.max(0, brushReferenceData.length - 1);
 
     if (!brushRange) {
       return { startIndex: 0, endIndex: maxIndex };
@@ -353,14 +494,14 @@ export function ImageExportStudio({
       startIndex: Math.max(0, Math.min(brushRange.startIndex, maxIndex)),
       endIndex: Math.max(0, Math.min(brushRange.endIndex, maxIndex)),
     };
-  }, [brushRange, dataArray.length]);
+  }, [brushRange, brushReferenceData.length]);
 
   const handlePresetChange = useCallback((preset: PresetType | string) => {
     // Check if it's a custom template
     if (preset.startsWith("custom-")) {
       const template = getTemplate(preset);
       if (template) {
-        // Apply all settings from the template
+        // Apply all settings from the template (keep template's saved theme)
         setPreset("customize");
         setSelectedTemplateId(preset); // Track selected template
         setAspectRatio(template.settings.aspectRatio);
@@ -378,8 +519,13 @@ export function ImageExportStudio({
     } else {
       setPreset(preset as PresetType);
       setSelectedTemplateId(null); // Clear template selection
+      // Apply site theme after preset change (presets load their default theme,
+      // but we want to respect the builder-hub's current theme)
+      if (siteTheme) {
+        setTheme(siteTheme === "dark" ? "dark" : "light");
+      }
     }
-  }, [setPreset, setAspectRatio, setPadding, setLogo, setTitle, setBackground, setFooter, setChartType, setTheme, setWatermark, setChartDisplay, setExportQuality, getTemplate]);
+  }, [setPreset, setAspectRatio, setPadding, setLogo, setTitle, setBackground, setFooter, setChartType, setTheme, setWatermark, setChartDisplay, setExportQuality, getTemplate, siteTheme]);
 
   const handleSaveTemplate = useCallback(() => {
     // If a custom template is selected, update it
@@ -753,6 +899,9 @@ export function ImageExportStudio({
 
   // Get max width based on aspect ratio to prevent overflow
   const getPreviewMaxWidth = () => {
+    // Get target dimensions for the aspect ratio
+    const targetDims = ASPECT_RATIO_DIMENSIONS[settings.aspectRatio];
+
     switch (settings.aspectRatio) {
       case "portrait":
         return "max-w-[280px]";
@@ -761,7 +910,9 @@ export function ImageExportStudio({
       case "square":
         return "max-w-[450px]";
       case "landscape":
-        return "max-w-[600px]";
+        return "max-w-[700px]"; // Increased from 600px
+      case "collage":
+        return "max-w-[1400px]"; // Increased from 1200px to be closer to 1800px target
       case "social-card":
       default:
         return "max-w-[650px]";
@@ -801,6 +952,9 @@ export function ImageExportStudio({
 
   // Get the data key (could be "date" or "day" depending on the source)
   const dateKey = dataArray[0]?.date !== undefined ? "date" : "day";
+
+  // Get the date key for brush (uses brushReferenceData)
+  const brushDateKey = brushReferenceData[0]?.date !== undefined ? "date" : "day";
 
   // Get series data keys
   const getDataKeys = () => {
@@ -920,21 +1074,45 @@ export function ImageExportStudio({
         {/* Header */}
         <DialogHeader className="px-5 py-3 border-b shrink-0">
           <div className="flex items-center justify-between gap-4">
-            {/* Left: Title and dimensions */}
+            {/* Left: Title, mode toggle, and dimensions */}
             <div className="flex items-center gap-3 shrink-0">
               <DialogTitle className="text-base font-semibold">
                 Image Studio
               </DialogTitle>
-              <span className="text-[11px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded whitespace-nowrap">
-                {ASPECT_RATIO_DIMENSIONS[settings.aspectRatio].width}×{ASPECT_RATIO_DIMENSIONS[settings.aspectRatio].height}
-              </span>
+              {/* Mode Toggle - only show when collage mode is available */}
+              {hasCollageMode && (
+                <div className="flex items-center bg-muted border border-border rounded-lg p-0.5">
+                  <button
+                    onClick={() => setActiveMode("single")}
+                    className={cn(
+                      "px-2.5 py-1 text-xs font-medium rounded-md transition-colors",
+                      activeMode === "single"
+                        ? "bg-background text-foreground shadow-sm border border-border"
+                        : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+                    )}
+                  >
+                    Single
+                  </button>
+                  <button
+                    onClick={() => setActiveMode("collage")}
+                    className={cn(
+                      "px-2.5 py-1 text-xs font-medium rounded-md transition-colors",
+                      activeMode === "collage"
+                        ? "bg-background text-foreground shadow-sm border border-border"
+                        : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+                    )}
+                  >
+                    Collage
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Right: All controls grouped together */}
             <div className="flex items-center gap-3 shrink-0">
               {/* Period Selector */}
               {period && onPeriodChange && (
-                <div className="flex items-center bg-muted rounded-lg p-0.5">
+                <div className="flex items-center bg-muted border border-border rounded-lg p-0.5">
                   {allowedPeriods.map((p) => (
                     <button
                       key={p}
@@ -942,7 +1120,7 @@ export function ImageExportStudio({
                       className={cn(
                         "px-2 py-1 text-xs font-medium rounded-md transition-colors min-w-[28px]",
                         period === p
-                          ? "bg-background text-foreground shadow-sm"
+                          ? "bg-background text-foreground shadow-sm border border-border"
                           : "text-muted-foreground hover:text-foreground hover:bg-background/50"
                       )}
                     >
@@ -953,7 +1131,7 @@ export function ImageExportStudio({
               )}
 
               {/* Chart Type Selector */}
-              <div className="flex items-center bg-muted rounded-lg p-0.5">
+              <div className="flex items-center bg-muted border border-border rounded-lg p-0.5">
                 {(["line", "bar", "area"] as ChartType[]).map((type) => (
                   <button
                     key={type}
@@ -961,7 +1139,7 @@ export function ImageExportStudio({
                     className={cn(
                       "p-1.5 rounded-md transition-colors",
                       settings.chartType === type
-                        ? "bg-background text-foreground shadow-sm"
+                        ? "bg-background text-foreground shadow-sm border border-border"
                         : "text-muted-foreground hover:text-foreground hover:bg-background/50"
                     )}
                     title={type.charAt(0).toUpperCase() + type.slice(1)}
@@ -1070,10 +1248,13 @@ export function ImageExportStudio({
                     customTemplates={templates}
                   />
 
-                  {/* Action buttons with fixed width container to prevent shifts */}
+                  {/* Action buttons */}
                   <div className="flex items-center gap-1">
-                    {/* Template settings dropdown - always reserve space */}
-                    <DropdownMenu>
+                    {/* Template-related controls - only show in Customize mode */}
+                    {showCustomizePanel && (
+                      <>
+                        {/* Template settings dropdown */}
+                        <DropdownMenu>
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <DropdownMenuTrigger asChild>
@@ -1204,6 +1385,8 @@ export function ImageExportStudio({
                             : "Max templates reached"}
                   </TooltipContent>
                 </Tooltip>
+                      </>
+                    )}
 
                 {/* Keyboard shortcuts help */}
                 <Tooltip>
@@ -1255,118 +1438,150 @@ export function ImageExportStudio({
 
         {/* Content */}
         <div className="flex flex-1 overflow-hidden min-h-0">
+          {/* Collage Mode: Metric Selector (left side) */}
+          {isCollageMode && (
+            <div className="w-[240px] border-r p-4 overflow-y-auto shrink-0 bg-background">
+              <CollageMetricSelector
+                availableMetrics={availableMetrics}
+                selectedMetrics={selectedMetrics}
+                onSelectionChange={setSelectedMetrics}
+                metricsData={metricsData}
+              />
+            </div>
+          )}
+
           {/* Preview area */}
           <div className="flex-1 p-5 overflow-auto flex flex-col bg-muted/30">
-            <div className={cn("w-full mx-auto", getPreviewMaxWidth())}>
-              {/* Export wrapper - includes both preview and annotations */}
-              <div ref={exportRef} className="relative">
-                <ImagePreview
-                  settings={settings}
-                  chartData={chartData}
-                  stats={chartStats || undefined}
-                  capturedAt={capturedAt}
-                >
-                  {dataArray.length > 0 ? (
-                    <ChartWatermark
-                      className="h-full"
-                      scale={["portrait", "instagram"].includes(settings.aspectRatio) ? "small" : settings.aspectRatio === "square" ? "medium" : "large"}
-                      visible={settings.watermark.visible}
-                      opacity={settings.watermark.opacity}
-                    >
-                      <ResponsiveContainer width="100%" height={250}>
-                        <ComposedChart
-                          data={displayData}
-                          margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-                        >
-                          {settings.chartDisplay.showGridLines && (
-                            <CartesianGrid
-                              strokeDasharray="3 3"
-                              className="stroke-gray-200 dark:stroke-gray-700"
-                              vertical={false}
+            {isCollageMode ? (
+              /* Collage Preview */
+              <div className={cn("w-full mx-auto", getPreviewMaxWidth())}>
+                <div ref={exportRef} className="relative">
+                  <CollagePreview
+                    metrics={filteredCollageMetrics}
+                    settings={settings}
+                    collageSettings={collageSettings}
+                    chainName={chainName}
+                    period={period}
+                    pageUrl={chartData.pageUrl}
+                    capturedAt={capturedAt}
+                  />
+                </div>
+              </div>
+            ) : (
+              /* Single Chart Preview */
+              <div className={cn("w-full mx-auto", getPreviewMaxWidth())}>
+                {/* Export wrapper - includes both preview and annotations */}
+                <div ref={exportRef} className="relative">
+                  <ImagePreview
+                    settings={settings}
+                    chartData={chartData}
+                    stats={chartStats || undefined}
+                    capturedAt={capturedAt}
+                  >
+                    {dataArray.length > 0 ? (
+                      <ChartWatermark
+                        className="h-full"
+                        scale={["portrait", "instagram"].includes(settings.aspectRatio) ? "small" : settings.aspectRatio === "square" ? "medium" : "large"}
+                        visible={settings.watermark.visible}
+                        opacity={settings.watermark.opacity}
+                        position={settings.watermark.position}
+                        layer={settings.watermark.layer}
+                      >
+                        <ResponsiveContainer width="100%" height={250}>
+                          <ComposedChart
+                            data={displayData}
+                            margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                          >
+                            {settings.chartDisplay.showGridLines && (
+                              <CartesianGrid
+                                strokeDasharray="3 3"
+                                className="stroke-gray-200 dark:stroke-gray-700"
+                                vertical={false}
+                              />
+                            )}
+                            <XAxis
+                              dataKey={dateKey}
+                              tickFormatter={formatXAxis}
+                              tick={{ className: "fill-gray-600 dark:fill-gray-400", fontSize: 11 }}
+                              minTickGap={40}
                             />
-                          )}
-                          <XAxis
-                            dataKey={dateKey}
-                            tickFormatter={formatXAxis}
-                            tick={{ className: "fill-gray-600 dark:fill-gray-400", fontSize: 11 }}
-                            minTickGap={40}
-                          />
-                          <YAxis
-                            yAxisId="left"
-                            tick={{ className: "fill-gray-600 dark:fill-gray-400", fontSize: 11 }}
-                            tickFormatter={formatYAxis}
-                          />
-                          {hasRightAxis && (
                             <YAxis
-                              yAxisId="right"
-                              orientation="right"
+                              yAxisId="left"
                               tick={{ className: "fill-gray-600 dark:fill-gray-400", fontSize: 11 }}
                               tickFormatter={formatYAxis}
                             />
-                          )}
-                          {renderChartContent()}
-                          {/* Average reference line - rendered after chart content to be on top */}
-                          {settings.chartDisplay.showAvgLine && chartStats && (
-                            <ReferenceLine
-                              y={chartStats.avg}
-                              yAxisId="left"
-                              stroke="#888"
-                              strokeDasharray="5 5"
-                              strokeWidth={1.5}
-                              label={{
-                                value: `Avg: ${formatYAxis(chartStats.avg)}`,
-                                position: "insideTopLeft",
-                                className: "fill-gray-600 dark:fill-gray-400",
-                                fontSize: 10,
-                                offset: 5,
-                              }}
-                            />
-                          )}
-                        </ComposedChart>
-                      </ResponsiveContainer>
-                    </ChartWatermark>
-                  ) : (
-                    <div className="h-[250px] flex flex-col items-center justify-center gap-3 text-center px-8">
-                      <div className="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center">
-                        <svg
-                          className="w-6 h-6 text-muted-foreground"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="1.5"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
-                          <path d="M3 3v18h18" />
-                          <path d="M7 16l4-4 4 4 5-6" />
-                        </svg>
+                            {hasRightAxis && (
+                              <YAxis
+                                yAxisId="right"
+                                orientation="right"
+                                tick={{ className: "fill-gray-600 dark:fill-gray-400", fontSize: 11 }}
+                                tickFormatter={formatYAxis}
+                              />
+                            )}
+                            {renderChartContent()}
+                            {/* Average reference line - rendered after chart content to be on top */}
+                            {settings.chartDisplay.showAvgLine && chartStats && (
+                              <ReferenceLine
+                                y={chartStats.avg}
+                                yAxisId="left"
+                                stroke="#888"
+                                strokeDasharray="5 5"
+                                strokeWidth={1.5}
+                                label={{
+                                  value: `Avg: ${formatYAxis(chartStats.avg)}`,
+                                  position: "insideTopLeft",
+                                  className: "fill-gray-600 dark:fill-gray-400",
+                                  fontSize: 10,
+                                  offset: 5,
+                                }}
+                              />
+                            )}
+                          </ComposedChart>
+                        </ResponsiveContainer>
+                      </ChartWatermark>
+                    ) : (
+                      <div className="h-[250px] flex flex-col items-center justify-center gap-3 text-center px-8">
+                        <div className="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center">
+                          <svg
+                            className="w-6 h-6 text-muted-foreground"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M3 3v18h18" />
+                            <path d="M7 16l4-4 4 4 5-6" />
+                          </svg>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium text-muted-foreground">No chart data available</p>
+                          <p className="text-xs text-muted-foreground/70">Select a metric with data to create an export</p>
+                        </div>
                       </div>
-                      <div className="space-y-1">
-                        <p className="text-sm font-medium text-muted-foreground">No chart data available</p>
-                        <p className="text-xs text-muted-foreground/70">Select a metric with data to create an export</p>
-                      </div>
-                    </div>
+                    )}
+                  </ImagePreview>
+                  {/* Annotation Overlay - inside export wrapper so annotations are captured */}
+                  {(annotations.length > 0 || (showCustomizePanel && activeToolType)) && (
+                    <AnnotationOverlay
+                      annotations={annotations}
+                      activeToolType={showCustomizePanel ? activeToolType : null}
+                      selectedAnnotationId={selectedAnnotationId}
+                      selectedColor={selectedColor}
+                      onAddHighlight={addHighlight}
+                      onAddText={addText}
+                      onAddArrow={addArrow}
+                      onSelectAnnotation={setSelectedAnnotationId}
+                      onUpdateAnnotation={updateAnnotation}
+                    />
                   )}
-                </ImagePreview>
-                {/* Annotation Overlay - inside export wrapper so annotations are captured */}
-                {(annotations.length > 0 || (showCustomizePanel && activeToolType)) && (
-                  <AnnotationOverlay
-                    annotations={annotations}
-                    activeToolType={showCustomizePanel ? activeToolType : null}
-                    selectedAnnotationId={selectedAnnotationId}
-                    selectedColor={selectedColor}
-                    onAddHighlight={addHighlight}
-                    onAddText={addText}
-                    onAddArrow={addArrow}
-                    onSelectAnnotation={setSelectedAnnotationId}
-                    onUpdateAnnotation={updateAnnotation}
-                  />
-                )}
+                </div>
               </div>
-            </div>
+            )}
 
-            {/* Date Range Controls - below the preview */}
-            {dataArray.length > 0 && (
+            {/* Date Range Controls - below the preview, only show when we have data */}
+            {brushReferenceData.length > 0 && (
               <div className="mt-3 space-y-2">
                 {/* Date Range Presets */}
                 <div className="flex items-center justify-center gap-2">
@@ -1375,10 +1590,10 @@ export function ImageExportStudio({
                       key={preset.id}
                       onClick={() => handleDateRangePreset(preset.id as DateRangePreset)}
                       className={cn(
-                        "px-3 py-1 text-xs font-medium rounded-md transition-colors",
+                        "px-3 py-1 text-xs font-medium rounded-md transition-colors border",
                         activePreset === preset.id
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80"
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-muted text-muted-foreground border-border hover:text-foreground hover:bg-muted/80 hover:border-foreground/30"
                       )}
                     >
                       {preset.label}
@@ -1386,46 +1601,48 @@ export function ImageExportStudio({
                   ))}
                 </div>
 
-                {/* Brush Slider */}
-                <div className="bg-muted rounded-lg p-2">
-                  <ResponsiveContainer width="100%" height={55}>
-                    <LineChart
-                      data={dataArray}
-                      margin={{ top: 5, right: 10, left: 10, bottom: 5 }}
-                    >
-                      <Brush
-                        dataKey={dateKey}
-                        height={45}
-                        stroke={primaryColor}
-                        fill={`${primaryColor}20`}
-                        startIndex={safeBrushRange.startIndex}
-                        endIndex={safeBrushRange.endIndex}
-                        onChange={(e: { startIndex?: number; endIndex?: number }) => {
-                          if (e.startIndex !== undefined && e.endIndex !== undefined) {
-                            setBrushRange({
-                              startIndex: e.startIndex,
-                              endIndex: e.endIndex,
-                            });
-                            // Clear active preset when manually adjusting
-                            setActivePreset("ALL");
-                          }
-                        }}
-                        travellerWidth={8}
-                        tickFormatter={formatXAxis}
+                {/* Brush Slider - only show if we have reference data */}
+                {brushReferenceData.length > 0 && (
+                  <div className="bg-muted rounded-lg p-2">
+                    <ResponsiveContainer width="100%" height={55}>
+                      <LineChart
+                        data={brushReferenceData}
+                        margin={{ top: 5, right: 10, left: 10, bottom: 5 }}
                       >
-                        <LineChart data={dataArray}>
-                          <Line
-                            type="monotone"
-                            dataKey={seriesInfo[0]?.id || "value"}
-                            stroke={primaryColor}
-                            strokeWidth={1}
-                            dot={false}
-                          />
-                        </LineChart>
-                      </Brush>
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
+                        <Brush
+                          dataKey={brushDateKey}
+                          height={45}
+                          stroke={primaryColor}
+                          fill={`${primaryColor}20`}
+                          startIndex={safeBrushRange.startIndex}
+                          endIndex={safeBrushRange.endIndex}
+                          onChange={(e: { startIndex?: number; endIndex?: number }) => {
+                            if (e.startIndex !== undefined && e.endIndex !== undefined) {
+                              setBrushRange({
+                                startIndex: e.startIndex,
+                                endIndex: e.endIndex,
+                              });
+                              // Clear active preset when manually adjusting
+                              setActivePreset("ALL");
+                            }
+                          }}
+                          travellerWidth={8}
+                          tickFormatter={formatXAxis}
+                        >
+                          <LineChart data={brushReferenceData}>
+                            <Line
+                              type="monotone"
+                              dataKey={isCollageMode ? "value" : (seriesInfo[0]?.id || "value")}
+                              stroke={primaryColor}
+                              strokeWidth={1}
+                              dot={false}
+                            />
+                          </LineChart>
+                        </Brush>
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -1446,6 +1663,7 @@ export function ImageExportStudio({
                 onWatermarkChange={setWatermark}
                 onChartDisplayChange={setChartDisplay}
                 onExportQualityChange={setExportQuality}
+                onDescriptionChange={setDescription}
                 onReset={resetToPreset}
                 // Annotation props
                 annotations={annotations}

@@ -100,14 +100,14 @@ export function BackgroundControl({ value, onChange }: BackgroundControlProps) {
       </div>
 
       {/* Type toggle */}
-      <div className="flex gap-1 p-1 bg-muted rounded-lg">
+      <div className="flex gap-1 p-1 bg-muted border border-border rounded-lg">
         <button
           type="button"
           onClick={() => onChange({ type: "solid" })}
           className={cn(
             "flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
             value.type === "solid"
-              ? "bg-background text-foreground shadow-sm"
+              ? "bg-background text-foreground shadow-sm border border-border"
               : "text-muted-foreground hover:text-foreground"
           )}
         >
@@ -119,7 +119,7 @@ export function BackgroundControl({ value, onChange }: BackgroundControlProps) {
           className={cn(
             "flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
             value.type === "gradient"
-              ? "bg-background text-foreground shadow-sm"
+              ? "bg-background text-foreground shadow-sm border border-border"
               : "text-muted-foreground hover:text-foreground"
           )}
         >
@@ -294,10 +294,10 @@ export function BackgroundControl({ value, onChange }: BackgroundControlProps) {
                   onClick={() => onChange({ gradientDirection: dir.id })}
                   title={dir.label}
                   className={cn(
-                    "h-7 rounded transition-colors flex items-center justify-center",
+                    "h-7 rounded transition-colors flex items-center justify-center border",
                     value.gradientDirection === dir.id
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-muted-foreground hover:bg-muted/80"
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-muted text-muted-foreground border-border hover:bg-muted/80 hover:border-foreground/30"
                   )}
                 >
                   {dir.icon}

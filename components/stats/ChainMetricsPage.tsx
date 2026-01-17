@@ -841,6 +841,7 @@ export default function ChainMetricsPage({
       description: "Total transaction fees over time",
       color: themeColor,
       chartType: "bar" as const,
+      isCurrency: true,
     },
     {
       title: "Avg Gas Price",
@@ -850,6 +851,7 @@ export default function ChainMetricsPage({
       color: themeColor,
       chartType: "bar" as const,
       showMovingAverage: true,
+      isCurrency: true,
     },
     {
       title: "Max Gas Price",
@@ -858,6 +860,7 @@ export default function ChainMetricsPage({
       description: "Peak gas price over time",
       color: "#a855f7",
       chartType: "area" as const,
+      isCurrency: true,
     },
     {
       title: "Interchain Messages",
@@ -1696,6 +1699,14 @@ export default function ChainMetricsPage({
                       }
                       formatYAxisValue={formatNumber}
                       allowedPeriods={allowedPeriods}
+                      chainId={chainId}
+                      chainName={chainName}
+                      allChartConfigs={chartConfigs.map((c) => ({
+                        metricKey: c.metricKey,
+                        title: c.title,
+                        description: c.description,
+                        color: c.color,
+                      }))}
                     />
                   );
                 })}
@@ -1770,6 +1781,14 @@ export default function ChainMetricsPage({
                         }
                         formatYAxisValue={formatNumber}
                         allowedPeriods={allowedPeriods}
+                        chainId={chainId}
+                        chainName={chainName}
+                        allChartConfigs={chartConfigs.map((c) => ({
+                          metricKey: c.metricKey,
+                          title: c.title,
+                          description: c.description,
+                          color: c.color,
+                        }))}
                       />
                     );
                   }
@@ -1867,6 +1886,14 @@ export default function ChainMetricsPage({
                       }
                       formatYAxisValue={formatNumber}
                       allowedPeriods={allowedPeriods}
+                      chainId={chainId}
+                      chainName={chainName}
+                      allChartConfigs={chartConfigs.map((c) => ({
+                        metricKey: c.metricKey,
+                        title: c.title,
+                        description: c.description,
+                        color: c.color,
+                      }))}
                     />
                   );
                 })}
@@ -1954,6 +1981,14 @@ export default function ChainMetricsPage({
                       formatYAxisValue={formatNumber}
                       allowedPeriods={allowedPeriods}
                       showMovingAverage={config.showMovingAverage || config.metricKey === "feesPaid"}
+                      chainId={chainId}
+                      chainName={chainName}
+                      allChartConfigs={chartConfigs.map((c) => ({
+                        metricKey: c.metricKey,
+                        title: c.title,
+                        description: c.description,
+                        color: c.color,
+                      }))}
                     />
                   );
                 })}
@@ -2000,6 +2035,14 @@ export default function ChainMetricsPage({
                         formatTooltipValue(value, config.metricKey)
                       }
                       formatYAxisValue={formatNumber}
+                      chainId={chainId}
+                      chainName={chainName}
+                      allChartConfigs={chartConfigs.map((c) => ({
+                        metricKey: c.metricKey,
+                        title: c.title,
+                        description: c.description,
+                        color: c.color,
+                      }))}
                     />
                   );
                 })}
@@ -2037,6 +2080,10 @@ function ChartCard({
   formatYAxisValue,
   allowedPeriods = ["D", "W", "M", "Q", "Y"],
   showMovingAverage = false,
+  // Collage mode props
+  chainId,
+  chainName,
+  allChartConfigs,
 }: {
   config: any;
   rawData: any[];
@@ -2050,6 +2097,10 @@ function ChartCard({
   formatYAxisValue: (value: number) => string;
   allowedPeriods?: ("D" | "W" | "M" | "Q" | "Y")[];
   showMovingAverage?: boolean;
+  // Collage mode props
+  chainId?: string;
+  chainName?: string;
+  allChartConfigs?: { metricKey: string; title: string; description: string; color: string }[];
 }) {
   // Get moving average config based on period
   const maConfig = useMemo(() => getMAConfig(period), [period]);
@@ -3288,21 +3339,27 @@ function ChartCard({
         }]}
         chartData={{
           title: config.title,
-          source: "Token Terminal",
+          source: "Avalanche Metrics",
           sourceDescription: config.description,
-          chainName: "Avalanche",
+          chainName: chainName || "Avalanche",
           metricValue: currentValue !== undefined && currentValue !== null
             ? typeof currentValue === 'number'
-              ? currentValue >= 1e9
-                ? `$${(currentValue / 1e9).toFixed(1)} B`
-                : currentValue >= 1e6
-                ? `$${(currentValue / 1e6).toFixed(1)} M`
-                : currentValue.toLocaleString()
+              ? (() => {
+                  const prefix = config.isCurrency ? '$' : '';
+                  if (currentValue >= 1e9) return `${prefix}${(currentValue / 1e9).toFixed(1)}B`;
+                  if (currentValue >= 1e6) return `${prefix}${(currentValue / 1e6).toFixed(1)}M`;
+                  if (currentValue >= 1e3) return `${prefix}${(currentValue / 1e3).toFixed(1)}K`;
+                  return currentValue.toLocaleString();
+                })()
               : String(currentValue)
             : undefined,
           metricLabel: "Latest",
           pageUrl: typeof window !== "undefined" ? window.location.href : undefined,
         }}
+        // Collage mode props
+        chainId={chainId}
+        chainName={chainName || "Avalanche"}
+        availableMetrics={allChartConfigs}
       />
     </Card>
   );

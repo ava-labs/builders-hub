@@ -52,7 +52,7 @@ export function PaddingControl({
           step="8"
           value={value}
           onChange={handleSliderChange}
-          className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+          className="w-full h-2 bg-muted dark:bg-muted border border-border rounded-lg appearance-none cursor-pointer accent-primary"
         />
         <div className="flex justify-between">
           {PADDING_OPTIONS.map((padding) => (
@@ -85,7 +85,7 @@ export function PaddingControl({
           max="24"
           value={borderRadius}
           onChange={(e) => onBorderRadiusChange(parseInt(e.target.value))}
-          className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+          className="w-full h-2 bg-muted dark:bg-muted border border-border rounded-lg appearance-none cursor-pointer accent-primary"
         />
       </div>
     </div>

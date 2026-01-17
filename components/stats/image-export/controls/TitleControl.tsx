@@ -33,11 +33,11 @@ export function TitleControl({ value, onChange }: TitleControlProps) {
               type="button"
               onClick={() => onChange({ style: option.id })}
               className={cn(
-                "flex items-center justify-center px-3 h-10 rounded-md text-sm transition-colors",
+                "flex items-center justify-center px-3 h-10 rounded-md text-sm transition-colors border",
                 option.fontWeight,
                 value.style === option.id
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-muted text-muted-foreground border-border hover:bg-muted/80 hover:text-foreground hover:border-foreground/30"
               )}
             >
               Aa

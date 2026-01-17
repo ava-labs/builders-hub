@@ -103,6 +103,11 @@ export function useImageExportSettings(initialPreset: PresetType = "default") {
     setIsCustomized(true);
   }, []);
 
+  const setDescription = useCallback((description: string) => {
+    setSettings((prev) => ({ ...prev, description }));
+    setIsCustomized(true);
+  }, []);
+
   const resetToPreset = useCallback(() => {
     setSettings(PRESET_DEFAULTS[settings.preset]);
     setIsCustomized(false);
@@ -128,6 +133,7 @@ export function useImageExportSettings(initialPreset: PresetType = "default") {
     setWatermark,
     setChartDisplay,
     setExportQuality,
+    setDescription,
     resetToPreset,
     reset,
   };

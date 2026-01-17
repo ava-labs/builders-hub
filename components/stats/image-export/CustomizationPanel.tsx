@@ -14,6 +14,7 @@ import { WatermarkControl } from "./controls/WatermarkControl";
 import { ChartDisplayControl } from "./controls/ChartDisplayControl";
 import { ExportQualityControl } from "./controls/ExportQualityControl";
 import { AnnotationControl } from "./controls/AnnotationControl";
+import { DescriptionControl } from "./controls/DescriptionControl";
 import type {
   ExportSettings,
   AspectRatio,
@@ -44,6 +45,7 @@ interface CustomizationPanelProps {
   onWatermarkChange: (settings: Partial<WatermarkSettings>) => void;
   onChartDisplayChange: (settings: Partial<ChartDisplaySettings>) => void;
   onExportQualityChange: (settings: Partial<ExportQualitySettings>) => void;
+  onDescriptionChange: (description: string) => void;
   onReset: () => void;
   // Annotation props
   annotations?: Annotation[];
@@ -104,6 +106,7 @@ export function CustomizationPanel({
   onWatermarkChange,
   onChartDisplayChange,
   onExportQualityChange,
+  onDescriptionChange,
   onReset,
   // Annotation props
   annotations = [],
@@ -158,6 +161,7 @@ export function CustomizationPanel({
         <div className="space-y-4">
           <LogoControl value={settings.logo} onChange={onLogoChange} />
           <TitleControl value={settings.title} onChange={onTitleChange} />
+          <DescriptionControl value={settings.description || ""} onChange={onDescriptionChange} />
           <WatermarkControl value={settings.watermark} onChange={onWatermarkChange} />
         </div>
       </CollapsibleSection>

@@ -26,7 +26,7 @@ export function ExportQualityControl({ value, onChange }: ExportQualityControlPr
       {/* Resolution */}
       <div>
         <label className="text-xs text-muted-foreground mb-1.5 block">Resolution</label>
-        <div className="flex gap-1 p-1 bg-muted rounded-lg">
+        <div className="flex gap-1 p-1 bg-muted border border-border rounded-lg">
           {RESOLUTION_OPTIONS.map((option) => (
             <button
               key={option.id}
@@ -35,7 +35,7 @@ export function ExportQualityControl({ value, onChange }: ExportQualityControlPr
               className={cn(
                 "flex-1 px-2 py-1.5 text-xs font-medium rounded-md transition-colors",
                 value.resolution === option.id
-                  ? "bg-background text-foreground shadow-sm"
+                  ? "bg-background text-foreground shadow-sm border border-border"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
@@ -48,7 +48,7 @@ export function ExportQualityControl({ value, onChange }: ExportQualityControlPr
       {/* Format */}
       <div>
         <label className="text-xs text-muted-foreground mb-1.5 block">Format</label>
-        <div className="flex gap-1 p-1 bg-muted rounded-lg">
+        <div className="flex gap-1 p-1 bg-muted border border-border rounded-lg">
           {FORMAT_OPTIONS.map((option) => (
             <button
               key={option.id}
@@ -57,7 +57,7 @@ export function ExportQualityControl({ value, onChange }: ExportQualityControlPr
               className={cn(
                 "flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
                 value.format === option.id
-                  ? "bg-background text-foreground shadow-sm"
+                  ? "bg-background text-foreground shadow-sm border border-border"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
@@ -80,7 +80,7 @@ export function ExportQualityControl({ value, onChange }: ExportQualityControlPr
             max="100"
             value={value.jpegQuality}
             onChange={(e) => onChange({ jpegQuality: parseInt(e.target.value) })}
-            className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+            className="w-full h-2 bg-muted border border-border rounded-lg appearance-none cursor-pointer accent-primary"
           />
         </div>
       )}

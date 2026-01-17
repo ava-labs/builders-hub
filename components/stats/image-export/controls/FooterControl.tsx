@@ -46,10 +46,10 @@ export function FooterControl({ value, onChange }: FooterControlProps) {
               }
             }}
             className={cn(
-              "flex items-center gap-1.5 px-2 py-1.5 rounded-md text-xs font-medium transition-colors",
+              "flex items-center gap-1.5 px-2 py-1.5 rounded-md text-xs font-medium transition-colors border",
               value[option.key]
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80"
+                ? "bg-primary text-primary-foreground border-primary"
+                : "bg-muted text-muted-foreground border-border hover:text-foreground hover:bg-muted/80 hover:border-foreground/30"
             )}
           >
             {option.icon}
