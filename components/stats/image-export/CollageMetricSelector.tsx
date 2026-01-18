@@ -57,7 +57,7 @@ export function CollageMetricSelector({
             type="button"
             onClick={handleSelectAll}
             disabled={selectedMetrics.length === Math.min(availableMetrics.length, maxSelections)}
-            className="text-xs px-2 py-1 rounded hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
+            className="text-xs px-2 py-1 rounded border border-border bg-muted hover:bg-muted/80 hover:border-foreground/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             All
           </button>
@@ -65,7 +65,7 @@ export function CollageMetricSelector({
             type="button"
             onClick={handleClearAll}
             disabled={selectedMetrics.length === 0}
-            className="text-xs px-2 py-1 rounded hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
+            className="text-xs px-2 py-1 rounded border border-border bg-muted hover:bg-muted/80 hover:border-foreground/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             Clear
           </button>
@@ -96,32 +96,6 @@ export function CollageMetricSelector({
                 isDisabled && "opacity-50 cursor-not-allowed"
               )}
             >
-              {/* Checkbox */}
-              <div
-                className={cn(
-                  "w-4 h-4 rounded border-2 flex items-center justify-center shrink-0",
-                  isSelected
-                    ? "border-primary bg-primary"
-                    : "border-muted-foreground/50"
-                )}
-              >
-                {isSelected && (
-                  <svg
-                    className="w-3 h-3 text-primary-foreground"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={3}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                )}
-              </div>
-
               {/* Color indicator */}
               <div
                 className="w-2 h-2 rounded-full shrink-0"
@@ -138,15 +112,13 @@ export function CollageMetricSelector({
                 )}
               </div>
 
-              {/* Status indicator */}
-              {isSelected && (
+              {/* Status indicator - only show loading/error states */}
+              {isSelected && (isLoading || hasError) && (
                 <div className="shrink-0">
                   {isLoading ? (
                     <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
                   ) : hasError ? (
                     <span className="text-xs text-red-500">Error</span>
-                  ) : hasData ? (
-                    <span className="text-xs text-green-600">Ready</span>
                   ) : null}
                 </div>
               )}

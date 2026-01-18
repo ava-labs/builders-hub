@@ -35,6 +35,7 @@ import type {
 interface CustomizationPanelProps {
   settings: ExportSettings;
   isCustomized: boolean;
+  isCollageMode?: boolean;
   onAspectRatioChange: (ratio: AspectRatio) => void;
   onPaddingChange: (padding: Padding) => void;
   onLogoChange: (settings: Partial<LogoSettings>) => void;
@@ -96,6 +97,7 @@ function CollapsibleSection({ title, children, defaultOpen = true }: Collapsible
 export function CustomizationPanel({
   settings,
   isCustomized,
+  isCollageMode = false,
   onAspectRatioChange,
   onPaddingChange,
   onLogoChange,
@@ -176,7 +178,7 @@ export function CustomizationPanel({
 
       {/* Chart Section - data visualization options */}
       <CollapsibleSection title="Chart" defaultOpen={false}>
-        <ChartDisplayControl value={settings.chartDisplay} onChange={onChartDisplayChange} />
+        <ChartDisplayControl value={settings.chartDisplay} onChange={onChartDisplayChange} isCollageMode={isCollageMode} />
       </CollapsibleSection>
 
       {/* Annotations Section */}

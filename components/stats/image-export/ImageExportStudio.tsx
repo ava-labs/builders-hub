@@ -1465,6 +1465,20 @@ export function ImageExportStudio({
                     pageUrl={chartData.pageUrl}
                     capturedAt={capturedAt}
                   />
+                  {/* Annotation Overlay for collage - inside export wrapper so annotations are captured */}
+                  {(annotations.length > 0 || (showCustomizePanel && activeToolType)) && (
+                    <AnnotationOverlay
+                      annotations={annotations}
+                      activeToolType={showCustomizePanel ? activeToolType : null}
+                      selectedAnnotationId={selectedAnnotationId}
+                      selectedColor={selectedColor}
+                      onAddHighlight={addHighlight}
+                      onAddText={addText}
+                      onAddArrow={addArrow}
+                      onSelectAnnotation={setSelectedAnnotationId}
+                      onUpdateAnnotation={updateAnnotation}
+                    />
+                  )}
                 </div>
               </div>
             ) : (
@@ -1653,6 +1667,7 @@ export function ImageExportStudio({
               <CustomizationPanel
                 settings={settings}
                 isCustomized={isCustomized}
+                isCollageMode={isCollageMode}
                 onAspectRatioChange={setAspectRatio}
                 onPaddingChange={setPadding}
                 onLogoChange={setLogo}
