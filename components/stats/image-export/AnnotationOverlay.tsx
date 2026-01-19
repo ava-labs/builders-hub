@@ -7,7 +7,10 @@ import type {
   TextAnnotation,
   ArrowAnnotation,
   HighlightAnnotation,
+  FreehandAnnotation,
+  RectangleAnnotation,
 } from "./types";
+import { ARROW_STROKE_WIDTH } from "./constants";
 
 interface AnnotationOverlayProps {
   annotations: Annotation[];
@@ -17,6 +20,8 @@ interface AnnotationOverlayProps {
   onAddHighlight: (x: number, y: number) => void;
   onAddText: (x: number, y: number) => void;
   onAddArrow: (startX: number, startY: number, endX: number, endY: number) => void;
+  onAddFreehand: (points: Array<{ x: number; y: number }>) => void;
+  onAddRectangle: (x: number, y: number, width: number, height: number) => void;
   onSelectAnnotation: (id: string | null) => void;
   onUpdateAnnotation: (id: string, updates: Partial<Annotation>) => void;
 }
@@ -47,6 +52,8 @@ export function AnnotationOverlay({
   onAddHighlight,
   onAddText,
   onAddArrow,
+  onAddFreehand,
+  onAddRectangle,
   onSelectAnnotation,
   onUpdateAnnotation,
 }: AnnotationOverlayProps) {
@@ -55,6 +62,15 @@ export function AnnotationOverlay({
   const [arrowStart, setArrowStart] = useState<{ x: number; y: number } | null>(null);
   const [arrowEnd, setArrowEnd] = useState<{ x: number; y: number } | null>(null);
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
+
+  // Freehand drawing state
+  const [isDrawingFreehand, setIsDrawingFreehand] = useState(false);
+  const [freehandPoints, setFreehandPoints] = useState<Array<{ x: number; y: number }>>([]);
+
+  // Rectangle drawing state
+  const [isDrawingRect, setIsDrawingRect] = useState(false);
+  const [rectStart, setRectStart] = useState<{ x: number; y: number } | null>(null);
+  const [rectEnd, setRectEnd] = useState<{ x: number; y: number } | null>(null);
 
   // Drag state
   const [isDragging, setIsDragging] = useState(false);
@@ -74,7 +90,7 @@ export function AnnotationOverlay({
   // Handle click on overlay (for adding new annotations or deselecting)
   const handleClick = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
     // Don't process if we're drawing or dragging
-    if (isDrawingArrow || isDragging) return;
+    if (isDrawingArrow || isDrawingFreehand || isDrawingRect || isDragging) return;
 
     // Don't process if clicking on an existing annotation
     if ((e.target as SVGElement).closest('[data-annotation]')) return;
@@ -85,11 +101,14 @@ export function AnnotationOverlay({
       onAddText(x, y);
     } else if (activeToolType === "highlight") {
       onAddHighlight(x, y);
+    } else if (activeToolType === "freehand" || activeToolType === "rectangle" || activeToolType === "arrow") {
+      // These tools use drag, not click - do nothing on click
+      return;
     } else {
       // No tool active - deselect any selected annotation
       onSelectAnnotation(null);
     }
-  }, [activeToolType, isDrawingArrow, isDragging, toPercent, onAddText, onAddHighlight, onSelectAnnotation]);
+  }, [activeToolType, isDrawingArrow, isDrawingFreehand, isDrawingRect, isDragging, toPercent, onAddText, onAddHighlight, onSelectAnnotation]);
 
   // Start dragging an annotation
   const handleAnnotationMouseDown = useCallback((e: React.MouseEvent, annotation: Annotation) => {
@@ -106,18 +125,28 @@ export function AnnotationOverlay({
     onSelectAnnotation(annotation.id);
   }, [activeToolType, toPercent, onSelectAnnotation]);
 
-  // Arrow drawing handlers
+  // Drawing handlers (arrow, freehand, rectangle)
   const handleMouseDown = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
-    if (activeToolType !== "arrow") return;
-
-    // Don't start arrow on existing annotation
+    // Don't start drawing on existing annotation
     if ((e.target as SVGElement).closest('[data-annotation]')) return;
 
     const { x, y } = toPercent(e.clientX, e.clientY);
-    setArrowStart({ x, y });
-    setArrowEnd({ x, y });
-    setIsDrawingArrow(true);
-    e.preventDefault();
+
+    if (activeToolType === "arrow") {
+      setArrowStart({ x, y });
+      setArrowEnd({ x, y });
+      setIsDrawingArrow(true);
+      e.preventDefault();
+    } else if (activeToolType === "freehand") {
+      setFreehandPoints([{ x, y }]);
+      setIsDrawingFreehand(true);
+      e.preventDefault();
+    } else if (activeToolType === "rectangle") {
+      setRectStart({ x, y });
+      setRectEnd({ x, y });
+      setIsDrawingRect(true);
+      e.preventDefault();
+    }
   }, [activeToolType, toPercent]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
@@ -139,6 +168,21 @@ export function AnnotationOverlay({
             endX: Math.max(2, Math.min(98, arrowAnn.endX + deltaX)),
             endY: Math.max(2, Math.min(98, arrowAnn.endY + deltaY)),
           } as Partial<ArrowAnnotation>);
+        } else if (annotation.type === "freehand") {
+          // Move freehand by shifting all points
+          const freehandAnn = annotation as FreehandAnnotation;
+          const newPoints = freehandAnn.points.map(p => ({
+            x: Math.max(2, Math.min(98, p.x + deltaX)),
+            y: Math.max(2, Math.min(98, p.y + deltaY)),
+          }));
+          onUpdateAnnotation(dragAnnotationId, { points: newPoints } as Partial<FreehandAnnotation>);
+        } else if (annotation.type === "rectangle") {
+          // Move rectangle
+          const rectAnn = annotation as RectangleAnnotation;
+          onUpdateAnnotation(dragAnnotationId, {
+            x: Math.max(2, Math.min(98 - rectAnn.width, rectAnn.x + deltaX)),
+            y: Math.max(2, Math.min(98 - rectAnn.height, rectAnn.y + deltaY)),
+          } as Partial<RectangleAnnotation>);
         } else {
           // Move point or text
           const posAnn = annotation as HighlightAnnotation | TextAnnotation;
@@ -153,12 +197,31 @@ export function AnnotationOverlay({
       return;
     }
 
-    // Handle arrow drawing
-    if (!isDrawingArrow || !arrowStart) return;
-
     const { x, y } = toPercent(e.clientX, e.clientY);
-    setArrowEnd({ x, y });
-  }, [isDragging, dragAnnotationId, dragStartPos, isDrawingArrow, arrowStart, toPercent, annotations, onUpdateAnnotation]);
+
+    // Handle arrow drawing
+    if (isDrawingArrow && arrowStart) {
+      setArrowEnd({ x, y });
+      return;
+    }
+
+    // Handle freehand drawing - add points with distance threshold
+    if (isDrawingFreehand && freehandPoints.length > 0) {
+      const lastPoint = freehandPoints[freehandPoints.length - 1];
+      const distance = Math.sqrt(Math.pow(x - lastPoint.x, 2) + Math.pow(y - lastPoint.y, 2));
+      // Only add point if moved more than 0.5% (allows smoother lines and shorter strokes)
+      if (distance > 0.5) {
+        setFreehandPoints(prev => [...prev, { x, y }]);
+      }
+      return;
+    }
+
+    // Handle rectangle drawing
+    if (isDrawingRect && rectStart) {
+      setRectEnd({ x, y });
+      return;
+    }
+  }, [isDragging, dragAnnotationId, dragStartPos, isDrawingArrow, arrowStart, isDrawingFreehand, freehandPoints, isDrawingRect, rectStart, toPercent, annotations, onUpdateAnnotation]);
 
   const handleMouseUp = useCallback(() => {
     // End dragging
@@ -181,7 +244,29 @@ export function AnnotationOverlay({
     setIsDrawingArrow(false);
     setArrowStart(null);
     setArrowEnd(null);
-  }, [isDragging, isDrawingArrow, arrowStart, arrowEnd, onAddArrow]);
+
+    // End freehand drawing
+    if (isDrawingFreehand && freehandPoints.length > 1) {
+      onAddFreehand(freehandPoints);
+    }
+    setIsDrawingFreehand(false);
+    setFreehandPoints([]);
+
+    // End rectangle drawing
+    if (isDrawingRect && rectStart && rectEnd) {
+      const x = Math.min(rectStart.x, rectEnd.x);
+      const y = Math.min(rectStart.y, rectEnd.y);
+      const width = Math.abs(rectEnd.x - rectStart.x);
+      const height = Math.abs(rectEnd.y - rectStart.y);
+      // Only create if rectangle has meaningful size
+      if (width > 3 && height > 3) {
+        onAddRectangle(x, y, width, height);
+      }
+    }
+    setIsDrawingRect(false);
+    setRectStart(null);
+    setRectEnd(null);
+  }, [isDragging, isDrawingArrow, arrowStart, arrowEnd, onAddArrow, isDrawingFreehand, freehandPoints, onAddFreehand, isDrawingRect, rectStart, rectEnd, onAddRectangle]);
 
   // Handle clicking on an annotation (without dragging)
   const handleAnnotationClick = useCallback((e: React.MouseEvent, id: string) => {
@@ -333,18 +418,20 @@ export function AnnotationOverlay({
   const renderArrow = (annotation: ArrowAnnotation) => {
     const isSelected = selectedAnnotationId === annotation.id;
     const markerId = `arrowhead-${annotation.id}`;
-    const thickness = ARROW_THICKNESS[annotation.size];
+    const thickness = ARROW_STROKE_WIDTH[annotation.size];
     const opacity = annotation.opacity / 100;
+    const lineStyle = annotation.lineStyle || "solid";
+    const arrowheadStyle = annotation.arrowheadStyle || "filled";
 
-    return (
-      <g
-        key={annotation.id}
-        data-annotation
-        onMouseDown={(e) => handleAnnotationMouseDown(e, annotation)}
-        onClick={(e) => handleAnnotationClick(e, annotation.id)}
-        style={{ cursor: isSelected && !activeToolType ? "move" : "pointer", opacity }}
-      >
-        <defs>
+    // Get strokeDasharray based on line style
+    const strokeDasharray = lineStyle === "dashed" ? "8 4" : undefined;
+
+    // Render arrowhead based on style
+    const renderArrowhead = () => {
+      if (arrowheadStyle === "none") return null;
+
+      if (arrowheadStyle === "outline") {
+        return (
           <marker
             id={markerId}
             markerWidth="10"
@@ -355,9 +442,42 @@ export function AnnotationOverlay({
           >
             <polygon
               points="0 0, 10 3.5, 0 7"
-              fill={annotation.color}
+              fill="none"
+              stroke={annotation.color}
+              strokeWidth={1}
             />
           </marker>
+        );
+      }
+
+      // Default: filled
+      return (
+        <marker
+          id={markerId}
+          markerWidth="10"
+          markerHeight="7"
+          refX="9"
+          refY="3.5"
+          orient="auto"
+        >
+          <polygon
+            points="0 0, 10 3.5, 0 7"
+            fill={annotation.color}
+          />
+        </marker>
+      );
+    };
+
+    return (
+      <g
+        key={annotation.id}
+        data-annotation
+        onMouseDown={(e) => handleAnnotationMouseDown(e, annotation)}
+        onClick={(e) => handleAnnotationClick(e, annotation.id)}
+        style={{ cursor: isSelected && !activeToolType ? "move" : "pointer", opacity }}
+      >
+        <defs>
+          {renderArrowhead()}
         </defs>
         {/* Invisible wider line for easier clicking/dragging */}
         <line
@@ -375,7 +495,8 @@ export function AnnotationOverlay({
           y2={`${annotation.endY}%`}
           stroke={annotation.color}
           strokeWidth={isSelected ? thickness + 1 : thickness}
-          markerEnd={`url(#${markerId})`}
+          strokeDasharray={strokeDasharray}
+          markerEnd={arrowheadStyle !== "none" ? `url(#${markerId})` : undefined}
         />
         {isSelected && (
           <>
@@ -392,6 +513,119 @@ export function AnnotationOverlay({
               fill={annotation.color}
             />
           </>
+        )}
+      </g>
+    );
+  };
+
+  // Render a freehand annotation
+  const renderFreehand = (annotation: FreehandAnnotation) => {
+    const isSelected = selectedAnnotationId === annotation.id;
+    const opacity = annotation.opacity / 100;
+
+    // Convert points array to SVG path (use numbers only, viewBox handles percentage mapping)
+    if (annotation.points.length < 2) return null;
+    const pathData = annotation.points
+      .map((p, idx) => `${idx === 0 ? "M" : "L"} ${p.x} ${p.y}`)
+      .join(" ");
+
+    // Use nested SVG with viewBox to map 0-100 coordinates to percentages
+    return (
+      <svg
+        key={annotation.id}
+        viewBox="0 0 100 100"
+        preserveAspectRatio="none"
+        width="100%"
+        height="100%"
+        style={{ position: "absolute", top: 0, left: 0, overflow: "visible" }}
+      >
+        <g
+          data-annotation
+          onMouseDown={(e) => handleAnnotationMouseDown(e, annotation)}
+          onClick={(e) => handleAnnotationClick(e, annotation.id)}
+          style={{ cursor: isSelected && !activeToolType ? "move" : "pointer", opacity }}
+        >
+          {/* Invisible wider path for easier clicking/dragging */}
+          <path
+            d={pathData}
+            fill="none"
+            stroke="transparent"
+            strokeWidth={16}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            vectorEffect="non-scaling-stroke"
+          />
+          <path
+            d={pathData}
+            fill="none"
+            stroke={annotation.color}
+            strokeWidth={isSelected ? annotation.strokeWidth + 1 : annotation.strokeWidth}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            vectorEffect="non-scaling-stroke"
+          />
+          {isSelected && (
+            <path
+              d={pathData}
+              fill="none"
+              stroke={annotation.color}
+              strokeWidth={annotation.strokeWidth + 4}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeDasharray="4"
+              opacity={0.3}
+              vectorEffect="non-scaling-stroke"
+            />
+          )}
+        </g>
+      </svg>
+    );
+  };
+
+  // Render a rectangle annotation
+  const renderRectangle = (annotation: RectangleAnnotation) => {
+    const isSelected = selectedAnnotationId === annotation.id;
+    const opacity = annotation.opacity / 100;
+
+    return (
+      <g
+        key={annotation.id}
+        data-annotation
+        onMouseDown={(e) => handleAnnotationMouseDown(e, annotation)}
+        onClick={(e) => handleAnnotationClick(e, annotation.id)}
+        style={{ cursor: isSelected && !activeToolType ? "move" : "pointer", opacity }}
+      >
+        {/* Invisible larger rect for easier clicking/dragging */}
+        <rect
+          x={`${annotation.x}%`}
+          y={`${annotation.y}%`}
+          width={`${annotation.width}%`}
+          height={`${annotation.height}%`}
+          fill="transparent"
+          stroke="transparent"
+          strokeWidth={16}
+        />
+        <rect
+          x={`${annotation.x}%`}
+          y={`${annotation.y}%`}
+          width={`${annotation.width}%`}
+          height={`${annotation.height}%`}
+          fill="none"
+          stroke={annotation.color}
+          strokeWidth={isSelected ? annotation.strokeWidth + 1 : annotation.strokeWidth}
+        />
+        {isSelected && (
+          <rect
+            x={`${annotation.x - 0.5}%`}
+            y={`${annotation.y - 0.5}%`}
+            width={`${annotation.width + 1}%`}
+            height={`${annotation.height + 1}%`}
+            fill="none"
+            stroke={annotation.color}
+            strokeWidth={1}
+            strokeDasharray="4"
+            opacity={0.5}
+          />
         )}
       </g>
     );
@@ -415,12 +649,69 @@ export function AnnotationOverlay({
     );
   };
 
+  // Render drawing freehand preview
+  const renderDrawingFreehand = () => {
+    if (!isDrawingFreehand || freehandPoints.length < 2) return null;
+
+    const pathData = freehandPoints
+      .map((p, idx) => `${idx === 0 ? "M" : "L"} ${p.x} ${p.y}`)
+      .join(" ");
+
+    // Use nested SVG with viewBox to map 0-100 coordinates to percentages
+    return (
+      <svg
+        viewBox="0 0 100 100"
+        preserveAspectRatio="none"
+        width="100%"
+        height="100%"
+        style={{ position: "absolute", top: 0, left: 0, overflow: "visible" }}
+      >
+        <path
+          d={pathData}
+          fill="none"
+          stroke={selectedColor}
+          strokeWidth={3}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          opacity={0.7}
+          vectorEffect="non-scaling-stroke"
+        />
+      </svg>
+    );
+  };
+
+  // Render drawing rectangle preview
+  const renderDrawingRect = () => {
+    if (!isDrawingRect || !rectStart || !rectEnd) return null;
+
+    const x = Math.min(rectStart.x, rectEnd.x);
+    const y = Math.min(rectStart.y, rectEnd.y);
+    const width = Math.abs(rectEnd.x - rectStart.x);
+    const height = Math.abs(rectEnd.y - rectStart.y);
+
+    return (
+      <rect
+        x={`${x}%`}
+        y={`${y}%`}
+        width={`${width}%`}
+        height={`${height}%`}
+        fill="none"
+        stroke={selectedColor}
+        strokeWidth={2}
+        strokeDasharray="4"
+        opacity={0.7}
+      />
+    );
+  };
+
   // Get cursor based on active tool or dragging state
   const getCursor = () => {
     if (isDragging) return "grabbing";
     if (activeToolType === "text") return "text";
     if (activeToolType === "arrow") return "crosshair";
     if (activeToolType === "highlight") return "crosshair";
+    if (activeToolType === "freehand") return "crosshair";
+    if (activeToolType === "rectangle") return "crosshair";
     return "default";
   };
 
@@ -453,14 +744,20 @@ export function AnnotationOverlay({
               return renderText(annotation);
             case "arrow":
               return renderArrow(annotation);
+            case "freehand":
+              return renderFreehand(annotation);
+            case "rectangle":
+              return renderRectangle(annotation);
             default:
               return null;
           }
         })}
       </g>
 
-      {/* Drawing preview */}
+      {/* Drawing previews */}
       {renderDrawingArrow()}
+      {renderDrawingFreehand()}
+      {renderDrawingRect()}
     </svg>
   );
 }

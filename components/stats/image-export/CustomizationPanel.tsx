@@ -15,6 +15,7 @@ import { ChartDisplayControl } from "./controls/ChartDisplayControl";
 import { ExportQualityControl } from "./controls/ExportQualityControl";
 import { AnnotationControl } from "./controls/AnnotationControl";
 import { DescriptionControl } from "./controls/DescriptionControl";
+import { CollageLayoutControl } from "./controls/CollageLayoutControl";
 import type {
   ExportSettings,
   AspectRatio,
@@ -30,13 +31,21 @@ import type {
   Annotation,
   AnnotationType,
   AnnotationSize,
+  ArrowLineStyle,
+  ArrowheadStyle,
+  CustomAspectRatio,
 } from "./types";
 
 interface CustomizationPanelProps {
   settings: ExportSettings;
   isCustomized: boolean;
   isCollageMode?: boolean;
+  collageMetricCount?: number;
+  collageGridLayout?: { cols: number; rows: number } | null;
+  onCollageGridLayoutChange?: (layout: { cols: number; rows: number } | null) => void;
   onAspectRatioChange: (ratio: AspectRatio) => void;
+  customAspectRatio?: CustomAspectRatio;
+  onCustomAspectRatioChange?: (dimensions: CustomAspectRatio) => void;
   onPaddingChange: (padding: Padding) => void;
   onLogoChange: (settings: Partial<LogoSettings>) => void;
   onTitleChange: (settings: Partial<TitleSettings>) => void;
@@ -55,11 +64,15 @@ interface CustomizationPanelProps {
   selectedColor?: string;
   selectedSize?: AnnotationSize;
   selectedOpacity?: number;
+  selectedLineStyle?: ArrowLineStyle;
+  selectedArrowheadStyle?: ArrowheadStyle;
   onAnnotationToolSelect?: (type: AnnotationType | null) => void;
   onAnnotationSelect?: (id: string | null) => void;
   onAnnotationColorChange?: (color: string) => void;
   onAnnotationSizeChange?: (size: AnnotationSize) => void;
   onAnnotationOpacityChange?: (opacity: number) => void;
+  onAnnotationLineStyleChange?: (style: ArrowLineStyle) => void;
+  onAnnotationArrowheadStyleChange?: (style: ArrowheadStyle) => void;
   onUpdateAnnotation?: (id: string, updates: Partial<Annotation>) => void;
   onDeleteAnnotation?: (id: string) => void;
   onClearAllAnnotations?: () => void;
@@ -98,7 +111,12 @@ export function CustomizationPanel({
   settings,
   isCustomized,
   isCollageMode = false,
+  collageMetricCount = 0,
+  collageGridLayout,
+  onCollageGridLayoutChange,
   onAspectRatioChange,
+  customAspectRatio,
+  onCustomAspectRatioChange,
   onPaddingChange,
   onLogoChange,
   onTitleChange,
@@ -117,11 +135,15 @@ export function CustomizationPanel({
   selectedColor = "#e84142",
   selectedSize = "medium",
   selectedOpacity = 100,
+  selectedLineStyle = "solid",
+  selectedArrowheadStyle = "filled",
   onAnnotationToolSelect,
   onAnnotationSelect,
   onAnnotationColorChange,
   onAnnotationSizeChange,
   onAnnotationOpacityChange,
+  onAnnotationLineStyleChange,
+  onAnnotationArrowheadStyleChange,
   onUpdateAnnotation,
   onDeleteAnnotation,
   onClearAllAnnotations,
@@ -148,7 +170,17 @@ export function CustomizationPanel({
           <AspectRatioControl
             value={settings.aspectRatio}
             onChange={onAspectRatioChange}
+            customDimensions={customAspectRatio}
+            onCustomDimensionsChange={onCustomAspectRatioChange}
           />
+          {/* Collage grid layout control - only show in collage mode with multiple metrics */}
+          {isCollageMode && collageMetricCount > 1 && onCollageGridLayoutChange && (
+            <CollageLayoutControl
+              metricCount={collageMetricCount}
+              value={collageGridLayout ?? null}
+              onChange={onCollageGridLayoutChange}
+            />
+          )}
           <PaddingControl
             value={settings.padding}
             onChange={onPaddingChange}
@@ -182,7 +214,7 @@ export function CustomizationPanel({
       </CollapsibleSection>
 
       {/* Annotations Section */}
-      {onAnnotationToolSelect && onAnnotationSelect && onAnnotationColorChange && onAnnotationSizeChange && onAnnotationOpacityChange && onUpdateAnnotation && onDeleteAnnotation && onClearAllAnnotations && (
+      {onAnnotationToolSelect && onAnnotationSelect && onAnnotationColorChange && onAnnotationSizeChange && onAnnotationOpacityChange && onAnnotationLineStyleChange && onAnnotationArrowheadStyleChange && onUpdateAnnotation && onDeleteAnnotation && onClearAllAnnotations && (
         <CollapsibleSection title="Annotations" defaultOpen={false}>
           <AnnotationControl
             annotations={annotations}
@@ -191,11 +223,15 @@ export function CustomizationPanel({
             selectedColor={selectedColor}
             selectedSize={selectedSize}
             selectedOpacity={selectedOpacity}
+            selectedLineStyle={selectedLineStyle}
+            selectedArrowheadStyle={selectedArrowheadStyle}
             onToolSelect={onAnnotationToolSelect}
             onAnnotationSelect={onAnnotationSelect}
             onColorChange={onAnnotationColorChange}
             onSizeChange={onAnnotationSizeChange}
             onOpacityChange={onAnnotationOpacityChange}
+            onLineStyleChange={onAnnotationLineStyleChange}
+            onArrowheadStyleChange={onAnnotationArrowheadStyleChange}
             onUpdateAnnotation={onUpdateAnnotation}
             onDeleteAnnotation={onDeleteAnnotation}
             onClearAll={onClearAllAnnotations}

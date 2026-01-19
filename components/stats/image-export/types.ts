@@ -1,6 +1,6 @@
 // Types for the Image Export Studio feature
 
-export type AspectRatio = "landscape" | "square" | "portrait" | "instagram" | "social-card" | "collage";
+export type AspectRatio = "landscape" | "square" | "portrait" | "instagram" | "social-card" | "collage" | "custom";
 export type Padding = 0 | 8 | 16 | 24 | 32;
 export type LogoPosition = "inline" | "header";
 export type TitleStyle = "bold" | "normal";
@@ -28,6 +28,7 @@ export interface LogoSettings {
 export interface TitleSettings {
   style: TitleStyle;
   size: TitleSize;
+  color?: string; // Custom title color (hex)
 }
 
 export interface BackgroundSettings {
@@ -77,8 +78,10 @@ export interface ExportQualitySettings {
 }
 
 // Annotation types
-export type AnnotationType = "highlight" | "text" | "arrow";
+export type AnnotationType = "highlight" | "text" | "arrow" | "freehand" | "rectangle";
 export type AnnotationSize = "small" | "medium" | "large";
+export type ArrowLineStyle = "solid" | "dashed";
+export type ArrowheadStyle = "filled" | "outline" | "none";
 
 export interface BaseAnnotation {
   id: string;
@@ -110,9 +113,26 @@ export interface ArrowAnnotation extends BaseAnnotation {
   endX: number;
   endY: number;
   size: AnnotationSize;
+  lineStyle?: ArrowLineStyle;
+  arrowheadStyle?: ArrowheadStyle;
 }
 
-export type Annotation = HighlightAnnotation | TextAnnotation | ArrowAnnotation;
+export interface FreehandAnnotation extends BaseAnnotation {
+  type: "freehand";
+  points: Array<{ x: number; y: number }>; // Array of percentage positions
+  strokeWidth: number;
+}
+
+export interface RectangleAnnotation extends BaseAnnotation {
+  type: "rectangle";
+  x: number; // Top-left percentage position
+  y: number;
+  width: number; // Width in percentage
+  height: number; // Height in percentage
+  strokeWidth: number;
+}
+
+export type Annotation = HighlightAnnotation | TextAnnotation | ArrowAnnotation | FreehandAnnotation | RectangleAnnotation;
 
 export interface AnnotationSettings {
   annotations: Annotation[];
@@ -174,6 +194,7 @@ export const ASPECT_RATIO_DIMENSIONS: Record<AspectRatio, AspectRatioDimensions>
   instagram: { width: 1080, height: 1350, ratio: "4:5" },
   "social-card": { width: 1200, height: 628, ratio: "1.91:1" },
   collage: { width: 1800, height: 1200, ratio: "3:2" },
+  custom: { width: 1280, height: 720, ratio: "16:9" }, // Default custom, overridden at runtime
 };
 
 // Collage Mode Types
@@ -203,4 +224,11 @@ export interface CollageMetricData {
 export interface CollageSettings {
   showIndividualTitles: boolean;
   chartSpacing: number;
+  gridLayout?: { cols: number; rows: number } | null; // null = auto-calculate
+}
+
+// Custom aspect ratio dimensions
+export interface CustomAspectRatio {
+  width: number;
+  height: number;
 }

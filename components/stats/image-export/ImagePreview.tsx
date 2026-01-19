@@ -102,6 +102,7 @@ export const ImagePreview = forwardRef<HTMLDivElement, ImagePreviewProps>(
 
     const titleSizeClass = TITLE_SIZE_MAP[title.size];
     const titleWeightClass = title.style === "bold" ? "font-bold" : "font-normal";
+    const titleColorStyle = title.color ? { color: title.color } : undefined;
 
     // Build source text
     const sourceText = chartData.source
@@ -150,6 +151,27 @@ export const ImagePreview = forwardRef<HTMLDivElement, ImagePreviewProps>(
         default:
           return "text-zinc-950";
       }
+    };
+
+    // Get trend indicator colors based on theme and trend direction
+    // Same style for all themes: colored text with subtle background
+    const getTrendColorClass = (trend: "up" | "down" | "neutral") => {
+      const isLightTheme = theme === "light";
+
+      if (trend === "up") {
+        return isLightTheme
+          ? "bg-emerald-100 text-emerald-700"  // Colored text, subtle bg
+          : "bg-emerald-900/50 text-emerald-400";
+      }
+      if (trend === "down") {
+        return isLightTheme
+          ? "bg-red-100 text-red-700"  // Colored text, subtle bg
+          : "bg-red-900/50 text-red-400";
+      }
+      // neutral
+      return isLightTheme
+        ? "bg-zinc-200 text-zinc-700"  // Colored text, subtle bg
+        : "bg-zinc-700 text-zinc-300";
     };
 
     // Get muted text color class based on theme
@@ -233,7 +255,10 @@ export const ImagePreview = forwardRef<HTMLDivElement, ImagePreviewProps>(
                     className="rounded-md object-contain"
                   />
                 )}
-                <h2 className={cn(getTextColorClass(), titleSizeClass, titleWeightClass)}>
+                <h2
+                  className={cn(!titleColorStyle && getTextColorClass(), titleSizeClass, titleWeightClass)}
+                  style={titleColorStyle}
+                >
                   {chartData.title}
                 </h2>
               </div>
@@ -262,7 +287,10 @@ export const ImagePreview = forwardRef<HTMLDivElement, ImagePreviewProps>(
                       className="rounded-md object-contain"
                     />
                   )}
-                  <h2 className={cn(getTextColorClass(), titleSizeClass, titleWeightClass)}>
+                  <h2
+                    className={cn(!titleColorStyle && getTextColorClass(), titleSizeClass, titleWeightClass)}
+                    style={titleColorStyle}
+                  >
                     {chartData.title}
                   </h2>
                 </div>
@@ -322,9 +350,7 @@ export const ImagePreview = forwardRef<HTMLDivElement, ImagePreviewProps>(
                           <div
                             className={cn(
                               "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium",
-                              s.trend === "up" && "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
-                              s.trend === "down" && "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-                              s.trend === "neutral" && "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400"
+                              getTrendColorClass(s.trend)
                             )}
                           >
                             {s.trend === "up" && <TrendingUp className="h-3 w-3" />}
@@ -357,9 +383,7 @@ export const ImagePreview = forwardRef<HTMLDivElement, ImagePreviewProps>(
                         <div
                           className={cn(
                             "inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium",
-                            stats.trend === "up" && "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
-                            stats.trend === "down" && "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-                            stats.trend === "neutral" && "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400"
+                            getTrendColorClass(stats.trend)
                           )}
                         >
                           {stats.trend === "up" && <TrendingUp className="h-3 w-3" />}

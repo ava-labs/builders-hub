@@ -55,23 +55,21 @@ export function useImageExport(options: UseImageExportOptions = {}) {
         };
 
         if (format === "jpeg") {
+          fileExtension = "jpg";
           dataUrl = await toJpeg(element, {
             ...commonOptions,
             quality: jpegQuality,
           });
-          fileExtension = "jpg";
         } else if (format === "svg") {
-          dataUrl = await toSvg(element, {
-            ...commonOptions,
-          });
           fileExtension = "svg";
+          dataUrl = await toSvg(element, commonOptions);
         } else {
           // PNG is default
+          fileExtension = "png";
           dataUrl = await toPng(element, {
             ...commonOptions,
             quality: 1,
           });
-          fileExtension = "png";
         }
 
         const link = document.createElement("a");
@@ -92,7 +90,10 @@ export function useImageExport(options: UseImageExportOptions = {}) {
   );
 
   const copyToClipboard = useCallback(
-    async (element: HTMLElement | null, exportSettings?: ExportQualitySettings) => {
+    async (
+      element: HTMLElement | null,
+      exportSettings?: ExportQualitySettings
+    ) => {
       if (!element) {
         setError("No element to export");
         return false;

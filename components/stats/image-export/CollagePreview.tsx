@@ -4,12 +4,14 @@ import { forwardRef } from "react";
 import Image from "next/image";
 import { QRCodeSVG } from "qrcode.react";
 import { Link2, Calendar } from "lucide-react";
+import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import { MiniChart } from "./MiniChart";
 import type {
   CollageMetricData,
   ExportSettings,
   CollageSettings,
   Period,
+  WatermarkPosition,
 } from "./types";
 import { cn } from "@/lib/utils";
 
@@ -58,15 +60,51 @@ const formatCaptureDate = (date: Date) => {
   });
 };
 
+// Map watermark position to CSS styles
+const getWatermarkPositionStyles = (position: WatermarkPosition): React.CSSProperties => {
+  const baseStyle: React.CSSProperties = {
+    position: "absolute",
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    whiteSpace: "nowrap",
+    pointerEvents: "none",
+  };
+
+  switch (position) {
+    case "top-left":
+      return { ...baseStyle, top: "16px", left: "16px" };
+    case "top-center":
+      return { ...baseStyle, top: "16px", left: "50%", transform: "translateX(-50%)" };
+    case "top-right":
+      return { ...baseStyle, top: "16px", right: "16px" };
+    case "center-left":
+      return { ...baseStyle, top: "50%", left: "16px", transform: "translateY(-50%)" };
+    case "center":
+      return { ...baseStyle, top: "50%", left: "50%", transform: "translate(-50%, -50%)" };
+    case "center-right":
+      return { ...baseStyle, top: "50%", right: "16px", transform: "translateY(-50%)" };
+    case "bottom-left":
+      return { ...baseStyle, bottom: "16px", left: "16px" };
+    case "bottom-center":
+      return { ...baseStyle, bottom: "16px", left: "50%", transform: "translateX(-50%)" };
+    case "bottom-right":
+      return { ...baseStyle, bottom: "16px", right: "16px" };
+    default:
+      return { ...baseStyle, top: "50%", left: "50%", transform: "translate(-50%, -50%)" };
+  }
+};
+
 export const CollagePreview = forwardRef<HTMLDivElement, CollagePreviewProps>(
   function CollagePreview(
     { metrics, settings, collageSettings, chainName, period, pageUrl, capturedAt },
     ref
   ) {
-    const { padding, logo, background, theme, footer, chartType, chartDisplay } = settings;
-    const { showIndividualTitles, chartSpacing } = collageSettings;
+    const { padding, logo, background, theme, footer, chartType, chartDisplay, watermark } = settings;
+    const { showIndividualTitles, chartSpacing, gridLayout } = collageSettings;
 
-    const { cols, rows } = calculateGridLayout(metrics.length);
+    // Use manual grid layout if specified, otherwise auto-calculate
+    const { cols, rows } = gridLayout ?? calculateGridLayout(metrics.length);
 
     // Calculate chart height based on grid
     const baseHeight = 110;
@@ -148,6 +186,9 @@ export const CollagePreview = forwardRef<HTMLDivElement, CollagePreviewProps>(
 
     const hasLogo = logo.type !== "none";
 
+    // Title color from settings
+    const titleColorStyle = settings.title?.color ? { color: settings.title.color } : undefined;
+
     // Build source text for collage
     const sourceText = `Sources: Avalanche Metrics. ${chainName || "Avalanche"} metrics overview.`;
 
@@ -174,6 +215,9 @@ export const CollagePreview = forwardRef<HTMLDivElement, CollagePreviewProps>(
         </div>
       );
     }
+
+    // Watermark z-index based on layer setting
+    const watermarkZIndex = watermark.layer === "front" ? 20 : 1;
 
     return (
       <div
@@ -215,7 +259,10 @@ export const CollagePreview = forwardRef<HTMLDivElement, CollagePreviewProps>(
               />
             )}
             <div>
-              <h2 className={cn("text-lg font-bold", getTextColorClass())}>
+              <h2
+                className={cn("text-lg font-bold", !titleColorStyle && getTextColorClass())}
+                style={titleColorStyle}
+              >
                 {chainName || "Avalanche"} Metrics
               </h2>
               <p className={cn("text-xs", getMutedTextColorClass())}>
@@ -229,15 +276,35 @@ export const CollagePreview = forwardRef<HTMLDivElement, CollagePreviewProps>(
             </div>
           </div>
 
-          {/* Chart Grid */}
+          {/* Chart Grid with Watermark */}
           <div
-            className="grid"
+            className="relative"
             style={{
-              gridTemplateColumns: `repeat(${cols}, 1fr)`,
-              gap: `${chartSpacing}px`,
               padding: `${padding / 2}px ${padding}px ${padding}px`,
             }}
           >
+            {/* Watermark - positioned within chart area */}
+            {watermark.visible && (
+              <div
+                style={{
+                  ...getWatermarkPositionStyles(watermark.position || "center"),
+                  opacity: watermark.opacity ?? 0.15,
+                  zIndex: watermarkZIndex,
+                }}
+              >
+                <AvalancheLogo className="size-8" fill="currentColor" />
+                <span style={{ fontSize: "large", fontWeight: 500 }}>Builder Hub</span>
+              </div>
+            )}
+
+            <div
+              className="grid relative"
+              style={{
+                gridTemplateColumns: `repeat(${cols}, 1fr)`,
+                gap: `${chartSpacing}px`,
+                zIndex: 10,
+              }}
+            >
             {metrics.map((metric) => (
               <div
                 key={metric.config.metricKey}
@@ -268,6 +335,7 @@ export const CollagePreview = forwardRef<HTMLDivElement, CollagePreviewProps>(
                 />
               </div>
             ))}
+            </div>
           </div>
 
           {/* Footer (inside) - below charts within the card */}

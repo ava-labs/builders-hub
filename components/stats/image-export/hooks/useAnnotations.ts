@@ -8,7 +8,12 @@ import type {
   HighlightAnnotation,
   TextAnnotation,
   ArrowAnnotation,
+  FreehandAnnotation,
+  RectangleAnnotation,
+  ArrowLineStyle,
+  ArrowheadStyle,
 } from "../types";
+import { FREEHAND_STROKE_WIDTH, RECTANGLE_STROKE_WIDTH } from "../constants";
 
 // Preset colors for annotations
 export const ANNOTATION_COLORS = [
@@ -27,14 +32,20 @@ interface UseAnnotationsReturn {
   selectedColor: string;
   selectedSize: AnnotationSize;
   selectedOpacity: number;
+  selectedLineStyle: ArrowLineStyle;
+  selectedArrowheadStyle: ArrowheadStyle;
   setActiveToolType: (type: AnnotationType | null) => void;
   setSelectedAnnotationId: (id: string | null) => void;
   setSelectedColor: (color: string) => void;
   setSelectedSize: (size: AnnotationSize) => void;
   setSelectedOpacity: (opacity: number) => void;
+  setSelectedLineStyle: (style: ArrowLineStyle) => void;
+  setSelectedArrowheadStyle: (style: ArrowheadStyle) => void;
   addHighlight: (x: number, y: number) => void;
   addText: (x: number, y: number, text?: string) => void;
   addArrow: (startX: number, startY: number, endX: number, endY: number) => void;
+  addFreehand: (points: Array<{ x: number; y: number }>) => void;
+  addRectangle: (x: number, y: number, width: number, height: number) => void;
   updateAnnotation: (id: string, updates: Partial<Annotation>) => void;
   deleteAnnotation: (id: string) => void;
   clearAllAnnotations: () => void;
@@ -48,6 +59,8 @@ export function useAnnotations(): UseAnnotationsReturn {
   const [selectedColor, setSelectedColor] = useState<string>(ANNOTATION_COLORS[0]);
   const [selectedSize, setSelectedSize] = useState<AnnotationSize>("medium");
   const [selectedOpacity, setSelectedOpacity] = useState<number>(100);
+  const [selectedLineStyle, setSelectedLineStyle] = useState<ArrowLineStyle>("solid");
+  const [selectedArrowheadStyle, setSelectedArrowheadStyle] = useState<ArrowheadStyle>("filled");
 
   const generateId = () => `annotation-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 
@@ -98,6 +111,39 @@ export function useAnnotations(): UseAnnotationsReturn {
       size: selectedSize,
       color: selectedColor,
       opacity: selectedOpacity,
+      lineStyle: selectedLineStyle,
+      arrowheadStyle: selectedArrowheadStyle,
+    };
+    setAnnotations((prev) => [...prev, newAnnotation]);
+    setSelectedAnnotationId(newAnnotation.id);
+    setActiveToolType(null);
+  }, [selectedColor, selectedSize, selectedOpacity, selectedLineStyle, selectedArrowheadStyle]);
+
+  const addFreehand = useCallback((points: Array<{ x: number; y: number }>) => {
+    const newAnnotation: FreehandAnnotation = {
+      id: generateId(),
+      type: "freehand",
+      points,
+      strokeWidth: FREEHAND_STROKE_WIDTH[selectedSize],
+      color: selectedColor,
+      opacity: selectedOpacity,
+    };
+    setAnnotations((prev) => [...prev, newAnnotation]);
+    setSelectedAnnotationId(newAnnotation.id);
+    setActiveToolType(null);
+  }, [selectedColor, selectedSize, selectedOpacity]);
+
+  const addRectangle = useCallback((x: number, y: number, width: number, height: number) => {
+    const newAnnotation: RectangleAnnotation = {
+      id: generateId(),
+      type: "rectangle",
+      x,
+      y,
+      width,
+      height,
+      strokeWidth: RECTANGLE_STROKE_WIDTH[selectedSize],
+      color: selectedColor,
+      opacity: selectedOpacity,
     };
     setAnnotations((prev) => [...prev, newAnnotation]);
     setSelectedAnnotationId(newAnnotation.id);
@@ -130,14 +176,20 @@ export function useAnnotations(): UseAnnotationsReturn {
     selectedColor,
     selectedSize,
     selectedOpacity,
+    selectedLineStyle,
+    selectedArrowheadStyle,
     setActiveToolType,
     setSelectedAnnotationId,
     setSelectedColor,
     setSelectedSize,
     setSelectedOpacity,
+    setSelectedLineStyle,
+    setSelectedArrowheadStyle,
     addHighlight,
     addText,
     addArrow,
+    addFreehand,
+    addRectangle,
     updateAnnotation,
     deleteAnnotation,
     clearAllAnnotations,

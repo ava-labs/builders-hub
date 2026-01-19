@@ -300,3 +300,111 @@ export const DATE_RANGE_PRESETS = [
   { id: "1Y", label: "1Y", days: 365 },
   { id: "ALL", label: "All", days: null },
 ] as const;
+
+// Arrow line style options
+export const ARROW_LINE_STYLES = [
+  { id: "solid", label: "Solid" },
+  { id: "dashed", label: "Dashed" },
+] as const;
+
+// Arrow head style options
+export const ARROW_HEAD_STYLES = [
+  { id: "filled", label: "Filled" },
+  { id: "outline", label: "Outline" },
+  { id: "none", label: "None" },
+] as const;
+
+// Arrow stroke width by size
+export const ARROW_STROKE_WIDTH = {
+  small: 1,
+  medium: 2,
+  large: 4,
+} as const;
+
+// Freehand stroke width by size
+export const FREEHAND_STROKE_WIDTH = {
+  small: 2,
+  medium: 4,
+  large: 6,
+} as const;
+
+// Rectangle stroke width by size
+export const RECTANGLE_STROKE_WIDTH = {
+  small: 1,
+  medium: 2,
+  large: 3,
+} as const;
+
+// Title color palette - curated colors for text
+export const TITLE_COLORS = [
+  { id: "default", color: null, label: "Default" }, // Uses theme color
+  { id: "white", color: "#ffffff", label: "White" },
+  { id: "black", color: "#000000", label: "Black" },
+  { id: "gray", color: "#6b7280", label: "Gray" },
+  { id: "red", color: "#e84142", label: "Red" },
+  { id: "blue", color: "#3b82f6", label: "Blue" },
+  { id: "green", color: "#10b981", label: "Green" },
+  { id: "purple", color: "#8b5cf6", label: "Purple" },
+] as const;
+
+// Generate valid grid layout options for a given metric count
+export function getGridLayoutOptions(metricCount: number): Array<{ cols: number; rows: number; label: string }> {
+  const options: Array<{ cols: number; rows: number; label: string }> = [];
+
+  if (metricCount <= 0) return options;
+
+  // Add auto option
+  options.push({ cols: 0, rows: 0, label: "Auto" });
+
+  // Collect candidate layouts, categorized by empty cell count
+  const exactFits: Array<{ cols: number; rows: number }> = [];
+  const oneEmpty: Array<{ cols: number; rows: number }> = [];
+
+  const maxDimension = Math.min(metricCount, 5); // Limit to reasonable sizes
+
+  for (let cols = 2; cols <= maxDimension; cols++) {
+    for (let rows = 2; rows <= maxDimension; rows++) {
+      const capacity = cols * rows;
+
+      // Exact fit
+      if (capacity === metricCount) {
+        exactFits.push({ cols, rows });
+      }
+      // One empty cell
+      else if (capacity === metricCount + 1) {
+        oneEmpty.push({ cols, rows });
+      }
+    }
+  }
+
+  // Also check 1×N and N×1 for small counts only (2-4 metrics)
+  if (metricCount <= 4) {
+    if (metricCount >= 2) {
+      exactFits.push({ cols: metricCount, rows: 1 }); // horizontal row
+      exactFits.push({ cols: 1, rows: metricCount }); // vertical column
+    }
+  }
+
+  // Sort by how "square" the layout is (prefer balanced cols/rows)
+  const sortBySquareness = (a: { cols: number; rows: number }, b: { cols: number; rows: number }) => {
+    const ratioA = Math.abs(a.cols - a.rows);
+    const ratioB = Math.abs(b.cols - b.rows);
+    return ratioA - ratioB;
+  };
+
+  exactFits.sort(sortBySquareness);
+  oneEmpty.sort(sortBySquareness);
+
+  // Add exact fits first (up to 4)
+  for (const layout of exactFits.slice(0, 4)) {
+    options.push({ cols: layout.cols, rows: layout.rows, label: `${layout.cols}×${layout.rows}` });
+  }
+
+  // If we have few options, add some with 1 empty cell
+  const remainingSlots = Math.max(0, 4 - exactFits.length);
+  for (const layout of oneEmpty.slice(0, remainingSlots)) {
+    options.push({ cols: layout.cols, rows: layout.rows, label: `${layout.cols}×${layout.rows}` });
+  }
+
+  return options;
+}

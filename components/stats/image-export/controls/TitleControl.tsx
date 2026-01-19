@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import type { TitleSettings, TitleStyle, TitleSize } from "../types";
-import { TITLE_SIZE_OPTIONS } from "../constants";
+import { TITLE_SIZE_OPTIONS, TITLE_COLORS } from "../constants";
 
 interface TitleControlProps {
   value: TitleSettings;
@@ -22,9 +22,16 @@ const STYLE_OPTIONS: { id: TitleStyle; fontWeight: string }[] = [
 ];
 
 export function TitleControl({ value, onChange }: TitleControlProps) {
+  // Get current color - null means "default" (theme-based)
+  const currentColor = value.color || null;
+  // Check if current color is a preset or custom
+  const isCustomColor = currentColor && !TITLE_COLORS.find(c => c.color === currentColor);
+
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       <label className="text-sm text-muted-foreground">Title</label>
+
+      {/* Style and Size row */}
       <div className="flex gap-2">
         <div className="flex gap-1">
           {STYLE_OPTIONS.map((option) => (
@@ -65,6 +72,58 @@ export function TitleControl({ value, onChange }: TitleControlProps) {
             ))}
           </SelectContent>
         </Select>
+      </div>
+
+      {/* Color picker row */}
+      <div>
+        <label className="text-xs text-muted-foreground mb-1.5 block">Color</label>
+        <div className="flex gap-1.5 items-center flex-wrap">
+          {TITLE_COLORS.map((colorOption) => (
+            <button
+              key={colorOption.id}
+              type="button"
+              onClick={() => onChange({ color: colorOption.color || undefined })}
+              className={cn(
+                "w-6 h-6 rounded-full border-2 transition-all flex items-center justify-center text-[10px]",
+                (colorOption.color === null ? !currentColor : currentColor === colorOption.color)
+                  ? "border-foreground ring-2 ring-primary/30"
+                  : "border-zinc-300 dark:border-zinc-600 hover:border-zinc-400"
+              )}
+              style={{
+                backgroundColor: colorOption.color || "transparent",
+              }}
+              title={colorOption.label}
+            >
+              {colorOption.color === null && (
+                <span className="text-muted-foreground">A</span>
+              )}
+            </button>
+          ))}
+          {/* Custom color picker */}
+          <div className="relative">
+            <input
+              type="color"
+              value={currentColor || "#000000"}
+              onChange={(e) => onChange({ color: e.target.value })}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+            />
+            <div
+              className={cn(
+                "w-6 h-6 rounded-full border-2 transition-all flex items-center justify-center",
+                isCustomColor
+                  ? "border-foreground ring-2 ring-primary/30"
+                  : "border-dashed border-muted-foreground/50 hover:border-foreground/50"
+              )}
+              style={{
+                backgroundColor: isCustomColor ? currentColor : "transparent"
+              }}
+            >
+              {!isCustomColor && (
+                <span className="text-[10px] text-muted-foreground">+</span>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

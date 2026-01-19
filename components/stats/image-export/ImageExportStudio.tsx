@@ -47,8 +47,7 @@ import { useCustomTemplates } from "./hooks/useCustomTemplates";
 import { useAnnotations } from "./hooks/useAnnotations";
 import { useCollageMetrics } from "./hooks/useCollageMetrics";
 import { AnnotationOverlay } from "./AnnotationOverlay";
-import type { ChartExportData, PresetType, Period, ChartType, DateRangePreset, BrushRange, ExportMode, CollageMetricConfig, CollageSettings } from "./types";
-import { ASPECT_RATIO_DIMENSIONS } from "./types";
+import type { ChartExportData, PresetType, Period, ChartType, DateRangePreset, BrushRange, ExportMode, CollageMetricConfig, CollageSettings, CustomAspectRatio } from "./types";
 import { DATE_RANGE_PRESETS } from "./constants";
 import { cn } from "@/lib/utils";
 import { ChartWatermark } from "@/components/stats/ChartWatermark";
@@ -150,14 +149,20 @@ export function ImageExportStudio({
     selectedColor,
     selectedSize,
     selectedOpacity,
+    selectedLineStyle,
+    selectedArrowheadStyle,
     setActiveToolType,
     setSelectedAnnotationId,
     setSelectedColor,
     setSelectedSize,
     setSelectedOpacity,
+    setSelectedLineStyle,
+    setSelectedArrowheadStyle,
     addHighlight,
     addText,
     addArrow,
+    addFreehand,
+    addRectangle,
     updateAnnotation,
     deleteAnnotation,
     clearAllAnnotations,
@@ -179,6 +184,12 @@ export function ImageExportStudio({
   const [collageSettings, setCollageSettings] = useState<CollageSettings>({
     showIndividualTitles: true,
     chartSpacing: 8,
+  });
+
+  // Custom aspect ratio state
+  const [customAspectRatio, setCustomAspectRatio] = useState<CustomAspectRatio>({
+    width: 1280,
+    height: 720,
   });
 
   // Collage metrics data hook
@@ -899,8 +910,16 @@ export function ImageExportStudio({
 
   // Get max width based on aspect ratio to prevent overflow
   const getPreviewMaxWidth = () => {
-    // Get target dimensions for the aspect ratio
-    const targetDims = ASPECT_RATIO_DIMENSIONS[settings.aspectRatio];
+    // For custom aspect ratio, calculate based on actual dimensions
+    if (settings.aspectRatio === "custom") {
+      const ratio = customAspectRatio.width / customAspectRatio.height;
+      if (ratio < 0.75) return "max-w-[280px]"; // Very tall (portrait-like)
+      if (ratio < 1) return "max-w-[350px]"; // Tall
+      if (ratio < 1.2) return "max-w-[450px]"; // Square-ish
+      if (ratio < 1.6) return "max-w-[650px]"; // Slightly wide
+      if (ratio < 2) return "max-w-[700px]"; // Wide
+      return "max-w-[900px]"; // Very wide
+    }
 
     switch (settings.aspectRatio) {
       case "portrait":
@@ -910,9 +929,9 @@ export function ImageExportStudio({
       case "square":
         return "max-w-[450px]";
       case "landscape":
-        return "max-w-[700px]"; // Increased from 600px
+        return "max-w-[700px]";
       case "collage":
-        return "max-w-[1400px]"; // Increased from 1200px to be closer to 1800px target
+        return "max-w-[1400px]";
       case "social-card":
       default:
         return "max-w-[650px]";
@@ -1063,7 +1082,12 @@ export function ImageExportStudio({
   const primaryColor = seriesInfo[0]?.color || "#e84142";
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+    <Dialog open={isOpen} onOpenChange={(open) => {
+      if (!open) {
+        clearAllAnnotations();
+        onClose();
+      }
+    }}>
       <DialogContent
         className={cn(
           "max-w-[95vw] max-h-[90vh] p-0 gap-0 bg-background border flex flex-col",
@@ -1083,7 +1107,12 @@ export function ImageExportStudio({
               {hasCollageMode && (
                 <div className="flex items-center bg-muted border border-border rounded-lg p-0.5">
                   <button
-                    onClick={() => setActiveMode("single")}
+                    onClick={() => {
+                      if (activeMode !== "single") {
+                        clearAllAnnotations();
+                        setActiveMode("single");
+                      }
+                    }}
                     className={cn(
                       "px-2.5 py-1 text-xs font-medium rounded-md transition-colors",
                       activeMode === "single"
@@ -1094,7 +1123,12 @@ export function ImageExportStudio({
                     Single
                   </button>
                   <button
-                    onClick={() => setActiveMode("collage")}
+                    onClick={() => {
+                      if (activeMode !== "collage") {
+                        clearAllAnnotations();
+                        setActiveMode("collage");
+                      }
+                    }}
                     className={cn(
                       "px-2.5 py-1 text-xs font-medium rounded-md transition-colors",
                       activeMode === "collage"
@@ -1475,6 +1509,8 @@ export function ImageExportStudio({
                       onAddHighlight={addHighlight}
                       onAddText={addText}
                       onAddArrow={addArrow}
+                      onAddFreehand={addFreehand}
+                      onAddRectangle={addRectangle}
                       onSelectAnnotation={setSelectedAnnotationId}
                       onUpdateAnnotation={updateAnnotation}
                     />
@@ -1586,6 +1622,8 @@ export function ImageExportStudio({
                       onAddHighlight={addHighlight}
                       onAddText={addText}
                       onAddArrow={addArrow}
+                      onAddFreehand={addFreehand}
+                      onAddRectangle={addRectangle}
                       onSelectAnnotation={setSelectedAnnotationId}
                       onUpdateAnnotation={updateAnnotation}
                     />
@@ -1668,7 +1706,12 @@ export function ImageExportStudio({
                 settings={settings}
                 isCustomized={isCustomized}
                 isCollageMode={isCollageMode}
+                collageMetricCount={selectedMetrics.length}
+                collageGridLayout={collageSettings.gridLayout}
+                onCollageGridLayoutChange={(layout) => setCollageSettings(prev => ({ ...prev, gridLayout: layout }))}
                 onAspectRatioChange={setAspectRatio}
+                customAspectRatio={customAspectRatio}
+                onCustomAspectRatioChange={setCustomAspectRatio}
                 onPaddingChange={setPadding}
                 onLogoChange={setLogo}
                 onTitleChange={setTitle}
@@ -1687,11 +1730,15 @@ export function ImageExportStudio({
                 selectedColor={selectedColor}
                 selectedSize={selectedSize}
                 selectedOpacity={selectedOpacity}
+                selectedLineStyle={selectedLineStyle}
+                selectedArrowheadStyle={selectedArrowheadStyle}
                 onAnnotationToolSelect={setActiveToolType}
                 onAnnotationSelect={setSelectedAnnotationId}
                 onAnnotationColorChange={setSelectedColor}
                 onAnnotationSizeChange={setSelectedSize}
                 onAnnotationOpacityChange={setSelectedOpacity}
+                onAnnotationLineStyleChange={setSelectedLineStyle}
+                onAnnotationArrowheadStyleChange={setSelectedArrowheadStyle}
                 onUpdateAnnotation={updateAnnotation}
                 onDeleteAnnotation={deleteAnnotation}
                 onClearAllAnnotations={clearAllAnnotations}
