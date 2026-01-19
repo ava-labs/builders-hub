@@ -23,17 +23,48 @@ export default function ReferralModal({ isOpen, onClose }: ReferralModalProps) {
 
   const handleCopyLink = async () => {
     if (!referralLink) return;
-    try {
-      await navigator.clipboard.writeText(referralLink);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
+    
+    let success = false;
+    
+    // Try modern Clipboard API first
+    if (navigator.clipboard?.writeText) {
+      try {
+        await navigator.clipboard.writeText(referralLink);
+        success = true;
+      } catch {
+        // Fall through to legacy fallback
+      }
+    }
+    
+    // Legacy fallback for older browsers or when Clipboard API fails
+    if (!success) {
       const textArea = document.createElement("textarea");
       textArea.value = referralLink;
+      
+      // Style to be invisible and not affect layout
+      textArea.style.position = "fixed";
+      textArea.style.left = "-9999px";
+      textArea.style.top = "0";
+      textArea.style.opacity = "0";
+      textArea.style.pointerEvents = "none";
+      textArea.setAttribute("readonly", "");
+      textArea.setAttribute("aria-hidden", "true");
+      
       document.body.appendChild(textArea);
-      textArea.select();
-      document.execCommand("copy");
-      document.body.removeChild(textArea);
+      
+      try {
+        textArea.focus();
+        textArea.select();
+        // Check if execCommand succeeded
+        success = document.execCommand("copy");
+      } catch {
+        success = false;
+      } finally {
+        document.body.removeChild(textArea);
+      }
+    }
+    
+    if (success) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }

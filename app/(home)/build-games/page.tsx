@@ -718,6 +718,7 @@ function HowItWorksSection() {
             <GridHeader text="Deliverables" gridArea="1_/_2" />
             <GridHeader text="Support" gridArea="1_/_3" />
             <GridContent text="Demo, GitHub, short product walkthrough" gridArea="2_/_2" />
+            <GridContent text="Technical guidance and feedback" gridArea="2_/_3" />
           </ThreeColumnGrid>
         </TimelineRow>
         <TimelineRow className="bg-[rgba(255,255,255,0.06)]">
@@ -728,6 +729,7 @@ function HowItWorksSection() {
             <GridHeader text="Deliverables" gridArea="1_/_2" />
             <GridHeader text="Support" gridArea="1_/_3" />
             <GridContent text="Growth plan and progress update" gridArea="2_/_2" />
+            <GridContent text="GTM and strategy support" gridArea="2_/_3" />
           </ThreeColumnGrid>
         </TimelineRow>
         <TimelineRow className="bg-[rgba(255,255,255,0.02)]">
@@ -738,6 +740,7 @@ function HowItWorksSection() {
             <GridHeader text="Deliverables" gridArea="1_/_2" />
             <GridHeader text="Support" gridArea="1_/_3" />
             <GridContent text="Judging and live showcase" gridArea="2_/_2" />
+            <GridContent text="Pitch coaching and prep" gridArea="2_/_3" />
           </ThreeColumnGrid>
         </TimelineRow>
       </div>
