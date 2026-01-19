@@ -2,6 +2,8 @@
 
 import Image from "next/image";
 import { useState, useCallback, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
@@ -150,6 +152,8 @@ function AccordionSection({title, description, icon, iconBg, children, isLocked,
 }
 
 export default function BuildGamesApplyForm() {
+  const { status } = useSession();
+  const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionStatus, setSubmissionStatus] = useState<"success" | "error" | null>(null);
   const [openSection, setOpenSection] = useState(1);
@@ -230,6 +234,27 @@ export default function BuildGamesApplyForm() {
     else if (section5Complete && openSection === 5) setOpenSection(6);
     else if (section6Complete && openSection === 6) setOpenSection(7);
   }, [section1Complete, section2Complete, section3Complete, section4Complete, section5Complete, section6Complete, openSection]);
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push(`/login?callbackUrl=${encodeURIComponent("/build-games/apply")}`);
+    }
+  }, [status, router]);
+
+  // Show loading state while checking auth
+  if (status === "loading" || status === "unauthenticated") {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-8 h-8 animate-spin text-slate-600 dark:text-slate-300" />
+          <p className="text-slate-600 dark:text-slate-300">
+            {status === "loading" ? "Loading..." : "Redirecting to login..."}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const handleSectionToggle = (sectionNumber: number) => {
     setOpenSection(openSection === sectionNumber ? 0 : sectionNumber);

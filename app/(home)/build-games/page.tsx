@@ -1,4 +1,5 @@
 import clsx from "clsx";
+import Link from "next/link";
 import "./styles.css";
 import ReferralButton from "@/components/build-games/ReferralButton";
 
@@ -612,7 +613,13 @@ function ApplyTodayCTA() {
                   <div className="content-stretch flex items-center relative size-full py-[10px]">
                     <div className="content-stretch flex gap-[10px] items-center relative shrink-0">
                       <ReferralButton />
-                      <PrimaryButton text="Apply Today" className="shadow-[0px_0px_25px_0px_rgba(46,177,255,0.55)]" />
+                      <Link href="/build-games/apply" className="shadow-[0px_0px_25px_0px_rgba(46,177,255,0.55)] content-stretch flex flex-col items-center relative shrink-0">
+                        <div className="bg-[#66acd6] content-stretch flex h-[36px] items-center justify-center px-[25px] py-[7px] relative rounded-[3.35544e+07px] shrink-0 cursor-pointer hover:bg-[#7bbde3] transition-colors">
+                          <div className="flex flex-col font-['Aeonik:Medium',sans-serif] font-medium justify-center leading-[0] relative shrink-0 text-[#152d44] text-[14px] text-center text-nowrap">
+                            <p className="leading-[20px]">Apply Today</p>
+                          </div>
+                        </div>
+                      </Link>
                     </div>
                   </div>
                 </div>
@@ -947,7 +954,13 @@ function FinalCTASection() {
               <div className="content-stretch flex items-center justify-center relative size-full py-0">
                 <div className="content-stretch flex gap-[10px] items-center relative shrink-0">
                   <ReferralButton />
-                  <PrimaryButton text="Apply Today" className="shadow-[0px_0px_25px_0px_rgba(46,177,255,0.55)]" />
+                  <Link href="/build-games/apply" className="shadow-[0px_0px_25px_0px_rgba(46,177,255,0.55)] content-stretch flex flex-col items-center relative shrink-0">
+                    <div className="bg-[#66acd6] content-stretch flex h-[36px] items-center justify-center px-[25px] py-[7px] relative rounded-[3.35544e+07px] shrink-0 cursor-pointer hover:bg-[#7bbde3] transition-colors">
+                      <div className="flex flex-col font-['Aeonik:Medium',sans-serif] font-medium justify-center leading-[0] relative shrink-0 text-[#152d44] text-[14px] text-center text-nowrap">
+                        <p className="leading-[20px]">Apply Today</p>
+                      </div>
+                    </div>
+                  </Link>
                 </div>
               </div>
             </div>

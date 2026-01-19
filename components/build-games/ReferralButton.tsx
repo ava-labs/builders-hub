@@ -1,21 +1,33 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import ReferralModal from "./ReferralModal";
 import { captureReferrerFromUrl } from "@/lib/referral";
 
 export default function ReferralButton() {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const { status } = useSession();
+  const router = useRouter();
 
   // Capture referrer from URL on mount
   useEffect(() => {
     captureReferrerFromUrl();
   }, []);
 
+  const handleClick = () => {
+    if (status === "unauthenticated") {
+      router.push(`/login?callbackUrl=${encodeURIComponent("/build-games")}`);
+    } else {
+      setIsModalOpen(true);
+    }
+  };
+
   return (
     <>
       <button
-        onClick={() => setIsModalOpen(true)}
+        onClick={handleClick}
         className="content-stretch flex flex-col items-center relative shrink-0"
       >
         <div className="bg-[rgba(40,106,142,0.1)] content-stretch flex h-[36px] items-center justify-center px-[49px] py-[7px] relative rounded-[3.35544e+07px] shrink-0 cursor-pointer hover:bg-[rgba(40,106,142,0.2)] transition-colors">
