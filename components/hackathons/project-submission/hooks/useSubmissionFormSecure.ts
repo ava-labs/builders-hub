@@ -277,9 +277,8 @@ export const useSubmissionFormSecure = () => {
             }
 
             timersRef.current[fieldName] = setTimeout(() => {
-              const schema = FormSchema.pick({
-                [fieldName]: true,
-              });
+              // Fix: Pass an array of field names instead of object to FormSchema.pick
+              const schema = FormSchema.pick([fieldName]);
 
               schema.safeParseAsync(form.getValues()).then(result => {
                 if (result.success) {
