@@ -110,9 +110,9 @@ export function UserButton() {
             <DropdownMenuItem asChild className='cursor-pointer'>
               <Link href='/profile#projects'>Projects</Link>
             </DropdownMenuItem>
-            <DropdownMenuItem asChild className='cursor-pointer'>
+            {/* <DropdownMenuItem asChild className='cursor-pointer'>
               <Link href='/profile#settings'>Settings</Link>
-            </DropdownMenuItem>
+            </DropdownMenuItem> */}
 
            
             <DropdownMenuItem

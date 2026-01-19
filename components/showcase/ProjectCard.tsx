@@ -33,12 +33,8 @@ export function ProjectCard({ project, isFromProfile = false }: Props) {
     );
     if (isInteractive) return;
     
-    if (isFromProfile) {
-      // Redirect to project submission form with project ID
-      router.push(`/hackathons/project-submission?project=${project.id}`);
-    } else {
-      router.push(`/showcase/${project.id}`);
-    }
+    // Always redirect to showcase when clicking the card
+    router.push(`/showcase/${project.id}`);
   };
   return (
     <Card
@@ -51,15 +47,14 @@ export function ProjectCard({ project, isFromProfile = false }: Props) {
           {project.project_name.length > 25 ? "..." : ""}
         </h3>
         <div className="flex items-center">
-            
-            {!isFromProfile && <ProjectOptions
-                project={project}
-                confirmOpen={confirmOpen}
-                setConfirmOpen={setConfirmOpen}
-                isAssignBadgeOpen={isAssignBadgeOpen}
-                setIsAssignBadgeOpen={setIsAssignBadgeOpen}
-              />
-            }
+            <ProjectOptions
+              project={project}
+              confirmOpen={confirmOpen}
+              setConfirmOpen={setConfirmOpen}
+              isAssignBadgeOpen={isAssignBadgeOpen}
+              setIsAssignBadgeOpen={setIsAssignBadgeOpen}
+              isFromProfile={isFromProfile}
+            />
           {project.prizes?.length > 0 && (
             <div className="p-2 bg-red-500 rounded-full">
               <Trophy size={18} color="white" />

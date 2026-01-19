@@ -66,27 +66,36 @@ export function ProfileHeader({
         {/* Name with Edit Icon */}
         <div className="flex-1 min-w-0">
           <div 
-            className="flex items-center gap-2 group"
+            className="flex items-start gap-2 group"
             onMouseEnter={() => setIsHoveringName(true)}
             onMouseLeave={() => setIsHoveringName(false)}
           >
-            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 truncate">
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 break-words flex-1">
               {name || "Your Name"}
             </h2>
             {onEditName && (
               <button
                 onClick={onEditName}
-                className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 mt-0.5"
                 type="button"
               >
-                <Pencil className="h-4 w-4 text-zinc-500 dark:text-zinc-400 pt-2" />
+                <Pencil className="h-4 w-4 text-zinc-500 dark:text-zinc-400" />
               </button>
             )}
           </div>
-          {/* Email below name */}
-          <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1 truncate">
-            {email || "your@email.com"}
-          </p>
+          {/* Email below name - split before @ for better wrapping */}
+          {email && (
+            <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1 break-words">
+              {email.includes('@') ? (
+                <>
+                  <span className="break-all">{email.split('@')[0]}</span>
+                  <span className="break-words">@{email.split('@')[1]}</span>
+                </>
+              ) : (
+                email
+              )}
+            </p>
+          )}
         </div>
       </div>
     </div>

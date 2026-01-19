@@ -8,7 +8,9 @@ export const GET = withAuth(async (req: NextRequest, session: any) => {
         const popularSkills = await getPopularSkills();
         return NextResponse.json(popularSkills, {
             status: 200, headers: {
-                'Cache-Control': 'public, max-age=300, stale-while-revalidate=600'
+                'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0'
             }
         });
     } catch (error) {

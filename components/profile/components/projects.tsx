@@ -49,7 +49,7 @@ export default function Projects() {
   };
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6 w-full p-6">
       {/* Header */}
       <div className="flex items-center justify-end">
         <div className="flex items-center gap-4">
@@ -59,7 +59,7 @@ export default function Projects() {
 
       {/* Loading State */}
       {isLoading && (
-        <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6'>
+        <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 w-full'>
           {[...Array(8)].map((_, index) => (
             <ProjectCardSkeleton key={index} />
           ))}
@@ -85,9 +85,11 @@ export default function Projects() {
               <p className="text-muted-foreground">No projects found</p>
             </div>
           ) : (
-            <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6'>
+            <div className='grid grid-cols-3 gap-6 w-full'>
               {projects.map((project, index) => (
-                <ProjectCard project={project} key={project.id || index} isFromProfile={true} />
+                <div key={project.id || index} className="w-full">
+                  <ProjectCard project={project} isFromProfile={true} />
+                </div>
               ))}
             </div>
           )}
@@ -96,4 +98,3 @@ export default function Projects() {
     </div>
   );
 }
-

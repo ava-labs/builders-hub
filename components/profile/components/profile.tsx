@@ -24,18 +24,17 @@ import {
 } from "@/components/ui/form";
 import { countries } from "@/constants/countries";
 import { hsEmploymentRoles } from "@/constants/hs_employment_role";
-import { Github, X, Link2, Wallet, User, FileText, Zap } from "lucide-react";
+import { X, Link2, Wallet, User, FileText, Zap } from "lucide-react";
 import { WalletConnectButton } from "./WalletConnectButton";
 import { SkillsAutocomplete } from "./SkillsAutocomplete";
 import { useProfileForm } from "./hooks/useProfileForm";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { Toaster } from "@/components/ui/toaster";
-import { signIn } from "next-auth/react";
 import { ProfileChecklist } from "./ProfileChecklist";
 
 export default function Profile() {
   const [newSkill, setNewSkill] = useState("");
-  const [isConnectingGithub, setIsConnectingGithub] = useState(false);
+  const [newSocial, setNewSocial] = useState("");
 
   // Use custom hook for all profile logic
   const {
@@ -192,7 +191,8 @@ export default function Profile() {
                         render={({ field }) => (
                           <FormItem className="flex flex-row items-center space-x-3 space-y-0">
                             <FormControl>
-                              <Checkbox
+                              <Checkbox 
+                              className="dark:border-white rounded-md"
                                 checked={field.value}
                                 onCheckedChange={(checked) => {
                                   field.onChange(checked);
@@ -243,6 +243,7 @@ export default function Profile() {
                           <FormItem className="flex flex-row items-center space-x-3 space-y-0">
                             <FormControl>
                               <Checkbox
+                               className="dark:border-white rounded-md"
                                 checked={field.value}
                                 onCheckedChange={(checked) => {
                                   field.onChange(checked);
@@ -292,6 +293,7 @@ export default function Profile() {
                           <FormItem className="flex flex-row items-center space-x-3 space-y-0">
                             <FormControl>
                               <Checkbox
+                               className="dark:border-white rounded-md"
                                 checked={field.value}
                                 onCheckedChange={(checked) => {
                                   field.onChange(checked);
@@ -368,6 +370,7 @@ export default function Profile() {
                           <FormItem className="flex flex-row items-center space-x-3 space-y-0">
                             <FormControl>
                               <Checkbox
+                               className="dark:border-white rounded-md"
                                 checked={field.value}
                                 onCheckedChange={field.onChange}
                               />
@@ -391,46 +394,20 @@ export default function Profile() {
                 <FormField
                   control={form.control}
                   name="github"
-                  render={({ field }) => {
-                    const hasGithubConnected = !!field.value;
-                    return (
-                      <FormItem className="flex flex-row items-center gap-4">
-                        <FormLabel className="w-32 flex-shrink-0">GitHub</FormLabel>
-                        <div className="flex-1 flex items-center gap-2">
-                          <FormControl>
-                            <Input 
-                              placeholder="https://github.com/username" 
-                              {...field} 
-                              readOnly={hasGithubConnected}
-                              className={hasGithubConnected ? "bg-muted" : ""}
-                            />
-                          </FormControl>
-                          <LoadingButton
-                            disabled={hasGithubConnected}
-                            type="button"
-                            variant='default'
-                            isLoading={isConnectingGithub}
-                            className="flex-shrink-0"
-                            loadingText="Connecting..."
-                            onClick={async () => {
-                              setIsConnectingGithub(true);
-                              try {
-                                const callbackUrl = window.location.pathname;
-                                await signIn("github", { callbackUrl });
-                              } catch (error) {
-                                console.error("Error connecting GitHub:", error);
-                              } finally {
-                                setIsConnectingGithub(false);
-                              }
-                            }}
-                          >
-                            <Github className="w-4 h-4" />
-                            {hasGithubConnected ? "Connected" : "Connect Github"}
-                          </LoadingButton>
-                        </div>
-                      </FormItem>
-                    );
-                  }}
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center gap-4">
+                      <FormLabel className="w-32 flex-shrink-0">GitHub</FormLabel>
+                      <div className="flex-1">
+                        <FormControl>
+                          <Input 
+                            placeholder="https://github.com/username" 
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </div>
+                    </FormItem>
+                  )}
                 />
 
                 {/* Wallets */}
@@ -506,49 +483,63 @@ export default function Profile() {
                 <FormField
                   control={form.control}
                   name="socials"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start gap-4">
-                      <FormLabel className="w-32 flex-shrink-0 pt-2">Other accounts</FormLabel>
-                      <div className="flex-1">
-                        <FormControl>
-                          <div className="space-y-2">
-                            {field.value?.map((social, index) => (
-                              <div key={index} className="flex items-center gap-2">
-                                <FormControl>
-                                  <Input
-                                    value={social}
-                                    onChange={(e) => {
-                                      const newSocials = [...(field.value || [])];
-                                      newSocials[index] = e.target.value;
-                                      field.onChange(newSocials);
-                                    }}
-                                    placeholder="Add Twitter, LinkedIn or other links"
-                                  />
-                                </FormControl>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => handleRemoveSocial(index)}
-                                >
-                                  <X className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            ))}
-                            <Button
-                              type="button"
-                              variant="outline"
-                              onClick={handleAddSocial}
-                              className="w-fit"
-                            >
-                              <span className="mr-2">+</span> Add social link
-                            </Button>
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                      </div>
-                    </FormItem>
-                  )}
+                  render={({ field }) => {
+                    const handleAddNewSocial = () => {
+                      if (newSocial.trim()) {
+                        const currentSocials = field.value || [];
+                        if (!currentSocials.includes(newSocial.trim())) {
+                          field.onChange([...currentSocials, newSocial.trim()]);
+                          setNewSocial("");
+                        }
+                      }
+                    };
+
+                    return (
+                      <FormItem className="flex flex-row items-start gap-4">
+                        <FormLabel className="w-32 flex-shrink-0 pt-2">Other accounts</FormLabel>
+                        <div className="flex-1">
+                          <FormControl>
+                            <div className="space-y-2">
+                              {/* Display existing socials as tags */}
+                              {field.value && field.value.length > 0 && (
+                                <div className="flex flex-wrap gap-2 mb-2">
+                                  {field.value.map((social, index) => (
+                                    <Badge
+                                      key={index}
+                                      variant="secondary"
+                                      className="flex items-center gap-1 px-3 py-1 dark:bg-zinc-600"
+                                    >
+                                      {social}
+                                      <button
+                                        type="button"
+                                        onClick={() => handleRemoveSocial(index)}
+                                        className="ml-1 hover:bg-secondary/80 rounded-full p-0.5"
+                                      >
+                                        <X className="h-3 w-3" />
+                                      </button>
+                                    </Badge>
+                                  ))}
+                                </div>
+                              )}
+                              {/* Input for adding new social */}
+                              <Input
+                                value={newSocial}
+                                onChange={(e) => setNewSocial(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter" || e.key === "Tab") {
+                                    e.preventDefault();
+                                    handleAddNewSocial();
+                                  }
+                                }}
+                                placeholder="Add Twitter, LinkedIn or other links (Press Enter or Tab to add)"
+                              />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </div>
+                      </FormItem>
+                    );
+                  }}
                 />
               </div>
 
@@ -566,7 +557,7 @@ export default function Profile() {
                             <Badge
                               key={skill}
                               variant="secondary"
-                              className="flex items-center gap-1 px-3 py-1"
+                              className="flex items-center gap-1 px-3 py-1 dark:bg-zinc-600"
                             >
                               {skill}
                               <button
