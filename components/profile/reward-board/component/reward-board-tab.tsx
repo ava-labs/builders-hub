@@ -21,15 +21,38 @@ export default async function RewardBoardTab() {
 
   const academyBadgesUnlocked = academyBadges.map((badge) => {
     const userBadge = userBadges.find((userBadge) => userBadge.badge_id == badge.id);
-    const allRequirementsCompleted = userBadge?.requirements && userBadge.requirements.length > 0 &&
+    
+    // If there's no userBadge, check if badge has requirements
+    // If no requirements, consider it unlocked by default
+    if (!userBadge) {
+      const hasRequirements = badge.requirements && badge.requirements.length > 0;
+      return {
+        ...badge,
+        is_unlocked: !hasRequirements, // Unlocked if no requirements
+        requirements: badge.requirements || [],
+      };
+    }
+    
+    // If userBadge exists, check if all requirements are completed
+    const allRequirementsCompleted = userBadge.requirements && userBadge.requirements.length > 0 &&
       userBadge.requirements.every((requirement) => requirement.unlocked === true);
+    
+    // Also check if there are no requirements (should be unlocked)
+    const hasNoRequirements = !userBadge.requirements || userBadge.requirements.length === 0;
+    
     return {
       ...badge,
-      is_unlocked: !!allRequirementsCompleted,
-      requirements: userBadge?.requirements || badge.requirements,
+      is_unlocked: hasNoRequirements || !!allRequirementsCompleted,
+      requirements: userBadge.requirements || badge.requirements || [],
     };
 
-  }).sort(element=>element.is_unlocked ? -1 : 1);
+  }).sort((a, b) => {
+    // Sort: unlocked first, then by name
+    if (a.is_unlocked !== b.is_unlocked) {
+      return a.is_unlocked ? -1 : 1;
+    }
+    return a.name.localeCompare(b.name);
+  });
 
   const academyRewards = academyBadgesUnlocked.map((reward) => (
     <RewardCard
@@ -62,7 +85,7 @@ export default async function RewardBoardTab() {
           </div>
         </div>
       ) : (
-        <div className="grid gap-y-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+        <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {academyRewards}
         </div>
       )}
