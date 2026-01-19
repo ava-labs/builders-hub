@@ -6,6 +6,7 @@ import { baseOptions } from "@/app/layout.config";
 import { SessionProvider, useSession } from "next-auth/react";
 import { useEffect, Suspense } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { toast } from "@/lib/toast";
 import { LayoutWrapper } from "@/app/layout-wrapper.client";
 import { NavbarDropdownInjector } from "@/components/navigation/navbar-dropdown-injector";
 import { WalletProvider } from "@/components/toolbox/providers/WalletProvider";

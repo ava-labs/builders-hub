@@ -5,6 +5,32 @@ import { Project } from "@/types/showcase";
 import { MapPin, Trophy } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+
+function parseLinks(linkString: string): string[] {
+  if (!linkString) return [];
+  return linkString
+    .split(/[,\s\n]+/)
+    .map(l => l.trim())
+    .filter(l => l.startsWith('http://') || l.startsWith('https://'));
+}
+
+function getRepoPath(url: string): string {
+  try {
+    const pathname = new URL(url).pathname;
+    const parts = pathname.split('/').filter(Boolean);
+    if (parts.length >= 2) {
+      return `${parts[0]}/${parts[1]}`;
+    }
+    return parts[parts.length - 1] || url;
+  } catch {
+    return url;
+  }
+}
 
 type Props = {
   project: Project;

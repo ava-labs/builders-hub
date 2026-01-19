@@ -12,6 +12,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import SignOutComponent from '../sign-out/SignOut';
 import { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { CircleUserRound } from 'lucide-react';
 import { Separator } from '@radix-ui/react-dropdown-menu';
 import { useLoginModalTrigger } from '@/hooks/useLoginModal';
@@ -82,6 +83,18 @@ export function UserButton() {
             shadow-lg p-1 rounded-md w-48'
             >
               <div className="px-2 py-1.5">
+                {formattedEmail ? (
+                  <div className="text-sm">
+                    <div className="break-words">{formattedEmail.localPart}</div>
+                    {formattedEmail.domain && (
+                      <div className="break-words">{formattedEmail.domain}</div>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-sm break-words">
+                    {session.user.email || 'No email available'}
+                  </p>
+                )}
                 {formattedEmail ? (
                   <div className="text-sm">
                     <div className="break-words">{formattedEmail.localPart}</div>

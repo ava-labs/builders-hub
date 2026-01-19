@@ -6,6 +6,16 @@ import { AcademyDocsLayoutWrapper } from './layout-wrapper.client';
 import './critical.css';
 import './styles.css';
 
+// Handwritten font for onboarding tooltip - loaded globally to prevent FOUT
+import { Caveat } from 'next/font/google';
+
+const handwrittenFont = Caveat({
+  weight: ['400', '500', '600', '700'],
+  subsets: ['latin'],
+  variable: '--font-handwritten',
+  display: 'swap',
+});
+
 export default function Layout({ children }: { children: ReactNode }) {
   const defaultTree = academy.pageTree;
   const avalancheTree = getAcademyTree('/academy/avalanche-l1');
@@ -14,14 +24,16 @@ export default function Layout({ children }: { children: ReactNode }) {
 
   return (
     <LayoutWrapper baseOptions={baseOptions}>
-      <AcademyDocsLayoutWrapper
-        defaultTree={defaultTree}
-        avalancheTree={avalancheTree}
-        blockchainTree={blockchainTree}
-        entrepreneurTree={entrepreneurTree}
-      >
-        {children}
-      </AcademyDocsLayoutWrapper>
+      <div className={handwrittenFont.variable}>
+        <AcademyDocsLayoutWrapper
+          defaultTree={defaultTree}
+          avalancheTree={avalancheTree}
+          blockchainTree={blockchainTree}
+          entrepreneurTree={entrepreneurTree}
+        >
+          {children}
+        </AcademyDocsLayoutWrapper>
+      </div>
     </LayoutWrapper>
   );
 }

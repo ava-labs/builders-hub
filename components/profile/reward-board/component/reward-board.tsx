@@ -1,9 +1,13 @@
 
+
 import React from "react";
 import { RewardCard } from "./reward-card";
 import { getAuthSession } from "@/lib/auth/authSession";
 import { getRewardBoard } from "@/server/services/rewardBoard";
 import { Separator } from "@/components/ui/separator";
+import { Badge, UserBadge, BadgeAwardStatus } from "@/types/badge";
+import { getAllBadges } from "@/server/services/badge";
+import Link from "next/link";
 import { Badge, UserBadge, BadgeAwardStatus } from "@/types/badge";
 import { getAllBadges } from "@/server/services/badge";
 import Link from "next/link";
@@ -101,11 +105,13 @@ export default async function RewardBoard() {
           </div>
         ) : (
           <div className="grid gap grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+          <div className="grid gap grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
             {rewards}
           </div>
         )}
       </div> */}
 
+      <div className="flex flex-col gap-4 sm:gap-6 mb-2 mt-3 ">
       <div className="flex flex-col gap-4 sm:gap-6 mb-2 mt-3 ">
         <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white">
           Academy Badges
@@ -116,9 +122,11 @@ export default async function RewardBoard() {
         <div className="text-center py-12">
           <div className="text-gray-500 dark:text-gray-400 text-lg">
             <Link href="/hackathons" className="text-blue-500 hover:text-blue-700">   Your contributions matter. Explore our dev events here </Link>
+            <Link href="/hackathons" className="text-blue-500 hover:text-blue-700">   Your contributions matter. Explore our dev events here </Link>
           </div>
         </div>
       ) : (
+        <div className="grid gap-y-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
         <div className="grid gap-y-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
           {academyRewards}
         </div>

@@ -20,14 +20,13 @@ export function SubmissionWrapperSecure({
 
   return (
     <ProjectSubmissionProvider>
-      {hackathonId && !showComponent ? (
+      {!showComponent && (
         <UserNotRegistered
-          hackathonId={hackathonId}
+          hackathonId={(searchParams?.hackathon ?? "") as string}
           onToggle={handleShowComponent}
         />
-      ) : (
-        <GeneralSecureComponent searchParams={searchParams} />
       )}
+      {showComponent && <GeneralSecureComponent searchParams={searchParams} />}
     </ProjectSubmissionProvider>
   );
 }

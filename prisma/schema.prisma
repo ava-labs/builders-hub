@@ -22,8 +22,8 @@ model Hackathon {
   icon            String         @default("")
   small_banner    String         @default("")
   participants    Int
-  top_most        Boolean?       @default(false)
   organizers      String?
+  top_most        Boolean?       @default(false)
   custom_link     String?
   created_by      String?
   is_public       Boolean?
@@ -35,9 +35,9 @@ model Hackathon {
 }
 
 model User {
-  id                  String        @id @default(cuid())
+  id                  String             @id @default(cuid())
   name                String?
-  email               String?       @unique
+  email               String?            @unique
   image               String?
   authentication_mode String?
   integration         String?
@@ -45,9 +45,9 @@ model User {
   user_name           String?
   bio                 String?
   notification_email  String?
-  profile_privacy     String?       @default("public")
-  social_media        String[]
   notifications       Boolean?
+  profile_privacy     String?            @default("public")
+  social_media        String[]
   custom_attributes   String[]
   telegram_user       String?
   created_at          DateTime      @default(now()) @db.Timestamptz(3)
@@ -61,10 +61,10 @@ model User {
   updated_hackathons  Hackathon[] @relation("HackathonUpdatedBy")
   memberships         Member[]
   registrations       RegisterForm[]
-  hackathons          Hackathon[]
   badges              UserBadge[]
   managedTestnetNodes NodeRegistration[]
   consoleLog          ConsoleLog[]
+  hackathons          Hackathon[]
   statsPlaygrounds    StatsPlayground[]
   statsPlaygroundFavorites StatsPlaygroundFavorite[] @relation("StatsPlaygroundFavorites")
   faucetClaims        FaucetClaim[]
@@ -207,16 +207,17 @@ model NodeRegistration {
   subnet_id           String
   blockchain_id       String
   node_id             String
-  node_index          Int?     // Node index from BuilderHub API
+  node_index          Int?
   public_key          String
   proof_of_possession String
   rpc_url             String
   chain_name          String?
-  status              String   @default("active") // active, expired, terminated
+  status              String   @default("active")
   created_at          DateTime @default(now()) @db.Timestamptz(3)
   expires_at          DateTime @db.Timestamptz(3)
   updated_at          DateTime @updatedAt @db.Timestamptz(3)
   user                User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
   @@unique([user_id, subnet_id, node_index])
   @@index([user_id])
   @@index([status])
@@ -226,9 +227,9 @@ model NodeRegistration {
 model ConsoleLog {
   id          String   @id @default(uuid())
   user_id     String
-  status      String   // success, error, warning, info
-  action_path String?  // Full path context (e.g., "permissioned-l1s/validator-manager-setup/deploy/validator_manager")
-  data        Json?    // Flexible JSON data
+  status      String
+  action_path String?
+  data        Json?
   created_at  DateTime @default(now()) @db.Timestamptz(3)
   user        User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
 

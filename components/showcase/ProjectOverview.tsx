@@ -15,8 +15,7 @@ type Props = {
   project: Project;
   badges?: UserBadge[];
 };
-export default function ProjectOverview({ project, badges }: Props) {
-  
+export default function ProjectOverview({ project, badges }: Props) { 
   return (
     <div>
       <Separator className="my-4 sm:my-8 bg-zinc-300 dark:bg-zinc-800" />
@@ -59,6 +58,7 @@ export default function ProjectOverview({ project, badges }: Props) {
             <Description description={project.full_description} />
           )}
              <TeamBadge projectId={project.id} />
+             <TeamBadge projectId={project.id} />
           {project.members && (
             <TeamMembers
               members={project.members}
@@ -66,6 +66,7 @@ export default function ProjectOverview({ project, badges }: Props) {
               badges={badges}
             />
           )}
+       
        
           {/* {resources && <Resources resources={resources} />} */}
         </div>
