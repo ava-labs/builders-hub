@@ -8,9 +8,6 @@ import { Separator } from "@/components/ui/separator";
 import { Badge, UserBadge, BadgeAwardStatus } from "@/types/badge";
 import { getAllBadges } from "@/server/services/badge";
 import Link from "next/link";
-import { Badge, UserBadge, BadgeAwardStatus } from "@/types/badge";
-import { getAllBadges } from "@/server/services/badge";
-import Link from "next/link";
 
 export default async function RewardBoard() {
   const session = await getAuthSession();
@@ -111,8 +108,7 @@ export default async function RewardBoard() {
         )}
       </div> */}
 
-      <div className="flex flex-col gap-4 sm:gap-6 mb-2 mt-3 ">
-      <div className="flex flex-col gap-4 sm:gap-6 mb-2 mt-3 ">
+        <div className="flex flex-col gap-4 sm:gap-6 mb-2 mt-3 ">
         <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white">
           Academy Badges
         </h1>
@@ -126,7 +122,6 @@ export default async function RewardBoard() {
           </div>
         </div>
       ) : (
-        <div className="grid gap-y-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
         <div className="grid gap-y-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
           {academyRewards}
         </div>

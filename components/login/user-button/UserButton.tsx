@@ -9,9 +9,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { signOut, useSession } from 'next-auth/react';
 import Image from 'next/image';
-import Link from 'next/link';
+import Link from 'next/link'; 
 import SignOutComponent from '../sign-out/SignOut';
-import { useState, useMemo } from 'react';
 import { useState, useMemo } from 'react';
 import { CircleUserRound } from 'lucide-react';
 import { Separator } from '@radix-ui/react-dropdown-menu';
