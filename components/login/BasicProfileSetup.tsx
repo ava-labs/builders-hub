@@ -244,7 +244,7 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
                     form.setValue("student_institution", "");
                   }
                 }}>
-                  Student
+                  University Affiliate
                 </FormLabel>
                 {watchedValues.is_student && (
                   <FormField

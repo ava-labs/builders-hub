@@ -128,7 +128,7 @@ model Project {
   small_cover_url     String?        @default("")
   tags                String[]       @default([])
   is_winner           Boolean?       @default(false)
-  origin              String
+  origin              String         @default("unknown")
   categories          String[]       @default([])
   other_category      String?
   formData            FormData[]
@@ -288,7 +288,7 @@ model FormData {
   id         String   @id @default(dbgenerated("gen_random_uuid()"))
   form_data  Json
   timestamp  DateTime @db.Timestamptz(6)
-  origin     String
+  origin     String   @default("unknown")
   project_id String
   project    Project  @relation(fields: [project_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
