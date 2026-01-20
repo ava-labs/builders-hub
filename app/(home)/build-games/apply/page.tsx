@@ -18,6 +18,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { countries } from "@/constants/countries";
 import { cn } from "@/lib/utils";
+import { getReferrer } from "@/lib/referral";
 
 const EMPLOYMENT_ROLES = ["Accounting", "Administrative", "Development", "Communications", "Consulting", "Customer", "Design", "Education", "Engineering", "Entrepreneurship", "Finance", "Health", "Human Resources", "Information Technology", "Legal", "Marketing", "Operations", "Product", "Project Management", "Public Relations", "Quality Assurance", "Real Estate", "Recruiting", "Research", "Sales", "Support", "Retired", "Other"];
 
@@ -45,7 +46,8 @@ const formSchema = z.object({
   country: z.string().min(1, "Country is required"),
 
   readyToWin: z.enum(["yes", "no"], { message: "Please select an option" }),
-  hackathonExperience: z.enum(["yes", "no"], { message: "Please select an option" }),
+  previousAvalancheGrant: z.enum(["yes", "no"], { message: "Please select an option" }),
+  hackathonExperience: z.enum(["yes", "no"]).optional(),
   hackathonDetails: z.string().optional(),
   employmentRole: z.string().optional(),
   currentRole: z.string().optional(),
@@ -169,6 +171,7 @@ export default function BuildGamesApplyForm() {
       github: "",
       country: "",
       readyToWin: undefined,
+      previousAvalancheGrant: undefined,
       hackathonExperience: undefined,
       hackathonDetails: "",
       employmentRole: "",
@@ -201,8 +204,8 @@ export default function BuildGamesApplyForm() {
   }, [watchedValues]);
 
   const checkSection3Complete = useCallback(() => {
-    const { readyToWin, hackathonExperience } = watchedValues;
-    return readyToWin === "yes" && hackathonExperience !== undefined;
+    const { readyToWin, previousAvalancheGrant } = watchedValues;
+    return readyToWin === "yes" && previousAvalancheGrant !== undefined;
   }, [watchedValues]);
 
   const checkSection4Complete = useCallback(() => {
@@ -226,14 +229,6 @@ export default function BuildGamesApplyForm() {
   const section5Complete = checkSection5Complete();
   const section6Complete = checkSection6Complete();
 
-  useEffect(() => {
-    if (section1Complete && openSection === 1) setOpenSection(2);
-    else if (section2Complete && openSection === 2) setOpenSection(3);
-    else if (section3Complete && openSection === 3) setOpenSection(4);
-    else if (section4Complete && openSection === 4) setOpenSection(5);
-    else if (section5Complete && openSection === 5) setOpenSection(6);
-    else if (section6Complete && openSection === 6) setOpenSection(7);
-  }, [section1Complete, section2Complete, section3Complete, section4Complete, section5Complete, section6Complete, openSection]);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -263,10 +258,16 @@ export default function BuildGamesApplyForm() {
   async function onSubmit(values: FormData) {
     setIsSubmitting(true);
     try {
+      // Get referrer from localStorage (if user was referred)
+      const referrer = getReferrer();
+
       const response = await fetch("/api/build-games/apply", {
         method: "POST",
         headers: {"Content-Type": "application/json"},
-        body: JSON.stringify(values),
+        body: JSON.stringify({
+          ...values,
+          referrer: referrer, // Include referrer handle for tracking
+        }),
       });
 
       const result = await response.json();
@@ -492,6 +493,18 @@ export default function BuildGamesApplyForm() {
                       </FormItem>
                     )}
                   />
+
+                  <div className="pt-4 flex justify-end">
+                    <Button
+                      type="button"
+                      onClick={() => setOpenSection(2)}
+                      disabled={!section1Complete}
+                      className="px-6 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Continue
+                      <ArrowRight className="h-4 w-4 ml-2" />
+                    </Button>
+                  </div>
                 </AccordionSection>
 
                 <AccordionSection
@@ -534,6 +547,18 @@ export default function BuildGamesApplyForm() {
                       </FormItem>
                     )}
                   />
+
+                  <div className="pt-4 flex justify-end">
+                    <Button
+                      type="button"
+                      onClick={() => setOpenSection(3)}
+                      disabled={!section2Complete}
+                      className="px-6 py-2 text-sm font-medium bg-purple-600 hover:bg-purple-700 text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Continue
+                      <ArrowRight className="h-4 w-4 ml-2" />
+                    </Button>
+                  </div>
                 </AccordionSection>
 
                 <AccordionSection
@@ -601,11 +626,43 @@ export default function BuildGamesApplyForm() {
 
                   <FormField
                     control={form.control}
+                    name="previousAvalancheGrant"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-slate-700 dark:text-slate-300 font-medium">
+                          Have you received a grant previously from Avalanche? <span className="text-red-500">*</span>
+                        </FormLabel>
+                        <FormDescription className="text-slate-500 text-sm">
+                          Prior support from the Avalanche Foundation — including funding via Retro9000, Infra(BOOST), Infra(BUILD/LINK), Blizzard, Codebase, Innovation House, or Ava Labs — will be considered during the evaluation process and may impact grant size.
+                        </FormDescription>
+                        <FormControl>
+                          <RadioGroup
+                            onValueChange={field.onChange}
+                            value={field.value}
+                            className="flex flex-col space-y-2"
+                          >
+                            <div className="flex items-center space-x-3">
+                              <RadioGroupItem value="yes" id="grant-yes" />
+                              <Label htmlFor="grant-yes" className="cursor-pointer">Yes</Label>
+                            </div>
+                            <div className="flex items-center space-x-3">
+                              <RadioGroupItem value="no" id="grant-no" />
+                              <Label htmlFor="grant-no" className="cursor-pointer">No</Label>
+                            </div>
+                          </RadioGroup>
+                        </FormControl>
+                        <FormMessage className="text-red-500" />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
                     name="hackathonExperience"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-slate-700 dark:text-slate-300 font-medium">
-                          Have you participated in any hackathons in the past? <span className="text-red-500">*</span>
+                          Have you participated in any hackathons in the past?
                         </FormLabel>
                         <FormControl>
                           <RadioGroup
@@ -734,6 +791,18 @@ export default function BuildGamesApplyForm() {
                       </FormItem>
                     )}
                   />
+
+                  <div className="pt-4 flex justify-end">
+                    <Button
+                      type="button"
+                      onClick={() => setOpenSection(4)}
+                      disabled={!section3Complete}
+                      className="px-6 py-2 text-sm font-medium bg-amber-600 hover:bg-amber-700 text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Continue
+                      <ArrowRight className="h-4 w-4 ml-2" />
+                    </Button>
+                  </div>
                 </AccordionSection>
 
                 <AccordionSection
@@ -831,6 +900,18 @@ export default function BuildGamesApplyForm() {
                       <li><strong>Gaming:</strong> anything that pertains to a game of chance or skill.</li>
                     </ul>
                   </div>
+
+                  <div className="pt-4 flex justify-end">
+                    <Button
+                      type="button"
+                      onClick={() => setOpenSection(5)}
+                      disabled={!section4Complete}
+                      className="px-6 py-2 text-sm font-medium bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Continue
+                      <ArrowRight className="h-4 w-4 ml-2" />
+                    </Button>
+                  </div>
                 </AccordionSection>
 
                 <AccordionSection
@@ -865,6 +946,18 @@ export default function BuildGamesApplyForm() {
                       </FormItem>
                     )}
                   />
+
+                  <div className="pt-4 flex justify-end">
+                    <Button
+                      type="button"
+                      onClick={() => setOpenSection(6)}
+                      disabled={!section5Complete}
+                      className="px-6 py-2 text-sm font-medium bg-yellow-600 hover:bg-yellow-700 text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Continue
+                      <ArrowRight className="h-4 w-4 ml-2" />
+                    </Button>
+                  </div>
                 </AccordionSection>
 
                 <AccordionSection
@@ -1007,6 +1100,18 @@ export default function BuildGamesApplyForm() {
                       </FormItem>
                     )}
                   />
+
+                  <div className="pt-4 flex justify-end">
+                    <Button
+                      type="button"
+                      onClick={() => setOpenSection(7)}
+                      disabled={!section6Complete}
+                      className="px-6 py-2 text-sm font-medium bg-pink-600 hover:bg-pink-700 text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Continue
+                      <ArrowRight className="h-4 w-4 ml-2" />
+                    </Button>
+                  </div>
                 </AccordionSection>
 
                 <AccordionSection
