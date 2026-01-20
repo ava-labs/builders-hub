@@ -393,7 +393,7 @@ export default function BuildGamesApplyForm() {
                     <div className="space-y-6">
                       <div className="space-y-2">
                         <Label className="text-sm font-medium text-foreground">
-                          Hackathon Name
+                          Competition Name
                         </Label>
                         <Input
                           className="h-12 border-border bg-[color-mix(in_oklab,var(--input)_50%,transparent)] text-foreground cursor-not-allowed"

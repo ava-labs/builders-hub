@@ -2,6 +2,7 @@ import clsx from "clsx";
 import Link from "next/link";
 import "./styles.css";
 import ReferralButton from "@/components/build-games/ReferralButton";
+import ReferralLink from "@/components/build-games/ReferralLink";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 
 const imgBackground3R11 = "/build-games/background3-r1-1.png";
@@ -849,7 +850,7 @@ function PrizesSection() {
           <div className="content-stretch flex gap-[10px] h-[117px] items-center relative shrink-0 w-[1068px]">
             <BenefitCard text="Ongoing grants and ecosystem support" />
             <BenefitCard text="Mentorship, network, and launch visibility via Avalanche channels" shortText="Mentorship, network, and launch visibility" />
-            <BenefitCard text="Post-event paths into programs like Codebase, Grants, and ecosystem partnerships" shortText="Post-event paths into programs" />
+            <BenefitCard text="Post-event paths into programs like Codebase, Grants, and ecosystem partnerships" shortText="Post-event paths into programs and ecosystem partnerships" />
           </div>
         </div>
       </div>
@@ -933,13 +934,7 @@ There are no predefined tracks or categories, and strong projects may look very 
     },
     {
       question: "How do I refer someone?",
-      answer: `1. Head over to https://build.avax.network/build-games
-2. Click "refer someone".
-3. Input your X handle.
-4. Click generate.
-5. Share your link everywhere.
-
-*You cannot refer yourself.`
+      answer: <>1. Click <ReferralLink />{"\n"}2. Share your link everywhere.{"\n\n"}*You cannot refer yourself.</>
     },
     {
       question: "What is the competition timeline?",
@@ -947,7 +942,7 @@ There are no predefined tracks or categories, and strong projects may look very 
 Applications Close: February 13th
 Acceptance Letters: Rolling
 Competition Begins: February TBA
-Finals & Awards: March 2026`
+Finals & Awards: March TBA`
     },
     {
       question: "How does the prize pool work?",

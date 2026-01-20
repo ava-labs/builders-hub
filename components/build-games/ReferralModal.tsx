@@ -98,7 +98,7 @@ export default function ReferralModal({ isOpen, onClose }: ReferralModalProps) {
             Refer a Friend
           </DialogTitle>
           <DialogDescription className="text-gray-300 flex flex-col gap-3">
-            <span>Refer builders and compete for a piece of the <span className="text-[#66acd6] font-medium">$30k prize pool</span></span>
+            <span>Get a part of a <span className="text-[#66acd6] font-medium">$30k referral pool</span> if you refer a winning team</span>
             <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
               <ReferralPrizeCard amount="$10k" place="1st" />
               <ReferralPrizeCard amount="$7.5k" place="2nd" />
