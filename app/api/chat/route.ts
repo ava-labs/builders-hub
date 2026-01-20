@@ -11,6 +11,7 @@ import {
   createRateLimitHeaders,
   formatResetTime,
 } from '@/lib/chat/rateLimit';
+import { searchTools, getToolsContextForPrompt, formatToolsForContext } from '@/lib/chat/tools-search';
 
 // Helper to extract text from v6 UIMessage
 function getTextFromMessage(message: any): string {
@@ -626,6 +627,47 @@ export async function POST(req: Request) {
       } catch (error) {
         console.error('[CodeSearch] ❌ Failed:', error);
       }
+    }
+  }
+
+  // Search for relevant YouTube videos from Avalanche channel
+  let youtubeContext = '';
+  if (lastUserMessageText) {
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ||
+                     process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` :
+                     'http://localhost:3000';
+
+      const youtubeResponse = await fetch(`${baseUrl}/api/youtube/search?q=${encodeURIComponent(lastUserMessageText)}&limit=3`);
+
+      if (youtubeResponse.ok) {
+        const youtubeData = await youtubeResponse.json();
+        if (youtubeData.videos && youtubeData.videos.length > 0) {
+          youtubeContext = '\n\n=== RELEVANT YOUTUBE VIDEOS ===\n\n';
+          youtubeContext += 'Here are relevant videos from the Avalanche YouTube channel that you should recommend:\n\n';
+          for (const video of youtubeData.videos) {
+            youtubeContext += `- [${video.title}](https://www.youtube.com/watch?v=${video.videoId})\n`;
+            youtubeContext += `  Description: ${video.description.slice(0, 200)}...\n\n`;
+          }
+          youtubeContext += '=== END YOUTUBE VIDEOS ===\n';
+          console.log(`Found ${youtubeData.videos.length} relevant YouTube videos`);
+        }
+      }
+    } catch (error) {
+      console.error('YouTube search error:', error);
+    }
+  }
+
+  // Search for relevant console tools
+  let toolsContext = '';
+  if (lastUserMessageText) {
+    const relevantTools = searchTools(lastUserMessageText, 5);
+    if (relevantTools.length > 0) {
+      toolsContext = '\n\n=== RELEVANT CONSOLE TOOLS ===\n\n';
+      toolsContext += 'Here are the most relevant interactive tools for this query - PRIORITIZE recommending these:\n\n';
+      toolsContext += formatToolsForContext(relevantTools);
+      toolsContext += '\n\n=== END CONSOLE TOOLS ===\n';
+      console.log(`Found ${relevantTools.length} relevant console tools`);
     }
   }
 
@@ -1630,23 +1672,30 @@ CRITICAL URL RULES - MUST FOLLOW TO PREVENT 404 ERRORS:
 - Partial or shortened URLs WILL cause 404 errors - ALWAYS use the complete path from the context
 
 CORE RESPONSIBILITIES:
-- Provide accurate, helpful answers based on official Avalanche documentation, Academy courses, Integrations, and Blog posts
+- Provide accurate, helpful answers based on official Avalanche documentation, Academy courses, and resources
+- Recommend Console tools for hands-on tasks (they're interactive and user-friendly!)
+- Recommend relevant YouTube videos from Avalanche channel for visual learning
 - Always cite documentation sources with proper clickable links
 - Give clear, actionable guidance with code examples when appropriate
-- Recommend Console tools for hands-on tasks (they're interactive and user-friendly!)
-- Recommend Academy courses when users want structured learning
-- Recommend Integrations for production infrastructure and third-party services
-- Reference Blog posts for announcements, real-world examples, and ecosystem updates
 - Suggest follow-up questions to help users learn more
 
 ANSWERING GUIDELINES:
 1. **Be Direct**: Start with a clear answer to the user's question
-2. **Cite Sources**: Reference specific documentation pages AND Academy courses with links
-3. **Recommend Console**: For hands-on tasks, always suggest Console tools first
-4. **Recommend Academy**: For learning topics, suggest relevant Academy courses
+2. **Cite Documentation**: Reference specific docs and Academy pages with links
+3. **Recommend Console Tools**: For practical tasks, suggest relevant Console tools
+4. **Include YouTube Videos**: For learning topics, include relevant Avalanche YouTube videos
 5. **Use Examples**: Include code snippets and commands when helpful
-6. **Link Properly**: Always use full URLs with correct prefixes - /docs/ for documentation, /academy/ for academy, /integrations/ for integrations, /blog/ for blog
+6. **Link Properly**: Always use full URLs - /docs/ for documentation, /academy/ for academy, /console/ for tools, YouTube links for videos
 7. **Be Concise**: Keep answers focused and well-structured
+
+WHEN TO RECOMMEND YOUTUBE VIDEOS:
+- User wants to learn or understand a concept → Include relevant YouTube video links
+- User asks "how does X work" → Link to tutorial or explainer video
+- User mentions they're a beginner → Recommend introductory videos
+- User wants visual explanations → YouTube videos are perfect
+- Topics like: L1 creation, ICM, consensus, staking, validators → Check for relevant videos
+- Format: [Video Title](https://www.youtube.com/watch?v=VIDEO_ID)
+- YouTube videos appear in the side panel and provide excellent visual learning
 
 WHEN TO RECOMMEND ACADEMY:
 - User is learning a new concept → Link to relevant Academy course
@@ -1698,11 +1747,13 @@ const example = "code";
 3. Third step
 
 WHEN TO RECOMMEND CONSOLE TOOLS:
-- User wants to create an L1 → Link to Create L1 Console tool
-- User needs testnet AVAX/tokens/faucet → ALWAYS link to https://build.avax.network/console/primary-network/faucet (Console Faucet)
-- User wants to set up validators → Link to Validator Management Console tools
-- User needs cross-chain messaging → Link to ICM Console tools
-- User wants to bridge tokens → Link to ICTT Console tools
+- User wants to create an L1 → [Create New L1](https://build.avax.network/console/layer-1/create)
+- User needs testnet AVAX/tokens/faucet → [Testnet Faucet](https://build.avax.network/console/primary-network/faucet)
+- User wants to set up validators → [Validator Manager Setup](https://build.avax.network/console/permissioned-l1s/validator-manager-setup)
+- User needs cross-chain messaging → [ICM Setup](https://build.avax.network/console/icm/setup)
+- User wants to bridge tokens → [ICTT Bridge Setup](https://build.avax.network/console/ictt/setup)
+- User wants to stake → [Stake AVAX](https://build.avax.network/console/primary-network/stake)
+- User needs API access → [Data API Keys](https://build.avax.network/console/utilities/data-api-keys)
 - User asks "how do I..." for any practical task → Check if there's a Console tool for it!
 
 FAUCET REQUESTS - CRITICAL:
@@ -1825,6 +1876,10 @@ FINAL REMINDER ABOUT URLS:
 - If you cite /academy/avalanche-l1/avalanche-fundamentals/04-creating-an-l1 instead of /academy/avalanche-l1/avalanche-fundamentals/04-creating-an-l1/01-creating-an-l1, it WILL 404
 - ALWAYS use the COMPLETE URL exactly as shown in the context or valid URLs list
 
+${toolsContext}
+
+${youtubeContext}
+
 ${relevantContext}
 
 ${codeContext}
@@ -1834,8 +1889,8 @@ ADDITIONAL RESOURCES (mention when relevant):
     - Discord Community: https://discord.gg/avalanche
     - Developer Forum: https://forum.avax.network
     - Avalanche Explorer: https://subnets.avax.network
-    
-Remember: Accuracy and proper documentation links are critical. When in doubt, direct users to the relevant documentation section.
+
+Remember: Include relevant documentation, YouTube videos, and Console tools in your responses. Accuracy and proper links are critical. When in doubt, direct users to the relevant documentation section.
 
 ${validUrlsList}`,
   });
