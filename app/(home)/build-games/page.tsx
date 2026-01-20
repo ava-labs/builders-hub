@@ -3,6 +3,7 @@ import Link from "next/link";
 import "./styles.css";
 import ReferralButton from "@/components/build-games/ReferralButton";
 import ReferralLink from "@/components/build-games/ReferralLink";
+import { ApplyButton } from "@/components/build-games/ApplyButton";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import type { Metadata } from "next";
 
@@ -639,13 +640,11 @@ function ApplyTodayCTA() {
         </div>
         <div className="flex flex-row flex-nowrap gap-[10px] items-center">
           <ReferralButton />
-          <Link href="/build-games/apply" className="shrink-0">
-            <div className="bg-[#66acd6] flex h-[52px] items-center justify-center px-[36px] py-[12px] rounded-[3.35544e+07px] cursor-pointer hover:bg-[#7bbde3] transition-colors shadow-[0px_0px_20px_4px_rgba(102,172,214,0.5)]">
-              <div className="font-['Aeonik:Medium',sans-serif] font-medium text-[#152d44] text-[18px] text-center text-nowrap leading-[28px]">
-                Apply
-              </div>
-            </div>
-          </Link>
+          <ApplyButton className="shrink-0 bg-[#66acd6] flex h-[52px] items-center justify-center px-[36px] py-[12px] rounded-[3.35544e+07px] cursor-pointer hover:bg-[#7bbde3] transition-colors shadow-[0px_0px_20px_4px_rgba(102,172,214,0.5)]">
+            <span className="font-['Aeonik:Medium',sans-serif] font-medium text-[#152d44] text-[18px] text-center text-nowrap leading-[28px]">
+              Apply
+            </span>
+          </ApplyButton>
         </div>
       </div>
     </div>
@@ -1056,13 +1055,11 @@ function FinalCTASection() {
               <div className="content-stretch flex items-center justify-center relative size-full py-0">
                 <div className="content-stretch flex gap-[10px] items-center relative shrink-0">
                   <ReferralButton />
-                  <Link href="/build-games/apply" className="content-stretch flex flex-col items-center relative shrink-0">
-                    <div className="bg-[#66acd6] content-stretch flex h-[52px] items-center justify-center px-[36px] py-[12px] relative rounded-[3.35544e+07px] shrink-0 cursor-pointer hover:bg-[#7bbde3] transition-colors shadow-[0px_0px_20px_4px_rgba(102,172,214,0.5)]">
-                      <div className="flex flex-col font-['Aeonik:Medium',sans-serif] font-medium justify-center leading-[0] relative shrink-0 text-[#152d44] text-[18px] text-center text-nowrap">
-                        <p className="leading-[28px]">Apply</p>
-                      </div>
-                    </div>
-                  </Link>
+                  <ApplyButton className="content-stretch flex flex-col items-center relative shrink-0 bg-[#66acd6] h-[52px] justify-center px-[36px] py-[12px] rounded-[3.35544e+07px] cursor-pointer hover:bg-[#7bbde3] transition-colors shadow-[0px_0px_20px_4px_rgba(102,172,214,0.5)]">
+                    <span className="flex flex-col font-['Aeonik:Medium',sans-serif] font-medium justify-center leading-[0] relative shrink-0 text-[#152d44] text-[18px] text-center text-nowrap">
+                      <span className="leading-[28px]">Apply</span>
+                    </span>
+                  </ApplyButton>
                 </div>
               </div>
             </div>

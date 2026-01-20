@@ -1,0 +1,84 @@
+// ============================================================================
+// INSTRUCCIONES: 
+// Copia estas líneas y agrégalas al modelo User en tu archivo prisma/schema.prisma
+// Agrega estas líneas DESPUÉS de la línea "telegram_user" y ANTES de "created_at"
+// ============================================================================
+
+// Nuevos campos para perfil extendido (agregados 2025-12-03)
+country              String?
+is_student           Boolean   @default(false)
+is_founder           Boolean   @default(false)
+is_employee          Boolean   @default(false)
+is_enthusiast        Boolean   @default(false)
+company_name         String?
+role                 String?
+github               String?
+wallet               String?
+student_institution  String?
+skills               String[]
+
+// ============================================================================
+// MODELO COMPLETO DE REFERENCIA (NO COPIAR, SOLO PARA VERIFICAR)
+// ============================================================================
+
+/*
+model User {
+  id                       String                    @id @default(cuid())
+  name                     String?
+  email                    String?                   @unique
+  image                    String?
+  authentication_mode      String?
+  integration              String?
+  last_login               DateTime?
+  user_name                String?                   // Considera agregar @unique si quieres usernames únicos
+  bio                      String?
+  notification_email       String?
+  profile_privacy          String?                   @default("public")
+  social_media             String[]
+  notifications            Boolean?
+  custom_attributes        String[]
+  telegram_user            String?
+  
+  // ⬇️ AGREGAR AQUÍ LAS NUEVAS COLUMNAS ⬇️
+  country              String?
+  is_student           Boolean   @default(false)
+  is_founder           Boolean   @default(false)
+  is_employee          Boolean   @default(false)
+  is_enthusiast        Boolean   @default(false)
+  company_name         String?
+  role                 String?
+  github               String?
+  wallet               String?
+  student_institution  String?
+  skills               String[]
+  // ⬆️ NUEVAS COLUMNAS ⬆️
+  
+  created_at               DateTime                  @default(now()) @db.Timestamptz(3)
+  consoleLog               ConsoleLog[]
+  hackathons               Hackathon[]
+  updated_hackathons       Hackathon[]               @relation("HackathonUpdatedBy")
+  memberships              Member[]
+  managedTestnetNodes      NodeRegistration[]
+  registrations            RegisterForm[]
+  statsPlaygrounds         StatsPlayground[]
+  statsPlaygroundFavorites StatsPlaygroundFavorite[] @relation("StatsPlaygroundFavorites")
+  badges                   UserBadge[]
+}
+*/
+
+// ============================================================================
+// COMANDOS A EJECUTAR DESPUÉS DE EDITAR EL SCHEMA
+// ============================================================================
+
+// 1. Crear la migración:
+// npx prisma migrate dev --name add_extended_profile_fields
+
+// 2. Generar el cliente de Prisma:
+// npx prisma generate
+
+// 3. (Opcional) Si quieres ver el SQL que se ejecutará:
+// npx prisma migrate diff --from-schema-datamodel prisma/schema.prisma --to-schema-datamodel prisma/schema.prisma --script
+
+// 4. Para aplicar en producción (después de probar en dev):
+// npx prisma migrate deploy
+
