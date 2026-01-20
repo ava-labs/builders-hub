@@ -27,9 +27,9 @@ async function getRedisClient(): Promise<RedisClientType> {
   }
 
   redisPromise = (async () => {
-    const redisUrl = process.env.REDIS_URL_MCP;
+    const redisUrl = process.env.REDIS_URL;
     if (!redisUrl) {
-      throw new Error('REDIS_URL_MCP environment variable not set');
+      throw new Error('REDIS_URL environment variable not set');
     }
 
     const client = createClient({ url: redisUrl });
