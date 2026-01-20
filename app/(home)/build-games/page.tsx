@@ -4,6 +4,31 @@ import "./styles.css";
 import ReferralButton from "@/components/build-games/ReferralButton";
 import ReferralLink from "@/components/build-games/ReferralLink";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Build Games 2026 | $1,000,000 Builder Competition on Avalanche",
+  description: "Join Build Games 2026, a $1,000,000 builder competition on Avalanche. Build innovative projects, compete for prizes, and become part of the Avalanche ecosystem.",
+  openGraph: {
+    title: "Build Games 2026 | $1,000,000 Builder Competition on Avalanche",
+    description: "Join Build Games 2026, a $1,000,000 builder competition on Avalanche. Build innovative projects, compete for prizes, and become part of the Avalanche ecosystem.",
+    images: [
+      {
+        url: "/build-games/og-build-games.jpeg",
+        width: 1200,
+        height: 630,
+        alt: "Build Games 2026 - $1,000,000 Builder Competition on Avalanche",
+      },
+    ],
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Build Games 2026 | $1,000,000 Builder Competition on Avalanche",
+    description: "Join Build Games 2026, a $1,000,000 builder competition on Avalanche. Build innovative projects, compete for prizes, and become part of the Avalanche ecosystem.",
+    images: ["/build-games/og-build-games.jpeg"],
+  },
+};
 
 const imgBackground3R11 = "/build-games/background3-r1-1.png";
 const imgBackground3R1Square1 = "/build-games/background3-r1-square-1.png";
