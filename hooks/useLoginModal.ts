@@ -25,9 +25,21 @@ const notifyNewUserLogin = () => {
   newUserLoginListeners.forEach(listener => listener());
 };
 
+// Listeners for login flow complete events (after terms + profile)
+const loginCompleteListeners = new Set<() => void>();
+
+const notifyLoginComplete = () => {
+  loginCompleteListeners.forEach(listener => listener());
+};
+
 // Function to trigger new user login event (called from VerifyEmail)
 export function triggerNewUserLogin() {
   notifyNewUserLogin();
+}
+
+// Function to trigger login complete event (called after full flow completes)
+export function triggerLoginComplete() {
+  notifyLoginComplete();
 }
 
 // Hook for components that need to trigger the login modal
@@ -79,6 +91,16 @@ export function useNewUserLoginListener(callback: () => void) {
     newUserLoginListeners.add(callback);
     return () => {
       newUserLoginListeners.delete(callback);
+    };
+  }, [callback]);
+}
+
+// Hook to listen for login complete events (after full flow: OTP + terms + profile)
+export function useLoginCompleteListener(callback: () => void) {
+  useEffect(() => {
+    loginCompleteListeners.add(callback);
+    return () => {
+      loginCompleteListeners.delete(callback);
     };
   }, [callback]);
 }

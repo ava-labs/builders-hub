@@ -320,7 +320,7 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
               </div>
 
               {/* Employee */}
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 <FormField
                   control={form.control}
                   name="is_employee"
@@ -429,7 +429,7 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
                 isLoading={isSaving}
                 loadingText="Saving..."
               >
-                Save
+                Save and close
               </LoadingButton>
               <Button
                 type="button"

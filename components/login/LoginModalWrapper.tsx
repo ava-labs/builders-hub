@@ -2,22 +2,29 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useSession, signOut, getSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import { Dialog, DialogOverlay, DialogContent, DialogTitle } from '../toolbox/components/ui/dialog';
 import { LoginModal } from './LoginModal';
 import { Terms } from './terms';
 import { BasicProfileSetup } from './BasicProfileSetup';
-import { useLoginModalState, useNewUserLoginListener } from '@/hooks/useLoginModal';
+import { useLoginModalState, useNewUserLoginListener, triggerLoginComplete } from '@/hooks/useLoginModal';
 
 export function LoginModalWrapper() {
-  const { data: session, status } = useSession();
-  const { isOpen, closeLoginModal } = useLoginModalState();
+  const { data: session, status, update } = useSession();
+  const { isOpen, callbackUrl, closeLoginModal } = useLoginModalState();
   const [showTerms, setShowTerms] = useState(false);
   const [showBasicProfile, setShowBasicProfile] = useState(false);
   // Store user ID separately so we can show modal even before useSession updates
   const [termsUserId, setTermsUserId] = useState<string | null>(null);
-  const router = useRouter();
+  // Store callback URL in state so it persists through the flow
+  const [storedCallbackUrl, setStoredCallbackUrl] = useState<string | null>(null);
+
+  // Store callback URL when modal opens
+  useEffect(() => {
+    if (isOpen && callbackUrl) {
+      setStoredCallbackUrl(callbackUrl);
+    }
+  }, [isOpen, callbackUrl]);
 
   // Function to check and show terms modal
   const checkAndShowTerms = useCallback(async () => {
@@ -105,16 +112,50 @@ export function LoginModalWrapper() {
     setShowBasicProfile(true);
   };
 
-  const handleBasicProfileSuccess = () => {
+  const handleBasicProfileSuccess = async () => {
+    // Capture the callback URL before clearing state
+    const redirectUrl = storedCallbackUrl;
+
     // Close basic profile modal
     setShowBasicProfile(false);
+    setStoredCallbackUrl(null);
     closeLoginModal();
+
+    // Force multiple session updates to ensure all components see the new auth state
+    await update();
+    await new Promise(resolve => setTimeout(resolve, 200));
+    await update();
+
+    // Trigger login complete event to notify all listening components
+    triggerLoginComplete();
+
+    // Redirect to callback URL if one was set when opening the modal
+    if (redirectUrl) {
+      // Small delay to ensure session has propagated
+      await new Promise(resolve => setTimeout(resolve, 300));
+      window.location.href = redirectUrl;
+    }
   };
 
-  const handleCompleteProfile = () => {
+  const handleCompleteProfile = async () => {
     // Close basic profile modal and close login modal
     setShowBasicProfile(false);
+    setStoredCallbackUrl(null);
     closeLoginModal();
+
+    // Force multiple session updates to ensure all components see the new auth state
+    await update();
+    await new Promise(resolve => setTimeout(resolve, 200));
+    await update();
+
+    // Trigger login complete event to notify all listening components
+    triggerLoginComplete();
+
+    // Navigate to profile page so user can complete their full profile
+    // Use window.location.href for a full page reload to ensure server gets fresh session
+    // Don't redirect to callback URL - user explicitly chose to complete profile
+    await new Promise(resolve => setTimeout(resolve, 300));
+    window.location.href = "/profile";
   };
 
   const handleTermsDecline = () => {
@@ -137,13 +178,12 @@ export function LoginModalWrapper() {
 
     setShowTerms(false);
     setTermsUserId(null);
+    setStoredCallbackUrl(null);
     closeLoginModal();
 
     // Sign out the session (this clears the JWT even for pending users)
-    signOut({ redirect: false }).then(() => {
-      // Redirect to home after logout to avoid staying on protected routes
-      router.push('/');
-    });
+    // Stay on the current page - user can click Apply again to restart the flow
+    signOut({ redirect: false });
   };
 
   const handleClose = (open: boolean) => {
@@ -167,13 +207,12 @@ export function LoginModalWrapper() {
 
       setShowTerms(false);
       setTermsUserId(null);
+      setStoredCallbackUrl(null);
       closeLoginModal();
 
       // Sign out the session (this clears the JWT even for pending users)
-      signOut({ redirect: false }).then(() => {
-        // Redirect to home after logout to avoid staying on protected routes
-        router.push('/');
-      });
+      // Stay on the current page - user can click Apply again to restart the flow
+      signOut({ redirect: false });
     }
   };
 
