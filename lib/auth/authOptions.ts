@@ -7,6 +7,9 @@ import { prisma } from '../../prisma/prisma';
 import { JWT } from 'next-auth/jwt';
 import type { VerifyOTPResult } from '@/types/verifyOTPResult';
 import { upsertUser } from '@/server/services/auth';
+import { badgeAssignmentService } from '@/server/services/badgeAssignmentService';
+import { BadgeCategory } from '@/server/services/badge';
+
 
 declare module 'next-auth' {
   export interface Session {
@@ -130,6 +133,16 @@ export const AuthOptions: NextAuthOptions = {
       try {
         const dbUser = await upsertUser(user, account, profile);
         user.id = dbUser.id;
+
+        if (account?.provider == 'github') {
+          await badgeAssignmentService.assignBadge({
+            userId: dbUser.id,
+            requirementId: 'GitHub',
+            category: BadgeCategory.requirement,
+          });
+         
+        }
+        
         return true;
       } catch (error) {
         console.error('Error processing user:', error);

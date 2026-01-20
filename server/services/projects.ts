@@ -44,9 +44,9 @@ export const getFilteredProjects = async (options: GetProjectOptions) => {
       has: options.track,
     };
   }
-  // if (options.winningProjects) {
-  //   filters.winningProjects = true
-  // }
+  if (options.winningProjects) {
+    filters.is_winner = true
+  }
   if (options.search) {
     const searchWords = options.search.split(/\s+/);
     let searchFilters: any[] = [];
@@ -368,3 +368,32 @@ export type GetProjectOptions = {
   track?: string;
   winningProjects?: boolean;
 };
+
+/**
+ * Verifies if a user is a member of a project
+ */
+export async function isUserProjectMember(userId: string, projectId: string): Promise<boolean> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { email: true },
+  });
+
+  if (!user) {
+    return false;
+  }
+
+  const member = await prisma.member.findFirst({
+    where: {
+      project_id: projectId,
+      OR: [
+        { user_id: userId },
+        { email: user.email },
+      ],
+      status: {
+        not: "Removed",
+      },
+    },
+  });
+
+  return !!member;
+}

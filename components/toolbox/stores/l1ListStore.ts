@@ -9,6 +9,16 @@ export type FaucetThresholds = {
     dripAmount: number;
 };
 
+export type WellKnownERC20 = {
+    address: string;
+    name: string;
+    symbol: string;
+    decimals: number;
+    logoUrl: string;
+    faucetUrl?: string;
+    faucetInfo?: string;
+};
+
 export type L1ListItem = {
     id: string;
     name: string;
@@ -20,6 +30,7 @@ export type L1ListItem = {
     subnetId: string;
     wrappedTokenAddress: string;
     validatorManagerAddress: string;
+    rewardCalculatorAddress?: string;
     logoUrl: string;
     wellKnownTeleporterRegistryAddress?: string;
     externalFaucetUrl?: string;
@@ -32,6 +43,7 @@ export type L1ListItem = {
         symbol: string;
         decimals: number;
     };
+    wellKnownERC20s?: WellKnownERC20[];
 };
 
 const l1ListInitialStateFuji = {
@@ -59,12 +71,23 @@ const l1ListInitialStateFuji = {
             features: [
                 "EVM-compatible blockchain",
                 "Deploy smart contracts"
+            ],
+            wellKnownERC20s: [
+                {
+                    address: "0x5425890298aed601595a70AB815c96711a31Bc65",
+                    name: "USD Coin",
+                    symbol: "USDC",
+                    decimals: 6,
+                    logoUrl: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/usd-coin-usdc-logo.png",
+                    faucetUrl: "https://faucet.circle.com/",
+                    faucetInfo: "Request 1 USDC every 2 hours from Circle Faucet. Select 'USDC' and 'Avalanche Fuji'."
+                }
             ]
         },
         {
             id: "98qnjenm7MBd8G2cPZoRvZrgJC33JGSAAKghsQ6eojbLCeRNp",
             name: "Echo",
-            description: "Echo is a Testnet L1 for testing dApps utilizing ICM",
+            description: "Echo is a Testnet Subnet for testing dApps utilizing ICM",
             rpcUrl: "https://subnets.avax.network/echo/testnet/rpc",
             evmChainId: 173750,
             coinName: "ECH",
@@ -89,7 +112,7 @@ const l1ListInitialStateFuji = {
         {
             id: "2D8RG4UpSXbPbvPCAWppNJyqTG2i2CAXSkTgmTBBvs7GKNZjsY",
             name: "Dispatch",
-            description: "Dispatch is a Testnet L1 for testing dApps utilizing ICM",
+            description: "Dispatch is a Testnet Proof of Authority L1 for testing dApps utilizing ICM",
             rpcUrl: "https://subnets.avax.network/dispatch/testnet/rpc",
             evmChainId: 779672,
             coinName: "DIS",
@@ -109,6 +132,33 @@ const l1ListInitialStateFuji = {
             features: [
                 "EVM-compatible L1 chain",
                 "Deploy dApps & test interoperability with Dispatch"
+            ]
+        },
+        {
+            id: "dg2nLr4zu9AiCNouZkkX4PUHvY9pjqSUKREZ64wyV5NMUB7iT",
+            name: "Signal",
+            description: "Signal is a Testnet L1 for testing dApps utilizing ICM",
+            rpcUrl: "https://nodes-prod.18.182.4.86.sslip.io/ext/bc/2F1SfodznZumMGnFTDTBnFC5uupPy5HHVzypedYAuDNQ6reXaZ/rpc",
+            evmChainId: 89841,
+            coinName: "SIG",
+            isTestnet: true,
+            subnetId: "2i2BsV27pGsNVHYKbeaJ72P2soqPtknNcGNkdGBiVbiYiPpxsM",
+            wrappedTokenAddress: "",
+            validatorManagerAddress: "0xfacade0000000000000000000000000000000000",
+            rewardCalculatorAddress: "0x59d91f46033b97c8261576fe6899c5058cd3fc4b",
+            logoUrl: "https://images.ctfassets.net/gcj8jwzm6086/60XrKdf99PqQKrHiuYdwTE/908622f5204311dbb11be9c6008ead44/Dispatch_Subnet_Logo.png",
+            wellKnownTeleporterRegistryAddress: "",
+            hasBuilderHubFaucet: false,
+            externalFaucetUrl: "",
+            explorerUrl: "",
+            faucetThresholds: {
+                threshold: 0,
+                dripAmount: 0
+            },
+            features: [
+                "EVM-compatible L1 chain",
+                "Deploy dApps & test interoperability with Dispatch",
+                "Stake and Delegate to an Avalanche L1"
             ]
         },
         {
@@ -156,7 +206,16 @@ const l1ListInitialStateMainnet = {
             logoUrl: "https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/3e4b8ff10b69bfa31e70080a4b142cd0/avalanche-avax-logo.svg",
             wellKnownTeleporterRegistryAddress: "0x7C43605E14F391720e1b37E49C78C4b03A488d98",
             hasBuilderHubFaucet: false,
-            explorerUrl: "https://subnets.avax.network/c-chain"
+            explorerUrl: "https://subnets.avax.network/c-chain",
+            wellKnownERC20s: [
+                {
+                    address: "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
+                    name: "USD Coin",
+                    symbol: "USDC",
+                    decimals: 6,
+                    logoUrl: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/usd-coin-usdc-logo.png"
+                }
+            ]
         }
     ] as L1ListItem[],
 }

@@ -37,13 +37,26 @@ export const fixRelativeLinks: TransformFunction = (content, meta) => {
 
 export const fixGitHubMarkdown: TransformFunction = (content) => {
   return content
-    .replace(/>\s*\[NOTE\]\s*(.*?)$/gm, ':::note\n$1\n:::')
-    .replace(/>\s*\[TIP\]\s*(.*?)$/gm, ':::tip\n$1\n:::')
-    .replace(/^:::(\s*note|tip|warning|info|caution)\s*$/gm, ':::$1')
+    // Convert GitHub-style alerts to Callout components
+    .replace(/>\s*\[NOTE\]\s*(.*?)$/gm, '<Callout>$1</Callout>')
+    .replace(/>\s*\[TIP\]\s*(.*?)$/gm, '<Callout type="info">$1</Callout>')
+    .replace(/>\s*\[WARNING\]\s*(.*?)$/gm, '<Callout type="warn">$1</Callout>')
+    .replace(/>\s*\[CAUTION\]\s*(.*?)$/gm, '<Callout type="warn">$1</Callout>')
+    // Convert ::: directive blocks to Callout components (handles blank lines around content)
+    .replace(/:::note\s*\n([\s\S]*?)\n\s*:::/gm, (_, content) => `<Callout>${content.trim()}</Callout>`)
+    .replace(/:::tip\s*\n([\s\S]*?)\n\s*:::/gm, (_, content) => `<Callout type="info">${content.trim()}</Callout>`)
+    .replace(/:::warning\s*\n([\s\S]*?)\n\s*:::/gm, (_, content) => `<Callout type="warn">${content.trim()}</Callout>`)
+    .replace(/:::info\s*\n([\s\S]*?)\n\s*:::/gm, (_, content) => `<Callout type="info">${content.trim()}</Callout>`)
+    .replace(/:::caution\s*\n([\s\S]*?)\n\s*:::/gm, (_, content) => `<Callout type="warn">${content.trim()}</Callout>`)
+    // Convert images (but not links)
     .replace(/(?<!\[)!\[(.*?)\]\((.*?)\)/g, '<img alt="$1" src="$2" />')
-    .replace(/^!!!\s+(\w+)\s*\n/gm, ':::$1\n')
-    .replace(/^!!\s+(\w+)\s*\n/gm, '::$1\n')
+    // Convert admonition syntax (!!!, !!) to Callout
+    .replace(/^!!!\s+note\s*\n([\s\S]*?)(?=^!!!|\n\n|$)/gm, '<Callout>$1</Callout>\n')
+    .replace(/^!!!\s+tip\s*\n([\s\S]*?)(?=^!!!|\n\n|$)/gm, '<Callout type="info">$1</Callout>\n')
+    .replace(/^!!!\s+warning\s*\n([\s\S]*?)(?=^!!!|\n\n|$)/gm, '<Callout type="warn">$1</Callout>\n')
+    // Remove stray exclamation marks that aren't images or admonitions
     .replace(/^!([^[{].*?)$/gm, '$1')
+    // Convert HTML comments to MDX comments
     .replace(/<!--(.*?)-->/g, '{/* $1 */}');
 };
 
@@ -164,10 +177,12 @@ export const convertAngleBracketLinks: TransformFunction = (content) => {
 
 export const convertMermaidBlocks: TransformFunction = (content) => {
   // Convert standard Mermaid code blocks to <Mermaid> component format
+  // This works in conjunction with the shared MDX components in components/mdx/shared-components.tsx
+  // which provides a unified Mermaid component registration across all pages (docs, blog, academy)
   return content.replace(/```mermaid\n([\s\S]*?)\n```/g, (match, diagramContent) => {
     // Escape backticks in the diagram content for the template literal
     const escapedContent = diagramContent.replace(/`/g, '\\`').replace(/\$\{/g, '\\${');
-    
+
     // Return the Mermaid component with the diagram content
     return `<Mermaid chart={\`${escapedContent}\`} />`;
   });
