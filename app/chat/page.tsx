@@ -1329,8 +1329,9 @@ function ChatPageInner() {
                 )}
               </div>
 
-              {/* Right: Share button - disabled while generating */}
+              {/* Right: Share button */}
               <div className="flex items-center gap-2">
+                {/* Share button */}
                 {messages.length > 0 && (
                   <button
                     onClick={async () => {
