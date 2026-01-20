@@ -2,6 +2,7 @@ import clsx from "clsx";
 import Link from "next/link";
 import "./styles.css";
 import ReferralButton from "@/components/build-games/ReferralButton";
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 
 const imgBackground3R11 = "/build-games/background3-r1-1.png";
 const imgBackground3R1Square1 = "/build-games/background3-r1-square-1.png";
@@ -268,7 +269,7 @@ function PrizeAmount({ amount }: { amount: string }) {
   );
 }
 
-function BenefitCard({ text }: { text: string }) {
+function BenefitCard({ text, shortText }: { text: string; shortText?: string }) {
   return (
     <div className="gradient-border-card basis-0 grow h-full min-h-px min-w-px relative rounded-[16px] shrink-0">
       <div className="overflow-clip rounded-[inherit] size-full">
@@ -276,7 +277,14 @@ function BenefitCard({ text }: { text: string }) {
           <div className="basis-0 grow min-h-px min-w-px relative shrink-0 w-full">
             <div aria-hidden="true" className="absolute border-[#66acd6] border-[0px_0px_0px_4px] border-solid inset-0 pointer-events-none" />
             <div className="content-stretch flex items-start px-[24px] py-0 relative size-full">
-              <p className="font-['Aeonik:Regular',sans-serif] leading-[1.25] not-italic relative shrink-0 text-[18px] text-white w-[277.333px]">{text}</p>
+              {shortText ? (
+                <>
+                  <p className="hidden md:block font-['Aeonik:Regular',sans-serif] leading-[1.25] not-italic relative shrink-0 text-[18px] text-white w-[277.333px]">{text}</p>
+                  <p className="block md:hidden font-['Aeonik:Regular',sans-serif] leading-[1.25] not-italic relative shrink-0 text-[18px] text-white w-[277.333px]">{shortText}</p>
+                </>
+              ) : (
+                <p className="font-['Aeonik:Regular',sans-serif] leading-[1.25] not-italic relative shrink-0 text-[18px] text-white w-[277.333px]">{text}</p>
+              )}
             </div>
           </div>
         </div>
@@ -365,7 +373,7 @@ function InfoBanner({ children }: React.PropsWithChildren) {
 function BackgroundDecoration() {
   return (
     <div className="absolute inset-[10.82%_-11.98%]">
-      <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 1785.09 818.873">
+      <svg className="block size-full" fill="none" preserveAspectRatio="xMidYMid meet" viewBox="0 0 1785.09 818.873">
         <g id="Group">
           <g id="Group_2">
             <path d={svgPaths.p12c8e000} fill="url(#paint0_radial_1_1204)" id="Vector" />
@@ -598,34 +606,20 @@ function HeroTilesSection() {
 
 function ApplyTodayCTA() {
   return (
-    <div className="h-[232px] relative shrink-0 w-full" data-name="CTA">
-      <div className="flex flex-col justify-center overflow-clip rounded-[inherit] size-full">
-        <div className="content-stretch flex flex-col items-start justify-center pb-[24px] pt-0 px-[186px] relative size-full">
-          <div className="content-stretch flex gap-[16px] items-center relative shrink-0 w-full">
-            <div className="basis-0 grow min-h-px min-w-px relative shrink-0">
-              <div className="flex flex-col items-end overflow-clip rounded-[inherit] size-full">
-                <LargeHeading text="Apply Today" className="items-end" />
+    <div className="get-involved-cta relative shrink-0 w-full py-[40px]" data-name="GetInvolvedCTA">
+      <div className="flex flex-row flex-nowrap items-center justify-center gap-[16px] px-[16px]">
+        <div className="font-['Aeonik:Medium',sans-serif] font-medium text-[64px] text-nowrap text-white leading-[80px]">
+          Get Involved
+        </div>
+        <div className="flex flex-row flex-nowrap gap-[10px] items-center">
+          <ReferralButton />
+          <Link href="/build-games/apply" className="shrink-0">
+            <div className="bg-[#66acd6] flex h-[52px] items-center justify-center px-[36px] py-[12px] rounded-[3.35544e+07px] cursor-pointer hover:bg-[#7bbde3] transition-colors shadow-[0px_0px_20px_4px_rgba(102,172,214,0.5)]">
+              <div className="font-['Aeonik:Medium',sans-serif] font-medium text-[#152d44] text-[18px] text-center text-nowrap leading-[28px]">
+                Apply
               </div>
             </div>
-            <div className="basis-0 flex flex-row grow items-center self-stretch shrink-0">
-              <div className="basis-0 grow h-full min-h-px min-w-px relative shrink-0">
-                <div className="flex flex-row items-center overflow-clip rounded-[inherit] size-full">
-                  <div className="content-stretch flex items-center relative size-full py-[10px]">
-                    <div className="content-stretch flex gap-[10px] items-center relative shrink-0">
-                      <ReferralButton />
-                      <Link href="/build-games/apply" className="shadow-[0px_0px_25px_0px_rgba(46,177,255,0.55)] content-stretch flex flex-col items-center relative shrink-0">
-                        <div className="bg-[#66acd6] content-stretch flex h-[36px] items-center justify-center px-[25px] py-[7px] relative rounded-[3.35544e+07px] shrink-0 cursor-pointer hover:bg-[#7bbde3] transition-colors">
-                          <div className="flex flex-col font-['Aeonik:Medium',sans-serif] font-medium justify-center leading-[0] relative shrink-0 text-[#152d44] text-[14px] text-center text-nowrap">
-                            <p className="leading-[20px]">Apply Today</p>
-                          </div>
-                        </div>
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          </Link>
         </div>
       </div>
     </div>
@@ -706,6 +700,17 @@ function HowItWorksSection() {
             </p>
           </BodyText>
         </SectionHeader>
+        <TimelineRow className="bg-[rgba(255,255,255,0.2)]">
+          <WeekLabel text="Jan 20 - Feb 13" />
+          <ThreeColumnGrid>
+            <GridLabel text="Focus" />
+            <GridValue>Application Process</GridValue>
+            <GridHeader text="Deliverables" gridArea="1_/_2" />
+            <GridHeader text="Support" gridArea="1_/_3" />
+            <GridContent text="Submit your application" gridArea="2_/_2" />
+            <GridContent text="Help and Feedback" gridArea="2_/_3" />
+          </ThreeColumnGrid>
+        </TimelineRow>
         <TimelineRow className="bg-[rgba(255,255,255,0.15)]">
           <WeekLabel text="Week 1" />
           <ThreeColumnGrid>
@@ -718,7 +723,7 @@ function HowItWorksSection() {
           </ThreeColumnGrid>
         </TimelineRow>
         <TimelineRow className="bg-[rgba(255,255,255,0.1)]">
-          <WeekLabel text="Week 3" />
+          <WeekLabel text="Week 2 + 3" />
           <ThreeColumnGrid>
             <GridLabel text="Focus" />
             <GridValue>Prototype / MVP</GridValue>
@@ -729,7 +734,7 @@ function HowItWorksSection() {
           </ThreeColumnGrid>
         </TimelineRow>
         <TimelineRow className="bg-[rgba(255,255,255,0.06)]">
-          <WeekLabel text="Week 5" />
+          <WeekLabel text="Week 4 + 5" />
           <ThreeColumnGrid>
             <GridLabel text="Focus" />
             <GridValue>{`GTM Plan & Vision`}</GridValue>
@@ -750,6 +755,23 @@ function HowItWorksSection() {
             <GridContent text="Pitch coaching and prep" gridArea="2_/_3" />
           </ThreeColumnGrid>
         </TimelineRow>
+        <div className="content-stretch flex items-center pb-[24px] pt-[36px] px-[24px] relative shrink-0 w-full">
+          <div className="content-stretch flex flex-col items-start overflow-clip p-[10px] relative shrink-0 w-[478px]">
+            <div className="flex flex-col font-['Aeonik:Medium',sans-serif] justify-center leading-[0] not-italic relative shrink-0 text-[48px] text-nowrap text-white">
+              <p className="leading-none">Agenda</p>
+            </div>
+          </div>
+          <div className="basis-0 grow min-h-px min-w-px relative shrink-0">
+            <div className="flex flex-row items-center justify-end overflow-clip rounded-[inherit] size-full">
+              <div className="content-stretch flex gap-[24px] items-center justify-end px-[24px] py-[10px] relative w-full">
+                <p className="font-['Aeonik:Regular',sans-serif] leading-[1.5] not-italic relative shrink-0 text-[20px] text-white w-[216.941px]">
+                  Add the event agenda to your google calendar
+                </p>
+                <a href="https://calendar.google.com/calendar/u/0/r?cid=Y19mNzExYTJkN2NjZDJhZTY2MWFjYmJlMjE5MDM4ZDZmYzcwMjRjNmFiMzJjNGVmZDhhNmVkYTIxMDY1MGRiODdiQGdyb3VwLmNhbGVuZGFyLmdvb2dsZS5jb20" target="_blank" rel="noopener noreferrer"><PrimaryButton text="Add the Calendar" className="overflow-clip shadow-[0px_10px_15px_-3px_rgba(0,0,0,0.1),0px_4px_6px_-4px_rgba(0,0,0,0.1)]" /></a>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -818,7 +840,7 @@ function PrizesSection() {
               <img alt="" className="absolute max-w-none object-50%-50% object-cover rounded-[16px] size-full" src={imgFrame23} />
             </div>
             <PrizeCardContent>
-              <PrizeAmount amount="$5-10k" />
+              <PrizeAmount amount="$5-40k" />
               <CardDescription text="Category Prizes" className="py-[16px]" />
             </PrizeCardContent>
           </PrizeCard>
@@ -826,8 +848,8 @@ function PrizesSection() {
         <div className="content-stretch flex items-start justify-between relative shrink-0 w-full">
           <div className="content-stretch flex gap-[10px] h-[117px] items-center relative shrink-0 w-[1068px]">
             <BenefitCard text="Ongoing grants and ecosystem support" />
-            <BenefitCard text="Mentorship, network, and launch visibility via Avalanche channels" />
-            <BenefitCard text="Post-event paths into programs like Codebase, Grants, and ecosystem partnerships" />
+            <BenefitCard text="Mentorship, network, and launch visibility via Avalanche channels" shortText="Mentorship, network, and launch visibility" />
+            <BenefitCard text="Post-event paths into programs like Codebase, Grants, and ecosystem partnerships" shortText="Post-event paths into programs" />
           </div>
         </div>
       </div>
@@ -867,56 +889,112 @@ function WhatWereLookingForSection() {
   );
 }
 
-function KeyDatesSection() {
+function FAQsSection() {
+  const faqs = [
+    {
+      question: "What is the purpose of Build Games?",
+      answer: `Build Games exists to kickstart experimentation-first building on Avalanche.
+
+This program is designed to:
+• Attract top-tier, crypto-native builders
+• Encourage grassroots experimentation
+• Generate new apps, ideas, and onchain use cases
+• Funnel strong teams into long-term Avalanche ecosystem programs`
+    },
+    {
+      question: "Who is eligible to apply?",
+      answer: `Build Games is open to builders of all kinds.
+
+Eligible participants include:
+• Crypto-native developers
+• Builders between projects
+• Teams that are new to Avalanche
+• Anyone willing to bring a new idea to life
+
+There are no tracks, no themes, and no restrictions on what you can build.
+
+*If you have previously received funding from the Avalanche Foundation, this may be considered in the event that your project is selected as a winner.`
+    },
+    {
+      question: "When do applications close?",
+      answer: "Applications close February 13th (tentative)."
+    },
+    {
+      question: "How are projects evaluated?",
+      answer: `Projects are evaluated holistically, with a strong emphasis on experimentation, originality, and long-term potential, rather than polish or short-term traction. As well as a focus on the potential of the founding team.
+
+Judges consider factors including the quality and differentiation of the idea, the team's willingness to take risks and experiment on-chain, technical execution relative to the project's stage, the strength and crypto-native experience of the builders, and the project's potential to grow into a breakout application on Avalanche.
+
+There are no predefined tracks or categories, and strong projects may look very different from one another. The goal is to surface promising ideas and builders at scale, then support them as they emerge.`
+    },
+    {
+      question: "Can I submit multiple projects?",
+      answer: "Yes."
+    },
+    {
+      question: "How do I refer someone?",
+      answer: `1. Head over to https://build.avax.network/build-games
+2. Click "refer someone".
+3. Input your X handle.
+4. Click generate.
+5. Share your link everywhere.
+
+*You cannot refer yourself.`
+    },
+    {
+      question: "What is the competition timeline?",
+      answer: `Applications Open: January 20th
+Applications Close: February 13th
+Acceptance Letters: Rolling
+Competition Begins: February TBA
+Finals & Awards: March 2026`
+    },
+    {
+      question: "How does the prize pool work?",
+      answer: `The total prize pool is $1,000,000, designed to be flexible and outcome-driven.
+
+Planned allocations:
+
+• $100,000 grand prize
+  - $25,000 up front, $75,000 unlocked through milestones
+
+• $75,000 second place
+  - $25,000 up front, $50,000 unlocked through milestones
+
+• $50,000 third place
+  - $25,000 up front, $25,000 unlocked through milestones
+
+• $30,000 total prize pool for referrals
+  - $10,000 if you refer the 1st place winner
+  - $7,500 if you refer the 2nd place winner
+  - $5,500 if you refer the 3rd place winner
+  - $1,000 if you refer a 4th-10th place winner
+
+The remainder of winning projects will be awarded on a case-by-case basis, with total award amounts and any milestone-based unlocks determined individually.`
+    }
+  ];
+
   return (
     <div className="gradient-border-section relative rounded-[16px] shrink-0 w-full">
-      <div className="content-stretch flex flex-col gap-[16px] items-start pb-0 pt-[24px] px-[24px] relative w-full">
-        <div className="content-stretch flex items-start pb-[24px] pt-0 px-0 relative shrink-0 w-full">
-          <SectionTitle>Key Dates</SectionTitle>
-          <div className="basis-0 grow min-h-px min-w-px relative shrink-0">
-            <div className="overflow-clip rounded-[inherit] size-full">
-              <div className="content-stretch flex flex-col items-start px-[24px] py-[10px] w-full" />
-            </div>
+      <div className="content-stretch flex flex-col gap-[16px] items-start p-[24px] relative w-full">
+        <div className="content-stretch flex items-start pb-[16px] pt-0 px-0 relative shrink-0 w-full">
+          <div className="content-stretch flex flex-col gap-[10px] items-start overflow-clip p-[10px] relative shrink-0">
+            <div className="flex flex-col font-['Aeonik:Medium',sans-serif] justify-center leading-[0] not-italic relative shrink-0 text-[48px] text-white text-nowrap"><p className="leading-none">Frequently Asked Questions</p></div>
           </div>
         </div>
-      </div>
-      <div className="content-stretch flex items-start justify-between relative shrink-0 w-full px-[1px]">
-        <div className="content-stretch flex gap-[10px] items-center relative self-stretch shrink-0 w-full">
-          <DateCard>
-            <DateBadge month="JAN" day="XX" year="2026" />
-            <CardDescription text="Applications Open" className="py-[10px]" />
-          </DateCard>
-          <DateCard>
-            <DateBadge month="FEB" day="XX" year="2026" />
-            <CardDescription text="Teams Announced" className="py-[10px]" />
-          </DateCard>
-          <DateCard>
-            <DateBadge month="FEB" day="15" year="2026" />
-            <CardDescription text="Competition Begins" className="py-[10px]" />
-          </DateCard>
-          <DateCard>
-            <DateBadge month="MAR" day="XX" year="2026" />
-            <div className="content-stretch flex items-start px-0 py-[10px] relative shrink-0 w-full">
-              <p className="font-['Aeonik:Regular',sans-serif] leading-[1.25] not-italic relative shrink-0 text-[18px] text-white w-[211.5px]">{`Finals & Awards`}</p>
-            </div>
-          </DateCard>
-        </div>
-      </div>
-      <div className="content-stretch flex items-center pb-[24px] pt-[36px] px-[24px] relative shrink-0 w-full">
-        <div className="content-stretch flex flex-col items-start overflow-clip p-[10px] relative shrink-0 w-[478px]">
-          <div className="flex flex-col font-['Aeonik:Medium',sans-serif] justify-center leading-[0] not-italic relative shrink-0 text-[48px] text-nowrap text-white">
-            <p className="leading-none">Agenda</p>
-          </div>
-        </div>
-        <div className="basis-0 grow min-h-px min-w-px relative shrink-0">
-          <div className="flex flex-row items-center justify-end overflow-clip rounded-[inherit] size-full">
-            <div className="content-stretch flex gap-[24px] items-center justify-end px-[24px] py-[10px] relative w-full">
-              <p className="font-['Aeonik:Regular',sans-serif] leading-[1.5] not-italic relative shrink-0 text-[20px] text-white w-[216.941px]">
-                Add the event agenda to your google calendar
-              </p>
-              <a href="https://calendar.google.com/calendar/u/0/r?cid=Y19mNzExYTJkN2NjZDJhZTY2MWFjYmJlMjE5MDM4ZDZmYzcwMjRjNmFiMzJjNGVmZDhhNmVkYTIxMDY1MGRiODdiQGdyb3VwLmNhbGVuZGFyLmdvb2dsZS5jb20" target="_blank" rel="noopener noreferrer"><PrimaryButton text="Add the Calendar" className="overflow-clip shadow-[0px_10px_15px_-3px_rgba(0,0,0,0.1),0px_4px_6px_-4px_rgba(0,0,0,0.1)]" /></a>
-            </div>
-          </div>
+        <div className="w-full">
+          <Accordion type="single" collapsible className="w-full">
+            {faqs.map((faq, index) => (
+              <AccordionItem key={index} value={`item-${index}`} className="border-b border-[rgba(102,172,214,0.3)]">
+                <AccordionTrigger className="text-white text-[1.5rem] leading-[2] font-['Aeonik:Medium',sans-serif] hover:no-underline py-[20px]">
+                  {faq.question}
+                </AccordionTrigger>
+                <AccordionContent className="text-[rgba(255,255,255,0.8)] text-[18px] font-['Aeonik:Regular',sans-serif] whitespace-pre-wrap leading-[1.6]">
+                  {faq.answer}
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
         </div>
       </div>
     </div>
@@ -930,7 +1008,11 @@ function FinalCTASection() {
         <div className="content-stretch flex flex-col items-center relative shrink-0 w-full">
           <div className="relative shrink-0 w-full">
             <div className="flex flex-col items-center overflow-clip rounded-[inherit] size-full">
-              <LargeHeading text="Apply Today" className="items-center" />
+              <div className="content-stretch flex flex-col gap-[10px] p-[10px] relative w-full items-center">
+                <div className="flex flex-col font-['Aeonik:Medium',sans-serif] font-medium justify-center leading-[0] not-italic relative shrink-0 text-[64px] text-nowrap text-white">
+                  <p className="leading-[80px]">Get Involved</p>
+                </div>
+              </div>
             </div>
           </div>
           <div className="content-stretch flex items-start justify-between relative shrink-0 w-full">
@@ -954,10 +1036,10 @@ function FinalCTASection() {
               <div className="content-stretch flex items-center justify-center relative size-full py-0">
                 <div className="content-stretch flex gap-[10px] items-center relative shrink-0">
                   <ReferralButton />
-                  <Link href="/build-games/apply" className="shadow-[0px_0px_25px_0px_rgba(46,177,255,0.55)] content-stretch flex flex-col items-center relative shrink-0">
-                    <div className="bg-[#66acd6] content-stretch flex h-[36px] items-center justify-center px-[25px] py-[7px] relative rounded-[3.35544e+07px] shrink-0 cursor-pointer hover:bg-[#7bbde3] transition-colors">
-                      <div className="flex flex-col font-['Aeonik:Medium',sans-serif] font-medium justify-center leading-[0] relative shrink-0 text-[#152d44] text-[14px] text-center text-nowrap">
-                        <p className="leading-[20px]">Apply Today</p>
+                  <Link href="/build-games/apply" className="content-stretch flex flex-col items-center relative shrink-0">
+                    <div className="bg-[#66acd6] content-stretch flex h-[52px] items-center justify-center px-[36px] py-[12px] relative rounded-[3.35544e+07px] shrink-0 cursor-pointer hover:bg-[#7bbde3] transition-colors shadow-[0px_0px_20px_4px_rgba(102,172,214,0.5)]">
+                      <div className="flex flex-col font-['Aeonik:Medium',sans-serif] font-medium justify-center leading-[0] relative shrink-0 text-[#152d44] text-[18px] text-center text-nowrap">
+                        <p className="leading-[28px]">Apply</p>
                       </div>
                     </div>
                   </Link>
@@ -986,7 +1068,7 @@ function MainContent() {
             <PrizesSection />
             <div className="h-[24px] shrink-0 w-[197px]" data-name="Spacer" />
             <WhatWereLookingForSection />
-            <KeyDatesSection />
+            <FAQsSection />
             <FinalCTASection />
           </div>
         </div>
@@ -996,7 +1078,7 @@ function MainContent() {
 }
 
 function BackgroundDecorationUpper() {
-  return (<div className="absolute h-[1045px] left-1/2 -translate-x-1/2 opacity-25 top-[629px] w-full"><BackgroundDecoration /></div>);
+  return (<div className="absolute h-[1045px] left-1/2 -translate-x-1/2 opacity-25 top-[920px] w-full"><BackgroundDecoration /></div>);
 }
 
 function BackgroundDecorationLower() {
