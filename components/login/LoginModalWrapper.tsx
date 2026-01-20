@@ -87,8 +87,16 @@ export function LoginModalWrapper() {
 
   const handleTermsSuccess = async () => {
     // Fetch fresh session to get the real user ID (user was just created in DB)
-    const freshSession = await getSession();
-    const realUserId = freshSession?.user?.id;
+    // Try multiple times if needed to ensure we get the real ID
+    let freshSession = await getSession();
+    let realUserId = freshSession?.user?.id;
+
+    // If still pending, try again after a delay
+    if (realUserId?.startsWith("pending_")) {
+      await new Promise(resolve => setTimeout(resolve, 300));
+      freshSession = await getSession();
+      realUserId = freshSession?.user?.id;
+    }
 
     // Mark as completed in localStorage to prevent re-showing
     // Use the real user ID if available, otherwise use the pending one

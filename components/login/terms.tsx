@@ -78,10 +78,11 @@ export const Terms = ({
           throw new Error("Failed to create user account");
         }
 
-        // Update session to get the new user ID
+        // Force multiple session updates to ensure the JWT callback re-queries the DB
+        // and gets the real user ID instead of pending_xxx
         await update();
-
-        // Small delay to ensure session propagates
+        await new Promise(resolve => setTimeout(resolve, 300));
+        await update();
         await new Promise(resolve => setTimeout(resolve, 200));
       } else {
         // Existing user - just save to API
