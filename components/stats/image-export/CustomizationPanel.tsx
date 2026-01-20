@@ -76,6 +76,7 @@ interface CustomizationPanelProps {
   onUpdateAnnotation?: (id: string, updates: Partial<Annotation>) => void;
   onDeleteAnnotation?: (id: string) => void;
   onClearAllAnnotations?: () => void;
+  hideReset?: boolean;
 }
 
 interface CollapsibleSectionProps {
@@ -147,11 +148,12 @@ export function CustomizationPanel({
   onUpdateAnnotation,
   onDeleteAnnotation,
   onClearAllAnnotations,
+  hideReset = false,
 }: CustomizationPanelProps) {
   return (
     <div className="flex flex-col gap-3">
       {/* Reset button */}
-      {isCustomized && (
+      {isCustomized && !hideReset && (
         <div className="flex justify-end pb-2 border-b border-border">
           <button
             type="button"

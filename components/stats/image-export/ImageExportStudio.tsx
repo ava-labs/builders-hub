@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, useEffect, useMemo, useCallback } from "react";
-import { X, Download, Copy, Loader2, TrendingUp, BarChart3, AreaChart, HelpCircle, Save, Settings2, Pencil, Trash2, Check, Upload, FileDown } from "lucide-react";
+import { X, Download, Copy, Loader2, TrendingUp, BarChart3, AreaChart, HelpCircle, Save, Settings2, Pencil, Trash2, Check, Upload, FileDown, ChevronUp, ChevronDown, RotateCcw } from "lucide-react";
 import {
   ResponsiveContainer,
   ComposedChart,
@@ -34,6 +34,13 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "next-themes";
 import { PresetSelector } from "./PresetSelector";
@@ -191,6 +198,10 @@ export function ImageExportStudio({
     width: 1280,
     height: 720,
   });
+
+  // Mobile collapsible section state
+  const [mobileMetricsExpanded, setMobileMetricsExpanded] = useState(false);
+  const [mobileCustomizeExpanded, setMobileCustomizeExpanded] = useState(false);
 
   // Collage metrics data hook
   const { metricsData } = useCollageMetrics(
@@ -1096,8 +1107,288 @@ export function ImageExportStudio({
         hideCloseButton
       >
         {/* Header */}
-        <DialogHeader className="px-5 py-3 border-b shrink-0">
-          <div className="flex items-center justify-between gap-4">
+        <DialogHeader className="shrink-0">
+          {/* Mobile Header - Row 1: Title, Mode Toggle, Chart Type */}
+          <div className="flex md:hidden items-center justify-between px-4 py-2 border-b">
+            {/* Left: Title + Mode Toggle */}
+            <div className="flex items-center gap-2">
+              <DialogTitle className="text-sm font-semibold">Image Studio</DialogTitle>
+              {/* Mode Toggle (compact) */}
+              {hasCollageMode && (
+                <div className="flex items-center bg-muted border border-border rounded-md p-0.5">
+                  <button
+                    onClick={() => {
+                      if (activeMode !== "single") {
+                        clearAllAnnotations();
+                        setActiveMode("single");
+                      }
+                    }}
+                    className={cn(
+                      "px-2 py-0.5 text-[11px] font-medium rounded transition-colors",
+                      activeMode === "single"
+                        ? "bg-background text-foreground shadow-sm border border-border"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    Single
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (activeMode !== "collage") {
+                        clearAllAnnotations();
+                        setActiveMode("collage");
+                      }
+                    }}
+                    className={cn(
+                      "px-2 py-0.5 text-[11px] font-medium rounded transition-colors",
+                      activeMode === "collage"
+                        ? "bg-background text-foreground shadow-sm border border-border"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    Collage
+                  </button>
+                </div>
+              )}
+            </div>
+            {/* Right: Chart Type Icons */}
+            <div className="flex items-center bg-muted border border-border rounded-md p-0.5">
+              {(["line", "bar", "area"] as ChartType[]).map((type) => (
+                <button
+                  key={type}
+                  onClick={() => setChartType(type)}
+                  className={cn(
+                    "p-1 rounded transition-colors",
+                    settings.chartType === type
+                      ? "bg-background text-foreground shadow-sm border border-border"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                  title={type.charAt(0).toUpperCase() + type.slice(1)}
+                >
+                  {CHART_TYPE_ICONS[type]}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Mobile Header - Row 2: Period, Preset, Actions */}
+          <div className="flex md:hidden items-center justify-between px-4 py-2 border-b gap-2">
+            {/* Left: Period dropdown */}
+            {period && onPeriodChange && (
+              <Select value={period} onValueChange={(value) => onPeriodChange(value as Period)}>
+                <SelectTrigger className="w-[60px] h-8 text-xs">
+                  <span data-slot="select-value" className="truncate">{period}</span>
+                </SelectTrigger>
+                <SelectContent>
+                  {allowedPeriods.map((p) => (
+                    <SelectItem key={p} value={p} className="text-xs">
+                      {p === "D" ? "Daily" : p === "W" ? "Weekly" : p === "M" ? "Monthly" : p === "Q" ? "Quarterly" : "Yearly"}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+
+            {/* Center: Preset selector */}
+            <div className="flex-1 min-w-0">
+              {isRenamingTemplate && selectedTemplateId ? (
+                <div className="flex items-center gap-1">
+                  <input
+                    type="text"
+                    value={renameValue}
+                    onChange={(e) => setRenameValue(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && renameValue.trim()) {
+                        handleRenameTemplate(selectedTemplateId, renameValue.trim());
+                        setIsRenamingTemplate(false);
+                        setRenameValue("");
+                      } else if (e.key === "Escape") {
+                        setIsRenamingTemplate(false);
+                        setRenameValue("");
+                      }
+                    }}
+                    className="flex-1 min-w-0 px-2 py-1 text-xs bg-background border border-input rounded-md focus:outline-none focus:ring-1 focus:ring-primary"
+                    autoFocus
+                    placeholder="Template name"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (renameValue.trim()) {
+                        handleRenameTemplate(selectedTemplateId, renameValue.trim());
+                      }
+                      setIsRenamingTemplate(false);
+                      setRenameValue("");
+                    }}
+                    className="p-1 rounded text-green-600"
+                  >
+                    <Check className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsRenamingTemplate(false);
+                      setRenameValue("");
+                    }}
+                    className="p-1 rounded text-muted-foreground"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ) : isCreatingTemplate ? (
+                <div className="flex items-center gap-1">
+                  <input
+                    type="text"
+                    value={newTemplateName}
+                    onChange={(e) => setNewTemplateName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        handleCreateTemplate(newTemplateName);
+                      } else if (e.key === "Escape") {
+                        setIsCreatingTemplate(false);
+                        setNewTemplateName("");
+                      }
+                    }}
+                    className="flex-1 min-w-0 px-2 py-1 text-xs bg-background border border-input rounded-md focus:outline-none focus:ring-1 focus:ring-primary"
+                    autoFocus
+                    placeholder="New template name"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleCreateTemplate(newTemplateName)}
+                    disabled={!newTemplateName.trim()}
+                    className={cn(
+                      "p-1 rounded",
+                      newTemplateName.trim() ? "text-green-600" : "text-muted-foreground/30"
+                    )}
+                  >
+                    <Check className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsCreatingTemplate(false);
+                      setNewTemplateName("");
+                    }}
+                    className="p-1 rounded text-muted-foreground"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <PresetSelector
+                  value={selectedTemplateId || settings.preset}
+                  onChange={handlePresetChange}
+                  showLabel={false}
+                  customTemplates={templates}
+                />
+              )}
+            </div>
+
+            {/* Right: Action buttons */}
+            <div className="flex items-center gap-0.5">
+              {/* Import templates */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                  >
+                    <Upload className="h-4 w-4" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-44">
+                  <DropdownMenuItem onClick={() => fileInputRef.current?.click()}>
+                    <Upload className="h-3.5 w-3.5 mr-2" />
+                    Import templates
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={handleExportAllTemplates}
+                    disabled={templates.length === 0}
+                  >
+                    <FileDown className="h-3.5 w-3.5 mr-2" />
+                    Export all ({templates.length})
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* Template settings - only show when custom template selected */}
+              {showCustomizePanel && selectedTemplateId && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      type="button"
+                      className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                    >
+                      <Settings2 className="h-4 w-4" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-40">
+                    <DropdownMenuItem onClick={() => {
+                      const template = templates.find(t => t.id === selectedTemplateId);
+                      if (template) {
+                        setRenameValue(template.name);
+                        setIsRenamingTemplate(true);
+                      }
+                    }}>
+                      <Pencil className="h-3.5 w-3.5 mr-2" />
+                      Rename
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => handleDuplicateTemplate(selectedTemplateId)}
+                      disabled={!canSaveMore}
+                    >
+                      <Copy className="h-3.5 w-3.5 mr-2" />
+                      Duplicate
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleExportTemplate(selectedTemplateId)}>
+                      <FileDown className="h-3.5 w-3.5 mr-2" />
+                      Export
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={() => handleDeleteTemplate(selectedTemplateId)}
+                      className="text-red-600 focus:text-red-600"
+                    >
+                      <Trash2 className="h-3.5 w-3.5 mr-2" />
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+
+              {/* Save template - only in Customize mode */}
+              {showCustomizePanel && (
+                <button
+                  type="button"
+                  onClick={handleSaveTemplate}
+                  disabled={(!selectedTemplateId && !canSaveMore) || saveSuccess}
+                  className={cn(
+                    "p-1.5 rounded-md transition-all duration-200",
+                    saveSuccess
+                      ? "text-green-600 bg-green-100 dark:bg-green-900/30"
+                      : (selectedTemplateId || canSaveMore)
+                        ? "text-muted-foreground hover:text-foreground hover:bg-muted"
+                        : "text-muted-foreground/30 cursor-not-allowed"
+                  )}
+                >
+                  {saveSuccess ? <Check className="h-4 w-4" /> : <Save className="h-4 w-4" />}
+                </button>
+              )}
+
+              {/* Close button */}
+              <button
+                type="button"
+                onClick={onClose}
+                className="p-1.5 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* Desktop Header */}
+          <div className="hidden md:flex items-center justify-between gap-4 px-5 py-3 border-b">
             {/* Left: Title, mode toggle, and dimensions */}
             <div className="flex items-center gap-3 shrink-0">
               <DialogTitle className="text-base font-semibold">
@@ -1470,11 +1761,68 @@ export function ImageExportStudio({
           </div>
         </DialogHeader>
 
+        {/* Mobile: Collapsible Metrics Section (Collage mode only) */}
+        {isCollageMode && (
+          <div className="md:hidden border-b">
+            <button
+              onClick={() => setMobileMetricsExpanded(!mobileMetricsExpanded)}
+              className={cn(
+                "w-full px-4 py-3 flex items-center",
+                mobileMetricsExpanded ? "justify-between" : "justify-center"
+              )}
+            >
+              <span className="flex items-center gap-2 text-sm font-normal">
+                {mobileMetricsExpanded ? (
+                  <>
+                    <ChevronUp className="h-4 w-4" /> Hide
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="h-4 w-4" /> {selectedMetrics.length} metrics selected
+                  </>
+                )}
+              </span>
+              {mobileMetricsExpanded && (
+                <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const toSelect = availableMetrics.slice(0, 9).map((m) => m.metricKey);
+                      setSelectedMetrics(toSelect);
+                    }}
+                    className="text-xs px-2 py-1 rounded border border-border bg-muted hover:bg-muted/80 hover:border-foreground/30 transition-colors"
+                  >
+                    All
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedMetrics([])}
+                    className="text-xs px-2 py-1 rounded border border-border bg-muted hover:bg-muted/80 hover:border-foreground/30 transition-colors"
+                  >
+                    Clear
+                  </button>
+                </div>
+              )}
+            </button>
+            {mobileMetricsExpanded && (
+              <div className="max-h-[300px] overflow-y-auto px-4 pb-4 overscroll-contain touch-pan-y">
+                <CollageMetricSelector
+                  availableMetrics={availableMetrics}
+                  selectedMetrics={selectedMetrics}
+                  onSelectionChange={setSelectedMetrics}
+                  metricsData={metricsData}
+                  hideHeader={true}
+                />
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Content */}
-        <div className="flex flex-1 overflow-hidden min-h-0">
-          {/* Collage Mode: Metric Selector (left side) */}
+        <div className="flex flex-col md:flex-row flex-1 overflow-hidden min-h-0">
+          {/* Collage Mode: Metric Selector (left side) - Desktop only */}
           {isCollageMode && (
-            <div className="w-[240px] border-r p-4 overflow-y-auto shrink-0 bg-background">
+            <div className="hidden md:block w-[240px] border-r p-4 overflow-y-auto shrink-0 bg-background">
               <CollageMetricSelector
                 availableMetrics={availableMetrics}
                 selectedMetrics={selectedMetrics}
@@ -1699,9 +2047,9 @@ export function ImageExportStudio({
             )}
           </div>
 
-          {/* Customization panel (right side) */}
+          {/* Customization panel (right side) - Desktop only */}
           {showCustomizePanel && (
-            <div className="border-l p-4 overflow-y-auto shrink-0 w-[280px] bg-background">
+            <div className="hidden md:block border-l p-4 overflow-y-auto shrink-0 w-[280px] bg-background">
               <CustomizationPanel
                 settings={settings}
                 isCustomized={isCustomized}
@@ -1746,6 +2094,90 @@ export function ImageExportStudio({
             </div>
           )}
         </div>
+
+        {/* Mobile: Collapsible Customize Section */}
+        {showCustomizePanel && (
+          <div className="md:hidden border-t shrink-0">
+            <button
+              onClick={() => setMobileCustomizeExpanded(!mobileCustomizeExpanded)}
+              className="w-full px-4 py-3 flex items-center justify-between"
+            >
+              <span className="flex items-center gap-2 text-sm font-normal">
+                {mobileCustomizeExpanded ? (
+                  <>
+                    <ChevronUp className="h-4 w-4" /> Hide
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="h-4 w-4" /> Customize
+                  </>
+                )}
+              </span>
+              {/* Reset button on the right side - only when expanded and customized */}
+              {mobileCustomizeExpanded && isCustomized && (
+                <span
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    resetToPreset();
+                  }}
+                  className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  Reset
+                </span>
+              )}
+            </button>
+            {mobileCustomizeExpanded && (
+              <div
+                className="h-[300px] overflow-y-auto px-4 pb-4 overscroll-contain"
+                style={{ WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
+              >
+                <CustomizationPanel
+                  settings={settings}
+                  isCustomized={isCustomized}
+                  isCollageMode={isCollageMode}
+                  collageMetricCount={selectedMetrics.length}
+                  collageGridLayout={collageSettings.gridLayout}
+                  onCollageGridLayoutChange={(layout) => setCollageSettings(prev => ({ ...prev, gridLayout: layout }))}
+                  onAspectRatioChange={setAspectRatio}
+                  customAspectRatio={customAspectRatio}
+                  onCustomAspectRatioChange={setCustomAspectRatio}
+                  onPaddingChange={setPadding}
+                  onLogoChange={setLogo}
+                  onTitleChange={setTitle}
+                  onBackgroundChange={setBackground}
+                  onFooterChange={setFooter}
+                  onThemeChange={setTheme}
+                  onWatermarkChange={setWatermark}
+                  onChartDisplayChange={setChartDisplay}
+                  onExportQualityChange={setExportQuality}
+                  onDescriptionChange={setDescription}
+                  onReset={resetToPreset}
+                  // Annotation props
+                  annotations={annotations}
+                  activeToolType={activeToolType}
+                  selectedAnnotationId={selectedAnnotationId}
+                  selectedColor={selectedColor}
+                  selectedSize={selectedSize}
+                  selectedOpacity={selectedOpacity}
+                  selectedLineStyle={selectedLineStyle}
+                  selectedArrowheadStyle={selectedArrowheadStyle}
+                  onAnnotationToolSelect={setActiveToolType}
+                  onAnnotationSelect={setSelectedAnnotationId}
+                  onAnnotationColorChange={setSelectedColor}
+                  onAnnotationSizeChange={setSelectedSize}
+                  onAnnotationOpacityChange={setSelectedOpacity}
+                  onAnnotationLineStyleChange={setSelectedLineStyle}
+                  onAnnotationArrowheadStyleChange={setSelectedArrowheadStyle}
+                  onUpdateAnnotation={updateAnnotation}
+                  onDeleteAnnotation={deleteAnnotation}
+                  onClearAllAnnotations={clearAllAnnotations}
+                  hideReset={true}
+                />
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Footer with action buttons */}
         <div className="px-5 py-3 border-t flex gap-3 shrink-0">

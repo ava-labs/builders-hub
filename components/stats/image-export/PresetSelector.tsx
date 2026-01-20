@@ -63,7 +63,7 @@ export function PresetSelector({
               "bg-background border border-input rounded-md",
               "hover:bg-accent hover:text-accent-foreground",
               "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
-              "min-w-[150px]"
+              "min-w-0 md:min-w-[150px]"
             )}
           >
             <span className="truncate">{displayLabel}</span>

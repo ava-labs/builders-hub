@@ -27,6 +27,7 @@ interface CollageMetricSelectorProps {
   onSelectionChange: (selected: string[]) => void;
   metricsData: Map<string, CollageMetricData>;
   maxSelections?: number;
+  hideHeader?: boolean;
 }
 
 interface SortableMetricItemProps {
@@ -127,6 +128,7 @@ export function CollageMetricSelector({
   onSelectionChange,
   metricsData,
   maxSelections = MAX_CHARTS,
+  hideHeader = false,
 }: CollageMetricSelectorProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -184,33 +186,35 @@ export function CollageMetricSelector({
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="flex items-center justify-between pb-3 border-b border-border">
-        <div>
-          <h3 className="text-sm font-medium">Select Metrics</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {selectedMetrics.length} of {maxSelections} selected
-          </p>
+      {/* Header - can be hidden for mobile collapsible view */}
+      {!hideHeader && (
+        <div className="flex items-center justify-between pb-3 border-b border-border">
+          <div>
+            <h3 className="text-sm font-medium">Select Metrics</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {selectedMetrics.length} of {maxSelections} selected
+            </p>
+          </div>
+          <div className="flex gap-1">
+            <button
+              type="button"
+              onClick={handleSelectAll}
+              disabled={selectedMetrics.length === Math.min(availableMetrics.length, maxSelections)}
+              className="text-xs px-2 py-1 rounded border border-border bg-muted hover:bg-muted/80 hover:border-foreground/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              All
+            </button>
+            <button
+              type="button"
+              onClick={handleClearAll}
+              disabled={selectedMetrics.length === 0}
+              className="text-xs px-2 py-1 rounded border border-border bg-muted hover:bg-muted/80 hover:border-foreground/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              Clear
+            </button>
+          </div>
         </div>
-        <div className="flex gap-1">
-          <button
-            type="button"
-            onClick={handleSelectAll}
-            disabled={selectedMetrics.length === Math.min(availableMetrics.length, maxSelections)}
-            className="text-xs px-2 py-1 rounded border border-border bg-muted hover:bg-muted/80 hover:border-foreground/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            All
-          </button>
-          <button
-            type="button"
-            onClick={handleClearAll}
-            disabled={selectedMetrics.length === 0}
-            className="text-xs px-2 py-1 rounded border border-border bg-muted hover:bg-muted/80 hover:border-foreground/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            Clear
-          </button>
-        </div>
-      </div>
+      )}
 
       {/* Metric List */}
       <div className="flex-1 overflow-y-auto py-2">
