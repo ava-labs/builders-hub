@@ -6,17 +6,17 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient, RedisClientType } from 'redis';
+import { createClient } from 'redis';
 import { createHash } from 'crypto';
 
 // Singleton Redis client for connection reuse
-let redisClient: RedisClientType | null = null;
-let redisPromise: Promise<RedisClientType> | null = null;
+let redisClient: ReturnType<typeof createClient> | null = null;
+let redisPromise: Promise<ReturnType<typeof createClient>> | null = null;
 
 /**
  * Get or create Redis client connection
  */
-async function getRedisClient(): Promise<RedisClientType> {
+async function getRedisClient() {
   if (redisClient?.isOpen) {
     return redisClient;
   }
@@ -95,7 +95,7 @@ export async function checkMCPRateLimit(request: NextRequest): Promise<NextRespo
 
     // Get current request timestamps from Redis
     const data = await redis.get(key);
-    const timestamps: number[] = data ? JSON.parse(data) : [];
+    const timestamps: number[] = data ? JSON.parse(data.toString()) : [];
 
     // Remove timestamps outside the current window
     const validTimestamps = timestamps.filter(t => now - t < WINDOW_MS);
@@ -154,7 +154,7 @@ export async function getRateLimitHeaders(request: NextRequest): Promise<Record<
   try {
     const redis = await getRedisClient();
     const data = await redis.get(key);
-    const timestamps: number[] = data ? JSON.parse(data) : [];
+    const timestamps: number[] = data ? JSON.parse(data.toString()) : [];
     const validTimestamps = timestamps.filter(t => now - t < WINDOW_MS);
 
     const remaining = Math.max(0, MAX_REQUESTS - validTimestamps.length);
