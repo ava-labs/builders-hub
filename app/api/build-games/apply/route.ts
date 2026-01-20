@@ -260,110 +260,76 @@ export async function POST(request: Request) {
   }
 }
 
-// Save application to database
+// Save application to BuildGamesApplication table
 async function saveToDatabase(formData: Record<string, unknown>): Promise<{ success: boolean; id?: string; error?: string }> {
   console.log('[Build Games Apply DB] Starting database save...');
-
-  if (!BUILD_GAMES_HACKATHON_ID) {
-    console.warn('[Build Games Apply DB] BUILD_GAMES_HACKATHON_ID not set, skipping database save');
-    return { success: false, error: 'Hackathon ID not configured' };
-  }
 
   const email = formData.email as string;
   console.log('[Build Games Apply DB] Email:', email);
   if (!email) return { success: false, error: 'Email is required' };
 
   try {
-    console.log('[Build Games Apply DB] Looking up user...');
-    const user = await prisma.user.findUnique({
-      where: { email: email },
-      select: { id: true },
-    });
-
-    if (!user) {
-      console.error(`[Build Games Apply DB] User with email ${email} not found in database`);
-      return { success: false, error: 'User not found. Please ensure you are logged in.' };
-    }
-    console.log('[Build Games Apply DB] User found:', user.id);
-
-    // Verify hackathon exists
-    console.log('[Build Games Apply DB] Looking up hackathon:', BUILD_GAMES_HACKATHON_ID);
-    const hackathon = await prisma.hackathon.findUnique({
-      where: { id: BUILD_GAMES_HACKATHON_ID },
-      select: { id: true },
-    });
-
-    if (!hackathon) {
-      console.error(`[Build Games Apply DB] Hackathon with ID ${BUILD_GAMES_HACKATHON_ID} not found`);
-      return { success: false, error: 'Hackathon configuration error' };
-    }
-    console.log('[Build Games Apply DB] Hackathon found');
-
-    const registrationData = {
-      name: `${formData.firstName || ''} ${formData.lastName || ''}`.trim(),
+    const applicationData = {
       email: email,
-      city: (formData.country as string) || '',
-      telegram_user: (formData.telegram as string) || null,
-      github_portfolio: (formData.github as string) || null,
-      role: (formData.employmentRole as string) || '',
-      hackathon_participation: formData.hackathonExperience === 'yes' ? 'Yes, participated before' : 'No prior experience',
-      newsletter_subscription: formData.marketingConsent === true,
-      terms_event_conditions: formData.privacyPolicyRead === true,
-      utm: (formData.howDidYouHear as string) || '',
+      first_name: (formData.firstName as string) || '',
+      last_name: (formData.lastName as string) || '',
+      telegram: (formData.telegram as string) || null,
+      github: (formData.github as string) || null,
+      country: (formData.country as string) || '',
+      ready_to_win: (formData.readyToWin as string) || '',
+      previous_avalanche_grant: (formData.previousAvalancheGrant as string) || '',
+      hackathon_experience: (formData.hackathonExperience as string) || null,
+      hackathon_details: (formData.hackathonDetails as string) || null,
+      employment_role: (formData.employmentRole as string) || null,
+      current_role: (formData.currentRole as string) || null,
+      employment_status: (formData.employmentStatus as string) || null,
+      project_name: (formData.projectName as string) || '',
+      project_description: (formData.projectDescription as string) || '',
+      area_of_focus: (formData.areaOfFocus as string) || '',
+      why_you: (formData.whyYou as string) || '',
+      how_did_you_hear: (formData.howDidYouHear as string) || '',
+      how_did_you_hear_specify: (formData.howDidYouHearSpecify as string) || null,
+      referrer_name: (formData.referrerName as string) || null,
       referrer_handle: (formData.referrer as string) || null,
-      interests: '',
-      languages: '',
-      roles: '',
-      tools: '',
-      web3_proficiency: '',
-      prohibited_items: false,
+      university_affiliation: (formData.universityAffiliation as string) || '',
+      avalanche_ecosystem_member: (formData.avalancheEcosystemMember as string) || '',
+      privacy_policy_read: formData.privacyPolicyRead === true,
+      marketing_consent: formData.marketingConsent === true,
     };
 
-    console.log('[Build Games Apply DB] Upserting registration with data:', JSON.stringify(registrationData, null, 2));
-    const result = await prisma.registerForm.upsert({
-      where: {
-        hackathon_id_email: {
-          hackathon_id: BUILD_GAMES_HACKATHON_ID,
-          email: email,
-        },
-      },
+    console.log('[Build Games Apply DB] Upserting application with data:', JSON.stringify(applicationData, null, 2));
+
+    const result = await prisma.buildGamesApplication.upsert({
+      where: { email: email },
       update: {
-        name: registrationData.name,
-        city: registrationData.city,
-        telegram_user: registrationData.telegram_user,
-        github_portfolio: registrationData.github_portfolio,
-        role: registrationData.role,
-        hackathon_participation: registrationData.hackathon_participation,
-        newsletter_subscription: registrationData.newsletter_subscription,
-        terms_event_conditions: registrationData.terms_event_conditions,
-        utm: registrationData.utm,
-        referrer_handle: registrationData.referrer_handle,
+        first_name: applicationData.first_name,
+        last_name: applicationData.last_name,
+        telegram: applicationData.telegram,
+        github: applicationData.github,
+        country: applicationData.country,
+        ready_to_win: applicationData.ready_to_win,
+        previous_avalanche_grant: applicationData.previous_avalanche_grant,
+        hackathon_experience: applicationData.hackathon_experience,
+        hackathon_details: applicationData.hackathon_details,
+        employment_role: applicationData.employment_role,
+        current_role: applicationData.current_role,
+        employment_status: applicationData.employment_status,
+        project_name: applicationData.project_name,
+        project_description: applicationData.project_description,
+        area_of_focus: applicationData.area_of_focus,
+        why_you: applicationData.why_you,
+        how_did_you_hear: applicationData.how_did_you_hear,
+        how_did_you_hear_specify: applicationData.how_did_you_hear_specify,
+        referrer_name: applicationData.referrer_name,
+        referrer_handle: applicationData.referrer_handle,
+        university_affiliation: applicationData.university_affiliation,
+        avalanche_ecosystem_member: applicationData.avalanche_ecosystem_member,
+        privacy_policy_read: applicationData.privacy_policy_read,
+        marketing_consent: applicationData.marketing_consent,
       },
-      create: {
-        hackathon: {
-          connect: { id: BUILD_GAMES_HACKATHON_ID },
-        },
-        user: {
-          connect: { email: email },
-        },
-        name: registrationData.name,
-        city: registrationData.city,
-        telegram_user: registrationData.telegram_user,
-        github_portfolio: registrationData.github_portfolio,
-        role: registrationData.role,
-        hackathon_participation: registrationData.hackathon_participation,
-        newsletter_subscription: registrationData.newsletter_subscription,
-        terms_event_conditions: registrationData.terms_event_conditions,
-        utm: registrationData.utm,
-        referrer_handle: registrationData.referrer_handle,
-        interests: registrationData.interests,
-        languages: registrationData.languages,
-        roles: registrationData.roles,
-        tools: registrationData.tools,
-        web3_proficiency: registrationData.web3_proficiency,
-        prohibited_items: registrationData.prohibited_items,
-      },
+      create: applicationData,
     });
+
     console.log('[Build Games Apply DB] Successfully saved, ID:', result.id);
     return { success: true, id: result.id };
   } catch (error) {
