@@ -163,12 +163,83 @@ export default function BuildGamesApplyForm() {
 
   if (status === "loading" || status === "unauthenticated") {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-          <p className="text-muted-foreground">
-            {status === "loading" ? "Loading..." : "Redirecting to login..."}
-          </p>
+      <div className="min-h-screen bg-black">
+        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+          <div className="grid gap-8 lg:grid-cols-[280px_1fr]">
+            {/* Sidebar Skeleton */}
+            <aside className="hidden lg:block">
+              <div className="sticky top-8">
+                <div className="mb-4 flex items-center gap-3 pb-4 border-b border-border">
+                  <div className="w-10 h-10 rounded bg-zinc-800 animate-pulse" />
+                  <div className="h-5 w-36 rounded bg-zinc-800 animate-pulse" />
+                </div>
+                <nav className="space-y-2">
+                  {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+                    <div key={i} className="flex items-center gap-4 rounded-lg p-[6px]">
+                      <div className="h-10 w-10 shrink-0 rounded bg-zinc-800 animate-pulse" />
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 w-24 rounded bg-zinc-800 animate-pulse" />
+                        <div className="h-3 w-32 rounded bg-zinc-800/60 animate-pulse" />
+                      </div>
+                    </div>
+                  ))}
+                </nav>
+              </div>
+            </aside>
+
+            {/* Form Skeleton */}
+            <main>
+              <div className="rounded-xl border border-zinc-800 bg-[#030303] p-6 sm:p-8">
+                {/* Header Skeleton */}
+                <div className="mb-8">
+                  <div className="h-8 w-48 rounded bg-zinc-800 animate-pulse" />
+                  <div className="mt-2 h-4 w-64 rounded bg-zinc-800/60 animate-pulse" />
+                </div>
+
+                {/* Form Fields Skeleton */}
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <div className="h-4 w-28 rounded bg-zinc-800 animate-pulse" />
+                    <div className="h-12 w-full rounded bg-zinc-800/50 animate-pulse" />
+                  </div>
+
+                  <div className="grid gap-6 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <div className="h-4 w-24 rounded bg-zinc-800 animate-pulse" />
+                      <div className="h-12 w-full rounded bg-zinc-800/50 animate-pulse" />
+                    </div>
+                    <div className="space-y-2">
+                      <div className="h-4 w-24 rounded bg-zinc-800 animate-pulse" />
+                      <div className="h-12 w-full rounded bg-zinc-800/50 animate-pulse" />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="h-4 w-20 rounded bg-zinc-800 animate-pulse" />
+                    <div className="h-12 w-full rounded bg-zinc-800/50 animate-pulse" />
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="h-4 w-32 rounded bg-zinc-800 animate-pulse" />
+                    <div className="h-3 w-48 rounded bg-zinc-800/40 animate-pulse" />
+                    <div className="h-12 w-full rounded bg-zinc-800/50 animate-pulse" />
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="h-4 w-44 rounded bg-zinc-800 animate-pulse" />
+                    <div className="h-3 w-72 rounded bg-zinc-800/40 animate-pulse" />
+                    <div className="h-12 w-full rounded bg-zinc-800/50 animate-pulse" />
+                  </div>
+                </div>
+
+                {/* Navigation Skeleton */}
+                <div className="mt-8 flex items-center justify-between border-t border-border pt-6">
+                  <div className="h-10 w-28 rounded bg-zinc-800/50 animate-pulse" />
+                  <div className="h-10 w-28 rounded bg-zinc-800 animate-pulse" />
+                </div>
+              </div>
+            </main>
+          </div>
         </div>
       </div>
     );
