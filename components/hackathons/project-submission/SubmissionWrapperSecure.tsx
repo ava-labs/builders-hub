@@ -16,6 +16,8 @@ export function SubmissionWrapperSecure({
     setShowComponent(show);
   };
 
+  const hackathonId = searchParams.hackathon as string | undefined;
+
   return (
     <ProjectSubmissionProvider>
       {!showComponent && (

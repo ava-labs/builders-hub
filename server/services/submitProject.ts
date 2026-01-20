@@ -22,20 +22,23 @@ export const projectValidations: Validation[] = [
     validation: (project: Project) =>
       requiredField(project, "short_description"),
   },
-  {
-    field: "hackaton_id",
-    message: "Hackathon ID is required.",
-    validation: (project: Project) => requiredField(project, "hackaton_id"),
-  },
-  {
-    field: "tracks",
-    message: "Please select at least one track.",
-    validation: (project: Project) => hasAtLeastOne(project, "tracks"),
-  },
+  // hackaton_id is optional - removed from required validations
+  // tracks is optional - removed from required validations
 ];
 
 export const validateProject = (projectData: Partial<Project>): Validation[] =>
   validateEntity(projectValidations, projectData);
+
+// Helper function to normalize categories from string or string[] to string[]
+function normalizeCategories(categories: string | string[] | undefined): string[] {
+  if (Array.isArray(categories)) {
+    return categories;
+  }
+  if (typeof categories === 'string') {
+    return categories.split(',').filter(Boolean);
+  }
+  return [];
+}
 
 export async function createProject(
   projectData: Partial<Project>
@@ -52,8 +55,32 @@ export async function createProject(
     }
 
     //Find existing project WITHIN transaction
-    const existingProject = await tx.project.findFirst({
-      where: {
+    // Priority: 
+    // 1. If projectData.id exists, search by that specific ID (editing existing project)
+    // 2. If no ID but has hackathon_id, search by hackathon + user (hackathon projects)
+    // 3. If no ID and no hackathon_id, create new project directly (standalone projects)
+    let existingProject = null;
+    
+    if (projectData.id) {
+      // If we have a project ID, search by that specific ID (editing mode)
+      existingProject = await tx.project.findFirst({
+        where: {
+          id: projectData.id,
+          members: {
+            some: {
+              user_id: projectData.user_id,
+              status: "Confirmed",
+            },
+          },
+        },
+        include: {
+          members: true,
+        },
+      });
+    } else if (projectData.hackaton_id) {
+      // Only search by hackathon/user if we have a hackathon_id (hackathon projects)
+      // This prevents creating duplicate projects for the same hackathon
+      const whereClause: any = {
         hackaton_id: projectData.hackaton_id,
         members: {
           some: {
@@ -61,11 +88,16 @@ export async function createProject(
             status: "Confirmed",
           },
         },
-      },
-      include: {
-        members: true,
-      },
-    });
+      };
+      
+      existingProject = await tx.project.findFirst({
+        where: whereClause,
+        include: {
+          members: true,
+        },
+      });
+    }
+    // If no ID and no hackathon_id, existingProject remains null and we create a new project
 
     if (existingProject) {
       // Update existing project
@@ -85,6 +117,8 @@ export async function createProject(
           demo_video_link: projectData.demo_video_link ?? "",
           screenshots: projectData.screenshots ?? [],
           tracks: projectData.tracks ?? [],
+          categories: normalizeCategories(projectData.categories),
+          other_category: projectData.other_category ?? null,
         },
       });
 
@@ -93,36 +127,46 @@ export async function createProject(
       return updatedProject as unknown as Project;
     } else {
       // Create new project AND member atomically
-      const newProjectData = await tx.project.create({
-        data: {
-          hackathon: {
-            connect: { id: projectData.hackaton_id },
-          },
-          project_name: projectData.project_name ?? "",
-          short_description: projectData.short_description ?? "",
-          full_description: projectData.full_description ?? "",
-          tech_stack: projectData.tech_stack ?? "",
-          github_repository: projectData.github_repository ?? "",
-          demo_link: projectData.demo_link ?? "",
-          is_preexisting_idea: projectData.is_preexisting_idea ?? false,
-          logo_url: projectData.logo_url ?? "",
-          cover_url: projectData.cover_url ?? "",
-          demo_video_link: projectData.demo_video_link ?? "",
-          screenshots: projectData.screenshots ?? [],
-          tracks: projectData.tracks ?? [],
-          explanation: projectData.explanation ?? "",
-          // Member created together with project
-          members: {
-            create: {
-              user_id: projectData.user_id as string,
-              role: "Member",
-              status: "Confirmed",
-              email: (await tx.user.findUnique({
-                where: { id: projectData.user_id as string },
-              }))?.email ?? "",
-            },
+      const projectDataToCreate: any = {
+        project_name: projectData.project_name ?? "",
+        short_description: projectData.short_description ?? "",
+        full_description: projectData.full_description ?? "",
+        tech_stack: projectData.tech_stack ?? "",
+        github_repository: projectData.github_repository ?? "",
+        demo_link: projectData.demo_link ?? "",
+        is_preexisting_idea: projectData.is_preexisting_idea ?? false,
+        logo_url: projectData.logo_url ?? "",
+        cover_url: projectData.cover_url ?? "",
+        demo_video_link: projectData.demo_video_link ?? "",
+        screenshots: projectData.screenshots ?? [],
+        tracks: projectData.tracks ?? [],
+        categories: normalizeCategories(projectData.categories),
+        other_category: projectData.other_category ?? null,
+        explanation: projectData.explanation ?? "",
+        origin: "Project submission",
+        hackaton_id: projectData.hackaton_id ?? null,
+        // Member created together with project
+        members: {
+          create: {
+            user_id: projectData.user_id as string,
+            role: "Member",
+            status: "Confirmed",
+            email: (await tx.user.findUnique({
+              where: { id: projectData.user_id as string },
+            }))?.email ?? "",
           },
         },
+      };
+      
+      // Only connect to hackathon if hackaton_id is provided
+      if (projectData.hackaton_id) {
+        projectDataToCreate.hackathon = {
+          connect: { id: projectData.hackaton_id },
+        };
+      }
+      
+      const newProjectData = await tx.project.create({
+        data: projectDataToCreate,
       });
 
       projectData.id = newProjectData.id;
@@ -154,6 +198,13 @@ function normalizeUser(user: Partial<User>): User {
     social_media: user.social_media ?? [],
     notifications: user.notifications ?? null,
     created_at: user.created_at ?? new Date(),
+    country: user.country ?? null,
+    user_type: user.user_type ?? null,
+    github: user.github ?? null,
+    wallet: user.wallet ?? [],
+    skills: user.skills ?? [],
+    noun_avatar_seed: user.noun_avatar_seed ?? null,
+    noun_avatar_enabled: user.noun_avatar_enabled ?? false,
   };
 }
 export async function getProject(projectId: string): Promise<Project | null> {
@@ -175,7 +226,7 @@ export async function getProject(projectId: string): Promise<Project | null> {
 
   const project: Project = {
     id: projectData.id,
-    hackaton_id: projectData.hackaton_id,
+    hackaton_id: projectData.hackaton_id ?? undefined,
     project_name: projectData.project_name,
     short_description: projectData.short_description,
     full_description: projectData.full_description ?? undefined,
@@ -188,6 +239,8 @@ export async function getProject(projectId: string): Promise<Project | null> {
     demo_video_link: projectData.demo_video_link ?? undefined,
     screenshots: projectData.screenshots ?? undefined,
     tracks: projectData.tracks,
+    categories: normalizeCategories(projectData.categories),
+    other_category: projectData.other_category ?? undefined,
     is_winner: false,
 
     members: projectData.members?.map((member) => {

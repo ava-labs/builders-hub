@@ -16,10 +16,11 @@ import { ProjectOptions } from "./ProjectOptions";
 import { useState } from "react";
 
 export type Props = {
-  project: Project;
+  project: Project,
+  isFromProfile?: boolean;
 };
 
-export function ProjectCard({ project }: Props) {
+export function ProjectCard({ project, isFromProfile = false }: Props) {
   const router = useRouter();
   const eventInfo = `${project.hackathon?.title ?? ""}`;
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -31,6 +32,8 @@ export function ProjectCard({ project }: Props) {
       '[data-interactive="true"]'
     );
     if (isInteractive) return;
+    
+    // Always redirect to showcase when clicking the card
     router.push(`/showcase/${project.id}`);
   };
   return (
@@ -44,15 +47,14 @@ export function ProjectCard({ project }: Props) {
           {project.project_name.length > 25 ? "..." : ""}
         </h3>
         <div className="flex items-center">
-          <div data-interactive="true">
             <ProjectOptions
               project={project}
               confirmOpen={confirmOpen}
               setConfirmOpen={setConfirmOpen}
               isAssignBadgeOpen={isAssignBadgeOpen}
               setIsAssignBadgeOpen={setIsAssignBadgeOpen}
+              isFromProfile={isFromProfile}
             />
-          </div>
           {project.prizes?.length > 0 && (
             <div className="p-2 bg-red-500 rounded-full">
               <Trophy size={18} color="white" />

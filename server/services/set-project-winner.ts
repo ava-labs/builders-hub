@@ -27,9 +27,14 @@ export async function SetWinner(
     badges: [],
   };
 
-  if (isWinner===true) {
+  if (isWinner === true) {
+    // HackathonId must be string or undefined, not null
+    const sanitizedBody = {
+      ...body,
+      hackathonId: project.hackaton_id ?? undefined,
+    };
 
-    badge = await badgeAssignmentService.assignBadge(body, awardedBy);
+    badge = await badgeAssignmentService.assignBadge(sanitizedBody, awardedBy);
   }
 
   return badge;

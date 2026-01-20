@@ -16,7 +16,7 @@ export async function assignBadgeByRequirement(
   try {
     // Find badges that have this specific requirement
     const badges = await getBadgesByRequirementId(requirementId);
-    
+    console.log('badges found', badges);
     if (!badges || badges.length === 0) {
       return {
         success: false,
@@ -28,6 +28,13 @@ export async function assignBadgeByRequirement(
     const awardedBadges: any[] = [];
 
     for (const badge of badges) {
+      // Find the specific requirement that was fulfilled
+      const fulfilledRequirement = badge.requirements?.find((req: any) => req.id === requirementId);
+      
+      if (!fulfilledRequirement) {
+        continue;
+      }
+
       // Check if the user already has this badge
       const existingUserBadge = await prisma.userBadge.findUnique({
         where: {
@@ -37,34 +44,94 @@ export async function assignBadgeByRequirement(
           },
         },
       });
-
-      // If user already has the badge, skip it
-      if (existingUserBadge) {
-        continue;
-      }
-
-      // Find the specific requirement that was fulfilled
-      const fulfilledRequirement = badge.requirements?.find((req: any) => req.id === requirementId);
       
-      // Assign the badge to the user
-      await prisma.userBadge.create({
-        data: {
-          user_id: userId,
-          badge_id: badge.id,
-          awarded_at: new Date(),
-          awarded_by: awardedBy,
-          status: BadgeAwardStatus.approved,
-          requirements_version: 1,
-          
-          evidence: fulfilledRequirement ? [fulfilledRequirement] : [],
-        },
-      });
-
-      awardedBadges.push({
-        name: badge.name,
-        image_path: badge.image_path,
-        completed_requirement: fulfilledRequirement
-      });
+      if (existingUserBadge) {
+        // User already has the badge, check if requirement is already in evidence
+        const completedRequirements = (existingUserBadge.evidence as Requirement[]) || [];
+        
+        // Check if this requirement is already completed
+        const requirementAlreadyCompleted = completedRequirements.some(
+          (req: any) => req && req.id && String(req.id) === String(requirementId)
+        );
+        
+        if (requirementAlreadyCompleted) {
+          // Requirement already exists, skip it
+          continue;
+        }
+        
+        // Add the new requirement to the completed requirements
+        completedRequirements.push(fulfilledRequirement);
+        
+        // Check if all requirements are completed
+        const allRequirementsCompleted = badge.requirements?.every((req: any) => {
+          if (!req || !req.id) return false;
+          return completedRequirements.some((completed: any) => 
+            completed && completed.id && String(completed.id) === String(req.id)
+          );
+        });
+        
+        // Determine badge status based on requirements completion
+        const badgeStatus = allRequirementsCompleted 
+          ? BadgeAwardStatus.approved 
+          : BadgeAwardStatus.pending;
+        
+        // Update the existing badge with the new requirement
+        await prisma.userBadge.update({
+          where: {
+            user_id_badge_id: {
+              user_id: userId,
+              badge_id: badge.id,
+            },
+          },
+          data: {
+            status: badgeStatus,
+            evidence: completedRequirements,
+            awarded_at: badgeStatus === BadgeAwardStatus.approved ? new Date() : existingUserBadge.awarded_at,
+          },
+        });
+        
+        console.log('badge updated with new requirement', badge.name);
+        awardedBadges.push({
+          name: badge.name,
+          image_path: badge.image_path,
+          completed_requirement: fulfilledRequirement,
+          status: badgeStatus === BadgeAwardStatus.approved ? 'approved' : 'pending'
+        });
+      } else {
+        // User doesn't have the badge, create it
+        // Check if all requirements are completed (only one requirement completed so far)
+        const completedRequirements = [fulfilledRequirement];
+        const allRequirementsCompleted = badge.requirements?.every((req: any) => {
+          if (!req || !req.id) return false;
+          return completedRequirements.some((completed: any) => 
+            completed && completed.id && String(completed.id) === String(req.id)
+          );
+        });
+        
+        const badgeStatus = allRequirementsCompleted 
+          ? BadgeAwardStatus.approved 
+          : BadgeAwardStatus.pending;
+        
+        await prisma.userBadge.create({
+          data: {
+            user_id: userId,
+            badge_id: badge.id,
+            awarded_at: badgeStatus === BadgeAwardStatus.approved ? new Date() : undefined,
+            awarded_by: awardedBy,
+            status: badgeStatus,
+            requirements_version: 1,
+            evidence: completedRequirements,
+          },
+        });
+        
+        console.log('badge assigned', badge.name);
+        awardedBadges.push({
+          name: badge.name,
+          image_path: badge.image_path,
+          completed_requirement: fulfilledRequirement,
+          status: badgeStatus === BadgeAwardStatus.approved ? 'approved' : 'pending'
+        });
+      }
     }
 
     return {
