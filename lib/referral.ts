@@ -56,11 +56,15 @@ export function generateReferralLink(handle: string): string {
  * Generates a share URL for X (Twitter)
  */
 export function generateXShareUrl(referralLink: string): string {
-  const text = `Check out Build Games
+  const text = `If you're a crypto builder, read this.
 
-Avalanche's flagship builder competition for crypto-native talent. Six weeks to turn your idea into a real product with a $1M prize pool.
+Applications for the Build Games, a $1,000,000 builder competition on Avalanche just opened.
 
-Apply with my link: ${referralLink}`;
+- all star judges
+- designed for founders
+- any idea on avalanche is eligible
+
+Read more and apply here: ${referralLink}`;
   return `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
 }
 
@@ -68,10 +72,14 @@ Apply with my link: ${referralLink}`;
  * Generates a share URL for LinkedIn
  */
 export function generateLinkedInShareUrl(referralLink: string): string {
-  const text = `Check out Build Games
+  const text = `If you're a crypto builder, read this.
 
-Avalanche's flagship builder competition for crypto-native talent. Six weeks to turn your idea into a real product with a $1M prize pool.
+Applications for the Build Games, a $1,000,000 builder competition on Avalanche just opened.
 
-Apply with my link: ${referralLink}`;
+- all star judges
+- designed for founders
+- any idea on avalanche is eligible
+
+Read more and apply here: ${referralLink}`;
   return `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(referralLink)}&summary=${encodeURIComponent(text)}`;
 }
