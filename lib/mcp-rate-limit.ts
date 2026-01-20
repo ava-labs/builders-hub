@@ -1,13 +1,52 @@
 /**
- * Rate limiting for MCP server endpoints using Vercel KV
+ * Rate limiting for MCP server endpoints using Redis
  *
  * Implements distributed rate limiting that works across serverless instances.
  * Clients are identified by origin header (browsers) or hashed IP (non-browser clients).
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { kv } from '@vercel/kv';
+import { createClient, RedisClientType } from 'redis';
 import { createHash } from 'crypto';
+
+// Singleton Redis client for connection reuse
+let redisClient: RedisClientType | null = null;
+let redisPromise: Promise<RedisClientType> | null = null;
+
+/**
+ * Get or create Redis client connection
+ */
+async function getRedisClient(): Promise<RedisClientType> {
+  if (redisClient?.isOpen) {
+    return redisClient;
+  }
+
+  // Prevent multiple simultaneous connection attempts
+  if (redisPromise) {
+    return redisPromise;
+  }
+
+  redisPromise = (async () => {
+    const redisUrl = process.env.REDIS_URL_MCP;
+    if (!redisUrl) {
+      throw new Error('REDIS_URL_MCP environment variable not set');
+    }
+
+    const client = createClient({ url: redisUrl });
+
+    client.on('error', (err) => {
+      console.error('Redis Client Error:', err);
+      redisClient = null;
+      redisPromise = null;
+    });
+
+    await client.connect();
+    redisClient = client;
+    return client;
+  })();
+
+  return redisPromise;
+}
 
 const WINDOW_MS = 60 * 1000; // 1 minute
 const MAX_REQUESTS = 60; // 60 requests per minute
@@ -43,7 +82,7 @@ function getClientId(request: NextRequest): string {
 }
 
 /**
- * Check rate limit using Vercel KV
+ * Check rate limit using Redis
  * Returns null if allowed, or NextResponse with 429 if rate limit exceeded
  */
 export async function checkMCPRateLimit(request: NextRequest): Promise<NextResponse | null> {
@@ -52,8 +91,11 @@ export async function checkMCPRateLimit(request: NextRequest): Promise<NextRespo
   const key = `mcp-ratelimit:${clientId}`;
 
   try {
-    // Get current request timestamps from KV
-    const timestamps = await kv.get<number[]>(key) || [];
+    const redis = await getRedisClient();
+
+    // Get current request timestamps from Redis
+    const data = await redis.get(key);
+    const timestamps: number[] = data ? JSON.parse(data) : [];
 
     // Remove timestamps outside the current window
     const validTimestamps = timestamps.filter(t => now - t < WINDOW_MS);
@@ -88,12 +130,13 @@ export async function checkMCPRateLimit(request: NextRequest): Promise<NextRespo
     // Add current request timestamp
     validTimestamps.push(now);
 
-    // Store in KV with TTL slightly longer than window (to allow for clock skew)
-    await kv.set(key, validTimestamps, { px: WINDOW_MS + 5000 });
+    // Store in Redis with TTL slightly longer than window (to allow for clock skew)
+    const ttlSeconds = Math.ceil((WINDOW_MS + 5000) / 1000);
+    await redis.setEx(key, ttlSeconds, JSON.stringify(validTimestamps));
 
     return null;
   } catch (error) {
-    // If KV fails, fail open to avoid breaking the service
+    // If Redis fails, fail open to avoid breaking the service
     console.error('Rate limit check failed:', error);
     return null;
   }
@@ -109,7 +152,9 @@ export async function getRateLimitHeaders(request: NextRequest): Promise<Record<
   const key = `mcp-ratelimit:${clientId}`;
 
   try {
-    const timestamps = await kv.get<number[]>(key) || [];
+    const redis = await getRedisClient();
+    const data = await redis.get(key);
+    const timestamps: number[] = data ? JSON.parse(data) : [];
     const validTimestamps = timestamps.filter(t => now - t < WINDOW_MS);
 
     const remaining = Math.max(0, MAX_REQUESTS - validTimestamps.length);
