@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 
 interface LoginModalState {
   isOpen: boolean;
@@ -17,6 +17,18 @@ const loginModalListeners = new Set<() => void>();
 const notifyLoginModalChange = () => {
   loginModalListeners.forEach(listener => listener());
 };
+
+// Separate listeners for new user login events
+const newUserLoginListeners = new Set<() => void>();
+
+const notifyNewUserLogin = () => {
+  newUserLoginListeners.forEach(listener => listener());
+};
+
+// Function to trigger new user login event (called from VerifyEmail)
+export function triggerNewUserLogin() {
+  notifyNewUserLogin();
+}
 
 // Hook for components that need to trigger the login modal
 export function useLoginModalTrigger() {
@@ -37,8 +49,8 @@ export function useLoginModalTrigger() {
 export function useLoginModalState() {
   const [, forceUpdate] = useState({});
 
-  // Subscribe to modal state changes
-  const subscribeToChanges = useCallback(() => {
+  // Subscribe to modal state changes on mount
+  useEffect(() => {
     const listener = () => forceUpdate({});
     loginModalListeners.add(listener);
     return () => {
@@ -58,7 +70,16 @@ export function useLoginModalState() {
     isOpen: globalLoginModalState.isOpen,
     callbackUrl: globalLoginModalState.callbackUrl,
     closeLoginModal,
-    subscribeToChanges,
   };
+}
+
+// Hook to listen for new user login events
+export function useNewUserLoginListener(callback: () => void) {
+  useEffect(() => {
+    newUserLoginListeners.add(callback);
+    return () => {
+      newUserLoginListeners.delete(callback);
+    };
+  }, [callback]);
 }
 

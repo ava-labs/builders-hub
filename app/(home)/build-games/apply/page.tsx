@@ -4,6 +4,7 @@ import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { useLoginModalTrigger } from "@/hooks/useLoginModal";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
@@ -86,6 +87,7 @@ type FormData = z.infer<typeof formSchema>;
 export default function BuildGamesApplyForm() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const { openLoginModal } = useLoginModalTrigger();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionStatus, setSubmissionStatus] = useState<"success" | "error" | null>(null);
   const [currentStep, setCurrentStep] = useState(1);
@@ -133,9 +135,11 @@ export default function BuildGamesApplyForm() {
 
   useEffect(() => {
     if (status === "unauthenticated") {
-      router.push(`/login?callbackUrl=${encodeURIComponent("/build-games/apply")}`);
+      // Open login modal instead of redirecting to login page
+      // This keeps the user on the same page
+      openLoginModal(window.location.href);
     }
-  }, [status, router]);
+  }, [status, openLoginModal]);
 
   const handleNext = () => {
     if (currentStep < STEPS.length) {

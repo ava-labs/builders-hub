@@ -30,7 +30,7 @@ const protectedPaths = [
 ];
 
 export function LoginModal() {
-  const { isOpen, callbackUrl = "/", closeLoginModal, subscribeToChanges } = useLoginModalState();
+  const { isOpen, callbackUrl = "/", closeLoginModal } = useLoginModalState();
   const [isVerifying, setIsVerifying] = useState(false);
   const [email, setEmail] = useState("");
   const { data: session, status } = useSession();
@@ -41,11 +41,6 @@ export function LoginModal() {
     resolver: zodResolver(formSchema),
     defaultValues: { email: "" },
   });
-
-  // Subscribe to modal state changes
-  useEffect(() => {
-    return subscribeToChanges();
-  }, [subscribeToChanges]);
 
   // Handle modal close - redirect to home if user is not authenticated and on protected path
   const handleClose = (open: boolean) => {

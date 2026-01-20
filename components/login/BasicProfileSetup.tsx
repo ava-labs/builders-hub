@@ -120,10 +120,13 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
         if (typeof window !== "undefined") {
           localStorage.setItem('basicProfileData', JSON.stringify(data));
         }
-        
+
         // Call onCompleteProfile callback
         onCompleteProfile?.();
-        
+
+        // Small delay to allow session to propagate before redirect
+        await new Promise(resolve => setTimeout(resolve, 300));
+
         // Redirect to profile
         router.push('/profile');
       } else {
