@@ -1,15 +1,15 @@
 "use client";
 
-import Image from "next/image";
-import { useState, useCallback, useEffect } from "react";
+import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
+import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
-import { Loader2, Mail, User, Building2, MapPin, Briefcase, Trophy, MessageCircle, Check, AlertCircle, ArrowRight, Github, Send, Lock, Gamepad2, ChevronDown } from "lucide-react";
+import { Loader2, User, Building2, MapPin, Briefcase, Trophy, MessageCircle, AlertCircle, CheckCircle2, ChevronRight, ChevronLeft, BadgeCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from "@/components/ui/form";
+import { Form, FormField, FormItem, FormControl, FormMessage, FormDescription } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -34,6 +34,16 @@ const AREA_OF_FOCUS = [
 ];
 
 const HOW_DID_YOU_HEAR = ["Referred by a friend", "Twitter/X", "Ava Labs staff member", "Discord", "Telegram", "AVAX partner or investor", "Team1", "Avalanche Marketing", "Other"];
+
+const STEPS = [
+  { id: 1, name: "Personal Info", description: "Your contact details", icon: User },
+  { id: 2, name: "Location", description: "Where are you based", icon: MapPin },
+  { id: 3, name: "Before We Move Forward", description: "Mandatory vibe check", icon: Briefcase },
+  { id: 4, name: "Project Details", description: "What you're building", icon: Building2 },
+  { id: 5, name: "Why You?", description: "Make your case", icon: Trophy },
+  { id: 6, name: "Additional Info", description: "A few more questions", icon: MessageCircle },
+  { id: 7, name: "Consent & Privacy", description: "Final step", icon: AlertCircle },
+];
 
 const formSchema = z.object({
   hackathonName: z.string().default("Build Games 2026"),
@@ -73,92 +83,12 @@ const formSchema = z.object({
 
 type FormData = z.infer<typeof formSchema>;
 
-interface AccordionSectionProps {
-  title: string;
-  description?: string;
-  icon: React.ReactNode;
-  iconBg: string;
-  children: React.ReactNode;
-  isLocked: boolean;
-  isComplete: boolean;
-  sectionNumber: number;
-  isOpen: boolean;
-  onToggle: () => void;
-}
-
-function AccordionSection({title, description, icon, iconBg, children, isLocked, isComplete, sectionNumber, isOpen, onToggle}: AccordionSectionProps) {
-  return (
-    <div className={cn("border-b border-slate-200 dark:border-slate-700 transition-all duration-300", isLocked && "opacity-60")}>
-      <button
-        type="button"
-        onClick={() => !isLocked && onToggle()}
-        disabled={isLocked}
-        className={cn(
-          "w-full p-4 md:p-6 flex items-center gap-4 text-left transition-all duration-200",
-          !isLocked && "hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer",
-          isLocked && "cursor-not-allowed",
-          isOpen && "bg-slate-50/50 dark:bg-slate-700/30"
-        )}
-      >
-        <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 transition-all duration-300", isComplete ? "bg-emerald-500" : iconBg)}>
-          {isComplete ? (
-            <Check className="w-5 h-5 text-white" />
-          ) : isLocked ? (
-            <Lock className="w-4 h-4 text-slate-400" />
-          ) : (
-            icon
-          )}
-        </div>
-
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs font-semibold text-slate-400 dark:text-slate-500">
-              STEP {sectionNumber}
-            </span>
-            {isComplete && (
-              <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-2 py-0.5 rounded-full">
-                Complete
-              </span>
-            )}
-            {isLocked && (
-              <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
-                Locked
-              </span>
-            )}
-          </div>
-          <h2 className="text-base md:text-lg font-bold text-slate-900 dark:text-slate-100 truncate">
-            {title}
-          </h2>
-          {description && !isOpen && (
-            <p className="text-sm text-slate-500 dark:text-slate-400 truncate hidden md:block">
-              {description}
-            </p>
-          )}
-        </div>
-
-        <ChevronDown className={cn("w-5 h-5 text-slate-400 transition-transform duration-300 flex-shrink-0", isOpen && "rotate-180")} />
-      </button>
-
-      <div className={cn("overflow-hidden transition-all duration-300 ease-in-out", isOpen ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0")}>
-        <div className="p-4 md:p-6 pt-0 md:pt-0 space-y-6">
-          {description && (
-            <p className="text-sm text-slate-600 dark:text-slate-400">
-              {description}
-            </p>
-          )}
-          {children}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function BuildGamesApplyForm() {
   const { status } = useSession();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionStatus, setSubmissionStatus] = useState<"success" | "error" | null>(null);
-  const [openSection, setOpenSection] = useState(1);
+  const [currentStep, setCurrentStep] = useState(1);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -194,56 +124,49 @@ export default function BuildGamesApplyForm() {
 
   const watchedValues = useWatch({ control: form.control });
 
-  const checkSection1Complete = useCallback(() => {
-    const { firstName, lastName, email, github } = watchedValues;
-    return !!(firstName && lastName && email && github);
-  }, [watchedValues]);
-
-  const checkSection2Complete = useCallback(() => {
-    return !!watchedValues.country;
-  }, [watchedValues]);
-
-  const checkSection3Complete = useCallback(() => {
-    const { readyToWin, previousAvalancheGrant } = watchedValues;
-    return readyToWin === "yes" && previousAvalancheGrant !== undefined;
-  }, [watchedValues]);
-
-  const checkSection4Complete = useCallback(() => {
-    const { projectName, projectDescription, areaOfFocus } = watchedValues;
-    return !!(projectName && projectDescription && areaOfFocus);
-  }, [watchedValues]);
-
-  const checkSection5Complete = useCallback(() => {
-    return !!watchedValues.whyYou;
-  }, [watchedValues]);
-
-  const checkSection6Complete = useCallback(() => {
-    const { howDidYouHear, universityAffiliation, avalancheEcosystemMember } = watchedValues;
-    return !!(howDidYouHear && universityAffiliation && avalancheEcosystemMember);
-  }, [watchedValues]);
-
-  const section1Complete = checkSection1Complete();
-  const section2Complete = checkSection2Complete();
-  const section3Complete = checkSection3Complete();
-  const section4Complete = checkSection4Complete();
-  const section5Complete = checkSection5Complete();
-  const section6Complete = checkSection6Complete();
-
-
-  // Redirect to login if not authenticated
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push(`/login?callbackUrl=${encodeURIComponent("/build-games/apply")}`);
     }
   }, [status, router]);
 
-  // Show loading state while checking auth
+  const handleNext = () => {
+    if (currentStep < STEPS.length) {
+      setCurrentStep(currentStep + 1);
+    }
+  };
+
+  const handlePrev = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
+
+  // Check if all required fields are filled
+  const isFormComplete = Boolean(
+    watchedValues.firstName &&
+    watchedValues.lastName &&
+    watchedValues.email &&
+    watchedValues.github &&
+    watchedValues.country &&
+    watchedValues.readyToWin &&
+    watchedValues.previousAvalancheGrant &&
+    watchedValues.projectName &&
+    watchedValues.projectDescription &&
+    watchedValues.areaOfFocus &&
+    watchedValues.whyYou &&
+    watchedValues.howDidYouHear &&
+    watchedValues.universityAffiliation &&
+    watchedValues.avalancheEcosystemMember &&
+    watchedValues.privacyPolicyRead
+  );
+
   if (status === "loading" || status === "unauthenticated") {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-8 h-8 animate-spin text-slate-600 dark:text-slate-300" />
-          <p className="text-slate-600 dark:text-slate-300">
+          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+          <p className="text-muted-foreground">
             {status === "loading" ? "Loading..." : "Redirecting to login..."}
           </p>
         </div>
@@ -251,14 +174,9 @@ export default function BuildGamesApplyForm() {
     );
   }
 
-  const handleSectionToggle = (sectionNumber: number) => {
-    setOpenSection(openSection === sectionNumber ? 0 : sectionNumber);
-  };
-
   async function onSubmit(values: FormData) {
     setIsSubmitting(true);
     try {
-      // Get referrer from localStorage (if user was referred)
       const referrer = getReferrer();
 
       const response = await fetch("/api/build-games/apply", {
@@ -266,7 +184,7 @@ export default function BuildGamesApplyForm() {
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify({
           ...values,
-          referrer: referrer, // Include referrer handle for tracking
+          referrer: referrer,
         }),
       });
 
@@ -280,929 +198,835 @@ export default function BuildGamesApplyForm() {
       form.reset();
     } catch (error) {
       setSubmissionStatus("error");
-      alert(`Error submitting form: ${error instanceof Error ? error.message : "Unknown error"}`
-      );
+      alert(`Error submitting form: ${error instanceof Error ? error.message : "Unknown error"}`);
     } finally {
       setIsSubmitting(false);
     }
   }
 
+  if (submissionStatus === "success") {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-black p-4">
+        <div className="text-center">
+          <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-accent">
+            <CheckCircle2 className="h-10 w-10 text-accent-foreground" />
+          </div>
+          <h1 className="mb-4 text-3xl font-bold text-foreground">Application Submitted!</h1>
+          <p className="mx-auto max-w-md text-muted-foreground">
+            Thank you for applying to Build Games 2026. We'll review your application and get back to you soon.
+          </p>
+          <Button
+            className="mt-8"
+            onClick={() => {
+              setSubmissionStatus(null);
+              setCurrentStep(1);
+              form.reset();
+            }}
+          >
+            Submit Another Application
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
-      <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        <section className="text-center space-y-6 pt-8 pb-10">
-          <div className="flex justify-center mb-6">
-            <Image src="/logo-black.png" alt="Avalanche Logo" width={200} height={50} className="dark:hidden" />
-            <Image src="/logo-white.png" alt="Avalanche Logo" width={200} height={50} className="hidden dark:block" />
-          </div>
-
-          <div className="space-y-4">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight">
-              <span className="bg-gradient-to-r from-slate-900 via-slate-700 to-slate-900 dark:from-white dark:via-slate-200 dark:to-white bg-clip-text text-transparent">
-                Build Games
-              </span>
-              <span className="block text-[#EB4C50] flex items-center justify-center gap-3 mt-2">
-                2026
-                <Gamepad2 className="w-8 h-8 md:w-10 md:h-10 text-[#EB4C50]" />
-              </span>
-            </h1>
-
-            <p className="text-lg text-slate-600 dark:text-slate-300 max-w-2xl mx-auto leading-relaxed">
-              Apply to participate in Build Games 2026. Complete all sections below to submit your application.
-            </p>
-          </div>
-        </section>
-
-        {submissionStatus === "success" ? (
-          <div className="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 border border-emerald-200 dark:border-emerald-800 rounded-2xl p-12 text-center shadow-lg">
-            <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-900/50 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Check className="w-10 h-10 text-emerald-600 dark:text-emerald-400" />
+    <div className="min-h-screen bg-black">
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="grid gap-8 lg:grid-cols-[280px_1fr]">
+          {/* Sidebar - Step Progress */}
+          <aside className="hidden lg:block">
+            <div className="sticky top-8">
+              <div className="mb-4 flex items-center gap-3 pb-4 border-b border-border">
+                <AvalancheLogo className="w-10 h-10" />
+                <span className="text-lg font-semibold uppercase tracking-wide text-muted-foreground">Build Games 2026</span>
+              </div>
+              <nav className="space-y-2">
+                {STEPS.map((step) => {
+                  const Icon = step.icon;
+                  return (
+                    <button
+                      key={step.id}
+                      onClick={() => setCurrentStep(step.id)}
+                      className={cn(
+                        "flex w-full items-center gap-4 rounded-lg !p-[6px] text-left transition-all",
+                        currentStep === step.id
+                          ? "bg-secondary text-foreground"
+                          : step.id < currentStep
+                            ? "text-muted-foreground hover:bg-secondary/50"
+                            : "text-muted-foreground/60"
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "flex h-10 w-10 shrink-0 items-center justify-center rounded border text-sm font-medium",
+                          currentStep === step.id
+                            ? "border-foreground bg-foreground text-background"
+                            : step.id < currentStep
+                              ? "border-[#EB4C50] bg-[#EB4C50] text-white"
+                              : "border-border"
+                        )}
+                      >
+                        {step.id < currentStep ? (
+                          <BadgeCheck className="h-5 w-5" />
+                        ) : (
+                          <Icon className="h-5 w-5" />
+                        )}
+                      </span>
+                      <div>
+                        <p className="text-base font-medium">{step.name}</p>
+                        <p className="text-sm text-muted-foreground">{step.description}</p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </nav>
             </div>
-            <h2 className="text-3xl font-bold text-emerald-800 dark:text-emerald-200 mb-4">
-              Application Submitted!
-            </h2>
-            <p className="text-emerald-700 dark:text-emerald-300 mb-8 text-lg">
-              Thank you for applying to Build Games 2026. We'll review your application and get back to you soon.
-            </p>
-            <Button
-              onClick={() => {
-                setSubmissionStatus(null);
-                form.reset();
-                setOpenSection(1);
-              }}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-3 text-lg font-medium rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
-            >
-              Submit Another Application
-              <ArrowRight className="h-4 w-4 ml-2" />
-            </Button>
-          </div>
-        ) : (
-          <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl shadow-xl border border-slate-200/50 dark:border-slate-700/50 overflow-hidden">
+          </aside>
+
+          {/* Main Content */}
+          <main>
+            {/* Mobile Step Indicator */}
+            <div className="mb-6 lg:hidden">
+              <div className="flex items-center justify-between text-sm">
+                <span className="font-medium text-foreground">
+                  Step {currentStep} of {STEPS.length}
+                </span>
+                <span className="text-muted-foreground">
+                  {STEPS[currentStep - 1].name}
+                </span>
+              </div>
+              <div className="mt-2 h-1 w-full rounded-full bg-secondary">
+                <div
+                  className="h-1 rounded-full bg-[#EB4C50] transition-all"
+                  style={{ width: `${(currentStep / STEPS.length) * 100}%` }}
+                />
+              </div>
+            </div>
+
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-0">
-                <AccordionSection
-                  title="Let's start with the building blocks"
-                  description="Tell us about yourself"
-                  icon={<User className="w-5 h-5 text-blue-600 dark:text-blue-400" />}
-                  iconBg="bg-blue-100 dark:bg-blue-900/50"
-                  isLocked={false}
-                  isComplete={section1Complete}
-                  sectionNumber={1}
-                  isOpen={openSection === 1}
-                  onToggle={() => handleSectionToggle(1)}
-                >
-                  <FormField
-                    control={form.control}
-                    name="hackathonName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-slate-500 dark:text-slate-400 font-medium text-sm">
+              <form onSubmit={form.handleSubmit(onSubmit)}>
+                {/* Form Card */}
+                <div className="rounded-xl border border-zinc-800 bg-[#030303] p-6 sm:p-8">
+                  <div className="mb-8">
+                    <h1 className="text-2xl font-bold text-foreground sm:text-3xl">
+                      {STEPS[currentStep - 1].name}
+                    </h1>
+                    <p className="mt-2 text-muted-foreground">
+                      {STEPS[currentStep - 1].description}
+                    </p>
+                  </div>
+
+                  {/* Step 1: Personal Info */}
+                  {currentStep === 1 && (
+                    <div className="space-y-6">
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-foreground">
                           Hackathon Name
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            className="h-12 text-base border-slate-200 dark:border-slate-600 bg-slate-100 dark:bg-slate-700 rounded-xl cursor-not-allowed"
-                            {...field}
-                            disabled
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
+                        </Label>
+                        <Input
+                          className="h-12 border-border bg-[color-mix(in_oklab,var(--input)_50%,transparent)] text-foreground cursor-not-allowed"
+                          value="Build Games 2026"
+                          disabled
+                        />
+                      </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="firstName"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-slate-700 dark:text-slate-300 font-medium">
-                            First Name <span className="text-red-500">*</span>
-                          </FormLabel>
-                          <FormControl>
-                            <div className="relative">
-                              <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
-                              <Input
-                                className="pl-10 h-12 text-base border-slate-200 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-700/50 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                placeholder="First name"
-                                {...field}
-                              />
-                            </div>
-                          </FormControl>
-                          <FormMessage className="text-red-500" />
-                        </FormItem>
-                      )}
-                    />
+                      <div className="grid gap-6 sm:grid-cols-2">
+                        <FormField
+                          control={form.control}
+                          name="firstName"
+                          render={({ field }) => (
+                            <FormItem className="space-y-2">
+                              <Label className="text-sm font-medium text-foreground">
+                                First Name <span className="text-destructive">*</span>
+                              </Label>
+                              <FormControl>
+                                <Input
+                                  className="h-12 border-border bg-[color-mix(in_oklab,var(--input)_50%,transparent)] text-foreground placeholder:text-muted-foreground"
+                                  placeholder="First name"
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage className="text-destructive" />
+                            </FormItem>
+                          )}
+                        />
 
-                    <FormField
-                      control={form.control}
-                      name="lastName"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-slate-700 dark:text-slate-300 font-medium">
-                            Applicant Last Name <span className="text-red-500">*</span>
-                          </FormLabel>
-                          <FormControl>
-                            <div className="relative">
-                              <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
-                              <Input
-                                className="pl-10 h-12 text-base border-slate-200 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-700/50 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                placeholder="Last name"
-                                {...field}
-                              />
-                            </div>
-                          </FormControl>
-                          <FormMessage className="text-red-500" />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
+                        <FormField
+                          control={form.control}
+                          name="lastName"
+                          render={({ field }) => (
+                            <FormItem className="space-y-2">
+                              <Label className="text-sm font-medium text-foreground">
+                                Last Name <span className="text-destructive">*</span>
+                              </Label>
+                              <FormControl>
+                                <Input
+                                  className="h-12 border-border bg-[color-mix(in_oklab,var(--input)_50%,transparent)] text-foreground placeholder:text-muted-foreground"
+                                  placeholder="Last name"
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage className="text-destructive" />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
 
-                  <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-slate-700 dark:text-slate-300 font-medium">
-                          Email <span className="text-red-500">*</span>
-                        </FormLabel>
-                        <FormControl>
-                          <div className="relative">
-                            <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
-                            <Input
-                              className="pl-10 h-12 text-base border-slate-200 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-700/50 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                              placeholder="johndoe@gmail.com"
-                              type="email"
-                              {...field}
-                            />
-                          </div>
-                        </FormControl>
-                        <FormMessage className="text-red-500" />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="telegram"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-slate-700 dark:text-slate-300 font-medium">
-                          Telegram Handle
-                        </FormLabel>
-                        <FormDescription className="text-slate-500 text-sm">
-                          Share your Telegram handle.
-                        </FormDescription>
-                        <FormControl>
-                          <div className="relative">
-                            <Send className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
-                            <Input
-                              className="pl-10 h-12 text-base border-slate-200 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-700/50 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                              placeholder="@username"
-                              {...field}
-                            />
-                          </div>
-                        </FormControl>
-                        <FormMessage className="text-red-500" />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="github"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-slate-700 dark:text-slate-300 font-medium">
-                          Your personal or company GitHub <span className="text-red-500">*</span>
-                        </FormLabel>
-                        <FormDescription className="text-slate-500 text-sm">
-                          Share the link to your personal or company's GitHub account.
-                        </FormDescription>
-                        <FormControl>
-                          <div className="relative">
-                            <Github className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
-                            <Input
-                              className="pl-10 h-12 text-base border-slate-200 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-700/50 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                              placeholder="https://github.com/username"
-                              {...field}
-                            />
-                          </div>
-                        </FormControl>
-                        <FormMessage className="text-red-500" />
-                      </FormItem>
-                    )}
-                  />
-
-                  <div className="pt-4 flex justify-end">
-                    <Button
-                      type="button"
-                      onClick={() => setOpenSection(2)}
-                      disabled={!section1Complete}
-                      className="px-6 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      Continue
-                      <ArrowRight className="h-4 w-4 ml-2" />
-                    </Button>
-                  </div>
-                </AccordionSection>
-
-                <AccordionSection
-                  title="Thanks! Where are you located?"
-                  icon={<MapPin className="w-5 h-5 text-purple-600 dark:text-purple-400" />}
-                  iconBg="bg-purple-100 dark:bg-purple-900/50"
-                  isLocked={!section1Complete}
-                  isComplete={section2Complete}
-                  sectionNumber={2}
-                  isOpen={openSection === 2}
-                  onToggle={() => handleSectionToggle(2)}
-                >
-                  <FormField
-                    control={form.control}
-                    name="country"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-slate-700 dark:text-slate-300 font-medium">
-                          Country <span className="text-red-500">*</span>
-                        </FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger className="h-12 text-base border-slate-200 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-700/50 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent">
-                              <SelectValue placeholder="Select your country" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent className="max-h-[300px] bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl">
-                            {countries.map((country) => (
-                              <SelectItem
-                                key={country.value}
-                                value={country.value}
-                                className="text-slate-700 dark:text-slate-300 py-2"
-                              >
-                                {country.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage className="text-red-500" />
-                      </FormItem>
-                    )}
-                  />
-
-                  <div className="pt-4 flex justify-end">
-                    <Button
-                      type="button"
-                      onClick={() => setOpenSection(3)}
-                      disabled={!section2Complete}
-                      className="px-6 py-2 text-sm font-medium bg-purple-600 hover:bg-purple-700 text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      Continue
-                      <ArrowRight className="h-4 w-4 ml-2" />
-                    </Button>
-                  </div>
-                </AccordionSection>
-
-                <AccordionSection
-                  title="Before we move forward..."
-                  description="We want to be clear about what 'winning' Build Games means."
-                  icon={<Briefcase className="w-5 h-5 text-amber-600 dark:text-amber-400" />}
-                  iconBg="bg-amber-100 dark:bg-amber-900/50"
-                  isLocked={!section2Complete}
-                  isComplete={section3Complete}
-                  sectionNumber={3}
-                  isOpen={openSection === 3}
-                  onToggle={() => handleSectionToggle(3)}
-                >
-                  <div className="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-4 text-sm text-slate-600 dark:text-slate-300 space-y-3">
-                    <p>
-                      Our goal is to find and support the next cohort of <strong className="text-slate-800 dark:text-white">Avalanche founders</strong>.
-                      This is not a bounty event. The prize pool is meaningful, but the real upside is for builders who want to
-                      <strong className="text-slate-800 dark:text-white"> stick around and build their vision on Avalanche</strong>.
-                      If you are selected as a winner, a portion of your rewards will be tied to:
-                    </p>
-                    <ul className="list-disc list-inside space-y-1 ml-2">
-                      <li>Continuing to build on Avalanche</li>
-                      <li>Hitting clear milestones in your roadmap</li>
-                      <li>Showing real progress through on-chain or product KPIs</li>
-                    </ul>
-                    <p>
-                      We are not asking for a legal lock in, but we are very intentional about where we put this capital and support.
-                      If your plan is to ship something quick, collect a prize, and move on to another chain, this program is probably not the right fit.
-                      If you want to become a 10x founder on Avalanche and are willing to commit to that path, we would love to see your application.
-                      <strong className="text-slate-800 dark:text-white"> So, are you ready to win?</strong>
-                    </p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 italic">
-                      Choosing "No" automatically disqualifies you from participating in Build Games.
-                    </p>
-                  </div>
-
-                  <FormField
-                    control={form.control}
-                    name="readyToWin"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-slate-700 dark:text-slate-300 font-medium">
-                          Are you ready to win? <span className="text-red-500">*</span>
-                        </FormLabel>
-                        <FormControl>
-                          <RadioGroup
-                            onValueChange={field.onChange}
-                            value={field.value}
-                            className="flex flex-col space-y-2"
-                          >
-                            <div className="flex items-center space-x-3">
-                              <RadioGroupItem value="yes" id="ready-yes" />
-                              <Label htmlFor="ready-yes" className="cursor-pointer">Yes</Label>
-                            </div>
-                            <div className="flex items-center space-x-3">
-                              <RadioGroupItem value="no" id="ready-no" />
-                              <Label htmlFor="ready-no" className="cursor-pointer">No</Label>
-                            </div>
-                          </RadioGroup>
-                        </FormControl>
-                        <FormMessage className="text-red-500" />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="previousAvalancheGrant"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-slate-700 dark:text-slate-300 font-medium">
-                          Have you received a grant previously from Avalanche? <span className="text-red-500">*</span>
-                        </FormLabel>
-                        <FormDescription className="text-slate-500 text-sm">
-                          Prior support from the Avalanche Foundation — including funding via Retro9000, Infra(BOOST), Infra(BUILD/LINK), Blizzard, Codebase, Innovation House, or Ava Labs — will be considered during the evaluation process and may impact grant size.
-                        </FormDescription>
-                        <FormControl>
-                          <RadioGroup
-                            onValueChange={field.onChange}
-                            value={field.value}
-                            className="flex flex-col space-y-2"
-                          >
-                            <div className="flex items-center space-x-3">
-                              <RadioGroupItem value="yes" id="grant-yes" />
-                              <Label htmlFor="grant-yes" className="cursor-pointer">Yes</Label>
-                            </div>
-                            <div className="flex items-center space-x-3">
-                              <RadioGroupItem value="no" id="grant-no" />
-                              <Label htmlFor="grant-no" className="cursor-pointer">No</Label>
-                            </div>
-                          </RadioGroup>
-                        </FormControl>
-                        <FormMessage className="text-red-500" />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="hackathonExperience"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-slate-700 dark:text-slate-300 font-medium">
-                          Have you participated in any hackathons in the past?
-                        </FormLabel>
-                        <FormControl>
-                          <RadioGroup
-                            onValueChange={field.onChange}
-                            value={field.value}
-                            className="flex flex-col space-y-2"
-                          >
-                            <div className="flex items-center space-x-3">
-                              <RadioGroupItem value="yes" id="hackathon-yes" />
-                              <Label htmlFor="hackathon-yes" className="cursor-pointer">Yes</Label>
-                            </div>
-                            <div className="flex items-center space-x-3">
-                              <RadioGroupItem value="no" id="hackathon-no" />
-                              <Label htmlFor="hackathon-no" className="cursor-pointer">No</Label>
-                            </div>
-                          </RadioGroup>
-                        </FormControl>
-                        <FormMessage className="text-red-500" />
-                      </FormItem>
-                    )}
-                  />
-
-                  {watchedValues.hackathonExperience === "yes" && (
-                    <FormField
-                      control={form.control}
-                      name="hackathonDetails"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-slate-700 dark:text-slate-300 font-medium">
-                            How many, and have you won?
-                          </FormLabel>
-                          <FormControl>
-                            <Textarea
-                              className="min-h-[100px] text-base border-slate-200 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-700/50 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent resize-none"
-                              placeholder="Tell us about your hackathon experience..."
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage className="text-red-500" />
-                        </FormItem>
-                      )}
-                    />
-                  )}
-
-                  <FormField
-                    control={form.control}
-                    name="employmentRole"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-slate-700 dark:text-slate-300 font-medium">
-                          Employment Role
-                        </FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger className="h-12 text-base border-slate-200 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-700/50 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent">
-                              <SelectValue placeholder="Select your role" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent className="max-h-[300px] bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl">
-                            {EMPLOYMENT_ROLES.map((role) => (
-                              <SelectItem
-                                key={role}
-                                value={role.toLowerCase().replace(/\s+/g, '_')}
-                                className="text-slate-700 dark:text-slate-300 py-2"
-                              >
-                                {role}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage className="text-red-500" />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="currentRole"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-slate-700 dark:text-slate-300 font-medium">
-                          What is your current role?
-                        </FormLabel>
-                        <FormControl>
-                          <div className="relative">
-                            <Briefcase className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
-                            <Input
-                              className="pl-10 h-12 text-base border-slate-200 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-700/50 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                              placeholder="e.g., Software Engineer at Company"
-                              {...field}
-                            />
-                          </div>
-                        </FormControl>
-                        <FormMessage className="text-red-500" />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="employmentStatus"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-slate-700 dark:text-slate-300 font-medium">
-                          What is your current employment status?
-                        </FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger className="h-12 text-base border-slate-200 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-700/50 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent">
-                              <SelectValue placeholder="Select your status" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl">
-                            {EMPLOYMENT_STATUS.map((status) => (
-                              <SelectItem
-                                key={status}
-                                value={status.toLowerCase().replace(/\s+/g, '_')}
-                                className="text-slate-700 dark:text-slate-300 py-2"
-                              >
-                                {status}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage className="text-red-500" />
-                      </FormItem>
-                    )}
-                  />
-
-                  <div className="pt-4 flex justify-end">
-                    <Button
-                      type="button"
-                      onClick={() => setOpenSection(4)}
-                      disabled={!section3Complete}
-                      className="px-6 py-2 text-sm font-medium bg-amber-600 hover:bg-amber-700 text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      Continue
-                      <ArrowRight className="h-4 w-4 ml-2" />
-                    </Button>
-                  </div>
-                </AccordionSection>
-
-                <AccordionSection
-                  title="Great! Tell us more about what you'll be building."
-                  icon={<Building2 className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />}
-                  iconBg="bg-indigo-100 dark:bg-indigo-900/50"
-                  isLocked={!section3Complete}
-                  isComplete={section4Complete}
-                  sectionNumber={4}
-                  isOpen={openSection === 4}
-                  onToggle={() => handleSectionToggle(4)}
-                >
-                  <FormField
-                    control={form.control}
-                    name="projectName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-slate-700 dark:text-slate-300 font-medium">
-                          Name of your company or project <span className="text-red-500">*</span>
-                        </FormLabel>
-                        <FormControl>
-                          <div className="relative">
-                            <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
-                            <Input
-                              className="pl-10 h-12 text-base border-slate-200 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-700/50 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                              placeholder="Your project name"
-                              {...field}
-                            />
-                          </div>
-                        </FormControl>
-                        <FormMessage className="text-red-500" />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="projectDescription"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-slate-700 dark:text-slate-300 font-medium">
-                          Your company or project's one-line description <span className="text-red-500">*</span>
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            className="h-12 text-base border-slate-200 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-700/50 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                            placeholder="A brief description of what you're building"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage className="text-red-500" />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="areaOfFocus"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-slate-700 dark:text-slate-300 font-medium">
-                          Area of Focus <span className="text-red-500">*</span>
-                        </FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger className="h-12 text-base border-slate-200 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-700/50 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
-                              <SelectValue placeholder="Select area of focus" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl">
-                            {AREA_OF_FOCUS.map((area) => (
-                              <SelectItem
-                                key={area.value}
-                                value={area.value}
-                                className="text-slate-700 dark:text-slate-300 py-2"
-                              >
-                                {area.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage className="text-red-500" />
-                      </FormItem>
-                    )}
-                  />
-
-                  <div className="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-4 text-sm text-slate-600 dark:text-slate-300">
-                    <p className="font-semibold text-slate-800 dark:text-white mb-2">Note on Definitions</p>
-                    <ul className="space-y-1">
-                      <li><strong>Consumer:</strong> anything B2C non-financial related.</li>
-                      <li><strong>DeFi:</strong> anything finance, stablecoin, or FinTech related.</li>
-                      <li><strong>Enterprise:</strong> Anything that would be sold to and used by another business (B2B)</li>
-                      <li><strong>Developer Tool:</strong> anything that would be purchased and used by a developer/tech organization.</li>
-                      <li><strong>RWA:</strong> anything that is a real-world asset this is being tokenized (eg. think commodities).</li>
-                      <li><strong>Gaming:</strong> anything that pertains to a game of chance or skill.</li>
-                    </ul>
-                  </div>
-
-                  <div className="pt-4 flex justify-end">
-                    <Button
-                      type="button"
-                      onClick={() => setOpenSection(5)}
-                      disabled={!section4Complete}
-                      className="px-6 py-2 text-sm font-medium bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      Continue
-                      <ArrowRight className="h-4 w-4 ml-2" />
-                    </Button>
-                  </div>
-                </AccordionSection>
-
-                <AccordionSection
-                  title="Why should you be chosen?"
-                  icon={<Trophy className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />}
-                  iconBg="bg-yellow-100 dark:bg-yellow-900/50"
-                  isLocked={!section4Complete}
-                  isComplete={section5Complete}
-                  sectionNumber={5}
-                  isOpen={openSection === 5}
-                  onToggle={() => handleSectionToggle(5)}
-                >
-                  <FormField
-                    control={form.control}
-                    name="whyYou"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-slate-700 dark:text-slate-300 font-medium">
-                          Do you believe you and your team could be Avalanche's next top founder(s)? Why? <span className="text-red-500">*</span>
-                        </FormLabel>
-                        <FormDescription className="text-slate-500 text-sm">
-                          Describe the qualities that you and your team possess and why you believe you will win Build Games.
-                        </FormDescription>
-                        <FormControl>
-                          <Textarea
-                            className="min-h-[150px] text-base border-slate-200 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-700/50 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent resize-none"
-                            placeholder="Tell us why you should be chosen..."
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage className="text-red-500" />
-                      </FormItem>
-                    )}
-                  />
-
-                  <div className="pt-4 flex justify-end">
-                    <Button
-                      type="button"
-                      onClick={() => setOpenSection(6)}
-                      disabled={!section5Complete}
-                      className="px-6 py-2 text-sm font-medium bg-yellow-600 hover:bg-yellow-700 text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      Continue
-                      <ArrowRight className="h-4 w-4 ml-2" />
-                    </Button>
-                  </div>
-                </AccordionSection>
-
-                <AccordionSection
-                  title="Last thing!"
-                  icon={<MessageCircle className="w-5 h-5 text-pink-600 dark:text-pink-400" />}
-                  iconBg="bg-pink-100 dark:bg-pink-900/50"
-                  isLocked={!section5Complete}
-                  isComplete={section6Complete}
-                  sectionNumber={6}
-                  isOpen={openSection === 6}
-                  onToggle={() => handleSectionToggle(6)}
-                >
-                  <FormField
-                    control={form.control}
-                    name="howDidYouHear"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-slate-700 dark:text-slate-300 font-medium">
-                          How did you hear about Build Games? <span className="text-red-500">*</span>
-                        </FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger className="h-12 text-base border-slate-200 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-700/50 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-transparent">
-                              <SelectValue placeholder="Select an option" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl">
-                            {HOW_DID_YOU_HEAR.map((option) => (
-                              <SelectItem
-                                key={option}
-                                value={option.toLowerCase().replace(/[\s/]+/g, '_')}
-                                className="text-slate-700 dark:text-slate-300 py-2"
-                              >
-                                {option}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage className="text-red-500" />
-                      </FormItem>
-                    )}
-                  />
-
-                  {(watchedValues.howDidYouHear === "other" || watchedValues.howDidYouHear === "referred_by_a_friend" || watchedValues.howDidYouHear === "ava_labs_staff_member" || watchedValues.howDidYouHear === "avax_partner_or_investor") && (
-                    <>
                       <FormField
                         control={form.control}
-                        name="howDidYouHearSpecify"
+                        name="email"
                         render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-slate-700 dark:text-slate-300 font-medium">
-                              Please specify <span className="text-red-500">*</span>
-                            </FormLabel>
+                          <FormItem className="space-y-2">
+                            <Label className="text-sm font-medium text-foreground">
+                              Email <span className="text-destructive">*</span>
+                            </Label>
                             <FormControl>
                               <Input
-                                className="h-12 text-base border-slate-200 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-700/50 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                                placeholder="Please specify"
+                                className="h-12 border-border bg-[color-mix(in_oklab,var(--input)_50%,transparent)] text-foreground placeholder:text-muted-foreground"
+                                placeholder="johndoe@gmail.com"
+                                type="email"
                                 {...field}
                               />
                             </FormControl>
-                            <FormMessage className="text-red-500" />
+                            <FormMessage className="text-destructive" />
                           </FormItem>
                         )}
                       />
 
                       <FormField
                         control={form.control}
-                        name="referrerName"
+                        name="telegram"
                         render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-slate-700 dark:text-slate-300 font-medium">
-                              Please list their name:
-                            </FormLabel>
+                          <FormItem className="space-y-2">
+                            <Label className="text-sm font-medium text-foreground">
+                              Telegram Handle
+                            </Label>
+                            <FormDescription className="text-xs text-muted-foreground">
+                              Share your Telegram handle.
+                            </FormDescription>
                             <FormControl>
                               <Input
-                                className="h-12 text-base border-slate-200 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-700/50 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                                placeholder="Referrer's name"
+                                className="h-12 border-border bg-[color-mix(in_oklab,var(--input)_50%,transparent)] text-foreground placeholder:text-muted-foreground"
+                                placeholder="@username"
                                 {...field}
                               />
                             </FormControl>
-                            <FormMessage className="text-red-500" />
+                            <FormMessage className="text-destructive" />
                           </FormItem>
                         )}
                       />
-                    </>
+
+                      <FormField
+                        control={form.control}
+                        name="github"
+                        render={({ field }) => (
+                          <FormItem className="space-y-2">
+                            <Label className="text-sm font-medium text-foreground">
+                              Your personal or company GitHub <span className="text-destructive">*</span>
+                            </Label>
+                            <FormDescription className="text-xs text-muted-foreground">
+                              Share the link to your personal or company's GitHub account.
+                            </FormDescription>
+                            <FormControl>
+                              <Input
+                                className="h-12 border-border bg-[color-mix(in_oklab,var(--input)_50%,transparent)] text-foreground placeholder:text-muted-foreground"
+                                placeholder="https://github.com/username"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage className="text-destructive" />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
                   )}
 
-                  <FormField
-                    control={form.control}
-                    name="universityAffiliation"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-slate-700 dark:text-slate-300 font-medium">
-                          Are you affiliated with a university? <span className="text-red-500">*</span>
-                        </FormLabel>
-                        <FormDescription className="text-slate-500 text-sm">
-                          Choose "Yes" if you are a current student, faculty, professional, or administrator.
-                        </FormDescription>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger className="h-12 text-base border-slate-200 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-700/50 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-transparent">
-                              <SelectValue placeholder="Select an option" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl">
-                            <SelectItem value="yes" className="text-slate-700 dark:text-slate-300 py-2">Yes</SelectItem>
-                            <SelectItem value="no" className="text-slate-700 dark:text-slate-300 py-2">No</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage className="text-red-500" />
-                      </FormItem>
-                    )}
-                  />
+                  {/* Step 2: Location */}
+                  {currentStep === 2 && (
+                    <div className="space-y-6">
+                      <FormField
+                        control={form.control}
+                        name="country"
+                        render={({ field }) => (
+                          <FormItem className="space-y-2">
+                            <Label className="text-sm font-medium text-foreground">
+                              Country <span className="text-destructive">*</span>
+                            </Label>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger className="h-12 border-border bg-[color-mix(in_oklab,var(--input)_50%,transparent)] text-foreground">
+                                  <SelectValue placeholder="Select your country" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent className="max-h-[300px]">
+                                {countries.map((country) => (
+                                  <SelectItem key={country.value} value={country.value}>
+                                    {country.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage className="text-destructive" />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  )}
 
-                  <FormField
-                    control={form.control}
-                    name="avalancheEcosystemMember"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-slate-700 dark:text-slate-300 font-medium">
-                          Would you consider yourself an existing member of the Avalanche ecosystem, however you may define that? <span className="text-red-500">*</span>
-                        </FormLabel>
-                        <FormControl>
-                          <RadioGroup
-                            onValueChange={field.onChange}
-                            value={field.value}
-                            className="flex flex-col space-y-2"
-                          >
-                            <div className="flex items-center space-x-3">
-                              <RadioGroupItem value="yes" id="ecosystem-yes" />
-                              <Label htmlFor="ecosystem-yes" className="cursor-pointer">Yes</Label>
-                            </div>
-                            <div className="flex items-center space-x-3">
-                              <RadioGroupItem value="no" id="ecosystem-no" />
-                              <Label htmlFor="ecosystem-no" className="cursor-pointer">No</Label>
-                            </div>
-                          </RadioGroup>
-                        </FormControl>
-                        <FormMessage className="text-red-500" />
-                      </FormItem>
-                    )}
-                  />
+                  {/* Step 3: Before We Move Forward */}
+                  {currentStep === 3 && (
+                    <div className="space-y-6">
+                      <div className="rounded-lg border border-border bg-secondary/50 p-4 text-xs text-muted-foreground space-y-3">
+                        <p>
+                          Our goal is to find and support the next cohort of <strong className="text-foreground">Avalanche founders</strong>.
+                          This is not a bounty event. The prize pool is meaningful, but the real upside is for builders who want to
+                          <strong className="text-foreground"> stick around and build their vision on Avalanche</strong>.
+                          If you are selected as a winner, a portion of your rewards will be tied to:
+                        </p>
+                        <ul className="list-disc list-inside space-y-1 ml-2">
+                          <li>Continuing to build on Avalanche</li>
+                          <li>Hitting clear milestones in your roadmap</li>
+                          <li>Showing real progress through on-chain or product KPIs</li>
+                        </ul>
+                        <p>
+                          We are not asking for a legal lock in, but we are very intentional about where we put this capital and support.
+                          If your plan is to ship something quick, collect a prize, and move on to another chain, this program is probably not the right fit.
+                          If you want to become a 10x founder on Avalanche and are willing to commit to that path, we would love to see your application.
+                          <strong className="text-foreground"> So, are you ready to win?</strong>
+                        </p>
+                        <p className="text-xs text-muted-foreground/60 italic">
+                          Choosing "No" automatically disqualifies you from participating in Build Games.
+                        </p>
+                      </div>
 
-                  <div className="pt-4 flex justify-end">
-                    <Button
-                      type="button"
-                      onClick={() => setOpenSection(7)}
-                      disabled={!section6Complete}
-                      className="px-6 py-2 text-sm font-medium bg-pink-600 hover:bg-pink-700 text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      Continue
-                      <ArrowRight className="h-4 w-4 ml-2" />
-                    </Button>
-                  </div>
-                </AccordionSection>
+                      <FormField
+                        control={form.control}
+                        name="readyToWin"
+                        render={({ field }) => (
+                          <FormItem className="space-y-2">
+                            <Label className="text-sm font-medium text-foreground">
+                              Are you ready to win? <span className="text-destructive">*</span>
+                            </Label>
+                            <FormControl>
+                              <RadioGroup
+                                onValueChange={field.onChange}
+                                value={field.value}
+                                className="flex flex-col space-y-2"
+                              >
+                                <div className="flex items-center space-x-3">
+                                  <RadioGroupItem value="yes" id="ready-yes" />
+                                  <Label htmlFor="ready-yes" className="cursor-pointer text-foreground">Yes</Label>
+                                </div>
+                                <div className="flex items-center space-x-3">
+                                  <RadioGroupItem value="no" id="ready-no" />
+                                  <Label htmlFor="ready-no" className="cursor-pointer text-foreground">No</Label>
+                                </div>
+                              </RadioGroup>
+                            </FormControl>
+                            <FormMessage className="text-destructive" />
+                          </FormItem>
+                        )}
+                      />
 
-                <AccordionSection
-                  title="Done!"
-                  description="Make sure you review your answers before submitting this application."
-                  icon={<AlertCircle className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />}
-                  iconBg="bg-emerald-100 dark:bg-emerald-900/50"
-                  isLocked={!section6Complete}
-                  isComplete={false}
-                  sectionNumber={7}
-                  isOpen={openSection === 7}
-                  onToggle={() => handleSectionToggle(7)}
-                >
-                  <div className="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-4 text-sm text-slate-600 dark:text-slate-300">
-                    <p>
-                      The Avalanche Foundation needs the contact information you provide to us to contact you about our products and services.
-                      You may unsubscribe from these communications at any time. For information on how to unsubscribe, as well as our privacy
-                      practices and commitment to protecting your privacy, please review our{" "}
-                      <a href="https://www.avax.network/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline font-medium">
-                        Privacy Policy
-                      </a>.
-                    </p>
-                  </div>
+                      <FormField
+                        control={form.control}
+                        name="previousAvalancheGrant"
+                        render={({ field }) => (
+                          <FormItem className="space-y-2">
+                            <Label className="text-sm font-medium text-foreground">
+                              Have you received a grant previously from Avalanche? <span className="text-destructive">*</span>
+                            </Label>
+                            <FormDescription className="text-xs text-muted-foreground">
+                              Prior support from the Avalanche Foundation — including funding via Retro9000, Infra(BOOST), Infra(BUILD/LINK), Blizzard, Codebase, Innovation House, or Ava Labs — will be considered during the evaluation process and may impact grant size.
+                            </FormDescription>
+                            <FormControl>
+                              <RadioGroup
+                                onValueChange={field.onChange}
+                                value={field.value}
+                                className="flex flex-col space-y-2"
+                              >
+                                <div className="flex items-center space-x-3">
+                                  <RadioGroupItem value="yes" id="grant-yes" />
+                                  <Label htmlFor="grant-yes" className="cursor-pointer text-foreground">Yes</Label>
+                                </div>
+                                <div className="flex items-center space-x-3">
+                                  <RadioGroupItem value="no" id="grant-no" />
+                                  <Label htmlFor="grant-no" className="cursor-pointer text-foreground">No</Label>
+                                </div>
+                              </RadioGroup>
+                            </FormControl>
+                            <FormMessage className="text-destructive" />
+                          </FormItem>
+                        )}
+                      />
 
-                  <FormField
-                    control={form.control}
-                    name="privacyPolicyRead"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-start space-x-4 space-y-0 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-700/50 p-4">
-                        <FormControl>
-                          <Checkbox
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                            className="border-slate-300 dark:border-slate-600 data-[state=checked]:bg-emerald-600 data-[state=checked]:border-emerald-600 mt-1"
-                          />
-                        </FormControl>
-                        <div className="space-y-1 leading-none flex-1">
-                          <FormLabel className="font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
-                            I have read and agree to the privacy policy linked above. <span className="text-red-500">*</span>
-                          </FormLabel>
-                        </div>
-                      </FormItem>
-                    )}
-                  />
+                      <FormField
+                        control={form.control}
+                        name="hackathonExperience"
+                        render={({ field }) => (
+                          <FormItem className="space-y-2">
+                            <Label className="text-sm font-medium text-foreground">
+                              Have you participated in any hackathons in the past?
+                            </Label>
+                            <FormControl>
+                              <RadioGroup
+                                onValueChange={field.onChange}
+                                value={field.value}
+                                className="flex flex-col space-y-2"
+                              >
+                                <div className="flex items-center space-x-3">
+                                  <RadioGroupItem value="yes" id="hackathon-yes" />
+                                  <Label htmlFor="hackathon-yes" className="cursor-pointer text-foreground">Yes</Label>
+                                </div>
+                                <div className="flex items-center space-x-3">
+                                  <RadioGroupItem value="no" id="hackathon-no" />
+                                  <Label htmlFor="hackathon-no" className="cursor-pointer text-foreground">No</Label>
+                                </div>
+                              </RadioGroup>
+                            </FormControl>
+                            <FormMessage className="text-destructive" />
+                          </FormItem>
+                        )}
+                      />
 
-                  <FormField
-                    control={form.control}
-                    name="marketingConsent"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-start space-x-4 space-y-0 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-700/50 p-4">
-                        <FormControl>
-                          <Checkbox
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                            className="border-slate-300 dark:border-slate-600 data-[state=checked]:bg-emerald-600 data-[state=checked]:border-emerald-600 mt-1"
-                          />
-                        </FormControl>
-                        <div className="space-y-1 leading-none flex-1">
-                          <FormLabel className="font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
-                            I want to receive emails regarding valuable resources, funding opportunities, events, and notifications,
-                            including information on upcoming Build Games seasons from the Avalanche Foundation.
-                          </FormLabel>
-                        </div>
-                      </FormItem>
-                    )}
-                  />
+                      {watchedValues.hackathonExperience === "yes" && (
+                        <FormField
+                          control={form.control}
+                          name="hackathonDetails"
+                          render={({ field }) => (
+                            <FormItem className="space-y-2">
+                              <Label className="text-sm font-medium text-foreground">
+                                How many, and have you won?
+                              </Label>
+                              <FormControl>
+                                <Textarea
+                                  className="min-h-[100px] resize-none border-border bg-[color-mix(in_oklab,var(--input)_50%,transparent)] text-foreground placeholder:text-muted-foreground"
+                                  placeholder="Tell us about your hackathon experience..."
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage className="text-destructive" />
+                            </FormItem>
+                          )}
+                        />
+                      )}
 
-                  <div className="pt-4 flex justify-center">
-                    <Button
-                      type="submit"
-                      disabled={isSubmitting || !section6Complete}
-                      className="px-10 py-3 text-base font-semibold bg-[#FF394A] hover:bg-[#e6333f] text-white rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-                    >
-                      {isSubmitting ? (
+                      <FormField
+                        control={form.control}
+                        name="employmentRole"
+                        render={({ field }) => (
+                          <FormItem className="space-y-2">
+                            <Label className="text-sm font-medium text-foreground">
+                              Employment Role
+                            </Label>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger className="h-12 border-border bg-[color-mix(in_oklab,var(--input)_50%,transparent)] text-foreground">
+                                  <SelectValue placeholder="Select your role" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent className="max-h-[300px]">
+                                {EMPLOYMENT_ROLES.map((role) => (
+                                  <SelectItem key={role} value={role.toLowerCase().replace(/\s+/g, '_')}>
+                                    {role}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage className="text-destructive" />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="currentRole"
+                        render={({ field }) => (
+                          <FormItem className="space-y-2">
+                            <Label className="text-sm font-medium text-foreground">
+                              What is your current role?
+                            </Label>
+                            <FormControl>
+                              <Input
+                                className="h-12 border-border bg-[color-mix(in_oklab,var(--input)_50%,transparent)] text-foreground placeholder:text-muted-foreground"
+                                placeholder="e.g., Software Engineer at Company"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage className="text-destructive" />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="employmentStatus"
+                        render={({ field }) => (
+                          <FormItem className="space-y-2">
+                            <Label className="text-sm font-medium text-foreground">
+                              What is your current employment status?
+                            </Label>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger className="h-12 border-border bg-[color-mix(in_oklab,var(--input)_50%,transparent)] text-foreground">
+                                  <SelectValue placeholder="Select your status" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {EMPLOYMENT_STATUS.map((status) => (
+                                  <SelectItem key={status} value={status.toLowerCase().replace(/\s+/g, '_')}>
+                                    {status}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage className="text-destructive" />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  )}
+
+                  {/* Step 4: Project Details */}
+                  {currentStep === 4 && (
+                    <div className="space-y-6">
+                      <FormField
+                        control={form.control}
+                        name="projectName"
+                        render={({ field }) => (
+                          <FormItem className="space-y-2">
+                            <Label className="text-sm font-medium text-foreground">
+                              Name of your company or project <span className="text-destructive">*</span>
+                            </Label>
+                            <FormControl>
+                              <Input
+                                className="h-12 border-border bg-[color-mix(in_oklab,var(--input)_50%,transparent)] text-foreground placeholder:text-muted-foreground"
+                                placeholder="Your project name"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage className="text-destructive" />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="projectDescription"
+                        render={({ field }) => (
+                          <FormItem className="space-y-2">
+                            <Label className="text-sm font-medium text-foreground">
+                              Your company or project's one-line description <span className="text-destructive">*</span>
+                            </Label>
+                            <FormControl>
+                              <Input
+                                className="h-12 border-border bg-[color-mix(in_oklab,var(--input)_50%,transparent)] text-foreground placeholder:text-muted-foreground"
+                                placeholder="A brief description of what you're building"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage className="text-destructive" />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="areaOfFocus"
+                        render={({ field }) => (
+                          <FormItem className="space-y-2">
+                            <Label className="text-sm font-medium text-foreground">
+                              Area of Focus <span className="text-destructive">*</span>
+                            </Label>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger className="h-12 border-border bg-[color-mix(in_oklab,var(--input)_50%,transparent)] text-foreground">
+                                  <SelectValue placeholder="Select area of focus" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {AREA_OF_FOCUS.map((area) => (
+                                  <SelectItem key={area.value} value={area.value}>
+                                    {area.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage className="text-destructive" />
+                          </FormItem>
+                        )}
+                      />
+
+                      <div className="rounded-lg border border-border bg-secondary/50 p-4 text-xs text-muted-foreground">
+                        <p className="font-semibold text-foreground mb-2">Note on Definitions</p>
+                        <ul className="space-y-1">
+                          <li><strong className="text-foreground">Consumer:</strong> anything B2C non-financial related.</li>
+                          <li><strong className="text-foreground">DeFi:</strong> anything finance, stablecoin, or FinTech related.</li>
+                          <li><strong className="text-foreground">Enterprise:</strong> Anything that would be sold to and used by another business (B2B)</li>
+                          <li><strong className="text-foreground">Developer Tool:</strong> anything that would be purchased and used by a developer/tech organization.</li>
+                          <li><strong className="text-foreground">RWA:</strong> anything that is a real-world asset this is being tokenized (eg. think commodities).</li>
+                          <li><strong className="text-foreground">Gaming:</strong> anything that pertains to a game of chance or skill.</li>
+                        </ul>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Step 5: Why You */}
+                  {currentStep === 5 && (
+                    <div className="space-y-6">
+                      <FormField
+                        control={form.control}
+                        name="whyYou"
+                        render={({ field }) => (
+                          <FormItem className="space-y-2">
+                            <Label className="text-sm font-medium text-foreground">
+                              Do you believe you and your team could be Avalanche's next top founder(s)? Why? <span className="text-destructive">*</span>
+                            </Label>
+                            <FormDescription className="text-xs text-muted-foreground">
+                              Describe the qualities that you and your team possess and why you believe you will win Build Games.
+                            </FormDescription>
+                            <FormControl>
+                              <Textarea
+                                className="min-h-[150px] resize-none border-border bg-[color-mix(in_oklab,var(--input)_50%,transparent)] text-foreground placeholder:text-muted-foreground"
+                                placeholder="Tell us why you should be chosen..."
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage className="text-destructive" />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  )}
+
+                  {/* Step 6: Additional Info */}
+                  {currentStep === 6 && (
+                    <div className="space-y-6">
+                      <FormField
+                        control={form.control}
+                        name="howDidYouHear"
+                        render={({ field }) => (
+                          <FormItem className="space-y-2">
+                            <Label className="text-sm font-medium text-foreground">
+                              How did you hear about Build Games? <span className="text-destructive">*</span>
+                            </Label>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger className="h-12 border-border bg-[color-mix(in_oklab,var(--input)_50%,transparent)] text-foreground">
+                                  <SelectValue placeholder="Select an option" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {HOW_DID_YOU_HEAR.map((option) => (
+                                  <SelectItem key={option} value={option.toLowerCase().replace(/[\s/]+/g, '_')}>
+                                    {option}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage className="text-destructive" />
+                          </FormItem>
+                        )}
+                      />
+
+                      {(watchedValues.howDidYouHear === "other" || watchedValues.howDidYouHear === "referred_by_a_friend" || watchedValues.howDidYouHear === "ava_labs_staff_member" || watchedValues.howDidYouHear === "avax_partner_or_investor") && (
                         <>
-                          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                          Submitting...
-                        </>
-                      ) : (
-                        <>
-                          Submit your application
-                          <ArrowRight className="h-5 w-5 ml-2" />
+                          <FormField
+                            control={form.control}
+                            name="howDidYouHearSpecify"
+                            render={({ field }) => (
+                              <FormItem className="space-y-2">
+                                <Label className="text-sm font-medium text-foreground">
+                                  Please specify <span className="text-destructive">*</span>
+                                </Label>
+                                <FormControl>
+                                  <Input
+                                    className="h-12 border-border bg-[color-mix(in_oklab,var(--input)_50%,transparent)] text-foreground placeholder:text-muted-foreground"
+                                    placeholder="Please specify"
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <FormMessage className="text-destructive" />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="referrerName"
+                            render={({ field }) => (
+                              <FormItem className="space-y-2">
+                                <Label className="text-sm font-medium text-foreground">
+                                  Please list their name:
+                                </Label>
+                                <FormControl>
+                                  <Input
+                                    className="h-12 border-border bg-[color-mix(in_oklab,var(--input)_50%,transparent)] text-foreground placeholder:text-muted-foreground"
+                                    placeholder="Referrer's name"
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <FormMessage className="text-destructive" />
+                              </FormItem>
+                            )}
+                          />
                         </>
                       )}
+
+                      <FormField
+                        control={form.control}
+                        name="universityAffiliation"
+                        render={({ field }) => (
+                          <FormItem className="space-y-2">
+                            <Label className="text-sm font-medium text-foreground">
+                              Are you affiliated with a university? <span className="text-destructive">*</span>
+                            </Label>
+                            <FormDescription className="text-xs text-muted-foreground">
+                              Choose "Yes" if you are a current student, faculty, professional, or administrator.
+                            </FormDescription>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger className="h-12 border-border bg-[color-mix(in_oklab,var(--input)_50%,transparent)] text-foreground">
+                                  <SelectValue placeholder="Select an option" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="yes">Yes</SelectItem>
+                                <SelectItem value="no">No</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage className="text-destructive" />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="avalancheEcosystemMember"
+                        render={({ field }) => (
+                          <FormItem className="space-y-2">
+                            <Label className="text-sm font-medium text-foreground">
+                              Would you consider yourself an existing member of the Avalanche ecosystem, however you may define that? <span className="text-destructive">*</span>
+                            </Label>
+                            <FormControl>
+                              <RadioGroup
+                                onValueChange={field.onChange}
+                                value={field.value}
+                                className="flex flex-col space-y-2"
+                              >
+                                <div className="flex items-center space-x-3">
+                                  <RadioGroupItem value="yes" id="ecosystem-yes" />
+                                  <Label htmlFor="ecosystem-yes" className="cursor-pointer text-foreground">Yes</Label>
+                                </div>
+                                <div className="flex items-center space-x-3">
+                                  <RadioGroupItem value="no" id="ecosystem-no" />
+                                  <Label htmlFor="ecosystem-no" className="cursor-pointer text-foreground">No</Label>
+                                </div>
+                              </RadioGroup>
+                            </FormControl>
+                            <FormMessage className="text-destructive" />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  )}
+
+                  {/* Step 7: Consent & Privacy */}
+                  {currentStep === 7 && (
+                    <div className="space-y-6">
+                      <div className="rounded-lg border border-accent bg-accent/10 p-4">
+                        <p className="text-sm text-foreground">
+                          The Avalanche Foundation needs the contact information you provide to us to contact you about our products and services.
+                          You may unsubscribe from these communications at any time. For information on how to unsubscribe, as well as our privacy
+                          practices and commitment to protecting your privacy, please review our{" "}
+                          <a href="https://www.avax.network/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline font-medium">
+                            Privacy Policy
+                          </a>.
+                        </p>
+                      </div>
+
+                      <FormField
+                        control={form.control}
+                        name="privacyPolicyRead"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-start space-x-4 space-y-0 rounded-lg border border-border bg-secondary/50 p-4">
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                            <div className="space-y-1 leading-none flex-1">
+                              <Label className="font-medium text-foreground cursor-pointer">
+                                I have read and agree to the privacy policy linked above. <span className="text-destructive">*</span>
+                              </Label>
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="marketingConsent"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-start space-x-4 space-y-0 rounded-lg border border-border bg-secondary/50 p-4">
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                            <div className="space-y-1 leading-none flex-1">
+                              <Label className="font-medium text-foreground cursor-pointer">
+                                I want to receive emails regarding valuable resources, funding opportunities, events, and notifications,
+                                including information on upcoming Build Games seasons from the Avalanche Foundation.
+                              </Label>
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  )}
+
+                  {/* Navigation */}
+                  <div className="mt-8 flex items-center justify-between border-t border-border pt-6">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handlePrev}
+                      disabled={currentStep === 1}
+                      className="gap-2 bg-transparent"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                      Previous
                     </Button>
+                    {currentStep === STEPS.length ? (
+                      <Button type="submit" disabled={isSubmitting || !isFormComplete} className="gap-2">
+                        {isSubmitting ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Submitting...
+                          </>
+                        ) : (
+                          <>
+                            Submit Application
+                            <CheckCircle2 className="h-4 w-4" />
+                          </>
+                        )}
+                      </Button>
+                    ) : (
+                      <Button type="button" onClick={handleNext} className="gap-2">
+                        Continue
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
-                </AccordionSection>
+                </div>
               </form>
             </Form>
-          </div>
-        )}
+          </main>
+        </div>
       </div>
     </div>
   );
