@@ -101,12 +101,12 @@ function CountdownTimer({ targetDate, onComplete }: { targetDate: string; onComp
 }
 
 export function CustomCountdownBanner() {
-  const deadlineDate = "2026-01-17T23:59:59-05:00";
+  const deadlineDate = "2026-02-13T23:59:59-05:00";
   const [deadlinePassed, setDeadlinePassed] = useState(false);
   useEffect(() => {
-    const bannerKey = "nd-banner-hardware-banner";
+    const bannerKey = "nd-banner-build-games-banner";
     localStorage.removeItem(bannerKey);
-    document.documentElement.classList.remove("nd-banner-hardware-banner");
+    document.documentElement.classList.remove("nd-banner-build-games-banner");
   }, []);
 
   // check if deadline has already passed
@@ -120,21 +120,21 @@ export function CustomCountdownBanner() {
 
   return (
     <Banner
-      id="hardware-banner"
+      id="build-games-banner"
       variant="rainbow"
-      style={{background: "linear-gradient(90deg, #E53935 0%, #FF6B35 50%, #F4511E 100%)", color: "#000",}}
+      style={{background: "linear-gradient(90deg, #0b1e30 0%, #1a3a5c 50%, #0b1e30 100%)", color: "#fff",}}
     >
-      <Link href="/docs/acps/256-hardware-recommendations" className="md:hidden inline-flex items-center gap-1 flex-wrap justify-center">
-        <span><strong className="underline">Hardware Update:</strong> Use NVMe SSD by Jan 17</span>
+      <Link href="/build-games" className="md:hidden inline-flex items-center gap-1 flex-wrap justify-center">
+        <span>Don't miss <strong className="text-[#66acd6]">Build Games</strong> — <strong className="text-[#66acd6]">$1M</strong> Builder Competition</span>
       </Link>
 
       <div className="hidden md:flex flex-row items-center justify-center gap-2 text-center">
-        <span><strong>Primary Network Node Hardware Requirement Update:</strong> Use a locally-mounted NVMe SSD by Jan 17</span>
+        <span>Don't miss <strong className="text-[#66acd6]">Build Games</strong>, A <strong className="text-[#66acd6]">$1,000,000</strong> Builder Competition on Avalanche</span>
         <span className="flex items-center gap-2">
           <span>•</span>
           <CountdownTimer targetDate={deadlineDate} onComplete={() => setDeadlinePassed(true)} />
           <span className="hidden md:inline">•</span>
-          <Link href="/docs/acps/256-hardware-recommendations" className="underline underline-offset-4 hover:opacity-80 transition-opacity">Read More</Link>
+          <Link href="/build-games" className="underline underline-offset-4 hover:text-[#66acd6] transition-colors">Apply Now</Link>
         </span>
       </div>
     </Banner>
