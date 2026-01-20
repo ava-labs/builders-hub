@@ -125,6 +125,16 @@ export async function POST(request: Request) {
       fields[githubFieldIndex].value = DEFAULT_GITHUB_URL;
     }
 
+    // Use "how did you hear" selection as default for "specify" field if not provided
+    const specifyFieldName = HUBSPOT_FIELD_MAPPING['howDidYouHearSpecify'];
+    const specifyFieldIndex = fields.findIndex((f) => f.name === specifyFieldName);
+    const howDidYouHearValue = formData.howDidYouHear as string || '';
+    if (specifyFieldIndex === -1) {
+      fields.push({ name: specifyFieldName, value: howDidYouHearValue });
+    } else if (!fields[specifyFieldIndex].value) {
+      fields[specifyFieldIndex].value = howDidYouHearValue;
+    }
+
     const hubspotPayload: {
       fields: { name: string; value: string | boolean }[];
       context: { pageUri: string; pageName: string };

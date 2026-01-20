@@ -70,7 +70,7 @@ const formSchema = z.object({
   whyYou: z.string().min(1, "This field is required"),
 
   howDidYouHear: z.string().min(1, "Please select an option"),
-  howDidYouHearSpecify: z.string().optional(),
+  howDidYouHearSpecify: z.string().min(1, "Please specify how you heard about us"),
   referrerName: z.string().optional(),
   universityAffiliation: z.enum(["yes", "no"], { message: "Please select an option" }),
   avalancheEcosystemMember: z.enum(["yes", "no"], { message: "Please select an option" }),
@@ -162,6 +162,7 @@ export default function BuildGamesApplyForm() {
     watchedValues.areaOfFocus &&
     watchedValues.whyYou &&
     watchedValues.howDidYouHear &&
+    watchedValues.howDidYouHearSpecify &&
     watchedValues.universityAffiliation &&
     watchedValues.avalancheEcosystemMember &&
     watchedValues.privacyPolicyRead
@@ -907,49 +908,45 @@ export default function BuildGamesApplyForm() {
                         )}
                       />
 
-                      {(watchedValues.howDidYouHear === "other" || watchedValues.howDidYouHear === "referred_by_a_friend" || watchedValues.howDidYouHear === "ava_labs_staff_member" || watchedValues.howDidYouHear === "avax_partner_or_investor") && (
-                        <>
-                          <FormField
-                            control={form.control}
-                            name="howDidYouHearSpecify"
-                            render={({ field }) => (
-                              <FormItem className="space-y-2">
-                                <Label className="text-sm font-medium text-foreground">
-                                  Please specify <span className="text-destructive">*</span>
-                                </Label>
-                                <FormControl>
-                                  <Input
-                                    className="h-12 border-border bg-[color-mix(in_oklab,var(--input)_50%,transparent)] text-foreground placeholder:text-muted-foreground"
-                                    placeholder="Please specify"
-                                    {...field}
-                                  />
-                                </FormControl>
-                                <FormMessage className="text-destructive" />
-                              </FormItem>
-                            )}
-                          />
+                      <FormField
+                        control={form.control}
+                        name="howDidYouHearSpecify"
+                        render={({ field }) => (
+                          <FormItem className="space-y-2">
+                            <Label className="text-sm font-medium text-foreground">
+                              Please specify <span className="text-destructive">*</span>
+                            </Label>
+                            <FormControl>
+                              <Input
+                                className="h-12 border-border bg-[color-mix(in_oklab,var(--input)_50%,transparent)] text-foreground placeholder:text-muted-foreground"
+                                placeholder="Please specify"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage className="text-destructive" />
+                          </FormItem>
+                        )}
+                      />
 
-                          <FormField
-                            control={form.control}
-                            name="referrerName"
-                            render={({ field }) => (
-                              <FormItem className="space-y-2">
-                                <Label className="text-sm font-medium text-foreground">
-                                  Please list their name:
-                                </Label>
-                                <FormControl>
-                                  <Input
-                                    className="h-12 border-border bg-[color-mix(in_oklab,var(--input)_50%,transparent)] text-foreground placeholder:text-muted-foreground"
-                                    placeholder="Referrer's name"
-                                    {...field}
-                                  />
-                                </FormControl>
-                                <FormMessage className="text-destructive" />
-                              </FormItem>
-                            )}
-                          />
-                        </>
-                      )}
+                      <FormField
+                        control={form.control}
+                        name="referrerName"
+                        render={({ field }) => (
+                          <FormItem className="space-y-2">
+                            <Label className="text-sm font-medium text-foreground">
+                              Please list their name:
+                            </Label>
+                            <FormControl>
+                              <Input
+                                className="h-12 border-border bg-[color-mix(in_oklab,var(--input)_50%,transparent)] text-foreground placeholder:text-muted-foreground"
+                                placeholder="Referrer's name"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage className="text-destructive" />
+                          </FormItem>
+                        )}
+                      />
 
                       <FormField
                         control={form.control}
