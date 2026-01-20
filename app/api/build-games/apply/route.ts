@@ -187,7 +187,7 @@ export async function POST(request: Request) {
           success: false,
           message: 'Application submission failed. Please try again.',
           details: {
-            hubspot: hubspotSuccess ? 'success' : (hubspotResult.error || hubspotResult.data),
+            hubspot: hubspotSuccess ? 'success' : ('error' in hubspotResult ? hubspotResult.error : hubspotResult.data),
             database: dbSuccess ? 'success' : (dbResult.error || 'Unknown error'),
           },
         },
