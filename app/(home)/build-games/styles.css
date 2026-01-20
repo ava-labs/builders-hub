@@ -101,6 +101,10 @@ body:has(.build-games-container) .nd-layout-home, body:has(.build-games-containe
 .build-games-container img.max-w-none { max-width: none !important; }
 .build-games-container .absolute img { display: block; }
 
+.build-games-container [data-slot="accordion-trigger"] { font-size: 1.5rem !important; line-height: 2 !important; }
+.build-games-container [data-slot="accordion-trigger"] svg { width: 24px !important; height: 24px !important; min-width: 24px !important; min-height: 24px !important; color: #66acd6 !important; margin-top: 0.5rem !important; }
+.build-games-container [data-slot="accordion-trigger"][data-state="open"] svg { transform: rotate(180deg) !important; }
+
 .gradient-border-card { position: relative; background: linear-gradient(180deg, rgba(15, 40, 71, 0.8) 0%, rgba(10, 22, 40, 0.9) 100%); border-radius: 16px; }
 .gradient-border-card::before { content: ""; position: absolute; inset: 0; border-radius: 16px; padding: 1px; background: linear-gradient(180deg, rgba(56, 189, 248, 0.4) 0%, rgba(56, 189, 248, 0.2) 50%, rgba(56, 189, 248, 0.1) 80%, transparent 100%); -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0); -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none; z-index: 1; }
 .gradient-border-section { position: relative; }
@@ -142,6 +146,9 @@ body:has(.build-games-container) .nd-layout-home, body:has(.build-games-containe
   .build-games-container [data-name="CTA"] .basis-0.grow { display: flex !important; justify-content: center !important; width: 100% !important; }
   .build-games-container [data-name="CTA"] .basis-0.flex-row.grow { justify-content: center !important; width: 100% !important; }
   .build-games-container [data-name="CTA"] .gap-\[10px\].items-center { justify-content: center !important; width: 100% !important; }
+  .build-games-container .get-involved-cta { display: flex !important; justify-content: center !important; align-items: center !important; }
+  .build-games-container .get-involved-cta > div { justify-content: center !important; }
+  .build-games-container .get-involved-cta .text-\[64px\] { font-size: 32px !important; }
   .build-games-container .px-\[186px\] { padding-left: 16px !important; padding-right: 16px !important; }
   .build-games-container .w-\[1068px\] { width: 100% !important; flex-direction: column !important; }
   .build-games-container .w-\[478px\] { width: 100% !important; }
@@ -223,7 +230,12 @@ body:has(.build-games-container) .nd-layout-home, body:has(.build-games-containe
   .build-games-container .min-h-px { min-height: 0 !important; }
 }
 
+@media screen and (min-width: 1501px) {
+  .build-games-container .get-involved-cta { padding-top: 60px !important; padding-bottom: 60px !important; }
+}
+
 @media screen and (min-width: 1901px) {
+  .build-games-container .get-involved-cta { padding-top: 80px !important; padding-bottom: 80px !important; }
   .build-games-container [data-name="Hero"] { height: 43.5vw !important; max-height: 900px !important; overflow: hidden !important; }
   .build-games-container [data-name="Background3_R1 1"] { width: 100vw !important; height: 100% !important; max-width: none !important; left: 0 !important; top: 0 !important; transform: none !important; }
   .build-games-container [data-name="Background3_R1 1"] img { width: 100% !important; height: 100% !important; max-width: none !important; object-fit: cover !important; object-position: center center !important; inset: 0 !important; }
@@ -309,6 +321,7 @@ body:has(.build-games-container) .nd-layout-home, body:has(.build-games-containe
   .build-games-container [data-name="Hero"] [data-name="Layer_1"] { width: 140px !important; height: 100px !important; left: 15px !important; top: 150px !important; }
   .build-games-container .text-\[48px\] { font-size: 26px !important; }
   .build-games-container .text-\[64px\] { font-size: 30px !important; }
+  .build-games-container .get-involved-cta .text-\[64px\] { font-size: 22px !important; line-height: 1.2 !important; }
   .build-games-container .text-\[24px\] { font-size: 16px !important; }
   .build-games-container .text-\[20px\] { font-size: 15px !important; }
   .build-games-container .text-\[18px\] { font-size: 14px !important; }
