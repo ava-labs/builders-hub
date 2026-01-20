@@ -17,6 +17,7 @@ const HUBSPOT_API_KEY = process.env.HUBSPOT_API_KEY;
 const HUBSPOT_PORTAL_ID = process.env.HUBSPOT_PORTAL_ID || '7522520';
 const BUILD_GAMES_FORM_GUID = process.env.BUILD_GAMES_FORM_GUID || '2bab493b-9933-4076-8ace-f3cab2fe8cfb';
 const BUILD_GAMES_HACKATHON_ID = process.env.BUILD_GAMES_HACKATHON_ID;
+const DEFAULT_GITHUB_URL = 'https://github.com/ava-labs/builders-hub';
 
 // Map form field names to HubSpot field names
 // Field names from HubSpot form: 2bab493b-9933-4076-8ace-f3cab2fe8cfb
@@ -107,6 +108,23 @@ export async function POST(request: Request) {
       });
     });
 
+    // Ensure HubSpot required fields are always included (even if not in form data)
+    hubspotRequiredFields.forEach((requiredField) => {
+      const fieldExists = fields.some((f) => f.name === requiredField);
+      if (!fieldExists) {
+        fields.push({ name: requiredField, value: '' });
+      }
+    });
+
+    // Use default GitHub URL if not provided (HubSpot requires this field)
+    const githubFieldName = HUBSPOT_FIELD_MAPPING['github'];
+    const githubFieldIndex = fields.findIndex((f) => f.name === githubFieldName);
+    if (githubFieldIndex === -1) {
+      fields.push({ name: githubFieldName, value: DEFAULT_GITHUB_URL });
+    } else if (!fields[githubFieldIndex].value) {
+      fields[githubFieldIndex].value = DEFAULT_GITHUB_URL;
+    }
+
     const hubspotPayload: {
       fields: { name: string; value: string | boolean }[];
       context: { pageUri: string; pageName: string };
@@ -146,7 +164,14 @@ export async function POST(request: Request) {
     }
 
     // Run HubSpot submission and DB save in parallel
-    const hubspotPromise = fetchWithTimeout(`https://api.hsforms.com/submissions/v3/integration/submit/${HUBSPOT_PORTAL_ID}/${BUILD_GAMES_FORM_GUID}`,
+    console.log('[Build Games Apply] Starting submission...');
+    console.log('[Build Games Apply] HubSpot payload fields:', JSON.stringify(fields, null, 2));
+    console.log('[Build Games Apply] HubSpot legal consent:', JSON.stringify(hubspotPayload.legalConsentOptions, null, 2));
+
+    const hubspotUrl = `https://api.hsforms.com/submissions/v3/integration/submit/${HUBSPOT_PORTAL_ID}/${BUILD_GAMES_FORM_GUID}`;
+    console.log('[Build Games Apply] HubSpot URL:', hubspotUrl);
+
+    const hubspotPromise = fetchWithTimeout(hubspotUrl,
       {
         method: 'POST',
         headers: {
@@ -165,22 +190,42 @@ export async function POST(request: Request) {
       hubspotPromise
         .then(async (response) => {
           const status = response.status;
+          console.log('[Build Games Apply] HubSpot response status:', status);
           let data;
-          try { data = await response.json() } catch { data = { message: 'Could not parse response' } }
+          try {
+            const responseText = await response.text();
+            console.log('[Build Games Apply] HubSpot response body:', responseText);
+            try {
+              data = JSON.parse(responseText);
+            } catch {
+              data = { message: responseText || 'Could not parse response' };
+            }
+          } catch (e) {
+            console.error('[Build Games Apply] Error reading HubSpot response:', e);
+            data = { message: 'Could not read response' };
+          }
           return { success: response.ok, status, data };
         })
-        .catch((err) => { console.error('HubSpot request failed:', err); return { success: false, status: 0, data: null, error: err.message } }),
+        .catch((err) => {
+          console.error('[Build Games Apply] HubSpot request failed:', err);
+          return { success: false, status: 0, data: null, error: err.message };
+        }),
       dbPromise,
     ]);
 
     const hubspotSuccess = hubspotResult.success;
     const dbSuccess = dbResult.success;
+
+    console.log('[Build Games Apply] Results - HubSpot:', hubspotSuccess ? 'success' : 'failed', '| DB:', dbSuccess ? 'success' : 'failed');
+    console.log('[Build Games Apply] HubSpot result:', JSON.stringify(hubspotResult, null, 2));
+    console.log('[Build Games Apply] DB result:', JSON.stringify(dbResult, null, 2));
+
     if (!hubspotSuccess || !dbSuccess) {
       const failedSystems = [];
       if (!hubspotSuccess) failedSystems.push('HubSpot');
       if (!dbSuccess) failedSystems.push('Database');
 
-      console.error(`Submission failed: ${failedSystems.join(' and ')} failed`);
+      console.error(`[Build Games Apply] Submission failed: ${failedSystems.join(' and ')} failed`);
 
       return NextResponse.json(
         {
@@ -207,35 +252,42 @@ export async function POST(request: Request) {
 
 // Save application to database
 async function saveToDatabase(formData: Record<string, unknown>): Promise<{ success: boolean; id?: string; error?: string }> {
+  console.log('[Build Games Apply DB] Starting database save...');
+
   if (!BUILD_GAMES_HACKATHON_ID) {
-    console.warn('BUILD_GAMES_HACKATHON_ID not set, skipping database save');
+    console.warn('[Build Games Apply DB] BUILD_GAMES_HACKATHON_ID not set, skipping database save');
     return { success: false, error: 'Hackathon ID not configured' };
   }
 
   const email = formData.email as string;
+  console.log('[Build Games Apply DB] Email:', email);
   if (!email) return { success: false, error: 'Email is required' };
 
   try {
+    console.log('[Build Games Apply DB] Looking up user...');
     const user = await prisma.user.findUnique({
       where: { email: email },
       select: { id: true },
     });
 
     if (!user) {
-      console.error(`User with email ${email} not found in database`);
+      console.error(`[Build Games Apply DB] User with email ${email} not found in database`);
       return { success: false, error: 'User not found. Please ensure you are logged in.' };
     }
+    console.log('[Build Games Apply DB] User found:', user.id);
 
     // Verify hackathon exists
+    console.log('[Build Games Apply DB] Looking up hackathon:', BUILD_GAMES_HACKATHON_ID);
     const hackathon = await prisma.hackathon.findUnique({
       where: { id: BUILD_GAMES_HACKATHON_ID },
       select: { id: true },
     });
 
     if (!hackathon) {
-      console.error(`Hackathon with ID ${BUILD_GAMES_HACKATHON_ID} not found`);
+      console.error(`[Build Games Apply DB] Hackathon with ID ${BUILD_GAMES_HACKATHON_ID} not found`);
       return { success: false, error: 'Hackathon configuration error' };
     }
+    console.log('[Build Games Apply DB] Hackathon found');
 
     const registrationData = {
       name: `${formData.firstName || ''} ${formData.lastName || ''}`.trim(),
@@ -257,6 +309,7 @@ async function saveToDatabase(formData: Record<string, unknown>): Promise<{ succ
       prohibited_items: false,
     };
 
+    console.log('[Build Games Apply DB] Upserting registration with data:', JSON.stringify(registrationData, null, 2));
     const result = await prisma.registerForm.upsert({
       where: {
         hackathon_id_email: {
@@ -301,9 +354,10 @@ async function saveToDatabase(formData: Record<string, unknown>): Promise<{ succ
         prohibited_items: registrationData.prohibited_items,
       },
     });
+    console.log('[Build Games Apply DB] Successfully saved, ID:', result.id);
     return { success: true, id: result.id };
   } catch (error) {
-    console.error('Error saving to database:', error);
+    console.error('[Build Games Apply DB] Error saving to database:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Database error'

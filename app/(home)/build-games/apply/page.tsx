@@ -51,7 +51,7 @@ const formSchema = z.object({
   lastName: z.string().min(1, "Last name is required"),
   email: z.string().email("Please enter a valid email"),
   telegram: z.string().optional(),
-  github: z.string().min(1, "GitHub link is required"),
+  github: z.string().optional(),
 
   country: z.string().min(1, "Country is required"),
 
@@ -84,7 +84,7 @@ const formSchema = z.object({
 type FormData = z.infer<typeof formSchema>;
 
 export default function BuildGamesApplyForm() {
-  const { status } = useSession();
+  const { data: session, status } = useSession();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionStatus, setSubmissionStatus] = useState<"success" | "error" | null>(null);
@@ -124,6 +124,13 @@ export default function BuildGamesApplyForm() {
 
   const watchedValues = useWatch({ control: form.control });
 
+  // Prefill email from session
+  useEffect(() => {
+    if (session?.user?.email) {
+      form.setValue("email", session.user.email);
+    }
+  }, [session?.user?.email, form]);
+
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push(`/login?callbackUrl=${encodeURIComponent("/build-games/apply")}`);
@@ -147,7 +154,6 @@ export default function BuildGamesApplyForm() {
     watchedValues.firstName &&
     watchedValues.lastName &&
     watchedValues.email &&
-    watchedValues.github &&
     watchedValues.country &&
     watchedValues.readyToWin &&
     watchedValues.previousAvalancheGrant &&
@@ -454,9 +460,9 @@ export default function BuildGamesApplyForm() {
                             </Label>
                             <FormControl>
                               <Input
-                                className="h-12 border-border bg-[color-mix(in_oklab,var(--input)_50%,transparent)] text-foreground placeholder:text-muted-foreground"
-                                placeholder="johndoe@gmail.com"
+                                className="h-12 border-border bg-[color-mix(in_oklab,var(--input)_50%,transparent)] text-foreground cursor-not-allowed"
                                 type="email"
+                                disabled
                                 {...field}
                               />
                             </FormControl>
@@ -494,7 +500,7 @@ export default function BuildGamesApplyForm() {
                         render={({ field }) => (
                           <FormItem className="space-y-2">
                             <Label className="text-sm font-medium text-foreground">
-                              Your personal or company GitHub <span className="text-destructive">*</span>
+                              Your personal or company GitHub
                             </Label>
                             <FormDescription className="text-xs text-muted-foreground">
                               Share the link to your personal or company's GitHub account.
@@ -1011,7 +1017,7 @@ export default function BuildGamesApplyForm() {
                           The Avalanche Foundation needs the contact information you provide to us to contact you about our products and services.
                           You may unsubscribe from these communications at any time. For information on how to unsubscribe, as well as our privacy
                           practices and commitment to protecting your privacy, please review our{" "}
-                          <a href="https://www.avax.network/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline font-medium">
+                          <a href="https://www.avax.network/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-[#66acd6] hover:text-[#7bbde3] hover:underline font-medium">
                             Privacy Policy
                           </a>.
                         </p>
