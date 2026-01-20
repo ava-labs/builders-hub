@@ -273,3 +273,38 @@ model FaucetClaim {
   @@index([created_at])
   @@index([faucet_type, chain_id])
 }
+
+model BuildGamesApplication {
+  id                        String   @id @default(uuid())
+  email                     String   @unique
+  first_name                String
+  last_name                 String
+  telegram                  String?
+  github                    String?
+  country                   String
+  ready_to_win              String
+  previous_avalanche_grant  String
+  hackathon_experience      String?
+  hackathon_details         String?
+  employment_role           String?
+  current_role              String?
+  employment_status         String?
+  project_name              String
+  project_description       String
+  area_of_focus             String
+  why_you                   String
+  how_did_you_hear          String
+  how_did_you_hear_specify  String?
+  referrer_name             String?
+  referrer_handle           String?
+  university_affiliation    String
+  avalanche_ecosystem_member String
+  privacy_policy_read       Boolean  @default(false)
+  marketing_consent         Boolean  @default(false)
+  created_at                DateTime @default(now()) @db.Timestamptz(3)
+  updated_at                DateTime @updatedAt @db.Timestamptz(3)
+
+  @@index([created_at])
+  @@index([referrer_handle])
+  @@index([area_of_focus])
+}
