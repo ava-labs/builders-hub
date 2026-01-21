@@ -57,7 +57,7 @@ const partnerPrograms = [
     description: "Support and fast-track for promising gaming studios and projects building on Avalanche, in partnership with Helika.",
     href: "https://www.helika.io/helika-avalanche-accelerator",
     external: true,
-    image: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/hackathon-images/build-games-2025/Build%20Games%202025-banner-1768256090146-YrOrQ10HvSJk1xEUCSHgdpt9rGFnEB.png",
+    image: "/images/proofofplay.jpg",
   },
   {
     title: "Developer Credits",
@@ -71,14 +71,14 @@ const partnerPrograms = [
     description: "Onchain security for Avalanche builders, delivering real-time threat detection for smart contracts and protocols.",
     href: "https://hexagate.typeform.com/HexagateForAva?typeform-source=t.co",
     external: true,
-    image: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/hackathon_bba-RIFZkBsh3wUyzIhi1zJK7GFamAne3D.png",
+    image: "/images/blocksec.jpeg",
   },
   {
     title: "Security Audits",
     description: "Explore 20+ trusted auditing providers and find the right partner to review, test, and strengthen your smart contracts.",
     href: "https://areta.market/avalanche",
     external: true,
-    image: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/hackathons-banner-nyqtkzooc3tJ4qcLjfLJijXz6uJ6oH.png",
+    image: "/images/auditagent.png",
   },
 ];
 
