@@ -17,7 +17,7 @@ function ConsoleContent({ children }: { children: ReactNode }) {
   return (
     <WalletProvider>
       <SidebarProvider
-        className="h-screen overflow-hidden"
+        className="!h-[calc(100vh-var(--fd-banner-height,0px))] !min-h-[calc(100vh-var(--fd-banner-height,0px))] !max-h-[calc(100vh-var(--fd-banner-height,0px))] overflow-hidden"
         style={
           {
             "--sidebar-width": "calc(var(--spacing) * 72)",
@@ -26,9 +26,9 @@ function ConsoleContent({ children }: { children: ReactNode }) {
         }
       >
         <ConsoleSidebar variant="inset" />
-        <SidebarInset className="bg-white dark:bg-gray-800 h-[calc(100vh-1rem)] overflow-hidden m-2">
+        <SidebarInset className="bg-white dark:bg-gray-800 h-[calc(100vh-var(--fd-banner-height,0px)-1rem)] overflow-hidden m-2">
           <SiteHeader />
-          <div className="flex flex-1 flex-col gap-4 p-8 overflow-y-auto h-[calc(100vh-var(--header-height)-1rem)]">
+          <div className="flex flex-1 flex-col gap-4 p-8 overflow-y-auto h-[calc(100vh-var(--fd-banner-height,0px)-var(--header-height)-1rem)]">
             {children}
           </div>
         </SidebarInset>
