@@ -93,6 +93,7 @@ interface ProgramCardProps {
 function ProgramCard({ title, description, href, external, image }: ProgramCardProps) {
   const CardWrapper = external ? 'a' : Link;
   const linkProps = external ? { href, target: "_blank", rel: "noopener noreferrer" } : { href };
+  const isSvg = image.endsWith('.svg');
 
   return (
     <CardWrapper {...linkProps} className="block group">
@@ -102,7 +103,7 @@ function ProgramCard({ title, description, href, external, image }: ProgramCardP
           src={image}
           alt={title}
           fill
-          className="object-cover transition-transform duration-500 group-hover:scale-105"
+          className={`object-cover transition-transform duration-500 group-hover:scale-105 ${isSvg ? 'invert dark:invert-0' : ''}`}
         />
 
         {/* Dark overlay for text readability */}
