@@ -94,18 +94,7 @@ export function UserButton() {
                     {session.user.email || 'No email available'}
                   </p>
                 )}
-                {formattedEmail ? (
-                  <div className="text-sm">
-                    <div className="break-words">{formattedEmail.localPart}</div>
-                    {formattedEmail.domain && (
-                      <div className="break-words">{formattedEmail.domain}</div>
-                    )}
-                  </div>
-                ) : (
-                  <p className="text-sm break-words">
-                    {session.user.email || 'No email available'}
-                  </p>
-                )}
+
 
                 <p className="text-sm break-words mt-1">
                   {session.user.name || 'No name available'}
