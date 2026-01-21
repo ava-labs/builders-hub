@@ -133,24 +133,26 @@ export function CustomCountdownBanner() {
   if (deadlinePassed) { return null }
 
   return (
-    <Banner
-      id="build-games-banner"
-      variant="rainbow"
-      style={{background: "linear-gradient(90deg, #0b1e30 0%, #1a3a5c 50%, #0b1e30 100%)", color: "#fff",}}
-    >
-      <Link href="/build-games" className="md:hidden inline-flex items-center gap-1 flex-wrap justify-center">
-        <span>Don't miss <strong className="text-[#66acd6]">Build Games</strong> — <strong className="text-[#66acd6]">$1M</strong> Builder Competition</span>
-      </Link>
+    <div className="sticky top-0 z-50">
+      <Banner
+        id="build-games-banner"
+        variant="rainbow"
+        style={{background: "linear-gradient(90deg, #0b1e30 0%, #1a3a5c 50%, #0b1e30 100%)", color: "#fff",}}
+      >
+        <Link href="/build-games" className="md:hidden inline-flex items-center gap-1 flex-wrap justify-center">
+          <span>Don't miss <strong className="text-[#66acd6]">Build Games</strong> — <strong className="text-[#66acd6]">$1M</strong> Builder Competition</span>
+        </Link>
 
-      <div className="hidden md:flex flex-row items-center justify-center gap-2 text-center">
-        <span>Don't miss <strong className="text-[#66acd6]">Build Games</strong>, A <strong className="text-[#66acd6]">$1,000,000</strong> Builder Competition on Avalanche</span>
-        <span className="flex items-center gap-2">
-          <span>•</span>
-          <CountdownTimer targetDate={deadlineDate} onComplete={() => setDeadlinePassed(true)} />
-          <span className="hidden md:inline">•</span>
-          <Link href="/build-games" className="underline underline-offset-4 hover:text-[#66acd6] transition-colors">Apply Now</Link>
-        </span>
-      </div>
-    </Banner>
+        <div className="hidden md:flex flex-row items-center justify-center gap-2 text-center">
+          <span>Don't miss <strong className="text-[#66acd6]">Build Games</strong>, A <strong className="text-[#66acd6]">$1,000,000</strong> Builder Competition on Avalanche</span>
+          <span className="flex items-center gap-2">
+            <span>•</span>
+            <CountdownTimer targetDate={deadlineDate} onComplete={() => setDeadlinePassed(true)} />
+            <span className="hidden md:inline">•</span>
+            <Link href="/build-games" className="underline underline-offset-4 hover:text-[#66acd6] transition-colors">Apply Now</Link>
+          </span>
+        </div>
+      </Banner>
+    </div>
   );
 }

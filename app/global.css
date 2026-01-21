@@ -416,6 +416,7 @@ html body[data-scroll-locked] {
 
 html {
   scroll-behavior: smooth;
+  overscroll-behavior: none;
 }
 
 :root {
