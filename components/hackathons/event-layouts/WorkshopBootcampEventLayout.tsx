@@ -6,9 +6,9 @@ import Sponsors from "@/components/hackathons/hackathon/sections/Sponsors";
 import Resources from "@/components/hackathons/hackathon/sections/Resources";
 import Community from "@/components/hackathons/hackathon/sections/Community";
 import MentorsJudges from "@/components/hackathons/hackathon/sections/MentorsJudges";
-import OverviewBanner from "@/components/hackathons/hackathon/sections/OverviewBanner";
 import JoinButton from "@/components/hackathons/hackathon/JoinButton";
-import JoinBannerLink from "@/components/hackathons/hackathon/JoinBannerLink";
+import { Calendar, MapPin, Users } from "lucide-react";
+import { format } from "date-fns";
 import type { HackathonHeader } from "@/types/hackathons";
 
 interface WorkshopBootcampEventLayoutProps {
@@ -30,6 +30,32 @@ export default function WorkshopBootcampEventLayout({
   isRegistered,
   utm,
 }: WorkshopBootcampEventLayoutProps) {
+  // Format dates
+  const now = new Date();
+  const defaultStartDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+  const defaultEndDate = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+  const startDate = hackathon.start_date
+    ? new Date(hackathon.start_date)
+    : defaultStartDate;
+  const endDate = hackathon.end_date
+    ? new Date(hackathon.end_date)
+    : defaultEndDate;
+
+  const validStartDate = isNaN(startDate.getTime()) ? defaultStartDate : startDate;
+  const validEndDate = isNaN(endDate.getTime()) ? defaultEndDate : endDate;
+  const startMonth = format(validStartDate, "MMMM");
+  const endMonth = format(validEndDate, "MMMM");
+
+  const formattedDate =
+    startMonth === endMonth
+      ? `${format(validStartDate, "MMMM d")} - ${format(validEndDate, "d, yyyy")}`
+      : `${format(validStartDate, "MMMM d")} - ${format(validEndDate, "MMMM d, yyyy")}`;
+
+  const bannerSrc =
+    hackathon.banner?.trim().length > 0
+      ? hackathon.banner
+      : "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/hackathon-images/main_banner_img-crBsoLT7R07pdstPKvRQkH65yAbpFX.png";
+
   return (
     <main className="container sm:px-2 py-4 lg:py-16">
       <div className="pl-4 flex gap-4 items-center">
@@ -60,27 +86,66 @@ export default function WorkshopBootcampEventLayout({
       </div>
       <div className="flex flex-col mt-2 ">
         <div className="sm:px-8 pt-6 ">
-          <div className="sm:block relative w-full">
-            <OverviewBanner
-              hackathon={hackathon}
-              id={id}
-              isTopMost={false}
-              isRegistered={isRegistered}
-              utm={utm}
-            />
-            <JoinBannerLink
-              isRegistered={isRegistered}
-              hackathonId={id}
-              customLink={hackathon.content.join_custom_link}
-              bannerSrc={
-                hackathon.banner?.trim().length > 0
-                  ? hackathon.banner
-                  : "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/hackathon-images/main_banner_img-crBsoLT7R07pdstPKvRQkH65yAbpFX.png"
-              }
-              altText="Event background"
-              utm={utm}
+          {/* Banner Image - Solo la imagen, sin superposiciones */}
+          <div className="sm:block relative w-full mb-8">
+            <Image
+              src={bannerSrc}
+              alt="Event banner"
+              width={1270}
+              height={760}
+              className="w-full h-auto rounded-lg"
+              priority
             />
           </div>
+
+          {/* Event Info Section */}
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 md:gap-8 mb-12 px-4 sm:px-0">
+            <div className="flex flex-col sm:flex-row gap-6 sm:gap-8 flex-1">
+              {/* Date */}
+              <div className="flex items-center gap-3">
+                <Calendar className="w-5 h-5 text-zinc-600 dark:text-zinc-400 flex-shrink-0" />
+                <span className="text-base sm:text-lg font-medium text-zinc-900 dark:text-zinc-100">
+                  {formattedDate}
+                </span>
+              </div>
+
+              {/* Location */}
+              {hackathon.location && (
+                <div className="flex items-center gap-3">
+                  <MapPin className="w-5 h-5 text-zinc-600 dark:text-zinc-400 flex-shrink-0" />
+                  <span className="text-base sm:text-lg font-medium text-zinc-900 dark:text-zinc-100">
+                    {hackathon.location}
+                  </span>
+                </div>
+              )}
+
+              {/* Organizers */}
+              {hackathon.organizers && (
+                <div className="flex items-center gap-3">
+                  <Users className="w-5 h-5 text-zinc-600 dark:text-zinc-400 flex-shrink-0" />
+                  <span className="text-base sm:text-lg font-medium text-zinc-900 dark:text-zinc-100">
+                    {hackathon.organizers}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Register Button */}
+            <div className="flex-shrink-0">
+              <JoinButton
+                isRegistered={isRegistered}
+                hackathonId={id}
+                customLink={hackathon.content.join_custom_link}
+                customText={hackathon.content.join_custom_text}
+                className="w-full sm:w-auto min-w-[200px] cursor-pointer"
+                variant="red"
+                showChatWhenRegistered={true}
+                utm={utm}
+              />
+            </div>
+          </div>
+
+          {/* Content Sections */}
           <div className="py-8 sm:p-8 flex flex-col gap-20">
             {hackathon.content.tracks_text && <About hackathon={hackathon} />}
             <Resources hackathon={hackathon} />
@@ -88,7 +153,6 @@ export default function WorkshopBootcampEventLayout({
               hackathon.content.speakers.length > 0 && (
                 <MentorsJudges hackathon={hackathon} />
               )}
-            <Community hackathon={hackathon} />
             {hackathon.content.partners?.length > 0 && (
               <Sponsors hackathon={hackathon} />
             )}
