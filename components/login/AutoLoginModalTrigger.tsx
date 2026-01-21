@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { useSession } from "next-auth/react";
+import { useEffect, useRef, useCallback } from "react";
+import { useSession, getSession } from "next-auth/react";
 import { usePathname } from "next/navigation";
 import { useLoginModalTrigger } from "@/hooks/useLoginModal";
 
@@ -11,7 +11,8 @@ const protectedPaths = [
   "/showcase",
   "/profile",
   "/student-launchpad",
-  "/console/utilities/data-api-keys"
+  "/console/utilities/data-api-keys",
+  "/build-games/apply"
 ];
 
 export function AutoLoginModalTrigger() {
@@ -19,6 +20,30 @@ export function AutoLoginModalTrigger() {
   const pathname = usePathname();
   const { openLoginModal } = useLoginModalTrigger();
   const hasTriggeredRef = useRef(false);
+  const statusRef = useRef(status);
+
+  // Keep statusRef in sync with current status
+  useEffect(() => {
+    statusRef.current = status;
+  }, [status]);
+
+  const triggerLoginModal = useCallback(async () => {
+    // Double-check status hasn't changed to authenticated during the delay
+    if (statusRef.current === "authenticated") {
+      return;
+    }
+
+    // Also check fresh session to handle race conditions after new user flow
+    const freshSession = await getSession();
+    if (freshSession?.user) {
+      return;
+    }
+
+    // Get current URL with search params for callback
+    const currentUrl = window.location.href;
+    // Open login modal with current URL as callback
+    openLoginModal(currentUrl);
+  }, [openLoginModal]);
 
   useEffect(() => {
     // Only trigger on client side
@@ -32,6 +57,9 @@ export function AutoLoginModalTrigger() {
     // Wait for session to be determined
     if (status === "loading") return;
 
+    // If already authenticated, don't show modal
+    if (status === "authenticated" || session) return;
+
     // Check if user is not authenticated
     if (status === "unauthenticated" && !hasTriggeredRef.current) {
       // Check if current path is protected
@@ -40,19 +68,16 @@ export function AutoLoginModalTrigger() {
       if (isProtectedPath) {
         // Mark as triggered to prevent multiple opens
         hasTriggeredRef.current = true;
-        
-        // Small delay to ensure the page has rendered
+
+        // Longer delay to allow session to sync from server-side render
         const timer = setTimeout(() => {
-          // Get current URL with search params for callback
-          const currentUrl = window.location.href;
-          // Open login modal with current URL as callback
-          openLoginModal(currentUrl);
-        }, 100);
+          triggerLoginModal();
+        }, 500);
 
         return () => clearTimeout(timer);
       }
     }
-  }, [status, pathname, openLoginModal]);
+  }, [status, session, pathname, triggerLoginModal]);
 
   return null;
 }

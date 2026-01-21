@@ -1,9 +1,9 @@
 "use client";
 
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
-import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useRef } from "react";
+import { useSession, getSession } from "next-auth/react";
+import { useLoginModalTrigger, useLoginCompleteListener } from "@/hooks/useLoginModal";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
@@ -84,11 +84,20 @@ const formSchema = z.object({
 type FormData = z.infer<typeof formSchema>;
 
 export default function BuildGamesApplyForm() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
+  const { data: session, status, update } = useSession();
+  const { openLoginModal } = useLoginModalTrigger();
+  const hasTriggeredModalRef = useRef(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionStatus, setSubmissionStatus] = useState<"success" | "error" | null>(null);
   const [currentStep, setCurrentStep] = useState(1);
+  const [isSessionVerified, setIsSessionVerified] = useState(false);
+
+  // Listen for login complete event and refresh session
+  useLoginCompleteListener(async () => {
+    // Force refresh the session when login completes
+    await update();
+    setIsSessionVerified(true);
+  });
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -131,11 +140,33 @@ export default function BuildGamesApplyForm() {
     }
   }, [session?.user?.email, form]);
 
+  // Show login modal for unauthenticated users
+  // Uses getSession() to double-check auth state and handle stale useSession data
   useEffect(() => {
-    if (status === "unauthenticated") {
-      router.push(`/login?callbackUrl=${encodeURIComponent("/build-games/apply")}`);
+    if (status === "loading") return;
+    if (status === "authenticated" && session?.user) {
+      setIsSessionVerified(true);
+      return;
     }
-  }, [status, router]);
+    // If we've already verified the session via login complete event, skip
+    if (isSessionVerified) return;
+    if (hasTriggeredModalRef.current) return;
+
+    // Double-check with fresh session to handle race conditions
+    const checkAndTriggerModal = async () => {
+      const freshSession = await getSession();
+      if (freshSession?.user) {
+        // User is actually authenticated, useSession just hasn't updated yet
+        setIsSessionVerified(true);
+        return;
+      }
+      // User is truly unauthenticated, show login modal
+      hasTriggeredModalRef.current = true;
+      openLoginModal(window.location.href);
+    };
+
+    checkAndTriggerModal();
+  }, [status, session, openLoginModal, isSessionVerified]);
 
   const handleNext = () => {
     if (currentStep < STEPS.length) {
@@ -168,7 +199,9 @@ export default function BuildGamesApplyForm() {
     watchedValues.privacyPolicyRead
   );
 
-  if (status === "loading" || status === "unauthenticated") {
+  // Show loading skeleton while session is loading or user is unauthenticated
+  // But if we've verified the session via getSession() or login complete event, show form
+  if (status === "loading" || (status === "unauthenticated" && !isSessionVerified)) {
     return (
       <div className="min-h-screen bg-black">
         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">

@@ -252,7 +252,7 @@ export default function ProfileForm({
   };
 
   // Feature flag to control which profile version to show
-  const isNewProfileEnabled = useFeatureFlag('new-profile-ui', false);
+  const isNewProfileEnabled = useFeatureFlag('new-profile-ui', true);
 
   // If the feature flag is enabled, show the new version (ProfileTab)
   if (isNewProfileEnabled) {

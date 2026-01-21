@@ -100,6 +100,14 @@ export function DocsLayoutWrapper({
     nav: {
       enabled: false,
     },
+    // Disable fumadocs search toggle - we use our own search in the main header
+    searchToggle: {
+      enabled: false,
+    },
+    // Disable fumadocs theme switch - we use our own in the main header
+    themeSwitch: {
+      enabled: false,
+    },
     sidebar: {
       tabs: isMobile ? sidebarOptions.tabs : false,
       side: 'left', // Open sidebar from left on mobile

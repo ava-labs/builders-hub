@@ -65,23 +65,43 @@ export const Terms = ({
 
   const onSubmit = async (data: TermsFormValues) => {
     try {
-      // Save to API
-      await axios.put(`/api/profile/${userId}`, data);
-      
-      // Update session
-      await update();
-      
- 
+      // Check if this is a pending user (userId starts with "pending_")
+      const isPendingUser = userId.startsWith("pending_");
+
+      if (isPendingUser) {
+        // Create the user in the database first
+        const createResponse = await axios.post("/api/user/create-after-terms", {
+          notifications: data.notifications,
+        });
+
+        if (!createResponse.data.id) {
+          throw new Error("Failed to create user account");
+        }
+
+        // Force multiple session updates to ensure the JWT callback re-queries the DB
+        // and gets the real user ID instead of pending_xxx
+        await update();
+        await new Promise(resolve => setTimeout(resolve, 300));
+        await update();
+        await new Promise(resolve => setTimeout(resolve, 200));
+      } else {
+        // Existing user - just save to API
+        await axios.put(`/api/profile/${userId}`, data);
+
+        // Update session
+        await update();
+      }
+
       // Execute success callback if provided
       onSuccess?.();
 
       // Only redirect if skipRedirect is false
       if (!skipRedirect) {
         // Navigate to home or redirect URL
-        const redirectUrl = typeof window !== "undefined" 
-          ? localStorage.getItem("redirectAfterProfile") 
+        const redirectUrl = typeof window !== "undefined"
+          ? localStorage.getItem("redirectAfterProfile")
           : null;
-        
+
         if (redirectUrl) {
           localStorage.removeItem("redirectAfterProfile");
           router.push(redirectUrl);

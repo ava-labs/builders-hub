@@ -212,7 +212,7 @@ export default function Profile() {
                           form.setValue("student_institution", "", { shouldDirty: true });
                         }
                       }}>
-                        Student
+                        University Affiliate
                       </FormLabel>
                       {watchedValues.is_student && (
                         <FormField

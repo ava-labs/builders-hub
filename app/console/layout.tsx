@@ -9,6 +9,7 @@ import { Toaster } from "sonner";
 import { WalletProvider } from "@/components/toolbox/providers/WalletProvider";
 import { useAutomatedFaucet } from "@/hooks/useAutomatedFaucet";
 import { TrackNewUser } from "@/components/analytics/TrackNewUser";
+import { LoginModalWrapper } from "@/components/login/LoginModalWrapper";
 
 function ConsoleContent({ children }: { children: ReactNode }) {
   useAutomatedFaucet();
@@ -42,6 +43,7 @@ export default function Layout({ children }: { children: ReactNode }) {
     <SessionProvider>
       <TrackNewUser />
       <ConsoleContent>{children}</ConsoleContent>
+      <LoginModalWrapper />
     </SessionProvider>
   );
 }

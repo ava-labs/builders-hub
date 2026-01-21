@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { signIn, useSession } from "next-auth/react";
+import { signIn, useSession, getSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -16,7 +16,7 @@ import Link from "next/link";
 import { VerifyEmailProps } from "@/types/verifyEmailProps";
 import axios from "axios";
 import { LoadingButton } from "@/components/ui/loading-button";
-import { useLoginModalState } from "@/hooks/useLoginModal";
+import { useLoginModalState, triggerNewUserLogin } from "@/hooks/useLoginModal";
 const verifySchema = z.object({
   code: z
     .string()
@@ -110,23 +110,38 @@ export function VerifyEmail({
         }
       } else if (result?.ok) {
         // Authentication successful
-        
-        // Update session to get the latest user data including is_new_user
-        await update();
-        
-        // Wait a bit for session to propagate
-        await new Promise(resolve => setTimeout(resolve, 100));
 
-        
-        
-        // Close the login modal - LoginModalWrapper will handle showing terms for new users
-        closeLoginModal();
-        
+        // Force refresh the session multiple times to ensure all useSession() hooks update
+        // First update to trigger the session refresh
+        await update();
+        await new Promise(resolve => setTimeout(resolve, 200));
+
+        // Second update to ensure propagation to all components
+        await update();
+        await new Promise(resolve => setTimeout(resolve, 200));
+
+        // Fetch fresh session to check if new user
+        const freshSession = await getSession();
+
+
         // Store redirect URL - we'll handle it after session updates
         if (result?.url) {
           setPendingRedirectUrl(result.url);
         }
-        
+
+        // If user is new, trigger the new user login event to notify LoginModalWrapper
+        if (freshSession?.user?.is_new_user) {
+          // Close the login modal first
+          closeLoginModal();
+          // Small delay to ensure modal is closed
+          await new Promise(resolve => setTimeout(resolve, 100));
+          // Trigger the event that LoginModalWrapper is listening to
+          triggerNewUserLogin();
+        } else {
+          // Not a new user, just close the modal
+          closeLoginModal();
+        }
+
         // The useEffect hook will handle the redirect when session updates
         // If user is new, LoginModalWrapper will show terms and prevent redirect
         // If user is not new, the useEffect will redirect after session updates

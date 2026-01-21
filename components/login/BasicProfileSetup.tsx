@@ -120,10 +120,13 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
         if (typeof window !== "undefined") {
           localStorage.setItem('basicProfileData', JSON.stringify(data));
         }
-        
+
         // Call onCompleteProfile callback
         onCompleteProfile?.();
-        
+
+        // Small delay to allow session to propagate before redirect
+        await new Promise(resolve => setTimeout(resolve, 300));
+
         // Redirect to profile
         router.push('/profile');
       } else {
@@ -321,39 +324,37 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
               </div>
 
               {/* Employee */}
-              <div className="flex flex-col gap-2 sm:gap-3">
-                <div className="flex items-center gap-2 sm:gap-3">
-                  <FormField
-                    control={form.control}
-                    name="is_employee"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-center space-x-2 sm:space-x-3 space-y-0">
-                        <FormControl>
-                          <Checkbox
-                            checked={field.value}
-                            onCheckedChange={(checked) => {
-                              field.onChange(checked);
-                              if (!checked) {
-                                form.setValue("employee_company_name", "");
-                                form.setValue("employee_role", "");
-                              }
-                            }}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  <FormLabel className="text-sm sm:text-base font-normal cursor-pointer shrink-0 min-w-[70px] sm:min-w-[80px]" onClick={() => {
-                    const currentValue = watchedValues.is_employee;
-                    form.setValue("is_employee", !currentValue);
-                    if (currentValue) {
-                      form.setValue("employee_company_name", "");
-                      form.setValue("employee_role", "");
-                    }
-                  }}>
-                    Employee
-                  </FormLabel>
-                </div>
+              <div className="flex items-center gap-3">
+                <FormField
+                  control={form.control}
+                  name="is_employee"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={(checked) => {
+                            field.onChange(checked);
+                            if (!checked) {
+                              form.setValue("employee_company_name", "");
+                              form.setValue("employee_role", "");
+                            }
+                          }}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                <FormLabel className="text-sm font-normal cursor-pointer flex-shrink-0 w-[70px]" onClick={() => {
+                  const currentValue = watchedValues.is_employee;
+                  form.setValue("is_employee", !currentValue);
+                  if (currentValue) {
+                    form.setValue("employee_company_name", "");
+                    form.setValue("employee_role", "");
+                  }
+                }}>
+                  Employee
+                </FormLabel>
                 {watchedValues.is_employee && (
                   <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pl-6 sm:pl-8">
                     <FormField
@@ -432,7 +433,7 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
                 isLoading={isSaving}
                 loadingText="Saving..."
               >
-                Save
+                Save and close
               </LoadingButton>
               <Button
                 type="button"

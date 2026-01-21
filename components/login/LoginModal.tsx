@@ -13,52 +13,25 @@ import { LoadingButton } from "../ui/loading-button";
 import SocialLogin from "./social-login/SocialLogin";
 import { VerifyEmail } from "./verify/VerifyEmail";
 import { useLoginModalState } from '@/hooks/useLoginModal';
-import { useSession } from 'next-auth/react';
-import { useRouter, usePathname } from 'next/navigation';
 
 const formSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
 });
 
-const protectedPaths = [
-  "/hackathons/registration-form",
-  "/hackathons/project-submission",
-  "/showcase",
-  "/profile",
-  "/student-launchpad",
-  "/console/utilities/data-api-keys"
-];
-
 export function LoginModal() {
-  const { isOpen, callbackUrl = "/", closeLoginModal, subscribeToChanges } = useLoginModalState();
+  const { isOpen, callbackUrl = "/", closeLoginModal } = useLoginModalState();
   const [isVerifying, setIsVerifying] = useState(false);
   const [email, setEmail] = useState("");
-  const { data: session, status } = useSession();
-  const router = useRouter();
-  const pathname = usePathname();
 
   const { control, handleSubmit, setError, reset, formState: { errors, isSubmitting } } = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: { email: "" },
   });
 
-  // Subscribe to modal state changes
-  useEffect(() => {
-    return subscribeToChanges();
-  }, [subscribeToChanges]);
-
-  // Handle modal close - redirect to home if user is not authenticated and on protected path
+  // Handle modal close - just close the modal, stay on current page
+  // User can click Apply again to restart the login flow
   const handleClose = (open: boolean) => {
     if (!open) {
-      // Check if user is not authenticated and we're on a protected path
-      const isProtectedPath = protectedPaths.some(path => pathname?.startsWith(path));
-      const isUnauthenticated = status === 'unauthenticated' || !session;
-      
-      if (isUnauthenticated && isProtectedPath) {
-        // Redirect to home if user closes modal without logging in
-        router.push('/');
-      }
-      
       closeLoginModal();
     }
   };
