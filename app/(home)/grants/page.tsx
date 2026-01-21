@@ -57,7 +57,7 @@ const partnerPrograms = [
     description: "Support and fast-track for promising gaming studios and projects building on Avalanche, in partnership with Helika.",
     href: "https://www.helika.io/helika-avalanche-accelerator",
     external: true,
-    image: "/images/proofofplay.jpg",
+    image: "/images/helika.svg",
   },
   {
     title: "Developer Credits",
