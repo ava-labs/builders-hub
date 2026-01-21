@@ -16,7 +16,7 @@ export default function HackathonCard({
   return (
     <div
       key={hackathon.id}
-      className="flex rounded-lg shadow-lg h-400px md:h-[340px] border border-zinc-300 dark:border-transparent"
+      className="flex rounded-lg shadow-lg h-[400px] md:h-[340px] border border-zinc-300 dark:border-transparent"
     >      
       <Link
         href={
@@ -32,9 +32,9 @@ export default function HackathonCard({
               : "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/hackathon-images/hackathon-mock-dgUJCbkFtJZtWgg7zxIAATwEnCntMt.png"
           }
           alt="Avalanche Logo"
-          className="rounded-l-md hidden md:block h-full"
+          className="rounded-l-md hidden md:block h-full w-[200px] object-cover"
           width={200}
-          height={280}
+          height={340}
         />
       </Link>
 
