@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { X, ExternalLink, Loader2, ChevronLeft, ChevronRight, Play } from 'lucide-react';
 import { cn } from '@/lib/cn';
 
-export type EmbedType = 'docs' | 'academy' | 'console' | 'integration' | 'youtube';
+export type EmbedType = 'docs' | 'academy' | 'console' | 'integration' | 'youtube' | 'blog';
 
 export interface EmbeddedReference {
   type: EmbedType;
@@ -57,8 +57,9 @@ export function detectLinkType(url: string): EmbedType | null {
     ? new URL(url).pathname
     : url;
 
-  // Prioritize console tools over docs/academy for the new chat behavior
+  // Detect all content types
   if (path.startsWith('/console')) return 'console';
+  if (path.startsWith('/blog')) return 'blog';
   if (path.startsWith('/docs')) return 'docs';
   if (path.startsWith('/academy')) return 'academy';
   if (path.startsWith('/integrations')) return 'integration';
@@ -66,7 +67,18 @@ export function detectLinkType(url: string): EmbedType | null {
   return null;
 }
 
+// Priority order for embed types (lower = higher priority, shown first)
+const EMBED_TYPE_PRIORITY: Record<EmbedType, number> = {
+  youtube: 0,    // Videos first - visual learning
+  console: 1,    // Console tools - interactive, hands-on
+  integration: 2,
+  blog: 3,       // Blog posts - announcements, tutorials
+  docs: 4,
+  academy: 5,
+};
+
 // Extract all embeddable links from markdown content
+// Returns links sorted by priority: youtube > console > integration > blog > docs > academy
 export function extractEmbeddableLinks(content: string): EmbeddedReference[] {
   const links: EmbeddedReference[] = [];
 
@@ -100,8 +112,8 @@ export function extractEmbeddableLinks(content: string): EmbeddedReference[] {
     }
   }
 
-  // Also match raw URLs that start with /docs, /academy, /console, /integrations
-  const rawUrlRegex = /(?:^|\s)(\/(?:docs|academy|console|integrations)[^\s\)]*)/g;
+  // Also match raw URLs that start with /docs, /academy, /console, /integrations, /blog
+  const rawUrlRegex = /(?:^|\s)(\/(?:docs|academy|console|integrations|blog)[^\s\)]*)/g;
   while ((match = rawUrlRegex.exec(content)) !== null) {
     const url = match[1];
     const type = detectLinkType(url);
@@ -110,11 +122,12 @@ export function extractEmbeddableLinks(content: string): EmbeddedReference[] {
     }
   }
 
-  return links;
+  // Sort by priority: youtube > console > integration > blog > docs > academy
+  return links.sort((a, b) => EMBED_TYPE_PRIORITY[a.type] - EMBED_TYPE_PRIORITY[b.type]);
 }
 
 // Get display info for embed type
-function getEmbedTypeInfo(type: EmbedType): { label: string; color: string } {
+export function getEmbedTypeInfo(type: EmbedType): { label: string; color: string } {
   switch (type) {
     case 'docs':
       return { label: 'Documentation', color: 'bg-blue-500' };
@@ -126,6 +139,8 @@ function getEmbedTypeInfo(type: EmbedType): { label: string; color: string } {
       return { label: 'Integration', color: 'bg-orange-500' };
     case 'youtube':
       return { label: 'Video', color: 'bg-red-500' };
+    case 'blog':
+      return { label: 'Blog', color: 'bg-pink-500' };
   }
 }
 
@@ -225,20 +240,22 @@ export function EmbeddedPanel({ reference, onClose, className }: EmbeddedPanelPr
             </div>
           </div>
         ) : isYouTube ? (
-          // YouTube embed with aspect ratio container
-          <div className="w-full h-full flex items-center justify-center bg-black">
-            <iframe
-              src={embedUrl}
-              className="w-full h-full border-0"
-              onLoad={() => setIsLoading(false)}
-              onError={() => {
-                setIsLoading(false);
-                setError('Failed to load video');
-              }}
-              title={reference.title || 'Avalanche Video'}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            />
+          // YouTube embed with proper 16:9 aspect ratio
+          <div className="w-full h-full flex items-center justify-center bg-black p-4">
+            <div className="w-full max-h-full aspect-video">
+              <iframe
+                src={embedUrl}
+                className="w-full h-full border-0 rounded-lg"
+                onLoad={() => setIsLoading(false)}
+                onError={() => {
+                  setIsLoading(false);
+                  setError('Failed to load video');
+                }}
+                title={reference.title || 'Avalanche Video'}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
           </div>
         ) : (
           <iframe

@@ -33,12 +33,19 @@ import {
   CircleUserRound,
   Loader2,
   Share2,
+  Play,
+  BookOpen,
+  Terminal,
+  Puzzle,
+  FileText,
+  Newspaper,
+  ExternalLink,
 } from 'lucide-react';
 import defaultMdxComponents from 'fumadocs-ui/mdx';
 import { cn } from '@/lib/cn';
 import { createProcessor, type Processor } from '@/components/ai/markdown-processor';
 import { MessageFeedback } from '@/components/ai/feedback';
-import { EmbeddedPanel, EmbeddedLinkNav, extractEmbeddableLinks, type EmbeddedReference } from '@/components/ai/embedded-panel';
+import { EmbeddedPanel, extractEmbeddableLinks, getEmbedTypeInfo, type EmbeddedReference, type EmbedType } from '@/components/ai/embedded-panel';
 import Link from 'fumadocs-core/link';
 import { type UIMessage, useChat, type UseChatHelpers } from '@ai-sdk/react';
 
@@ -328,6 +335,19 @@ function AIAvatar({ size = 'md' }: { size?: 'sm' | 'md' }) {
   );
 }
 
+// Get icon for embed type
+function getEmbedTypeIcon(type: EmbedType) {
+  switch (type) {
+    case 'youtube': return Play;
+    case 'console': return Terminal;
+    case 'docs': return FileText;
+    case 'academy': return BookOpen;
+    case 'integration': return Puzzle;
+    case 'blog': return Newspaper;
+    default: return ExternalLink;
+  }
+}
+
 // Chat message
 function ChatMessage({ message, isLast, isStreaming, onRefSelect }: {
   message: Message;
@@ -371,25 +391,59 @@ function ChatMessage({ message, isLast, isStreaming, onRefSelect }: {
             )}
           </div>
 
-          {/* Show clickable links to embedded content */}
-          {embeddableLinks.length > 0 && onRefSelect && (
-            <div className="mt-4 flex flex-wrap gap-2">
-              <p className="text-xs text-muted-foreground w-full mb-1">Referenced pages:</p>
-              {embeddableLinks.map((link, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => onRefSelect(link)}
-                  className={cn(
-                    "inline-flex items-center gap-1.5 px-3 py-1.5 text-xs",
-                    "bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-md",
-                    "border border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600",
-                    "transition-all duration-200"
-                  )}
-                >
-                  <ChevronRight className="w-3 h-3" />
-                  {link.title || link.url}
-                </button>
-              ))}
+          {/* Show clickable sources - color-coded by type with clear "view" action */}
+          {embeddableLinks.length > 0 && onRefSelect && !isStreaming && (
+            <div className="mt-4 p-3 rounded-lg bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800">
+              <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1.5">
+                <ExternalLink className="w-3 h-3" />
+                Sources ({embeddableLinks.length}) — click to preview
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {embeddableLinks.map((link, idx) => {
+                  const typeInfo = getEmbedTypeInfo(link.type);
+                  const Icon = getEmbedTypeIcon(link.type);
+                  return (
+                    <button
+                      type="button"
+                      key={idx}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        onRefSelect(link);
+                      }}
+                      className={cn(
+                        "group inline-flex items-center gap-2 pl-2 pr-3 py-1.5 text-xs font-medium",
+                        "rounded-full transition-all duration-200",
+                        "hover:scale-[1.02] active:scale-[0.98]",
+                        "border shadow-sm",
+                        // Type-specific colors
+                        link.type === 'youtube' && "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/40",
+                        link.type === 'console' && "bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-900/40",
+                        link.type === 'integration' && "bg-orange-50 dark:bg-orange-950/30 border-orange-200 dark:border-orange-800 text-orange-700 dark:text-orange-300 hover:bg-orange-100 dark:hover:bg-orange-900/40",
+                        link.type === 'blog' && "bg-pink-50 dark:bg-pink-950/30 border-pink-200 dark:border-pink-800 text-pink-700 dark:text-pink-300 hover:bg-pink-100 dark:hover:bg-pink-900/40",
+                        link.type === 'docs' && "bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/40",
+                        link.type === 'academy' && "bg-purple-50 dark:bg-purple-950/30 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/40",
+                      )}
+                      title={`View ${typeInfo.label}: ${link.title || link.url}`}
+                    >
+                      <span className={cn(
+                        "flex items-center justify-center w-5 h-5 rounded-full",
+                        link.type === 'youtube' && "bg-red-500",
+                        link.type === 'console' && "bg-green-500",
+                        link.type === 'integration' && "bg-orange-500",
+                        link.type === 'blog' && "bg-pink-500",
+                        link.type === 'docs' && "bg-blue-500",
+                        link.type === 'academy' && "bg-purple-500",
+                      )}>
+                        <Icon className="w-3 h-3 text-white" />
+                      </span>
+                      <span className="truncate max-w-[200px]">
+                        {link.title || typeInfo.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
 
@@ -967,8 +1021,6 @@ function ChatPageInner() {
 
   // Embedded panel state
   const [embeddedRef, setEmbeddedRef] = useState<EmbeddedReference | null>(null);
-  const [detectedLinks, setDetectedLinks] = useState<EmbeddedReference[]>([]);
-  const [currentLinkIndex, setCurrentLinkIndex] = useState(0);
   const [closedRefs, setClosedRefs] = useState<Set<string>>(new Set());
   const [panelWidth, setPanelWidth] = useState(35); // Percentage width of embedded panel (chat gets 65%)
   const [isResizing, setIsResizing] = useState(false);
@@ -1074,11 +1126,9 @@ function ChatPageInner() {
     }
   }, [isAuthenticated, shareModalConversation]);
 
-  // Handle reference selection
+  // Handle reference selection from inline source buttons
   const handleRefSelect = (ref: EmbeddedReference) => {
     setEmbeddedRef(ref);
-    const index = detectedLinks.findIndex(l => l.url === ref.url);
-    if (index !== -1) setCurrentLinkIndex(index);
   };
 
   // Handle closing the panel
@@ -1087,14 +1137,6 @@ function ChatPageInner() {
       setClosedRefs(prev => new Set(prev).add(embeddedRef.url));
     }
     setEmbeddedRef(null);
-  };
-
-  // Handle link navigation
-  const handleLinkNavigation = (index: number) => {
-    if (detectedLinks[index]) {
-      setCurrentLinkIndex(index);
-      setEmbeddedRef(detectedLinks[index]);
-    }
   };
 
   // Handle panel resize with refs to avoid stale closures
@@ -1158,14 +1200,12 @@ function ChatPageInner() {
         view: 'fullscreen',
       });
 
-      // Detect embeddable links and auto-open panel
+      // Detect embeddable links and auto-open panel with the highest priority link
       const links = extractEmbeddableLinks(messageText);
       if (links.length > 0) {
-        setDetectedLinks(links);
-        const firstLink = links[0];
+        const firstLink = links[0]; // Already sorted by priority (youtube > console > etc)
         if (!closedRefs.has(firstLink.url)) {
           setEmbeddedRef(firstLink);
-          setCurrentLinkIndex(0);
         }
       }
 
@@ -1449,13 +1489,6 @@ function ChatPageInner() {
                 className="hidden lg:flex flex-col border-l border-zinc-200 dark:border-zinc-800"
                 style={{ width: `${panelWidth}%` }}
               >
-                {detectedLinks.length > 1 && (
-                  <EmbeddedLinkNav
-                    links={detectedLinks}
-                    currentIndex={currentLinkIndex}
-                    onSelect={handleLinkNavigation}
-                  />
-                )}
                 <EmbeddedPanel
                   reference={embeddedRef}
                   onClose={handleClosePanel}
