@@ -44,9 +44,9 @@ export const getFilteredProjects = async (options: GetProjectOptions) => {
       has: options.track,
     };
   }
-  // if (options.winningProjects) {
-  //   filters.winningProjects = true
-  // }
+  if (options.winningProjects) {
+    filters.is_winner = true
+  }
   if (options.search) {
     const searchWords = options.search.split(/\s+/);
     let searchFilters: any[] = [];
@@ -102,10 +102,10 @@ export const getFilteredProjects = async (options: GetProjectOptions) => {
     projects: projects.map((project) => ({
       ...project,
       members: [],
-      hackathon: {
+      hackathon: project.hackathon ? {
         ...project.hackathon,
         content: project.hackathon.content as any,
-      },
+      } : null,
     })),
     total: totalProjects,
     page,
@@ -138,11 +138,11 @@ export async function getProject(id: string) {
         image: member.user?.image,
       } as User,
     })),
-    hackathon: {
+    hackathon: project.hackathon ? {
       title: project.hackathon.title,
       location: project.hackathon.location,
       start_date: project.hackathon.start_date,
-    } as Hackathon,
+    } as Hackathon : null,
   };
 
   console.log("GET project:", project);
@@ -171,7 +171,7 @@ export async function createProject(
       screenshots: projectData.screenshots ?? [],
       tech_stack: projectData.tech_stack ?? "",
       tracks: projectData.tracks ?? [],
-      hackaton_id: projectData.hackaton_id ?? "",
+      hackaton_id: projectData.hackaton_id ?? null,
       // prizes: {
       //   create: projectData.prizes?.map((prize) => ({
       //     icon: prize.icon,
@@ -188,6 +188,7 @@ export async function createProject(
       },
       created_at: new Date(),
       updated_at: new Date(),
+      origin: projectData.origin ?? "",
     },
   });
   projectData.id = newProject.id;

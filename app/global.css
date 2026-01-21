@@ -9,6 +9,21 @@
 @source '../node_modules/fumadocs-ui/dist/**/*.js';
 @plugin 'tailwindcss-animate';
 
+/* Breathing animation for active bubble nav - very slow and subtle */
+@keyframes breathe {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  }
+  50% {
+    transform: scale(1.02);
+    box-shadow: 0 14px 20px -4px rgba(0, 0, 0, 0.12), 0 6px 8px -5px rgba(0, 0, 0, 0.1), 0 0 12px rgba(232, 65, 66, 0.1);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  }
+}
 
 .prose
   :where(ul > li):not(
@@ -60,6 +75,16 @@ header[aria-label="Main"] [data-radix-popover-content] {
 /* Integration detail page: Default padding (no banner) */
 .integration-detail-page {
   padding-top: 1rem;
+}
+
+/* Make main navbar sticky - positions below the banner */
+#nd-nav,
+header#nd-nav,
+nav#nd-nav {
+  position: sticky !important;
+  top: var(--fd-banner-height, 0px) !important;
+  z-index: 40 !important; /* Below banner (z-50), above content */
+  background-color: var(--background) !important;
 }
 
 /* Remove ALL left whitespace from navbar to fill screen edge */
@@ -401,6 +426,7 @@ html body[data-scroll-locked] {
 
 html {
   scroll-behavior: smooth;
+  overscroll-behavior: none;
 }
 
 :root {

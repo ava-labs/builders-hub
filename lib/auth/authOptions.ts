@@ -7,6 +7,9 @@ import { prisma } from '../../prisma/prisma';
 import { JWT } from 'next-auth/jwt';
 import type { VerifyOTPResult } from '@/types/verifyOTPResult';
 import { upsertUser } from '@/server/services/auth';
+import { badgeAssignmentService } from '@/server/services/badgeAssignmentService';
+import { BadgeCategory } from '@/server/services/badge';
+
 
 declare module 'next-auth' {
   export interface Session {
@@ -114,7 +117,8 @@ export const AuthOptions: NextAuthOptions = {
           // }
           user = {
             email, notification_email: email, name: '', image: '', last_login: new Date(), authentication_mode: '', bio: '',
-            custom_attributes: [], id: '', integration: '', notifications: null, profile_privacy: null, social_media: [], telegram_user: '', user_name: '', created_at: new Date()
+            custom_attributes: [], id: '', integration: '', notifications: null, profile_privacy: null, social_media: [], telegram_user: '', user_name: '', created_at: new Date(),
+            country: null, user_type: null, github: null, wallet: [], skills: [], noun_avatar_seed: null, noun_avatar_enabled: false
           }
         }
 
@@ -128,8 +132,40 @@ export const AuthOptions: NextAuthOptions = {
   callbacks: {
     async signIn({ user, account, profile }) {
       try {
+        // For OTP (credentials) login, don't create the user yet if they're new
+        // The user will be created after they accept terms
+        if (account?.provider === 'credentials') {
+          // Check if user already exists in the database
+          const existingUser = await prisma.user.findUnique({
+            where: { email: user.email! },
+          });
+
+          if (existingUser) {
+            // Existing user - update last_login and set the user id
+            user.id = existingUser.id;
+            await prisma.user.update({
+              where: { id: existingUser.id },
+              data: { last_login: new Date() },
+            });
+          }
+          // If user doesn't exist, don't create them yet
+          // They will be created after accepting terms
+          // The session will have is_new_user: true but no DB record
+          return true;
+        }
+
+        // For OAuth providers (Google, GitHub, Twitter), create/update user immediately
         const dbUser = await upsertUser(user, account, profile);
         user.id = dbUser.id;
+
+        if (account?.provider == 'github') {
+          await badgeAssignmentService.assignBadge({
+            userId: dbUser.id,
+            requirementId: 'GitHub',
+            category: BadgeCategory.requirement,
+          });
+        }
+
         return true;
       } catch (error) {
         console.error('Error processing user:', error);
@@ -158,9 +194,15 @@ export const AuthOptions: NextAuthOptions = {
         token.user_name = dbUser.user_name ?? '';
         token.is_new_user = dbUser.notifications == null ? true : false;
         token.authentication_mode = dbUser.authentication_mode ?? '';
-      } else if (user?.email) {
-        token.email = user.email;
-        token.name = user.name ?? '';
+      } else if (user?.email || token?.email) {
+        // New user who hasn't accepted terms yet - no DB record exists
+        // Mark as pending_user so the frontend knows to show terms modal
+        token.email = user?.email || token.email;
+        token.name = user?.name ?? token.name ?? '';
+        token.is_new_user = true;
+        token.custom_attributes = [];
+        // Use a special marker for pending users (no real DB id yet)
+        token.id = `pending_${token.email}`;
       }
 
       return token;

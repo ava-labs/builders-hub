@@ -49,7 +49,7 @@ function DeployNativeTokenRemote() {
     const [tokenSymbol, setTokenSymbol] = useState("");
     const [tokenDecimals, setTokenDecimals] = useState("0");
     const [minTeleporterVersion, setMinTeleporterVersion] = useState("1");
-    const [initialReserveImbalance, setInitialReserveImbalance] = useState("0");
+    const [initialReserveImbalance, setInitialReserveImbalance] = useState("1");
     const [burnedFeesReportingRewardPercentage, setBurnedFeesReportingRewardPercentage] = useState("0");
     const [tokenHomeAddress, setTokenHomeAddress] = useState("");
     const [acknowledged, setAcknowledged] = useState(false);
@@ -170,6 +170,15 @@ function DeployNativeTokenRemote() {
             if (!tokenHomeAddress || !teleporterRegistryAddress || !tokenHomeBlockchainIDHex ||
                 tokenDecimals === "0" || !tokenSymbol) {
                 throw new Error("Critical deployment parameters missing or invalid.");
+            }
+
+            if (initialReserveImbalance === "0") {
+                throw new Error("Initial Reserve Imbalance must be greater than 0.");
+            }
+
+            const burnedFeesPercent = parseInt(burnedFeesReportingRewardPercentage);
+            if (burnedFeesPercent < 0 || burnedFeesPercent > 100) {
+                throw new Error("Burned Fees Reporting Reward Percentage must be between 0 and 100.");
             }
 
             const publicClient = createPublicClient({
@@ -332,7 +341,7 @@ function DeployNativeTokenRemote() {
                     value={initialReserveImbalance}
                     onChange={setInitialReserveImbalance}
                     type="number"
-                    helperText="The initial reserve imbalance that must be collateralized before minting"
+                    helperText="The initial reserve imbalance that must be collateralized before minting (must be > 0, default: 1)"
                     required
                 />
 
@@ -341,7 +350,7 @@ function DeployNativeTokenRemote() {
                     value={burnedFeesReportingRewardPercentage}
                     onChange={setBurnedFeesReportingRewardPercentage}
                     type="number"
-                    helperText="The percentage of burned transaction fees that will be rewarded to sender of the report"
+                    helperText="The percentage of burned transaction fees that will be rewarded to sender of the report (0-100)"
                     required
                 />
 
@@ -378,6 +387,8 @@ function DeployNativeTokenRemote() {
                         tokenDecimals === "0" ||
                         !tokenSymbol ||
                         !teleporterRegistryAddress ||
+                        initialReserveImbalance === "0" ||
+                        parseInt(burnedFeesReportingRewardPercentage) > 100 ||
                         !!sourceChainError}
                 >
                     {nativeTokenRemoteAddress ? "Re-Deploy Native Token Remote" : "Deploy Native Token Remote"}

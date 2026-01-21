@@ -1,6 +1,6 @@
 {
   "mainnet": {
-    "avaplatform/avalanchego": "v1.14.0",
+    "avaplatform/avalanchego": "v1.14.1",
     "avaplatform/subnet-evm_avalanchego": "v0.8.0_v1.14.0",
     "avaplatform/icm-relayer": "v1.7.4"
   },

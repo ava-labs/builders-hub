@@ -7,7 +7,6 @@ import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useLoginModalTrigger } from "@/hooks/useLoginModal";
-import { LoginModal } from "@/components/login/LoginModal";
 
 export function BuilderHubAccountButton() {
     const { data: session, status } = useSession();
@@ -52,9 +51,10 @@ export function BuilderHubAccountButton() {
         );
     }
 
+    // LoginModal is rendered by LoginModalWrapper in the console layout
+    // so we don't need to render it here
     return (
         <>
-            <LoginModal />
             {isAuthenticated ? (
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>

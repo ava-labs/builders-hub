@@ -7,7 +7,7 @@ export default function HomePage(): React.ReactElement {
     <>
       <HeroBackground />
       <Hero />
-      <main className="container relative max-w-[1100px] px-2 py-4 lg:py-16">
+      <main className="relative py-4 lg:py-16">
         <QuickLinks />
         {/* <Paths /> */}
       </main>

@@ -14,11 +14,14 @@ import { Switch } from "@/components/ui/switch";
 import { FormLabelWithCheck } from "./FormLabelWithCheck";
 import { SubmissionForm } from "../hooks/useSubmissionFormSecure";
 import { MultiLinkInput } from './MultiLinkInput';
+import { useProjectSubmission } from "../context/ProjectSubmissionContext";
 
 
 
 export default function SubmitStep2() {
   const form =  useFormContext<SubmissionForm>();
+  const { state } = useProjectSubmission();
+  const hasHackathon = !!state.hackathonId;
   return (
     <div className="space-y-8">
       {/* Sección: Technical Details */}
@@ -74,77 +77,79 @@ export default function SubmitStep2() {
         />
       </section>
 
-      {/* Sección: Project Continuity & Development */}
-      <section className="space-y-4">
-        <h2 className="text-xl font-semibold text-foreground">
-          Project Continuity & Development
-        </h2>
-        <p className="text-sm text-muted-foreground pt-0 mt-0">
-          Indicate if your project builds upon a pre-existing idea and clarify
-          your contributions during the hackathon.
-        </p>
+      {/* Sección: Project Continuity & Development - Solo visible con hackathon */}
+      {hasHackathon && (
+        <section className="space-y-4">
+          <h2 className="text-xl font-semibold text-foreground">
+            Project Continuity & Development
+          </h2>
+          <p className="text-sm text-muted-foreground pt-0 mt-0">
+            Indicate if your project builds upon a pre-existing idea and clarify
+            your contributions during the hackathon.
+          </p>
 
-        {/* Toggle: isPreExisting */}
-        <FormField
-          control={form.control}
-          name="is_preexisting_idea"
-          render={({ field }) => (
-            <FormItem className="flex items-center justify-between p-4 border rounded">
-              <div className="space-y-1">
-                <FormLabel>
-                  Is this project based on a pre-existing idea?
-                </FormLabel>
-                <p className="text-sm text-zinc-600 dark:text-zinc-400 whitespace-pre-line italic">
-                  If your project is built upon an existing idea, you must
-                  disclose which components were developed specifically during
-                  the      {"\n"}
-                  hackathon.      {"\n"}
-          
-                </p>
-                <p className="text-sm text-zinc-600 dark:text-zinc-400 whitespace-pre-line ">
+          {/* Toggle: isPreExisting */}
+          <FormField
+            control={form.control}
+            name="is_preexisting_idea"
+            render={({ field }) => (
+              <FormItem className="flex items-center justify-between p-4 border rounded">
+                <div className="space-y-1">
+                  <FormLabel>
+                    Is this project based on a pre-existing idea?
+                  </FormLabel>
+                  <p className="text-sm text-zinc-600 dark:text-zinc-400 whitespace-pre-line italic">
+                    If your project is built upon an existing idea, you must
+                    disclose which components were developed specifically during
+                    the      {"\n"}
+                    hackathon.      {"\n"}
             
-                   Judges may not have enough time to fully verify
-                  the implementation during evaluation, but prize distribution
-                  may be
-                  {"\n"}
-                   subject to further review.
-                </p>
-              </div>
-              <FormControl>
-                <Switch
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                />
-              </FormControl>
-            </FormItem>
-          )}
-        />
+                  </p>
+                  <p className="text-sm text-zinc-600 dark:text-zinc-400 whitespace-pre-line ">
+              
+                     Judges may not have enough time to fully verify
+                    the implementation during evaluation, but prize distribution
+                    may be
+                    {"\n"}
+                     subject to further review.
+                  </p>
+                </div>
+                <FormControl>
+                  <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
+              </FormItem>
+            )}
+          />
 
-        {/* Campo: Explanation of what's built during hackathon */}
-        <FormField
-          control={form.control}
-          name="explanation"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Explain what was built during the hackathon</FormLabel>
-              <FormControl>
-                <Textarea
-                  placeholder="Provide a detailed breakdown of the new features, functionalities, or improvements developed during this event."
-                  className=" h-15 resize-none dark:bg-zinc-950"
-                  {...field}
-                />
-              </FormControl>
-              <p className="text-zinc-600 dark:text-zinc-400 text-sm  tracking-[0%] font-aeonik whitespace-pre-line">
-                Clearly specify what was created during the hackathon.{"\n"}
-                Differentiate between pre-existing work and new contributions.
-                {"\n"}
-                Mention any significant modifications or optimizations.
-              </p>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      </section>
+          {/* Campo: Explanation of what's built during hackathon */}
+          <FormField
+            control={form.control}
+            name="explanation"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Explain what was built during the hackathon</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder="Provide a detailed breakdown of the new features, functionalities, or improvements developed during this event."
+                    className=" h-15 resize-none dark:bg-zinc-950"
+                    {...field}
+                  />
+                </FormControl>
+                <p className="text-zinc-600 dark:text-zinc-400 text-sm  tracking-[0%] font-aeonik whitespace-pre-line">
+                  Clearly specify what was created during the hackathon.{"\n"}
+                  Differentiate between pre-existing work and new contributions.
+                  {"\n"}
+                  Mention any significant modifications or optimizations.
+                </p>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </section>
+      )}
     </div>
   );
 }

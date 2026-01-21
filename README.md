@@ -52,6 +52,46 @@ To propose new docs or large edits to our existing pages, follow the steps accor
 - Following a successful build, Vercel will deploy your branch where you can verify your changes.
 - Once your PR is merged into `master`, [https://build.avax.network/docs/](https://build.avax.network/docs/) will be updated with your changes.
 
+### Commit Message Guidelines
+
+This project uses [Conventional Commits](https://www.conventionalcommits.org/) to ensure consistent and meaningful commit messages. Commit messages are validated both locally (via git hooks) and in CI.
+
+**Format:** `type(scope): description`
+
+**Allowed types:**
+| Type | Description |
+|------|-------------|
+| `feat` | New feature |
+| `fix` | Bug fix |
+| `docs` | Documentation only |
+| `style` | Code style (formatting, semicolons) |
+| `refactor` | Code refactoring (no feature/fix) |
+| `perf` | Performance improvement |
+| `test` | Adding/updating tests |
+| `build` | Build system or dependencies |
+| `ci` | CI configuration |
+| `chore` | Other changes (maintenance) |
+| `revert` | Revert a previous commit |
+
+**Examples:**
+```bash
+# ✅ Valid commits
+git commit -m "feat(docs): add new tutorial for cross-chain transfers"
+git commit -m "fix(academy): correct quiz answer validation"
+git commit -m "docs: update README with contribution guide"
+git commit -m "chore: update dependencies"
+
+# ❌ Invalid commits (will be rejected)
+git commit -m "updated stuff"
+git commit -m "Fix bug"  # Must be lowercase
+git commit -m "feat: Add new feature."  # No period at end
+```
+
+If your commit is rejected, simply amend it with a valid message:
+```bash
+git commit --amend -m "feat(scope): proper commit message"
+```
+
 ### Installation
 
 ```bash
