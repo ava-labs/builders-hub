@@ -24,6 +24,7 @@ export type HackathonHeader = {
   updated_by?: string
   updated_by_name?: string
   is_public: boolean
+  event?: string
 }
 
 export type HackathonsFilters = {
