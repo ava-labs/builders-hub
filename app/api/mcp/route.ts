@@ -1,11 +1,21 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import { z } from 'zod';
 import { documentation, academy, integration, blog } from '@/lib/source';
 import { getLLMText } from '@/lib/llm-utils';
 import { captureServerEvent } from '@/lib/posthog-server';
+import { checkMCPRateLimit, getRateLimitHeaders } from '@/lib/mcp-rate-limit';
 
 // Maximum length for tracked strings (queries, errors)
 const MAX_TRACKED_STRING_LENGTH = 100;
+
+// CORS configuration - allowed origins for browser requests
+// Non-browser clients (no Origin header) are always allowed
+const ALLOWED_ORIGINS = process.env.MCP_ALLOWED_ORIGINS?.split(',') || [
+  'https://claude.ai',
+  'https://www.claude.ai',
+  'https://build.avax.network',
+  ...(process.env.NODE_ENV === 'development' ? ['http://localhost:3000'] : []),
+];
 
 /**
  * Truncate a string for analytics tracking.
@@ -30,6 +40,69 @@ function sanitizeErrorMessage(error: unknown): string {
 function captureMCPEvent(event: string, properties: Record<string, unknown>) {
   // Intentionally not awaited - analytics should not block MCP responses
   void captureServerEvent(event, { ...properties, source: 'mcp-server' }, 'mcp_server');
+}
+
+/**
+ * Validate origin for CORS
+ * Returns true if origin is allowed or if no origin (non-browser client)
+ */
+function validateOrigin(request: Request): boolean {
+  const origin = request.headers.get('origin');
+
+  // Allow non-browser clients (no Origin header)
+  if (!origin) return true;
+
+  // Check against allowlist
+  return ALLOWED_ORIGINS.includes(origin);
+}
+
+/**
+ * Get CORS headers for response
+ */
+function getCORSHeaders(request: Request): Record<string, string> {
+  const origin = request.headers.get('origin');
+
+  if (!origin) {
+    // No origin header - non-browser client, no CORS headers needed
+    return {};
+  }
+
+  if (ALLOWED_ORIGINS.includes(origin)) {
+    return {
+      'Access-Control-Allow-Origin': origin,
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Accept',
+      'Vary': 'Origin',
+    };
+  }
+
+  return {};
+}
+
+/**
+ * Validate URL for fetch tool to prevent SSRF
+ */
+function validateFetchUrl(url: string): { valid: boolean; error?: string } {
+  // Must start with /
+  if (!url.startsWith('/')) {
+    return { valid: false, error: 'URL must start with /' };
+  }
+
+  // Reject external URLs, protocols, and path traversal
+  if (url.includes('://') || url.includes('..')) {
+    return { valid: false, error: 'URL must be an internal path without ".." or protocols' };
+  }
+
+  // Only allow specific prefixes
+  const allowedPrefixes = ['/docs/', '/academy/', '/integrations/', '/blog/'];
+  if (!allowedPrefixes.some(prefix => url.startsWith(prefix))) {
+    return {
+      valid: false,
+      error: `URL must start with one of: ${allowedPrefixes.join(', ')}`
+    };
+  }
+
+  return { valid: true };
 }
 
 // Helper to get page content
@@ -251,6 +324,15 @@ async function handleToolCall(name: string, args: Record<string, unknown>) {
 
     case 'avalanche_docs_fetch': {
       const url = args.url as string;
+
+      // Validate URL to prevent SSRF
+      const validation = validateFetchUrl(url);
+      if (!validation.valid) {
+        return {
+          content: [{ type: 'text', text: `Invalid URL: ${validation.error}` }],
+        };
+      }
+
       const normalizedUrl = url.startsWith('/') ? url : `/${url}`;
 
       const content = await getPageContent(normalizedUrl);
@@ -510,17 +592,35 @@ async function processRequest(request: z.infer<typeof jsonRpcRequestSchema>) {
 }
 
 // GET endpoint - returns server info and capabilities
-export async function GET() {
-  return NextResponse.json({
-    name: SERVER_INFO.name,
-    version: SERVER_INFO.version,
-    protocolVersion: SERVER_INFO.protocolVersion,
-    description: 'MCP server for Avalanche documentation',
-    tools: TOOLS,
-    resources: RESOURCES,
-    endpoints: {
-      rpc: '/api/mcp',
-      docs: 'https://build.avax.network',
+export async function GET(request: NextRequest) {
+  const corsHeaders = getCORSHeaders(request);
+
+  return NextResponse.json(
+    {
+      name: SERVER_INFO.name,
+      version: SERVER_INFO.version,
+      protocolVersion: SERVER_INFO.protocolVersion,
+      description: 'MCP server for Avalanche documentation',
+      tools: TOOLS,
+      resources: RESOURCES,
+      endpoints: {
+        rpc: '/api/mcp',
+        docs: 'https://build.avax.network',
+      },
+    },
+    { headers: corsHeaders }
+  );
+}
+
+// OPTIONS endpoint - CORS preflight
+export async function OPTIONS(request: NextRequest) {
+  const corsHeaders = getCORSHeaders(request);
+
+  return new Response(null, {
+    status: 204,
+    headers: {
+      ...corsHeaders,
+      'Access-Control-Max-Age': '86400', // 24 hours
     },
   });
 }
@@ -551,10 +651,47 @@ function wantsSSE(request: Request): boolean {
 }
 
 // POST endpoint - handles MCP JSON-RPC requests with Streamable HTTP support
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  // Validate origin for CORS
+  if (!validateOrigin(request)) {
+    const corsHeaders = getCORSHeaders(request);
+    return NextResponse.json(
+      {
+        jsonrpc: '2.0',
+        id: null,
+        error: {
+          code: -32000,
+          message: 'Origin not allowed'
+        }
+      },
+      {
+        status: 403,
+        headers: corsHeaders,
+      }
+    );
+  }
+
+  // Check rate limit
+  const rateLimitResponse = await checkMCPRateLimit(request);
+  if (rateLimitResponse) {
+    // Add CORS headers to rate limit response
+    const corsHeaders = getCORSHeaders(request);
+    const headers = new Headers(rateLimitResponse.headers);
+    Object.entries(corsHeaders).forEach(([key, value]) => {
+      headers.set(key, value);
+    });
+
+    return new NextResponse(rateLimitResponse.body, {
+      status: rateLimitResponse.status,
+      headers,
+    });
+  }
+
   try {
     const body = await request.json();
     const useSSE = wantsSSE(request);
+    const corsHeaders = getCORSHeaders(request);
+    const rateLimitHeaders = await getRateLimitHeaders(request);
 
     // Handle batch requests
     if (Array.isArray(body)) {
@@ -576,9 +713,13 @@ export async function POST(request: Request) {
       );
 
       if (useSSE) {
-        return createSSEResponse(results);
+        const response = createSSEResponse(results);
+        Object.entries({ ...corsHeaders, ...rateLimitHeaders }).forEach(([key, value]) => {
+          response.headers.set(key, value);
+        });
+        return response;
       }
-      return NextResponse.json(results);
+      return NextResponse.json(results, { headers: { ...corsHeaders, ...rateLimitHeaders } });
     }
 
     // Handle single request
@@ -594,9 +735,13 @@ export async function POST(request: Request) {
       };
 
       if (useSSE) {
-        return createSSEResponse(errorResponse);
+        const response = createSSEResponse(errorResponse);
+        Object.entries({ ...corsHeaders, ...rateLimitHeaders }).forEach(([key, value]) => {
+          response.headers.set(key, value);
+        });
+        return response;
       }
-      return NextResponse.json(errorResponse, { status: 400 });
+      return NextResponse.json(errorResponse, { status: 400, headers: { ...corsHeaders, ...rateLimitHeaders } });
     }
 
     const result = await processRequest(parsed.data);
@@ -604,10 +749,14 @@ export async function POST(request: Request) {
     if (useSSE) {
       // Generate event ID for resumability
       const eventId = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-      return createSSEResponse(result, eventId);
+      const response = createSSEResponse(result, eventId);
+      Object.entries({ ...corsHeaders, ...rateLimitHeaders }).forEach(([key, value]) => {
+        response.headers.set(key, value);
+      });
+      return response;
     }
 
-    return NextResponse.json(result);
+    return NextResponse.json(result, { headers: { ...corsHeaders, ...rateLimitHeaders } });
   } catch (error) {
     console.error('MCP error:', error);
     const errorResponse = {
@@ -619,9 +768,16 @@ export async function POST(request: Request) {
       },
     };
 
+    const corsHeaders = getCORSHeaders(request);
+    const rateLimitHeaders = await getRateLimitHeaders(request);
+
     if (wantsSSE(request)) {
-      return createSSEResponse(errorResponse);
+      const response = createSSEResponse(errorResponse);
+      Object.entries({ ...corsHeaders, ...rateLimitHeaders }).forEach(([key, value]) => {
+        response.headers.set(key, value);
+      });
+      return response;
     }
-    return NextResponse.json(errorResponse, { status: 400 });
+    return NextResponse.json(errorResponse, { status: 400, headers: { ...corsHeaders, ...rateLimitHeaders } });
   }
 }
