@@ -187,6 +187,36 @@ curl -X POST https://build.avax.network/api/mcp \
   }'
 ```
 
+## Security & Limits
+
+### Rate Limiting
+- **60 requests per minute** per client (identified by origin or IP address)
+- 429 status code with Retry-After header when exceeded
+- RateLimit headers included in responses (Limit, Remaining, Reset)
+
+### CORS Policy
+Browser requests must originate from:
+- `https://claude.ai`
+- `https://build.avax.network`
+- `http://localhost:3000` (development only)
+
+Non-browser MCP clients (no Origin header) are always allowed.
+
+### Privacy
+We collect anonymized usage metrics including:
+- Tool names and invocation counts
+- Search result counts (not full query text)
+- Latency measurements
+- Client names (e.g., "claude-desktop")
+
+We do NOT log:
+- Full query text (truncated to 100 characters)
+- Document content
+- Raw IP addresses (hashed for rate limiting)
+
+### Abuse Reporting
+Report security issues or abuse to: **security@avalabs.org**
+
 ## Standards
 
 - [llms.txt](https://llmstxt.org/) - AI sitemap standard
