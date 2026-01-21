@@ -5,8 +5,15 @@ import { Area, AreaChart, Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, 
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { getMAConfig, calculateMovingAverage } from "@/utils/chart-utils";
-import { Users, Activity, FileText, MessageCircleMore, TrendingUp, UserPlus, Hash, Code2, Gauge, DollarSign, Clock, Fuel, ArrowUpRight, Twitter, Linkedin, Download, Camera } from "lucide-react";
+import { Users, Activity, FileText, MessageCircleMore, TrendingUp, UserPlus, Hash, Code2, Gauge, DollarSign, Clock, Fuel, ArrowUpRight, Twitter, Linkedin, Download, Camera, Sparkles } from "lucide-react";
+import { ImageExportStudio } from "@/components/stats/image-export";
 import { ChainIdChips } from "@/components/ui/copyable-id-chip";
 import { AddToWalletButton } from "@/components/ui/add-to-wallet-button";
 import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
@@ -834,6 +841,7 @@ export default function ChainMetricsPage({
       description: "Total transaction fees over time",
       color: themeColor,
       chartType: "bar" as const,
+      isCurrency: true,
     },
     {
       title: "Avg Gas Price",
@@ -843,6 +851,7 @@ export default function ChainMetricsPage({
       color: themeColor,
       chartType: "bar" as const,
       showMovingAverage: true,
+      isCurrency: true,
     },
     {
       title: "Max Gas Price",
@@ -851,6 +860,7 @@ export default function ChainMetricsPage({
       description: "Peak gas price over time",
       color: "#a855f7",
       chartType: "area" as const,
+      isCurrency: true,
     },
     {
       title: "Interchain Messages",
@@ -1689,6 +1699,14 @@ export default function ChainMetricsPage({
                       }
                       formatYAxisValue={formatNumber}
                       allowedPeriods={allowedPeriods}
+                      chainId={chainId}
+                      chainName={chainName}
+                      allChartConfigs={chartConfigs.map((c) => ({
+                        metricKey: c.metricKey,
+                        title: c.title,
+                        description: c.description,
+                        color: c.color,
+                      }))}
                     />
                   );
                 })}
@@ -1763,6 +1781,14 @@ export default function ChainMetricsPage({
                         }
                         formatYAxisValue={formatNumber}
                         allowedPeriods={allowedPeriods}
+                        chainId={chainId}
+                        chainName={chainName}
+                        allChartConfigs={chartConfigs.map((c) => ({
+                          metricKey: c.metricKey,
+                          title: c.title,
+                          description: c.description,
+                          color: c.color,
+                        }))}
                       />
                     );
                   }
@@ -1860,6 +1886,14 @@ export default function ChainMetricsPage({
                       }
                       formatYAxisValue={formatNumber}
                       allowedPeriods={allowedPeriods}
+                      chainId={chainId}
+                      chainName={chainName}
+                      allChartConfigs={chartConfigs.map((c) => ({
+                        metricKey: c.metricKey,
+                        title: c.title,
+                        description: c.description,
+                        color: c.color,
+                      }))}
                     />
                   );
                 })}
@@ -1947,6 +1981,14 @@ export default function ChainMetricsPage({
                       formatYAxisValue={formatNumber}
                       allowedPeriods={allowedPeriods}
                       showMovingAverage={config.showMovingAverage || config.metricKey === "feesPaid"}
+                      chainId={chainId}
+                      chainName={chainName}
+                      allChartConfigs={chartConfigs.map((c) => ({
+                        metricKey: c.metricKey,
+                        title: c.title,
+                        description: c.description,
+                        color: c.color,
+                      }))}
                     />
                   );
                 })}
@@ -1993,6 +2035,14 @@ export default function ChainMetricsPage({
                         formatTooltipValue(value, config.metricKey)
                       }
                       formatYAxisValue={formatNumber}
+                      chainId={chainId}
+                      chainName={chainName}
+                      allChartConfigs={chartConfigs.map((c) => ({
+                        metricKey: c.metricKey,
+                        title: c.title,
+                        description: c.description,
+                        color: c.color,
+                      }))}
                     />
                   );
                 })}
@@ -2030,6 +2080,10 @@ function ChartCard({
   formatYAxisValue,
   allowedPeriods = ["D", "W", "M", "Q", "Y"],
   showMovingAverage = false,
+  // Collage mode props
+  chainId,
+  chainName,
+  allChartConfigs,
 }: {
   config: any;
   rawData: any[];
@@ -2043,6 +2097,10 @@ function ChartCard({
   formatYAxisValue: (value: number) => string;
   allowedPeriods?: ("D" | "W" | "M" | "Q" | "Y")[];
   showMovingAverage?: boolean;
+  // Collage mode props
+  chainId?: string;
+  chainName?: string;
+  allChartConfigs?: { metricKey: string; title: string; description: string; color: string }[];
 }) {
   // Get moving average config based on period
   const maConfig = useMemo(() => getMAConfig(period), [period]);
@@ -2052,6 +2110,7 @@ function ChartCard({
   } | null>(null);
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const { resolvedTheme } = useTheme();
+  const [showImageStudio, setShowImageStudio] = useState(false);
 
   // Screenshot handler for downloading chart as image
   const handleScreenshot = async () => {
@@ -2526,13 +2585,26 @@ function ChartCard({
                   ))}
               </SelectContent>
             </Select>
-            <button
-              onClick={handleScreenshot}
-              className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
-              title="Download chart as image"
-            >
-              <Camera className="h-4 w-4" />
-            </button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
+                  title="Image options"
+                >
+                  <Camera className="h-4 w-4" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem onClick={() => setShowImageStudio(true)}>
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  Open in studio
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleScreenshot}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Download as image
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <button
               onClick={downloadChartCSV}
               className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
@@ -3250,6 +3322,45 @@ function ChartCard({
           )}
         </div>
       </CardContent>
+
+      {/* Image Export Studio Modal */}
+      <ImageExportStudio
+        isOpen={showImageStudio}
+        onClose={() => setShowImageStudio(false)}
+        period={period}
+        onPeriodChange={onPeriodChange}
+        allowedPeriods={allowedPeriods}
+        dataArray={aggregatedData}
+        seriesInfo={[{
+          id: "value",
+          name: config.title,
+          color: config.color,
+          yAxis: "left",
+        }]}
+        chartData={{
+          title: config.title,
+          source: "Avalanche Metrics",
+          sourceDescription: config.description,
+          chainName: chainName || "Avalanche",
+          metricValue: currentValue !== undefined && currentValue !== null
+            ? typeof currentValue === 'number'
+              ? (() => {
+                  const prefix = config.isCurrency ? '$' : '';
+                  if (currentValue >= 1e9) return `${prefix}${(currentValue / 1e9).toFixed(1)}B`;
+                  if (currentValue >= 1e6) return `${prefix}${(currentValue / 1e6).toFixed(1)}M`;
+                  if (currentValue >= 1e3) return `${prefix}${(currentValue / 1e3).toFixed(1)}K`;
+                  return currentValue.toLocaleString();
+                })()
+              : String(currentValue)
+            : undefined,
+          metricLabel: "Latest",
+          pageUrl: typeof window !== "undefined" ? window.location.href : undefined,
+        }}
+        // Collage mode props
+        chainId={chainId}
+        chainName={chainName || "Avalanche"}
+        availableMetrics={allChartConfigs}
+      />
     </Card>
   );
 }
