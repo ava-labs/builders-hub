@@ -1,6 +1,6 @@
 import { withAuth } from "@/lib/protectedRoute";
 import { generateInvitation } from "@/server/services/inviteProjectMember";
-import { isUserProjectMember } from "@/server/services/projects";
+import { isUserProjectMember } from "@/server/services/fileValidation";
 import { NextResponse } from "next/server";
 
 export const POST = withAuth(async (request, context, session) => {

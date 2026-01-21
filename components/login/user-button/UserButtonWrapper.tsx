@@ -17,6 +17,8 @@ export function UserButtonWrapper() {
   }
 
   return <SessionProvider>
-    <UserButton />
+    <div className="flex items-center">
+      <UserButton />
+    </div>
   </SessionProvider>;
 }

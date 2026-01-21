@@ -10,7 +10,7 @@ interface TimeUnit {
   seconds: number;
 }
 
-function RollingDigit({ value }: { value: number }) {
+function RollingDigit({ value, isHydrated }: { value: number; isHydrated: boolean }) {
   const [displayValue, setDisplayValue] = useState(value);
 
   useEffect(() => {
@@ -19,6 +19,15 @@ function RollingDigit({ value }: { value: number }) {
       return () => clearTimeout(timeout);
     }
   }, [value, displayValue]);
+
+  // Show placeholder during SSR to avoid hydration mismatch
+  if (!isHydrated) {
+    return (
+      <span className="relative inline-block w-[0.6em] h-[1.2em] overflow-hidden">
+        <span className="absolute inset-0 flex items-center justify-center">-</span>
+      </span>
+    );
+  }
 
   return (
     <span className="relative inline-block w-[0.6em] h-[1.2em] overflow-hidden">
@@ -39,14 +48,14 @@ function RollingDigit({ value }: { value: number }) {
   );
 }
 
-function TimeDisplay({ label, value }: { label: string; value: number }) {
+function TimeDisplay({ label, value, isHydrated }: { label: string; value: number; isHydrated: boolean }) {
   const digits = String(value).padStart(2, "0").split("");
 
   return (
     <span className="inline-flex items-center gap-0.5">
       <span className="inline-flex">
         {digits.map((digit, index) => (
-          <RollingDigit key={`${label}-${index}`} value={parseInt(digit)} />
+          <RollingDigit key={`${label}-${index}`} value={parseInt(digit)} isHydrated={isHydrated} />
         ))}
       </span>
       <span className="text-xs ml-0.5">{label}</span>
@@ -69,10 +78,15 @@ function CountdownTimer({ targetDate, onComplete }: { targetDate: string; onComp
     return timeLeft;
   }
 
-  const [timeLeft, setTimeLeft] = useState<TimeUnit>(calculateTimeLeft());
+  // Initialize with zeros to avoid hydration mismatch
+  const [timeLeft, setTimeLeft] = useState<TimeUnit>({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+  const [isHydrated, setIsHydrated] = useState(false);
   const completedRef = useRef(false);
 
   useEffect(() => {
+    // Mark as hydrated after mount
+    setIsHydrated(true);
+
     const tick = () => {
       const next = calculateTimeLeft();
       setTimeLeft(next);
@@ -89,13 +103,13 @@ function CountdownTimer({ targetDate, onComplete }: { targetDate: string; onComp
 
   return (
     <span className="font-semibold font-mono bg-black/10 px-3 py-1 rounded-md backdrop-blur-sm inline-flex items-center gap-0.5">
-      <TimeDisplay label="d" value={timeLeft.days} />
+      <TimeDisplay label="d" value={timeLeft.days} isHydrated={isHydrated} />
       <span className="opacity-50">:</span>
-      <TimeDisplay label="h" value={timeLeft.hours} />
+      <TimeDisplay label="h" value={timeLeft.hours} isHydrated={isHydrated} />
       <span className="opacity-50">:</span>
-      <TimeDisplay label="m" value={timeLeft.minutes} />
+      <TimeDisplay label="m" value={timeLeft.minutes} isHydrated={isHydrated} />
       <span className="opacity-50">:</span>
-      <TimeDisplay label="s" value={timeLeft.seconds} />
+      <TimeDisplay label="s" value={timeLeft.seconds} isHydrated={isHydrated} />
     </span>
   );
 }
@@ -119,24 +133,26 @@ export function CustomCountdownBanner() {
   if (deadlinePassed) { return null }
 
   return (
-    <Banner
-      id="build-games-banner"
-      variant="rainbow"
-      style={{background: "linear-gradient(90deg, #0b1e30 0%, #1a3a5c 50%, #0b1e30 100%)", color: "#fff",}}
-    >
-      <Link href="/build-games" className="md:hidden inline-flex items-center gap-1 flex-wrap justify-center">
-        <span>Don't miss <strong className="text-[#66acd6]">Build Games</strong> — <strong className="text-[#66acd6]">$1M</strong> Builder Competition</span>
-      </Link>
+    <div className="sticky top-0 z-50">
+      <Banner
+        id="build-games-banner"
+        variant="rainbow"
+        style={{background: "linear-gradient(90deg, #0b1e30 0%, #1a3a5c 50%, #0b1e30 100%)", color: "#fff",}}
+      >
+        <Link href="/build-games" className="md:hidden inline-flex items-center gap-1 flex-wrap justify-center">
+          <span>Don't miss <strong className="text-[#66acd6]">Build Games</strong> — <strong className="text-[#66acd6]">$1M</strong> Builder Competition</span>
+        </Link>
 
-      <div className="hidden md:flex flex-row items-center justify-center gap-2 text-center">
-        <span>Don't miss <strong className="text-[#66acd6]">Build Games</strong>, A <strong className="text-[#66acd6]">$1,000,000</strong> Builder Competition on Avalanche</span>
-        <span className="flex items-center gap-2">
-          <span>•</span>
-          <CountdownTimer targetDate={deadlineDate} onComplete={() => setDeadlinePassed(true)} />
-          <span className="hidden md:inline">•</span>
-          <Link href="/build-games" className="underline underline-offset-4 hover:text-[#66acd6] transition-colors">Apply Now</Link>
-        </span>
-      </div>
-    </Banner>
+        <div className="hidden md:flex flex-row items-center justify-center gap-2 text-center">
+          <span>Don't miss <strong className="text-[#66acd6]">Build Games</strong>, A <strong className="text-[#66acd6]">$1,000,000</strong> Builder Competition on Avalanche</span>
+          <span className="flex items-center gap-2">
+            <span>•</span>
+            <CountdownTimer targetDate={deadlineDate} onComplete={() => setDeadlinePassed(true)} />
+            <span className="hidden md:inline">•</span>
+            <Link href="/build-games" className="underline underline-offset-4 hover:text-[#66acd6] transition-colors">Apply Now</Link>
+          </span>
+        </div>
+      </Banner>
+    </div>
   );
 }

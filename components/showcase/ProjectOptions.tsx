@@ -22,6 +22,7 @@ import axios from "axios";
 import { useToast } from "@/hooks/use-toast";
 import { Toaster } from "../ui/toaster";
 import { AssignBadge } from "./assign-badge";
+import { useRouter } from "next/navigation";
 
 export const ProjectOptions = ({
   project,
@@ -29,12 +30,15 @@ export const ProjectOptions = ({
   setConfirmOpen,
   isAssignBadgeOpen,
   setIsAssignBadgeOpen,
+  isFromProfile = false,
 }: Props & {
   confirmOpen: boolean;
   setConfirmOpen: React.Dispatch<React.SetStateAction<boolean>>;
   isAssignBadgeOpen: boolean;
   setIsAssignBadgeOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  isFromProfile?: boolean;
 }) => {
+  const router = useRouter();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const { toast } = useToast();
   const handleSetWinner = async (e: React.MouseEvent) => {
@@ -91,30 +95,47 @@ export const ProjectOptions = ({
           className="w-48 z-[9999]"
           onPointerDownCapture={(e) => e.stopPropagation()}
         >
-          <DropdownMenuItem
-            onClick={(e) => {
-              e.stopPropagation();
-            }}
-            onSelect={(e) => {
-              e.stopPropagation();
-              setIsDropdownOpen(false);
-              setConfirmOpen(true);
-            }}
-          >
-            Set Winner
-          </DropdownMenuItem>
+          {isFromProfile ? (
+            <DropdownMenuItem
+              onClick={(e) => {
+                e.stopPropagation();
+              }}
+              onSelect={(e) => {
+                e.stopPropagation();
+                setIsDropdownOpen(false);
+                router.push(`/hackathons/project-submission?project=${project.id}`);
+              }}
+            >
+              Edit
+            </DropdownMenuItem>
+          ) : (
+            <>
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                }}
+                onSelect={(e) => {
+                  e.stopPropagation();
+                  setIsDropdownOpen(false);
+                  setConfirmOpen(true);
+                }}
+              >
+                Set Winner
+              </DropdownMenuItem>
 
-          <DropdownMenuItem
-            onClick={(e) => {
-              e.stopPropagation();
-            }}
-            onSelect={(e) => {
-              setIsDropdownOpen(false);
-              handleAssignBadge(e as any);
-            }}
-          >
-            Assign Badge
-          </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                }}
+                onSelect={(e) => {
+                  setIsDropdownOpen(false);
+                  handleAssignBadge(e as any);
+                }}
+              >
+                Assign Badge
+              </DropdownMenuItem>
+            </>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
 

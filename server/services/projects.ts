@@ -102,10 +102,10 @@ export const getFilteredProjects = async (options: GetProjectOptions) => {
     projects: projects.map((project) => ({
       ...project,
       members: [],
-      hackathon: {
+      hackathon: project.hackathon ? {
         ...project.hackathon,
         content: project.hackathon.content as any,
-      },
+      } : null,
     })),
     total: totalProjects,
     page,
@@ -138,11 +138,11 @@ export async function getProject(id: string) {
         image: member.user?.image,
       } as User,
     })),
-    hackathon: {
+    hackathon: project.hackathon ? {
       title: project.hackathon.title,
       location: project.hackathon.location,
       start_date: project.hackathon.start_date,
-    } as Hackathon,
+    } as Hackathon : null,
   };
 
   console.log("GET project:", project);
@@ -171,7 +171,7 @@ export async function createProject(
       screenshots: projectData.screenshots ?? [],
       tech_stack: projectData.tech_stack ?? "",
       tracks: projectData.tracks ?? [],
-      hackaton_id: projectData.hackaton_id ?? "",
+      hackaton_id: projectData.hackaton_id ?? null,
       // prizes: {
       //   create: projectData.prizes?.map((prize) => ({
       //     icon: prize.icon,
@@ -188,6 +188,7 @@ export async function createProject(
       },
       created_at: new Date(),
       updated_at: new Date(),
+      origin: projectData.origin ?? "",
     },
   });
   projectData.id = newProject.id;
@@ -368,32 +369,3 @@ export type GetProjectOptions = {
   track?: string;
   winningProjects?: boolean;
 };
-
-/**
- * Verifies if a user is a member of a project
- */
-export async function isUserProjectMember(userId: string, projectId: string): Promise<boolean> {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { email: true },
-  });
-
-  if (!user) {
-    return false;
-  }
-
-  const member = await prisma.member.findFirst({
-    where: {
-      project_id: projectId,
-      OR: [
-        { user_id: userId },
-        { email: user.email },
-      ],
-      status: {
-        not: "Removed",
-      },
-    },
-  });
-
-  return !!member;
-}
