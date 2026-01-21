@@ -288,7 +288,7 @@ header + * {
     margin-right: 0 !important;
     /* Responsive padding that accounts for sidebar position (3rem) + width + spacing (0.5rem) */
     padding-left: calc(3rem + var(--fd-sidebar-width) + 0.5rem) !important;
-    padding-right: 5rem !important;
+    padding-right: 2rem !important;
   }
   
   /* Center the page content within available space */
@@ -296,6 +296,15 @@ header + * {
     margin-left: auto !important;
     margin-right: auto !important;
     max-width: var(--fd-page-width) !important;
+  }
+}
+
+/* XL screens: Account for TOC sidebar width (268px) when visible */
+@media (min-width: 1280px) {
+  body[data-layout="docs"] main#nd-docs-layout.fd-notebook-layout,
+  body[data-layout="docs"] main#nd-docs-layout.fd-default-layout {
+    /* Add right padding for TOC sidebar (268px) + some breathing room */
+    padding-right: calc(var(--fd-toc-width, 268px) + 2rem) !important;
   }
 }
 
@@ -375,6 +384,35 @@ body[data-layout="docs"] #nd-sidebar nav {
   padding-top: 0 !important;
   padding-left: 0 !important;
   padding-right: 0 !important;
+}
+
+/* Fix content overflow into TOC sidebar - ensure wide content (tables, code blocks) scroll horizontally */
+body[data-layout="docs"] article,
+body[data-layout="docs"] #nd-page {
+  overflow-x: auto !important;
+  max-width: 100% !important;
+}
+
+/* Constrain wide elements within article to prevent TOC overlap */
+body[data-layout="docs"] article > *,
+body[data-layout="docs"] .prose > * {
+  max-width: 100% !important;
+  overflow-x: auto !important;
+}
+
+/* Specifically handle tables which are the main culprit for overflow */
+body[data-layout="docs"] article table,
+body[data-layout="docs"] .prose table {
+  display: block !important;
+  overflow-x: auto !important;
+  max-width: 100% !important;
+}
+
+/* Handle code blocks that might overflow */
+body[data-layout="docs"] article pre,
+body[data-layout="docs"] .prose pre {
+  overflow-x: auto !important;
+  max-width: 100% !important;
 }
 
 /* Reduce heading top margin */
