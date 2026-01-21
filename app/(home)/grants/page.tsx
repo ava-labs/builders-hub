@@ -5,55 +5,49 @@ import Link from "next/link";
 import { HeroBackground } from "@/components/landing/hero";
 import { ArrowRight, Shield } from "lucide-react";
 
-// Program card data with gradient backgrounds
+// Program card data with images
 const programs = [
   {
     title: "Retro9000",
     description: "Build innovative projects on Avalanche and get rewarded for your creativity and impact.",
     href: "https://retro9000.avax.network",
     external: true,
-    gradient: "from-orange-500 via-red-500 to-pink-500",
-    icon: "🚀",
+    image: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/9000-logo-FYhqyinnspUefGJcGgj9AcT116yq98.png",
   },
   {
     title: "Team1 Mini Grants",
     description: "Supporting early stage Avalanche projects with capital, mentorship, and guidance.",
     href: "https://grants.team1.network/",
     external: true,
-    gradient: "from-emerald-500 via-teal-500 to-cyan-500",
-    icon: "💰",
+    image: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/local_events_team1-UJLssyvek3G880Q013A94SdMKxiLRq.jpg",
   },
   {
     title: "infraBUIDL ( )",
     description: "Strengthen Avalanche's infrastructure by building the foundation for next-generation applications.",
     href: "/grants/infrabuidl",
     external: false,
-    gradient: "from-violet-500 via-purple-500 to-fuchsia-500",
-    icon: "🔧",
+    image: "/infrabuidl.png",
   },
   {
     title: "Codebase by Avalanche™",
     description: "Empower developers to create innovative blockchain solutions and turn visions into reality.",
     href: "/codebase",
     external: false,
-    gradient: "from-blue-500 via-indigo-500 to-violet-500",
-    icon: "💻",
+    image: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/codebase-banner-VKmQyN5sPojnIOU09p0lCkUgR6YTpQ.png",
   },
   {
     title: "infraBUIDL (AI)",
     description: "Support projects that combine artificial intelligence with decentralized infrastructure.",
     href: "/grants/infrabuidlai",
     external: false,
-    gradient: "from-cyan-500 via-blue-500 to-indigo-500",
-    icon: "🤖",
+    image: "/infrabuidl-ai.png",
   },
   {
     title: "Blizzard Fund",
     description: "A $200M+ fund investing in promising Avalanche projects with institutional support.",
     href: "https://www.blizzard.fund/",
     external: true,
-    gradient: "from-sky-400 via-blue-500 to-indigo-600",
-    icon: "❄️",
+    image: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/Avalanche-Event-TnQovuFzkt8CGHyF0wfiSYTrGVtuPU.jpg",
   },
 ];
 
@@ -63,32 +57,28 @@ const partnerPrograms = [
     description: "Support and fast-track for promising gaming studios and projects building on Avalanche, in partnership with Helika.",
     href: "https://www.helika.io/helika-avalanche-accelerator",
     external: true,
-    gradient: "from-rose-500 via-pink-500 to-fuchsia-500",
-    icon: "🎮",
+    image: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/hackathon-images/build-games-2025/Build%20Games%202025-banner-1768256090146-YrOrQ10HvSJk1xEUCSHgdpt9rGFnEB.png",
   },
   {
     title: "Developer Credits",
     description: "Access credits to build data-suites and vibe-code new projects on the Avalanche C-Chain, in partnership with Space & Time.",
     href: "https://spaceandtimedb.notion.site/Space-and-Time-x-Avalanche-Builder-Credit-Grant-Program-239af37755f580b4929ff9328584f347?pvs=74",
     external: true,
-    gradient: "from-amber-500 via-orange-500 to-red-500",
-    icon: "🎟️",
+    image: "/images/spacentime.jpg",
   },
   {
     title: "Hexagate Security",
     description: "Onchain security for Avalanche builders, delivering real-time threat detection for smart contracts and protocols.",
     href: "https://hexagate.typeform.com/HexagateForAva?typeform-source=t.co",
     external: true,
-    gradient: "from-green-500 via-emerald-500 to-teal-500",
-    icon: "🛡️",
+    image: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/hackathon_bba-RIFZkBsh3wUyzIhi1zJK7GFamAne3D.png",
   },
   {
     title: "Security Audits",
     description: "Explore 20+ trusted auditing providers and find the right partner to review, test, and strengthen your smart contracts.",
     href: "https://areta.market/avalanche",
     external: true,
-    gradient: "from-slate-600 via-zinc-600 to-neutral-600",
-    icon: "🔒",
+    image: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/hackathons-banner-nyqtkzooc3tJ4qcLjfLJijXz6uJ6oH.png",
   },
 ];
 
@@ -97,32 +87,29 @@ interface ProgramCardProps {
   description: string;
   href: string;
   external: boolean;
-  gradient: string;
-  icon: string;
+  image: string;
 }
 
-function ProgramCard({ title, description, href, external, gradient, icon }: ProgramCardProps) {
+function ProgramCard({ title, description, href, external, image }: ProgramCardProps) {
   const CardWrapper = external ? 'a' : Link;
   const linkProps = external ? { href, target: "_blank", rel: "noopener noreferrer" } : { href };
 
   return (
     <CardWrapper {...linkProps} className="block group">
-      <div className="relative overflow-hidden rounded-lg transition-all duration-300 hover:shadow-xl h-[320px] border border-zinc-200/50 dark:border-zinc-800/50">
-        {/* Gradient background */}
-        <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-90`} />
+      <div className="relative overflow-hidden rounded-lg transition-all duration-300 hover:shadow-xl h-[280px] border border-zinc-200/50 dark:border-zinc-800/50">
+        {/* Image background */}
+        <Image
+          src={image}
+          alt={title}
+          fill
+          className="object-cover transition-transform duration-500 group-hover:scale-105"
+        />
 
-        {/* Pattern overlay */}
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.2)_1px,transparent_1px)] bg-[length:20px_20px]" />
-        </div>
-
-        {/* Icon */}
-        <div className="absolute top-6 left-6 text-5xl opacity-80 group-hover:scale-110 transition-transform duration-300">
-          {icon}
-        </div>
+        {/* Dark overlay for text readability */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20" />
 
         {/* Content */}
-        <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/60 via-black/30 to-transparent">
+        <div className="absolute bottom-0 left-0 right-0 p-6">
           <h3 className="text-xl font-bold text-white mb-2 group-hover:translate-x-1 transition-transform duration-300">
             {title}
           </h3>
@@ -132,8 +119,10 @@ function ProgramCard({ title, description, href, external, gradient, icon }: Pro
         </div>
 
         {/* Hover arrow */}
-        <div className="absolute top-6 right-6 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0">
-          <ArrowRight className="w-6 h-6 text-white" />
+        <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0">
+          <div className="bg-white/20 backdrop-blur-sm rounded-full p-2">
+            <ArrowRight className="w-4 h-4 text-white" />
+          </div>
         </div>
       </div>
     </CardWrapper>
