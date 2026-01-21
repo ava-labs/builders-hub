@@ -22,12 +22,13 @@ model Hackathon {
   icon            String         @default("")
   small_banner    String         @default("")
   participants    Int
-  organizers      String?
   top_most        Boolean?       @default(false)
+  organizers      String?
   custom_link     String?
   created_by      String?
   is_public       Boolean?
   updated_by      String?
+  event           String?        @default("hackathon")
   created_by_user User?          @relation(fields: [created_by], references: [id])
   updated_by_user User?          @relation("HackathonUpdatedBy", fields: [updated_by], references: [id])
   projects        Project[]
@@ -36,40 +37,41 @@ model Hackathon {
 }
 
 model User {
-  id                  String             @id @default(cuid())
-  name                String?
-  email               String?            @unique
-  image               String?
-  authentication_mode String?
-  integration         String?
-  last_login          DateTime?
-  user_name           String?
-  bio                 String?
-  notification_email  String?
-  notifications       Boolean?
-  profile_privacy     String?            @default("public")
-  social_media        String[]
-  custom_attributes   String[]
-  telegram_user       String?
-  created_at          DateTime      @default(now()) @db.Timestamptz(3)
-  country             String?
-  user_type           Json?
-  github              String?
-  skills              String[]      @default([])
-  noun_avatar_seed    Json?
-  noun_avatar_enabled Boolean       @default(false)
-  wallet              String[]      @default([])
-  updated_hackathons  Hackathon[] @relation("HackathonUpdatedBy")
-  memberships         Member[]
-  registrations       RegisterForm[]
-  badges              UserBadge[]
-  managedTestnetNodes NodeRegistration[]
-  consoleLog          ConsoleLog[]
-  hackathons          Hackathon[]
-  statsPlaygrounds    StatsPlayground[]
+  id                       String                    @id @default(cuid())
+  name                     String?
+  email                    String?                   @unique
+  image                    String?
+  authentication_mode      String?
+  integration              String?
+  last_login               DateTime?
+  user_name                String?
+  bio                      String?
+  notification_email       String?
+  profile_privacy          String?                   @default("public")
+  social_media             String[]
+  notifications            Boolean?
+  custom_attributes        String[]
+  telegram_user            String?
+  created_at               DateTime                  @default(now()) @db.Timestamptz(3)
+  country                  String?
+  user_type                Json?
+  github                   String?
+  skills                   String[]                  @default([])
+  noun_avatar_seed         Json?
+  noun_avatar_enabled      Boolean                   @default(false)
+  wallet                   String[]                  @default([])
+  consoleLog               ConsoleLog[]
+  faucetClaims             FaucetClaim[]
+  hackathons               Hackathon[]
+  updated_hackathons       Hackathon[]               @relation("HackathonUpdatedBy")
+  memberships              Member[]
+  managedTestnetNodes      NodeRegistration[]
+  registrations            RegisterForm[]
+  statsPlaygrounds         StatsPlayground[]
   statsPlaygroundFavorites StatsPlaygroundFavorite[] @relation("StatsPlaygroundFavorites")
   faucetClaims        FaucetClaim[]
   chatConversations   ChatConversation[]
+  badges                   UserBadge[]
 }
 
 model VerificationToken {
@@ -103,7 +105,7 @@ model RegisterForm {
   updated_at              DateTime  @updatedAt @db.Timestamptz(3)
   web3_proficiency        String
   telegram_user           String?
-  referrer_handle         String?   // X/Twitter handle of the person who referred this applicant
+  referrer_handle         String?
   user                    User      @relation(fields: [email], references: [email], onDelete: Cascade)
   hackathon               Hackathon @relation(fields: [hackathon_id], references: [id], onDelete: Cascade)
 
@@ -241,16 +243,16 @@ model ConsoleLog {
 }
 
 model StatsPlayground {
-  id          String   @id @default(uuid())
-  user_id     String
-  name        String
-  is_public   Boolean  @default(false)
-  charts      Json     // Array of chart configurations
-  view_count  Int      @default(0)
-  created_at  DateTime @default(now()) @db.Timestamptz(3)
-  updated_at  DateTime @updatedAt @db.Timestamptz(3)
-  user        User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  favorites   StatsPlaygroundFavorite[]
+  id         String                    @id @default(uuid())
+  user_id    String
+  name       String
+  is_public  Boolean                   @default(false)
+  charts     Json
+  created_at DateTime                  @default(now()) @db.Timestamptz(3)
+  updated_at DateTime                  @updatedAt @db.Timestamptz(3)
+  view_count Int                       @default(0)
+  user       User                      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  favorites  StatsPlaygroundFavorite[]
 
   @@index([user_id])
   @@index([is_public])
@@ -258,12 +260,12 @@ model StatsPlayground {
 }
 
 model StatsPlaygroundFavorite {
-  id           String    @id @default(uuid())
+  id            String          @id @default(uuid())
   playground_id String
-  user_id      String
-  created_at   DateTime  @default(now()) @db.Timestamptz(3)
-  playground   StatsPlayground @relation(fields: [playground_id], references: [id], onDelete: Cascade)
-  user         User      @relation("StatsPlaygroundFavorites", fields: [user_id], references: [id], onDelete: Cascade)
+  user_id       String
+  created_at    DateTime        @default(now()) @db.Timestamptz(3)
+  playground    StatsPlayground @relation(fields: [playground_id], references: [id], onDelete: Cascade)
+  user          User            @relation("StatsPlaygroundFavorites", fields: [user_id], references: [id], onDelete: Cascade)
 
   @@unique([playground_id, user_id])
   @@index([playground_id])
@@ -273,8 +275,8 @@ model StatsPlaygroundFavorite {
 model FaucetClaim {
   id                  String   @id @default(uuid())
   user_id             String
-  faucet_type         String   // "pchain" or "evm"
-  chain_id            String?  // For EVM faucets, the chain ID
+  faucet_type         String
+  chain_id            String?
   destination_address String
   amount              String
   tx_hash             String?
@@ -332,34 +334,34 @@ model FormData {
 }
 
 model BuildGamesApplication {
-  id                        String   @id @default(uuid())
-  email                     String   @unique
-  first_name                String
-  last_name                 String
-  telegram                  String?
-  github                    String?
-  country                   String
-  ready_to_win              String
-  previous_avalanche_grant  String
-  hackathon_experience      String?
-  hackathon_details         String?
-  employment_role           String?
-  current_role              String?
-  employment_status         String?
-  project_name              String
-  project_description       String
-  area_of_focus             String
-  why_you                   String
-  how_did_you_hear          String
-  how_did_you_hear_specify  String?
-  referrer_name             String?
-  referrer_handle           String?
-  university_affiliation    String
+  id                         String   @id @default(uuid())
+  email                      String   @unique
+  first_name                 String
+  last_name                  String
+  telegram                   String?
+  github                     String?
+  country                    String
+  ready_to_win               String
+  previous_avalanche_grant   String
+  hackathon_experience       String?
+  hackathon_details          String?
+  employment_role            String?
+  current_role               String?
+  employment_status          String?
+  project_name               String
+  project_description        String
+  area_of_focus              String
+  why_you                    String
+  how_did_you_hear           String
+  how_did_you_hear_specify   String?
+  referrer_name              String?
+  referrer_handle            String?
+  university_affiliation     String
   avalanche_ecosystem_member String
-  privacy_policy_read       Boolean  @default(false)
-  marketing_consent         Boolean  @default(false)
-  created_at                DateTime @default(now()) @db.Timestamptz(3)
-  updated_at                DateTime @updatedAt @db.Timestamptz(3)
+  privacy_policy_read        Boolean  @default(false)
+  marketing_consent          Boolean  @default(false)
+  created_at                 DateTime @default(now()) @db.Timestamptz(3)
+  updated_at                 DateTime @updatedAt @db.Timestamptz(3)
 
   @@index([created_at])
   @@index([referrer_handle])
