@@ -130,6 +130,7 @@
     "react-leaflet": "^5.0.0",
     "react-resizable-panels": "^2.1.9",
     "recharts": "^2.15.4",
+    "redis": "^5.10.0",
     "rehype-katex": "^7.0.1",
     "remark": "^15.0.1",
     "remark-gfm": "^4.0.1",
