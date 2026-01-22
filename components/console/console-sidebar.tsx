@@ -10,29 +10,21 @@ import {
   Wrench,
   Droplets,
   ArrowLeft,
-  Shield,
-  Network,
-  GitMerge,
   Server,
-  Telescope,
   ArrowLeftRight,
   Calculator,
   Coins,
-  Box,
   Globe,
   ArrowUpDown,
-  ShieldCheck,
-  ShieldUser,
   SquareTerminal,
-  Hexagon,
-  SlidersVertical,
-  SquareMinus,
-  SquarePlus,
-  HandCoins,
   ExternalLink,
   BookKey,
-  ShieldOff,
-  Activity
+  Activity,
+  ChevronRight,
+  Sparkles,
+  Shield,
+  Users,
+  Workflow,
 } from "lucide-react";
 
 import {
@@ -45,355 +37,206 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarFooter,
-  SidebarRail,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
-// Navigation data structure matching user specification
-const data = {
-  navMain: [
-    {
-      title: "Home",
-      url: "/console",
-      icon: Home,
-    },
-    {
-      title: "Back to Builder Hub",
-      url: "/",
-      icon: ArrowLeft,
-    },
+// Cleaner navigation structure
+const navigation = {
+  main: [
+    { title: "Home", url: "/console", icon: Home },
+    { title: "Back to Builder Hub", url: "/", icon: ArrowLeft },
   ],
-  navGroups: [
+  groups: [
+    {
+      title: "Get Started",
+      items: [
+        { title: "Blueprints", url: "/console/blueprints", icon: Sparkles },
+        { title: "Create L1", url: "/console/layer-1/create", icon: Layers },
+        { title: "Testnet Faucet", url: "/console/primary-network/faucet", icon: Droplets },
+      ],
+    },
     {
       title: "Primary Network",
-      icon: Network,
       items: [
-        {
-          title: "Data API Keys",
-          url: "/console/utilities/data-api-keys",
-          icon: BookKey,
-        },
-        {
-          title: "Node Setup",
-          url: "/console/primary-network/node-setup",
-          icon: Server,
-        },
-        {
-          title: "Stake",
-          url: "/console/primary-network/stake",
-          icon: HandCoins,
-        },
-        {
-          title: "Testnet Faucet",
-          url: "/console/primary-network/faucet",
-          icon: Droplets,
-        },
-        {
-          title: "C/P-Chain Bridge",
-          url: "/console/primary-network/c-p-bridge",
-          icon: ArrowLeftRight,
-        },
-        {
-          title: "Ethereum Bridge",
-          url: "https://core.app/bridge",
-          icon: ArrowUpDown,
-        },
-        {
-          title: "AVAX Unit Converter",
-          url: "/console/primary-network/unit-converter",
-          icon: Calculator,
-        },
+        { title: "Data API Keys", url: "/console/utilities/data-api-keys", icon: BookKey },
+        { title: "Node Setup", url: "/console/primary-network/node-setup", icon: Server },
+        { title: "Stake", url: "/console/primary-network/stake", icon: Coins },
+        { title: "C/P Bridge", url: "/console/primary-network/c-p-bridge", icon: ArrowLeftRight },
+        { title: "Ethereum Bridge", url: "https://core.app/bridge", icon: ArrowUpDown, external: true },
+        { title: "Unit Converter", url: "/console/primary-network/unit-converter", icon: Calculator },
       ],
     },
     {
-      title: "Layer 1",
-      icon: Box,
+      title: "Your L1",
       items: [
+        { title: "Node Setup", url: "/console/layer-1/l1-node-setup", icon: Server },
+        { title: "Explorer Setup", url: "/console/layer-1/explorer-setup", icon: Globe },
+        { title: "Performance", url: "/console/layer-1/performance-monitor", icon: Activity },
+        { title: "Validator Balance", url: "/console/layer-1/l1-validator-balance", icon: Coins },
         {
-          title: "Create New L1",
-          url: "/console/layer-1/create",
-          icon: Layers,
+          title: "Validators",
+          icon: Users,
+          children: [
+            { title: "Query Validator Set", url: "/console/layer-1/validator-set" },
+            { title: "Validator Manager Setup", url: "/console/permissioned-l1s/validator-manager-setup" },
+            { title: "Multisig Setup", url: "/console/permissioned-l1s/multisig-setup" },
+            { title: "Add Validator", url: "/console/permissioned-l1s/add-validator" },
+            { title: "Remove Validator", url: "/console/permissioned-l1s/remove-validator" },
+            { title: "Disable Validator", url: "/console/permissioned-l1s/disable-validator" },
+            { title: "Change Weight", url: "/console/permissioned-l1s/change-validator-weight" },
+            { title: "Remove Expired", url: "/console/permissioned-l1s/remove-expired-validator-registration" },
+            { title: "Native Staking Setup", url: "/console/permissionless-l1s/native-staking-manager-setup" },
+          ],
         },
         {
-          title: "L1 Node Setup",
-          url: "/console/layer-1/l1-node-setup",
-          icon: Server,
-        },
-        {
-          title: "L1 Validator Balance",
-          url: "/console/layer-1/l1-validator-balance",
+          title: "Tokenomics",
           icon: Coins,
+          children: [
+            { title: "Fee Parameters", url: "/console/l1-tokenomics/fee-manager" },
+            { title: "Fee Distribution", url: "/console/l1-tokenomics/reward-manager" },
+            { title: "Mint Native Coins", url: "/console/l1-tokenomics/native-minter" },
+          ],
         },
         {
-          title: "Explorer Setup",
-          url: "/console/layer-1/explorer-setup",
-          icon: Telescope,
-        },
-        {
-          title: "Performance Monitor",
-          url: "/console/layer-1/performance-monitor",
-          icon: Activity,
-        },
-      ],
-    },
-    {
-      title: "Free Testnet Infrastructure",
-      icon: Box,
-      items: [
-        {
-          title: "Nodes",
-          url: "/console/testnet-infra/nodes",
-          icon: Layers,
-        },
-        {
-          title: "ICM Relayer",
-          url: "/console/testnet-infra/icm-relayer",
-          icon: Layers,
-        },
-      ],
-    },
-
-    {
-      title: "L1 Tokenomics",
-      icon: Coins,
-      items: [
-        {
-          title: "Transaction Fee Parameters",
-          url: "/console/l1-tokenomics/fee-manager",
-          icon: Coins,
-        },
-        {
-          title: "Fee Distributions",
-          url: "/console/l1-tokenomics/reward-manager",
-          icon: Coins,
-        },
-        {
-          title: "Mint Native Coins",
-          url: "/console/l1-tokenomics/native-minter",
-          icon: Coins,
+          title: "Access Control",
+          icon: Shield,
+          children: [
+            { title: "Deployer Allowlist", url: "/console/l1-access-restrictions/deployer-allowlist" },
+            { title: "Transactor Allowlist", url: "/console/l1-access-restrictions/transactor-allowlist" },
+          ],
         },
       ],
     },
     {
-      title: "Permissioned L1s",
-      icon: Shield,
+      title: "Cross-Chain",
       items: [
-        {
-          title: "Validator Manager Setup",
-          url: "/console/permissioned-l1s/validator-manager-setup",
-          icon: SquareTerminal,
-        },
-        {
-          title: "Multisig Setup",
-          url: "/console/permissioned-l1s/multisig-setup",
-          icon: ShieldUser,
-        },
-        {
-          title: "Query Validator Set",
-          url: "/console/layer-1/validator-set",
-          icon: Hexagon,
-        },
-        {
-          title: "Add Validator",
-          url: "/console/permissioned-l1s/add-validator",
-          icon: SquarePlus,
-        },
-        {
-          title: "Remove Validator",
-          url: "/console/permissioned-l1s/remove-validator",
-          icon: SquareMinus,
-        },
-        {
-          title: "Disable Validator",
-          url: "/console/permissioned-l1s/disable-validator",
-          icon: ShieldOff,
-        },
-        {
-          title: "Change Validator Weight",
-          url: "/console/permissioned-l1s/change-validator-weight",
-          icon: SlidersVertical,
-        },
-        {
-          title: "Remove Expired Validator Registration",
-          url: "/console/permissioned-l1s/remove-expired-validator-registration",
-          icon: SquareMinus,
-        }
+        { title: "ICM Setup", url: "/console/icm/setup", icon: MessagesSquare },
+        { title: "ICM Test", url: "/console/icm/test-connection", icon: MessagesSquare },
+        { title: "ICTT Bridge Setup", url: "/console/ictt/setup", icon: Workflow },
+        { title: "Token Transfer", url: "/console/ictt/token-transfer", icon: ArrowLeftRight },
       ],
     },
     {
-      title: "L1 Access Restrictions",
-      icon: Shield,
+      title: "Testnet Infra",
       items: [
-        {
-          title: "Contract Deployer Allowlist",
-          url: "/console/l1-access-restrictions/deployer-allowlist",
-          icon: ShieldCheck,
-        },
-        {
-          title: "Transactor Allowlist",
-          url: "/console/l1-access-restrictions/transactor-allowlist",
-          icon: ShieldUser,
-        },
-      ],
-    },
-    {
-      title: "Permissionless L1s",
-      icon: Globe,
-      items: [
-        {
-          title: "Native Staking Manager Setup",
-          url: "/console/permissionless-l1s/native-staking-manager-setup",
-          icon: GitMerge,
-        },
-      ],
-    },
-    {
-      title: "Interchain Messaging",
-      icon: MessagesSquare,
-      items: [
-        {
-          title: "Setup",
-          url: "/console/icm/setup",
-          icon: SquareTerminal,
-        },
-        {
-          title: "Test Connection",
-          url: "/console/icm/test-connection",
-          icon: MessagesSquare,
-        },
-      ],
-    },
-    {
-      title: "Interchain Token Transfer",
-      icon: ArrowLeftRight,
-      items: [
-        {
-          title: "Bridge Setup",
-          url: "/console/ictt/setup",
-          icon: SquareTerminal,
-        },
-        {
-          title: "Token Transfer",
-          url: "/console/ictt/token-transfer",
-          icon: ArrowLeftRight,
-        },
+        { title: "Nodes", url: "/console/testnet-infra/nodes", icon: Server },
+        { title: "ICM Relayer", url: "/console/testnet-infra/icm-relayer", icon: Workflow },
       ],
     },
     {
       title: "Utilities",
-      icon: Wrench,
       items: [
-        {
-          title: "Format Converter",
-          url: "/console/utilities/format-converter",
-          icon: Wrench,
-        },
-        {
-          title: "Transfer Proxy Admin Ownership",
-          url: "/console/utilities/transfer-proxy-admin",
-          icon: Wrench,
-        },
-        {
-          title: "Migrate VMC From V1 to V2",
-          url: "/console/utilities/vmcMigrateFromV1",
-          icon: Wrench,
-        },
-        {
-          title: "Revert PoA Manager",
-          url: "/console/utilities/revert-poa-manager",
-          icon: Wrench,
-        }
+        { title: "Format Converter", url: "/console/utilities/format-converter", icon: Wrench },
+        { title: "Transfer Proxy Admin", url: "/console/utilities/transfer-proxy-admin", icon: Wrench },
+        { title: "VMC Migration", url: "/console/utilities/vmcMigrateFromV1", icon: Wrench },
+        { title: "Revert PoA Manager", url: "/console/utilities/revert-poa-manager", icon: Wrench },
       ],
     },
   ],
-  navSecondary: [],
 };
 
-interface ConsoleSidebarProps extends React.ComponentProps<typeof Sidebar> { }
+interface ConsoleSidebarProps extends React.ComponentProps<typeof Sidebar> {}
 
-export function ConsoleSidebar({
-  ...props
-}: ConsoleSidebarProps) {
+export function ConsoleSidebar({ ...props }: ConsoleSidebarProps) {
   const pathname = usePathname();
+
+  const isActive = (url: string) => pathname === url || pathname.startsWith(url + '/');
+
+  const hasActiveChild = (children: { url: string }[]) =>
+    children.some(child => isActive(child.url));
+
   return (
     <Sidebar {...props}>
       <SidebarHeader>
         <Link
           href="/console"
-          className="flex items-center gap-2 group transition-all duration-200 p-2"
+          className="flex items-center gap-2 p-2 transition-colors hover:opacity-80"
         >
-          <AvalancheLogo className='size-7' fill='currentColor' />
-          <span className="font-large font-semibold">Builder Console</span>
+          <AvalancheLogo className="size-6" fill="currentColor" />
+          <span className="font-semibold">Console</span>
         </Link>
       </SidebarHeader>
 
       <SidebarContent>
-        {/* Main Navigation */}
+        {/* Main nav */}
         <SidebarGroup>
           <SidebarMenu>
-            {data.navMain.map((item) => {
-              const isActive = pathname === item.url;
-              return (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={isActive}
-                  >
-                    <Link href={item.url}>
-                      <item.icon />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              );
-            })}
+            {navigation.main.map((item) => (
+              <SidebarMenuItem key={item.title}>
+                <SidebarMenuButton asChild isActive={pathname === item.url}>
+                  <Link href={item.url}>
+                    <item.icon className="size-4" />
+                    <span>{item.title}</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))}
           </SidebarMenu>
         </SidebarGroup>
 
-        {/* Flat Navigation Groups */}
-        {data.navGroups.map((group) => (
+        {/* Grouped nav */}
+        {navigation.groups.map((group) => (
           <SidebarGroup key={group.title}>
-            <SidebarGroupLabel>
-              <span>{group.title}</span>
-            </SidebarGroupLabel>
+            <SidebarGroupLabel>{group.title}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {group.items.map((item) => {
-                  const isActive = pathname === item.url || pathname.startsWith(item.url + '/');
-                  const isComingSoon = 'comingSoon' in item && (item as any).comingSoon;
+                  // Item with children (collapsible)
+                  if ('children' in item && item.children) {
+                    const isOpen = hasActiveChild(item.children);
+                    return (
+                      <Collapsible key={item.title} defaultOpen={isOpen}>
+                        <SidebarMenuItem>
+                          <CollapsibleTrigger asChild>
+                            <SidebarMenuButton>
+                              <item.icon className="size-4" />
+                              <span>{item.title}</span>
+                              <ChevronRight className="ml-auto size-4 transition-transform group-data-[state=open]/collapsible:rotate-90" />
+                            </SidebarMenuButton>
+                          </CollapsibleTrigger>
+                          <CollapsibleContent>
+                            <SidebarMenuSub>
+                              {item.children.map((child) => (
+                                <SidebarMenuSubItem key={child.title}>
+                                  <SidebarMenuSubButton asChild isActive={isActive(child.url)}>
+                                    <Link href={child.url}>{child.title}</Link>
+                                  </SidebarMenuSubButton>
+                                </SidebarMenuSubItem>
+                              ))}
+                            </SidebarMenuSub>
+                          </CollapsibleContent>
+                        </SidebarMenuItem>
+                      </Collapsible>
+                    );
+                  }
+
+                  // External link
+                  if ('external' in item && item.external) {
+                    return (
+                      <SidebarMenuItem key={item.title}>
+                        <SidebarMenuButton asChild>
+                          <a href={item.url} target="_blank" rel="noopener noreferrer">
+                            <item.icon className="size-4" />
+                            <span>{item.title}</span>
+                            <ExternalLink className="ml-auto size-3 opacity-50" />
+                          </a>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  }
+
+                  // Regular link
                   return (
                     <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton
-                        asChild
-                        isActive={isActive}
-                        className={`${isComingSoon ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        disabled={isComingSoon}
-                      >
-
-
-                        {isComingSoon ? (
-                          <Link href="#">
-                            <item.icon />
-                            <span>{item.title} (soon)</span>
-                          </Link>
-                        ) : item.url.startsWith('https://') ? (
-                          <a
-                            href={item.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-2 w-full"
-                          >
-                            <item.icon />
-                            <span>{item.title}</span>
-                            <ExternalLink className="ml-auto h-4 w-4" />
-                          </a>
-                        ) : (
-                          <Link href={item.url}>
-                            <item.icon />
-                            <span>{item.title}</span>
-                          </Link>
-                        )}
+                      <SidebarMenuButton asChild isActive={isActive(item.url)}>
+                        <Link href={item.url}>
+                          <item.icon className="size-4" />
+                          <span>{item.title}</span>
+                        </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   );
@@ -402,12 +245,9 @@ export function ConsoleSidebar({
             </SidebarGroupContent>
           </SidebarGroup>
         ))}
-
-
       </SidebarContent>
     </Sidebar>
   );
 }
 
-// Export the navigation data for use in other components
-export { data };
+export { navigation as data };
