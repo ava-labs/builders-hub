@@ -1,7 +1,7 @@
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { streamText, tool, stepCountIs, convertToModelMessages } from 'ai';
 import { z } from 'zod';
-import { captureAIGeneration } from '@/lib/posthog-server';
+import { captureAIGeneration, captureServerEvent } from '@/lib/posthog-server';
 import { searchCode, formatCodeContext, type SearchResult } from '@/lib/code-search';
 import { embedQuery, analyzeQueryIntent } from '@/lib/embeddings';
 import { getAuthSession } from '@/lib/auth/authSession';
@@ -615,6 +615,20 @@ export async function POST(req: Request) {
         });
         console.log(`[CodeSearch] Search returned ${codeResults.length} results`);
 
+        // Track code search results for analytics
+        const avgScore = codeResults.length > 0
+          ? codeResults.reduce((sum, r) => sum + r.score, 0) / codeResults.length
+          : 0;
+        captureServerEvent('ai_chat_code_search', {
+          query: lastUserMessageText.slice(0, 200),
+          results_count: codeResults.length,
+          repos_searched: intent.suggestedRepos || ['all'],
+          top_score: codeResults[0]?.score || 0,
+          avg_score: avgScore,
+          is_code_question: true,
+          latency_ms: Date.now() - startTime,
+        }, visitorId);
+
         if (codeResults.length > 0) {
           codeContext = '\n\n=== RELEVANT CODE FROM AVA-LABS REPOSITORIES ===\n\n';
           codeContext += '**IMPORTANT: When referencing this code, ALWAYS include the GitHub links provided below!**\n\n';
@@ -651,6 +665,12 @@ export async function POST(req: Request) {
           }
           youtubeContext += '=== END YOUTUBE VIDEOS ===\n';
           console.log(`Found ${youtubeData.videos.length} relevant YouTube videos`);
+
+          // Track YouTube search results
+          captureServerEvent('ai_chat_youtube_search', {
+            query: lastUserMessageText.slice(0, 200),
+            results_count: youtubeData.videos.length,
+          }, visitorId);
         }
       }
     } catch (error) {
@@ -668,15 +688,25 @@ export async function POST(req: Request) {
       toolsContext += formatToolsForContext(relevantTools);
       toolsContext += '\n\n=== END CONSOLE TOOLS ===\n';
       console.log(`Found ${relevantTools.length} relevant console tools`);
+
+      // Track console tools search results
+      captureServerEvent('ai_chat_tools_search', {
+        query: lastUserMessageText.slice(0, 200),
+        results_count: relevantTools.length,
+        tool_names: relevantTools.map(t => t.title),
+      }, visitorId);
     }
   }
 
   let relevantContext = '';
+  let docSearchMethod: 'mcp' | 'fulltext' | 'none' = 'none';
   if (lastUserMessage && lastUserMessageText) {
     // Try MCP search first (better quality), fall back to full-text search
+    const mcpSearchStart = Date.now();
     const mcpResults = await searchDocsViaMcp(lastUserMessageText);
 
     if (mcpResults.length > 0) {
+      docSearchMethod = 'mcp';
       // Fetch content for top 3 results
       const contentPromises = mcpResults.slice(0, 3).map(async (result) => {
         const content = await fetchPageContent(result.url);
@@ -696,6 +726,7 @@ export async function POST(req: Request) {
 
     // Fall back to full-text search if MCP didn't return results
     if (!relevantContext) {
+      docSearchMethod = 'fulltext';
       const docs = await getDocumentation();
       const relevantSections = findRelevantSections(lastUserMessageText, docs);
 
@@ -706,12 +737,22 @@ export async function POST(req: Request) {
         relevantContext += '\n\n=== END DOCUMENTATION ===\n';
         console.log(`Using fallback full-text search: ${relevantSections.length} sections`);
       } else {
+        docSearchMethod = 'none';
         relevantContext = '\n\n=== DOCUMENTATION ===\n';
         relevantContext += 'No specific documentation sections matched this query.\n';
         relevantContext += 'Provide general guidance and suggest relevant documentation sections if applicable.\n';
         relevantContext += '=== END DOCUMENTATION ===\n';
       }
     }
+
+    // Track documentation search for analytics
+    captureServerEvent('ai_chat_docs_search', {
+      query: lastUserMessageText.slice(0, 200),
+      search_method: docSearchMethod,
+      results_count: docSearchMethod === 'mcp' ? mcpResults.length :
+                     docSearchMethod === 'fulltext' ? relevantContext.split('---').length : 0,
+      latency_ms: Date.now() - mcpSearchStart,
+    }, visitorId);
   }
   
   // Add valid URLs list
@@ -748,6 +789,27 @@ export async function POST(req: Request) {
         latencyMs,
         traceId,
       });
+    },
+    onStepFinish: async (step) => {
+      // Track tool usage for analytics
+      // In AI SDK v6, step contains toolCalls and toolResults arrays
+      const toolCalls = (step as any).toolCalls;
+      const toolResults = (step as any).toolResults;
+
+      if (toolCalls && Array.isArray(toolCalls) && toolCalls.length > 0) {
+        for (const toolCall of toolCalls) {
+          const toolResult = toolResults?.find((r: any) => r.toolCallId === toolCall.toolCallId);
+          const resultStr = toolResult?.result ? String(toolResult.result) : '';
+          const success = !resultStr.toLowerCase().includes('error');
+
+          captureServerEvent('ai_chat_tool_used', {
+            tool_name: toolCall.toolName,
+            tool_args: JSON.stringify(toolCall.args || {}).slice(0, 500),
+            success,
+            has_result: !!toolResult,
+          }, visitorId);
+        }
+      }
     },
     tools: {
       github_search_code: tool({

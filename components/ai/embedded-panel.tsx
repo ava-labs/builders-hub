@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { X, ExternalLink, Loader2, ChevronLeft, ChevronRight, Play } from 'lucide-react';
 import { cn } from '@/lib/cn';
+import posthog from 'posthog-js';
 
 export type EmbedType = 'docs' | 'academy' | 'console' | 'integration' | 'youtube' | 'blog';
 
@@ -198,6 +199,11 @@ export function EmbeddedPanel({ reference, onClose, className }: EmbeddedPanelPr
             rel="noopener noreferrer"
             className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
             title="Open in new tab"
+            onClick={() => posthog.capture('ai_chat_source_clicked', {
+              source_type: reference.type,
+              url: isYouTube ? `https://www.youtube.com/watch?v=${videoId}` : baseUrl,
+              title: reference.title,
+            })}
           >
             <ExternalLink className="w-4 h-4" />
           </a>
@@ -233,6 +239,12 @@ export function EmbeddedPanel({ reference, onClose, className }: EmbeddedPanelPr
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
+                onClick={() => posthog.capture('ai_chat_source_clicked', {
+                  source_type: reference.type,
+                  url: isYouTube ? `https://www.youtube.com/watch?v=${videoId}` : baseUrl,
+                  title: reference.title,
+                  context: 'error_fallback',
+                })}
               >
                 <ExternalLink className="w-4 h-4" />
                 {isYouTube ? 'Watch on YouTube' : 'Open in new tab'}

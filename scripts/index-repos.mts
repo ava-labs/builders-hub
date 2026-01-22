@@ -43,21 +43,46 @@ const EXCLUDE_PATTERNS = [
   /\/examples?\//,
 ];
 
-// Important directories to prioritize
+// Important directories to prioritize for avalanchego and icm-services
+// Higher in list = higher priority for indexing when MAX_FILES_PER_REPO is reached
 const PRIORITY_PATHS = [
-  'vms/platformvm',
-  'vms/avm',
+  // === avalanchego core consensus ===
   'snow/consensus',
   'snow/engine',
+  'snow/validators',
+  'snow/networking',
+  // === avalanchego VMs (includes coreth/C-Chain and subnet-evm) ===
+  'vms/platformvm',
+  'vms/avm',
+  'vms/proposervm',
+  'vms/components',
+  // === avalanchego chains & networking ===
   'chains',
-  'x/sync',
-  'genesis',
+  'network',
+  'message',
+  // === avalanchego staking & genesis ===
   'staking',
+  'genesis',
+  'x/sync',
+  // === avalanchego APIs ===
+  'api',
+  'indexer',
+  'wallet',
+  // === icm-services: teleporter contracts ===
+  'contracts/teleporter',
+  'contracts/ictt',
+  'contracts/validator-manager',
+  // === icm-services: services ===
+  'relayer',
+  'signature-aggregator',
+  'abi-bindings',
 ];
 
-// Reduced for unauthenticated access (60 req/hour rate limit)
-// With fine-grained PAT, you can increase this to 500
-const MAX_FILES_PER_REPO = 100;  // Limit to control costs and rate limits
+// Rate limit configuration:
+// - Unauthenticated: 60 requests/hour → keep MAX_FILES_PER_REPO low (100)
+// - With GITHUB_TOKEN (fine-grained PAT starting with github_pat_): 5000 req/hour
+// Using 200 files per repo for better coverage while staying within reasonable bounds
+const MAX_FILES_PER_REPO = 200;  // Increased from 100 for better coverage
 const MAX_CHUNK_TOKENS = 500;    // ~2000 chars
 const EMBEDDING_MODEL = 'text-embedding-3-small';
 const EMBEDDING_DIMENSIONS = 1536;

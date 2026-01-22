@@ -1267,6 +1267,11 @@ function ChatPageInner() {
   }, [initialQuery, messages.length, status, sendMessage]);
 
   const handleNewChat = () => {
+    // Track conversation start
+    posthog.capture('ai_chat_conversation_started', {
+      is_authenticated: !!session?.user,
+      entry_point: 'new_chat_button',
+    });
     setCurrentConversationId(null);
     setMessages([]);
   };

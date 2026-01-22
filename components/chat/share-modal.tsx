@@ -12,6 +12,7 @@ import {
 import { Copy, Check, Eye, Clock, Link as LinkIcon, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { toast } from 'sonner';
+import posthog from 'posthog-js';
 
 interface ShareInfo {
   shareToken: string;
@@ -68,6 +69,12 @@ export function ShareModal({
       const data: ShareInfo = await res.json();
       setShareInfo(data);
       onShareToggle();
+
+      // Track share event
+      posthog.capture('ai_chat_shared', {
+        conversation_id: conversationId,
+        expires_in_days: 7,
+      });
 
       // Auto-copy to clipboard
       await navigator.clipboard.writeText(data.shareUrl);
