@@ -200,6 +200,7 @@ async function createProject(hackathonId: string, userId: string) {
           screenshots: [],
           tracks: [],
           explanation: "",
+          origin: "",
           // Member created together with project
           members: {
             create: {

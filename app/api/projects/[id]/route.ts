@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { HackathonHeader } from "@/types/hackathons";
-import { getProject, updateProject, isUserProjectMember } from "@/server/services/projects";
+import { getProject, updateProject } from "@/server/services/projects";
+import { isUserProjectMember } from "@/server/services/fileValidation";
 import { withAuth } from '@/lib/protectedRoute';
+import { GetProjectByIdWithMembers } from "@/server/services/memberProject";
 
 export const GET = withAuth(async (req: NextRequest, context: any, session: any) => {
   try {
@@ -20,8 +22,8 @@ export const GET = withAuth(async (req: NextRequest, context: any, session: any)
       );
     }
 
-    const hackathon = await getProject(id)
-    return NextResponse.json(hackathon);
+    const project = await GetProjectByIdWithMembers(id);
+    return NextResponse.json(project);
   } catch (error) {
     console.error("Error in GET /api/projects/[id]:");
     return NextResponse.json(

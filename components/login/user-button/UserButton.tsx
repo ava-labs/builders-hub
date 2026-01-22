@@ -9,15 +9,17 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { signOut, useSession } from 'next-auth/react';
 import Image from 'next/image';
-import Link from 'next/link';
+import Link from 'next/link'; 
 import SignOutComponent from '../sign-out/SignOut';
 import { useState, useMemo } from 'react';
 import { CircleUserRound } from 'lucide-react';
 import { Separator } from '@radix-ui/react-dropdown-menu';
+import { useLoginModalTrigger } from '@/hooks/useLoginModal';
 export function UserButton() {
   const { data: session, status } = useSession() ?? {};
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const isAuthenticated = status === 'authenticated';
+  const { openLoginModal } = useLoginModalTrigger();
   
   // Dividir el correo por @ para evitar cortes no deseados
   const formattedEmail = useMemo(() => {
@@ -68,7 +70,7 @@ export function UserButton() {
                   />
                 ) : (
                   <CircleUserRound
-                    className='!h-8 !w-8 stroke-zinc-900 dark:stroke-white'
+                    className='h-8 w-8! stroke-zinc-900 dark:stroke-white'
                     strokeWidth={0.85}
                   />
                 )}
@@ -93,18 +95,27 @@ export function UserButton() {
                   </p>
                 )}
 
-                <p className="text-sm break-words mt-1">
-                  {session.user.name || 'No name available'}
-                </p>
+                {session.user.name && session.user.name !== session.user.email && (
+                  <p className="text-sm break-words mt-1">
+                    {session.user.name}
+                  </p>
+                )}
               </div>
               <Separator className="h-px bg-zinc-200 dark:bg-zinc-600 my-1" />
 
             <DropdownMenuItem asChild className='cursor-pointer'>
               <Link href='/profile'>Profile</Link>
             </DropdownMenuItem>
-           <DropdownMenuItem asChild className='cursor-pointer'>
-              <Link href='/profile/rewards-board'>Achievements Board</Link>
+            <DropdownMenuItem asChild className='cursor-pointer'>
+              <Link href='/profile#achievements'>Achievements Board</Link>
             </DropdownMenuItem>
+            <DropdownMenuItem asChild className='cursor-pointer'>
+              <Link href='/profile#projects'>Projects</Link>
+            </DropdownMenuItem>
+            {/* <DropdownMenuItem asChild className='cursor-pointer'>
+              <Link href='/profile#settings'>Settings</Link>
+            </DropdownMenuItem> */}
+
            
             <DropdownMenuItem
               onClick={() => setIsDialogOpen(true)}
@@ -119,13 +130,15 @@ export function UserButton() {
           size='icon'
           variant='ghost'
           className='rounded-full h-10 w-10 ml-4 cursor-pointer p-0'
+          onClick={() => {
+            const currentUrl = typeof window !== 'undefined' ? window.location.href : '/';
+            openLoginModal(currentUrl);
+          }}
         >
-          <Link href='/login'>
-            <CircleUserRound
-              className='!h-8 !w-8 stroke-zinc-900 dark:stroke-white'
-              strokeWidth={0.85}
-            />
-          </Link>
+          <CircleUserRound
+            className='!h-8 !w-8 stroke-zinc-900 dark:stroke-white'
+            strokeWidth={0.85}
+          />
         </Button>
       )}
 

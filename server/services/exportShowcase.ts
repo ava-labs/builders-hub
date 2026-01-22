@@ -1,7 +1,7 @@
 import { prisma } from "@/prisma/prisma";
 import { Prisma } from "@prisma/client";
 
-import ExcelJS from 'exceljs';
+import ExcelJS, { Cell, Row } from 'exceljs';
 
 interface ProjectExport {
     project_name: string;
@@ -189,7 +189,7 @@ function buildProjectWhere(filters: ExportShowcaseFilters): Prisma.ProjectWhereI
     const headerRow = worksheet.getRow(1);
     headerRow.height = 25;
     
-    headerRow.eachCell((cell) => {
+    headerRow.eachCell((cell: Cell) => {
         cell.fill = {
             type: 'pattern',
             pattern: 'solid',
@@ -214,9 +214,9 @@ function buildProjectWhere(filters: ExportShowcaseFilters): Prisma.ProjectWhereI
         };
     });
 
-    worksheet.eachRow((row, rowNumber) => {
+    worksheet.eachRow((row: Row, rowNumber: number) => {
         if (rowNumber > 1) {
-            row.eachCell((cell) => {
+            row.eachCell((cell: Cell) => {
                 cell.alignment = {
                     vertical: 'top',
                     horizontal: 'left',
@@ -231,7 +231,7 @@ function buildProjectWhere(filters: ExportShowcaseFilters): Prisma.ProjectWhereI
             });
             
             if (rowNumber % 2 === 0) {
-                row.eachCell((cell) => {
+                row.eachCell((cell: Cell) => {
                     cell.fill = {
                         type: 'pattern',
                         pattern: 'solid',

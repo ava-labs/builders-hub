@@ -21,15 +21,15 @@ export const RewardCard = ({
 }: BadgeCardProps) => {
   const [open, setOpen] = useState(false);
 
+
   return (
     <>
       <div
-        className={` ${className ?? ""}`}
+        className={`w-full ${className ?? ""}`}
         style={{ userSelect: "none" }}
       >
         <div
-
-          className=" h-[230px] cursor-pointer"
+          className="w-full h-[230px] cursor-pointer"
           onClick={() => setOpen(true)}
         >
           <Canvas

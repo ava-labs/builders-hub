@@ -40,9 +40,9 @@ body[data-layout="academy"] header + div {
 /* Only override what's necessary - let fumadocs handle the rest */
 body[data-layout="academy"] #nd-sidebar,
 body[data-layout="academy"] [data-sidebar="sidebar"] {
-  /* Use default fumadocs positioning - no subnav to account for */
-  top: 4.5rem !important; /* Only navbar height */
-  height: calc(100vh - 3.5rem) !important; /* Full height minus navbar */
+  /* Account for banner + navbar height */
+  top: calc(var(--fd-banner-height, 0px) + 3.5rem) !important; /* Banner + navbar height */
+  height: calc(100vh - var(--fd-banner-height, 0px) - 3.5rem) !important; /* Full height minus banner and navbar */
   padding-left: 0.5rem !important;
   padding-right: 2rem !important; /* Extra right padding to prevent content overlay on resize */
   /* Force sidebar to left edge with padding - override fumadocs dynamic width calculation */

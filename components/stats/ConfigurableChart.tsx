@@ -6,13 +6,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Search, X, Eye, EyeOff, Plus, Camera, Loader2, ChevronLeft, GripVertical, Layers, Pencil, Maximize2, Minimize2, Trash2, CalendarIcon, RefreshCw } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Search, X, Eye, EyeOff, Plus, Camera, Loader2, ChevronLeft, GripVertical, Layers, Pencil, Maximize2, Minimize2, Trash2, CalendarIcon, RefreshCw, Sparkles, Download, Copy } from "lucide-react";
 import l1ChainsData from "@/constants/l1-chains.json";
 import Image from "next/image";
 import { useTheme } from "next-themes";
 import { toPng } from "html-to-image";
 import { ChartWatermark } from "@/components/stats/ChartWatermark";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
+import { ImageExportStudio } from "@/components/stats/image-export";
 
 // Types
 interface TimeSeriesDataPoint {
@@ -250,6 +257,7 @@ export default function ConfigurableChart({
   const [selectedMetric, setSelectedMetric] = useState<string | null>(null);
   const [metricSearchTerm, setMetricSearchTerm] = useState("");
   const [chainSearchTerm, setChainSearchTerm] = useState("");
+  const [showImageStudio, setShowImageStudio] = useState(false);
   const [brushRange, setBrushRange] = useState<{
     startIndex: number;
     endIndex: number;
@@ -273,14 +281,17 @@ export default function ConfigurableChart({
 
   // Notify parent when dataSeries changes
   const prevDataSeriesRef = useRef<DataSeries[]>(dataSeries);
+  const onDataSeriesChangeRef = useRef(onDataSeriesChange);
+  onDataSeriesChangeRef.current = onDataSeriesChange;
+
   useEffect(() => {
     // Only call callback if dataSeries actually changed
     const hasChanged = JSON.stringify(prevDataSeriesRef.current) !== JSON.stringify(dataSeries);
-    if (hasChanged && onDataSeriesChange) {
+    if (hasChanged && onDataSeriesChangeRef.current) {
       prevDataSeriesRef.current = dataSeries;
-      onDataSeriesChange(dataSeries);
+      onDataSeriesChangeRef.current(dataSeries);
     }
-  }, [dataSeries, onDataSeriesChange]);
+  }, [dataSeries]);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -1467,13 +1478,26 @@ export default function ConfigurableChart({
                   </div>
                 )}
                 </div>
-                <button
-                  onClick={handleScreenshot}
-                  className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
-                  title="Download chart as image"
-                >
-                  <Camera className="h-4 w-4" />
-                </button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
+                      title="Image options"
+                    >
+                      <Camera className="h-4 w-4" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem onClick={() => setShowImageStudio(true)}>
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      Open in studio
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleScreenshot}>
+                      <Download className="h-4 w-4 mr-2" />
+                      Download as image
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
                 {onTimeFilterChange && !disableControls && (
                   <Popover open={showTimeFilterPopover} onOpenChange={setShowTimeFilterPopover}>
                     <PopoverTrigger asChild>
@@ -1785,6 +1809,33 @@ export default function ConfigurableChart({
             )}
         </ChartWatermark>
       </CardContent>
+
+      {/* Image Export Studio Modal */}
+      <ImageExportStudio
+        isOpen={showImageStudio}
+        onClose={() => setShowImageStudio(false)}
+        period={resolution}
+        onPeriodChange={setResolution}
+        allowedPeriods={(["D", "W", "M", "Q", "Y"] as const).filter((p) => isResolutionEnabled[p])}
+        dataArray={aggregatedData}
+        seriesInfo={visibleSeries.map((s) => ({
+          id: s.id,
+          name: s.name,
+          color: s.color,
+          yAxis: s.yAxis,
+        }))}
+        chartData={{
+          title: chartTitle,
+          source: "Token Terminal",
+          sourceDescription: dataSeries[0]?.name ? `${dataSeries[0].name} metric data` : undefined,
+          chainName: dataSeries[0]?.chainName || "Avalanche",
+          metricValue: dataSeries[0] && chartData[dataSeries[0].id]?.length
+            ? formatYAxis(Number(chartData[dataSeries[0].id][chartData[dataSeries[0].id].length - 1]?.[dataSeries[0].id]) || 0)
+            : undefined,
+          metricLabel: "Latest",
+          pageUrl: typeof window !== "undefined" ? window.location.href : undefined,
+        }}
+      />
     </Card>
   );
 }

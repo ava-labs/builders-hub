@@ -1,10 +1,11 @@
 import { withAuth } from "@/lib/protectedRoute";
 import { prisma } from "@/prisma/prisma";
+import { isUserProjectMember } from "@/server/services/fileValidation";
 import {
   GetMembersByProjectId,
   UpdateRoleMember,
 } from "@/server/services/memberProject";
-import { isUserProjectMember } from "@/server/services/projects";
+
 import { NextResponse } from "next/server";
 
 export const GET = withAuth(async (request, context: any, session: any) => {

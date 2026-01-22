@@ -1,6 +1,6 @@
 'use client';
 
-import React, { FC, useLayoutEffect } from 'react';
+import React, { FC, useLayoutEffect, useMemo } from 'react';
 import { useFormContext } from 'react-hook-form';
 
 import { Input } from '@/components/ui/input';
@@ -20,6 +20,7 @@ import MembersComponent from './Members';
 import { Track as HackathonTrack } from '@/types/hackathons';
 import { MultiSelect } from '@/components/ui/multi-select';
 import { SubmissionForm } from '../hooks/useSubmissionFormSecure';
+import projectData from '../projectData.json';
 
 export interface projectProps {
   project_id: string;
@@ -40,6 +41,8 @@ export interface projectProps {
 const SubmitStep1: FC<projectProps> = (project) => {
   const form = useFormContext<SubmissionForm>();
 
+  const hasHackathon = !!project.hackaton_id;
+
   const transformedTracks: trackProp[] = project.availableTracks.map(
     (track) => ({
       value: track.name,
@@ -47,8 +50,18 @@ const SubmitStep1: FC<projectProps> = (project) => {
     })
   );
 
+  // Transformar categorías del JSON a formato para MultiSelect
+  const transformedCategories: trackProp[] = useMemo(() => {
+    return projectData.categories.map((category) => ({
+      value: category.name,
+      label: category.name,
+    }));
+  }, []);
+
   const fullDescription = form.watch('full_description');
   const shortDescription = form.watch('short_description');
+  const categories = form.watch('categories') || [];
+  const hasOtherCategory = categories.includes('Other (Specify)');
 
   useLayoutEffect(() => {
     const textareas = ['full_description', 'short_description'];
@@ -140,26 +153,87 @@ const SubmitStep1: FC<projectProps> = (project) => {
           )}
         />
 
-        {/* Track (MultiSelect) */}
-        <FormField
-          control={form.control}
-          name='tracks'
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Tracks</FormLabel>
-              <FormControl>
-                <MultiSelect
-                  options={transformedTracks}
-                  selected={field.value || []}
-                  onChange={field.onChange}
-                  placeholder='Select tracks'
-                  searchPlaceholder='Search tracks'
+        {/* Tracks (solo cuando hay hackathon_id) */}
+        {hasHackathon && (
+          <FormField
+            control={form.control}
+            name='tracks'
+            render={({ field }) => (
+              <FormItem>
+                <FormLabelWithCheck
+                  label='Tracks'
+                  checked={!!field.value && field.value.length > 0}
                 />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                <FormControl>
+                  <MultiSelect
+                    options={transformedTracks}
+                    selected={field.value || []}
+                    onChange={field.onChange}
+                    placeholder='Select tracks'
+                    searchPlaceholder='Search tracks'
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
+
+        {/* Categories (solo cuando NO hay hackathon_id) */}
+        {!hasHackathon && (
+          <FormField
+            control={form.control}
+            name='categories'
+            render={({ field }) => (
+              <FormItem>
+                <FormLabelWithCheck
+                  label='Categories'
+                  checked={!!field.value && field.value.length > 0}
+                />
+                <FormControl>
+                  <MultiSelect
+                    options={transformedCategories}
+                    selected={field.value || []}
+                    onChange={(values) => {
+                      field.onChange(values);
+                      // Limpiar other_category si se deselecciona "Other (Specify)"
+                      if (!values.includes('Other (Specify)')) {
+                        form.setValue('other_category', '');
+                      }
+                    }}
+                    placeholder='Select categories'
+                    searchPlaceholder='Search categories'
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
+
+        {/* Input para categoría personalizada (solo cuando se selecciona "Other (Specify)") */}
+        {!hasHackathon && hasOtherCategory && (
+          <FormField
+            control={form.control}
+            name='other_category'
+            render={({ field }) => (
+              <FormItem>
+                <FormLabelWithCheck
+                  label='Specify Other Category'
+                  checked={!!field.value}
+                />
+                <FormControl>
+                  <Input
+                    placeholder='Enter your custom category'
+                    className='w-full dark:bg-zinc-950'
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
       </section>
 
       {/* TEAM & COLLABORATION */}
