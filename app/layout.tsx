@@ -7,7 +7,6 @@ import { GeistMono } from "geist/font/mono";
 import type { ReactNode } from "react";
 import { Suspense } from "react";
 import { baseUrl, createMetadata } from "@/utils/metadata";
-import Chatbot from "@/components/ui/chatbot";
 import { PrivacyPolicyBox } from "@/components/privacy-policy";
 import { SearchRootProvider } from "./searchRootProvider";
 import { Body } from "./layout.client";
@@ -53,7 +52,6 @@ export default function Layout({ children }: { children: ReactNode }) {
             <ThemeProvider>
               <SearchRootProvider>{children}</SearchRootProvider>
               <HideOnChatPage>
-                <Chatbot />
                 <div id="privacy-banner-root" className="relative">
                   <PrivacyPolicyBox />
                 </div>

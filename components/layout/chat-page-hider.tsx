@@ -5,7 +5,7 @@ import type { ReactNode } from 'react';
 
 /**
  * Wrapper that hides its children on /chat and /chat/* pages
- * Used to hide global elements (Chatbot, Banner, etc.) on the fullscreen chat experience
+ * Used to hide global elements (Banner, Privacy Policy, etc.) on the fullscreen chat experience
  */
 export function HideOnChatPage({ children }: { children: ReactNode }) {
   const pathname = usePathname();
