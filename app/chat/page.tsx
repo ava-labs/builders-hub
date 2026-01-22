@@ -40,6 +40,11 @@ import {
   FileText,
   Newspaper,
   ExternalLink,
+  Copy,
+  Check,
+  Zap,
+  Brain,
+  Pencil,
 } from 'lucide-react';
 import defaultMdxComponents from 'fumadocs-ui/mdx';
 import { cn } from '@/lib/cn';
@@ -361,6 +366,18 @@ function ChatMessage({ message, isLast, isStreaming, onRefSelect }: {
   // During streaming, show raw text to avoid flickering when patterns partially match
   const cleanContent = isUser ? textContent : (isStreaming ? textContent : removeThinkingPatterns(textContent));
   const embeddableLinks = isUser ? [] : extractEmbeddableLinks(textContent);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(cleanContent);
+      setCopied(true);
+      posthog.capture('ai_chat_response_copied', { message_length: cleanContent.length });
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
 
   if (isUser) {
     return (
@@ -447,12 +464,28 @@ function ChatMessage({ message, isLast, isStreaming, onRefSelect }: {
             </div>
           )}
 
-          {/* Feedback buttons - show after streaming completes */}
+          {/* Action buttons - show after streaming completes */}
           {!isStreaming && (
-            <MessageFeedback
-              messageId={message.id}
-              className="mt-4"
-            />
+            <div className="flex items-center gap-3 mt-4">
+              {/* Copy button */}
+              <button
+                onClick={handleCopy}
+                className={cn(
+                  "p-1.5 rounded-md transition-all",
+                  copied
+                    ? "bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400"
+                    : "text-muted-foreground/50 hover:text-foreground hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                )}
+                title={copied ? "Copied!" : "Copy response"}
+              >
+                {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+              </button>
+
+              {/* Feedback buttons */}
+              <MessageFeedback
+                messageId={message.id}
+              />
+            </div>
           )}
         </div>
       </div>
@@ -516,9 +549,20 @@ function MessageList({ children }: { children: ReactNode }) {
   );
 }
 
+// Thinking mode context
+const ThinkingModeContext = createContext<{
+  thinkingMode: boolean;
+  setThinkingMode: (mode: boolean) => void;
+}>({ thinkingMode: false, setThinkingMode: () => {} });
+
+function useThinkingMode() {
+  return use(ThinkingModeContext);
+}
+
 // Chat input
 function ChatInput() {
   const { status, sendMessage, stop } = useChatContext();
+  const { thinkingMode, setThinkingMode } = useThinkingMode();
   const [inputValue, setInputValue] = useState('');
   const isLoading = status === 'streaming' || status === 'submitted';
 
@@ -529,6 +573,7 @@ function ChatInput() {
         query_length: inputValue.length,
         query: inputValue.substring(0, 100),
         view: 'fullscreen',
+        thinking_mode: thinkingMode,
       });
       sendMessage({ text: inputValue });
       setInputValue('');
@@ -542,7 +587,7 @@ function ChatInput() {
           <TextareaInput
             value={inputValue}
             placeholder="Message Avalanche AI"
-            className="w-full px-5 py-4 pr-14 text-sm"
+            className="w-full px-5 py-4 pr-28 text-sm"
             disabled={isLoading}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={(event) => {
@@ -552,27 +597,54 @@ function ChatInput() {
               }
             }}
           />
-          <button
-            type={isLoading ? 'button' : 'submit'}
-            onClick={isLoading ? stop : undefined}
-            disabled={!isLoading && inputValue.length === 0}
-            className={cn(
-              "absolute right-3 bottom-3 p-2 rounded-full transition-all",
-              isLoading
-                ? "bg-zinc-300 dark:bg-zinc-600 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-400 dark:hover:bg-zinc-500"
-                : inputValue.length > 0
-                  ? "bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 hover:bg-zinc-700 dark:hover:bg-zinc-200"
-                  : "bg-zinc-300 dark:bg-zinc-600 text-zinc-400 dark:text-zinc-500 cursor-not-allowed"
-            )}
-            title={isLoading ? "Stop generating" : "Send message"}
-          >
-            {isLoading ? <StopCircle className="w-5 h-5" /> : <ArrowUp className="w-5 h-5" />}
-          </button>
+          <div className="absolute right-3 bottom-3 flex items-center gap-2">
+            {/* Thinking mode toggle */}
+            <button
+              type="button"
+              onClick={() => setThinkingMode(!thinkingMode)}
+              disabled={isLoading}
+              className={cn(
+                "p-2 rounded-full transition-all",
+                thinkingMode
+                  ? "bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400"
+                  : "text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700",
+                isLoading && "opacity-50 cursor-not-allowed"
+              )}
+              title={thinkingMode ? "Thinking mode (slower, more thorough)" : "Quick mode (faster responses)"}
+            >
+              {thinkingMode ? <Brain className="w-5 h-5" /> : <Zap className="w-5 h-5" />}
+            </button>
+            {/* Send/Stop button */}
+            <button
+              type={isLoading ? 'button' : 'submit'}
+              onClick={isLoading ? stop : undefined}
+              disabled={!isLoading && inputValue.length === 0}
+              className={cn(
+                "p-2 rounded-full transition-all",
+                isLoading
+                  ? "bg-zinc-300 dark:bg-zinc-600 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-400 dark:hover:bg-zinc-500"
+                  : inputValue.length > 0
+                    ? "bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 hover:bg-zinc-700 dark:hover:bg-zinc-200"
+                    : "bg-zinc-300 dark:bg-zinc-600 text-zinc-400 dark:text-zinc-500 cursor-not-allowed"
+              )}
+              title={isLoading ? "Stop generating" : "Send message"}
+            >
+              {isLoading ? <StopCircle className="w-5 h-5" /> : <ArrowUp className="w-5 h-5" />}
+            </button>
+          </div>
         </div>
       </form>
-      <p className="text-center text-xs text-muted-foreground/50 mt-2">
-        Avalanche AI can make mistakes. Consider checking important information.
-      </p>
+      <div className="flex items-center justify-center gap-2 mt-2">
+        {thinkingMode && (
+          <span className="flex items-center gap-1 text-xs text-purple-600 dark:text-purple-400">
+            <Brain className="w-3 h-3" />
+            Thinking mode
+          </span>
+        )}
+        <p className="text-xs text-muted-foreground/50">
+          Avalanche AI can make mistakes. Consider checking important information.
+        </p>
+      </div>
     </div>
   );
 }
@@ -740,6 +812,7 @@ function Sidebar({
   onNewChat,
   onSelectConversation,
   onDeleteConversation,
+  onRenameConversation,
   onShareConversation,
   isAuthenticated,
   isLoadingAuth,
@@ -756,6 +829,7 @@ function Sidebar({
   onNewChat: () => void;
   onSelectConversation: (id: string) => void;
   onDeleteConversation: (id: string) => void;
+  onRenameConversation: (id: string, newTitle: string) => void;
   onShareConversation: (conv: Conversation) => void;
   isAuthenticated: boolean;
   isLoadingAuth: boolean;
@@ -767,6 +841,8 @@ function Sidebar({
 }) {
   const { theme, setTheme } = useTheme();
   const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState('');
 
   return (
     <>
@@ -876,17 +952,54 @@ function Sidebar({
                           ? "bg-white/10"
                           : "hover:bg-white/5"
                       )}
-                      onClick={() => onSelectConversation(conv.id)}
+                      onClick={() => editingId !== conv.id && onSelectConversation(conv.id)}
                     >
                       <MessageSquare className="w-5 h-5 shrink-0 text-zinc-400" />
-                      <span className="flex-1 truncate text-sm text-zinc-200">{conv.title}</span>
+                      {/* Editable title or static title */}
+                      {editingId === conv.id ? (
+                        <input
+                          type="text"
+                          value={editTitle}
+                          onChange={(e) => setEditTitle(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              onRenameConversation(conv.id, editTitle);
+                              setEditingId(null);
+                            } else if (e.key === 'Escape') {
+                              setEditingId(null);
+                            }
+                          }}
+                          onBlur={() => {
+                            if (editTitle.trim() && editTitle !== conv.title) {
+                              onRenameConversation(conv.id, editTitle);
+                            }
+                            setEditingId(null);
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                          autoFocus
+                          className="flex-1 bg-transparent text-sm text-zinc-200 border-b border-zinc-500 focus:outline-none focus:border-zinc-300"
+                        />
+                      ) : (
+                        <span className="flex-1 truncate text-sm text-zinc-200">{conv.title}</span>
+                      )}
                       {/* Share indicator (always visible if shared) */}
-                      {conv.isShared && hoveredId !== conv.id && (
+                      {conv.isShared && hoveredId !== conv.id && editingId !== conv.id && (
                         <div className="w-2 h-2 rounded-full bg-emerald-500" title="Shared" />
                       )}
                       {/* Action buttons on hover */}
-                      {hoveredId === conv.id && (
+                      {hoveredId === conv.id && editingId !== conv.id && (
                         <div className="flex items-center gap-0.5">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditTitle(conv.title);
+                              setEditingId(conv.id);
+                            }}
+                            className="p-1 rounded hover:bg-white/10 transition-colors"
+                            title="Rename"
+                          >
+                            <Pencil className="w-4 h-4 text-zinc-400 hover:text-zinc-200" />
+                          </button>
                           <ShareButton
                             isShared={conv.isShared}
                             onClick={() => onShareConversation(conv)}
@@ -921,17 +1034,17 @@ function Sidebar({
 
         {/* Bottom section - Actions + User */}
         <div className="border-t border-zinc-800/50 p-1.5 space-y-0.5">
-          {/* Home / Docs link */}
+          {/* Home link */}
           <Link
             href="/"
             className={cn(
               "w-full h-10 flex items-center rounded-lg hover:bg-white/10 transition-colors",
               isOpen ? "px-3 gap-3" : "justify-center"
             )}
-            title="Go to Docs"
+            title="Go to Home"
           >
             <Home className="w-5 h-5 text-zinc-400" />
-            {isOpen && <span className="text-sm text-zinc-300">Docs</span>}
+            {isOpen && <span className="text-sm text-zinc-300">Home</span>}
           </Link>
 
           {/* Theme toggle */}
@@ -1008,6 +1121,11 @@ function ChatPageInner() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
   const [isLoadingConversations, setIsLoadingConversations] = useState(false);
+
+  // Thinking mode state (slower, more thorough responses)
+  // Note: Currently UI-only. Server-side implementation can be added later
+  // by reading thinkingMode from localStorage or a custom header.
+  const [thinkingMode, setThinkingMode] = useState(false);
 
   // Auth state
   const { data: session, status: authStatus } = useSession();
@@ -1098,6 +1216,27 @@ function ChatPageInner() {
       console.error('Failed to delete conversation:', err);
     }
   }, [isAuthenticated, currentConversationId]);
+
+  // Rename conversation
+  const renameConversation = useCallback(async (id: string, newTitle: string) => {
+    if (!isAuthenticated || !newTitle.trim()) return;
+
+    try {
+      const res = await fetch(`/api/chat-history/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: newTitle.trim() }),
+      });
+      if (res.ok) {
+        setConversations(prev =>
+          prev.map(c => c.id === id ? { ...c, title: newTitle.trim() } : c)
+        );
+        posthog.capture('ai_chat_conversation_renamed', { conversation_id: id });
+      }
+    } catch (err) {
+      console.error('Failed to rename conversation:', err);
+    }
+  }, [isAuthenticated]);
 
   // Handle share conversation
   const handleShareConversation = useCallback((conv: Conversation) => {
@@ -1285,6 +1424,10 @@ function ChatPageInner() {
     await deleteConversation(id);
   };
 
+  const handleRenameConversation = async (id: string, newTitle: string) => {
+    await renameConversation(id, newTitle);
+  };
+
   const handleSuggestionClick = (question: string) => {
     // Fire-and-forget to avoid blocking UI (fixes INP performance issue)
     void sendMessage({ text: question });
@@ -1299,6 +1442,7 @@ function ChatPageInner() {
   };
 
   return (
+    <ThinkingModeContext value={{ thinkingMode, setThinkingMode }}>
     <ChatContext value={chat}>
       <LoginModal />
       {/* Share Modal */}
@@ -1329,6 +1473,7 @@ function ChatPageInner() {
           onNewChat={handleNewChat}
           onSelectConversation={handleSelectConversation}
           onDeleteConversation={handleDeleteConversation}
+          onRenameConversation={handleRenameConversation}
           onShareConversation={handleShareConversation}
           isAuthenticated={isAuthenticated}
           isLoadingAuth={isLoadingAuth}
@@ -1505,6 +1650,7 @@ function ChatPageInner() {
         </div>
       </div>
     </ChatContext>
+    </ThinkingModeContext>
   );
 }
 
