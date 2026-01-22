@@ -1,12 +1,10 @@
 import { type StepDefinition } from "@/components/console/step-flow";
 import ReadContract from "@/components/toolbox/console/permissioned-l1s/validator-manager-setup/ReadContract";
-import DeployNativeTokenStakingManager from "@/components/toolbox/console/permissionless-l1s/setup/native/DeployNativeStakingManager";
-import InitializeNativeTokenStakingManager from "@/components/toolbox/console/permissionless-l1s/setup/native/InitializeNativeStakingManager";
 import DeployERC20StakingManager from "@/components/toolbox/console/permissionless-l1s/setup/erc20/DeployERC20StakingManager";
 import InitializeERC20StakingManager from "@/components/toolbox/console/permissionless-l1s/setup/erc20/InitializeERC20StakingManager";
+import EnableERC20StakingManagerMinting from "@/components/toolbox/console/permissionless-l1s/setup/erc20/EnableERC20StakingManagerMinting";
 import DeployExampleRewardCalculator from "@/components/toolbox/console/permissionless-l1s/setup/DeployExampleRewardCalculator";
-import TransferOwnership from "@/components/toolbox/console/permissioned-l1s/multisig-setup/TransferOwnership";
-import EnableStakingManagerMinting from "@/components/toolbox/console/permissionless-l1s/setup/native/EnableStakingManagerMinting";
+import TransferOwnershipToStakingManager from "@/components/toolbox/console/permissionless-l1s/setup/TransferOwnershipToStakingManager";
 
 export const steps: StepDefinition[] = [
     {
@@ -22,6 +20,7 @@ export const steps: StepDefinition[] = [
         title: "Initialize ERC20 Token Staking Manager",
         component: InitializeERC20StakingManager,
     },
-    { type: "single", key: "transfer-ownership", title: "Transfer Ownership", component: TransferOwnership },
+    { type: "single", key: "enable-erc20-staking-minting", title: "Enable ERC20 Staking Manager Minting", component: EnableERC20StakingManagerMinting },
+    { type: "single", key: "transfer-ownership", title: "Transfer Ownership to Staking Manager", component: TransferOwnershipToStakingManager },
     { type: "single", key: "read-contract", title: "Read Contract", component: ReadContract },
 ];
