@@ -56,7 +56,7 @@ function InitializeERC20StakingManager() {
 
     const { coreWalletClient, publicClient, walletEVMAddress } = useWalletStore();
     const viemChain = useViemChainStore();
-    const { erc20StakingManagerAddress: storedStakingManagerAddress, rewardCalculatorAddress: storedRewardCalculatorAddress } = useToolboxStore();
+    const { erc20StakingManagerAddress: storedStakingManagerAddress, rewardCalculatorAddress: storedRewardCalculatorAddress, exampleErc20Address } = useToolboxStore();
     const { notify } = useConsoleNotifications();
 
     // Get validator manager details from subnet ID
@@ -86,6 +86,12 @@ function InitializeERC20StakingManager() {
             setRewardCalculatorAddress(storedRewardCalculatorAddress);
         }
     }, [storedRewardCalculatorAddress, rewardCalculatorAddress]);
+
+    useEffect(() => {
+        if (exampleErc20Address && !stakingTokenAddress) {
+            setStakingTokenAddress(exampleErc20Address);
+        }
+    }, [exampleErc20Address, stakingTokenAddress]);
 
     async function checkIfInitialized() {
         if (!stakingManagerAddressInput) return;
