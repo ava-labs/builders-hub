@@ -2,11 +2,11 @@
 
 import { ProjectCard } from "@/components/showcase/ProjectCard";
 import { useProject } from "./hooks/use-project";
-import { Button } from "@/components/ui/button";
+// import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { useRouter } from "next/navigation";
+// import { useRouter } from "next/navigation";
 
 // Skeleton component for project cards
 function ProjectCardSkeleton() {
@@ -42,7 +42,7 @@ function ProjectCardSkeleton() {
 
 export default function Projects() {
   const { projects, isLoading, error } = useProject();
-  const router = useRouter();
+  //const router = useRouter();
 
   // const handleNewProject = () => {
   //   router.push('/hackathons/project-submission');
