@@ -7,8 +7,8 @@ import { Input } from "@/components/toolbox/components/Input";
 import { ResultField } from "@/components/toolbox/components/ResultField";
 import { AbiEvent } from 'viem';
 import ValidatorManagerABI from "@/contracts/icm-contracts/compiled/ValidatorManager.json";
-import { utils } from "@avalabs/avalanchejs";
 import SelectSubnetId from "@/components/toolbox/components/SelectSubnetId";
+import { cb58ToHex } from '@/components/toolbox/console/utilities/format-converter/FormatConverter';
 import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput";
 import { useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
 import { useSelectedL1 } from "@/components/toolbox/stores/l1ListStore";
@@ -64,7 +64,7 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
     
     let subnetIDHex = "";
     try {
-        subnetIDHex = utils.bufferToHex(utils.base58check.decode(subnetId || ""));
+        subnetIDHex = cb58ToHex(subnetId || "");
     } catch (error) {
         console.error('Error decoding subnetId:', error);
     }

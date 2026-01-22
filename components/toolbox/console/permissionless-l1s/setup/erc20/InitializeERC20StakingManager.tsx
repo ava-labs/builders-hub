@@ -16,7 +16,7 @@ import { Callout } from "fumadocs-ui/components/callout";
 import ERC20TokenStakingManager from "@/contracts/icm-contracts/compiled/ERC20TokenStakingManager.json";
 import { parseEther } from "viem";
 import versions from '@/scripts/versions.json';
-import { convertBlockchainIdToHex, formatBlockchainIdForDisplay } from '@/components/toolbox/utils/blockchain';
+import { cb58ToHex } from '@/components/toolbox/console/utilities/format-converter/FormatConverter';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { useCriticalError } from "@/components/toolbox/hooks/useCriticalError";
 import { StakingParametersForm } from "@/components/toolbox/components/StakingParametersForm";
@@ -139,8 +139,12 @@ function InitializeERC20StakingManager() {
             if (!stakingTokenAddress) throw new Error("Staking Token address required");
             if (!blockchainId) throw new Error("Blockchain ID not found. Please select a valid subnet.");
 
-            // Convert blockchain ID from CB58 to hex
-            const hexBlockchainId = convertBlockchainIdToHex(blockchainId);
+            // Convert blockchain ID from CB58 to hex and pad to 32 bytes (64 hex chars)
+            let hexBlockchainId = cb58ToHex(blockchainId);
+            if (hexBlockchainId.length < 64) {
+                hexBlockchainId = hexBlockchainId.padStart(64, '0');
+            }
+            hexBlockchainId = `0x${hexBlockchainId}` as `0x${string}`;
 
             // Create settings object
             const settings = {
@@ -268,7 +272,7 @@ function InitializeERC20StakingManager() {
                                 {blockchainId && (
                                     <p className="text-sm mt-1">
                                         <strong>Uptime Blockchain ID (Hex):</strong> <code>
-                                            {formatBlockchainIdForDisplay(blockchainId)}
+                                            {blockchainId ? `0x${cb58ToHex(blockchainId).padStart(64, '0')}` : 'N/A'}
                                         </code>
                                     </p>
                                 )}
