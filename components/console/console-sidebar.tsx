@@ -255,6 +255,16 @@ const data = {
           title: "Delegate Native Token",
           url: "/console/permissionless-l1s/delegate-native-token",
           icon: HandCoins,
+        },
+        {
+          title: "Remove Native Validator",
+          url: "/console/permissionless-l1s/remove-native-validator",
+          icon: SquareMinus,
+        },
+        {
+          title: "Remove Native Delegation",
+          url: "/console/permissionless-l1s/remove-native-delegation",
+          icon: SquareMinus,
         }
       ],
     },

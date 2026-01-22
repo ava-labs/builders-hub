@@ -12,6 +12,7 @@ import InitiateDelegatorRemoval from '@/components/toolbox/console/permissionles
 import CompleteDelegatorRemoval from '@/components/toolbox/console/permissionless-l1s/delegate/native/CompleteDelegatorRemoval';
 import { useCreateChainStore } from '@/components/toolbox/stores/createChainStore';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
+import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from '../../../../components/WithConsoleToolMetadata';
 import { Alert } from '@/components/toolbox/components/Alert';
@@ -48,7 +49,8 @@ const RemoveDelegation: React.FC<BaseConsoleToolProps> = ({ onSuccess }) => {
     const createChainStoreSubnetId = useCreateChainStore()(state => state.subnetId);
     const [subnetIdL1, setSubnetIdL1] = useState<string>(createChainStoreSubnetId || "");
     const [resetKey, setResetKey] = useState<number>(0);
-    const { rpcUrl, publicClient, walletEVMAddress } = useWalletStore();
+    const { publicClient, walletEVMAddress } = useWalletStore();
+    const viemChain = useViemChainStore();
 
     const {
         validatorManagerAddress,
@@ -272,7 +274,7 @@ const RemoveDelegation: React.FC<BaseConsoleToolProps> = ({ onSuccess }) => {
                             key={`initiate-${resetKey}`}
                             delegationID={delegationID}
                             stakingManagerAddress={contractOwner || ''}
-                            rpcUrl={rpcUrl || ''}
+                            rpcUrl={viemChain?.rpcUrls?.default?.http[0] || ''}
                             signingSubnetId={signingSubnetId}
                             onSuccess={(data) => {
                                 setInitiateRemovalTxHash(data.txHash);

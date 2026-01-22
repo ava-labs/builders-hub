@@ -745,7 +745,7 @@ function packValidationUptimePayload(args: ValidationUptime): Uint8Array {
 /**
  * Packs a ValidationUptimeMessage for sending (wrapped in unsigned message structure).
  */
-function packValidationUptimeMessage(
+export function packValidationUptimeMessage(
     args: ValidationUptime,
     networkID: number,
     sourceChainID: string
