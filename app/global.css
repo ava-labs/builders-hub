@@ -77,6 +77,16 @@ header[aria-label="Main"] [data-radix-popover-content] {
   padding-top: 1rem;
 }
 
+/* Make main navbar sticky - positions below the banner */
+#nd-nav,
+header#nd-nav,
+nav#nd-nav {
+  position: sticky !important;
+  top: var(--fd-banner-height, 0px) !important;
+  z-index: 40 !important; /* Below banner (z-50), above content */
+  background-color: var(--background) !important;
+}
+
 /* Remove ALL left whitespace from navbar to fill screen edge */
 body > div > nav,
 body > div > header,
@@ -416,6 +426,7 @@ html body[data-scroll-locked] {
 
 html {
   scroll-behavior: smooth;
+  overscroll-behavior: none;
 }
 
 :root {

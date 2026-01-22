@@ -1,14 +1,18 @@
 import { prisma } from "@/prisma/prisma";
-import { UserBadge, BadgeMetadata, Badge } from "@/types/badge";
+import { UserBadge, Requirement, Badge } from "@/types/badge";
 import { JsonValue } from "@prisma/client/runtime/library";
 
 // Utility function to safely convert JSON metadata
-function parseBadgeMetadata(metadata: JsonValue): BadgeMetadata | null {
-  const metadataObject = metadata as BadgeMetadata;
+export function parseBadgeMetadata(metadata: JsonValue): Requirement | null {
+  const metadataObject = metadata as Requirement;
   const toReturn = {
     course_id: metadataObject.course_id || undefined,
     hackathon: metadataObject.hackathon || null,
     type: metadataObject.type || undefined,
+    // points: metadataObject.points || undefined, // COMMENTED OUT: Points feature disabled
+    description: metadataObject.description || undefined,
+    id: metadataObject.id || "",
+    unlocked: false,
   };
   return toReturn;
 }
@@ -21,51 +25,59 @@ export async function getRewardBoard(user_id: string): Promise<UserBadge[]> {
     include: {
       badge: true,
     },
-  });
-
-  // Map the result to the UserBadge type, flattening the badge fields
-  return userBadges.map((userBadge) => ({
-    user_id: userBadge.user_id,
-    badge_id: userBadge.badge_id,
-    awarded_at: userBadge.awarded_at,
-    awarded_by: userBadge.awarded_by,
-    name: userBadge.badge.name,
-    description: userBadge.badge.description,
-    points: (userBadge.badge as any).points || 0,
-    image_path: userBadge.badge.image_path,
-    category: userBadge.badge.category,
-    metadata: parseBadgeMetadata((userBadge.badge as any).metadata || null),
-  }));
-}
-
-export async function getBadgeByCourseId(courseId: string): Promise<Badge> {
-  const badges = await prisma.badge.findMany();
-  const badge = badges.find((b: any) => {
-    if (!b.metadata) return false;
-    const metadata = b.metadata as any;
-    return metadata.course_id === courseId;
-  });
-  /*const badge = await prisma.badge.findFirst({
-    where: {
-      metadata: {
-        path: ['course_id'],
-        equals: courseId,
-      },
+    orderBy: {
+      badge_id: "desc",
     },
-  });*/
+  });
+  let badges = userBadges.map((userBadge) => {
+    const parsedRequirements = userBadge.badge.requirements.map((requirement) => parseBadgeMetadata(requirement)) as Requirement[];
 
+    if (Array.isArray(userBadge.evidence)) {
+      const evidenceArray = userBadge.evidence as Requirement[];
+      parsedRequirements.forEach((requirement) => {
+        const isInEvidence = evidenceArray.some((evidenceItem: any) =>
+          evidenceItem && evidenceItem.id === requirement.id
+        );
+        if (isInEvidence) {
+          requirement.unlocked = true;
+        }
+      });
+    }
 
-  if (!badge) {
-    throw new Error(`Badge not found for course ID: ${courseId}`);
-  }
+    return {
+      user_id: userBadge.user_id,
+      badge_id: userBadge.badge_id,
+      awarded_at: userBadge.awarded_at,
+      awarded_by: userBadge.awarded_by,
+      name: userBadge.badge.name,
+      description: userBadge.badge.description,
+      // points: 0, // COMMENTED OUT: Points calculation disabled
+      image_path: userBadge.badge.image_path,
+      category: userBadge.badge.category,
+      evidence: userBadge.evidence,
+      requirements: parsedRequirements,
+      status: userBadge.status,
+      requirements_version: userBadge.requirements_version,
+    };
+  });
 
-  return {
-    id: badge.id,
-    name: badge.name,
-    description: badge.description,
-    points: (badge as any).points || 0,
-    image_path: badge.image_path,
-    category: badge.category,
-    metadata: parseBadgeMetadata((badge as any).metadata || null),
-  };
+// COMMENTED OUT: Points calculation disabled
+// badges.forEach((badge) => {
+//   if (Array.isArray(badge.evidence)) {
+//     badge.points = badge.evidence.reduce(
+//       (acc: number, requirement: any) => {
+//         if (requirement && typeof requirement.points !== "undefined" && requirement.points !== null) {
+//           return acc + parseInt(requirement.points.toString(), 10);
+//         }
+//         return acc;
+//       },
+//       0
+//     );
+//   } else {
+//     badge.points = 0;
+//   }
+// });
+
+  return badges as unknown as UserBadge[];
 }
+

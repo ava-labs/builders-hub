@@ -1,6 +1,6 @@
 import { withAuth } from "@/lib/protectedRoute";
 import { UpdateStatusMember } from "@/server/services/memberProject";
-import { isUserProjectMember } from "@/server/services/projects";
+import { isUserProjectMember } from "@/server/services/fileValidation";
 import { NextResponse } from "next/server";
 
 export const PATCH = withAuth(async (request: Request, context: any, session: any) => {
