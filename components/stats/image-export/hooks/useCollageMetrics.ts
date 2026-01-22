@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import type { CollageMetricConfig, CollageMetricData, ChartDataPoint, Period } from "../types";
 
 // Aggregate data points by period using SUM (matching single chart behavior in ChainMetricsPage)
@@ -71,9 +71,20 @@ export function useCollageMetrics(
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Use refs to avoid dependency changes causing infinite loops
+  const selectedMetricKeysRef = useRef(selectedMetricKeys);
+  const availableMetricsRef = useRef(availableMetrics);
+  selectedMetricKeysRef.current = selectedMetricKeys;
+  availableMetricsRef.current = availableMetrics;
+
+  const selectedMetricKeysKey = selectedMetricKeys.join(',');
+
   const fetchMetrics = useCallback(async () => {
-    if (!chainId || selectedMetricKeys.length === 0) {
-      setMetricsData(new Map());
+    const currentSelectedKeys = selectedMetricKeysRef.current;
+    const currentAvailableMetrics = availableMetricsRef.current;
+
+    if (!chainId || currentSelectedKeys.length === 0) {
+      setMetricsData(prev => prev.size === 0 ? prev : new Map());
       return;
     }
 
@@ -82,8 +93,8 @@ export function useCollageMetrics(
 
     // Initialize loading states for all selected metrics
     const initialData = new Map<string, CollageMetricData>();
-    selectedMetricKeys.forEach((key) => {
-      const config = availableMetrics.find((m) => m.metricKey === key);
+    currentSelectedKeys.forEach((key) => {
+      const config = currentAvailableMetrics.find((m) => m.metricKey === key);
       if (config) {
         initialData.set(key, {
           config,
@@ -109,8 +120,8 @@ export function useCollageMetrics(
       // Process response and update metrics data
       const newMetricsData = new Map<string, CollageMetricData>();
 
-      selectedMetricKeys.forEach((metricKey) => {
-        const config = availableMetrics.find((m) => m.metricKey === metricKey);
+      currentSelectedKeys.forEach((metricKey) => {
+        const config = currentAvailableMetrics.find((m) => m.metricKey === metricKey);
         if (!config) return;
 
         // Handle nested metric structures (like activeAddresses.daily/weekly/monthly)
@@ -194,8 +205,8 @@ export function useCollageMetrics(
 
       // Mark all metrics as errored
       const errorData = new Map<string, CollageMetricData>();
-      selectedMetricKeys.forEach((key) => {
-        const config = availableMetrics.find((m) => m.metricKey === key);
+      currentSelectedKeys.forEach((key) => {
+        const config = currentAvailableMetrics.find((m) => m.metricKey === key);
         if (config) {
           errorData.set(key, {
             config,
@@ -209,7 +220,7 @@ export function useCollageMetrics(
     } finally {
       setIsLoading(false);
     }
-  }, [chainId, selectedMetricKeys, availableMetrics, period]);
+  }, [chainId, selectedMetricKeysKey, period]);
 
   // Fetch when dependencies change
   useEffect(() => {

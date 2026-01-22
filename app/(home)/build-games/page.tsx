@@ -1072,7 +1072,7 @@ function FinalCTASection() {
 
 function MainContent() {
   return (
-    <div className="absolute content-stretch flex flex-col items-start left-[-0.05px] right-[0.05px] top-[-14px]" data-name="Main">
+    <div className="absolute content-stretch flex flex-col items-start left-[-0.05px] right-[0.05px] top-0" data-name="Main">
       <HeroSection />
       <HeroTilesSection />
       <ApplyTodayCTA />
