@@ -575,7 +575,11 @@ function ChatInput() {
         view: 'fullscreen',
         thinking_mode: thinkingMode,
       });
-      sendMessage({ text: inputValue });
+      // Pass thinking mode as a header so the server can adjust response style
+      sendMessage(
+        { text: inputValue },
+        { headers: { 'X-Thinking-Mode': thinkingMode ? 'true' : 'false' } }
+      );
       setInputValue('');
     }
   };

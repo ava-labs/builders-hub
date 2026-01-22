@@ -552,6 +552,9 @@ function parseXChainTransaction(rawTx: any): {
 }
 
 export async function POST(req: Request) {
+  // Read thinking mode header (defaults to false = quick mode)
+  const thinkingMode = req.headers.get('X-Thinking-Mode') === 'true';
+
   const { messages, id: visitorId } = await req.json();
   const startTime = Date.now();
   const traceId = `trace_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -788,6 +791,7 @@ export async function POST(req: Request) {
         outputTokens: usage?.outputTokens,
         latencyMs,
         traceId,
+        thinkingMode, // Track response mode
       });
     },
     onStepFinish: async (step) => {
@@ -1631,6 +1635,24 @@ export async function POST(req: Request) {
     },
     stopWhen: stepCountIs(10), // Allow multiple tool calls for complex queries
     system: `You are an expert AI assistant for Avalanche Builders Hub, specializing in helping developers build on Avalanche.
+
+## RESPONSE STYLE: ${thinkingMode ? 'THINKING MODE (In-Depth)' : 'QUICK MODE (Concise)'}
+
+${thinkingMode ? `**THINKING MODE ACTIVE**: Provide comprehensive, thorough responses.
+- Take time to explain concepts fully
+- Include relevant context and background information
+- Provide detailed code examples with explanations
+- Offer multiple approaches when applicable
+- Include links to additional resources for deeper learning
+- Explain the "why" behind recommendations
+- Use multiple tool calls if needed to gather comprehensive information` : `**QUICK MODE ACTIVE**: Be concise and direct.
+- Give brief, to-the-point answers (2-3 sentences when possible)
+- Focus only on what was asked - no extra context unless critical
+- Provide code snippets without lengthy explanations
+- Skip background information unless explicitly asked
+- One recommendation per question, not multiple options
+- Minimize tool calls - answer from existing context when possible
+- Link to docs for details instead of explaining everything`}
 
 ## CODE SEARCH CAPABILITIES
 
