@@ -23,23 +23,14 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useGetHackathons } from "@/hooks/use-get-hackathons";
+import { Notification } from "@/types/notifications";
+import { sendNotifications } from "@/utils/send-notification";
+import { useToast } from "@/hooks/use-toast";
+import { Toaster } from "../ui/toaster";
+import { Spinner } from "@/components/ui/spinner"
 
 type AudienceTab = "all" | "hackathons" | "custom";
 
-type CreateNotificationBody = {
-  notifications: Array<{
-    audience: {
-      all: boolean;
-      hackathons: string[];
-      users: string[];
-    };
-    type: string;
-    title: string;
-    short_description: string;
-    content: string;
-    content_type: string;
-  }>;
-};
 
 export default function SendNotificationsForm() {
   // Fields
@@ -48,6 +39,7 @@ export default function SendNotificationsForm() {
   const [content, setContent] = useState<string>("");
   const [contentType, setContentType] = useState<string>("");
   const [type, setType] = useState<string>("default");
+  const [loading, setLoading] = useState(false)
   const [openAudienceDialog, setOpenAudienceDialog] = useState<boolean>(false);
 
   // Audience
@@ -60,6 +52,8 @@ export default function SendNotificationsForm() {
       .map((s: string) => s.trim())
       .filter((s: string) => s.length > 0);
   }, [customUsersRaw]);
+
+  const { toast } = useToast();
 
   const { data: hackathons } = useGetHackathons()
 
@@ -81,49 +75,37 @@ export default function SendNotificationsForm() {
     });
   };
 
-  const buildBody = (): CreateNotificationBody => {
-    return {
-      notifications: [
-        {
-          audience: {
-            all: audienceTab === "all",
-            hackathons: audienceTab == 'all' ? [] : selectedHackathons,
-            users: audienceTab == 'all' ? [] : customUsersParsed,
-          },
-          type,
-          title,
-          short_description: shortDescription,
-          content,
-          content_type: contentType,
-        }
-      ]
-    };
+  const buildBody = (): Notification[] => {
+    return [
+      {
+        audience: {
+          all: audienceTab === "all",
+          hackathons: audienceTab == 'all' ? [] : selectedHackathons,
+          users: audienceTab == 'all' ? [] : customUsersParsed,
+        },
+        type,
+        title,
+        short_description: shortDescription,
+        content,
+        content_type: contentType,
+      }
+    ]
   };
 
   const send = async (): Promise<void> => {
-    try {
-      const body: CreateNotificationBody = buildBody();
-
-      const response: Response = await fetch(`/api/notifications/create`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(body),
-      });
-
-      if (!response.ok) {
-        const text: string = await response.text();
-        throw new Error(text || "Failed to create notifications");
-      }
-
-    } catch (err: unknown) {
-      console.error(err);
-    }
+    setLoading(true)
+    await sendNotifications(buildBody())
+    setLoading(false)
+    toast({
+      title: 'Notification created',
+      description:
+        'Your notification has been successfully created.',
+    });
   };
 
   return (
     <main className='container py-8 mx-auto min-h-[calc(100vh-92px)] lg:min-h-0 flex items-center justify-center relative px-2 pb-6 lg:px-14 '>
+      <Toaster />
       <div className="w-full flex flex-col gap-4 items-end">
         <div className='w-full border shadow-sm rounded-md flex flex-col gap-8 py-14 px-8'>
           <div>
@@ -218,7 +200,7 @@ export default function SendNotificationsForm() {
                             <p>
                               With this option, the notification will be sent to all users registered in the selected hackathons.
                             </p>
-                            <div className="custom-scroll max-h-[160px] overflow-x-hidden overflow-y-auto flex flex-col gap-2">
+                            <div className="custom-scroll max-h-40 overflow-x-hidden overflow-y-auto flex flex-col gap-2">
                               {hackathons?.map((hackathon: { id: string, title: string }, index: number) => (
                                 <div key={index} className="flex items-center gap-2">
                                   <Checkbox
@@ -265,8 +247,15 @@ export default function SendNotificationsForm() {
           </div>
         </div>
 
-        <Button onClick={send} disabled={!isValidForm} className="bg-black dark:bg-white px-2 py-1 w-16 ">
-          <p className="text-zinc-50 dark:text-zinc-900 text-sm font-medium">Send</p>
+        <Button onClick={send} disabled={!isValidForm || loading} className="bg-black dark:bg-white px-2 py-1 w-16 ">
+          {
+            loading ? (
+              <Spinner data-icon="inline-center" />
+            ) : (
+
+              <p className="text-zinc-50 dark:text-zinc-900 text-sm font-medium">Send</p>
+            )
+          }
         </Button>
       </div>
     </main>

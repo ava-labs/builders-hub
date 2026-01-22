@@ -9,26 +9,28 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { signOut, useSession } from 'next-auth/react';
 import Image from 'next/image';
-import Link from 'next/link'; 
+import Link from 'next/link';
 import SignOutComponent from '../sign-out/SignOut';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { CircleUserRound } from 'lucide-react';
 import { Separator } from '@radix-ui/react-dropdown-menu';
 import { useLoginModalTrigger } from '@/hooks/useLoginModal';
+import { useSessionPayload } from '@/hooks/use-session-payload';
 export function UserButton() {
   const { data: session, status } = useSession() ?? {};
+  const {setSessionPayload} = useSessionPayload()
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const isAuthenticated = status === 'authenticated';
   const { openLoginModal } = useLoginModalTrigger();
-  
+
   // Dividir el correo por @ para evitar cortes no deseados
   const formattedEmail = useMemo(() => {
     const email = session?.user?.email;
     if (!email) return null;
-    
+
     const atIndex = email.indexOf('@');
     if (atIndex === -1) return { localPart: email, domain: null };
-    
+
     return {
       localPart: email.substring(0, atIndex),
       domain: email.substring(atIndex), // Incluye el @
@@ -49,69 +51,73 @@ export function UserButton() {
 
     signOut();
   };
-  console.debug('session', session, isAuthenticated);
+
+  useEffect(() => {
+    setSessionPayload(session?.user)
+  }, [session?.user])
+
   return (
     <>
-        {isAuthenticated ? (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant='ghost'
-                size='icon'
-                className='rounded-full h-10 w-10 ml-1 cursor-pointer p-1'
-              >
-                {session.user.image ? (
-                  <Image
-                    src={session.user.image}
-                    alt='User Avatar'
-                    width={32}
-                    height={32}
-                    className='rounded-full'
-                  />
-                ) : (
-                  <CircleUserRound
-                    className='h-8 w-8! stroke-zinc-900 dark:stroke-white'
-                    strokeWidth={0.85}
-                  />
-                )}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              className='bg-white text-black dark:bg-zinc-900 dark:text-white
+      {isAuthenticated ? (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant='ghost'
+              size='icon'
+              className='rounded-full h-10 w-10 ml-1 cursor-pointer p-1'
+            >
+              {session.user.image ? (
+                <Image
+                  src={session.user.image}
+                  alt='User Avatar'
+                  width={32}
+                  height={32}
+                  className='rounded-full'
+                />
+              ) : (
+                <CircleUserRound
+                  className='h-8 w-8! stroke-zinc-900 dark:stroke-white'
+                  strokeWidth={0.85}
+                />
+              )}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            className='bg-white text-black dark:bg-zinc-900 dark:text-white
             border border-zinc-200 dark:border-zinc-600
             shadow-lg p-1 rounded-md w-48'
-            >
-              <div className="px-2 py-1.5">
-                {formattedEmail ? (
-                  <div className="text-sm">
-                    <div className="break-words">{formattedEmail.localPart}</div>
-                    {formattedEmail.domain && (
-                      <div className="break-words">{formattedEmail.domain}</div>
-                    )}
-                  </div>
-                ) : (
-                  <p className="text-sm break-words">
-                    {session.user.email || 'No email available'}
-                  </p>
-                )}
-                {formattedEmail ? (
-                  <div className="text-sm">
-                    <div className="break-words">{formattedEmail.localPart}</div>
-                    {formattedEmail.domain && (
-                      <div className="break-words">{formattedEmail.domain}</div>
-                    )}
-                  </div>
-                ) : (
-                  <p className="text-sm break-words">
-                    {session.user.email || 'No email available'}
-                  </p>
-                )}
-
-                <p className="text-sm break-words mt-1">
-                  {session.user.name || 'No name available'}
+          >
+            <div className="px-2 py-1.5">
+              {formattedEmail ? (
+                <div className="text-sm">
+                  <div className="break-words">{formattedEmail.localPart}</div>
+                  {formattedEmail.domain && (
+                    <div className="break-words">{formattedEmail.domain}</div>
+                  )}
+                </div>
+              ) : (
+                <p className="text-sm break-words">
+                  {session.user.email || 'No email available'}
                 </p>
-              </div>
-              <Separator className="h-px bg-zinc-200 dark:bg-zinc-600 my-1" />
+              )}
+              {formattedEmail ? (
+                <div className="text-sm">
+                  <div className="break-words">{formattedEmail.localPart}</div>
+                  {formattedEmail.domain && (
+                    <div className="break-words">{formattedEmail.domain}</div>
+                  )}
+                </div>
+              ) : (
+                <p className="text-sm break-words">
+                  {session.user.email || 'No email available'}
+                </p>
+              )}
+
+              <p className="text-sm break-words mt-1">
+                {session.user.name || 'No name available'}
+              </p>
+            </div>
+            <Separator className="h-px bg-zinc-200 dark:bg-zinc-600 my-1" />
 
             <DropdownMenuItem asChild className='cursor-pointer'>
               <Link href='/profile'>Profile</Link>
@@ -122,11 +128,18 @@ export function UserButton() {
             <DropdownMenuItem asChild className='cursor-pointer'>
               <Link href='/profile#projects'>Projects</Link>
             </DropdownMenuItem>
+            {
+              (session?.user?.custom_attributes.includes('admin') || session?.user.custom_attributes?.includes('hackathon_judge')) && (
+                <DropdownMenuItem asChild className='cursor-pointer'>
+                  <Link href='/send-notifications'>Send notifications</Link>
+                </DropdownMenuItem>
+              )
+            }
             {/* <DropdownMenuItem asChild className='cursor-pointer'>
               <Link href='/profile#settings'>Settings</Link>
             </DropdownMenuItem> */}
 
-           
+
             <DropdownMenuItem
               onClick={() => setIsDialogOpen(true)}
               className='cursor-pointer'
@@ -152,11 +165,11 @@ export function UserButton() {
         </Button>
       )}
 
-        <SignOutComponent
-          isOpen={isDialogOpen}
-          onOpenChange={setIsDialogOpen}
-          onConfirm={handleSignOut}
-        />
+      <SignOutComponent
+        isOpen={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        onConfirm={handleSignOut}
+      />
     </>
   );
 }
