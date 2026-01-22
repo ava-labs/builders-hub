@@ -1,0 +1,266 @@
+---
+title: Streaming Asynchronous Execution
+description: Learn how Streaming Asynchronous Execution (SAE) decouples consensus from execution to achieve higher throughput and lower latency.
+---
+
+Streaming Asynchronous Execution (SAE) is a fundamental architectural change that decouples consensus from execution. By allowing these two critical processes to run concurrently, AvalancheGo can achieve significantly higher throughput without sacrificing security guarantees.
+
+<Callout>
+**Specification**: SAE is defined in [ACP-194](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/194-streaming-asynchronous-execution). The reference implementation is [StreVM](https://github.com/ava-labs/strevm).
+</Callout>
+
+## Summary
+
+In traditional synchronous execution, a block must be fully executed before it can be accepted by consensus. SAE introduces a queue upon which consensus is performed, with a concurrent execution stream responsible for clearing the queue and reporting state roots to later consensus rounds.
+
+Key benefits:
+- **Concurrent processing**: Consensus and execution no longer block each other
+- **Reduced latency**: Blocks are accepted faster
+- **Bursty throughput**: Transactions can be eagerly accepted
+- **Future features**: Enables encrypted mempools and real-time VRF
+
+## The Problem with Synchronous Execution
+
+In synchronous execution models, the block lifecycle is tightly coupled:
+
+<Mermaid chart="
+sequenceDiagram
+    participant Proposer
+    participant Validators
+    participant VM as Virtual Machine
+
+    Proposer->>Validators: Propose block
+    Validators->>VM: Execute transactions
+    VM-->>Validators: State root and receipts
+    Validators->>Validators: Vote on block
+    Note over Validators: Block accepted with state
+" />
+
+This creates several bottlenecks:
+
+1. **Context switching**: Nodes constantly switch between consensus and execution work
+2. **Latency accumulation**: Execution time directly adds to block acceptance time
+3. **Resource contention**: CPU-intensive execution competes with network-intensive consensus
+4. **Stop-the-world events**: Database compaction or GC pauses affect both consensus and execution
+
+## How SAE Works
+
+SAE separates the block lifecycle into distinct phases:
+
+<Mermaid chart="
+flowchart LR
+    P[Proposed] --> V[Validated]
+    V --> A[Accepted]
+    A -->|queue| E[Executed]
+    E -->|τ seconds| S[Settled]
+" />
+
+### Block Lifecycle
+
+| Phase | Description |
+|-------|-------------|
+| **Proposed** | Block builder creates a block with transactions |
+| **Validated** | Validators check that transactions can eventually be paid for |
+| **Accepted** | Block is accepted by consensus and enqueued for execution |
+| **Executed** | Block is executed by the concurrent execution stream |
+| **Settled** | Execution results are recorded in a later block |
+
+### Lightweight Validation
+
+Before accepting a block, validators perform lightweight validation to ensure all transactions can eventually be executed. This validation:
+
+- Checks sender balances against worst-case bounds
+- Verifies the maximum required base fee
+- Does **not** execute transactions or compute state
+
+<Callout type="info">
+The worst-case bounds guarantee that transactions can pay for their fees, but do not guarantee that transactions won't revert or run out of gas during execution.
+</Callout>
+
+### The Execution Queue
+
+Once accepted, blocks enter a FIFO execution queue:
+
+<Mermaid chart="
+flowchart LR
+    subgraph Consensus
+        B1[Block N] --> B2[Block N+1] --> B3[Block N+2]
+    end
+
+    subgraph Queue [Execution Queue]
+        Q1[Block N-2] --> Q2[Block N-1]
+    end
+
+    subgraph Executor [Block Executor]
+        E[Executing Block N-3]
+    end
+
+    B1 -.->|enqueue| Q1
+    Q2 -->|dequeue| E
+" />
+
+The block executor runs in parallel with consensus, constantly processing blocks from the queue.
+
+### Settlement
+
+Executed blocks are settled when a later block includes their execution results. The settlement includes:
+
+- **State root**: The root hash after executing the block
+- **Receipt root**: Merkle root of all receipts since last settlement
+
+A constant time delay ($\tau$ seconds) ensures that sporadic execution slowdowns are amortized.
+
+## Technical Specification
+
+### Gas Charging
+
+SAE introduces a new gas charging formula that accounts for the gas limit:
+
+$$
+g_C := \max(g_U, g_L / \lambda)
+$$
+
+Where:
+- $g_C$ = gas charged
+- $g_U$ = gas used
+- $g_L$ = gas limit
+- $\lambda$ = limit factor (enforces minimum charge based on limit)
+
+This prevents transactions from reserving large gas limits without paying proportionally.
+
+### Block Size Limits
+
+The maximum block size is constrained by the settlement delay:
+
+$$
+\omega_B := R \cdot \tau \cdot \lambda
+$$
+
+Where:
+- $\omega_B$ = maximum block size (gas)
+- $R$ = gas capacity per second
+- $\tau$ = settlement delay
+- $\lambda$ = limit factor
+
+### Queue Size Limits
+
+The execution queue has a maximum size to prevent unbounded growth:
+
+$$
+\omega_Q := 2 \cdot \omega_B
+$$
+
+Blocks that would exceed this queue size are considered invalid.
+
+## Performance Implications
+
+### Concurrent Execution Streams
+
+The primary benefit is that "VM time" more closely aligns with wall time:
+
+| Time | Synchronous | SAE |
+|------|-------------|-----|
+| 0-2s | Consensus | Consensus |
+| 1-5s | - | Execution (overlapping) |
+| 2-4s | Execution | Consensus |
+| 3-7s | - | Execution (overlapping) |
+| 4-6s | Consensus | - |
+| 6-8s | Execution | - |
+
+In synchronous mode, consensus and execution alternate. In SAE, they overlap, increasing throughput.
+
+### Lean Execution Clients
+
+SAE enables specialized execution-only clients that can:
+
+- Rapidly execute the agreed-upon queue
+- Skip expensive Merkle data structure computation
+- Provide accelerated receipt issuance
+
+This is valuable for:
+- High-frequency trading applications
+- Custodial platforms monitoring deposits
+- Indexers tracking specific addresses
+
+### Amortized Overhead
+
+Irregular events like database compaction are spread across multiple blocks instead of causing individual block delays.
+
+## Future Features
+
+SAE provides a foundation for additional optimizations:
+
+### Encrypted Mempools
+
+By performing execution after consensus sequencing, transactions can remain encrypted until their order is finalized. This reduces:
+
+- Front-running attacks
+- MEV extraction
+- Transaction censorship
+
+### Real-Time VRF
+
+Consensus artifacts become available during execution, enabling:
+
+- Verifiable random functions during execution
+- Fair on-chain randomness
+- Gaming and lottery applications
+
+<Callout type="warn">
+These features are not yet implemented but require SAE as a prerequisite.
+</Callout>
+
+## Implementation
+
+### StreVM
+
+[StreVM](https://github.com/ava-labs/strevm) is the reference implementation of SAE for EVM blocks:
+
+```bash
+# StreVM is under active development
+git clone https://github.com/ava-labs/strevm
+```
+
+<Callout type="warn">
+StreVM is under active development. There are currently no guarantees about the stability of its Go APIs.
+</Callout>
+
+### Integration with AvalancheGo
+
+SAE integrates with AvalancheGo's existing architecture:
+
+<Mermaid chart="
+flowchart TB
+    subgraph AvalancheGo
+        Network[Network Layer]
+        Consensus[Snowman Consensus]
+        Queue[Execution Queue]
+        Executor[Block Executor]
+        VM[Virtual Machine]
+        DB[(Firewood)]
+    end
+
+    Network --> Consensus
+    Consensus --> Queue
+    Queue --> Executor
+    Executor --> VM
+    VM --> DB
+    Executor -.->|state root| Consensus
+" />
+
+## Related Resources
+
+<Cards>
+  <Card title="Firewood Database" href="/docs/nodes/architecture/execution/firewood">
+    The optimized database designed to work with SAE
+  </Card>
+  <Card title="Consensus Protocols" href="/docs/nodes/architecture/consensus">
+    How Snowman consensus works with SAE
+  </Card>
+</Cards>
+
+### External Links
+
+- [ACP-194 Specification](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/194-streaming-asynchronous-execution)
+- [StreVM Repository](https://github.com/ava-labs/strevm)
+- [ACP-194 Discussion](https://github.com/avalanche-foundation/ACPs/discussions/196)
