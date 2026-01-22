@@ -13,6 +13,8 @@ import { Callout } from "fumadocs-ui/components/callout";
 import { Alert } from "@/components/toolbox/components/Alert";
 import ExampleERC20 from "@/contracts/icm-contracts/compiled/ExampleERC20.json";
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
+import { keccak256, toHex } from 'viem';
+import { useCriticalError } from "@/components/toolbox/hooks/useCriticalError";
 
 const metadata: ConsoleToolMetadata = {
   title: "Enable ERC20 Staking Manager Minting",
@@ -23,6 +25,9 @@ const metadata: ConsoleToolMetadata = {
   githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
 };
 
+// OpenZeppelin AccessControl MINTER_ROLE
+const MINTER_ROLE = keccak256(toHex("MINTER_ROLE"));
+
 type AccessControlType = 'ownable' | 'access-control' | 'unknown';
 
 function EnableERC20StakingManagerMinting() {
@@ -30,6 +35,7 @@ function EnableERC20StakingManagerMinting() {
   const { publicClient, coreWalletClient, walletEVMAddress } = useWalletStore();
   const viemChain = useViemChainStore();
   const { notify } = useConsoleNotifications();
+  const { setCriticalError } = useCriticalError();
 
   const [stakingTokenAddress, setStakingTokenAddress] = useState<string>("");
   const [isChecking, setIsChecking] = useState(false);
@@ -38,12 +44,6 @@ function EnableERC20StakingManagerMinting() {
   const [grantTxHash, setGrantTxHash] = useState<string | null>(null);
   const [tokenName, setTokenName] = useState<string>("");
   const [tokenSymbol, setTokenSymbol] = useState<string>("");
-  const [criticalError, setCriticalError] = useState<Error | null>(null);
-
-  // Throw critical errors during render
-  if (criticalError) {
-    throw criticalError;
-  }
 
   // Check the token's access control pattern
   async function checkTokenAccessControl() {
@@ -73,7 +73,6 @@ function EnableERC20StakingManagerMinting() {
 
       // Check for OpenZeppelin AccessControl pattern (hasRole, grantRole)
       try {
-        const MINTER_ROLE = '0x9f2df0fed2c77648de5860a4cc508cd0818c85b8b8a1ab4ceeef8d981c8956a6'; // keccak256("MINTER_ROLE")
         await publicClient.readContract({
           address: stakingTokenAddress as `0x${string}`,
           abi: [{
@@ -138,8 +137,6 @@ function EnableERC20StakingManagerMinting() {
 
     setIsGranting(true);
     try {
-      const MINTER_ROLE = '0x9f2df0fed2c77648de5860a4cc508cd0818c85b8b8a1ab4ceeef8d981c8956a6';
-
       const grantPromise = coreWalletClient.writeContract({
         address: stakingTokenAddress as `0x${string}`,
         abi: [{

@@ -10,19 +10,13 @@ import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import ERC20TokenStakingManager from "@/contracts/icm-contracts/compiled/ERC20TokenStakingManager.json";
 import versions from '@/scripts/versions.json';
-import { keccak256 } from 'viem';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
+import { getLinkedBytecode } from "@/components/toolbox/utils/contract-deployment";
+import { useCriticalError } from "@/components/toolbox/hooks/useCriticalError";
+import { LibraryRequirementStatus } from "@/components/toolbox/components/LibraryRequirementStatus";
 
 const ICM_COMMIT = versions["ava-labs/icm-contracts"];
 const ERC20_TOKEN_STAKING_MANAGER_SOURCE_URL = `https://github.com/ava-labs/icm-contracts/blob/main/contracts/validator-manager/ERC20TokenStakingManager.sol`;
-
-// this should be pulled into a shared utils file with other contract deployments
-function calculateLibraryHash(libraryPath: string) {
-    const hash = keccak256(
-        new TextEncoder().encode(libraryPath)
-    ).slice(2);
-    return hash.slice(0, 34);
-}
 
 const metadata: ConsoleToolMetadata = {
     title: "Deploy ERC20 Token Staking Manager",
@@ -34,38 +28,13 @@ const metadata: ConsoleToolMetadata = {
 };
 
 function DeployERC20StakingManager() {
-    const [criticalError, setCriticalError] = useState<Error | null>(null);
     const [isDeploying, setIsDeploying] = useState(false);
+    const { setCriticalError } = useCriticalError();
 
     const { coreWalletClient, publicClient, walletEVMAddress } = useWalletStore();
     const viemChain = useViemChainStore();
     const { erc20StakingManagerAddress, setErc20StakingManagerAddress, validatorMessagesLibAddress } = useToolboxStore();
     const { notify } = useConsoleNotifications();
-
-    // Throw critical errors during render
-    if (criticalError) {
-        throw criticalError;
-    }
-
-    const getLinkedBytecode = () => {
-        if (!validatorMessagesLibAddress) {
-            throw new Error('ValidatorMessages library must be deployed first. Please deploy it in the Validator Manager setup.');
-        }
-
-        const libraryPath = `${Object.keys(ERC20TokenStakingManager.bytecode.linkReferences)[0]}:${Object.keys(Object.values(ERC20TokenStakingManager.bytecode.linkReferences)[0])[0]}`;
-        const libraryHash = calculateLibraryHash(libraryPath);
-        const libraryPlaceholder = `__$${libraryHash}$__`;
-
-        const linkedBytecode = ERC20TokenStakingManager.bytecode.object
-            .split(libraryPlaceholder)
-            .join(validatorMessagesLibAddress.slice(2).padStart(40, '0'));
-
-        if (linkedBytecode.includes("$__")) {
-            throw new Error("Failed to replace library placeholder with actual address");
-        }
-
-        return linkedBytecode as `0x${string}`;
-    };
 
     async function deployERC20StakingManager() {
         setIsDeploying(true);
@@ -86,7 +55,7 @@ function DeployERC20StakingManager() {
 
             const deployPromise = coreWalletClient.deployContract({
                 abi: ERC20TokenStakingManager.abi as any,
-                bytecode: getLinkedBytecode(), // Use linked bytecode with library
+                bytecode: getLinkedBytecode(ERC20TokenStakingManager.bytecode, validatorMessagesLibAddress), // Use linked bytecode with library
                 args: [0], // ICMInitializable.Allowed
                 chain: viemChain,
                 account: walletEVMAddress as `0x${string}`,
@@ -128,20 +97,7 @@ function DeployERC20StakingManager() {
                 </p>
             )}
 
-            {!validatorMessagesLibAddress ? (
-                <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded-md">
-                    <p className="text-sm text-red-800 dark:text-red-200">
-                        <strong>Required:</strong> ValidatorMessages library must be deployed first.
-                        Please go to the <strong>Validator Manager Setup</strong> section and deploy the ValidatorMessages library.
-                    </p>
-                </div>
-            ) : (
-                <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-md">
-                    <p className="text-sm text-green-800 dark:text-green-200">
-                        <strong>Ready:</strong> ValidatorMessages library found at: <code>{validatorMessagesLibAddress}</code>
-                    </p>
-                </div>
-            )}
+            <LibraryRequirementStatus libraryAddress={validatorMessagesLibAddress} />
 
             <Button
                 variant="primary"

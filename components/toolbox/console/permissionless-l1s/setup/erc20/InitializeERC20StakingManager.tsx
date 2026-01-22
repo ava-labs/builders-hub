@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 import { useToolboxStore, useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
 import { Button } from "@/components/toolbox/components/Button";
-import { Input } from "@/components/toolbox/components/Input";
 import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput";
 import { ConsoleToolMetadata, withConsoleToolMetadata } from '../../../../components/WithConsoleToolMetadata';
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
@@ -17,8 +16,11 @@ import { Callout } from "fumadocs-ui/components/callout";
 import ERC20TokenStakingManager from "@/contracts/icm-contracts/compiled/ERC20TokenStakingManager.json";
 import { parseEther } from "viem";
 import versions from '@/scripts/versions.json';
-import { cb58ToHex } from '@/components/toolbox/console/utilities/format-converter/FormatConverter';
+import { convertBlockchainIdToHex, formatBlockchainIdForDisplay } from '@/components/toolbox/utils/blockchain';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
+import { useCriticalError } from "@/components/toolbox/hooks/useCriticalError";
+import { StakingParametersForm } from "@/components/toolbox/components/StakingParametersForm";
+import { jsonStringifyWithBigint } from "@/components/toolbox/utils/json";
 
 const ICM_COMMIT = versions["ava-labs/icm-contracts"];
 const INITIALIZE_FUNCTION_SOURCE_URL = `https://github.com/ava-labs/icm-contracts/blob/main/contracts/validator-manager/ERC20TokenStakingManager.sol#L53`;
@@ -33,7 +35,7 @@ const metadata: ConsoleToolMetadata = {
 };
 
 function InitializeERC20StakingManager() {
-    const [criticalError, setCriticalError] = useState<Error | null>(null);
+    const { setCriticalError } = useCriticalError();
     const [stakingManagerAddressInput, setStakingManagerAddressInput] = useState<string>("");
     const [isChecking, setIsChecking] = useState(false);
     const [isInitializing, setIsInitializing] = useState(false);
@@ -68,11 +70,6 @@ function InitializeERC20StakingManager() {
 
     // Extract blockchain ID from subnet data
     const blockchainId = subnetSelection.subnet?.blockchains?.[0]?.blockchainId || null;
-
-    // Throw critical errors during render
-    if (criticalError) {
-        throw criticalError;
-    }
 
     // Auto-fill addresses from store if available
     useEffect(() => {
@@ -143,18 +140,7 @@ function InitializeERC20StakingManager() {
             if (!blockchainId) throw new Error("Blockchain ID not found. Please select a valid subnet.");
 
             // Convert blockchain ID from CB58 to hex
-            let hexBlockchainId: string;
-            try {
-                hexBlockchainId = cb58ToHex(blockchainId);
-                // Ensure it's 32 bytes (64 hex chars)
-                if (hexBlockchainId.length < 64) {
-                    // Pad with zeros on the left to make it 32 bytes
-                    hexBlockchainId = hexBlockchainId.padStart(64, '0');
-                }
-                hexBlockchainId = `0x${hexBlockchainId}` as `0x${string}`;
-            } catch (error) {
-                throw new Error(`Failed to convert blockchain ID to hex: ${error instanceof Error ? error.message : 'Unknown error'}`);
-            }
+            const hexBlockchainId = convertBlockchainIdToHex(blockchainId);
 
             // Create settings object
             const settings = {
@@ -282,14 +268,7 @@ function InitializeERC20StakingManager() {
                                 {blockchainId && (
                                     <p className="text-sm mt-1">
                                         <strong>Uptime Blockchain ID (Hex):</strong> <code>
-                                            {(() => {
-                                                try {
-                                                    const hex = cb58ToHex(blockchainId);
-                                                    return `0x${hex.padStart(64, '0')}`;
-                                                } catch {
-                                                    return 'Invalid CB58';
-                                                }
-                                            })()}
+                                            {formatBlockchainIdForDisplay(blockchainId)}
                                         </code>
                                     </p>
                                 )}
@@ -326,67 +305,22 @@ function InitializeERC20StakingManager() {
                         Configure the staking parameters that define how validators and delegators can participate in securing the network.
                     </p>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Input
-                            label="Minimum Stake Amount (in tokens)"
-                            value={minimumStakeAmount}
-                            onChange={setMinimumStakeAmount}
-                            type="number"
-                            step="0.000000000000000001"
-                            min="0"
-                            disabled={isInitializing}
-                        />
-
-                        <Input
-                            label="Maximum Stake Amount (in tokens)"
-                            value={maximumStakeAmount}
-                            onChange={setMaximumStakeAmount}
-                            type="number"
-                            step="0.000000000000000001"
-                            min="0"
-                            disabled={isInitializing}
-                        />
-
-                        <Input
-                            label="Minimum Stake Duration (seconds)"
-                            value={minimumStakeDuration}
-                            onChange={setMinimumStakeDuration}
-                            type="number"
-                            min="0"
-                            disabled={isInitializing}
-                            placeholder="86400 (1 day)"
-                        />
-
-                        <Input
-                            label="Minimum Delegation Fee (bips, 100 = 1%)"
-                            value={minimumDelegationFeeBips}
-                            onChange={setMinimumDelegationFeeBips}
-                            type="number"
-                            min="0"
-                            max="10000"
-                            disabled={isInitializing}
-                        />
-
-                        <Input
-                            label="Maximum Stake Multiplier"
-                            value={maximumStakeMultiplier}
-                            onChange={setMaximumStakeMultiplier}
-                            type="number"
-                            min="1"
-                            max="255"
-                            disabled={isInitializing}
-                        />
-
-                        <Input
-                            label="Weight to Value Factor"
-                            value={weightToValueFactor}
-                            onChange={setWeightToValueFactor}
-                            type="number"
-                            step="0.000000000000000001"
-                            min="0"
-                            disabled={isInitializing}
-                        />
-                    </div>
+                    <StakingParametersForm
+                        minimumStakeAmount={minimumStakeAmount}
+                        setMinimumStakeAmount={setMinimumStakeAmount}
+                        maximumStakeAmount={maximumStakeAmount}
+                        setMaximumStakeAmount={setMaximumStakeAmount}
+                        minimumStakeDuration={minimumStakeDuration}
+                        setMinimumStakeDuration={setMinimumStakeDuration}
+                        minimumDelegationFeeBips={minimumDelegationFeeBips}
+                        setMinimumDelegationFeeBips={setMinimumDelegationFeeBips}
+                        maximumStakeMultiplier={maximumStakeMultiplier}
+                        setMaximumStakeMultiplier={setMaximumStakeMultiplier}
+                        weightToValueFactor={weightToValueFactor}
+                        setWeightToValueFactor={setWeightToValueFactor}
+                        disabled={isInitializing}
+                        tokenLabel="tokens"
+                    />
 
                     <Button
                         variant="primary"
@@ -411,9 +345,3 @@ function InitializeERC20StakingManager() {
 }
 
 export default withConsoleToolMetadata(InitializeERC20StakingManager, metadata);
-
-function jsonStringifyWithBigint(value: unknown) {
-    return JSON.stringify(value, (_, v) =>
-        typeof v === 'bigint' ? v.toString() : v
-        , 2);
-}
