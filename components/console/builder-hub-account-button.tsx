@@ -77,9 +77,11 @@ export function BuilderHubAccountButton() {
                         <DropdownMenuItem disabled>
                             {session?.user?.email || 'No email available'}
                         </DropdownMenuItem>
-                        <DropdownMenuItem disabled>
-                            {session?.user?.name || 'No name available'}
-                        </DropdownMenuItem>
+                        {session?.user?.name && session?.user?.name !== session?.user?.email && (
+                            <DropdownMenuItem disabled>
+                                {session.user.name}
+                            </DropdownMenuItem>
+                        )}
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => router.push('/profile')}>
                             <User className="mr-2 h-3 w-3" />
