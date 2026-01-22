@@ -46,6 +46,7 @@ function DeployExampleERC20() {
         }
 
         setIsDeploying(true);
+        setExampleErc20Address("");
         try {
             if (!viemChain) throw new Error("No chain selected");
 
