@@ -194,6 +194,12 @@ export const explorerMenu: MainItemType = {
   url: "/explorer"
 };
 
+export const chatMenu: MainItemType = {
+  type: "main",
+  text: "Chat",
+  url: "/chat"
+};
+
 export const docsMenu: LinkItemType = {
   type: 'menu',
   text: 'Documentation',
@@ -585,6 +591,7 @@ export const baseOptions: BaseLayoutProps = {
   links: [
     academyMenu,
     blogMenu,
+    chatMenu,
     consoleMenu,
     docsMenu,
     eventsMenu,

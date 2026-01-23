@@ -88,18 +88,12 @@ export function UserButton() {
             shadow-lg p-1 rounded-md w-48'
             >
               <div className="px-2 py-1.5">
-                {formattedEmail ? (
-                  <div className="text-sm">
-                    <div className="break-words">{formattedEmail.localPart}</div>
-                    {formattedEmail.domain && (
-                      <div className="break-words">{formattedEmail.domain}</div>
-                    )}
-                  </div>
-                ) : (
-                  <p className="text-sm break-words">
-                    {session.user.email || 'No email available'}
-                  </p>
-                )}
+                <div
+                  className="text-sm truncate cursor-default"
+                  title={session.user.email || 'No email available'}
+                >
+                  {session.user.email || 'No email available'}
+                </div>
 
                 {session.user.name && session.user.name !== session.user.email && (
                   <p className="text-sm break-words mt-1">

@@ -47,6 +47,13 @@ export const menuSections: NavSection[] = [
     ],
   },
   {
+    title: 'Chat',
+    href: '/chat',
+    items: [
+      { text: 'Ask AI', href: '/chat' },
+    ],
+  },
+  {
     title: 'Console',
     href: '/console',
     items: [
