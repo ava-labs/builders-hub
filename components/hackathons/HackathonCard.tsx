@@ -13,18 +13,20 @@ export default function HackathonCard({
 }: {
   hackathon: HackathonHeader;
 }) {
+  const BUILD_GAMES_HACKATHON_ID = '249d2911-7931-4aa0-a696-37d8370b79f9';
+  const getHackathonLink = () => {
+    if (hackathon.id === BUILD_GAMES_HACKATHON_ID) {
+      return '/build-games';
+    }
+    return hackathon.custom_link || `/hackathons/${hackathon.id}`;
+  };
+
   return (
     <div
       key={hackathon.id}
       className="flex rounded-lg shadow-lg h-[400px] md:h-[340px] border border-zinc-300 dark:border-transparent"
-    >      
-      <Link
-        href={
-          hackathon.custom_link
-            ? hackathon.custom_link
-            : `/hackathons/${hackathon.id}`
-        }
-      >
+    >
+      <Link href={getHackathonLink()}>
         <Image
           src={
             hackathon.small_banner?.trim().length > 0
@@ -103,11 +105,7 @@ export default function HackathonCard({
         <Button asChild variant="red" className="w-full py-2 px-4">
           <Link
             className="text-sm text-zinc-50"
-            href={
-              hackathon.custom_link
-                ? hackathon.custom_link
-                : `/hackathons/${hackathon.id}`
-            }
+            href={getHackathonLink()}
             target={hackathon.custom_link ? "_blank" : "_self"}
           >
             LEARN MORE
