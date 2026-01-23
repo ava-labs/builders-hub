@@ -113,7 +113,7 @@ export function UserButton() {
               <Link href='/profile#projects'>Projects</Link>
             </DropdownMenuItem>
             {
-              (session?.user?.custom_attributes.includes('dev_rel') || session?.user?.custom_attributes?.includes('notify_event')) && (
+              (session?.user?.custom_attributes.includes('devrel') || session?.user?.custom_attributes?.includes('notify_event')) && (
                 <DropdownMenuItem asChild className='cursor-pointer'>
                   <Link href='/send-notifications'>Send notifications</Link>
                 </DropdownMenuItem>

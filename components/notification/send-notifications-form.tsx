@@ -31,6 +31,12 @@ import { Spinner } from "@/components/ui/spinner"
 
 type AudienceTab = "all" | "hackathons" | "custom";
 
+const notificationsTypeOptions = [
+  { value: "courseCompleted", label: "Course completed" },
+  { value: "projectSubmissionDeadLine", label: "Project submission deadline" },
+  { value: "advice", label: "Advice" },
+]
+
 
 export default function SendNotificationsForm() {
   // Fields
@@ -38,7 +44,7 @@ export default function SendNotificationsForm() {
   const [shortDescription, setShortDescription] = useState<string>("");
   const [content, setContent] = useState<string>("");
   const [contentType, setContentType] = useState<string>("");
-  const [type, setType] = useState<string>("default");
+  const [type, setType] = useState<string>("");
   const [loading, setLoading] = useState(false)
   const [openAudienceDialog, setOpenAudienceDialog] = useState<boolean>(false);
 
@@ -60,6 +66,8 @@ export default function SendNotificationsForm() {
   const isValidForm = useMemo(() => {
     return (
       title &&
+      type &&
+      shortDescription &&
       content &&
       contentType &&
       (audienceTab == 'all' || selectedHackathons.length > 0 || customUsersParsed.length > 0)
@@ -135,10 +143,26 @@ export default function SendNotificationsForm() {
           </div>
 
           <div className="flex flex-col gap-2">
+            <h1 className="text-xl font-medium">Type</h1>
+            <Select value={type} onValueChange={(e) => setType(e)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select notification type" />
+              </SelectTrigger>
+              <SelectContent>
+                {
+                  notificationsTypeOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                  ))
+                }
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex flex-col gap-2">
             <h1 className="text-xl font-medium">Content type</h1>
             <Select value={contentType} onValueChange={(e) => setContentType(e)}>
               <SelectTrigger>
-                <SelectValue placeholder="Content type" />
+                <SelectValue placeholder="Select content type" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="text/plain">text/plain</SelectItem>
