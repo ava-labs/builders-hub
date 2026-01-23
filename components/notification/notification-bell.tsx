@@ -145,7 +145,7 @@ export default function NotificationBell(): React.JSX.Element {
               <Image src="/images/close-icon.svg" alt="close-icon" width={24} height={24} />
             </PopoverClose>
           </div>
-          <p className="text-sm text-zinc-400">You have {notifications.length} unread notifications.</p>
+          <p className="text-sm text-zinc-400">You have {notifications.filter((n) => n.status == 'sent').length} unread notifications.</p>
         </div>
         <div className="custom-scroll dark:custom-scroll w-full max-h-[380px] overflow-y-auto overflow-x-hidden flex-1 flex flex-col items-start p-y-6">
           {

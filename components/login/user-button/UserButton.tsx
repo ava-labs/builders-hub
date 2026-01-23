@@ -18,7 +18,7 @@ import { useLoginModalTrigger } from '@/hooks/useLoginModal';
 import { useSessionPayload } from '@/hooks/use-session-payload';
 export function UserButton() {
   const { data: session, status } = useSession() ?? {};
-  const {setSessionPayload} = useSessionPayload()
+  const { setSessionPayload } = useSessionPayload()
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const isAuthenticated = status === 'authenticated';
   const { openLoginModal } = useLoginModalTrigger();
@@ -86,22 +86,22 @@ export function UserButton() {
             className='bg-white text-black dark:bg-zinc-900 dark:text-white
             border border-zinc-200 dark:border-zinc-600
             shadow-lg p-1 rounded-md w-48'
-            >
-              <div className="px-2 py-1.5">
-                <div
-                  className="text-sm truncate cursor-default"
-                  title={session.user.email || 'No email available'}
-                >
-                  {session.user.email || 'No email available'}
-                </div>
-
-                {session.user.name && session.user.name !== session.user.email && (
-                  <p className="text-sm break-words mt-1">
-                    {session.user.name}
-                  </p>
-                )}
+          >
+            <div className="px-2 py-1.5">
+              <div
+                className="text-sm truncate cursor-default"
+                title={session.user.email || 'No email available'}
+              >
+                {session.user.email || 'No email available'}
               </div>
-              <Separator className="h-px bg-zinc-200 dark:bg-zinc-600 my-1" />
+
+              {session.user.name && session.user.name !== session.user.email && (
+                <p className="text-sm break-words mt-1">
+                  {session.user.name}
+                </p>
+              )}
+            </div>
+            <Separator className="h-px bg-zinc-200 dark:bg-zinc-600 my-1" />
 
             <DropdownMenuItem asChild className='cursor-pointer'>
               <Link href='/profile'>Profile</Link>
@@ -113,7 +113,7 @@ export function UserButton() {
               <Link href='/profile#projects'>Projects</Link>
             </DropdownMenuItem>
             {
-              (session?.user?.custom_attributes.includes('admin') || session?.user.custom_attributes?.includes('hackathon_judge')) && (
+              (session?.user?.custom_attributes.includes('dev_rel') || session?.user?.custom_attributes?.includes('notify_event')) && (
                 <DropdownMenuItem asChild className='cursor-pointer'>
                   <Link href='/send-notifications'>Send notifications</Link>
                 </DropdownMenuItem>
