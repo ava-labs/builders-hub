@@ -19,6 +19,7 @@ import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } fr
 import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
+import { utils } from '@avalabs/avalanchejs';
 
 const metadata: ConsoleToolMetadata = {
     title: "Initial Validator Manager Configuration",
