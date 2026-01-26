@@ -16,6 +16,20 @@ export default function ReferralButton() {
     captureReferrerFromUrl();
   }, []);
 
+  // Check if user just logged in and wanted to open referral modal
+  useEffect(() => {
+    if (status === "authenticated" && session?.user) {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('openReferral') === 'true') {
+        setIsModalOpen(true);
+        // Clean up URL without reloading
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.delete('openReferral');
+        window.history.replaceState({}, '', newUrl.toString());
+      }
+    }
+  }, [status, session]);
+
   const handleClick = async () => {
     // First check the current session state from useSession
     if (status === "authenticated" && session?.user) {
@@ -31,8 +45,10 @@ export default function ReferralButton() {
       // User is actually authenticated, open referral modal
       setIsModalOpen(true);
     } else {
-      // User is not logged in, open login modal
-      openLoginModal(window.location.href);
+      // User is not logged in, open login modal with openReferral param
+      const currentUrl = new URL(window.location.href);
+      currentUrl.searchParams.set('openReferral', 'true');
+      openLoginModal(currentUrl.toString());
     }
   };
 
