@@ -4,9 +4,9 @@ import React, { useState, useEffect } from "react";
 import { cn } from "@/utils/cn";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { Sponsors } from '@/components/landing/globe';
-import { GraduationCap } from 'lucide-react';
-import Chatbot from '@/components/ui/chatbot';
+import { GraduationCap, Sparkles, ArrowRight } from 'lucide-react';
 
 // Premium animation styles
 const premiumStyles = `
@@ -246,6 +246,50 @@ function RotatingText() {
   );
 }
 
+// Placeholder questions based on actual docs/academy content
+const PLACEHOLDER_QUESTIONS = [
+  "How do I create my own L1?",
+  "Deploy a smart contract on C-Chain",
+  "Send tokens between L1s with ICTT",
+  "Run a validator node",
+  "What are the staking requirements?",
+  "Set up Interchain Messaging",
+  "Use Avalanche CLI to deploy",
+  "Create a custom gas token",
+  "How does Avalanche consensus work?",
+  "Bridge tokens to my L1",
+  "Add a custom precompile",
+  "Set up a local testnet",
+];
+
+// Hero Search Box Component - matches the glassmorphism style of CTA buttons
+function HeroSearchBox() {
+  const [question, setQuestion] = useState(PLACEHOLDER_QUESTIONS[0]);
+
+  // Pick a random question on mount
+  useEffect(() => {
+    setQuestion(PLACEHOLDER_QUESTIONS[Math.floor(Math.random() * PLACEHOLDER_QUESTIONS.length)]);
+  }, []);
+
+  return (
+    <Link
+      href={`/chat?q=${encodeURIComponent(question)}`}
+      className={cn(
+        "group premium-button flex items-center gap-3 px-8 py-4 rounded-xl transition-all duration-300",
+        "w-full sm:w-[336px]",
+        "bg-white/60 dark:bg-zinc-800/80 glass-effect border border-slate-200/50 dark:border-slate-600/50",
+        "hover:bg-white/80 dark:hover:bg-zinc-800/90 hover:scale-[1.02]"
+      )}
+    >
+      <Sparkles className="w-6 h-6 sm:w-5 sm:h-5 text-slate-500 dark:text-slate-400 flex-shrink-0" />
+      <span className="flex-1 text-slate-600 dark:text-slate-400 text-lg sm:text-base font-bold tracking-[-0.015em]">
+        {question}
+      </span>
+      <ArrowRight className="w-6 h-6 sm:w-5 sm:h-5 text-slate-500 dark:text-slate-400 group-hover:translate-x-1 transition-transform flex-shrink-0" />
+    </Link>
+  );
+}
+
 // Extract Background Component
 export function HeroBackground() {
   return (
@@ -292,7 +336,7 @@ export default function Hero() {
                 <GraduationCap className="w-6 h-6 sm:w-5 sm:h-5 mr-3" />
                 Start Learning
               </Link>
-              
+
               <Link
                 href="/docs/primary-network"
                 className="group premium-button inline-flex items-center justify-center px-8 py-4 text-lg sm:text-base font-bold tracking-[-0.015em] rounded-xl bg-white/10 glass-effect border border-slate-200/30 text-slate-900 dark:text-white hover:bg-white/20 hover:scale-[1.02] transition-all duration-300 backdrop-blur-sm dark:border-slate-700/40 min-w-[160px]"
@@ -302,13 +346,11 @@ export default function Hero() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                 </svg>
               </Link>
+            </div>
 
-              <div className="hidden sm:block">
-                <Chatbot 
-                  variant="static" 
-                  className="ml-2" 
-                />
-              </div>
+            {/* AI Search Box - below CTA buttons */}
+            <div className="hidden sm:flex justify-center lg:justify-start">
+              <HeroSearchBox />
             </div>
           </div>
 
