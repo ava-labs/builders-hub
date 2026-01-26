@@ -312,7 +312,7 @@ export default function MembersComponent({
                       spellCheck="false"
                       onChange={(e) => setNewEmail(e.target.value)}
                       onKeyDown={async (e) => {
-                        if (e.key === "Enter" || e.key === " ") {
+                        if (e.key === "Enter" || e.key === " " || e.key === "Tab") {
                           e.preventDefault();
                           await handleAddEmail();
                         }

@@ -1,0 +1,41 @@
+---
+title: VMC Deployment Options
+description: Review where to deploy the Validator Manager (L1 vs C-Chain) and why it matters for PoS
+updated: 2026-01-08
+authors: [nicolasarnedo]
+icon: BookOpen
+---
+
+## Where can the Validator Manager contract be deployed?
+
+Avalanche’s **Validator Manager Contract (VMC)** can be deployed in two places:
+
+- **On your L1**
+- **On the Avalanche C-Chain**
+
+This choice affects how resilient your validator operations are and how easy it will be to transition from **permissioned (PoA)** to **permissionless (PoS)**.
+
+## Quick decision rule
+
+- **Deploy on your L1** if you expect to remain **PoA / permissioned** long-term and want a self-contained setup.
+- **Deploy on C-Chain** if you plan to become **PoS / permissionless**, or want the option to upgrade to PoS later.
+
+<Callout type="warning">
+You can upgrade contract logic, but you **cannot move** the VMC location after deployment without redeploying.
+</Callout>
+
+## Why PoS makes this more important
+
+In PoS, you typically care more about:
+
+- **Operational robustness** (validator management even if your L1 is degraded)
+- **Permissionless onboarding** (external validators joining over time)
+- **Long-term flexibility** as economics and validator sets evolve
+
+That’s why “deploy on C‑Chain” is often a better default if you expect a PoS transition.
+
+## For the permissionless L1 track demo
+
+In the earlier permissioned L1 walkthroughs, the **demo deploys the VMC on the L1** (PoA context) to keep the end-to-end flow fully contained within the L1 you’re building and operating.
+
+

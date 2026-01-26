@@ -15,8 +15,20 @@ function RedirectLogic() {
   useEffect(() => {
     // Note: PostHog tracking is handled by the layout's TrackNewUser component
     // This component only handles the redirect logic to avoid duplicate tracking
+    //
+    // IMPORTANT: Don't redirect if user is a "pending" user (hasn't accepted terms yet)
+    // The LoginModalWrapper will handle showing Terms and BasicProfile modals
+    // Only redirect after they've completed the full registration flow
     if (status === "authenticated" && session?.user?.is_new_user) {
-      // Redirect new users to profile page
+      // Check if this is a pending user who hasn't accepted terms yet
+      const isPendingUser = session.user.id?.startsWith("pending_");
+      if (isPendingUser) {
+        // Let LoginModalWrapper handle the Terms/BasicProfile flow
+        // Don't redirect - the modals will appear
+        return;
+      }
+
+      // Redirect existing new users (who have accepted terms but notifications is null) to profile page
       if (pathname !== "/profile") {
         // Store the original URL with search params (including UTM) in localStorage
         const originalUrl = `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;

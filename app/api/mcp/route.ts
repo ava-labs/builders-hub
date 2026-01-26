@@ -1,7 +1,109 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import { z } from 'zod';
 import { documentation, academy, integration, blog } from '@/lib/source';
 import { getLLMText } from '@/lib/llm-utils';
+import { captureServerEvent } from '@/lib/posthog-server';
+import { checkMCPRateLimit, getRateLimitHeaders } from '@/lib/mcp-rate-limit';
+
+// Maximum length for tracked strings (queries, errors)
+const MAX_TRACKED_STRING_LENGTH = 100;
+
+// CORS configuration - allowed origins for browser requests
+// Non-browser clients (no Origin header) are always allowed
+const ALLOWED_ORIGINS = process.env.MCP_ALLOWED_ORIGINS?.split(',') || [
+  'https://claude.ai',
+  'https://www.claude.ai',
+  'https://build.avax.network',
+  ...(process.env.NODE_ENV === 'development' ? ['http://localhost:3000'] : []),
+];
+
+/**
+ * Truncate a string for analytics tracking.
+ */
+function truncateForTracking(str: string): string {
+  if (str.length <= MAX_TRACKED_STRING_LENGTH) return str;
+  return str.slice(0, MAX_TRACKED_STRING_LENGTH - 3) + '...';
+}
+
+/**
+ * Sanitize an error message for analytics (remove potentially sensitive info).
+ */
+function sanitizeErrorMessage(error: unknown): string {
+  if (!(error instanceof Error)) return 'Unknown error';
+  // Only return the error name and a truncated message
+  const name = error.name || 'Error';
+  const message = truncateForTracking(error.message);
+  return `${name}: ${message}`;
+}
+
+// Helper to capture MCP-specific events
+function captureMCPEvent(event: string, properties: Record<string, unknown>) {
+  // Intentionally not awaited - analytics should not block MCP responses
+  void captureServerEvent(event, { ...properties, source: 'mcp-server' }, 'mcp_server');
+}
+
+/**
+ * Validate origin for CORS
+ * Returns true if origin is allowed or if no origin (non-browser client)
+ */
+function validateOrigin(request: Request): boolean {
+  const origin = request.headers.get('origin');
+
+  // Allow non-browser clients (no Origin header)
+  if (!origin) return true;
+
+  // Check against allowlist
+  return ALLOWED_ORIGINS.includes(origin);
+}
+
+/**
+ * Get CORS headers for response
+ */
+function getCORSHeaders(request: Request): Record<string, string> {
+  const origin = request.headers.get('origin');
+
+  if (!origin) {
+    // No origin header - non-browser client, no CORS headers needed
+    return {};
+  }
+
+  if (ALLOWED_ORIGINS.includes(origin)) {
+    return {
+      'Access-Control-Allow-Origin': origin,
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Accept',
+      'Vary': 'Origin',
+    };
+  }
+
+  return {};
+}
+
+/**
+ * Validate URL for fetch tool to prevent SSRF
+ */
+function validateFetchUrl(url: string): { valid: boolean; error?: string } {
+  // Must start with /
+  if (!url.startsWith('/')) {
+    return { valid: false, error: 'URL must start with /' };
+  }
+
+  // Reject external URLs, protocols, and path traversal
+  if (url.includes('://') || url.includes('..')) {
+    return { valid: false, error: 'URL must be an internal path without ".." or protocols' };
+  }
+
+  // Only allow specific prefixes
+  const allowedPrefixes = ['/docs/', '/academy/', '/integrations/', '/blog/'];
+  if (!allowedPrefixes.some(prefix => url.startsWith(prefix))) {
+    return {
+      valid: false,
+      error: `URL must start with one of: ${allowedPrefixes.join(', ')}`
+    };
+  }
+
+  return { valid: true };
+}
 
 // Helper to get page content
 async function getPageContent(url: string): Promise<string | null> {
@@ -29,6 +131,12 @@ function searchDocs(
   query: string,
   options: { source?: string; limit?: number } = {}
 ): Array<{ url: string; title: string; description?: string; source: string; score: number }> {
+  // Defensive check for undefined/null query
+  if (!query || typeof query !== 'string') {
+    console.warn('searchDocs called with invalid query:', query);
+    return [];
+  }
+
   const { source, limit = 10 } = options;
   const queryLower = query.toLowerCase();
   const queryTerms = queryLower.split(/\s+/).filter((t) => t.length > 2);
@@ -178,13 +286,30 @@ const RESOURCES = [
 
 // Handle tool calls
 async function handleToolCall(name: string, args: Record<string, unknown>) {
+  const startTime = Date.now();
+
   switch (name) {
     case 'avalanche_docs_search': {
-      const query = args.query as string;
-      const source = args.source as string | undefined;
-      const limit = args.limit as number | undefined;
+      const query = typeof args.query === 'string' ? args.query : '';
+      const source = typeof args.source === 'string' ? args.source : undefined;
+      const limit = typeof args.limit === 'number' ? args.limit : undefined;
+
+      if (!query) {
+        return {
+          content: [{ type: 'text', text: 'Error: query parameter is required' }],
+        };
+      }
 
       const results = searchDocs(query, { source, limit });
+      const latencyMs = Date.now() - startTime;
+
+      // Track search event (truncate query for privacy/size)
+      captureMCPEvent('mcp_search', {
+        query: query ? truncateForTracking(query) : '',
+        source_filter: source || 'all',
+        result_count: results.length,
+        latency_ms: latencyMs,
+      });
 
       if (results.length === 0) {
         return {
@@ -211,9 +336,26 @@ async function handleToolCall(name: string, args: Record<string, unknown>) {
 
     case 'avalanche_docs_fetch': {
       const url = args.url as string;
+
+      // Validate URL to prevent SSRF
+      const validation = validateFetchUrl(url);
+      if (!validation.valid) {
+        return {
+          content: [{ type: 'text', text: `Invalid URL: ${validation.error}` }],
+        };
+      }
+
       const normalizedUrl = url.startsWith('/') ? url : `/${url}`;
 
       const content = await getPageContent(normalizedUrl);
+      const latencyMs = Date.now() - startTime;
+
+      // Track fetch event
+      captureMCPEvent('mcp_fetch', {
+        url: normalizedUrl,
+        found: !!content,
+        latency_ms: latencyMs,
+      });
 
       if (!content) {
         return {
@@ -267,6 +409,13 @@ async function handleToolCall(name: string, args: Record<string, unknown>) {
       text += `\n## Integrations\n- ${integrationPages.length} integration pages\n`;
       text += `\n## Blog\n- ${blogPages.length} blog posts\n`;
 
+      const latencyMs = Date.now() - startTime;
+
+      // Track list sections event
+      captureMCPEvent('mcp_list_sections', {
+        latency_ms: latencyMs,
+      });
+
       return {
         content: [{ type: 'text', text }],
       };
@@ -279,12 +428,21 @@ async function handleToolCall(name: string, args: Record<string, unknown>) {
 
 // Handle resource reads
 async function handleResourceRead(uri: string) {
+  const startTime = Date.now();
+
   switch (uri) {
     case 'docs://index': {
       const docPages = documentation.getPages();
       const content = docPages
         .map((p) => `- [${p.data.title}](${p.url})${p.data.description ? `: ${p.data.description}` : ''}`)
         .join('\n');
+
+      // Track resource read event
+      captureMCPEvent('mcp_resource_read', {
+        uri,
+        latency_ms: Date.now() - startTime,
+      });
+
       return {
         contents: [
           {
@@ -301,6 +459,13 @@ async function handleResourceRead(uri: string) {
       const content = academyPages
         .map((p) => `- [${p.data.title}](${p.url})${p.data.description ? `: ${p.data.description}` : ''}`)
         .join('\n');
+
+      // Track resource read event
+      captureMCPEvent('mcp_resource_read', {
+        uri,
+        latency_ms: Date.now() - startTime,
+      });
+
       return {
         contents: [
           {
@@ -317,6 +482,13 @@ async function handleResourceRead(uri: string) {
       const content = integrationPages
         .map((p) => `- [${p.data.title}](${p.url})${p.data.description ? `: ${p.data.description}` : ''}`)
         .join('\n');
+
+      // Track resource read event
+      captureMCPEvent('mcp_resource_read', {
+        uri,
+        latency_ms: Date.now() - startTime,
+      });
+
       return {
         contents: [
           {
@@ -349,7 +521,17 @@ async function processRequest(request: z.infer<typeof jsonRpcRequestSchema>) {
     let result: unknown;
 
     switch (method) {
-      case 'initialize':
+      case 'initialize': {
+        // Extract client info from params (per MCP spec)
+        const clientInfo = params?.clientInfo as { name?: string; version?: string } | undefined;
+
+        // Track client connection
+        captureMCPEvent('mcp_initialize', {
+          client_name: clientInfo?.name || 'unknown',
+          client_version: clientInfo?.version || 'unknown',
+          protocol_version: SERVER_INFO.protocolVersion,
+        });
+
         result = {
           protocolVersion: SERVER_INFO.protocolVersion,
           capabilities: {
@@ -362,6 +544,7 @@ async function processRequest(request: z.infer<typeof jsonRpcRequestSchema>) {
           },
         };
         break;
+      }
 
       case 'tools/list':
         result = { tools: TOOLS };
@@ -402,6 +585,13 @@ async function processRequest(request: z.infer<typeof jsonRpcRequestSchema>) {
       result,
     };
   } catch (error) {
+    // Track error event (sanitized to avoid leaking sensitive info)
+    captureMCPEvent('mcp_error', {
+      method,
+      error_type: error instanceof Error ? error.name : 'Error',
+      error_message: sanitizeErrorMessage(error),
+    });
+
     return {
       jsonrpc: '2.0',
       id,
@@ -414,17 +604,35 @@ async function processRequest(request: z.infer<typeof jsonRpcRequestSchema>) {
 }
 
 // GET endpoint - returns server info and capabilities
-export async function GET() {
-  return NextResponse.json({
-    name: SERVER_INFO.name,
-    version: SERVER_INFO.version,
-    protocolVersion: SERVER_INFO.protocolVersion,
-    description: 'MCP server for Avalanche documentation',
-    tools: TOOLS,
-    resources: RESOURCES,
-    endpoints: {
-      rpc: '/api/mcp',
-      docs: 'https://build.avax.network',
+export async function GET(request: NextRequest) {
+  const corsHeaders = getCORSHeaders(request);
+
+  return NextResponse.json(
+    {
+      name: SERVER_INFO.name,
+      version: SERVER_INFO.version,
+      protocolVersion: SERVER_INFO.protocolVersion,
+      description: 'MCP server for Avalanche documentation',
+      tools: TOOLS,
+      resources: RESOURCES,
+      endpoints: {
+        rpc: '/api/mcp',
+        docs: 'https://build.avax.network',
+      },
+    },
+    { headers: corsHeaders }
+  );
+}
+
+// OPTIONS endpoint - CORS preflight
+export async function OPTIONS(request: NextRequest) {
+  const corsHeaders = getCORSHeaders(request);
+
+  return new Response(null, {
+    status: 204,
+    headers: {
+      ...corsHeaders,
+      'Access-Control-Max-Age': '86400', // 24 hours
     },
   });
 }
@@ -455,10 +663,47 @@ function wantsSSE(request: Request): boolean {
 }
 
 // POST endpoint - handles MCP JSON-RPC requests with Streamable HTTP support
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  // Validate origin for CORS
+  if (!validateOrigin(request)) {
+    const corsHeaders = getCORSHeaders(request);
+    return NextResponse.json(
+      {
+        jsonrpc: '2.0',
+        id: null,
+        error: {
+          code: -32000,
+          message: 'Origin not allowed'
+        }
+      },
+      {
+        status: 403,
+        headers: corsHeaders,
+      }
+    );
+  }
+
+  // Check rate limit
+  const rateLimitResponse = await checkMCPRateLimit(request);
+  if (rateLimitResponse) {
+    // Add CORS headers to rate limit response
+    const corsHeaders = getCORSHeaders(request);
+    const headers = new Headers(rateLimitResponse.headers);
+    Object.entries(corsHeaders).forEach(([key, value]) => {
+      headers.set(key, value);
+    });
+
+    return new NextResponse(rateLimitResponse.body, {
+      status: rateLimitResponse.status,
+      headers,
+    });
+  }
+
   try {
     const body = await request.json();
     const useSSE = wantsSSE(request);
+    const corsHeaders = getCORSHeaders(request);
+    const rateLimitHeaders = await getRateLimitHeaders(request);
 
     // Handle batch requests
     if (Array.isArray(body)) {
@@ -480,9 +725,13 @@ export async function POST(request: Request) {
       );
 
       if (useSSE) {
-        return createSSEResponse(results);
+        const response = createSSEResponse(results);
+        Object.entries({ ...corsHeaders, ...rateLimitHeaders }).forEach(([key, value]) => {
+          response.headers.set(key, value);
+        });
+        return response;
       }
-      return NextResponse.json(results);
+      return NextResponse.json(results, { headers: { ...corsHeaders, ...rateLimitHeaders } });
     }
 
     // Handle single request
@@ -498,9 +747,13 @@ export async function POST(request: Request) {
       };
 
       if (useSSE) {
-        return createSSEResponse(errorResponse);
+        const response = createSSEResponse(errorResponse);
+        Object.entries({ ...corsHeaders, ...rateLimitHeaders }).forEach(([key, value]) => {
+          response.headers.set(key, value);
+        });
+        return response;
       }
-      return NextResponse.json(errorResponse, { status: 400 });
+      return NextResponse.json(errorResponse, { status: 400, headers: { ...corsHeaders, ...rateLimitHeaders } });
     }
 
     const result = await processRequest(parsed.data);
@@ -508,10 +761,14 @@ export async function POST(request: Request) {
     if (useSSE) {
       // Generate event ID for resumability
       const eventId = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-      return createSSEResponse(result, eventId);
+      const response = createSSEResponse(result, eventId);
+      Object.entries({ ...corsHeaders, ...rateLimitHeaders }).forEach(([key, value]) => {
+        response.headers.set(key, value);
+      });
+      return response;
     }
 
-    return NextResponse.json(result);
+    return NextResponse.json(result, { headers: { ...corsHeaders, ...rateLimitHeaders } });
   } catch (error) {
     console.error('MCP error:', error);
     const errorResponse = {
@@ -523,9 +780,16 @@ export async function POST(request: Request) {
       },
     };
 
+    const corsHeaders = getCORSHeaders(request);
+    const rateLimitHeaders = await getRateLimitHeaders(request);
+
     if (wantsSSE(request)) {
-      return createSSEResponse(errorResponse);
+      const response = createSSEResponse(errorResponse);
+      Object.entries({ ...corsHeaders, ...rateLimitHeaders }).forEach(([key, value]) => {
+        response.headers.set(key, value);
+      });
+      return response;
     }
-    return NextResponse.json(errorResponse, { status: 400 });
+    return NextResponse.json(errorResponse, { status: 400, headers: { ...corsHeaders, ...rateLimitHeaders } });
   }
 }

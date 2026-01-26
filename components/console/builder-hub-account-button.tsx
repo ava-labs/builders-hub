@@ -7,7 +7,6 @@ import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useLoginModalTrigger } from "@/hooks/useLoginModal";
-import { LoginModal } from "@/components/login/LoginModal";
 
 export function BuilderHubAccountButton() {
     const { data: session, status } = useSession();
@@ -52,9 +51,10 @@ export function BuilderHubAccountButton() {
         );
     }
 
+    // LoginModal is rendered by LoginModalWrapper in the console layout
+    // so we don't need to render it here
     return (
         <>
-            <LoginModal />
             {isAuthenticated ? (
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -74,12 +74,14 @@ export function BuilderHubAccountButton() {
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent className="w-56">
-                        <DropdownMenuItem disabled>
+                        <DropdownMenuItem disabled className="truncate cursor-default" title={session?.user?.email || 'No email available'}>
                             {session?.user?.email || 'No email available'}
                         </DropdownMenuItem>
-                        <DropdownMenuItem disabled>
-                            {session?.user?.name || 'No name available'}
-                        </DropdownMenuItem>
+                        {session?.user?.name && session?.user?.name !== session?.user?.email && (
+                            <DropdownMenuItem disabled>
+                                {session.user.name}
+                            </DropdownMenuItem>
+                        )}
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => router.push('/profile')}>
                             <User className="mr-2 h-3 w-3" />

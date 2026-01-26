@@ -30,9 +30,9 @@ export const menuSections: NavSection[] = [
     title: 'Academy',
     href: '/academy',
     items: [
-      { text: 'Avalanche L1 Academy', href: '/academy?path=avalanche-l1' },
-      { text: 'Entrepreneur Academy', href: '/academy?path=entrepreneur' },
-      { text: 'Blockchain Academy', href: '/academy?path=blockchain' },
+      { text: 'Avalanche L1 Academy', href: '/academy/avalanche-l1' },
+      { text: 'Entrepreneur Academy', href: '/academy/entrepreneur' },
+      { text: 'Blockchain Academy', href: '/academy/blockchain' },
     ],
   },
   {
@@ -40,10 +40,17 @@ export const menuSections: NavSection[] = [
     href: '/docs/primary-network',
     items: [
       { text: 'Primary Network', href: '/docs/primary-network' },
-      { text: 'Node RPCs', href: '/docs/rpcs/c-chain' },
+      { text: 'Nodes & Validators', href: '/docs/nodes' },
       { text: 'Data APIs', href: '/docs/api-reference/data-api' },
       { text: 'ACPs', href: '/docs/acps' },
       { text: 'Developer Tools', href: '/docs/tooling' },
+    ],
+  },
+  {
+    title: 'Chat',
+    href: '/chat',
+    items: [
+      { text: 'Ask AI', href: '/chat' },
     ],
   },
   {
@@ -61,7 +68,7 @@ export const menuSections: NavSection[] = [
     href: '/hackathons',
     items: [
       { text: 'Hackathons', href: '/hackathons' },
-      { text: 'Avalanche Calendar', href: 'https://lu.ma/calendar/cal-Igl2DB6quhzn7Z4', external: true },
+      { text: 'BuildGames', href: '/build-games' },
       { text: 'Community Driven Events', href: 'https://lu.ma/Team1?utm_source=builder_hub', external: true },
       { text: 'Campus Connect', href: '/university' },
     ],

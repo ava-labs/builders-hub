@@ -4,9 +4,9 @@ import React, { useState, useEffect } from "react";
 import { cn } from "@/utils/cn";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { Sponsors } from '@/components/landing/globe';
-import { GraduationCap } from 'lucide-react';
-import Chatbot from '@/components/ui/chatbot';
+import { GraduationCap, Sparkles, ArrowRight } from 'lucide-react';
 
 // Premium animation styles
 const premiumStyles = `
@@ -155,6 +155,55 @@ if (typeof document !== 'undefined') {
   document.head.appendChild(styleSheet);
 }
 
+// Random taglines (Minecraft splash style)
+const taglines = [
+  // The journey
+  "From your first contract to your own blockchain.",
+  "C-Chain for day one. Your own L1 when you outgrow it.",
+  "Start permissionless. Go sovereign when ready.",
+  "The only network where your app can graduate to its own blockchain.",
+  "The network that grows with you.",
+
+  // Choice/flexibility
+  "Deploy a contract or deploy a blockchain.",
+  "Shared chain or sovereign chain. You decide.",
+  "Build on ours or build your own.",
+  "Your chain, your rules, your fees.",
+
+  // Speed/performance
+  "Sub-second finality. No compromises.",
+  "Same finality whether you're on C-Chain or your own chain.",
+  "Instant finality changes everything.",
+  "EVM compatible. Avalanche fast.",
+
+  // Builder attitude
+  "Why rent blockspace when you can own the block?",
+  "Stop fighting for gas. Get your own chain.",
+  "No gas wars. Just building.",
+  "Your app deserves its own chain.",
+  "Where serious builders ship.",
+  "Ship fast. Scale faster.",
+
+  // Cheeky
+  "Launch a chain before lunch.",
+  "Blockchains shouldn't be hard.",
+  "Yes, you can have your own blockchain.",
+];
+
+function Tagline() {
+  const [tagline, setTagline] = useState(taglines[0]);
+
+  useEffect(() => {
+    setTagline(taglines[Math.floor(Math.random() * taglines.length)]);
+  }, []);
+
+  return (
+    <p className="text-lg sm:text-xl text-slate-600 dark:text-slate-400 leading-relaxed max-w-lg mx-auto lg:mx-0">
+      {tagline}
+    </p>
+  );
+}
+
 // Rotating Text Component
 function RotatingText() {
   const words = ['Documentation', 'Academy', 'Console', 'Hackathons', 'Bounties', 'Events', 'Grants', 'Stats'];
@@ -197,6 +246,50 @@ function RotatingText() {
   );
 }
 
+// Placeholder questions based on actual docs/academy content
+const PLACEHOLDER_QUESTIONS = [
+  "How do I create my own L1?",
+  "Deploy a smart contract on C-Chain",
+  "Send tokens between L1s with ICTT",
+  "Run a validator node",
+  "What are the staking requirements?",
+  "Set up Interchain Messaging",
+  "Use Avalanche CLI to deploy",
+  "Create a custom gas token",
+  "How does Avalanche consensus work?",
+  "Bridge tokens to my L1",
+  "Add a custom precompile",
+  "Set up a local testnet",
+];
+
+// Hero Search Box Component - matches the glassmorphism style of CTA buttons
+function HeroSearchBox() {
+  const [question, setQuestion] = useState(PLACEHOLDER_QUESTIONS[0]);
+
+  // Pick a random question on mount
+  useEffect(() => {
+    setQuestion(PLACEHOLDER_QUESTIONS[Math.floor(Math.random() * PLACEHOLDER_QUESTIONS.length)]);
+  }, []);
+
+  return (
+    <Link
+      href={`/chat?q=${encodeURIComponent(question)}`}
+      className={cn(
+        "group premium-button flex items-center gap-3 px-8 py-4 rounded-xl transition-all duration-300",
+        "w-full sm:w-[336px]",
+        "bg-white/60 dark:bg-zinc-800/80 glass-effect border border-slate-200/50 dark:border-slate-600/50",
+        "hover:bg-white/80 dark:hover:bg-zinc-800/90 hover:scale-[1.02]"
+      )}
+    >
+      <Sparkles className="w-6 h-6 sm:w-5 sm:h-5 text-slate-500 dark:text-slate-400 flex-shrink-0" />
+      <span className="flex-1 text-slate-600 dark:text-slate-400 text-lg sm:text-base font-bold tracking-[-0.015em]">
+        {question}
+      </span>
+      <ArrowRight className="w-6 h-6 sm:w-5 sm:h-5 text-slate-500 dark:text-slate-400 group-hover:translate-x-1 transition-transform flex-shrink-0" />
+    </Link>
+  );
+}
+
 // Extract Background Component
 export function HeroBackground() {
   return (
@@ -226,14 +319,12 @@ export default function Hero() {
                 Builder Hub
                 </span>
               </h1>
-              
+
               <h2 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-semibold tracking-tight leading-[1.2] flex items-center justify-center lg:justify-start min-h-[1.5em]">
                 <RotatingText />
               </h2>
-              
-              {/* <p className="text-xl sm:text-2xl lg:text-2xl xl:text-3xl text-slate-600 dark:text-slate-300 font-light leading-[1.5] tracking-[-0.025em] max-w-2xl mx-auto lg:mx-0 text-balance">
-                Everything you need to go from idea to impact.
-              </p> */}
+
+              <Tagline />
             </div>
 
             {/* CTA Buttons */}
@@ -245,7 +336,7 @@ export default function Hero() {
                 <GraduationCap className="w-6 h-6 sm:w-5 sm:h-5 mr-3" />
                 Start Learning
               </Link>
-              
+
               <Link
                 href="/docs/primary-network"
                 className="group premium-button inline-flex items-center justify-center px-8 py-4 text-lg sm:text-base font-bold tracking-[-0.015em] rounded-xl bg-white/10 glass-effect border border-slate-200/30 text-slate-900 dark:text-white hover:bg-white/20 hover:scale-[1.02] transition-all duration-300 backdrop-blur-sm dark:border-slate-700/40 min-w-[160px]"
@@ -255,13 +346,11 @@ export default function Hero() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                 </svg>
               </Link>
+            </div>
 
-              <div className="hidden sm:block">
-                <Chatbot 
-                  variant="static" 
-                  className="ml-2" 
-                />
-              </div>
+            {/* AI Search Box - below CTA buttons */}
+            <div className="hidden sm:flex justify-center lg:justify-start">
+              <HeroSearchBox />
             </div>
           </div>
 

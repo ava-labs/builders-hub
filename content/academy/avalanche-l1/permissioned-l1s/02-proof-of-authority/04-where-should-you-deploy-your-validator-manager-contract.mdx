@@ -1,0 +1,36 @@
+---
+title: VMC Deployment Options
+description: Decide whether to deploy the Validator Manager on your L1 or on Avalanche C-Chain
+updated: 2026-01-08
+authors: [nicolasarnedo]
+icon: BookOpen
+---
+
+With Avalanche’s validator-management upgrades, validator set management is handled by smart contracts called **Validator Manager contracts** and this contract can be deployed and manage your validator set from any chain in the Avalanche Ecosystem.
+
+This is posible via the p-chain, which keeps a registry of all of the validators in the Avalanche network. Despite being able to deploy in any L1 on Avalanche, the 2 most common options will be:
+
+### Deploying on your L1
+
+- **Pros**: Self-contained validator management; no dependency on C-Chain; no AVAX-on-C-Chain requirement for management actions.
+- **Cons**: Management is only available when your L1 is running.
+### Deploying on C-Chain
+
+- **Pros**: A failsafe if your L1 is down; better aligned with **permissionless/PoS** trajectories; often simpler if assets/tooling are already anchored to C‑Chain.
+- **Cons**: Relies on C‑Chain availability; requires AVAX on C‑Chain for management actions; more cross-chain operational dependency.
+
+<Callout type="warning">
+Once you deploy your Validator Manager contract, you can upgrade its logic (via proxy patterns), but **you cannot move its location** from your L1 to C-Chain (or vice versa) without redeploying.
+</Callout>
+
+## Why this matters more for PoS
+
+PoA is usually managed by a small set of known operators (often one owner/multisig), so keeping the VMC on the L1 can be clean and contained.
+
+If you plan to move to PoS, you’ll generally care more about **robustness**, **permissionless onboarding**, and **long-term flexibility**—which is why deploying the VMC on **C‑Chain** is often the better default.
+
+## For This Course’s Demo
+
+In this permissioned L1 course, the **demo deploys the Validator Manager on the L1** (PoA context) so you can manage the validator set directly as part of the end‑to‑end walkthrough.
+
+

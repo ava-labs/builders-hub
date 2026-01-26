@@ -1,0 +1,281 @@
+---
+title: Automatic Enforcement
+description: How the blockchain rejects transactions from non-allowlisted addresses without any precompile call.
+updated: 2025-12-17
+authors: [nicolasarnedo]
+icon: BookOpen
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import Mermaid from "@/components/content-design/mermaid";
+
+In the previous lesson, you learned how admins call precompiles to manage the allowlist. But here's the key question: **How does the blockchain reject a normal transaction if you never call the precompile?**
+
+The answer: enforcement happens **automatically** at hardcoded checkpoints in the EVM code.
+
+## The Two Roles of Allowlist Precompiles
+
+Precompiles serve two distinct purposes:
+
+| Role | What It Does | When It Happens |
+|------|--------------|-----------------|
+| **Storage** | Acts as a database for address → role mappings | Always (persistent state) |
+| **Management** | Provides Solidity functions to modify the database | When admins call the precompile |
+| **Enforcement** | Rejects unauthorized transactions | Automatically, before every transaction |
+
+<Callout type="warning">
+**Key Insight**: You can be blocked from sending ANY transaction without ever interacting with the precompile directly. The EVM checks the precompile's storage at hardcoded enforcement points.
+</Callout>
+
+## The Enforcement Architecture
+
+<Mermaid chart={`
+graph TD
+    subgraph "Your Transaction"
+        A[Normal ETH Transfer<br/>From: 0xYou<br/>To: 0xAlice<br/>Value: 1 ETH]
+    end
+
+    subgraph "Enforcement Points"
+        B[Checkpoint 1:<br/>Mempool Validation]
+        C[Checkpoint 2:<br/>State Transition]
+        D[Checkpoint 3:<br/>Contract Creation Hook]
+    end
+
+    subgraph "Allowlist Storage"
+        E[TxAllowList Storage<br/>0x0200...0002]
+        F[DeployerAllowList Storage<br/>0x0200...0000]
+    end
+
+    A -->|Submitted| B
+    B -.Read.-> E
+    B -->|NoRole?| Z1[REJECT]
+    B -->|HasRole?| C
+    C -.Read.-> E
+    C -->|NoRole?| Z2[REJECT]
+    C -->|HasRole?| D
+    D -.Read.-> F
+    D -->|NoRole?| Z3[REJECT]
+    D -->|HasRole?| J[Execute]
+
+    style Z1 fill:#FFB6C6
+    style Z2 fill:#FFB6C6
+    style Z3 fill:#FFB6C6
+    style J fill:#90EE90
+`} />
+
+## Transaction AllowList Enforcement
+
+When you send ANY transaction (transfer, contract call, etc.), the TxAllowList is checked at **two** critical points:
+
+<Mermaid chart={`
+sequenceDiagram
+    participant User as Your Wallet
+    participant Mempool as Transaction Pool
+    participant EVM as EVM Execution
+    participant State as State Database
+    participant Storage as TxAllowList Storage<br/>0x0200...0002
+
+    Note over User: Sends normal ETH transfer<br/>To: 0xAlice, Value: 1 ETH
+
+    User->>Mempool: Submit Transaction
+    
+    rect rgb(255, 220, 220)
+    Note over Mempool,Storage: CHECKPOINT 1: Mempool Validation
+    Mempool->>State: GetState(0x0200...0002, keccak256(sender))
+    State->>Storage: Read role
+    Storage-->>State: Role = 0x00 (NoRole)
+    State-->>Mempool: sender.role = NoRole
+    
+    alt Sender NOT in AllowList
+        Mempool-->>User: Error: sender not allow listed
+        Note over User,Mempool: TX NEVER ENTERS MEMPOOL
+    else Sender is Enabled/Admin
+        Mempool->>Mempool: Accept to mempool
+    end
+    end
+
+    Note over Mempool,EVM: Transaction in mempool...
+
+    rect rgb(255, 220, 220)
+    Note over EVM,Storage: CHECKPOINT 2: Pre-Execution Check
+    EVM->>State: GetState(0x0200...0002, keccak256(sender))
+    State->>Storage: Read role
+    Storage-->>State: Role = 0x00 (NoRole)
+    State-->>EVM: sender.role = NoRole
+    
+    alt Sender NOT in AllowList
+        EVM-->>Mempool: Transaction FAILS
+        Note over EVM: Gas consumed, state reverted
+    else Sender is Enabled/Admin
+        EVM->>EVM: Continue execution
+    end
+    end
+`} />
+
+### Why Two Checkpoints?
+
+| Checkpoint | Purpose | Speed | Consensus |
+|------------|---------|-------|-----------|
+| **Mempool** | Fast rejection, prevents spam | Immediate | Local only |
+| **Execution** | Canonical, validators must agree | During block | Network-wide |
+
+<Callout type="info">
+State can change between checks. An admin could revoke your permission after your transaction enters the mempool but before it executes.
+</Callout>
+
+## Contract Deployer AllowList Enforcement
+
+For contract deployments, there's an **additional** enforcement point via the `CanCreateContract` hook:
+
+<Mermaid chart={`
+sequenceDiagram
+    participant User as Your Wallet
+    participant Mempool as Mempool
+    participant EVM as EVM
+    participant Hook as CanCreateContract Hook
+    participant Storage as DeployerAllowList Storage<br/>0x0200...0000
+
+    Note over User: Sends contract creation TX<br/>To: null, Data: bytecode
+
+    User->>Mempool: Submit Transaction
+    Mempool->>Mempool: Basic validation passes
+    Note over Mempool: Enters mempool
+
+    EVM->>EVM: TransitionDb() begins
+    EVM->>EVM: Detect: tx.to == null → Contract Creation
+    
+    rect rgb(255, 220, 220)
+    Note over EVM,Storage: ENFORCEMENT: Before EVM.Create()
+    EVM->>Hook: CanCreateContract(caller, gas, state)
+    Hook->>Storage: GetState(0x0200...0000, keccak256(tx.origin))
+    Storage-->>Hook: Role = 0x00 (NoRole)
+    
+    alt Not Authorized to Deploy
+        Hook-->>EVM: Error: not authorized to deploy
+        EVM-->>User: Transaction FAILS
+        Note over EVM: Gas consumed, contract NOT created
+    else Authorized (Enabled/Admin)
+        Hook-->>EVM: Continue
+        EVM->>EVM: Deploy contract normally
+    end
+    end
+`} />
+
+### The Hook Implementation
+
+```go
+func (r RulesExtra) CanCreateContract(
+    ac *libevm.AddressContext,
+    gas uint64,
+    state libevm.StateReader,
+) (uint64, error) {
+    
+    if r.IsPrecompileEnabled(deployerallowlist.ContractAddress) {
+        // Read deployer role from precompile storage
+        allowListRole := deployerallowlist.GetContractDeployerAllowListStatus(
+            state,
+            ac.Origin, // tx.origin (the original sender)
+        )
+        
+        if !allowListRole.IsEnabled() {
+            // REJECT: Return error
+            return 0, fmt.Errorf(
+                "tx.origin %s is not authorized to deploy a contract",
+                ac.Origin,
+            )
+        }
+    }
+    
+    return gas, nil // Authorized, continue
+}
+```
+
+## Where is the Allowlist Data Stored?
+
+The enforcement code reads from the precompile's storage trie:
+
+<Mermaid chart={`
+graph TB
+    subgraph "State Trie"
+        A["Account: 0x0200...0002<br/>(TxAllowList Address)"]
+        A --> B[Nonce: 1]
+        A --> C[Balance: 0]
+        A --> D[Code: 0x01]
+        A --> E[Storage Root]
+    end
+
+    subgraph "Storage Trie at TxAllowList Address"
+        E --> F["Key: keccak256(0xAlice)"]
+        E --> G["Key: keccak256(0xBob)"]
+        E --> H["Key: keccak256(0xCharlie)"]
+        F --> F1["Value: 0x02 (Enabled) ✓"]
+        G --> G1["Value: 0x01 (Admin) ✓"]
+        H --> H1["Value: 0x00 (NoRole) ✗"]
+    end
+
+    subgraph "Enforcement Code Reads This"
+        I[Mempool Validator]
+        J[State Transition]
+        I -.GetState.-> E
+        J -.GetState.-> E
+    end
+
+    style H1 fill:#FFB6C6
+    style F1 fill:#90EE90
+    style G1 fill:#FFD700
+`} />
+
+## Complete Transaction Lifecycle
+
+<Mermaid chart={`
+flowchart TD
+    A[User sends transaction] --> B[Mempool Validation]
+    B --> C{TxAllowList enabled?}
+    C -->|No| D[Skip check]
+    C -->|Yes| E{Sender in allowlist?}
+    E -->|No| F[REJECTED from mempool]
+    E -->|Yes| D
+    D --> G[Transaction enters mempool]
+    G --> H[Block building]
+    H --> I[State Transition]
+    I --> J{TxAllowList enabled?}
+    J -->|No| K[Skip check]
+    J -->|Yes| L{Sender still authorized?}
+    L -->|No| M[REJECTED during execution]
+    L -->|Yes| K
+    K --> N{Contract creation?}
+    N -->|No| O[Execute transaction]
+    N -->|Yes| P{DeployerAllowList enabled?}
+    P -->|No| Q[Create contract]
+    P -->|Yes| R{Deployer authorized?}
+    R -->|No| S[REJECTED - cannot deploy]
+    R -->|Yes| Q
+    O --> T[Transaction succeeds]
+    Q --> T
+
+    style F fill:#FFB6C6
+    style M fill:#FFB6C6
+    style S fill:#FFB6C6
+    style T fill:#90EE90
+`} />
+
+## Key Takeaways
+
+| Concept | What Happens |
+|---------|--------------|
+| **Storage vs Enforcement** | Precompile stores data; EVM enforces it at hardcoded checkpoints |
+| **You Never Call It** | Enforcement happens automatically—you can be blocked without any precompile interaction |
+| **Two-Layer Defense** | Mempool check (fast, local) + Execution check (canonical, consensus) |
+| **Contract Deployment** | Additional hook checks DeployerAllowList before any contract creation |
+| **State Reading** | `GetState(precompileAddr, keccak256(yourAddress))` returns your role |
+
+## Summary
+
+The allowlist system is enforced through **hardcoded checkpoints** in the EVM:
+
+1. **Mempool validation**: Fast rejection before entering the transaction pool
+2. **State transition**: Consensus-critical check before execution
+3. **Contract creation hook**: Additional check for deployments
+
+This multi-layered approach ensures that permission restrictions are enforced consistently throughout the transaction lifecycle—**even when you're not directly calling the precompile**.
+
