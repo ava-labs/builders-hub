@@ -9,10 +9,7 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const DATA_API_ENDPOINT =
-    process.env.VERCEL_ENV === "production"
-      ? "https://data-api.avax.network/v1"
-      : "https://data-api-dev.avax.network/v1";
+  const DATA_API_ENDPOINT = "https://data-api.avax.network/v1";
 
   try {
     const glacierJwt = await createGlacierJWT({
