@@ -232,3 +232,17 @@ export interface CustomAspectRatio {
   width: number;
   height: number;
 }
+
+// Playground Chart Data for collage from playground
+export interface PlaygroundChartData {
+  id: string;
+  title: string;
+  data: ChartDataPoint[];
+  seriesInfo: {
+    id: string;
+    name: string;
+    color: string;
+    yAxis?: string;
+  }[];
+  color?: string; // Primary color for the chart (optional, defaults to first series color)
+}
