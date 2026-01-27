@@ -483,3 +483,7 @@ aside[aria-label*="On this page" i] > div:first-child,
   }
 }
 
+/* Add extra horizontal padding to the first button in response tablist */
+div [role="tablist"] button:first-child {
+  padding-left: 0.5rem !important;
+}
