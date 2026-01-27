@@ -33,12 +33,21 @@ interface MiniChartProps {
   showStats?: boolean;
 }
 
-// Format Y axis values for mini chart
+// Format Y axis values for mini chart with smart decimal handling
 const formatYAxis = (value: number) => {
-  if (value >= 1e12) return `${(value / 1e12).toFixed(0)}T`;
-  if (value >= 1e9) return `${(value / 1e9).toFixed(0)}B`;
-  if (value >= 1e6) return `${(value / 1e6).toFixed(0)}M`;
-  if (value >= 1e3) return `${(value / 1e3).toFixed(0)}K`;
+  const format = (scaled: number, suffix: string) => {
+    // >= 100: no decimal (e.g., 338M, 111K)
+    if (scaled >= 100) return `${Math.round(scaled)}${suffix}`;
+    // >= 10: 1 decimal, strip trailing .0 (e.g., 31.3M or 20M)
+    if (scaled >= 10) return `${scaled.toFixed(1).replace(/\.0$/, '')}${suffix}`;
+    // < 10: 1 decimal, strip trailing .0 (e.g., 1.1B or 5M)
+    return `${scaled.toFixed(1).replace(/\.0$/, '')}${suffix}`;
+  };
+
+  if (value >= 1e12) return format(value / 1e12, 'T');
+  if (value >= 1e9) return format(value / 1e9, 'B');
+  if (value >= 1e6) return format(value / 1e6, 'M');
+  if (value >= 1e3) return format(value / 1e3, 'K');
   return value.toLocaleString();
 };
 
@@ -175,6 +184,9 @@ export function MiniChart({
   const minValue = values.length > 0 ? Math.min(...values) : 0;
   const maxValue = values.length > 0 ? Math.max(...values) : 0;
 
+  // Calculate Y-axis domain with 10% padding above max to ensure data fits
+  const yAxisDomain: [number, number] = [0, Math.ceil(maxValue * 1.1)];
+
   if (isLoading) {
     return (
       <div
@@ -227,7 +239,7 @@ export function MiniChart({
           {chartType === "bar" ? (
             <BarChart
               data={data}
-              margin={{ top: 4, right: 8, left: 0, bottom: 4 }}
+              margin={{ top: 12, right: 8, left: 0, bottom: 4 }}
             >
               {showGrid && (
                 <CartesianGrid
@@ -245,6 +257,7 @@ export function MiniChart({
                 hide={height < 100}
               />
               <YAxis
+                domain={yAxisDomain}
                 tickFormatter={formatYAxis}
                 tick={{ fontSize: 8, className: getMutedTextColorClass() }}
                 axisLine={false}
@@ -270,7 +283,7 @@ export function MiniChart({
           ) : chartType === "line" ? (
             <LineChart
               data={data}
-              margin={{ top: 4, right: 8, left: 0, bottom: 4 }}
+              margin={{ top: 12, right: 8, left: 0, bottom: 4 }}
             >
               {showGrid && (
                 <CartesianGrid
@@ -288,6 +301,7 @@ export function MiniChart({
                 hide={height < 100}
               />
               <YAxis
+                domain={yAxisDomain}
                 tickFormatter={formatYAxis}
                 tick={{ fontSize: 8, className: getMutedTextColorClass() }}
                 axisLine={false}
@@ -315,7 +329,7 @@ export function MiniChart({
           ) : (
             <AreaChart
               data={data}
-              margin={{ top: 4, right: 8, left: 0, bottom: 4 }}
+              margin={{ top: 12, right: 8, left: 0, bottom: 4 }}
             >
               <defs>
                 <linearGradient id={`gradient-${title.replace(/\s+/g, "-")}`} x1="0" y1="0" x2="0" y2="1">
@@ -339,6 +353,7 @@ export function MiniChart({
                 hide={height < 100}
               />
               <YAxis
+                domain={yAxisDomain}
                 tickFormatter={formatYAxis}
                 tick={{ fontSize: 8, className: getMutedTextColorClass() }}
                 axisLine={false}
