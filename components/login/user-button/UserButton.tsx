@@ -11,7 +11,7 @@ import { signOut, useSession } from 'next-auth/react';
 import Image from 'next/image';
 import Link from 'next/link'; 
 import SignOutComponent from '../sign-out/SignOut';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { CircleUserRound } from 'lucide-react';
 import { Separator } from '@radix-ui/react-dropdown-menu';
 import { useLoginModalTrigger } from '@/hooks/useLoginModal';
@@ -20,19 +20,6 @@ export function UserButton() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const isAuthenticated = status === 'authenticated';
   const { openLoginModal } = useLoginModalTrigger();
-
-  const formattedEmail = useMemo(() => {
-    const email = session?.user?.email;
-    if (!email) return null;
-    
-    const atIndex = email.indexOf('@');
-    if (atIndex === -1) return { localPart: email, domain: null };
-    
-    return {
-      localPart: email.substring(0, atIndex),
-      domain: email.substring(atIndex), // Incluye el @
-    };
-  }, [session?.user?.email]);
 
   const handleSignOut = (): void => {
     // Clean up any stored redirect URLs before logout
@@ -82,23 +69,18 @@ export function UserButton() {
             shadow-lg p-1 rounded-md w-48'
             >
               <div className="px-2 py-1.5">
-                {formattedEmail ? (
-                  <div className="text-sm">
-                    <div className="break-words">{formattedEmail.localPart}</div>
-                    {formattedEmail.domain && (
-                      <div className="break-words">{formattedEmail.domain}</div>
-                    )}
-                  </div>
-                ) : (
-                  <p className="text-sm break-words">
-                    {session.user.email || 'No email available'}
+                <div
+                  className="text-sm truncate cursor-default"
+                  title={session.user.email || 'No email available'}
+                >
+                  {session.user.email || 'No email available'}
+                </div>
+
+                {session.user.name && session.user.name !== session.user.email && (
+                  <p className="text-sm break-words mt-1">
+                    {session.user.name}
                   </p>
                 )}
-
-
-                <p className="text-sm break-words mt-1">
-                  {session.user.name || 'No name available'}
-                </p>
               </div>
               <Separator className="h-px bg-zinc-200 dark:bg-zinc-600 my-1" />
 
