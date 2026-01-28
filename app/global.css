@@ -200,6 +200,67 @@ svg.lucide.lucide-folder-open {
   animation-delay: calc(var(--i) * 0.5s);
 }
 
+/* Blinking cursor animation for typewriter effect */
+@keyframes blink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+/* Smooth streaming text rendering */
+.streaming-markdown {
+  /* Smooth font rendering */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Code block styling during streaming (before syntax highlighting kicks in) */
+.streaming-markdown pre {
+  background-color: #18181b;
+  border: 1px solid #27272a;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  overflow-x: auto;
+  margin: 1rem 0;
+}
+
+.streaming-markdown pre code {
+  background: transparent;
+  padding: 0;
+  font-size: 0.875rem;
+  line-height: 1.7;
+  color: #e4e4e7;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+/* Inline code during streaming */
+.streaming-markdown code:not(pre code) {
+  background-color: #27272a;
+  padding: 0.2em 0.4em;
+  border-radius: 0.25rem;
+  font-size: 0.875em;
+  color: #e4e4e7;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+/* Light mode streaming code blocks */
+:root:not(.dark) .streaming-markdown pre {
+  background-color: #fafafa;
+  border-color: #e4e4e7;
+}
+
+:root:not(.dark) .streaming-markdown pre code {
+  color: #18181b;
+}
+
+:root:not(.dark) .streaming-markdown code:not(pre code) {
+  background-color: #f4f4f5;
+  color: #18181b;
+}
+
 .bg-fd-foreground\/25 {
   background-color: #4bccff96;
 }
@@ -556,6 +617,31 @@ html {
       height: 0;
     }
   }
+
+  @keyframes collapsible-down {
+    from {
+      height: 0;
+      opacity: 0;
+    }
+    to {
+      height: var(--radix-collapsible-content-height);
+      opacity: 1;
+    }
+  }
+
+  @keyframes collapsible-up {
+    from {
+      height: var(--radix-collapsible-content-height);
+      opacity: 1;
+    }
+    to {
+      height: 0;
+      opacity: 0;
+    }
+  }
+
+  --animate-collapsible-down: collapsible-down 0.2s ease-out;
+  --animate-collapsible-up: collapsible-up 0.2s ease-out;
 }
 
 @layer base {
@@ -1236,5 +1322,107 @@ nav.explorer-breadcrumb li > a:hover,
   padding: 0 !important;
   background-color: transparent !important;
   box-shadow: none !important;
+}
+
+/* ===========================================
+   EMBED MODE STYLES
+   Applied when page is viewed with ?embed=true
+   (e.g., in the chat embedded panel iframe)
+   =========================================== */
+
+/* Hide the countdown banner in embed mode */
+html.embed-mode [data-countdown-banner],
+html.embed-mode .countdown-banner,
+html.embed-mode [id="hardware-banner"],
+html.embed-mode #nd-banner,
+html.embed-mode .nd-banner {
+  display: none !important;
+}
+
+/* Hide the main navbar in embed mode */
+html.embed-mode #nd-nav,
+html.embed-mode nav[aria-label="Main"],
+html.embed-mode header[aria-label="Main"] {
+  display: none !important;
+}
+
+/* Hide sidebars in embed mode for cleaner reading */
+html.embed-mode #nd-sidebar,
+html.embed-mode #nd-sidebar-mobile,
+html.embed-mode aside[id="nd-sidebar"] {
+  display: none !important;
+}
+
+/* Reset TOC padding in embed mode (no banner = no extra padding needed) */
+html.embed-mode #nd-toc {
+  padding-top: 1rem !important;
+  top: 0 !important;
+}
+
+/* Hide the chatbot widget in embed mode */
+html.embed-mode [data-chatbot],
+html.embed-mode .chatbot-container {
+  display: none !important;
+}
+
+/* Hide privacy policy banner in embed mode */
+html.embed-mode #privacy-banner-root {
+  display: none !important;
+}
+
+/* Adjust main content to use full width in embed mode (no sidebar) */
+html.embed-mode main {
+  margin-left: 0 !important;
+  padding-left: 1rem !important;
+  padding-right: 1rem !important;
+}
+
+/* Remove any top margin/padding that would have been for navbar */
+html.embed-mode body {
+  padding-top: 0 !important;
+}
+
+/* Ensure docs content starts at top in embed mode */
+html.embed-mode .nd-layout-docs,
+html.embed-mode [data-layout="docs"] {
+  padding-top: 0 !important;
+}
+
+/* Fix article/prose content to have proper padding in embed mode */
+html.embed-mode article,
+html.embed-mode .prose {
+  padding-top: 1rem !important;
+}
+
+/* Ensure TOC is properly positioned relative to content in embed mode */
+html.embed-mode #nd-toc > div {
+  position: sticky !important;
+  top: 1rem !important;
+}
+
+/* Override fumadocs docs layout grid in embed mode (no sidebar) */
+html.embed-mode .nd-docs-layout,
+html.embed-mode [data-layout="docs"] > div {
+  grid-template-columns: 1fr minmax(0, var(--fd-content-width)) min(var(--fd-toc-width), 25%) !important;
+  padding-left: 0 !important;
+}
+
+/* Remove left column from grid when sidebar is hidden */
+html.embed-mode .fd-layout-docs,
+html.embed-mode [data-docs-layout] {
+  grid-template-columns: minmax(0, 1fr) min(var(--fd-toc-width, 260px), 25%) !important;
+}
+
+/* Ensure content area starts from left edge in embed mode */
+html.embed-mode .fd-layout-docs > main,
+html.embed-mode [data-docs-layout] > main {
+  grid-column: 1 !important;
+}
+
+/* Keep TOC in its column in embed mode */
+html.embed-mode .fd-layout-docs > aside#nd-toc,
+html.embed-mode [data-docs-layout] > aside#nd-toc,
+html.embed-mode #nd-toc {
+  grid-column: 2 !important;
 }
 
