@@ -63,9 +63,9 @@ export function useL1Dashboard(): L1DashboardData {
   const isConnectedToCChain = walletChainId === C_CHAIN_FUJI || walletChainId === C_CHAIN_MAINNET;
 
   // Find current L1 from the list
-  const currentL1 = useMemo(() => {
+  const currentL1 = useMemo((): L1ListItem | null => {
     if (!walletChainId || isConnectedToCChain) return null;
-    return l1List.find((l1) => l1.evmChainId === walletChainId) || null;
+    return l1List.find((l1: L1ListItem) => l1.evmChainId === walletChainId) || null;
   }, [walletChainId, l1List, isConnectedToCChain]);
 
   const isConnectedToL1 = Boolean(currentL1);
