@@ -20,6 +20,7 @@ import { toPng } from "html-to-image";
 import { ChartWatermark } from "@/components/stats/ChartWatermark";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import { ImageExportStudio } from "@/components/stats/image-export";
+import { parseDateString, calculateDateRangeDays, formatXAxisLabel, generateXAxisTicks } from "@/components/stats/chart-axis-utils";
 
 // Types
 interface TimeSeriesDataPoint {
@@ -650,32 +651,7 @@ export default function ConfigurableChart({
 
   // Calculate the number of days in the brush range for dynamic x-axis formatting
   const brushRangeDays = useMemo(() => {
-    if (displayData.length < 2) return 0;
-
-    const startDate = displayData[0]?.date;
-    const endDate = displayData[displayData.length - 1]?.date;
-
-    if (!startDate || !endDate) return displayData.length;
-
-    const parseDate = (dateStr: string): Date => {
-      if (dateStr.includes("Q")) {
-        const [year, quarter] = dateStr.split("-Q");
-        const month = (parseInt(quarter, 10) - 1) * 3;
-        return new Date(parseInt(year, 10), month, 1);
-      }
-      const parts = dateStr.split("-");
-      const year = parseInt(parts[0], 10);
-      const month = parts[1] ? parseInt(parts[1], 10) - 1 : 0;
-      const day = parts[2] ? parseInt(parts[2], 10) : 1;
-      return new Date(year, month, day);
-    };
-
-    const start = parseDate(startDate);
-    const end = parseDate(endDate);
-    const diffTime = Math.abs(end.getTime() - start.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-    return diffDays;
+    return calculateDateRangeDays(displayData, "date");
   }, [displayData]);
 
   const visibleSeries = useMemo(() => {
@@ -697,138 +673,18 @@ export default function ConfigurableChart({
   }, [visibleSeries]);
 
 
-  // Parse date string as local time to avoid timezone issues
-  const parseLocalDate = (value: string): Date => {
-    // Handle different formats: "YYYY-MM-DD", "YYYY-MM", "YYYY"
-    const parts = value.split("-");
-    const year = parseInt(parts[0], 10);
-    const month = parts[1] ? parseInt(parts[1], 10) - 1 : 0;
-    const day = parts[2] ? parseInt(parts[2], 10) : 1;
-    return new Date(year, month, day);
-  };
-
   // Calculate total days in the full data for brush slider formatting
   const totalDataDays = useMemo(() => {
-    if (aggregatedData.length < 2) return 0;
-
-    const startDate = aggregatedData[0]?.date;
-    const endDate = aggregatedData[aggregatedData.length - 1]?.date;
-
-    if (!startDate || !endDate) return aggregatedData.length;
-
-    const parseDate = (dateStr: string): Date => {
-      if (dateStr.includes("Q")) {
-        const [year, quarter] = dateStr.split("-Q");
-        const month = (parseInt(quarter, 10) - 1) * 3;
-        return new Date(parseInt(year, 10), month, 1);
-      }
-      const parts = dateStr.split("-");
-      const year = parseInt(parts[0], 10);
-      const month = parts[1] ? parseInt(parts[1], 10) - 1 : 0;
-      const day = parts[2] ? parseInt(parts[2], 10) : 1;
-      return new Date(year, month, day);
-    };
-
-    const start = parseDate(startDate);
-    const end = parseDate(endDate);
-    const diffTime = Math.abs(end.getTime() - start.getTime());
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return calculateDateRangeDays(aggregatedData, "date");
   }, [aggregatedData]);
 
-  const formatXAxis = (value: string) => {
-    if (value.includes("Q")) {
-      const parts = value.split("-");
-      if (parts.length === 2) return `${parts[1]} ${parts[0]}`;
-      return value;
-    }
+  const formatXAxis = (value: string) => formatXAxisLabel(value, brushRangeDays);
 
-    if (/^\d{4}$/.test(value)) return value;
-
-    const date = parseLocalDate(value);
-
-    if (brushRangeDays > 730) {
-      return date.getFullYear().toString();
-    } else if (brushRangeDays > 120) {
-      // Show month + full year for medium ranges (e.g., "Jan 2026")
-      return date.toLocaleDateString("en-US", {
-        month: "short",
-        year: "numeric",
-      });
-    } else {
-      return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-    }
-  };
-
-  const formatBrushXAxis = (value: string) => {
-    if (value.includes("Q")) {
-      const parts = value.split("-");
-      if (parts.length === 2) return `${parts[1]} ${parts[0]}`;
-      return value;
-    }
-
-    if (/^\d{4}$/.test(value)) return value;
-
-    const date = parseLocalDate(value);
-
-    if (totalDataDays > 730) {
-      return date.getFullYear().toString();
-    } else if (totalDataDays > 120) {
-      return date.toLocaleDateString("en-US", {
-        month: "short",
-        year: "numeric",
-      });
-    } else {
-      return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-    }
-  };
+  const formatBrushXAxis = (value: string) => formatXAxisLabel(value, totalDataDays);
 
   // Generate custom ticks aligned to meaningful boundaries
   const xAxisTicks = useMemo(() => {
-    if (displayData.length === 0) return undefined;
-
-    const ticks: string[] = [];
-
-    if (brushRangeDays > 730) {
-      const seenYears = new Set<number>();
-      displayData.forEach((point) => {
-        const date = parseLocalDate(point.date);
-        const year = date.getFullYear();
-        if (!seenYears.has(year)) {
-          seenYears.add(year);
-          ticks.push(point.date);
-        }
-      });
-    } else if (brushRangeDays > 120) {
-      const seenMonths = new Set<string>();
-      displayData.forEach((point) => {
-        const date = parseLocalDate(point.date);
-        const monthKey = `${date.getFullYear()}-${date.getMonth()}`;
-        if (!seenMonths.has(monthKey)) {
-          seenMonths.add(monthKey);
-          ticks.push(point.date);
-        }
-      });
-      if (ticks.length > 6) {
-        const step = Math.ceil(ticks.length / 5);
-        const filtered = ticks.filter((_, i) => i % step === 0);
-        return filtered;
-      }
-    } else {
-      const desiredTicks = 5;
-      if (displayData.length <= desiredTicks) {
-        return displayData.map(p => p.date);
-      }
-      const step = Math.floor(displayData.length / desiredTicks);
-      for (let i = 0; i < displayData.length; i += step) {
-        ticks.push(displayData[i].date);
-      }
-      const lastDate = displayData[displayData.length - 1].date;
-      if (ticks[ticks.length - 1] !== lastDate) {
-        ticks.push(lastDate);
-      }
-    }
-
-    return ticks.length > 0 ? ticks : undefined;
+    return generateXAxisTicks(displayData, brushRangeDays, "date");
   }, [displayData, brushRangeDays]);
 
   const formatTooltipDate = (value: string) => {
@@ -838,7 +694,7 @@ export default function ConfigurableChart({
       if (parts.length === 2) return `${parts[1]} ${parts[0]}`;
       return value;
     }
-    const date = parseLocalDate(value);
+    const date = parseDateString(value);
     if (resolution === "M") {
       return date.toLocaleDateString("en-US", {
         month: "long",

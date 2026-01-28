@@ -25,6 +25,7 @@ import { MobileSocialLinks } from "@/components/stats/MobileSocialLinks";
 import { LinkableHeading } from "@/components/stats/LinkableHeading";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import { ChartWatermark } from "@/components/stats/ChartWatermark";
+import { calculateDateRangeDays, formatXAxisLabel, generateXAxisTicks } from "@/components/stats/chart-axis-utils";
 import { StatsBreadcrumb } from "@/components/navigation/StatsBreadcrumb";
 import { ChainCategoryFilter, allChains } from "@/components/stats/ChainCategoryFilter";
 import { useSectionNavigation } from "@/hooks/use-section-navigation";
@@ -2336,47 +2337,14 @@ function ChartCard({
     return aggregatedData.slice(start, end + 1);
   }, [brushIndexes, aggregatedData]);
 
-  const parseDateString = (dateStr: string): Date => {
-    if (dateStr.includes("Q")) {
-      const [year, quarter] = dateStr.split("-Q");
-      const month = (parseInt(quarter, 10) - 1) * 3;
-      return new Date(parseInt(year, 10), month, 1);
-    }
-    const parts = dateStr.split("-");
-    const year = parseInt(parts[0], 10);
-    const month = parts[1] ? parseInt(parts[1], 10) - 1 : 0;
-    const day = parts[2] ? parseInt(parts[2], 10) : 1;
-    return new Date(year, month, day);
-  };
-
   // Calculate the number of days in the brush range for dynamic x-axis formatting
   const brushRangeDays = useMemo(() => {
-    if (displayData.length < 2) return 0;
-
-    const startDate = displayData[0]?.day;
-    const endDate = displayData[displayData.length - 1]?.day;
-
-    if (!startDate || !endDate) return displayData.length;
-
-    const start = parseDateString(startDate);
-    const end = parseDateString(endDate);
-    const diffTime = Math.abs(end.getTime() - start.getTime());
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return calculateDateRangeDays(displayData, "day");
   }, [displayData]);
 
   // Calculate the total days in the full data for brush slider formatting
   const totalDataDays = useMemo(() => {
-    if (!aggregatedData || aggregatedData.length < 2) return 0;
-
-    const startDate = aggregatedData[0]?.day;
-    const endDate = aggregatedData[aggregatedData.length - 1]?.day;
-
-    if (!startDate || !endDate) return aggregatedData.length;
-
-    const start = parseDateString(startDate);
-    const end = parseDateString(endDate);
-    const diffTime = Math.abs(end.getTime() - start.getTime());
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return calculateDateRangeDays(aggregatedData || [], "day");
   }, [aggregatedData]);
 
   // Merge actual cumulative transaction data with daily data
@@ -2435,101 +2403,14 @@ function ChartCard({
     };
   }, [displayData]);
 
-  const formatXAxis = (value: string) => {
-    if (value.includes("Q")) {
-      const parts = value.split("-");
-      if (parts.length === 2) return `${parts[1]} ${parts[0]}`;
-      return value;
-    }
-
-    if (/^\d{4}$/.test(value)) return value;
-
-    const date = parseDateString(value);
-
-    if (brushRangeDays > 730) {
-      return date.getFullYear().toString();
-    } else if (brushRangeDays > 120) {
-      return date.toLocaleDateString("en-US", {
-        month: "short",
-        year: "numeric",
-      });
-    } else {
-      return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-    }
-  };
+  const formatXAxis = (value: string) => formatXAxisLabel(value, brushRangeDays);
 
   // Formatter for the brush slider - uses total data range
-  const formatBrushXAxis = (value: string) => {
-    if (value.includes("Q")) {
-      const parts = value.split("-");
-      if (parts.length === 2) return `${parts[1]} ${parts[0]}`;
-      return value;
-    }
-
-    if (/^\d{4}$/.test(value)) return value;
-
-    const date = parseDateString(value);
-
-    if (totalDataDays > 730) {
-      return date.getFullYear().toString();
-    } else if (totalDataDays > 120) {
-      return date.toLocaleDateString("en-US", {
-        month: "short",
-        year: "numeric",
-      });
-    } else {
-      return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-    }
-  };
+  const formatBrushXAxis = (value: string) => formatXAxisLabel(value, totalDataDays);
 
   // Generate custom ticks aligned to meaningful boundaries
   const xAxisTicks = useMemo(() => {
-    if (displayData.length === 0) return undefined;
-
-    const ticks: string[] = [];
-
-    if (brushRangeDays > 730) {
-      const seenYears = new Set<number>();
-      displayData.forEach((point: any) => {
-        const date = parseDateString(point.day);
-        const year = date.getFullYear();
-        if (!seenYears.has(year)) {
-          seenYears.add(year);
-          ticks.push(point.day);
-        }
-      });
-    } else if (brushRangeDays > 120) {
-      const seenMonths = new Set<string>();
-      displayData.forEach((point: any) => {
-        const date = parseDateString(point.day);
-        const monthKey = `${date.getFullYear()}-${date.getMonth()}`;
-        if (!seenMonths.has(monthKey)) {
-          seenMonths.add(monthKey);
-          ticks.push(point.day);
-        }
-      });
-      // If too many months, pick evenly spaced ones
-      if (ticks.length > 6) {
-        const step = Math.ceil(ticks.length / 5);
-        const filtered = ticks.filter((_, i) => i % step === 0);
-        return filtered;
-      }
-    } else {
-      const desiredTicks = 5;
-      if (displayData.length <= desiredTicks) {
-        return displayData.map((p: any) => p.day);
-      }
-      const step = Math.floor(displayData.length / desiredTicks);
-      for (let i = 0; i < displayData.length; i += step) {
-        ticks.push(displayData[i].day);
-      }
-      const lastDate = displayData[displayData.length - 1].day;
-      if (ticks[ticks.length - 1] !== lastDate) {
-        ticks.push(lastDate);
-      }
-    }
-
-    return ticks.length > 0 ? ticks : undefined;
+    return generateXAxisTicks(displayData, brushRangeDays, "day");
   }, [displayData, brushRangeDays]);
 
   const formatTooltipDate = (value: string) => {

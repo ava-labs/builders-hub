@@ -4,6 +4,7 @@ import { ResponsiveContainer, AreaChart, Area, LineChart, Line, BarChart, Bar, X
 import { Loader2 } from "lucide-react";
 import type { ChartDataPoint, Period, ChartType } from "./types";
 import { cn } from "@/lib/utils";
+import { calculateDateRangeDays, formatXAxisLabel } from "@/components/stats/chart-axis-utils";
 
 interface MiniChartProps {
   data: ChartDataPoint[];
@@ -39,78 +40,6 @@ const formatYAxis = (value: number) => {
   return value.toLocaleString();
 };
 
-// Helper to parse date strings in various formats
-const parseDateString = (dateStr: string): Date => {
-  if (!dateStr) return new Date();
-
-  // Handle quarterly format: YYYY-Q#
-  if (dateStr.includes("-Q")) {
-    const [year, quarter] = dateStr.split("-Q");
-    const month = (parseInt(quarter, 10) - 1) * 3;
-    return new Date(parseInt(year, 10), month, 1);
-  }
-
-  // Handle weekly format: YYYY-W##
-  if (dateStr.includes("-W")) {
-    const [year, weekPart] = dateStr.split("-W");
-    const weekNum = parseInt(weekPart);
-    const jan4 = new Date(parseInt(year), 0, 4);
-    const dayOfWeek = jan4.getDay() || 7;
-    const week1Start = new Date(jan4);
-    week1Start.setDate(jan4.getDate() - dayOfWeek + 1);
-    const weekDate = new Date(week1Start);
-    weekDate.setDate(week1Start.getDate() + (weekNum - 1) * 7);
-    return weekDate;
-  }
-
-  const parts = dateStr.split("-");
-  const year = parseInt(parts[0], 10);
-  const month = parts[1] ? parseInt(parts[1], 10) - 1 : 0;
-  const day = parts[2] ? parseInt(parts[2], 10) : 1;
-  return new Date(year, month, day);
-};
-
-// Calculate range in days from data array
-const getDataRangeDays = (data: ChartDataPoint[]): number => {
-  if (data.length < 2) return 0;
-
-  const dateKey = data[0]?.date !== undefined ? "date" : "day";
-  const startDate = data[0]?.[dateKey] as string;
-  const endDate = data[data.length - 1]?.[dateKey] as string;
-
-  if (!startDate || !endDate) return data.length;
-
-  const start = parseDateString(startDate);
-  const end = parseDateString(endDate);
-  const diffTime = Math.abs(end.getTime() - start.getTime());
-  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-};
-
-// Dynamic X axis formatter based on data range, for uniform readable labels
-const formatXAxis = (value: string, dataRangeDays: number) => {
-  if (!value) return "";
-
-  if (value.includes("-Q")) {
-    const [year, q] = value.split("-");
-    return `${q} ${year}`;
-  }
-
-  if (/^\d{4}$/.test(value)) return value;
-
-  const date = parseDateString(value);
-  if (isNaN(date.getTime())) return value;
-
-  if (dataRangeDays > 730) {
-    return date.getFullYear().toString();
-  } else if (dataRangeDays > 120) {
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      year: "numeric",
-    });
-  } else {
-    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-  }
-};
 
 // Get latest value from data
 const getLatestValue = (data: ChartDataPoint[]): string => {
@@ -189,7 +118,7 @@ export function MiniChart({
     ? data.reduce((sum, point) => sum + (point.value ?? 0), 0) / data.length
     : 0;
 
-  const dataRangeDays = getDataRangeDays(data);
+  const dataRangeDays = calculateDateRangeDays(data);
 
   // Calculate min and max values for stats display
   const values = data.map(point => point.value ?? 0).filter(v => v !== 0);
@@ -261,7 +190,7 @@ export function MiniChart({
               )}
               <XAxis
                 dataKey={dateKey}
-                tickFormatter={(v) => formatXAxis(v, dataRangeDays)}
+                tickFormatter={(v) => formatXAxisLabel(v, dataRangeDays)}
                 tick={{ fontSize: 8, className: getMutedTextColorClass() }}
                 axisLine={false}
                 tickLine={false}
@@ -305,7 +234,7 @@ export function MiniChart({
               )}
               <XAxis
                 dataKey={dateKey}
-                tickFormatter={(v) => formatXAxis(v, dataRangeDays)}
+                tickFormatter={(v) => formatXAxisLabel(v, dataRangeDays)}
                 tick={{ fontSize: 8, className: getMutedTextColorClass() }}
                 axisLine={false}
                 tickLine={false}
@@ -357,7 +286,7 @@ export function MiniChart({
               )}
               <XAxis
                 dataKey={dateKey}
-                tickFormatter={(v) => formatXAxis(v, dataRangeDays)}
+                tickFormatter={(v) => formatXAxisLabel(v, dataRangeDays)}
                 tick={{ fontSize: 8, className: getMutedTextColorClass() }}
                 axisLine={false}
                 tickLine={false}
