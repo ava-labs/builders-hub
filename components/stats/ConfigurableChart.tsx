@@ -648,6 +648,36 @@ export default function ConfigurableChart({
     return filteredData.slice(safeBrushRange.startIndex, safeBrushRange.endIndex + 1);
   }, [safeBrushRange, filteredData]);
 
+  // Calculate the number of days in the brush range for dynamic x-axis formatting
+  const brushRangeDays = useMemo(() => {
+    if (displayData.length < 2) return 0;
+
+    const startDate = displayData[0]?.date;
+    const endDate = displayData[displayData.length - 1]?.date;
+
+    if (!startDate || !endDate) return displayData.length;
+
+    const parseDate = (dateStr: string): Date => {
+      if (dateStr.includes("Q")) {
+        const [year, quarter] = dateStr.split("-Q");
+        const month = (parseInt(quarter, 10) - 1) * 3;
+        return new Date(parseInt(year, 10), month, 1);
+      }
+      const parts = dateStr.split("-");
+      const year = parseInt(parts[0], 10);
+      const month = parts[1] ? parseInt(parts[1], 10) - 1 : 0;
+      const day = parts[2] ? parseInt(parts[2], 10) : 1;
+      return new Date(year, month, day);
+    };
+
+    const start = parseDate(startDate);
+    const end = parseDate(endDate);
+    const diffTime = Math.abs(end.getTime() - start.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    return diffDays;
+  }, [displayData]);
+
   const visibleSeries = useMemo(() => {
     return dataSeries
       .filter((s) => s.visible)
@@ -677,22 +707,129 @@ export default function ConfigurableChart({
     return new Date(year, month, day);
   };
 
+  // Calculate total days in the full data for brush slider formatting
+  const totalDataDays = useMemo(() => {
+    if (aggregatedData.length < 2) return 0;
+
+    const startDate = aggregatedData[0]?.date;
+    const endDate = aggregatedData[aggregatedData.length - 1]?.date;
+
+    if (!startDate || !endDate) return aggregatedData.length;
+
+    const parseDate = (dateStr: string): Date => {
+      if (dateStr.includes("Q")) {
+        const [year, quarter] = dateStr.split("-Q");
+        const month = (parseInt(quarter, 10) - 1) * 3;
+        return new Date(parseInt(year, 10), month, 1);
+      }
+      const parts = dateStr.split("-");
+      const year = parseInt(parts[0], 10);
+      const month = parts[1] ? parseInt(parts[1], 10) - 1 : 0;
+      const day = parts[2] ? parseInt(parts[2], 10) : 1;
+      return new Date(year, month, day);
+    };
+
+    const start = parseDate(startDate);
+    const end = parseDate(endDate);
+    const diffTime = Math.abs(end.getTime() - start.getTime());
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  }, [aggregatedData]);
+
   const formatXAxis = (value: string) => {
-    if (resolution === "Q") {
+    if (value.includes("Q")) {
       const parts = value.split("-");
-      if (parts.length === 2) return `${parts[1]} '${parts[0].slice(-2)}`;
+      if (parts.length === 2) return `${parts[1]} ${parts[0]}`;
       return value;
     }
-    if (resolution === "Y") return value;
+
+    if (/^\d{4}$/.test(value)) return value;
+
     const date = parseLocalDate(value);
-    if (resolution === "M") {
+
+    if (brushRangeDays > 730) {
+      return date.getFullYear().toString();
+    } else if (brushRangeDays > 120) {
+      // Show month + full year for medium ranges (e.g., "Jan 2026")
       return date.toLocaleDateString("en-US", {
         month: "short",
-        year: "2-digit",
+        year: "numeric",
       });
+    } else {
+      return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
     }
-    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
   };
+
+  const formatBrushXAxis = (value: string) => {
+    if (value.includes("Q")) {
+      const parts = value.split("-");
+      if (parts.length === 2) return `${parts[1]} ${parts[0]}`;
+      return value;
+    }
+
+    if (/^\d{4}$/.test(value)) return value;
+
+    const date = parseLocalDate(value);
+
+    if (totalDataDays > 730) {
+      return date.getFullYear().toString();
+    } else if (totalDataDays > 120) {
+      return date.toLocaleDateString("en-US", {
+        month: "short",
+        year: "numeric",
+      });
+    } else {
+      return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    }
+  };
+
+  // Generate custom ticks aligned to meaningful boundaries
+  const xAxisTicks = useMemo(() => {
+    if (displayData.length === 0) return undefined;
+
+    const ticks: string[] = [];
+
+    if (brushRangeDays > 730) {
+      const seenYears = new Set<number>();
+      displayData.forEach((point) => {
+        const date = parseLocalDate(point.date);
+        const year = date.getFullYear();
+        if (!seenYears.has(year)) {
+          seenYears.add(year);
+          ticks.push(point.date);
+        }
+      });
+    } else if (brushRangeDays > 120) {
+      const seenMonths = new Set<string>();
+      displayData.forEach((point) => {
+        const date = parseLocalDate(point.date);
+        const monthKey = `${date.getFullYear()}-${date.getMonth()}`;
+        if (!seenMonths.has(monthKey)) {
+          seenMonths.add(monthKey);
+          ticks.push(point.date);
+        }
+      });
+      if (ticks.length > 6) {
+        const step = Math.ceil(ticks.length / 5);
+        const filtered = ticks.filter((_, i) => i % step === 0);
+        return filtered;
+      }
+    } else {
+      const desiredTicks = 5;
+      if (displayData.length <= desiredTicks) {
+        return displayData.map(p => p.date);
+      }
+      const step = Math.floor(displayData.length / desiredTicks);
+      for (let i = 0; i < displayData.length; i += step) {
+        ticks.push(displayData[i].date);
+      }
+      const lastDate = displayData[displayData.length - 1].date;
+      if (ticks[ticks.length - 1] !== lastDate) {
+        ticks.push(lastDate);
+      }
+    }
+
+    return ticks.length > 0 ? ticks : undefined;
+  }, [displayData, brushRangeDays]);
 
   const formatTooltipDate = (value: string) => {
     if (resolution === "Y") return value;
@@ -900,8 +1037,8 @@ export default function ConfigurableChart({
             tickFormatter={formatXAxis}
             className="text-xs text-gray-600 dark:text-gray-400"
             tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
-            minTickGap={80}
-            interval="preserveStartEnd"
+            ticks={xAxisTicks}
+            interval={0}
           />
           {hasLeftAxis && (
             <YAxis
@@ -1791,7 +1928,7 @@ export default function ConfigurableChart({
                       }
                     }}
                     travellerWidth={8}
-                    tickFormatter={formatXAxis}
+                    tickFormatter={formatBrushXAxis}
                   >
                     <LineChart>
                       <Line
