@@ -45,9 +45,18 @@ export default function WorkshopBootcampEventLayout({
   const validEndDate = isNaN(endDate.getTime()) ? defaultEndDate : endDate;
   const startMonth = format(validStartDate, "MMMM");
   const endMonth = format(validEndDate, "MMMM");
+  const isSameDay =
+    validStartDate.getFullYear() === validEndDate.getFullYear() &&
+    validStartDate.getMonth() === validEndDate.getMonth() &&
+    validStartDate.getDate() === validEndDate.getDate();
 
   const formattedDate =
-    startMonth === endMonth
+    isSameDay
+      ? `${format(validStartDate, "MMMM d, h:mm a")} - ${format(
+          validEndDate,
+          "h:mm a"
+        )}`
+      : startMonth === endMonth
       ? `${format(validStartDate, "MMMM d")} - ${format(validEndDate, "d, yyyy")}`
       : `${format(validStartDate, "MMMM d")} - ${format(validEndDate, "MMMM d, yyyy")}`;
 
