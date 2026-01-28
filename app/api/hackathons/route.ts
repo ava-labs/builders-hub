@@ -22,6 +22,7 @@ export async function GET(req: NextRequest) {
       date: searchParams.get('date') || undefined,
       status: searchParams.get('status') as HackathonStatus || undefined,
       search: searchParams.get('search') || undefined,
+      event: searchParams.get('event') || undefined,
     };
     
     if (userId) {

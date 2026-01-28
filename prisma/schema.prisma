@@ -69,7 +69,6 @@ model User {
   registrations            RegisterForm[]
   statsPlaygrounds         StatsPlayground[]
   statsPlaygroundFavorites StatsPlaygroundFavorite[] @relation("StatsPlaygroundFavorites")
-  faucetClaims        FaucetClaim[]
   chatConversations   ChatConversation[]
   badges                   UserBadge[]
 }

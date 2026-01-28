@@ -10,15 +10,22 @@ import { Badge } from "../ui/badge";
 
 export default function HackathonCard({
   hackathon,
+  basePath = '/hackathons',
 }: {
   hackathon: HackathonHeader;
+  basePath?: string;
 }) {
   const BUILD_GAMES_HACKATHON_ID = '249d2911-7931-4aa0-a696-37d8370b79f9';
+  const eventType = (hackathon.event || 'hackathon').toLowerCase();
+  const isHackathon = eventType === 'hackathon';
   const getHackathonLink = () => {
     if (hackathon.id === BUILD_GAMES_HACKATHON_ID) {
       return '/build-games';
     }
-    return hackathon.custom_link || `/hackathons/${hackathon.id}`;
+    // For workshops or bootcamps, use /events as the base path
+    const isWorkshopOrBootcamp = eventType === 'workshop' || eventType === 'bootcamp';
+    const defaultPath = isWorkshopOrBootcamp ? '/events' : basePath;
+    return hackathon.custom_link || `${defaultPath}/${hackathon.id}`;
   };
 
   return (
@@ -83,18 +90,22 @@ export default function HackathonCard({
           </p>
         </div>
         <div className="flex flex-wrap gap-y-2 justify-around items-center text-gray-300 text-sm py-[10px]">
-          <div className="flex items-center gap-1 md:gap-2">
-            <Trophy className="h-4 w-4 dark:stroke-zinc-50 stroke-zinc-900" />
-            <span className="font-medium dark:text-zinc-50 text-zinc-900">
-              ${hackathon.total_prizes.toLocaleString("en-US")}
-            </span>
-          </div>
-          <div className="flex items-center gap-1 md:gap-2">
-            <UserRound className="h-4 w-4 dark:stroke-zinc-50 stroke-zinc-900" />
-            <span className="font-medium dark:text-zinc-50 text-zinc-900">
-              {hackathon.participants}
-            </span>
-          </div>
+          {isHackathon && (
+            <>
+              <div className="flex items-center gap-1 md:gap-2">
+                <Trophy className="h-4 w-4 dark:stroke-zinc-50 stroke-zinc-900" />
+                <span className="font-medium dark:text-zinc-50 text-zinc-900">
+                  ${(hackathon.total_prizes ?? 0).toLocaleString("en-US")}
+                </span>
+              </div>
+              <div className="flex items-center gap-1 md:gap-2">
+                <UserRound className="h-4 w-4 dark:stroke-zinc-50 stroke-zinc-900" />
+                <span className="font-medium dark:text-zinc-50 text-zinc-900">
+                  {hackathon.participants ?? 0}
+                </span>
+              </div>
+            </>
+          )}
           <div className="flex items-center gap-1 md:gap-2">
             <HackathonStatus
               status={hackathon.status ?? "UPCOMING"}
