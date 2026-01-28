@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -57,10 +57,9 @@ export default function SendNotificationsForm() {
       .map((s: string) => s.trim())
       .filter((s: string) => s.length > 0);
   }, [customUsersRaw]);
-
   const { toast } = useToast();
-
   const { data: hackathons } = useGetHackathons()
+  const [sessionPayload, setSessionPayload] = useState<{ id: string, custom_attributes: string[] } | undefined>()
 
   const isValidForm = useMemo(() => {
     return (
@@ -108,6 +107,19 @@ export default function SendNotificationsForm() {
     });
     setLoading(false)
   };
+
+  useEffect(() => {
+    const raw: string | null = localStorage.getItem("session_payload");
+
+    if (raw === null) {
+      setSessionPayload(undefined);
+      return;
+    }
+
+    const payload: { id: string; custom_attributes: string[] } = JSON.parse(raw);
+    setSessionPayload(payload);
+  }, [openAudienceDialog]);
+
 
   return (
     <main className='container py-8 mx-auto min-h-[calc(100vh-92px)] lg:min-h-0 flex items-center justify-center relative px-2 pb-6 lg:px-14 '>
@@ -200,7 +212,7 @@ export default function SendNotificationsForm() {
                       className="w-full flex items-center my-2"
                     >
                       <TabsList>
-                        <TabsTrigger value="all">All</TabsTrigger>
+                        <TabsTrigger disabled={!sessionPayload?.custom_attributes.includes('devrel')} value="all">All</TabsTrigger>
                         <TabsTrigger value="hackathons">Hackathons</TabsTrigger>
                         <TabsTrigger value="custom">Custom</TabsTrigger>
                       </TabsList>

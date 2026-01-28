@@ -49,6 +49,19 @@ export function UserButton() {
 
     signOut();
   };
+  useEffect(() => {
+    if (!session?.user) {
+      localStorage.removeItem("session_payload");
+      return;
+    }
+
+    const payload: { id: string; custom_attributes: string[] } = {
+      id: session.user.id,
+      custom_attributes: session.user.custom_attributes ?? [],
+    };
+
+    localStorage.setItem("session_payload", JSON.stringify(payload));
+  }, [session?.user])
 
   return (
     <>
