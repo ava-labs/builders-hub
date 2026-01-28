@@ -31,25 +31,52 @@ export function useNetworkActions() {
       }
 
       if (window.avalanche?.request && network.evmChainId) {
+        const chainIdHex = `0x${network.evmChainId.toString(16)}`
+
         try {
           await window.avalanche.request({
             method: 'wallet_switchEthereumChain',
-            params: [{ chainId: `0x${network.evmChainId.toString(16)}` }],
+            params: [{ chainId: chainIdHex }],
           })
-
-          // Determine if this is C-Chain for appropriate balance update
-          const isCChain = network.evmChainId === 43114 || network.evmChainId === 43113
-          
-          setTimeout(() => {
-            if (isCChain) {
-              updateCChainBalance()
-            } else {
-              updateL1Balance(network.evmChainId.toString())
+        } catch (switchError: any) {
+          // Error code 4902 means the chain hasn't been added to the wallet yet
+          if (switchError?.code === 4902 || switchError?.message?.includes('Unrecognized chain')) {
+            try {
+              // Add the chain to the wallet first
+              await window.avalanche.request({
+                method: 'wallet_addEthereumChain',
+                params: [{
+                  chainId: chainIdHex,
+                  chainName: network.name,
+                  nativeCurrency: {
+                    name: network.coinName || network.name,
+                    symbol: network.coinName || 'ETH',
+                    decimals: 18,
+                  },
+                  rpcUrls: [network.rpcUrl],
+                  blockExplorerUrls: network.explorerUrl ? [network.explorerUrl] : undefined,
+                }],
+              })
+            } catch (addError) {
+              console.error('Failed to add chain to wallet:', addError)
+              return // Exit early if we can't add the chain
             }
-          }, 800)
-        } catch (error) {
-          console.debug('Failed to switch chain in wallet:', error)
+          } else {
+            console.debug('Failed to switch chain in wallet:', switchError)
+            return // Exit early on other errors
+          }
         }
+
+        // Determine if this is C-Chain for appropriate balance update
+        const isCChain = network.evmChainId === 43114 || network.evmChainId === 43113
+
+        setTimeout(() => {
+          if (isCChain) {
+            updateCChainBalance()
+          } else {
+            updateL1Balance(network.evmChainId.toString())
+          }
+        }, 800)
       }
     } catch (error) {
       console.error('Failed to switch network:', error)
