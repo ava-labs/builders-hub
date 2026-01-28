@@ -22,7 +22,6 @@ import { useToast } from '@/hooks/use-toast';
 import { Toaster } from '@/components/ui/toaster';
 import { useRouter } from 'next/navigation';
 import { sendNotifications } from '@/utils/send-notification';
-import { useSessionPayload } from '@/hooks/use-session-payload';
 export default function GeneralComponent({
   searchParams,
 }: {
@@ -40,7 +39,6 @@ export default function GeneralComponent({
   const invitationLink = searchParams?.invitation;
   const { toast } = useToast();
   const router = useRouter();
-  const { sessionPayload } = useSessionPayload()
 
   const {
     form,
@@ -123,20 +121,6 @@ export default function GeneralComponent({
         description:
           'Your project has been successfully submitted. You will be redirected to the project showcase page.',
       });
-      await sendNotifications([
-        {
-          title: 'Project submitted',
-          content_type: 'text/plain',
-          audience: {
-            all: false,
-            hackathons: [],
-            users: [sessionPayload?.id ?? '']
-          },
-          content: 'Your project has been successfully submitted, you can check it',
-          short_description: 'Your project has been successfully submitted',
-          type: 'deafault'
-        }
-      ])
       setTimeout(() => {
         router.push(`/showcase/${projectId}`);
       }, 3000);
