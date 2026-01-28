@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { ProjectSubmissionProvider } from "./context/ProjectSubmissionContext";
 import GeneralSecureComponent from "./components/GeneralSecure";
 import { UserNotRegistered } from "./components/UserNotRegistered";
@@ -18,15 +18,30 @@ export function SubmissionWrapperSecure({
 
   const hackathonId = searchParams.hackathon as string | undefined;
 
+  // If there's no hackathonId, show the component directly (standalone project)
+  useEffect(() => {
+    if (!hackathonId) {
+      setShowComponent(true);
+    }
+  }, [hackathonId]);
+
   return (
     <ProjectSubmissionProvider>
-      {!showComponent && (
-        <UserNotRegistered
-          hackathonId={(searchParams?.hackathon ?? "") as string}
-          onToggle={handleShowComponent}
-        />
+      {!hackathonId ? (
+        // Show directly if no hackathon (standalone project)
+        <GeneralSecureComponent searchParams={searchParams} />
+      ) : (
+        // Show UserNotRegistered check only if there's a hackathon
+        <>
+          {!showComponent && (
+            <UserNotRegistered
+              hackathonId={hackathonId}
+              onToggle={handleShowComponent}
+            />
+          )}
+          {showComponent && <GeneralSecureComponent searchParams={searchParams} />}
+        </>
       )}
-      {showComponent && <GeneralSecureComponent searchParams={searchParams} />}
     </ProjectSubmissionProvider>
   );
 }
