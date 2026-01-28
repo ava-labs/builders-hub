@@ -1,5 +1,6 @@
 import { prisma } from "@/prisma/prisma";
 import { ExtendedProfile, UserType, UpdateExtendedProfileData } from "@/types/extended-profile";
+import { syncUserDataToHubSpot } from "@/server/services/hubspotUserData";
 
 /**
  * Custom errors for profile service
@@ -171,7 +172,20 @@ export async function updateExtendedProfile(
     if (!updatedProfile) {
         throw new Error("Failed to retrieve updated profile");
     }
-    
+
+    // Sync updated user data to HubSpot
+    if (updatedProfile.email) {
+        try {
+            await syncUserDataToHubSpot({
+                email: updatedProfile.email,
+                name: updatedProfile.name || undefined,
+            });
+        } catch (error) {
+            console.error('[HubSpot UserData] Failed to sync updated profile:', error);
+            // Don't block profile update if HubSpot sync fails
+        }
+    }
+
     return updatedProfile;
 }
 
