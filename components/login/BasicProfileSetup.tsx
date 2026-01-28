@@ -190,7 +190,7 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
                   name="country"
                   render={({ field }) => (
                     <FormItem className="w-full">
-                      <FormLabel className="text-sm sm:text-base">origin</FormLabel>
+                      <FormLabel className="text-sm sm:text-base">city</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger className="bg-zinc-50 dark:bg-zinc-950 text-sm sm:text-base w-full min-w-0">
