@@ -1,18 +1,6 @@
 "use client";
 
-import {
-  ResponsiveContainer,
-  AreaChart,
-  Area,
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  ReferenceLine,
-} from "recharts";
+import { ResponsiveContainer, AreaChart, Area, LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, ReferenceLine } from "recharts";
 import { Loader2 } from "lucide-react";
 import type { ChartDataPoint, Period, ChartType } from "./types";
 import { cn } from "@/lib/utils";
@@ -51,54 +39,76 @@ const formatYAxis = (value: number) => {
   return value.toLocaleString();
 };
 
-// Format X axis labels based on period
-const formatXAxis = (value: string, period?: Period) => {
-  if (!value) return "";
+// Helper to parse date strings in various formats
+const parseDateString = (dateStr: string): Date => {
+  if (!dateStr) return new Date();
 
-  // Handle pre-formatted aggregated date keys (from useCollageMetrics)
-  // Format: "YYYY-QX" for quarters, "YYYY-WXX" for weeks, "YYYY-MM" for months
-  if (period === "Q" && value.includes("-Q")) {
-    // "2021-Q4" -> "'21 Q4" (compact with year)
-    const [year, q] = value.split("-");
-    return `'${year.slice(-2)} ${q}`;
+  // Handle quarterly format: YYYY-Q#
+  if (dateStr.includes("-Q")) {
+    const [year, quarter] = dateStr.split("-Q");
+    const month = (parseInt(quarter, 10) - 1) * 3;
+    return new Date(parseInt(year, 10), month, 1);
   }
-  if (period === "W" && value.includes("-W")) {
-    // "2025-W30" -> Convert to actual date like "Jul 21"
-    const [year, weekPart] = value.split("-W");
+
+  // Handle weekly format: YYYY-W##
+  if (dateStr.includes("-W")) {
+    const [year, weekPart] = dateStr.split("-W");
     const weekNum = parseInt(weekPart);
-    // Calculate first day of that ISO week
-    const jan4 = new Date(parseInt(year), 0, 4); // Jan 4 is always in week 1
-    const dayOfWeek = jan4.getDay() || 7; // Convert Sunday from 0 to 7
+    const jan4 = new Date(parseInt(year), 0, 4);
+    const dayOfWeek = jan4.getDay() || 7;
     const week1Start = new Date(jan4);
-    week1Start.setDate(jan4.getDate() - dayOfWeek + 1); // Monday of week 1
+    week1Start.setDate(jan4.getDate() - dayOfWeek + 1);
     const weekDate = new Date(week1Start);
     weekDate.setDate(week1Start.getDate() + (weekNum - 1) * 7);
-    return weekDate.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-  }
-  if (period === "M" && /^\d{4}-\d{2}$/.test(value)) {
-    // "2021-08" -> "Aug '21"
-    const [year, month] = value.split("-");
-    const date = new Date(parseInt(year), parseInt(month) - 1);
-    return `${date.toLocaleDateString("en-US", { month: "short" })} '${year.slice(-2)}`;
+    return weekDate;
   }
 
-  // Parse as regular date
-  const date = new Date(value);
+  const parts = dateStr.split("-");
+  const year = parseInt(parts[0], 10);
+  const month = parts[1] ? parseInt(parts[1], 10) - 1 : 0;
+  const day = parts[2] ? parseInt(parts[2], 10) : 1;
+  return new Date(year, month, day);
+};
+
+// Calculate range in days from data array
+const getDataRangeDays = (data: ChartDataPoint[]): number => {
+  if (data.length < 2) return 0;
+
+  const dateKey = data[0]?.date !== undefined ? "date" : "day";
+  const startDate = data[0]?.[dateKey] as string;
+  const endDate = data[data.length - 1]?.[dateKey] as string;
+
+  if (!startDate || !endDate) return data.length;
+
+  const start = parseDateString(startDate);
+  const end = parseDateString(endDate);
+  const diffTime = Math.abs(end.getTime() - start.getTime());
+  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+};
+
+// Dynamic X axis formatter based on data range, for uniform readable labels
+const formatXAxis = (value: string, dataRangeDays: number) => {
+  if (!value) return "";
+
+  if (value.includes("-Q")) {
+    const [year, q] = value.split("-");
+    return `${q} ${year}`;
+  }
+
+  if (/^\d{4}$/.test(value)) return value;
+
+  const date = parseDateString(value);
   if (isNaN(date.getTime())) return value;
 
-  switch (period) {
-    case "Y":
-      return date.getFullYear().toString();
-    case "Q": {
-      const quarter = Math.floor(date.getMonth() / 3) + 1;
-      return `'${date.getFullYear().toString().slice(-2)} Q${quarter}`;
-    }
-    case "M":
-      return `${date.toLocaleDateString("en-US", { month: "short" })} '${date.getFullYear().toString().slice(-2)}`;
-    case "W":
-    case "D":
-    default:
-      return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  if (dataRangeDays > 730) {
+    return date.getFullYear().toString();
+  } else if (dataRangeDays > 120) {
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      year: "numeric",
+    });
+  } else {
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
   }
 };
 
@@ -179,6 +189,8 @@ export function MiniChart({
     ? data.reduce((sum, point) => sum + (point.value ?? 0), 0) / data.length
     : 0;
 
+  const dataRangeDays = getDataRangeDays(data);
+
   // Calculate min and max values for stats display
   const values = data.map(point => point.value ?? 0).filter(v => v !== 0);
   const minValue = values.length > 0 ? Math.min(...values) : 0;
@@ -249,7 +261,7 @@ export function MiniChart({
               )}
               <XAxis
                 dataKey={dateKey}
-                tickFormatter={(v) => formatXAxis(v, period)}
+                tickFormatter={(v) => formatXAxis(v, dataRangeDays)}
                 tick={{ fontSize: 8, className: getMutedTextColorClass() }}
                 axisLine={false}
                 tickLine={false}
@@ -293,7 +305,7 @@ export function MiniChart({
               )}
               <XAxis
                 dataKey={dateKey}
-                tickFormatter={(v) => formatXAxis(v, period)}
+                tickFormatter={(v) => formatXAxis(v, dataRangeDays)}
                 tick={{ fontSize: 8, className: getMutedTextColorClass() }}
                 axisLine={false}
                 tickLine={false}
@@ -345,7 +357,7 @@ export function MiniChart({
               )}
               <XAxis
                 dataKey={dateKey}
-                tickFormatter={(v) => formatXAxis(v, period)}
+                tickFormatter={(v) => formatXAxis(v, dataRangeDays)}
                 tick={{ fontSize: 8, className: getMutedTextColorClass() }}
                 axisLine={false}
                 tickLine={false}
