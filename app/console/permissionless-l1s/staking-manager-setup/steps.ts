@@ -3,7 +3,7 @@ import ReadContract from "@/components/toolbox/console/permissioned-l1s/validato
 import DeployStakingManager from "@/components/toolbox/console/permissionless-l1s/setup/DeployStakingManager";
 import InitializeStakingManager from "@/components/toolbox/console/permissionless-l1s/setup/InitializeStakingManager";
 import DeployExampleRewardCalculator from "@/components/toolbox/console/permissionless-l1s/setup/DeployExampleRewardCalculator";
-import DeployExampleERC20 from "@/components/toolbox/console/permissionless-l1s/setup/erc20/DeployExampleERC20";
+import DeployExampleERC20 from "@/components/toolbox/console/ictt/setup/DeployExampleERC20";
 import TransferOwnershipToStakingManager from "@/components/toolbox/console/permissionless-l1s/setup/TransferOwnershipToStakingManager";
 import EnableStakingManagerMinting from "@/components/toolbox/console/permissionless-l1s/setup/EnableStakingManagerMinting";
 

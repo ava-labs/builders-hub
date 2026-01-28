@@ -7,7 +7,7 @@ icon: Terminal
 ---
 
 import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx"
-import DeployNativeStakingManager from "@/components/toolbox/console/permissionless-l1s/setup/native/DeployNativeStakingManager.tsx"
+import DeployStakingManager from "@/components/toolbox/console/permissionless-l1s/setup/DeployStakingManager.tsx"
 
 ## Abstract Contract in Solidity
 
@@ -57,5 +57,5 @@ This is why we must deploy `NativeTokenStakingManager` rather than `StakingManag
 In the embedded console view below, be sure you have your own L1 selected in the header of the view:
 
 <ToolboxMdxWrapper walletMode="l1">
-    <DeployNativeStakingManager />
+    <DeployStakingManager />
 </ToolboxMdxWrapper>
