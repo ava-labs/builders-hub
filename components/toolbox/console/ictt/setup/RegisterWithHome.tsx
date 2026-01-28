@@ -16,8 +16,8 @@ import ERC20TokenHomeABI from "@/contracts/icm-contracts/compiled/ERC20TokenHome
 import { Abi, createPublicClient, http, PublicClient, zeroAddress } from "viem";
 import { Suggestion } from "@/components/toolbox/components/Input";
 import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput";
-import { utils } from "@avalabs/avalanchejs";
 import { ListContractEvents } from "@/components/toolbox/components/ListContractEvents";
+import { cb58ToHex } from '@/components/toolbox/console/utilities/format-converter/FormatConverter';
 import SelectBlockchainId from "@/components/toolbox/components/SelectBlockchainId";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
@@ -95,9 +95,7 @@ function RegisterWithHome() {
 
       // Convert CURRENT chain ID to hex for the contract call
       // This is where the remote contract is deployed
-      const remoteBlockchainIDHex = utils.bufferToHex(
-        utils.base58check.decode(selectedL1.id)
-      );
+      const remoteBlockchainIDHex = cb58ToHex(selectedL1.id);
 
       const remoteSettings = (await homePublicClient.readContract({
         address: tokenHomeAddress as `0x${string}`,

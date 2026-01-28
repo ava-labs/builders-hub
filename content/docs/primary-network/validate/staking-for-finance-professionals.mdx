@@ -1,0 +1,283 @@
+---
+title: AVAX Staking for Professionals
+description: A comprehensive guide to Avalanche staking for financial professionals who need to understand the mechanics, risks, and operational considerations without deep technical knowledge.
+---
+
+# AVAX Staking for Professionals
+
+A comprehensive guide to Avalanche staking designed for financial professionals who need to understand the mechanics, risks, and operational considerations of staking without deep technical knowledge.
+
+## Executive Summary
+
+Staking on Avalanche allows token holders to earn rewards by participating in network security. Unlike traditional investments, staked tokens remain under your custody but are time-locked for a predetermined period (2 weeks to 1 year). At the end of the staking period, your original principal is returned along with earned rewards.
+
+<Callout type="error" title="Critical Risk Considerations">
+**Before staking, understand these key risks:**
+
+- **No Slashing** - Avalanche does NOT have slashing. Your staked principal is never at risk of being taken by the protocol or validators, regardless of validator performance. The worst-case scenario is earning zero rewards, not losing your principal.
+
+- **Assets Are Locked** - Once assets are staked, they must remain staked until the end of the staking period. You set the maturity date, but your assets are completely illiquid until that date.
+
+- **Irreversible Transaction** - Once a staking transaction is confirmed on the P-Chain, it cannot be changed. There is NO mechanism for early withdrawal or changing transaction settings. Plan your liquidity accordingly and double-check all inputs.
+</Callout>
+
+---
+
+## Understanding Staking
+
+Staking is the process of locking up cryptocurrency holdings to support a blockchain network's security and validate transactions. Stakers earn rewards (similar to interest) for helping secure the network.
+
+On Avalanche, there are two types of staking:
+
+- **Validation Staking** - Running node infrastructure and staking to become a validator
+- **Delegation Staking** - Staking assets to someone else's existing validator
+
+---
+
+## Validator vs. Delegator Comparison
+
+| Aspect | Validator | Delegator |
+|--------|-----------|-----------|
+| **Role** | Operates node infrastructure and stakes to make the node a validator | Stakes assets to an existing validator without running infrastructure |
+| **Category** | Advanced | User-Friendly |
+| **Minimum Capital** | 2,000 AVAX | 25 AVAX |
+| **Maximum Stake** | 3,000,000 AVAX | Dependent on validator's available capacity |
+| **Hardware Required** | Yes (8-core CPU, 16GB RAM, 1TB SSD) | No |
+| **Technical Knowledge** | High (Linux, networking, DevOps) | None required |
+| **Operational Burden** | Monitoring and maintenance of infrastructure | Zero operational burden |
+| **Providers** | Can contract node providers to manage infrastructure externally | Select from public marketplace through most staking apps |
+| **Risk Profile** | Operational and reputational risk | Minimal (validator selection risk only) |
+| **Revenue Stream** | Own validator rewards + delegation fees from delegators | Own delegation rewards minus delegation fee |
+| **Operational Costs** | Infrastructure cost of maintaining nodes | N/A (validator's responsibility) |
+| **Fees** | Trivial transaction fee at onset | Transaction fee + delegation fee to validator |
+| **Uptime Requirements** | Must maintain >80% uptime for rewards | N/A (validator's responsibility) |
+| **Liquidity** | Locked during staking period | Locked during staking period |
+
+---
+
+## Preparation: Set Up Your Wallet and Assets
+
+Before staking (for either validating or delegating), you need to prepare the following.
+
+<Callout type="info" title="Non-Custodial Design">
+At every stage, you retain ownership of your private keys. The validator never has access to your funds for either form of staking. The time-lock is enforced by the Avalanche protocol, not by any third party.
+
+**Note:** If you are using a third-party intermediary, you're subject to their restrictions and functions.
+</Callout>
+
+### Asset Requirements
+
+| Aspect | Applies To | Details |
+|--------|------------|---------|
+| **Asset Location** | Validators and Delegators | AVAX tokens should reside in your P-Chain wallet address |
+| **Ownership** | Validators and Delegators | You hold the private keys; you have full control of your assets |
+| **Liquidity** | Validators and Delegators | Fully liquid. Time-vested assets are eligible to be staked |
+
+### Required Addresses
+
+All addresses below are P-Chain addresses:
+
+| Address | Staking Type | Purpose | Details |
+|---------|--------------|---------|---------|
+| **Validator Principal Address** | Validators Only | Source of funds to be staked | Chosen by validator. In most setups, this is where principal returns. |
+| **Validator Rewards Address** | Validators Only | Where validator rewards are sent after staking ends | Chosen by validator |
+| **Delegation Fee Address** | Validators Only | Where fees from delegators are sent | Chosen by validator |
+| **Delegator Principal Address** | Delegators Only | Source of funds to be staked | Chosen by delegator. In most setups, this is where principal returns. |
+| **Delegator Rewards Address** | Delegators Only | Where delegator rewards are sent after staking ends | Chosen by delegator |
+
+### P-Chain vs. C-Chain
+
+<Callout type="warn" title="Important: Staking Requires P-Chain">
+Staking occurs on the **P-Chain** (Platform Chain), not the C-Chain. If your AVAX is on the C-Chain (used for DeFi/smart contracts), you must first transfer it to the P-Chain.
+</Callout>
+
+### Cross-Chain Transfer: C-Chain → P-Chain
+
+If your AVAX is on the C-Chain (common for exchange withdrawals and DeFi), transfer it to the P-Chain before staking.
+
+**Fees:** Each transaction costs approximately 0.001 AVAX. Total transfer cost: ~0.002 AVAX.
+
+| Step | Transaction Type | Chain | What It Does |
+|------|------------------|-------|--------------|
+| Export | `ExportTx` | C-Chain | Assets move out of C-Chain |
+| Import | `ImportTx` | P-Chain | Assets move into P-Chain |
+
+**Wallets Supporting Cross-Chain:** [Core Wallet](https://core.app/) and most Avalanche-compatible wallets provide a single "Cross-Chain Transfer" button that executes both transactions automatically.
+
+---
+
+## Steps for Validating
+
+<Callout type="info" title="Prerequisites">
+You should have a node selected and prepared before creating a staking transaction—either one you're operating yourself or one provided by a contracted node provider.
+</Callout>
+
+### Validation Transaction Parameters
+
+Create a staking transaction by providing the following:
+
+| Parameter | Description | Example |
+|-----------|-------------|---------|
+| **Node ID** | Unique identifier of the validator node | `NodeID-A1B2C3D4E5F6...` |
+| **Node BLS Public Key** | 48-byte hex representation used to create verifiable signatures | `0x87772ac7668d78d...` |
+| **Node BLS Proof of Possession** | 96-byte hex signature proving control of the private key | `0x969d9ffbe8d00ed83b...` |
+| **Stake Amount** | Amount of AVAX to stake (minimum 2,000 AVAX) | `2,500 AVAX` |
+| **Delegation Fee %** | Fee charged to delegators (must be 2%–100%) | `2.0%` |
+| **Start Time** | When staking begins (usually immediately upon transaction) | `2026-02-01 00:00:00 UTC` |
+| **End Time** | When staking ends (2 weeks to 1 year from start) | `2026-08-01 00:00:00 UTC` |
+| **Stake Return Address** | Where original principal returns | `P-avax1abc123...` |
+| **Validator Rewards Address** | Where validator rewards are sent | `P-avax1abc123...` |
+| **Delegation Fee Address** | Where delegation fees are sent | `P-avax1abc123...` |
+
+### After Submitting the Transaction
+
+- Once the transaction completes, the node is considered **active** until the maturity date
+- The node must maintain **greater than 80% uptime** to receive rewards
+- Once active, others may delegate to the node
+- Delegators can stake to your validator up until the last two weeks of your validation period
+
+### Validator Delegation Capacity
+
+Validators can accept delegations up to a calculated capacity:
+
+```
+Validator Delegation Capacity = ((3,000,000 AVAX - (5 × Validator Stake Amount)) - Validator Stake Amount) - Active Delegation Stake
+```
+
+---
+
+## Steps for Delegating
+
+You can only delegate to a node that already has an active validation stake. Delegation is limited by the validator you select:
+
+- **Maximum delegation amount** depends on validator capacity
+- **Delegation period** must end before the validator's staking period ends
+
+<Callout type="warn" title="Validator Selection Risk">
+When you delegate, your rewards depend on the validator's uptime. If it falls below 80% during the staking period, you risk receiving zero rewards.
+
+Choose a validator you're familiar with or one that has trustworthy indicators such as healthy uptime and a history of successful validation periods.
+</Callout>
+
+### Delegation Transaction Parameters
+
+| Parameter | Description | Example |
+|-----------|-------------|---------|
+| **Node ID** | Unique identifier of the validator you're delegating to | `NodeID-A1B2C3D4E5F6...` |
+| **Stake Amount** | Amount to delegate (min 25 AVAX, max set by validator capacity) | `30 AVAX` |
+| **Start Time** | When staking begins (usually immediately) | `2026-02-01 00:00:00 UTC` |
+| **End Time** | When staking ends (must be before validator's end time) | `2026-08-01 00:00:00 UTC` |
+| **Stake Return Address** | Where original principal returns | `P-avax1abc123...` |
+| **Delegator Rewards Address** | Where rewards are sent (minus delegation fee) | `P-avax1abc123...` |
+
+---
+
+## Monitoring Your Stake
+
+You can monitor active or historical stakes through your wallet app (such as [Core Wallet](https://core.app/)).
+
+Public explorer tools also provide monitoring:
+
+- [Example Staking Transaction](https://subnets.avax.network/p-chain/tx/to2MDTr7HBkmex6q1QiCHHZa4oZaJjmp36vJjdLjQLpPQXRF2)
+- [Example Delegation Transaction](https://subnets.avax.network/p-chain/tx/2DF6kRMCtpeLmx7TGaoj9PbQTWwU775c7ULU9UUuzbeizGm5h6)
+- [Example Active Validator Node](https://subnets.avax.network/validators/NodeID-38NGnT4q4MXLv9vBGw72vwBgyX2Wf35iu)
+
+---
+
+## Rewards Distribution
+
+<Callout type="info" title="Rewards Timing">
+Rewards are **NOT** distributed incrementally during the staking period. Instead:
+
+- Protocol calculates potential rewards based on stake amount and duration
+- Actual reward is determined **ONLY** at the end of the period
+- Reward depends on validator meeting 80% uptime threshold
+- No "accrued but not yet received" rewards exist during the period
+</Callout>
+
+For the detailed reward calculation formula, see [Rewards Formula](/docs/primary-network/validate/rewards-formula).
+
+Rewards are automatically distributed at the end of the staking period, and principal is sent to the predesignated address.
+
+### Validator Rewards
+
+| Component | Amount | Destination | When |
+|-----------|--------|-------------|------|
+| **Gross Validator Rewards** | Calculated by protocol | Validator Rewards Address | End of validator's staking period |
+| **Delegation Fee Rewards** | Gross Delegation Rewards × Delegation Fee Rate | Delegation Fee Address | Batched at end of validator's staking period |
+| **Net Validator Revenue** | Gross Validator Rewards + Delegation Fee Rewards | — | — |
+
+Validator principal returns to the original principal address immediately at the end of the staking period.
+
+### Delegator Rewards
+
+| Component | Amount | Destination | When |
+|-----------|--------|-------------|------|
+| **Gross Delegator Rewards** | Calculated by protocol | — | — |
+| **Delegation Fee** | Gross Rewards × Delegation Fee Rate | Validator's Fee Address | End of validator's staking period |
+| **Net Delegator Revenue** | Gross Rewards − Delegation Fee | Delegator Rewards Address | End of **delegator's** staking period |
+
+Delegator principal returns to the original principal address immediately at the end of the **delegator's** staking period (not the validator's).
+
+---
+
+## Technical Implementation
+
+For detailed technical implementation support, refer to the [How to Stake](/docs/primary-network/validate/how-to-stake) guide.
+
+---
+
+## Coming Soon: Continuous Staking (ACP-236)
+
+<Callout type="info" title="Proposed — Not Yet Live">
+[ACP-236: Continuous Staking](/docs/acps/236-continuous-staking) is currently in **Proposed** status. The features below will require a network upgrade to implement. This section is provided for planning purposes.
+</Callout>
+
+### What Is Continuous Staking?
+
+ACP-236 proposes a mechanism allowing validators to remain staked indefinitely without manually resubmitting staking transactions at each period's end. Instead of committing to a fixed end time, validators would specify a **cycle duration** and an **auto-renew policy**.
+
+### Key Changes from Current System
+
+| Aspect | Current System | With ACP-236 |
+|--------|----------------|--------------|
+| **Staking Duration** | Fixed end time; must re-stake manually | Automatic renewal at cycle end |
+| **Reward Handling** | All rewards returned at period end | Configurable: auto-compound or withdraw |
+| **Exit Process** | Delegation simply ends | Submit `SetAutoRenewPolicyTx` to signal exit |
+| **Transaction Burden** | New transaction every staking period | One transaction, runs indefinitely |
+| **Uptime Tracking** | Measured over entire period | Reset each cycle |
+
+### New Transaction Types
+
+ACP-236 introduces three new P-Chain transactions:
+
+| Transaction | Purpose |
+|-------------|---------|
+| `AddContinuousValidatorTx` | Create a continuous validator with cycle duration and auto-renew policy |
+| `SetAutoRenewPolicyTx` | Modify the auto-renew policy or signal exit at cycle end |
+| `RewardContinuousValidatorTx` | Issued by block builders to process cycle rewards |
+
+### Auto-Renew Rewards Policy
+
+The `AutoRenewRewardsShares` field (expressed in millionths) controls what happens to rewards at each cycle end:
+
+| Value | Behavior |
+|-------|----------|
+| `0` | Restake principal only; withdraw 100% of rewards |
+| `300,000` | Restake 30% of rewards; withdraw 70% |
+| `1,000,000` | Restake 100% of rewards (full compounding) |
+| `MaxUint64` | Signal to exit at current cycle end |
+
+### Benefits for Financial Professionals
+
+- **Reduced Operational Burden** — Fewer transactions to sign and manage
+- **Automatic Compounding** — Rewards can auto-restake each cycle
+- **Enhanced Security** — Less frequent key signing reduces exposure risk
+- **Flexible Exit** — Can signal exit mid-cycle; takes effect at cycle end
+- **Simpler Treasury Management** — Set-and-forget staking operations
+
+### Impact on Delegators
+
+<Callout type="warn" title="No Continuous Delegation">
+ACP-236 applies to **validators only**. Delegators cannot delegate continuously because there is no guarantee a validator will continue beyond their current cycle. Delegation constraints remain unchanged: your delegation period must fit within the validator's current cycle.
+</Callout>
