@@ -8,7 +8,7 @@ import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput
 import { ResultField } from "@/components/toolbox/components/ResultField";
 import { AllowlistComponent } from "@/components/toolbox/components/AllowListComponents";
 import { CheckPrecompile } from "@/components/toolbox/components/CheckPrecompile";
-import { ConsoleToolMetadata, withConsoleToolMetadata } from '../../../components/WithConsoleToolMetadata';
+import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from '../../../components/WithConsoleToolMetadata';
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { Callout } from "fumadocs-ui/components/callout";
@@ -36,11 +36,11 @@ const metadata: ConsoleToolMetadata = {
 type TokenType = 'native' | 'erc20';
 type AccessControlType = 'ownable' | 'access-control' | 'unknown';
 
-interface EnableStakingManagerMintingProps {
+interface EnableStakingManagerMintingProps extends BaseConsoleToolProps {
   initialTokenType?: TokenType;
 }
 
-function EnableStakingManagerMinting({ initialTokenType = 'native' }: EnableStakingManagerMintingProps = {}) {
+function EnableStakingManagerMinting({ initialTokenType = 'native' }: EnableStakingManagerMintingProps) {
   const [tokenType, setTokenType] = useState<TokenType>(initialTokenType);
   const { nativeStakingManagerAddress, erc20StakingManagerAddress } = useToolboxStore();
   const { publicClient, coreWalletClient, walletEVMAddress } = useWalletStore();

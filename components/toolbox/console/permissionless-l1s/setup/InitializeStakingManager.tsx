@@ -5,7 +5,7 @@ import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 import { useToolboxStore, useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
 import { Button } from "@/components/toolbox/components/Button";
 import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput";
-import { ConsoleToolMetadata, withConsoleToolMetadata } from '../../../components/WithConsoleToolMetadata';
+import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from '../../../components/WithConsoleToolMetadata';
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { ResultField } from "@/components/toolbox/components/ResultField";
@@ -37,11 +37,11 @@ const metadata: ConsoleToolMetadata = {
 
 type TokenType = 'native' | 'erc20';
 
-interface InitializeStakingManagerProps {
+interface InitializeStakingManagerProps extends BaseConsoleToolProps {
     initialTokenType?: TokenType;
 }
 
-function InitializeStakingManager({ initialTokenType = 'native' }: InitializeStakingManagerProps = {}) {
+function InitializeStakingManager({ initialTokenType = 'native' }: InitializeStakingManagerProps) {
     const { setCriticalError } = useCriticalError();
     const [tokenType, setTokenType] = useState<TokenType>(initialTokenType);
     const [stakingManagerAddressInput, setStakingManagerAddressInput] = useState<string>("");

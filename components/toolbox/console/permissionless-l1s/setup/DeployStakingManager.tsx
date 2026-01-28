@@ -5,7 +5,7 @@ import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 import { useToolboxStore, useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
 import { Button } from "@/components/toolbox/components/Button";
 import { Success } from "@/components/toolbox/components/Success";
-import { ConsoleToolMetadata, withConsoleToolMetadata } from '../../../components/WithConsoleToolMetadata';
+import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from '../../../components/WithConsoleToolMetadata';
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import NativeTokenStakingManager from "@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json";
@@ -29,11 +29,11 @@ const metadata: ConsoleToolMetadata = {
 
 type TokenType = 'native' | 'erc20';
 
-interface DeployStakingManagerProps {
+interface DeployStakingManagerProps extends BaseConsoleToolProps {
     initialTokenType?: TokenType;
 }
 
-function DeployStakingManager({ initialTokenType = 'native' }: DeployStakingManagerProps = {}) {
+function DeployStakingManager({ initialTokenType = 'native' }: DeployStakingManagerProps) {
     const [isDeploying, setIsDeploying] = useState(false);
     const [tokenType, setTokenType] = useState<TokenType>(initialTokenType);
     const { setCriticalError } = useCriticalError();
