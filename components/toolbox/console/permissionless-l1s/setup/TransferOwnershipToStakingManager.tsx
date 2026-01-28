@@ -17,26 +17,29 @@ const metadata: ConsoleToolMetadata = {
 };
 
 function TransferOwnershipToStakingManager({ onSuccess }: BaseConsoleToolProps) {
-  const { nativeStakingManagerAddress } = useToolboxStore();
+  const { nativeStakingManagerAddress, erc20StakingManagerAddress } = useToolboxStore();
 
-  const stakingManagerAddress = nativeStakingManagerAddress;
+  // Prefer ERC20 if both are present (user is likely on ERC20 setup flow)
+  // Otherwise use whichever is available
+  const stakingManagerAddress = erc20StakingManagerAddress || nativeStakingManagerAddress;
+  const stakingManagerType = erc20StakingManagerAddress ? "ERC20 Token" : "Native Token";
 
   return (
     <>
       {stakingManagerAddress && (
         <Callout type="info" className="mb-4">
-          <p className="font-semibold mb-2">Staking Manager Detected</p>
-          <p>Your Staking Manager address has been automatically filled in below:</p>
+          <p className="font-semibold mb-2">{stakingManagerType} Staking Manager Detected</p>
+          <p>Your {stakingManagerType} Staking Manager address has been automatically filled in below:</p>
           <p className="mt-2">
             <code className="text-xs">{stakingManagerAddress}</code>
           </p>
         </Callout>
       )}
-      
+
       {!stakingManagerAddress && (
         <Callout type="warn" className="mb-4">
           <p className="font-semibold mb-2">No Staking Manager Found</p>
-          <p>No staking manager address found. Please deploy and initialize a Staking Manager first, or manually enter the address below.</p>
+          <p>No staking manager address found. Please deploy and initialize a Staking Manager (Native or ERC20) first, or manually enter the address below.</p>
         </Callout>
       )}
       
