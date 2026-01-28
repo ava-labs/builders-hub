@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, Suspense } from "react";
 import { ChevronRight, Layers, Users, MessagesSquare, ArrowUpDown, Settings, Droplets } from "lucide-react";
 import Link from "next/link";
+import { MyL1StatusSection } from "@/components/console/my-l1-card";
 
 function RedirectLogic() {
   const { data: session, status } = useSession();
@@ -137,12 +138,15 @@ function ConsoleDashboard() {
 
   return (
     <div className="space-y-6">
-      <div>
+      <div data-tour="console-home" className="p-4 -m-4 rounded-lg">
         <h2 className="text-2xl font-bold text-foreground mb-2">Welcome to Builder Console</h2>
         <p className="text-muted-foreground">
           Manage your Avalanche L1s, validators, and deployments from one central location.
         </p>
       </div>
+
+      {/* Contextual My L1 Status Section */}
+      <MyL1StatusSection />
 
       {/* Call to Action Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">

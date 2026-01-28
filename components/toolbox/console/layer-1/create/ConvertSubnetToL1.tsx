@@ -2,19 +2,21 @@
 
 import { useCreateChainStore } from "@/components/toolbox/stores/createChainStore";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/toolbox/components/Button";
 import { type ConvertToL1Validator } from "@/components/toolbox/components/ValidatorListInput";
 import { ValidatorListInput } from "@/components/toolbox/components/ValidatorListInput";
 import InputChainId from "@/components/toolbox/components/InputChainId";
 import SelectSubnet, { SubnetSelection } from "@/components/toolbox/components/SelectSubnet";
-import { Callout } from "fumadocs-ui/components/callout";
 import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
 import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import Link from "next/link";
+import { BookOpen, ExternalLink } from "lucide-react";
 
 const metadata: ConsoleToolMetadata = {
     title: "Convert Subnet to L1",
@@ -46,8 +48,8 @@ function ConvertToL1({ onSuccess }: BaseConsoleToolProps) {
     const { coreWalletClient } = useConnectedWallet();
 
     const [isConverting, setIsConverting] = useState(false);
-    
-    const { sendCoreWalletNotSetNotification, notify } = useConsoleNotifications();
+
+    const { notify } = useConsoleNotifications();
 
     async function handleConvertToL1() {
         setConvertToL1TxId("");
@@ -73,59 +75,85 @@ function ConvertToL1({ onSuccess }: BaseConsoleToolProps) {
     }
 
     return (
-        <>
-                <div className="space-y-4">
+        <div className="space-y-6">
+            {/* Context */}
+            <div className="text-sm text-muted-foreground bg-muted/50 rounded-lg p-4">
+                <p className="mb-2">
+                    Converting a Subnet to an L1 enables sovereign validator management through a smart contract.
+                </p>
+                <Link
+                    href="/docs/avalanche-l1s"
+                    className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
+                >
+                    <BookOpen className="h-3 w-3" />
+                    Learn more about L1s
+                    <ExternalLink className="h-3 w-3" />
+                </Link>
+            </div>
+
+            <Steps>
+                <Step>
+                    <h3 className="font-medium mb-3">Select Subnet</h3>
                     <SelectSubnet
                         value={selection.subnetId}
                         onChange={setSelection}
                         error={null}
                         onlyNotConverted={true}
                     />
+                </Step>
 
-                    <div>
-                        <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">Validator Manager</h2>
-                        <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">With the conversion of the Subnet to an L1, the validator set of the L1 will be managed by a validator manager contract. This contract can implement Proof-of-Authority, Proof-of-Stake or any custom logic to determine the validator set. The contract can be deployed on a blockchain of the L1, the C-Chain or any other blockchain in the Avalanche network.</p>
+                <Step>
+                    <h3 className="font-medium mb-3">Validator Manager</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                        The validator manager contract controls your L1's validator set.
+                        A proxy is pre-deployed at <code className="text-xs bg-muted px-1 py-0.5 rounded">0xfacade...</code>
+                    </p>
+                    <div className="space-y-4">
+                        <InputChainId
+                            value={validatorManagerChainID}
+                            onChange={setValidatorManagerChainID}
+                            error={null}
+                            label="Manager Chain ID"
+                            helperText="Chain where the manager contract is deployed"
+                        />
+                        <EVMAddressInput
+                            value={validatorManagerAddress}
+                            onChange={setValidatorManagerAddress}
+                            label="Manager Contract Address"
+                            disabled={isConverting}
+                            helperText="Address of the validator manager contract"
+                        />
                     </div>
-                    <InputChainId
-                        value={validatorManagerChainID}
-                        onChange={setValidatorManagerChainID}
-                        error={null}
-                        label="Validator Manager Blockchain ID"
-                        helperText="The ID of the blockchain where the validator manager contract is deployed. This can be a chain of the L1 itself, the C-Chain or any other blockchain in the Avalanche network."
-                    />
-                    <EVMAddressInput
-                        value={validatorManagerAddress}
-                        onChange={setValidatorManagerAddress}
-                        label="Validator Manager Contract Address"
-                        disabled={isConverting}
-                        helperText="The address of the validator manager contract (or a proxy pointing for it) on the blockchain. This contract will manage the validator set of the L1. A chain created with the Toolbox will have a pre-deployed proxy contract at the address 0xfacade0000000000000000000000000000000000. After the conversion you can point this proxy to a reference implementation of the validator manager contract or a custom version of it."
-                    />
-                    <Callout type="info">
-                        An <a href="https://docs.openzeppelin.com/contracts/4.x/api/proxy" target="_blank">OpenZeppelin TransparentUpgradeableProxy</a> contract is pre-deployed at the address <code>0xfacade...</code>. This proxy can be pointed to a reference implementation or customized version of the <a href="https://github.com/ava-labs/icm-contracts/tree/main/contracts/validator-manager" target="_blank">validator manager contract</a>.
-                    </Callout>
+                </Step>
 
+                <Step>
+                    <h3 className="font-medium mb-3">Initial Validators</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                        Add at least one validator. Existing Subnet validators cannot be transferred.
+                    </p>
                     <ValidatorListInput
                         validators={validators}
                         onChange={setValidators}
                         defaultAddress={pChainAddress}
-                        label="Initial Validators"
-                        description="Specify the initial validator set for the L1 below. You need to add at least one validator. If converting a pre-existing Subnet with validators, you must establish a completely new validator set for the L1 conversion. The existing Subnet validators cannot be transferred. For each new validator, you need to specify NodeID, the consensus weight, the initial balance and an address or a multi-sig that can deactivate the validator and that receives its remaining balance. The sum of the initial balances of the validators needs to be paid when issuing this transaction."
+                        label=""
+                        description=""
                         userPChainBalanceNavax={BigInt(pChainBalance * 1e9)}
                         selectedSubnetId={selection.subnetId}
                         isTestnet={isTestnet}
                     />
+                </Step>
+            </Steps>
 
-                    <Button
-                        variant="primary"
-                        onClick={handleConvertToL1}
-                        disabled={!selection.subnetId || !validatorManagerAddress || validators.length === 0 || (selection.subnet?.isL1)}
-                        loading={isConverting}
-                    >
-                        {selection.subnet?.isL1 ? "Subnet Already Converted to L1" : "Convert to L1"}
-                    </Button>
-                </div>
-
-        </>
+            <Button
+                variant="primary"
+                onClick={handleConvertToL1}
+                disabled={!selection.subnetId || !validatorManagerAddress || validators.length === 0 || (selection.subnet?.isL1)}
+                loading={isConverting}
+                className="w-full"
+            >
+                {selection.subnet?.isL1 ? "Already Converted" : "Convert to L1"}
+            </Button>
+        </div>
     );
 }
 
