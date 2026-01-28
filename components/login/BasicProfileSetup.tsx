@@ -150,18 +150,18 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
 
   return (
     <Card className="w-full rounded-md text-black dark:bg-zinc-800 dark:text-white border">
-      <CardHeader className="text-center pb-4">
-        <h3 className="text-lg font-semibold">Complete Your Basic Info</h3>
-        <p className="text-sm text-muted-foreground">
+      <CardHeader className="text-center pb-4 px-4 sm:px-6">
+        <h3 className="text-base sm:text-lg font-semibold">Complete Your Basic Info</h3>
+        <p className="text-xs sm:text-sm text-muted-foreground">
           Tell us a bit about yourself to get started
         </p>
       </CardHeader>
 
-      <CardContent>
+      <CardContent className="px-4 sm:px-6">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 sm:space-y-5">
             {/* Full Name and City of Residence - Same Row */}
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-3 sm:gap-4">
               {/* Full Name - Takes 8 columns */}
               <div className="md:col-span-8">
                 <FormField
@@ -169,12 +169,12 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Full Name *</FormLabel>
+                      <FormLabel className="text-sm sm:text-base">Full Name *</FormLabel>
                       <FormControl>
                         <Input
                           placeholder="Enter your full name"
                           {...field}
-                          className="bg-zinc-50 dark:bg-zinc-950"
+                          className="bg-zinc-50 dark:bg-zinc-950 text-sm sm:text-base"
                         />
                       </FormControl>
                       <FormMessage />
@@ -184,16 +184,16 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
               </div>
 
               {/* City of Residence - Takes 4 columns */}
-              <div className="md:col-span-4">
+              <div className="md:col-span-4 w-full min-w-0">
                 <FormField
                   control={form.control}
                   name="country"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>City of Residence</FormLabel>
+                    <FormItem className="w-full">
+                      <FormLabel className="text-sm sm:text-base">origin</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
-                          <SelectTrigger className="bg-zinc-50 dark:bg-zinc-950">
+                          <SelectTrigger className="bg-zinc-50 dark:bg-zinc-950 text-sm sm:text-base w-full min-w-0">
                             <SelectValue placeholder="Select your city" />
                           </SelectTrigger>
                         </FormControl>
@@ -213,53 +213,55 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
             </div>
 
             {/* I'm */}
-            <div className="space-y-3">
-              <FormLabel>I'm</FormLabel>
-              <FormDescription className="text-xs text-zinc-500 dark:text-zinc-400">
+            <div className="space-y-3 sm:space-y-4">
+              <FormLabel className="text-sm sm:text-base">I'm</FormLabel>
+              <FormDescription className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
                 Select all roles that describe you.
               </FormDescription>
 
               {/* Student */}
-              <div className="flex items-center gap-3">
-                <FormField
-                  control={form.control}
-                  name="is_student"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center space-x-3 space-y-0">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={(checked) => {
-                            field.onChange(checked);
-                            if (!checked) {
-                              form.setValue("student_institution", "");
-                            }
-                          }}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-                <FormLabel className="text-sm font-normal cursor-pointer flex-shrink-0" onClick={() => {
-                  const currentValue = watchedValues.is_student;
-                  form.setValue("is_student", !currentValue);
-                  if (currentValue) {
-                    form.setValue("student_institution", "");
-                  }
-                }}>
-                  University Affiliate
-                </FormLabel>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <FormField
+                    control={form.control}
+                    name="is_student"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center space-x-2 sm:space-x-3 space-y-0">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={(checked) => {
+                              field.onChange(checked);
+                              if (!checked) {
+                                form.setValue("student_institution", "");
+                              }
+                            }}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormLabel className="text-sm sm:text-base font-normal cursor-pointer shrink-0" onClick={() => {
+                    const currentValue = watchedValues.is_student;
+                    form.setValue("is_student", !currentValue);
+                    if (currentValue) {
+                      form.setValue("student_institution", "");
+                    }
+                  }}>
+                    University Affiliate
+                  </FormLabel>
+                </div>
                 {watchedValues.is_student && (
                   <FormField
                     control={form.control}
                     name="student_institution"
                     render={({ field }) => (
-                      <FormItem className="flex-1">
+                      <FormItem className="flex-1 w-full sm:w-auto">
                         <FormControl>
                           <Input
                             placeholder="Enter your university or institution name"
                             {...field}
-                            className="bg-zinc-50 dark:bg-zinc-950"
+                            className="bg-zinc-50 dark:bg-zinc-950 text-sm sm:text-base"
                           />
                         </FormControl>
                         <FormMessage />
@@ -270,46 +272,48 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
               </div>
 
               {/* Founder */}
-              <div className="flex items-center gap-3">
-                <FormField
-                  control={form.control}
-                  name="is_founder"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center space-x-3 space-y-0">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={(checked) => {
-                            field.onChange(checked);
-                            if (!checked) {
-                              form.setValue("founder_company_name", "");
-                            }
-                          }}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-                <FormLabel className="text-sm font-normal cursor-pointer flex-shrink-0" onClick={() => {
-                  const currentValue = watchedValues.is_founder;
-                  form.setValue("is_founder", !currentValue);
-                  if (currentValue) {
-                    form.setValue("founder_company_name", "");
-                  }
-                }}>
-                  Founder
-                </FormLabel>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <FormField
+                    control={form.control}
+                    name="is_founder"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center space-x-2 sm:space-x-3 space-y-0">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={(checked) => {
+                              field.onChange(checked);
+                              if (!checked) {
+                                form.setValue("founder_company_name", "");
+                              }
+                            }}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormLabel className="text-sm sm:text-base font-normal cursor-pointer shrink-0" onClick={() => {
+                    const currentValue = watchedValues.is_founder;
+                    form.setValue("is_founder", !currentValue);
+                    if (currentValue) {
+                      form.setValue("founder_company_name", "");
+                    }
+                  }}>
+                    Founder
+                  </FormLabel>
+                </div>
                 {watchedValues.is_founder && (
                   <FormField
                     control={form.control}
                     name="founder_company_name"
                     render={({ field }) => (
-                      <FormItem className="flex-1">
+                      <FormItem className="flex-1 w-full sm:w-auto">
                         <FormControl>
                           <Input
                             placeholder="Company name"
                             {...field}
-                            className="bg-zinc-50 dark:bg-zinc-950"
+                            className="bg-zinc-50 dark:bg-zinc-950 text-sm sm:text-base"
                           />
                         </FormControl>
                         <FormMessage />
@@ -352,17 +356,17 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
                   Employee
                 </FormLabel>
                 {watchedValues.is_employee && (
-                  <>
+                  <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pl-6 sm:pl-8">
                     <FormField
                       control={form.control}
                       name="employee_company_name"
                       render={({ field }) => (
-                        <FormItem className="w-[215px] flex-shrink-0">
+                        <FormItem className="flex-1 w-full sm:w-auto sm:min-w-[200px]">
                           <FormControl>
                             <Input
                               placeholder="Company name"
                               {...field}
-                              className="bg-zinc-50 dark:bg-zinc-950"
+                              className="bg-zinc-50 dark:bg-zinc-950 text-sm sm:text-base"
                             />
                           </FormControl>
                           <FormMessage />
@@ -373,10 +377,10 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
                       control={form.control}
                       name="employee_role"
                       render={({ field }) => (
-                        <FormItem className="flex-1">
+                        <FormItem className="flex-1 w-full sm:w-auto">
                           <Select onValueChange={field.onChange} value={field.value}>
                             <FormControl>
-                              <SelectTrigger className="bg-zinc-50 dark:bg-zinc-950">
+                              <SelectTrigger className="bg-zinc-50 dark:bg-zinc-950 text-sm sm:text-base">
                                 <SelectValue placeholder="role" />
                               </SelectTrigger>
                             </FormControl>
@@ -392,17 +396,17 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
                         </FormItem>
                       )}
                     />
-                  </>
+                  </div>
                 )}
               </div>
 
               {/* Enthusiast */}
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 sm:gap-3">
                 <FormField
                   control={form.control}
                   name="is_enthusiast"
                   render={({ field }) => (
-                    <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                    <FormItem className="flex flex-row items-center space-x-2 sm:space-x-3 space-y-0">
                       <FormControl>
                         <Checkbox
                           checked={field.value}
@@ -412,7 +416,7 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
                     </FormItem>
                   )}
                 />
-                <FormLabel className="text-sm font-normal cursor-pointer" onClick={() => {
+                <FormLabel className="text-sm sm:text-base font-normal cursor-pointer" onClick={() => {
                   form.setValue("is_enthusiast", !watchedValues.is_enthusiast);
                 }}>
                   Enthusiast
@@ -421,11 +425,11 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
             </div>
 
             {/* Buttons */}
-            <div className="flex gap-3 pt-4">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-4 sm:pt-5">
               <LoadingButton
                 type="submit"
                 variant="outline"
-                className="flex-1"
+                className="flex-1 w-full sm:w-auto text-sm sm:text-base"
                 isLoading={isSaving}
                 loadingText="Saving..."
               >
@@ -434,7 +438,7 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
               <Button
                 type="button"
                 variant="red"
-                className="flex-1"
+                className="flex-1 w-full sm:w-auto text-sm sm:text-base"
                 onClick={onCompleteProfileClick}
                 disabled={isSaving}
               >
