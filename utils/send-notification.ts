@@ -1,6 +1,11 @@
 import { Notification } from "@/types/notifications";
 
-export async function sendNotifications(notifications: Notification[]) {
+export async function sendNotifications(
+  notifications: Notification[],
+): Promise<{
+  success: boolean;
+  error?: string
+}> {
   try {
     const response: Response = await fetch(`/api/notifications/create`, {
       method: "POST",
@@ -8,15 +13,14 @@ export async function sendNotifications(notifications: Notification[]) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        notifications: notifications
+        notifications: notifications,
       }),
     });
-
     if (!response.ok) {
-      const text: string = await response.text();
-      throw new Error(text || "Failed to create notifications");
+      return { success: false };
     }
+    return { success: true };
   } catch (err: unknown) {
-    console.error(err);
+    return { success: false };
   }
 }

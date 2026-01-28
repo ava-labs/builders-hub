@@ -33,8 +33,7 @@ type AudienceTab = "all" | "hackathons" | "custom";
 
 const notificationsTypeOptions = [
   { value: "courseCompleted", label: "Course completed" },
-  { value: "projectSubmissionDeadLine", label: "Project submission deadline" },
-  { value: "advice", label: "Advice" },
+  { value: "message", label: "Message" },
 ]
 
 
@@ -102,13 +101,12 @@ export default function SendNotificationsForm() {
 
   const send = async (): Promise<void> => {
     setLoading(true)
-    await sendNotifications(buildBody())
-    setLoading(false)
+    const response = await sendNotifications(buildBody())
     toast({
-      title: 'Notification created',
-      description:
-        'Your notification has been successfully created.',
+      title: response.success ? 'Notification created' : 'Error at create notification',
+      description: response.success ? 'Your notification has been successfully created.' : '',
     });
+    setLoading(false)
   };
 
   return (
@@ -166,8 +164,7 @@ export default function SendNotificationsForm() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="text/plain">text/plain</SelectItem>
-                <SelectItem value="text/markdown">text/markdown</SelectItem>
-                <SelectItem value="text/html">text/html</SelectItem>
+                <SelectItem value="application/json">application/json</SelectItem>
               </SelectContent>
             </Select>
           </div>

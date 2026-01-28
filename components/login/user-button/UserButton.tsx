@@ -15,10 +15,8 @@ import { useState, useMemo, useEffect } from 'react';
 import { CircleUserRound } from 'lucide-react';
 import { Separator } from '@radix-ui/react-dropdown-menu';
 import { useLoginModalTrigger } from '@/hooks/useLoginModal';
-import { useSessionPayload } from '@/hooks/use-session-payload';
 export function UserButton() {
   const { data: session, status } = useSession() ?? {};
-  const { setSessionPayload } = useSessionPayload()
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const isAuthenticated = status === 'authenticated';
   const { openLoginModal } = useLoginModalTrigger();
@@ -51,10 +49,6 @@ export function UserButton() {
 
     signOut();
   };
-
-  useEffect(() => {
-    setSessionPayload(session?.user)
-  }, [session?.user])
 
   return (
     <>
