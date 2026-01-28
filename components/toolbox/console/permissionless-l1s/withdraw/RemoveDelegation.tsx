@@ -8,16 +8,17 @@ import { useValidatorManagerDetails } from '@/components/toolbox/hooks/useValida
 import { Step, Steps } from "fumadocs-ui/components/steps";
 import { Success } from '@/components/toolbox/components/Success';
 import { Input } from '@/components/toolbox/components/Input';
-import InitiateDelegatorRemoval from '@/components/toolbox/console/permissionless-l1s/delegate/native/InitiateDelegatorRemoval';
-import CompleteDelegatorRemoval from '@/components/toolbox/console/permissionless-l1s/delegate/native/CompleteDelegatorRemoval';
+import InitiateDelegatorRemoval from '@/components/toolbox/console/permissionless-l1s/withdraw/InitiateDelegatorRemoval';
+import CompleteDelegatorRemoval from '@/components/toolbox/console/permissionless-l1s/withdraw/CompleteDelegatorRemoval';
 import { useCreateChainStore } from '@/components/toolbox/stores/createChainStore';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
-import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from '../../../../components/WithConsoleToolMetadata';
+import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from '../../../components/WithConsoleToolMetadata';
 import { Alert } from '@/components/toolbox/components/Alert';
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
-import nativeTokenStakingManagerAbi from '@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json';
+import NativeTokenStakingManager from '@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json';
+import ERC20TokenStakingManager from '@/contracts/icm-contracts/compiled/ERC20TokenStakingManager.json';
 
 const metadata: ConsoleToolMetadata = {
     title: "Remove Delegation",
@@ -28,7 +29,10 @@ const metadata: ConsoleToolMetadata = {
     githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
 };
 
+type TokenType = 'native' | 'erc20';
+
 const RemoveDelegation: React.FC<BaseConsoleToolProps> = ({ onSuccess }) => {
+    const [tokenType, setTokenType] = useState<TokenType>('native');
     const [globalError, setGlobalError] = useState<string | null>(null);
     const [globalSuccess, setGlobalSuccess] = useState<string | null>(null);
     const [isValidatorManagerDetailsExpanded, setIsValidatorManagerDetailsExpanded] = useState<boolean>(false);
@@ -69,7 +73,10 @@ const RemoveDelegation: React.FC<BaseConsoleToolProps> = ({ onSuccess }) => {
         isDetectingOwnerType
     } = useValidatorManagerDetails({ subnetId: subnetIdL1 });
 
-    // Fetch user's delegations when subnet or wallet changes
+    const contractAbi = tokenType === 'native' ? NativeTokenStakingManager.abi : ERC20TokenStakingManager.abi;
+    const tokenLabel = tokenType === 'native' ? 'Native Token' : 'ERC20 Token';
+
+    // Fetch user's delegations when subnet, wallet, or token type changes
     useEffect(() => {
         const fetchUserDelegations = async () => {
             if (!publicClient || !contractOwner || !walletEVMAddress) {
@@ -109,10 +116,10 @@ const RemoveDelegation: React.FC<BaseConsoleToolProps> = ({ onSuccess }) => {
                         const validationID = log.topics[2] as string;
 
                         try {
-                            // Get current delegation info
+                            // Get current delegation info using the appropriate ABI
                             const info = await publicClient.readContract({
                                 address: contractOwner as `0x${string}`,
-                                abi: nativeTokenStakingManagerAbi.abi,
+                                abi: contractAbi,
                                 functionName: 'getDelegator',
                                 args: [delegationID as `0x${string}`],
                             }) as any;
@@ -142,7 +149,7 @@ const RemoveDelegation: React.FC<BaseConsoleToolProps> = ({ onSuccess }) => {
         };
 
         fetchUserDelegations();
-    }, [publicClient, contractOwner, walletEVMAddress]);
+    }, [publicClient, contractOwner, walletEVMAddress, tokenType, contractAbi]);
 
     const handleReset = () => {
         setGlobalError(null);
@@ -157,6 +164,47 @@ const RemoveDelegation: React.FC<BaseConsoleToolProps> = ({ onSuccess }) => {
     return (
         <>
             <div className="space-y-6">
+                {/* Token Type Selector */}
+                <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-lg p-4 border border-zinc-200 dark:border-zinc-700">
+                    <h3 className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">
+                        Staking Token Type
+                    </h3>
+                    <div className="flex gap-3">
+                        <button
+                            onClick={() => setTokenType('native')}
+                            disabled={!!initiateRemovalTxHash || !!removalCompleteTxHash}
+                            className={`flex-1 px-4 py-3 rounded-lg border-2 transition-all ${
+                                tokenType === 'native'
+                                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                                    : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600'
+                            } ${(initiateRemovalTxHash || removalCompleteTxHash) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                        >
+                            <div className="text-left">
+                                <div className="font-semibold text-sm">Native Token</div>
+                                <div className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
+                                    L1 native token staking
+                                </div>
+                            </div>
+                        </button>
+                        <button
+                            onClick={() => setTokenType('erc20')}
+                            disabled={!!initiateRemovalTxHash || !!removalCompleteTxHash}
+                            className={`flex-1 px-4 py-3 rounded-lg border-2 transition-all ${
+                                tokenType === 'erc20'
+                                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                                    : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600'
+                            } ${(initiateRemovalTxHash || removalCompleteTxHash) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                        >
+                            <div className="text-left">
+                                <div className="font-semibold text-sm">ERC20 Token</div>
+                                <div className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
+                                    Custom ERC20 token staking
+                                </div>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
                 {globalError && (
                     <Alert variant="error">Error: {globalError}</Alert>
                 )}
@@ -165,7 +213,7 @@ const RemoveDelegation: React.FC<BaseConsoleToolProps> = ({ onSuccess }) => {
                     <Step>
                         <h2 className="text-lg font-semibold">Select L1 Subnet</h2>
                         <p className="text-sm text-gray-500 mb-4">
-                            Choose the L1 subnet where you want to remove a delegation.
+                            Choose the L1 subnet where you want to remove a delegation with {tokenLabel} staking.
                         </p>
                         <div className="space-y-2">
                             <SelectSubnetId
@@ -203,7 +251,7 @@ const RemoveDelegation: React.FC<BaseConsoleToolProps> = ({ onSuccess }) => {
 
                         {ownerType && ownerType !== 'StakingManager' && (
                             <Alert variant="error" className="mb-4">
-                                This L1 is not using a Staking Manager. This tool is only for L1s with Native Token Staking Managers that support delegation.
+                                This L1 is not using a Staking Manager. This tool is only for L1s with {tokenLabel} Staking Managers that support delegation.
                             </Alert>
                         )}
 
@@ -271,11 +319,12 @@ const RemoveDelegation: React.FC<BaseConsoleToolProps> = ({ onSuccess }) => {
                         </Alert>
 
                         <InitiateDelegatorRemoval
-                            key={`initiate-${resetKey}`}
+                            key={`initiate-${resetKey}-${tokenType}`}
                             delegationID={delegationID}
                             stakingManagerAddress={contractOwner || ''}
                             rpcUrl={viemChain?.rpcUrls?.default?.http[0] || ''}
                             signingSubnetId={signingSubnetId}
+                            tokenType={tokenType}
                             onSuccess={(data) => {
                                 setInitiateRemovalTxHash(data.txHash);
                                 setGlobalError(null);
@@ -292,9 +341,10 @@ const RemoveDelegation: React.FC<BaseConsoleToolProps> = ({ onSuccess }) => {
                         </p>
 
                         <CompleteDelegatorRemoval
-                            key={`complete-${resetKey}`}
+                            key={`complete-${resetKey}-${tokenType}`}
                             delegationID={delegationID}
                             stakingManagerAddress={contractOwner || ''}
+                            tokenType={tokenType}
                             onSuccess={(data) => {
                                 setRemovalCompleteTxHash(data.txHash);
                                 setGlobalSuccess(data.message);

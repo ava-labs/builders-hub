@@ -242,33 +242,28 @@ const data = {
       icon: Globe,
       items: [
         {
-          title: "Native Staking Manager Setup",
-          url: "/console/permissionless-l1s/native-staking-manager-setup",
+          title: "Setup Staking Manager",
+          url: "/console/permissionless-l1s/staking-manager-setup",
           icon: GitMerge,
         },
         {
-          title: "ERC20 Staking Manager Setup",
-          url: "/console/permissionless-l1s/erc20-staking-manager-setup",
-          icon: GitMerge,
-        },
-        {
-          title: "Stake Native Token",
-          url: "/console/permissionless-l1s/stake-native-token",
+          title: "Stake",
+          url: "/console/permissionless-l1s/stake",
           icon: Hexagon,
         },
         {
-          title: "Delegate Native Token",
-          url: "/console/permissionless-l1s/delegate-native-token",
+          title: "Delegate",
+          url: "/console/permissionless-l1s/delegate",
           icon: HandCoins,
         },
         {
-          title: "Remove Native Validator",
-          url: "/console/permissionless-l1s/remove-native-validator",
+          title: "Remove Validator",
+          url: "/console/permissionless-l1s/remove-validator",
           icon: SquareMinus,
         },
         {
-          title: "Remove Native Delegation",
-          url: "/console/permissionless-l1s/remove-native-delegation",
+          title: "Remove Delegation",
+          url: "/console/permissionless-l1s/remove-delegation",
           icon: SquareMinus,
         }
       ],

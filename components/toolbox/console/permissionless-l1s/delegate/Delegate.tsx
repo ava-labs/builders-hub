@@ -7,20 +7,19 @@ import { ValidatorManagerDetails } from '@/components/toolbox/components/Validat
 import { useValidatorManagerDetails } from '@/components/toolbox/hooks/useValidatorManagerDetails';
 import { Step, Steps } from "fumadocs-ui/components/steps";
 import { Success } from '@/components/toolbox/components/Success';
-import SelectValidationID, { ValidationSelection } from '@/components/toolbox/components/SelectValidationID';
-import InitiateValidatorRemoval from '@/components/toolbox/console/permissionless-l1s/staking/InitiateValidatorRemoval';
-import CompleteValidatorRemoval from '@/components/toolbox/console/permissionless-l1s/staking/CompleteValidatorRemoval';
-import ClaimDelegationFees from '@/components/toolbox/console/permissionless-l1s/staking/ClaimDelegationFees';
+import { Input } from '@/components/toolbox/components/Input';
+import InitiateDelegation from '@/components/toolbox/console/permissionless-l1s/delegate/InitiateDelegation';
+import CompleteDelegation from '@/components/toolbox/console/permissionless-l1s/delegate/CompleteDelegation';
 import { useCreateChainStore } from '@/components/toolbox/stores/createChainStore';
-import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
+import { useToolboxStore, useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from '../../../components/WithConsoleToolMetadata';
 import { Alert } from '@/components/toolbox/components/Alert';
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 
 const metadata: ConsoleToolMetadata = {
-    title: "Remove Staking Validator",
-    description: "Remove a staking validator from your L1 and claim rewards with optional uptime proof",
+    title: "Delegate to Validator",
+    description: "Delegate tokens to an existing validator on your L1",
     toolRequirements: [
         WalletRequirementsConfigKey.EVMChainBalance,
     ],
@@ -29,26 +28,24 @@ const metadata: ConsoleToolMetadata = {
 
 type TokenType = 'native' | 'erc20';
 
-const RemoveValidator: React.FC<BaseConsoleToolProps> = ({ onSuccess }) => {
+const Delegate: React.FC<BaseConsoleToolProps> = ({ onSuccess }) => {
     const [tokenType, setTokenType] = useState<TokenType>('native');
     const [globalError, setGlobalError] = useState<string | null>(null);
     const [globalSuccess, setGlobalSuccess] = useState<string | null>(null);
     const [isValidatorManagerDetailsExpanded, setIsValidatorManagerDetailsExpanded] = useState<boolean>(false);
 
     // State for passing data between components
-    const [validationSelection, setValidationSelection] = useState<ValidationSelection>({
-        validationId: '',
-        nodeId: ''
-    });
-    const [initiateRemovalTxHash, setInitiateRemovalTxHash] = useState<string>('');
-    const [removalCompleteTxHash, setRemovalCompleteTxHash] = useState<string>('');
-    const [feeClaimTxHash, setFeeClaimTxHash] = useState<string>('');
+    const [validationID, setValidationID] = useState<string>('');
+    const [delegationID, setDelegationID] = useState<string>('');
+    const [initiateDelegationTxHash, setInitiateDelegationTxHash] = useState<string>('');
+    const [completeDelegationTxHash, setCompleteDelegationTxHash] = useState<string>('');
 
     // Form state
     const createChainStoreSubnetId = useCreateChainStore()(state => state.subnetId);
     const [subnetIdL1, setSubnetIdL1] = useState<string>(createChainStoreSubnetId || "");
     const [resetKey, setResetKey] = useState<number>(0);
     const viemChain = useViemChainStore();
+    const { exampleErc20Address } = useToolboxStore();
 
     const {
         validatorManagerAddress,
@@ -70,15 +67,16 @@ const RemoveValidator: React.FC<BaseConsoleToolProps> = ({ onSuccess }) => {
     const handleReset = () => {
         setGlobalError(null);
         setGlobalSuccess(null);
-        setValidationSelection({ validationId: '', nodeId: '' });
-        setInitiateRemovalTxHash('');
-        setRemovalCompleteTxHash('');
-        setFeeClaimTxHash('');
+        setValidationID('');
+        setDelegationID('');
+        setInitiateDelegationTxHash('');
+        setCompleteDelegationTxHash('');
         setSubnetIdL1('');
         setResetKey(prev => prev + 1);
     };
 
     const tokenLabel = tokenType === 'native' ? 'Native Token' : 'ERC20 Token';
+    const isNative = tokenType === 'native';
 
     return (
         <>
@@ -86,38 +84,38 @@ const RemoveValidator: React.FC<BaseConsoleToolProps> = ({ onSuccess }) => {
                 {/* Token Type Selector */}
                 <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-lg p-4 border border-zinc-200 dark:border-zinc-700">
                     <h3 className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">
-                        Staking Token Type
+                        Delegation Token Type
                     </h3>
                     <div className="flex gap-3">
                         <button
                             onClick={() => setTokenType('native')}
-                            disabled={!!initiateRemovalTxHash || !!removalCompleteTxHash}
+                            disabled={!!initiateDelegationTxHash || !!completeDelegationTxHash}
                             className={`flex-1 px-4 py-3 rounded-lg border-2 transition-all ${
                                 tokenType === 'native'
                                     ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
                                     : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600'
-                            } ${(initiateRemovalTxHash || removalCompleteTxHash) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                            } ${(initiateDelegationTxHash || completeDelegationTxHash) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                         >
                             <div className="text-left">
                                 <div className="font-semibold text-sm">Native Token</div>
                                 <div className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
-                                    L1 native token staking
+                                    Delegate L1 native tokens
                                 </div>
                             </div>
                         </button>
                         <button
                             onClick={() => setTokenType('erc20')}
-                            disabled={!!initiateRemovalTxHash || !!removalCompleteTxHash}
+                            disabled={!!initiateDelegationTxHash || !!completeDelegationTxHash}
                             className={`flex-1 px-4 py-3 rounded-lg border-2 transition-all ${
                                 tokenType === 'erc20'
                                     ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
                                     : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600'
-                            } ${(initiateRemovalTxHash || removalCompleteTxHash) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                            } ${(initiateDelegationTxHash || completeDelegationTxHash) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                         >
                             <div className="text-left">
                                 <div className="font-semibold text-sm">ERC20 Token</div>
                                 <div className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
-                                    Custom ERC20 token staking
+                                    Delegate custom ERC20 tokens
                                 </div>
                             </div>
                         </button>
@@ -132,7 +130,7 @@ const RemoveValidator: React.FC<BaseConsoleToolProps> = ({ onSuccess }) => {
                     <Step>
                         <h2 className="text-lg font-semibold">Select L1 Subnet</h2>
                         <p className="text-sm text-gray-500 mb-4">
-                            Choose the L1 subnet where you want to remove a validator with {tokenLabel} staking.
+                            Choose the L1 subnet where you want to delegate {tokenLabel}s to a validator.
                         </p>
                         <div className="space-y-2">
                             <SelectSubnetId
@@ -163,9 +161,9 @@ const RemoveValidator: React.FC<BaseConsoleToolProps> = ({ onSuccess }) => {
                     </Step>
 
                     <Step>
-                        <h2 className="text-lg font-semibold">Select Validator to Remove</h2>
+                        <h2 className="text-lg font-semibold">Select Validator</h2>
                         <p className="text-sm text-gray-500 mb-4">
-                            Select the validator you want to remove. Only your own validators will be shown.
+                            Enter the validation ID of the validator you want to delegate to.
                         </p>
 
                         {ownerType && ownerType !== 'StakingManager' && (
@@ -174,87 +172,85 @@ const RemoveValidator: React.FC<BaseConsoleToolProps> = ({ onSuccess }) => {
                             </Alert>
                         )}
 
-                        <SelectValidationID
-                            value={validationSelection.validationId}
-                            onChange={setValidationSelection}
-                            subnetId={subnetIdL1}
-                            format="hex"
-                            error={!subnetIdL1 ? "Please select a subnet first" : null}
-                        />
+                        <div className="space-y-3">
+                            <Input
+                                label="Validation ID"
+                                value={validationID}
+                                onChange={setValidationID}
+                                placeholder="0x..."
+                                helperText="The validation ID of the active validator you want to delegate to"
+                            />
+                        </div>
+                    </Step>
 
-                        {validationSelection.nodeId && (
-                            <div className="text-sm text-zinc-600 dark:text-zinc-400 mt-2">
-                                <p><strong>Selected Validator Node ID:</strong> {validationSelection.nodeId}</p>
+                    <Step>
+                        <h2 className="text-lg font-semibold">Initiate Delegation</h2>
+                        <p className="text-sm text-gray-500 mb-4">
+                            Lock your tokens to delegate to the selected validator.
+                            {!isNative && ' You will need to approve ERC20 tokens first.'}
+                        </p>
+
+                        <InitiateDelegation
+                            key={`initiate-${resetKey}-${tokenType}`}
+                            validationID={validationID}
+                            stakingManagerAddress={contractOwner || ''}
+                            tokenType={tokenType}
+                            erc20TokenAddress={!isNative ? exampleErc20Address : undefined}
+                            onSuccess={(data) => {
+                                setInitiateDelegationTxHash(data.txHash);
+                                setDelegationID(data.delegationID);
+                                setGlobalError(null);
+                            }}
+                            onError={(message) => setGlobalError(message)}
+                        />
+                    </Step>
+
+                    <Step>
+                        <h2 className="text-lg font-semibold">Submit P-Chain Transaction</h2>
+                        <p className="text-sm text-gray-500 mb-4">
+                            After initiating delegation, you need to submit a transaction on the P-Chain
+                            to update the validator's weight with your delegation.
+                        </p>
+
+                        <Alert variant="info">
+                            <p className="text-sm mb-2">
+                                <strong>Use AvalancheGo CLI or Core Wallet:</strong>
+                            </p>
+                            <ul className="list-disc list-inside text-sm space-y-1">
+                                <li>Use your delegation ID from the previous step</li>
+                                <li>Submit a transaction to increase the validator's weight on the P-Chain</li>
+                                <li>Wait for the transaction to be confirmed</li>
+                                <li>Once confirmed, proceed to complete delegation</li>
+                            </ul>
+                        </Alert>
+
+                        {delegationID && (
+                            <div className="mt-4">
+                                <Success
+                                    label="Your Delegation ID"
+                                    value={delegationID}
+                                />
                             </div>
                         )}
                     </Step>
 
                     <Step>
-                        <h2 className="text-lg font-semibold">Initiate Validator Removal</h2>
+                        <h2 className="text-lg font-semibold">Complete Delegation</h2>
                         <p className="text-sm text-gray-500 mb-4">
-                            Call the <a href="https://github.com/ava-labs/icm-contracts/blob/main/contracts/validator-manager/StakingManager.sol#L241" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline">initiateValidatorRemoval</a> function on the Staking Manager contract.
-                            You can optionally include an uptime proof to potentially increase your rewards.
+                            After the P-Chain transaction is confirmed, complete the delegation
+                            to activate your delegation on the L1.
                         </p>
 
-                        <Alert variant="info" className="mb-4">
-                            <p className="text-sm">
-                                <strong>Uptime Proof:</strong> Including an uptime proof fetches the validator's actual uptime
-                                from the network and may result in higher reward calculations. The system will automatically
-                                try different signature quorum percentages to ensure successful signing.
-                            </p>
-                        </Alert>
-
-                        <InitiateValidatorRemoval
-                            key={`initiate-${resetKey}-${tokenType}`}
-                            validationID={validationSelection.validationId}
-                            stakingManagerAddress={contractOwner || ''}
-                            rpcUrl={viemChain?.rpcUrls?.default?.http[0] || ''}
-                            signingSubnetId={signingSubnetId}
-                            tokenType={tokenType}
-                            onSuccess={(data) => {
-                                setInitiateRemovalTxHash(data.txHash);
-                                setGlobalError(null);
-                            }}
-                            onError={(message) => setGlobalError(message)}
-                        />
-                    </Step>
-
-                    <Step>
-                        <h2 className="text-lg font-semibold">Complete Validator Removal</h2>
-                        <p className="text-sm text-gray-500 mb-4">
-                            Finalize the validator removal by calling <a href="https://github.com/ava-labs/icm-contracts/blob/main/contracts/validator-manager/StakingManager.sol" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline">completeValidatorRemoval</a>.
-                            This will return your staked {tokenLabel.toLowerCase()}s and distribute rewards.
-                        </p>
-
-                        <CompleteValidatorRemoval
+                        <CompleteDelegation
                             key={`complete-${resetKey}-${tokenType}`}
-                            validationID={validationSelection.validationId}
+                            delegationID={delegationID}
                             stakingManagerAddress={contractOwner || ''}
                             tokenType={tokenType}
                             onSuccess={(data) => {
-                                setRemovalCompleteTxHash(data.txHash);
+                                setCompleteDelegationTxHash(data.txHash);
                                 setGlobalSuccess(data.message);
                                 setGlobalError(null);
-                            }}
-                            onError={(message) => setGlobalError(message)}
-                        />
-                    </Step>
-
-                    <Step>
-                        <h2 className="text-lg font-semibold">Claim Delegation Fees (Optional)</h2>
-                        <p className="text-sm text-gray-500 mb-4">
-                            If you had delegators, you can claim the accumulated delegation fees separately.
-                            These fees are based on the delegation fee percentage you set when registering the validator.
-                        </p>
-
-                        <ClaimDelegationFees
-                            key={`claim-fees-${resetKey}-${tokenType}`}
-                            validationID={validationSelection.validationId}
-                            stakingManagerAddress={contractOwner || ''}
-                            tokenType={tokenType}
-                            onSuccess={(data) => {
-                                setFeeClaimTxHash(data.txHash);
-                                setGlobalError(null);
+                                onSuccess?.();
                             }}
                             onError={(message) => setGlobalError(message)}
                         />
@@ -268,7 +264,7 @@ const RemoveValidator: React.FC<BaseConsoleToolProps> = ({ onSuccess }) => {
                     />
                 )}
 
-                {(initiateRemovalTxHash || removalCompleteTxHash || feeClaimTxHash || globalError || globalSuccess) && (
+                {(initiateDelegationTxHash || completeDelegationTxHash || globalError || globalSuccess) && (
                     <Button onClick={handleReset} variant="secondary" className="mt-6">
                         Reset All Steps
                     </Button>
@@ -278,4 +274,4 @@ const RemoveValidator: React.FC<BaseConsoleToolProps> = ({ onSuccess }) => {
     );
 };
 
-export default withConsoleToolMetadata(RemoveValidator, metadata);
+export default withConsoleToolMetadata(Delegate, metadata);
