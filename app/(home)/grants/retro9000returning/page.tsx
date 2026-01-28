@@ -205,6 +205,7 @@ export default function Retro9000ReturningForm() {
       if (!response.ok || !result.success) { throw new Error(result.message || "Failed to submit application") }
       setSubmissionStatus("success");
       form.reset();
+      if (session?.user?.email) { form.setValue("email", session.user.email) }
     } catch (error) {
       setSubmissionStatus("error");
       alert(`Error submitting form: ${error instanceof Error ? error.message : "Unknown error"}`);
@@ -228,6 +229,7 @@ export default function Retro9000ReturningForm() {
               setSubmissionStatus(null);
               setCurrentStep(1);
               form.reset();
+              if (session?.user?.email) { form.setValue("email", session.user.email) }
             }}
           >
             Submit Another Application
