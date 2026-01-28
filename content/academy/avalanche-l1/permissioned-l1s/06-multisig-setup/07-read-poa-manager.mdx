@@ -1,0 +1,72 @@
+---
+title: Read PoA Manager Contract
+description: Verify and inspect your PoA Manager contract deployment
+updated: 2025-03-19
+authors: [nicolasarnedo]
+icon: Terminal
+---
+
+import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx";
+import ReadPoAManager from "@/components/toolbox/console/permissioned-l1s/multisig-setup/ReadPoAManager.tsx";
+
+After completing the multi-sig setup, it's important to verify that everything is configured correctly. This tool allows you to read and inspect your PoA Manager contract.
+
+## What to Verify
+
+Use this tool to check:
+
+- **Owner**: Should be your Safe/Ash wallet address
+- **Validator Manager**: Should point to the correct VMC address
+- **Events**: Review any emitted events to track the contract's history
+
+<ToolboxMdxWrapper walletMode="c-chain">
+    <ReadPoAManager />
+</ToolboxMdxWrapper>
+
+## Expected Values
+
+| Function | Expected Value |
+|----------|----------------|
+| `owner()` | Your Safe/Ash wallet address |
+| `validatorManager()` | Your VMC address on C-Chain |
+
+## Troubleshooting
+
+### Owner is Wrong
+
+If the `owner()` doesn't match your Safe address:
+- Verify you used the correct Safe address during deployment
+- Check if ownership was transferred after deployment
+
+### Validator Manager is Wrong
+
+If the `validatorManager()` is incorrect:
+- The PoA Manager was deployed with the wrong VMC address
+- You'll need to redeploy the PoA Manager with the correct address
+
+### No Events Found
+
+If there are no events:
+- The contract may not have been used yet (normal for new deployments)
+- Events will appear after validator operations are performed
+
+## Multi-Sig Setup Complete
+
+Congratulations! You've successfully set up multi-sig governance for your permissioned L1:
+
+1. ✅ Deployed VMC on C-Chain
+2. ✅ Created a Safe/Ash multi-sig wallet
+3. ✅ Deployed PoA Manager with Safe as owner
+4. ✅ Transferred VMC ownership to PoA Manager
+5. ✅ Verified the complete setup
+
+## Next Chapter
+
+In the next chapter, **PoA Operations**, you'll learn how to perform validator operations through your new multi-sig setup:
+
+- Adding validators via Safe
+- Changing validator weights
+- Removing validators
+
+The operations themselves are similar to what you learned earlier, but now require multi-sig approval through your Safe wallet.
+
