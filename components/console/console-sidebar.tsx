@@ -32,7 +32,8 @@ import {
   ExternalLink,
   BookKey,
   ShieldOff,
-  Activity
+  Activity,
+  Search
 } from "lucide-react";
 
 import {
@@ -265,6 +266,11 @@ const data = {
           title: "Remove Delegation",
           url: "/console/permissionless-l1s/remove-delegation",
           icon: SquareMinus,
+        },
+        {
+          title: "Query Staking Info",
+          url: "/console/permissionless-l1s/query-staking",
+          icon: Search,
         }
       ],
     },
