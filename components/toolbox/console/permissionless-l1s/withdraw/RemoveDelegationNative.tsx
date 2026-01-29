@@ -3,19 +3,19 @@
 import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from '../../../components/WithConsoleToolMetadata';
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
-import StakeValidator from './StakeValidator';
+import RemoveDelegationBase from './RemoveDelegationBase';
 
 const metadata: ConsoleToolMetadata = {
-    title: "Stake Validator (Native Token)",
-    description: "Register and stake a new validator on your L1 with native tokens",
+    title: "Remove Delegation (Native Token)",
+    description: "Remove your delegation from a validator with native token staking",
     toolRequirements: [
         WalletRequirementsConfigKey.EVMChainBalance,
     ],
     githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
 };
 
-function StakeNative(props: BaseConsoleToolProps) {
-    return <StakeValidator {...props} tokenType="native" />;
+function RemoveDelegationNative(props: BaseConsoleToolProps) {
+    return <RemoveDelegationBase {...props} tokenType="native" />;
 }
 
-export default withConsoleToolMetadata(StakeNative, metadata);
+export default withConsoleToolMetadata(RemoveDelegationNative, metadata);

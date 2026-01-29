@@ -87,13 +87,6 @@ function DeployERC20StakingManager(_props: BaseConsoleToolProps) {
 
     return (
         <div className="space-y-4">
-            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border-2 border-blue-500">
-                <div className="font-semibold text-sm mb-1">ERC20 Token Staking</div>
-                <div className="text-xs text-zinc-600 dark:text-zinc-400">
-                    Use a custom ERC20 token for staking and rewards
-                </div>
-            </div>
-
             <p className="text-sm text-gray-500">
                 This will deploy the <code>ERC20TokenStakingManager</code> contract to the EVM network <code>{viemChain?.id}</code>.
                 The ERC20 Token Staking Manager enables permissionless staking on your L1 using a custom ERC20 token.

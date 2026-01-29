@@ -1,5 +1,6 @@
-import RemoveValidator from "@/components/toolbox/console/permissionless-l1s/withdraw/RemoveValidator";
+import { redirect } from "next/navigation";
 
-export default function RemoveValidatorPage() {
-    return <RemoveValidator />;
+export default function Page() {
+    // Redirect to the first branch option (native) of the remove-validator step
+    redirect("/console/permissionless-l1s/remove-validator/native");
 }
