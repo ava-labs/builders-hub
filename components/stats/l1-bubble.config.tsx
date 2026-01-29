@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo, useCallback } from 'react';
 import BubbleNavigation from '@/components/navigation/BubbleNavigation';
 import type { BubbleNavigationConfig } from '@/components/navigation/bubble-navigation.types';
 import { ChartArea, Compass, Users } from 'lucide-react';
@@ -10,6 +11,16 @@ export interface L1BubbleNavProps {
   rpcUrl?: string;
   isCustomChain?: boolean;
 }
+
+const getActiveItem = (pathname: string) => {
+  if (pathname.includes("/explorer")) {
+    return "explorer";
+  }
+  if (pathname.includes("/validators")) {
+    return "validators";
+  }
+  return "stats";
+};
 
 export function L1BubbleNav({
   chainSlug,
@@ -26,7 +37,7 @@ export function L1BubbleNav({
     return null;
   }
 
-  const l1BubbleConfig: BubbleNavigationConfig = {
+  const l1BubbleConfig: BubbleNavigationConfig = useMemo(() => ({
     items: [
       { id: "stats", label: "Stats", href: `/stats/l1/${chainSlug}`, icon: ChartArea },
       { id: "explorer", label: "Explorer", href: `/explorer/${chainSlug}`, icon: Compass },
@@ -38,17 +49,7 @@ export function L1BubbleNav({
     focusRingColor: "focus:ring-zinc-500",
     pulseColor: "bg-zinc-200/40",
     darkPulseColor: "dark:bg-zinc-400/40",
-  };
-
-  const getActiveItem = (pathname: string) => {
-    if (pathname.includes("/explorer")) {
-      return "explorer";
-    }
-    if (pathname.includes("/validators")) {
-      return "validators";
-    }
-    return "stats";
-  };
+  }), [chainSlug]);
 
   return <BubbleNavigation config={l1BubbleConfig} getActiveItem={getActiveItem} />;
 }

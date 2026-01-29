@@ -23,12 +23,12 @@ import {
   Ticket,
   Earth,
   ArrowLeftRight,
-  Triangle,
   GraduationCap,
   BookOpen,
   Code,
   GitBranch,
   DraftingCompass,
+  Gamepad2,
 } from 'lucide-react';
 import Image from 'next/image';
 import { UserButtonWrapper } from '@/components/login/user-button/UserButtonWrapper';
@@ -192,6 +192,12 @@ export const explorerMenu: MainItemType = {
   type: "main",
   text: "Explorer",
   url: "/explorer"
+};
+
+export const chatMenu: MainItemType = {
+  type: "main",
+  text: "Chat",
+  url: "/chat"
 };
 
 export const docsMenu: LinkItemType = {
@@ -525,7 +531,7 @@ export const eventsMenu: LinkItemType = {
         banner: (
           <div className='-mx-3 -mt-3'>
             <Image
-              src={"https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/local_events_team1-UJLssyvek3G880Q013A94SdMKxiLRq.jpg"}
+              src={"https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Hackathon_assets/BuildGames_2026/BuildGames_banner1"}
               alt='Preview'
               width={900}
               height={400}
@@ -538,18 +544,18 @@ export const eventsMenu: LinkItemType = {
         ),
         className: 'md:row-span-2',
       },
+      icon: <Gamepad2 />,
+      text: 'BuildGames',
+      description:
+        "Avalanche's flagship online builder competition for crypto-native talent. Six fast-paced weeks to turn your next big idea into a real product on Avalanche. If you've been waiting for a reason to build, this is it.",
+      url: '/build-games',
+    },
+    {
       icon: <Earth />,
       text: 'Community driven events',
       description:
         'Check out and join the global meetups, workshops and events organized by Avalanche Team1',
       url: 'https://lu.ma/Team1?utm_source=builder_hub',
-    },
-    {
-      icon: <Ticket />,
-      text: 'Avalanche Calendar',
-      description:
-        'Explore upcoming Avalanche events, meetups, and community gatherings. Stay connected with the latest happenings in the ecosystem.',
-      url: 'https://lu.ma/calendar/cal-Igl2DB6quhzn7Z4',
       menu: {
         className: 'lg:col-start-3 lg:row-start-1',
       },
@@ -585,6 +591,7 @@ export const baseOptions: BaseLayoutProps = {
   links: [
     academyMenu,
     blogMenu,
+    chatMenu,
     consoleMenu,
     docsMenu,
     eventsMenu,

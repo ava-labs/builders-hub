@@ -68,6 +68,7 @@ model User {
   statsPlaygrounds    StatsPlayground[]
   statsPlaygroundFavorites StatsPlaygroundFavorite[] @relation("StatsPlaygroundFavorites")
   faucetClaims        FaucetClaim[]
+  chatConversations   ChatConversation[]
 }
 
 model VerificationToken {
@@ -285,6 +286,41 @@ model FaucetClaim {
   @@index([faucet_type, chain_id])
 }
 
+model ChatConversation {
+  id         String        @id @default(uuid())
+  user_id    String
+  title      String
+  created_at DateTime      @default(now()) @db.Timestamptz(3)
+  updated_at DateTime      @updatedAt @db.Timestamptz(3)
+
+  // Sharing fields
+  is_shared        Boolean   @default(false)
+  share_token      String?   @unique  // Cryptographically secure, non-guessable
+  shared_at        DateTime? @db.Timestamptz(3)
+  share_expires_at DateTime? @db.Timestamptz(3)  // Link expiration (default: 30 days from share)
+  view_count       Int       @default(0)
+
+  user       User          @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  messages   ChatMessage[]
+
+  @@index([user_id])
+  @@index([updated_at])
+  @@index([share_token])  // Fast public lookup
+  @@index([is_shared])    // Filter shared conversations
+}
+
+model ChatMessage {
+  id              String           @id @default(uuid())
+  conversation_id String
+  role            String           // "user" or "assistant"
+  content         String           @db.Text
+  created_at      DateTime         @default(now()) @db.Timestamptz(3)
+  conversation    ChatConversation @relation(fields: [conversation_id], references: [id], onDelete: Cascade)
+
+  @@index([conversation_id])
+  @@index([created_at])
+}
+
 model FormData {
   id         String   @id @default(dbgenerated("gen_random_uuid()"))
   form_data  Json
@@ -293,6 +329,7 @@ model FormData {
   project_id String
   project    Project  @relation(fields: [project_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
+
 model BuildGamesApplication {
   id                        String   @id @default(uuid())
   email                     String   @unique
@@ -326,4 +363,55 @@ model BuildGamesApplication {
   @@index([created_at])
   @@index([referrer_handle])
   @@index([area_of_focus])
+}
+
+model Retro9000ReturningApplication {
+  id                              String   @id @default(uuid())
+  email                           String   @unique
+
+  // PROJECT OVERVIEW
+  project_name                    String
+  project_type                    String
+  project_vertical                String
+  project_website                 String?
+  project_x_handle                String?
+  project_github                  String
+  project_hq                      String
+  project_continent               String
+  media_kit                       String
+
+  // FINANCIAL OVERVIEW
+  previous_retro9000_snapshot_funding String?
+  requested_funding_range         String
+
+  // GRANT INFORMATION
+  eligibility_and_metrics         String   @db.Text
+  requested_grant_size_budget     String
+  changes_since_last_snapshot     String   @db.Text
+
+  // APPLICANT INFORMATION
+  first_name                      String
+  last_name                       String
+  pseudonym                       String?
+  role                            String
+  x_account                       String
+  telegram                        String
+  linkedin                        String?
+  github                          String?
+  country                         String?
+  other_url                       String?
+  bio                             String   @db.Text
+
+  // COMPLIANCE
+  kyb_willing                     String
+  gdpr                            Boolean  @default(false)
+  marketing_consent               Boolean  @default(false)
+
+  created_at                      DateTime @default(now()) @db.Timestamptz(3)
+  updated_at                      DateTime @updatedAt @db.Timestamptz(3)
+
+  @@index([created_at])
+  @@index([project_name])
+  @@index([project_vertical])
+  @@index([requested_funding_range])
 }

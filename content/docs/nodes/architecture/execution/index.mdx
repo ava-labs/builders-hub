@@ -1,0 +1,83 @@
+---
+title: Execution
+description: Understand how AvalancheGo executes transactions efficiently, including streaming async execution and optimized state storage.
+---
+
+AvalancheGo is evolving its execution model to achieve higher throughput and lower latency. This section covers the advanced execution concepts being developed for Avalanche, including decoupled consensus and execution, and optimized state storage.
+
+<Callout type="info">
+**Active Development**: The concepts described here (Streaming Asynchronous Execution and Firewood) are under active development. Some features may be experimental or not yet deployed to mainnet.
+</Callout>
+
+## Execution at a Glance
+
+| Concept | Description |
+|---------|-------------|
+| **Streaming Async Execution** | Decouples consensus from execution, allowing both to proceed concurrently |
+| **Firewood** | Compaction-less database optimized for Merkleized blockchain state |
+| **Optimistic Parallelism** | Execute multiple transactions concurrently with conflict detection |
+
+## Key Innovations
+
+### Decoupled Consensus and Execution
+
+Traditional blockchain execution is synchronous—transactions are executed and their results computed before the block is accepted by consensus. AvalancheGo's Streaming Asynchronous Execution (SAE) breaks this tight coupling:
+
+<Mermaid chart="
+flowchart LR
+    subgraph Traditional [Synchronous Execution]
+        P1[Proposed] --> E1[Executed] --> A1[Accepted]
+    end
+
+    subgraph SAE [Streaming Async Execution]
+        P2[Proposed] --> A2[Accepted]
+        A2 -->|async| E2[Executed]
+        E2 -->|delay| S2[Settled]
+    end
+" />
+
+This separation enables:
+- **Higher throughput**: Consensus and execution proceed in parallel
+- **Reduced latency**: Blocks are accepted faster
+- **Better resource utilization**: No context switching between consensus and execution
+
+### Optimized State Storage
+
+Firewood reimagines blockchain state storage by storing Merkle trie nodes directly on disk, eliminating the need for:
+- Generic key-value stores (LevelDB, RocksDB)
+- Expensive compaction cycles
+- Hash-based storage addressing
+
+## Why This Matters
+
+For **node operators**:
+- Lower hardware requirements through better resource utilization
+- More predictable performance without compaction pauses
+- Faster state sync with native trie operations
+
+For **developers**:
+- Higher transaction throughput
+- Lower confirmation latency for users
+- More consistent block times
+
+For **the network**:
+- Better scalability without sacrificing decentralization
+- Improved validator experience
+- Foundation for future optimizations (encrypted mempools, VRF)
+
+## Explore Further
+
+<Cards>
+  <Card title="Streaming Async Execution" href="/docs/nodes/architecture/execution/streaming-async-execution">
+    Learn how SAE decouples consensus from execution for higher throughput
+  </Card>
+  <Card title="Firewood Database" href="/docs/nodes/architecture/execution/firewood">
+    Discover the compaction-less database optimized for Merkleized state
+  </Card>
+</Cards>
+
+## Related Resources
+
+- [ACP-194: Streaming Asynchronous Execution](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/194-streaming-asynchronous-execution) - Formal specification
+- [StreVM Repository](https://github.com/ava-labs/strevm) - Reference SAE implementation
+- [Firewood Repository](https://github.com/ava-labs/firewood) - Database implementation

@@ -18,6 +18,8 @@ import defaultMdxComponents from 'fumadocs-ui/mdx';
 import { cn } from '../../lib/cn';
 import { buttonVariants } from '../ui/button';
 import { createProcessor, type Processor } from './markdown-processor';
+import { MessageFeedback } from './feedback';
+import { EmbeddedPanel, EmbeddedLinkNav, extractEmbeddableLinks, type EmbeddedReference } from './embedded-panel';
 import Link from 'fumadocs-core/link';
 import {
   Dialog,
@@ -28,7 +30,10 @@ import {
   type DialogProps,
   DialogTitle,
 } from '@radix-ui/react-dialog';
-import { type Message, useChat, type UseChatHelpers } from '@ai-sdk/react';
+import { type UIMessage, useChat, type UseChatHelpers } from '@ai-sdk/react';
+
+// Type alias for backward compatibility
+type Message = UIMessage;
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import dynamic from 'next/dynamic';
 import { useIsMobile } from '../../hooks/use-mobile';
@@ -40,13 +45,13 @@ const Mermaid = dynamic(() => import('@/components/content-design/mermaid'), {
   ssr: false,
 });
 
-const ChatContext = createContext<UseChatHelpers | null>(null);
+const ChatContext = createContext<UseChatHelpers<Message> | null>(null);
 function useChatContext() {
   return use(ChatContext)!;
 }
 
 function SearchAIActions() {
-  const { messages, status, setMessages, reload } = useChatContext();
+  const { messages, status, setMessages, regenerate } = useChatContext();
   const isLoading = status === 'streaming';
 
   if (messages.length === 0) return null;
@@ -66,7 +71,7 @@ function SearchAIActions() {
             posthog.capture('ai_chat_regenerate', {
               message_count: messages.length,
             });
-            reload();
+            regenerate();
           }}
         >
           <RefreshCw className="size-3.5" />
@@ -96,17 +101,20 @@ function SearchAIActions() {
 }
 
 function SearchAIInput(props: FormHTMLAttributes<HTMLFormElement>) {
-  const { status, input, setInput, handleSubmit, stop } = useChatContext();
+  const { status, sendMessage, stop } = useChatContext();
+  const [inputValue, setInputValue] = useState('');
   const isLoading = status === 'streaming' || status === 'submitted';
+
   const onStart = (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (input.trim()) {
+    if (inputValue.trim()) {
       posthog.capture('ai_chat_message_sent', {
-        query_length: input.length,
-        query: input.substring(0, 100), // First 100 chars for privacy
+        query_length: inputValue.length,
+        query: inputValue.substring(0, 100), // First 100 chars for privacy
       });
+      sendMessage({ text: inputValue });
+      setInputValue('');
     }
-    handleSubmit(e);
   };
 
   useEffect(() => {
@@ -124,12 +132,12 @@ function SearchAIInput(props: FormHTMLAttributes<HTMLFormElement>) {
     >
       <div className="flex-1 relative flex items-end bg-transparent border-0 group w-full">
         <Input
-          value={input}
+          value={inputValue}
           placeholder="Ask anything..."
           className="w-full px-4 py-4 text-lg bg-transparent border-b border-border/20 focus:border-blue-500/50 rounded-none transition-all min-h-[50px] placeholder:text-muted-foreground/30 resize-none"
           disabled={status === 'streaming' || status === 'submitted'}
           onChange={(e) => {
-            setInput(e.target.value);
+            setInputValue(e.target.value);
           }}
           onKeyDown={(event) => {
             if (!event.shiftKey && event.key === 'Enter') {
@@ -144,11 +152,11 @@ function SearchAIInput(props: FormHTMLAttributes<HTMLFormElement>) {
             'absolute right-2 bottom-3 p-2 rounded-full transition-all shrink-0',
             isLoading
               ? 'bg-transparent text-muted-foreground'
-              : input.length > 0
+              : inputValue.length > 0
                 ? 'bg-blue-600 text-white hover:bg-blue-700 hover:scale-110 shadow-lg shadow-blue-500/20'
                 : 'text-muted-foreground/30 cursor-not-allowed',
           )}
-          disabled={!isLoading && input.length === 0}
+          disabled={!isLoading && inputValue.length === 0}
           onClick={isLoading ? stop : undefined}
         >
           {isLoading ? (
@@ -293,23 +301,30 @@ function SuggestedFollowUps({ questions, onQuestionClick }: {
   );
 }
 
-function Message({ message, isLast, onFollowUpClick, isStreaming, onToolReference }: {
+function Message({ message, isLast, onFollowUpClick, isStreaming, onRefSelect }: {
   message: Message;
   isLast: boolean;
   onFollowUpClick: (question: string) => void;
   isStreaming?: boolean;
-  onToolReference?: (toolId: string) => void;
+  onRefSelect?: (ref: EmbeddedReference) => void;
 }) {
   const isUser = message.role === 'user';
   const isMobile = useIsMobile();
 
-  // Parse content immediately - this should happen synchronously
-  const cleanContent = isUser ? message.content : removeFollowUpQuestions(message.content);
-  const followUpQuestions = isUser ? [] : parseFollowUpQuestions(message.content);
+  // Extract text from message (v6 uses parts array, not content)
+  const messageContent = 'parts' in message
+    ? message.parts
+        .filter((p: any): p is { type: 'text'; text: string } => p.type === 'text')
+        .map((p: any) => p.text)
+        .join('')
+    : (message as any).content || '';
 
-  // Extract tool references from AI responses - only on desktop
-  const [detectedTools, setDetectedTools] = useState<string[]>([]);
-  const [hasAutoOpened, setHasAutoOpened] = useState(false);
+  // Parse content immediately
+  const cleanContent = isUser ? messageContent : removeFollowUpQuestions(messageContent);
+  const followUpQuestions = isUser ? [] : parseFollowUpQuestions(messageContent);
+
+  // Extract embeddable links from this message
+  const embeddableLinks = isUser ? [] : extractEmbeddableLinks(messageContent);
 
   if (isUser) {
     // User message - right aligned
@@ -329,25 +344,19 @@ function Message({ message, isLast, onFollowUpClick, isStreaming, onToolReferenc
     <div className="px-6 py-4">
       <div className="max-w-[95%] space-y-4">
         <div className="flex items-start gap-4">
-          {/* <img
-            src="/avax-gpt.png"
-            alt="AI"
-            className="size-8 object-contain mt-1 shrink-0"
-          /> */}
           <div className="flex-1 min-w-0">
-            {/* <p className="text-sm font-semibold text-foreground mb-2">AI Assistant</p> */}
             <div className="prose prose-sm max-w-none dark:prose-invert [&_.katex-display]:overflow-x-auto [&_.katex-display]:overflow-y-hidden [&_.katex]:text-sm [&_.katex-display]:my-4">
-              <Markdown text={cleanContent} onToolClick={isMobile ? undefined : onToolReference} />
+              <Markdown text={cleanContent} />
             </div>
 
-            {/* Show all tools referenced */}
-            {detectedTools.length > 0 && !isMobile && onToolReference && (
+            {/* Show clickable links to embedded content - desktop only */}
+            {embeddableLinks.length > 0 && !isMobile && onRefSelect && (
               <div className="mt-4 flex flex-wrap gap-2">
-                <p className="text-xs text-muted-foreground w-full mb-1">Tools referenced:</p>
-                {detectedTools.map((toolId) => (
+                <p className="text-xs text-muted-foreground w-full mb-1">Referenced pages:</p>
+                {embeddableLinks.map((link, idx) => (
                   <button
-                    key={toolId}
-                    onClick={() => onToolReference(toolId)}
+                    key={idx}
+                    onClick={() => onRefSelect(link)}
                     className={cn(
                       "inline-flex items-center gap-1.5 px-3 py-1.5 text-xs",
                       "bg-slate-100 dark:bg-zinc-900 hover:bg-slate-200 dark:hover:bg-zinc-800 rounded-md",
@@ -356,10 +365,18 @@ function Message({ message, isLast, onFollowUpClick, isStreaming, onToolReferenc
                     )}
                   >
                     <ChevronRight className="size-3" />
-                    {toolId}
+                    {link.title || link.url}
                   </button>
                 ))}
               </div>
+            )}
+
+            {/* Feedback buttons - show after streaming completes */}
+            {!isStreaming && (
+              <MessageFeedback
+                messageId={message.id}
+                className="mt-4"
+              />
             )}
           </div>
         </div>
@@ -398,7 +415,7 @@ function Pre(props: ComponentProps<'pre'>) {
   );
 }
 
-function Markdown({ text, onToolClick }: { text: string; onToolClick?: (toolId: string) => void }) {
+function Markdown({ text }: { text: string }) {
   const [rendered, setRendered] = useState<ReactNode>(null);
 
   useEffect(() => {
@@ -408,19 +425,12 @@ function Markdown({ text, onToolClick }: { text: string; onToolClick?: (toolId: 
       if (!result && text) {
         processor ??= createProcessor();
 
-        // Custom link component to intercept tool clicks
-        const LinkWithToolDetection = (props: ComponentProps<'a'>) => {
-      
-          // On mobile or when no handler, just use regular link
-          return <Link {...props} />;
-        };
-
         result = await processor
           .process(text, {
             ...defaultMdxComponents,
             pre: Pre,
-            a: LinkWithToolDetection,
-            img: undefined, // use JSX
+            a: Link,
+            img: undefined,
           })
           .catch(() => text);
 
@@ -436,75 +446,58 @@ function Markdown({ text, onToolClick }: { text: string; onToolClick?: (toolId: 
     return () => {
       aborted = true;
     };
-  }, [text, onToolClick]);
+  }, [text]);
 
   return <>{rendered || text}</>;
 }
 
 export default function AISearch(props: DialogProps & { onToolSelect?: (toolId: string) => void }) {
-  const [selectedTool, setSelectedTool] = useState<string | null>(null);
-  const [mobileView, setMobileView] = useState<'chat' | 'tool'>('chat');
-  const [isClosing, setIsClosing] = useState(false);
-  const [closedTools, setClosedTools] = useState<Set<string>>(new Set());
-  const [viewMode, setViewMode] = useState<'big' | 'small'>('big'); // Default to big view
+  const [embeddedRef, setEmbeddedRef] = useState<EmbeddedReference | null>(null);
+  const [detectedLinks, setDetectedLinks] = useState<EmbeddedReference[]>([]);
+  const [currentLinkIndex, setCurrentLinkIndex] = useState(0);
+  const [closedRefs, setClosedRefs] = useState<Set<string>>(new Set());
+  const [viewMode, setViewMode] = useState<'big' | 'small'>('big');
   const isMobile = useIsMobile();
-  const toolSwitchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Define handleCloseTool before useEffect that uses it
-  const handleCloseTool = () => {
-    if (isClosing) return; // Prevent multiple close attempts
-
-    setIsClosing(true);
-
-    // Clear any pending tool switches
-    if (toolSwitchTimeoutRef.current) {
-      clearTimeout(toolSwitchTimeoutRef.current);
-    }
-
-    // Don't clear the hash, just hide the tool
-    setTimeout(() => {
-      if (selectedTool) {
-        setClosedTools(prev => new Set(prev).add(selectedTool));
-      }
-      setSelectedTool(null);
-      setIsClosing(false);
-    }, 50);
-  };
-
-  // Handle tool selection
-  const handleToolSelect = (toolId: string) => {
-    if (!isMobile && !isClosing) {
-      // If we're already showing this tool, do nothing
-      if (selectedTool === toolId) {
-        return;
-      }
-
-      // Clear any existing timeout
-      if (toolSwitchTimeoutRef.current) {
-        clearTimeout(toolSwitchTimeoutRef.current);
-      }
-
-      // Remove from closedTools if it was there
-      setClosedTools(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(toolId);
-        return newSet;
-      });
-
-      // Switch to the new tool immediately
-      setSelectedTool(toolId);
-      props.onToolSelect?.(toolId);
+  // Handle reference selection (from link click or auto-detect)
+  const handleRefSelect = (ref: EmbeddedReference) => {
+    if (!isMobile) {
+      setEmbeddedRef(ref);
+      // Find and set the current index
+      const index = detectedLinks.findIndex(l => l.url === ref.url);
+      if (index !== -1) setCurrentLinkIndex(index);
     }
   };
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (toolSwitchTimeoutRef.current) {
-        clearTimeout(toolSwitchTimeoutRef.current);
-      }
-    };
-  }, []);
+  // Handle closing the panel
+  const handleClosePanel = () => {
+    if (embeddedRef) {
+      setClosedRefs(prev => new Set(prev).add(embeddedRef.url));
+    }
+    setEmbeddedRef(null);
+  };
+
+  // Handle new links detected from AI response
+  const handleLinksDetected = (links: EmbeddedReference[]) => {
+    if (links.length === 0) return;
+
+    setDetectedLinks(links);
+
+    // Auto-open the first link if not already closed
+    const firstLink = links[0];
+    if (!closedRefs.has(firstLink.url) && !isMobile) {
+      setEmbeddedRef(firstLink);
+      setCurrentLinkIndex(0);
+    }
+  };
+
+  // Handle navigation between links
+  const handleLinkNavigation = (index: number) => {
+    if (detectedLinks[index]) {
+      setCurrentLinkIndex(index);
+      setEmbeddedRef(detectedLinks[index]);
+    }
+  };
 
   return (
     <Dialog {...props}>
@@ -545,7 +538,7 @@ export default function AISearch(props: DialogProps & { onToolSelect?: (toolId: 
               aria-describedby={undefined}
               className={cn(
                 "fixed inset-4 md:inset-auto md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 z-50",
-                selectedTool && !isMobile ? "md:max-w-[1600px] md:w-[95vw]" : "md:max-w-5xl md:w-[90vw]",
+                embeddedRef && !isMobile ? "md:max-w-[1600px] md:w-[95vw]" : "md:max-w-5xl md:w-[90vw]",
                 "md:h-[85vh] max-h-[90vh] focus-visible:outline-none data-[state=closed]:animate-fd-fade-out data-[state=open]:animate-fd-fade-in transition-all duration-300"
               )}
             >
@@ -553,13 +546,32 @@ export default function AISearch(props: DialogProps & { onToolSelect?: (toolId: 
                 {/* Desktop view - side by side */}
                 <div className={cn(
                   "hidden md:flex md:flex-col",
-                  selectedTool ? "md:w-[40%] md:border-r md:border-fd-border" : "md:w-full"
+                  embeddedRef ? "md:w-[40%] md:border-r md:border-fd-border" : "md:w-full"
                 )}>
                   <Content
-                    onToolReference={handleToolSelect}
+                    onRefSelect={handleRefSelect}
+                    onLinksDetected={handleLinksDetected}
                     onCollapse={() => setViewMode('small')}
                   />
                 </div>
+
+                {/* Embedded panel - desktop only */}
+                {embeddedRef && !isMobile && (
+                  <div className="hidden md:flex md:flex-col md:w-[60%]">
+                    {detectedLinks.length > 1 && (
+                      <EmbeddedLinkNav
+                        links={detectedLinks}
+                        currentIndex={currentLinkIndex}
+                        onSelect={handleLinkNavigation}
+                      />
+                    )}
+                    <EmbeddedPanel
+                      reference={embeddedRef}
+                      onClose={handleClosePanel}
+                      className="flex-1"
+                    />
+                  </div>
+                )}
 
                 {/* Mobile view - chat only */}
                 <div className="flex md:hidden flex-col w-full">
@@ -574,23 +586,37 @@ export default function AISearch(props: DialogProps & { onToolSelect?: (toolId: 
   );
 }
 
+// Helper to extract text content from AI SDK v6 message
+// In v6, messages have 'parts' array instead of 'content'
+function getMessageText(message: Message | any): string {
+  // Handle direct UIMessage
+  if (message && typeof message === 'object') {
+    // Check if it's a UIMessage with parts
+    if ('parts' in message) {
+      return message.parts
+        .filter((p: any): p is { type: 'text'; text: string } => p.type === 'text')
+        .map((p: any) => p.text)
+        .join('');
+    }
+    // Legacy content field
+    if ('content' in message && typeof message.content === 'string') {
+      return message.content;
+    }
+  }
+  if (typeof message === 'string') return message;
+  return '';
+}
+
 function SmallViewContent({ onExpand }: { onExpand: () => void }) {
   const chat = useChat({
     id: 'search',
-    streamProtocol: 'data',
-    sendExtraMessageFields: true,
-    body: {
-      // Pass PostHog distinct ID for server-side LLM analytics
-      id: typeof window !== 'undefined' ? posthog.get_distinct_id() : undefined,
+    onError(error) {
+      console.error('Chat error:', error);
     },
-    onResponse(response) {
-      if (response.status === 401) {
-        console.error(response.statusText);
-      }
-    },
-    onFinish(message) {
+    onFinish({ message }) {
+      const messageText = getMessageText(message);
       posthog.capture('ai_chat_response_received', {
-        response_length: message.content.length,
+        response_length: messageText.length,
         message_count: chat.messages.length + 1,
         view: 'small',
       });
@@ -670,10 +696,7 @@ function SmallViewContent({ onExpand }: { onExpand: () => void }) {
                   posthog.capture('ai_chat_followup_clicked', {
                     question: question,
                   });
-                  await chat.append({
-                    content: question,
-                    role: 'user',
-                  });
+                  await chat.sendMessage({ text: question });
                 }}
                 isStreaming={status === 'streaming' && index === messages.length - 1 && item.role === 'assistant'}
               />
@@ -717,31 +740,34 @@ function SmallViewContent({ onExpand }: { onExpand: () => void }) {
   );
 }
 
-function Content({ onToolReference, onCollapse }: { onToolReference?: (toolId: string) => void; onCollapse?: () => void }) {
+function Content({ onRefSelect, onLinksDetected, onCollapse }: {
+  onRefSelect?: (ref: EmbeddedReference) => void;
+  onLinksDetected?: (links: EmbeddedReference[]) => void;
+  onCollapse?: () => void;
+}) {
   const chat = useChat({
     id: 'search',
-    streamProtocol: 'data',
-    sendExtraMessageFields: true,
-    body: {
-      // Pass PostHog distinct ID for server-side LLM analytics
-      id: typeof window !== 'undefined' ? posthog.get_distinct_id() : undefined,
+    onError(error) {
+      console.error('Chat error:', error);
     },
-    onResponse(response) {
-      if (response.status === 401) {
-        console.error(response.statusText);
-      }
-    },
-    onFinish(message) {
+    onFinish({ message }) {
+      const messageText = getMessageText(message);
       // Track when AI response is complete
       posthog.capture('ai_chat_response_received', {
-        response_length: message.content.length,
+        response_length: messageText.length,
         message_count: chat.messages.length + 1,
       });
+
+      // Detect embeddable links in the response
+      const links = extractEmbeddableLinks(messageText);
+      if (links.length > 0 && onLinksDetected) {
+        onLinksDetected(links);
+      }
     },
   });
 
   const messages = chat.messages.filter((msg) => msg.role !== 'system');
-  const { status, append } = chat;
+  const { status, sendMessage } = chat;
   const isLoading = status === 'streaming';
 
   // Track chat opened
@@ -765,10 +791,7 @@ function Content({ onToolReference, onCollapse }: { onToolReference?: (toolId: s
     posthog.capture('ai_chat_suggested_question_clicked', {
       question: question,
     });
-    await append({
-      content: question,
-      role: 'user',
-    });
+    await sendMessage({ text: question });
   };
 
   return (
@@ -854,7 +877,7 @@ function Content({ onToolReference, onCollapse }: { onToolReference?: (toolId: s
                 isLast={index === messages.length - 1}
                 onFollowUpClick={handleSuggestionClick}
                 isStreaming={isLoading && index === messages.length - 1 && item.role === 'assistant'}
-                onToolReference={onToolReference}
+                onRefSelect={onRefSelect}
               />
             ))}
             {isLoading && messages[messages.length - 1]?.role === 'user' && (

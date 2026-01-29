@@ -17,8 +17,8 @@ import { AmountInput } from "@/components/toolbox/components/AmountInput";
 import { Suggestion } from "@/components/toolbox/components/TokenInput";
 import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput";
 import { Token, TokenInput } from "@/components/toolbox/components/TokenInputToolbox";
-import { utils } from "@avalabs/avalanchejs";
 import SelectBlockchain, { type BlockchainSelection } from "@/components/toolbox/components/SelectBlockchain";
+import { cb58ToHex } from '@/components/toolbox/console/utilities/format-converter/FormatConverter';
 import { Container } from "@/components/toolbox/components/Container";
 import { Toggle } from "@/components/toolbox/components/Toggle";
 import { Ellipsis } from "lucide-react";
@@ -95,7 +95,7 @@ export default function TokenBridge() {
     const destinationBlockchainIDHex = useMemo(() => {
         if (!destL1?.id) return null;
         try {
-            return utils.bufferToHex(utils.base58check.decode(destL1.id));
+            return cb58ToHex(destL1.id);
         } catch (e) {
             console.error("Error decoding destination blockchain ID:", e);
             return null;

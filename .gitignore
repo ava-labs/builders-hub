@@ -239,6 +239,11 @@ public/openapi/glacier.json
 public/openapi/popsicle.json
 public/openapi/speakeasy.yaml
 
+# Generated code embeddings for DeepWiki-style chat (run `pnpm index-repos` to generate)
+public/embeddings/*.json.gz
+public/embeddings/manifest.json
+!public/embeddings/.gitkeep
+
 # Generated OpenAPI documentation (auto-generated during build)
 content/docs/api-reference/data-api/**/*.mdx
 content/docs/api-reference/data-api/**/meta.json

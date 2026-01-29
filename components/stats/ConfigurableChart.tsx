@@ -281,14 +281,17 @@ export default function ConfigurableChart({
 
   // Notify parent when dataSeries changes
   const prevDataSeriesRef = useRef<DataSeries[]>(dataSeries);
+  const onDataSeriesChangeRef = useRef(onDataSeriesChange);
+  onDataSeriesChangeRef.current = onDataSeriesChange;
+
   useEffect(() => {
     // Only call callback if dataSeries actually changed
     const hasChanged = JSON.stringify(prevDataSeriesRef.current) !== JSON.stringify(dataSeries);
-    if (hasChanged && onDataSeriesChange) {
+    if (hasChanged && onDataSeriesChangeRef.current) {
       prevDataSeriesRef.current = dataSeries;
-      onDataSeriesChange(dataSeries);
+      onDataSeriesChangeRef.current(dataSeries);
     }
-  }, [dataSeries, onDataSeriesChange]);
+  }, [dataSeries]);
 
   // Close dropdowns when clicking outside
   useEffect(() => {

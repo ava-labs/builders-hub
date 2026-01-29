@@ -87,7 +87,7 @@ body:has(.build-games-container) .nd-layout-home, body:has(.build-games-containe
 .build-games-container input { font-size: 1rem; font-weight: var(--font-weight-normal); line-height: 1.5; }
 .build-games-container p { margin: 0; }
 .build-games-container [data-name="Main"] > [data-name="Nav"] { display: none !important; }
-.build-games-container [data-name="Main"] { top: 56px !important; max-width: 1440px; margin: 0 auto; left: 0 !important; right: 0 !important; }
+.build-games-container [data-name="Main"] { top: 0 !important; max-width: 1440px; margin: 0 auto; left: 0 !important; right: 0 !important; }
 .build-games-container [data-name="Hero"] > .absolute > .absolute.left-\[958\.67px\] .items-start { align-items: flex-end !important; }
 .build-games-container [data-name="Hero"] { width: 100vw !important; position: relative !important; left: 50% !important; right: auto !important; margin-left: -50vw !important; overflow: visible !important; }
 .build-games-container [data-name="Background3_R1 1"] { width: 100vw !important; max-width: none !important; left: 50% !important; transform: translateX(-50%); }
@@ -116,7 +116,7 @@ body:has(.build-games-container) .nd-layout-home, body:has(.build-games-containe
   .build-games-container [data-name="Main"] { position: relative !important; top: 0 !important; }
   .build-games-container > div > .opacity-25 { display: none !important; }
   .build-games-container { padding-bottom: 60px !important; }
-  .build-games-container [data-name="Hero"] { height: 280px !important; width: 100% !important; left: 0 !important; margin-left: 0 !important; margin-top: 56px !important; position: relative !important; overflow: hidden !important; }
+  .build-games-container [data-name="Hero"] { height: 280px !important; width: 100% !important; left: 0 !important; margin-left: 0 !important; margin-top: 0 !important; position: relative !important; overflow: hidden !important; }
   .build-games-container [data-name="Direction2_R2 1"] { display: block !important; position: absolute !important; width: 100% !important; height: 100% !important; left: 0 !important; top: 0 !important; transform: none !important; }
   .build-games-container [data-name="Direction2_R2 1"] > div { position: absolute !important; inset: 0 !important; }
   .build-games-container [data-name="Direction2_R2 1"] img { width: 100% !important; height: 100% !important; top: 0 !important; left: 0 !important; object-fit: cover !important; object-position: center top !important; }

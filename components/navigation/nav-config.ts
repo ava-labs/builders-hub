@@ -47,6 +47,13 @@ export const menuSections: NavSection[] = [
     ],
   },
   {
+    title: 'Chat',
+    href: '/chat',
+    items: [
+      { text: 'Ask AI', href: '/chat' },
+    ],
+  },
+  {
     title: 'Console',
     href: '/console',
     items: [
@@ -61,7 +68,7 @@ export const menuSections: NavSection[] = [
     href: '/hackathons',
     items: [
       { text: 'Hackathons', href: '/hackathons' },
-      { text: 'Avalanche Calendar', href: 'https://lu.ma/calendar/cal-Igl2DB6quhzn7Z4', external: true },
+      { text: 'BuildGames', href: '/build-games' },
       { text: 'Community Driven Events', href: 'https://lu.ma/Team1?utm_source=builder_hub', external: true },
       { text: 'Campus Connect', href: '/university' },
     ],

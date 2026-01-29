@@ -20,26 +20,26 @@ export const statsBubbleConfig: BubbleNavigationConfig = {
   darkPulseColor: "dark:bg-red-400/40",
 };
 
-export function StatsBubbleNav() {
-  const getActiveItem = (
-    pathname: string,
-    items: typeof statsBubbleConfig.items
-  ) => {
-    const currentItem = items.find((item) => pathname === item.href);
-    if (currentItem) {
-      return currentItem.id;
-    } else if (pathname.startsWith("/stats/chain-list")) {
-      return "chain-list";
-    } else if (pathname.startsWith("/stats/network-metrics")) {
-      return "stats"; // All chains stats page
-    } else if (pathname.startsWith("/stats/interchain-messaging")) {
-      return "icm";
-    } else if (pathname.startsWith("/stats/playground")) {
-      return "playground";
-    }
-    return "overview";
-  };
+const getActiveItem = (
+  pathname: string,
+  items: typeof statsBubbleConfig.items
+) => {
+  const currentItem = items.find((item) => pathname === item.href);
+  if (currentItem) {
+    return currentItem.id;
+  } else if (pathname.startsWith("/stats/chain-list")) {
+    return "chain-list";
+  } else if (pathname.startsWith("/stats/network-metrics")) {
+    return "stats"; // All chains stats page
+  } else if (pathname.startsWith("/stats/interchain-messaging")) {
+    return "icm";
+  } else if (pathname.startsWith("/stats/playground")) {
+    return "playground";
+  }
+  return "overview";
+};
 
+export function StatsBubbleNav() {
   return (
     <BubbleNavigation
       config={statsBubbleConfig}

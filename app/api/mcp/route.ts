@@ -131,6 +131,12 @@ function searchDocs(
   query: string,
   options: { source?: string; limit?: number } = {}
 ): Array<{ url: string; title: string; description?: string; source: string; score: number }> {
+  // Defensive check for undefined/null query
+  if (!query || typeof query !== 'string') {
+    console.warn('searchDocs called with invalid query:', query);
+    return [];
+  }
+
   const { source, limit = 10 } = options;
   const queryLower = query.toLowerCase();
   const queryTerms = queryLower.split(/\s+/).filter((t) => t.length > 2);
@@ -284,16 +290,22 @@ async function handleToolCall(name: string, args: Record<string, unknown>) {
 
   switch (name) {
     case 'avalanche_docs_search': {
-      const query = args.query as string;
-      const source = args.source as string | undefined;
-      const limit = args.limit as number | undefined;
+      const query = typeof args.query === 'string' ? args.query : '';
+      const source = typeof args.source === 'string' ? args.source : undefined;
+      const limit = typeof args.limit === 'number' ? args.limit : undefined;
+
+      if (!query) {
+        return {
+          content: [{ type: 'text', text: 'Error: query parameter is required' }],
+        };
+      }
 
       const results = searchDocs(query, { source, limit });
       const latencyMs = Date.now() - startTime;
 
       // Track search event (truncate query for privacy/size)
       captureMCPEvent('mcp_search', {
-        query: truncateForTracking(query),
+        query: query ? truncateForTracking(query) : '',
         source_filter: source || 'all',
         result_count: results.length,
         latency_ms: latencyMs,
