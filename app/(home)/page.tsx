@@ -8,10 +8,10 @@ async function getGlobeData() {
   try {
     const [metricsRes, icmRes] = await Promise.all([
       fetch(`${BASE_URL}/api/overview-stats?timeRange=day`, {
-        next: { revalidate: 3600 }, // Cache for 1 hour
+        next: { revalidate: false }, // Cache until next deployment
       }),
       fetch(`${BASE_URL}/api/icm-flow?days=30`, {
-        next: { revalidate: 3600 },
+        next: { revalidate: false },
       }),
     ]);
 
