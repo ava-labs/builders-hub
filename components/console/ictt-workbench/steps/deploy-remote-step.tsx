@@ -18,6 +18,7 @@ import { utils } from "@avalabs/avalanchejs";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { CheckCircle2, AlertCircle, Info, ArrowRightLeft } from "lucide-react";
 import { useNetworkActions } from "@/components/toolbox/components/console-header/evm-network-wallet/hooks/useNetworkActions";
+import { ErrorRecovery, parseDeploymentError, StepError } from "../error-recovery";
 
 interface DeployRemoteStepProps {
   connection: BridgeConnection;
@@ -45,6 +46,7 @@ export function DeployRemoteStep({
   const [tokenSymbol, setTokenSymbol] = useState("");
   const [tokenDecimals, setTokenDecimals] = useState("0");
   const [error, setError] = useState("");
+  const [stepError, setStepError] = useState<StepError | null>(null);
   const [isFetchingDetails, setIsFetchingDetails] = useState(false);
 
   const isNativeType = connection.tokenType.includes("native");
@@ -199,6 +201,7 @@ export function DeployRemoteStep({
     }
 
     setError("");
+    setStepError(null);
     setIsDeploying(true);
 
     try {
@@ -246,13 +249,31 @@ export function DeployRemoteStep({
       }
 
       onSuccess(receipt.contractAddress);
-    } catch (err: any) {
-      setError(err.shortMessage || err.message || "Deployment failed");
+    } catch (err: unknown) {
+      const parsedError = parseDeploymentError(err, "deploy-remote", {
+        sourceChainName: sourceChain?.name,
+        sourceChainId: sourceChain?.evmChainId?.toString(),
+        targetChainName: targetChain?.name,
+        targetChainId: targetChain?.evmChainId?.toString(),
+        explorerUrl: targetChain?.explorerUrl,
+      });
+      setStepError(parsedError);
       console.error("Deployment failed:", err);
     } finally {
       setIsDeploying(false);
     }
   }
+
+  const handleRetry = () => {
+    setStepError(null);
+    handleDeploy();
+  };
+
+  const handleSwitchChainRecovery = async () => {
+    if (targetChain) {
+      await handleSwitchChain();
+    }
+  };
 
   // If already deployed, show success state
   if (connection.contracts.remoteAddress && disabled) {
@@ -339,11 +360,21 @@ export function DeployRemoteStep({
         </div>
       ) : null}
 
-      {error && (
+      {error && !stepError && (
         <div className="flex items-center gap-2 p-2 bg-red-50 dark:bg-red-900/20 rounded text-sm text-red-600 dark:text-red-400">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
           {error}
         </div>
+      )}
+
+      {stepError && (
+        <ErrorRecovery
+          error={stepError}
+          onRetry={handleRetry}
+          onSwitchChain={handleSwitchChainRecovery}
+          isRetrying={isDeploying}
+          isSwitching={isSwitching}
+        />
       )}
 
       <Button

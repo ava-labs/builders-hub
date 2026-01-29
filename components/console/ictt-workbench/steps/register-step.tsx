@@ -15,6 +15,7 @@ import { utils } from "@avalabs/avalanchejs";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { CheckCircle2, AlertCircle, Info, RefreshCw, ArrowRightLeft } from "lucide-react";
 import { useNetworkActions } from "@/components/toolbox/components/console-header/evm-network-wallet/hooks/useNetworkActions";
+import { ErrorRecovery, parseDeploymentError, StepError } from "../error-recovery";
 
 interface RegisterStepProps {
   connection: BridgeConnection;
@@ -38,6 +39,7 @@ export function RegisterStep({
   const [isRegistering, setIsRegistering] = useState(false);
   const [remoteAddress, setRemoteAddress] = useState(connection.contracts.remoteAddress || "");
   const [error, setError] = useState("");
+  const [stepError, setStepError] = useState<StepError | null>(null);
   const [isRegistered, setIsRegistered] = useState(false);
   const [isCheckingRegistration, setIsCheckingRegistration] = useState(false);
 
@@ -158,6 +160,7 @@ export function RegisterStep({
     }
 
     setError("");
+    setStepError(null);
     setIsRegistering(true);
 
     try {
@@ -192,13 +195,31 @@ export function RegisterStep({
       setTimeout(() => {
         checkRegistration();
       }, 3000);
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const parsedError = parseDeploymentError(err, "register", {
+        sourceChainName: sourceChain?.name,
+        sourceChainId: sourceChain?.evmChainId?.toString(),
+        targetChainName: targetChain?.name,
+        targetChainId: targetChain?.evmChainId?.toString(),
+        explorerUrl: targetChain?.explorerUrl,
+      });
+      setStepError(parsedError);
       console.error("Registration failed:", err);
-      setError(err.shortMessage || err.message || "Registration failed");
     } finally {
       setIsRegistering(false);
     }
   }
+
+  const handleRetry = () => {
+    setStepError(null);
+    handleRegister();
+  };
+
+  const handleSwitchChainRecovery = async () => {
+    if (targetChain) {
+      await handleSwitchChain();
+    }
+  };
 
   // If already registered, show success state
   if (isRegistered && disabled) {
@@ -270,11 +291,21 @@ export function RegisterStep({
         </div>
       ) : null}
 
-      {error && (
+      {error && !stepError && (
         <div className="flex items-center gap-2 p-2 bg-red-50 dark:bg-red-900/20 rounded text-sm text-red-600 dark:text-red-400">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
           {error}
         </div>
+      )}
+
+      {stepError && (
+        <ErrorRecovery
+          error={stepError}
+          onRetry={handleRetry}
+          onSwitchChain={handleSwitchChainRecovery}
+          isRetrying={isRegistering}
+          isSwitching={isSwitching}
+        />
       )}
 
       <Button

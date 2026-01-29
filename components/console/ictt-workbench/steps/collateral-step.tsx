@@ -19,6 +19,7 @@ import { utils } from "@avalabs/avalanchejs";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { CheckCircle2, AlertCircle, Info, RefreshCw, ArrowRightLeft } from "lucide-react";
 import { useNetworkActions } from "@/components/toolbox/components/console-header/evm-network-wallet/hooks/useNetworkActions";
+import { ErrorRecovery, parseDeploymentError, StepError } from "../error-recovery";
 
 interface CollateralStepProps {
   connection: BridgeConnection;
@@ -45,6 +46,7 @@ export function CollateralStep({
   const [isProcessing, setIsProcessing] = useState(false);
   const [isCheckingStatus, setIsCheckingStatus] = useState(false);
   const [error, setError] = useState("");
+  const [stepError, setStepError] = useState<StepError | null>(null);
 
   // Token/collateral info
   const [tokenHomeAddress, setTokenHomeAddress] = useState<Address | null>(null);
@@ -228,6 +230,7 @@ export function CollateralStep({
     }
 
     setError("");
+    setStepError(null);
     setIsProcessing(true);
 
     try {
@@ -250,9 +253,16 @@ export function CollateralStep({
       const hash = await writePromise;
       await publicClient.waitForTransactionReceipt({ hash });
       await fetchStatus();
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const parsedError = parseDeploymentError(err, "collateral", {
+        sourceChainName: sourceChain?.name,
+        sourceChainId: sourceChain?.evmChainId?.toString(),
+        targetChainName: targetChain?.name,
+        targetChainId: targetChain?.evmChainId?.toString(),
+        explorerUrl: sourceChain?.explorerUrl,
+      });
+      setStepError(parsedError);
       console.error("Approval failed:", err);
-      setError(err.shortMessage || err.message || "Approval failed");
     } finally {
       setIsProcessing(false);
     }
@@ -266,6 +276,7 @@ export function CollateralStep({
     }
 
     setError("");
+    setStepError(null);
     setIsProcessing(true);
 
     try {
@@ -306,13 +317,31 @@ export function CollateralStep({
       setTimeout(() => {
         fetchStatus();
       }, 3000);
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const parsedError = parseDeploymentError(err, "collateral", {
+        sourceChainName: sourceChain?.name,
+        sourceChainId: sourceChain?.evmChainId?.toString(),
+        targetChainName: targetChain?.name,
+        targetChainId: targetChain?.evmChainId?.toString(),
+        explorerUrl: sourceChain?.explorerUrl,
+      });
+      setStepError(parsedError);
       console.error("Add Collateral failed:", err);
-      setError(err.shortMessage || err.message || "Add Collateral failed");
     } finally {
       setIsProcessing(false);
     }
   }
+
+  const handleRetry = () => {
+    setStepError(null);
+    handleAddCollateral();
+  };
+
+  const handleSwitchChainRecovery = async () => {
+    if (sourceChain) {
+      await handleSwitchChain();
+    }
+  };
 
   // Remote address suggestions
   const remoteAddressSuggestions: Suggestion[] = useMemo(() => {
@@ -426,11 +455,21 @@ export function CollateralStep({
         }
       />
 
-      {error && (
+      {error && !stepError && (
         <div className="flex items-center gap-2 p-2 bg-red-50 dark:bg-red-900/20 rounded text-sm text-red-600 dark:text-red-400">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
           {error}
         </div>
+      )}
+
+      {stepError && (
+        <ErrorRecovery
+          error={stepError}
+          onRetry={handleRetry}
+          onSwitchChain={handleSwitchChainRecovery}
+          isRetrying={isProcessing}
+          isSwitching={isSwitching}
+        />
       )}
 
       <div className="flex gap-2">

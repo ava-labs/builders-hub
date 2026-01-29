@@ -17,6 +17,7 @@ import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { CheckCircle2, AlertCircle, ArrowRightLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNetworkActions } from "@/components/toolbox/components/console-header/evm-network-wallet/hooks/useNetworkActions";
+import { ErrorRecovery, parseDeploymentError, StepError } from "../error-recovery";
 
 interface DeployHomeStepProps {
   connection: BridgeConnection;
@@ -59,6 +60,7 @@ export function DeployHomeStep({
   const [tokenAddress, setTokenAddress] = useState(connection.token.address || "");
   const [tokenDecimals, setTokenDecimals] = useState("0");
   const [error, setError] = useState("");
+  const [stepError, setStepError] = useState<StepError | null>(null);
 
   const isNativeType = connection.tokenType.includes("native");
 
@@ -146,6 +148,7 @@ export function DeployHomeStep({
     }
 
     setError("");
+    setStepError(null);
     setIsDeploying(true);
 
     try {
@@ -191,13 +194,29 @@ export function DeployHomeStep({
       }
 
       onSuccess(receipt.contractAddress);
-    } catch (err: any) {
-      setError(err.shortMessage || err.message || "Deployment failed");
+    } catch (err: unknown) {
+      const parsedError = parseDeploymentError(err, "deploy-home", {
+        sourceChainName: sourceChain?.name,
+        sourceChainId: sourceChain?.evmChainId?.toString(),
+        explorerUrl: sourceChain?.explorerUrl,
+      });
+      setStepError(parsedError);
       console.error("Deployment failed:", err);
     } finally {
       setIsDeploying(false);
     }
   }
+
+  const handleRetry = () => {
+    setStepError(null);
+    handleDeploy();
+  };
+
+  const handleSwitchChainRecovery = async (chainId: string) => {
+    if (sourceChain) {
+      await handleSwitchChain();
+    }
+  };
 
   // If already deployed, show success state
   if (connection.contracts.homeAddress && disabled) {
@@ -261,11 +280,21 @@ export function DeployHomeStep({
         </div>
       )}
 
-      {error && (
+      {error && !stepError && (
         <div className="flex items-center gap-2 p-2 bg-red-50 dark:bg-red-900/20 rounded text-sm text-red-600 dark:text-red-400">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
           {error}
         </div>
+      )}
+
+      {stepError && (
+        <ErrorRecovery
+          error={stepError}
+          onRetry={handleRetry}
+          onSwitchChain={handleSwitchChainRecovery}
+          isRetrying={isDeploying}
+          isSwitching={isSwitching}
+        />
       )}
 
       <Button
