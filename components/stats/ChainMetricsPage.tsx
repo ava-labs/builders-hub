@@ -25,6 +25,7 @@ import { MobileSocialLinks } from "@/components/stats/MobileSocialLinks";
 import { LinkableHeading } from "@/components/stats/LinkableHeading";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import { ChartWatermark } from "@/components/stats/ChartWatermark";
+import { calculateDateRangeDays, formatXAxisLabel, generateXAxisTicks } from "@/components/stats/chart-axis-utils";
 import { StatsBreadcrumb } from "@/components/navigation/StatsBreadcrumb";
 import { ChainCategoryFilter, allChains } from "@/components/stats/ChainCategoryFilter";
 import { useSectionNavigation } from "@/hooks/use-section-navigation";
@@ -2336,6 +2337,16 @@ function ChartCard({
     return aggregatedData.slice(start, end + 1);
   }, [brushIndexes, aggregatedData]);
 
+  // Calculate the number of days in the brush range for dynamic x-axis formatting
+  const brushRangeDays = useMemo(() => {
+    return calculateDateRangeDays(displayData, "day");
+  }, [displayData]);
+
+  // Calculate the total days in the full data for brush slider formatting
+  const totalDataDays = useMemo(() => {
+    return calculateDateRangeDays(aggregatedData || [], "day");
+  }, [aggregatedData]);
+
   // Merge actual cumulative transaction data with daily data
   const displayDataWithCumulative = useMemo(() => {
     let result = displayData;
@@ -2392,40 +2403,15 @@ function ChartCard({
     };
   }, [displayData]);
 
-  const formatXAxis = (value: string) => {
-    if (period === "Q") {
-      const parts = value.split("-");
-      if (parts.length === 2) {
-        return `${parts[1]} '${parts[0].slice(-2)}`;
-      }
-      return value;
-    }
-    if (period === "Y") return value;
-    const date = new Date(value);
-    if (period === "M") {
-      return date.toLocaleDateString("en-US", {
-        month: "short",
-        year: "2-digit",
-      });
-    }
-    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-  };
+  const formatXAxis = (value: string) => formatXAxisLabel(value, brushRangeDays);
 
-  const formatBrushXAxis = (value: string) => {
-    if (period === "Q") {
-      const parts = value.split("-");
-      if (parts.length === 2) {
-        return `${parts[1]} ${parts[0]}`;
-      }
-      return value;
-    }
-    if (period === "Y") return value;
-    const date = new Date(value);
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      year: "numeric",
-    });
-  };
+  // Formatter for the brush slider - uses total data range
+  const formatBrushXAxis = (value: string) => formatXAxisLabel(value, totalDataDays);
+
+  // Generate custom ticks aligned to meaningful boundaries
+  const xAxisTicks = useMemo(() => {
+    return generateXAxisTicks(displayData, brushRangeDays, "day");
+  }, [displayData, brushRangeDays]);
 
   const formatTooltipDate = (value: string) => {
     if (period === "Y") {
@@ -2816,8 +2802,8 @@ function ChartCard({
                           tick={{
                             className: "fill-gray-600 dark:fill-gray-400",
                           }}
-                          minTickGap={80}
-                          interval="preserveStartEnd"
+                          ticks={xAxisTicks}
+                          interval={0}
                         />
                         <YAxis
                           yAxisId="left"
@@ -2918,8 +2904,8 @@ function ChartCard({
                           tick={{
                             className: "fill-gray-600 dark:fill-gray-400",
                           }}
-                          minTickGap={80}
-                          interval="preserveStartEnd"
+                          ticks={xAxisTicks}
+                          interval={0}
                         />
                         <YAxis
                           tickFormatter={formatYAxisValue}
@@ -2993,8 +2979,8 @@ function ChartCard({
                           tick={{
                             className: "fill-gray-600 dark:fill-gray-400",
                           }}
-                          minTickGap={80}
-                          interval="preserveStartEnd"
+                          ticks={xAxisTicks}
+                          interval={0}
                         />
                         <YAxis
                           tickFormatter={formatYAxisValue}
@@ -3069,8 +3055,8 @@ function ChartCard({
                           tick={{
                             className: "fill-gray-600 dark:fill-gray-400",
                           }}
-                          minTickGap={80}
-                          interval="preserveStartEnd"
+                          ticks={xAxisTicks}
+                          interval={0}
                         />
                         <YAxis
                           tickFormatter={formatYAxisValue}
@@ -3127,8 +3113,8 @@ function ChartCard({
                           tick={{
                             className: "fill-gray-600 dark:fill-gray-400",
                           }}
-                          minTickGap={80}
-                          interval="preserveStartEnd"
+                          ticks={xAxisTicks}
+                          interval={0}
                         />
                         <YAxis
                           tickFormatter={formatYAxisValue}
@@ -3213,8 +3199,8 @@ function ChartCard({
                           tick={{
                             className: "fill-gray-600 dark:fill-gray-400",
                           }}
-                          minTickGap={80}
-                          interval="preserveStartEnd"
+                          ticks={xAxisTicks}
+                          interval={0}
                         />
                         <YAxis
                           tickFormatter={formatYAxisValue}

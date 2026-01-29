@@ -676,6 +676,8 @@ html {
 
   .container {
     max-width: 1400px;
+    margin-left: auto;
+    margin-right: auto;
   }
 
   .text-opacity-[amount] {

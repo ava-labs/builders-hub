@@ -20,6 +20,7 @@ import { toPng } from "html-to-image";
 import { ChartWatermark } from "@/components/stats/ChartWatermark";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import { ImageExportStudio } from "@/components/stats/image-export";
+import { parseDateString, calculateDateRangeDays, formatXAxisLabel, generateXAxisTicks } from "@/components/stats/chart-axis-utils";
 
 // Types
 interface TimeSeriesDataPoint {
@@ -648,6 +649,11 @@ export default function ConfigurableChart({
     return filteredData.slice(safeBrushRange.startIndex, safeBrushRange.endIndex + 1);
   }, [safeBrushRange, filteredData]);
 
+  // Calculate the number of days in the brush range for dynamic x-axis formatting
+  const brushRangeDays = useMemo(() => {
+    return calculateDateRangeDays(displayData, "date");
+  }, [displayData]);
+
   const visibleSeries = useMemo(() => {
     return dataSeries
       .filter((s) => s.visible)
@@ -667,32 +673,19 @@ export default function ConfigurableChart({
   }, [visibleSeries]);
 
 
-  // Parse date string as local time to avoid timezone issues
-  const parseLocalDate = (value: string): Date => {
-    // Handle different formats: "YYYY-MM-DD", "YYYY-MM", "YYYY"
-    const parts = value.split("-");
-    const year = parseInt(parts[0], 10);
-    const month = parts[1] ? parseInt(parts[1], 10) - 1 : 0;
-    const day = parts[2] ? parseInt(parts[2], 10) : 1;
-    return new Date(year, month, day);
-  };
+  // Calculate total days in the full data for brush slider formatting
+  const totalDataDays = useMemo(() => {
+    return calculateDateRangeDays(aggregatedData, "date");
+  }, [aggregatedData]);
 
-  const formatXAxis = (value: string) => {
-    if (resolution === "Q") {
-      const parts = value.split("-");
-      if (parts.length === 2) return `${parts[1]} '${parts[0].slice(-2)}`;
-      return value;
-    }
-    if (resolution === "Y") return value;
-    const date = parseLocalDate(value);
-    if (resolution === "M") {
-      return date.toLocaleDateString("en-US", {
-        month: "short",
-        year: "2-digit",
-      });
-    }
-    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-  };
+  const formatXAxis = (value: string) => formatXAxisLabel(value, brushRangeDays);
+
+  const formatBrushXAxis = (value: string) => formatXAxisLabel(value, totalDataDays);
+
+  // Generate custom ticks aligned to meaningful boundaries
+  const xAxisTicks = useMemo(() => {
+    return generateXAxisTicks(displayData, brushRangeDays, "date");
+  }, [displayData, brushRangeDays]);
 
   const formatTooltipDate = (value: string) => {
     if (resolution === "Y") return value;
@@ -701,7 +694,7 @@ export default function ConfigurableChart({
       if (parts.length === 2) return `${parts[1]} ${parts[0]}`;
       return value;
     }
-    const date = parseLocalDate(value);
+    const date = parseDateString(value);
     if (resolution === "M") {
       return date.toLocaleDateString("en-US", {
         month: "long",
@@ -900,8 +893,8 @@ export default function ConfigurableChart({
             tickFormatter={formatXAxis}
             className="text-xs text-gray-600 dark:text-gray-400"
             tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
-            minTickGap={80}
-            interval="preserveStartEnd"
+            ticks={xAxisTicks}
+            interval={0}
           />
           {hasLeftAxis && (
             <YAxis
@@ -1791,7 +1784,7 @@ export default function ConfigurableChart({
                       }
                     }}
                     travellerWidth={8}
-                    tickFormatter={formatXAxis}
+                    tickFormatter={formatBrushXAxis}
                   >
                     <LineChart>
                       <Line
