@@ -1002,9 +1002,16 @@ export default function AvalancheMetrics() {
                 {tableLoading ? (
                   <div className="h-8 sm:h-10 md:h-12 w-14 sm:w-16 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
                 ) : (
-                  <span className="text-2xl sm:text-3xl md:text-4xl font-semibold tabular-nums text-zinc-900 dark:text-white">
-                    {formatNumber(overviewMetrics.aggregated.totalValidators)}
-                  </span>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="text-2xl sm:text-3xl md:text-4xl font-semibold tabular-nums text-zinc-900 dark:text-white cursor-default">
+                        {formatNumber(overviewMetrics.aggregated.totalValidators)}
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {overviewMetrics.aggregated.totalValidators.toLocaleString()} validators
+                    </TooltipContent>
+                  </Tooltip>
                 )}
                 <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 ml-1 sm:ml-2">
                   validators
