@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCreateChainStore } from "@/components/toolbox/stores/createChainStore";
 
-export default function Page() {
+function CreatePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const blueprint = searchParams.get('blueprint');
@@ -33,4 +33,12 @@ export default function Page() {
   }, [isReady, router]);
 
   return null;
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={null}>
+      <CreatePageContent />
+    </Suspense>
+  );
 }
