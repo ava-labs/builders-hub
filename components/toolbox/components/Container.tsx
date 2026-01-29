@@ -22,7 +22,7 @@ export function Container({
   return (
     <>
       <div className="space-y-3 prose">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="flex flex-col gap-0">
             <h3 className="text-xl md:text-2xl mt-0 font-semibold leading-tight text-foreground">
               {title}
@@ -33,7 +33,7 @@ export function Container({
               </div>
             )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-shrink-0">
             <EditOnGitHubButton githubUrl={githubUrl} toolTitle={title} />
             <ReportIssueButton toolTitle={title} />
           </div>
