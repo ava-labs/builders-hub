@@ -2,7 +2,7 @@
 import { useState, useMemo, useEffect, useRef, useCallback, Suspense } from "react";
 import { useSession } from "next-auth/react";
 import { useSearchParams, useRouter } from "next/navigation";
-import ConfigurableChart from "@/components/stats/ConfigurableChart";
+import ConfigurableChart, { type ChartDataExport } from "@/components/stats/ConfigurableChart";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
@@ -15,6 +15,7 @@ import { LoginModal } from "@/components/login/LoginModal";
 import { toast } from "@/lib/toast";
 import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
 import { PlaygroundBackground } from "@/components/stats/PlaygroundBackground";
+import type { PlaygroundChartData } from "@/components/stats/image-export";
 
 interface ChartConfig {
   id: string;
@@ -107,6 +108,48 @@ function PlaygroundContent() {
   const scrollDirectionRef = useRef<'up' | 'down' | null>(null);
   const scrollSpeedRef = useRef<number>(8);
   const initialDragYRef = useRef<number | null>(null);
+
+  // State for playground collage mode - data collected from charts
+  const [chartDataMap, setChartDataMap] = useState<Map<string, ChartDataExport>>(new Map());
+
+  // Callback to update chart data when a chart's data is ready
+  const handleChartDataReady = useCallback((chartId: string, data: ChartDataExport) => {
+    setChartDataMap((prev) => {
+      const newMap = new Map(prev);
+      newMap.set(chartId, data);
+      return newMap;
+    });
+  }, []);
+
+  // Convert chart data to PlaygroundChartData format for ImageExportStudio
+  const playgroundCharts = useMemo((): PlaygroundChartData[] => {
+    const result: PlaygroundChartData[] = [];
+
+    for (const chart of charts) {
+      const chartData = chartDataMap.get(chart.id);
+      if (!chartData || chartData.data.length === 0 || chartData.seriesInfo.length === 0) {
+        continue;
+      }
+
+      // Transform the data to ensure compatibility with PlaygroundChartData
+      // ConfigurableChart's ChartDataPoint has date: string (required)
+      // PlaygroundChartData expects ChartDataPoint with date?: string (optional)
+      const transformedData = chartData.data.map((point) => ({
+        ...point,
+        date: point.date, // Ensure date is explicitly set (required in ConfigurableChart data)
+      }));
+
+      result.push({
+        id: chart.id,
+        title: chart.title,
+        data: transformedData,
+        seriesInfo: chartData.seriesInfo,
+        color: chartData.seriesInfo[0]?.color,
+      });
+    }
+
+    return result;
+  }, [charts, chartDataMap]);
 
   const handleColSpanChange = useCallback((chartId: string, newColSpan: 6 | 12) => {
     setCharts((prev) =>
@@ -1360,6 +1403,8 @@ function PlaygroundContent() {
                 initialBrushStartIndex={chart.brushStartIndex}
                 initialBrushEndIndex={chart.brushEndIndex}
                 onBrushChange={isOwner ? (startIndex, endIndex) => handleBrushChange(chart.id, startIndex, endIndex) : undefined}
+                onChartDataReady={(data) => handleChartDataReady(chart.id, data)}
+                playgroundCharts={playgroundCharts}
               />
             </div>
             );

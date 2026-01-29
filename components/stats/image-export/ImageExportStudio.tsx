@@ -48,13 +48,14 @@ import { CustomizationPanel } from "./CustomizationPanel";
 import { ImagePreview } from "./ImagePreview";
 import { CollagePreview } from "./CollagePreview";
 import { CollageMetricSelector } from "./CollageMetricSelector";
+import { PlaygroundChartSelector } from "./PlaygroundChartSelector";
 import { useImageExportSettings } from "./hooks/useImageExportSettings";
 import { useImageExport } from "./hooks/useImageExport";
 import { useCustomTemplates } from "./hooks/useCustomTemplates";
 import { useAnnotations } from "./hooks/useAnnotations";
 import { useCollageMetrics } from "./hooks/useCollageMetrics";
 import { AnnotationOverlay } from "./AnnotationOverlay";
-import type { ChartExportData, PresetType, Period, ChartType, DateRangePreset, BrushRange, ExportMode, CollageMetricConfig, CollageSettings, CustomAspectRatio } from "./types";
+import type { ChartExportData, PresetType, Period, ChartType, DateRangePreset, BrushRange, ExportMode, CollageMetricConfig, CollageSettings, CustomAspectRatio, PlaygroundChartData } from "./types";
 import { DATE_RANGE_PRESETS } from "./constants";
 import { cn } from "@/lib/utils";
 import { ChartWatermark } from "@/components/stats/ChartWatermark";
@@ -65,6 +66,184 @@ interface ChartDataPoint {
   day?: string;
   value?: number;
   [key: string]: string | number | undefined;
+}
+
+// Period hierarchy for comparison (higher number = coarser granularity)
+const PERIOD_ORDER: Record<Period, number> = { D: 1, W: 2, M: 3, Q: 4, Y: 5 };
+
+// Detect the period/granularity of the data based on date format
+function detectDataPeriod(data: ChartDataPoint[]): Period {
+  if (data.length === 0) return "D";
+
+  const firstDate = data[0]?.date || "";
+
+  // Quarterly: "2024-Q1"
+  if (firstDate.includes("Q")) return "Q";
+
+  const parts = firstDate.split("-");
+  if (parts.length === 1) return "Y"; // "2024"
+  if (parts.length === 2) return "M"; // "2024-11"
+  return "D"; // "2024-11-15" (daily or weekly - same format)
+}
+
+// Parse date string to year/month/day components
+// Handles: "2024-01-15" (daily/weekly), "2024-01" (monthly), "2024-Q1" (quarterly), "2024" (yearly)
+function parseDateComponents(dateStr: string): { year: number; month: number; day: number } | null {
+  if (!dateStr) return null;
+
+  // Quarterly: "2024-Q1" → treat as first day of quarter
+  if (dateStr.includes("Q")) {
+    const [yearStr, q] = dateStr.split("-Q");
+    const year = parseInt(yearStr);
+    const quarter = parseInt(q);
+    if (isNaN(year) || isNaN(quarter)) return null;
+    const month = (quarter - 1) * 3 + 1; // 1, 4, 7, 10
+    return { year, month, day: 1 };
+  }
+
+  const parts = dateStr.split("-");
+
+  if (parts.length === 1) {
+    // Yearly: "2024"
+    const year = parseInt(parts[0]);
+    if (isNaN(year)) return null;
+    return { year, month: 1, day: 1 };
+  }
+  if (parts.length === 2) {
+    // Monthly: "2024-11"
+    const year = parseInt(parts[0]);
+    const month = parseInt(parts[1]);
+    if (isNaN(year) || isNaN(month)) return null;
+    return { year, month, day: 1 };
+  }
+  if (parts.length === 3) {
+    // Daily/Weekly: "2024-11-15"
+    const year = parseInt(parts[0]);
+    const month = parseInt(parts[1]);
+    const day = parseInt(parts[2]);
+    if (isNaN(year) || isNaN(month) || isNaN(day)) return null;
+    return { year, month, day };
+  }
+
+  return null;
+}
+
+// Helper function to aggregate data by period
+// Uses same logic as ConfigurableChart.tsx:495-558
+function aggregateDataByPeriod(data: ChartDataPoint[], targetPeriod: Period): ChartDataPoint[] {
+  if (targetPeriod === "D" || data.length === 0) return data;
+
+  // Detect current data format and skip if already aggregated to target or coarser
+  const currentPeriod = detectDataPeriod(data);
+  if (PERIOD_ORDER[currentPeriod] >= PERIOD_ORDER[targetPeriod]) {
+    return data;
+  }
+
+  const grouped = new Map<
+    string,
+    { sum: Record<string, number>; count: number; date: string }
+  >();
+
+  data.forEach((point) => {
+    const dateStr = point.date;
+    if (!dateStr) return;
+
+    const parsed = parseDateComponents(dateStr);
+    if (!parsed) return;
+
+    const { year, month, day } = parsed;
+
+    let key: string;
+
+    if (targetPeriod === "W") {
+      // Create date in local time to calculate week start
+      const date = new Date(year, month - 1, day);
+      const weekStartDay = day - date.getDay();
+      const weekStart = new Date(year, month - 1, weekStartDay);
+      // Format as YYYY-MM-DD
+      const wy = weekStart.getFullYear();
+      const wm = String(weekStart.getMonth() + 1).padStart(2, "0");
+      const wd = String(weekStart.getDate()).padStart(2, "0");
+      key = `${wy}-${wm}-${wd}`;
+    } else if (targetPeriod === "M") {
+      key = `${year}-${String(month).padStart(2, "0")}`;
+    } else if (targetPeriod === "Q") {
+      const quarter = Math.floor((month - 1) / 3) + 1;
+      key = `${year}-Q${quarter}`;
+    } else {
+      key = String(year);
+    }
+
+    if (!grouped.has(key)) {
+      grouped.set(key, {
+        sum: {},
+        count: 0,
+        date: key,
+      });
+    }
+
+    const group = grouped.get(key)!;
+    Object.keys(point).forEach((k) => {
+      if (k !== "date" && k !== "day") {
+        if (!group.sum[k]) group.sum[k] = 0;
+        const value = typeof point[k] === "number" ? point[k] : 0;
+        // For cumulative metrics, take max; for others, sum
+        if (k.includes("cumulative") || k.includes("Cumulative")) {
+          group.sum[k] = Math.max(group.sum[k], value);
+        } else {
+          group.sum[k] += value;
+        }
+      }
+    });
+    group.count += 1;
+  });
+
+  return Array.from(grouped.values())
+    .map((group) => ({
+      date: group.date,
+      ...group.sum,
+    }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+}
+
+// Helper function to parse different date formats to timestamps
+// Handles: "2024-01-15" (daily/weekly), "2024-01" (monthly), "2024-Q1" (quarterly), "2024" (yearly)
+function parseDateToTimestamp(dateStr: string | undefined): number | null {
+  if (!dateStr) return null;
+
+  // Handle quarterly format: "2024-Q1" → January 1, 2024
+  if (dateStr.includes("Q")) {
+    const [year, q] = dateStr.split("-Q");
+    const quarter = parseInt(q);
+    if (isNaN(parseInt(year)) || isNaN(quarter)) return null;
+    const month = (quarter - 1) * 3; // 0, 3, 6, 9
+    return new Date(parseInt(year), month, 1).getTime();
+  }
+
+  const parts = dateStr.split("-");
+  if (parts.length === 1) {
+    // Yearly: "2024" → January 1, 2024
+    const year = parseInt(parts[0]);
+    if (isNaN(year)) return null;
+    return new Date(year, 0, 1).getTime();
+  }
+  if (parts.length === 2) {
+    // Monthly: "2024-01" → January 1, 2024
+    const year = parseInt(parts[0]);
+    const month = parseInt(parts[1]);
+    if (isNaN(year) || isNaN(month)) return null;
+    return new Date(year, month - 1, 1).getTime();
+  }
+  if (parts.length === 3) {
+    // Daily/Weekly: "2024-01-15"
+    const year = parseInt(parts[0]);
+    const month = parseInt(parts[1]);
+    const day = parseInt(parts[2]);
+    if (isNaN(year) || isNaN(month) || isNaN(day)) return null;
+    return new Date(year, month - 1, day).getTime();
+  }
+
+  return null;
 }
 
 // Series info for multi-series charts
@@ -86,10 +265,14 @@ interface ImageExportStudioProps {
   period?: Period;
   onPeriodChange?: (period: Period) => void;
   allowedPeriods?: Period[];
-  // Collage mode props
+  // Collage mode props (chain-based)
   chainId?: string;
   chainName?: string;
   availableMetrics?: CollageMetricConfig[];
+  // Playground collage mode props
+  playgroundCharts?: PlaygroundChartData[];
+  // Initial mode when opening the studio
+  initialMode?: ExportMode;
 }
 
 const CHART_TYPE_ICONS: Record<ChartType, React.ReactNode> = {
@@ -123,6 +306,8 @@ export function ImageExportStudio({
   chainId,
   chainName,
   availableMetrics = [],
+  playgroundCharts = [],
+  initialMode,
 }: ImageExportStudioProps) {
   const exportRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -186,8 +371,11 @@ export function ImageExportStudio({
   const [saveSuccess, setSaveSuccess] = useState(false);
 
   // Collage mode state
-  const [activeMode, setActiveMode] = useState<ExportMode>("single");
+  // Determine default mode: use initialMode if provided, otherwise use "single"
+  // The useEffect below will handle smart defaulting when dialog opens
+  const [activeMode, setActiveMode] = useState<ExportMode>(initialMode ?? "single");
   const [selectedMetrics, setSelectedMetrics] = useState<string[]>([]);
+  const [selectedPlaygroundChartIds, setSelectedPlaygroundChartIds] = useState<string[]>([]);
   const [collageSettings, setCollageSettings] = useState<CollageSettings>({
     showIndividualTitles: true,
     chartSpacing: 8,
@@ -203,7 +391,7 @@ export function ImageExportStudio({
   const [mobileMetricsExpanded, setMobileMetricsExpanded] = useState(false);
   const [mobileCustomizeExpanded, setMobileCustomizeExpanded] = useState(false);
 
-  // Collage metrics data hook
+  // Collage metrics data hook (for chain-based collage)
   const { metricsData } = useCollageMetrics(
     chainId,
     selectedMetrics,
@@ -211,8 +399,11 @@ export function ImageExportStudio({
     period
   );
 
-  // Check if collage mode is available
-  const hasCollageMode = availableMetrics.length > 0;
+  // Check if collage mode is available (chain-based or playground-based)
+  const hasChainCollageMode = availableMetrics.length > 0;
+  const hasPlaygroundCollageMode = playgroundCharts.length >= 2;
+  const isPlaygroundMode = hasPlaygroundCollageMode && !hasChainCollageMode;
+  const hasCollageMode = hasChainCollageMode || hasPlaygroundCollageMode;
   const isCollageMode = activeMode === "collage";
 
   const showCustomizePanel = settings.preset === "customize";
@@ -262,6 +453,26 @@ export function ImageExportStudio({
       setTheme(siteTheme === "dark" ? "dark" : "light");
     }
   }, [isOpen, siteTheme, setTheme]);
+
+  // Reset mode when dialog opens based on initialMode or smart defaulting
+  useEffect(() => {
+    if (isOpen) {
+      // If initialMode is explicitly provided, use it
+      if (initialMode) {
+        setActiveMode(initialMode);
+      } else {
+        // Smart default: if no single chart data but playground charts available, default to collage
+        const hasPlaygroundCharts = playgroundCharts.length >= 2;
+        const hasSingleChartData = dataArray.length > 0;
+        if (!hasSingleChartData && hasPlaygroundCharts) {
+          setActiveMode("collage");
+        } else {
+          setActiveMode("single");
+        }
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, initialMode]);
 
   // Reset brush range and capture date when modal opens
   useEffect(() => {
@@ -375,11 +586,33 @@ export function ImageExportStudio({
     }
   };
 
-  // Get reference data for brush (single mode: dataArray, collage mode: first metric's data)
+  // Re-aggregate all playground charts to current period
+  // This ensures that when the user changes granularity (D/W/M/Q/Y), ALL charts update
+  const aggregatedPlaygroundCharts = useMemo(() => {
+    if (!isPlaygroundMode || playgroundCharts.length === 0) return [];
+
+    // If daily or no period specified, return as-is
+    if (!period || period === "D") return playgroundCharts;
+
+    return playgroundCharts.map((chart) => ({
+      ...chart,
+      data: aggregateDataByPeriod(chart.data, period),
+    }));
+  }, [isPlaygroundMode, playgroundCharts, period]);
+
+  // Get reference data for brush (single mode: dataArray, collage mode: first metric's/chart's data)
   const brushReferenceData = useMemo(() => {
     if (!isCollageMode) return dataArray;
 
-    // For collage mode, use the first selected metric's data as reference
+    // For playground collage mode, use the first selected chart's data as reference (aggregated)
+    if (isPlaygroundMode && selectedPlaygroundChartIds.length > 0) {
+      const firstChart = aggregatedPlaygroundCharts.find(c => c.id === selectedPlaygroundChartIds[0]);
+      if (firstChart && firstChart.data.length > 0) {
+        return firstChart.data;
+      }
+    }
+
+    // For chain-based collage mode, use the first selected metric's data as reference
     if (selectedMetrics.length > 0) {
       const firstMetric = metricsData.get(selectedMetrics[0]);
       if (firstMetric && firstMetric.data.length > 0) {
@@ -387,7 +620,7 @@ export function ImageExportStudio({
       }
     }
     return [];
-  }, [isCollageMode, dataArray, selectedMetrics, metricsData]);
+  }, [isCollageMode, isPlaygroundMode, dataArray, selectedMetrics, metricsData, selectedPlaygroundChartIds, aggregatedPlaygroundCharts]);
 
   // Handle date range preset change (works with both single and collage modes)
   const handleDateRangePreset = (preset: DateRangePreset) => {
@@ -420,9 +653,9 @@ export function ImageExportStudio({
     return dataArray.slice(start, end + 1);
   }, [brushRange, dataArray]);
 
-  // Compute filtered collage metrics based on brush range
+  // Compute filtered collage metrics based on brush range (for chain-based collage)
   const filteredCollageMetrics = useMemo(() => {
-    if (!isCollageMode || !brushRange || brushReferenceData.length === 0) {
+    if (!isCollageMode || isPlaygroundMode || !brushRange || brushReferenceData.length === 0) {
       return selectedMetrics.map((key) => metricsData.get(key)).filter((m): m is NonNullable<typeof m> => !!m);
     }
 
@@ -450,7 +683,87 @@ export function ImageExportStudio({
         data: filteredData,
       };
     }).filter((m): m is NonNullable<typeof m> => !!m);
-  }, [isCollageMode, brushRange, brushReferenceData, selectedMetrics, metricsData]);
+  }, [isCollageMode, isPlaygroundMode, brushRange, brushReferenceData, selectedMetrics, metricsData]);
+
+  // Compute filtered playground charts based on date range preset (for playground collage)
+  // Uses RELATIVE filtering: each chart shows its own last N days of data based on ITS OWN end date
+  const filteredPlaygroundCharts = useMemo(() => {
+    if (!isCollageMode || !isPlaygroundMode) return [];
+
+    const selectedCharts = selectedPlaygroundChartIds
+      .map(id => aggregatedPlaygroundCharts.find(c => c.id === id))
+      .filter((c): c is PlaygroundChartData => !!c);
+
+    // For "ALL" preset, return charts without filtering - each chart shows its complete data
+    if (activePreset === "ALL") {
+      return selectedCharts;
+    }
+
+    // Get the preset configuration to determine how many days to show
+    const presetConfig = DATE_RANGE_PRESETS.find(p => p.id === activePreset);
+    if (!presetConfig?.days) {
+      return selectedCharts;
+    }
+
+    const presetMs = presetConfig.days * 24 * 60 * 60 * 1000;
+
+    // Filter each chart based on ITS OWN end date (relative filtering)
+    // This ensures charts with different date ranges all show data appropriately
+    return selectedCharts.map((chart) => {
+      if (chart.data.length === 0) return chart;
+
+      // Find this chart's end date (last data point)
+      const chartEndDate = chart.data[chart.data.length - 1]?.date;
+      const endTimestamp = parseDateToTimestamp(chartEndDate);
+
+      if (endTimestamp === null) return chart;
+
+      const startTimestamp = endTimestamp - presetMs;
+
+      const filteredData = chart.data.filter((point) => {
+        const pointTimestamp = parseDateToTimestamp(point.date);
+        if (pointTimestamp === null) return true;
+        return pointTimestamp >= startTimestamp && pointTimestamp <= endTimestamp;
+      });
+
+      return {
+        ...chart,
+        data: filteredData,
+      };
+    });
+  }, [isCollageMode, isPlaygroundMode, selectedPlaygroundChartIds, aggregatedPlaygroundCharts, activePreset]);
+
+  // Transform playground charts to CollageMetricData format for CollagePreview
+  const playgroundChartsAsMetrics = useMemo(() => {
+    if (!isPlaygroundMode) return [];
+
+    return filteredPlaygroundCharts.map((chart) => {
+      const primaryColor = chart.color || chart.seriesInfo[0]?.color || "#e84142";
+
+      // For multi-series charts, we need to aggregate the data into a single "value" field
+      // Use the first series' data key as the value
+      const firstSeriesId = chart.seriesInfo[0]?.id || "value";
+      const transformedData = chart.data.map((point) => ({
+        date: point.date,
+        value: typeof point[firstSeriesId] === "number" ? point[firstSeriesId] as number : (point.value as number | undefined),
+      }));
+
+      return {
+        config: {
+          metricKey: chart.id,
+          title: chart.title,
+          description: chart.seriesInfo.map(s => s.name).join(", "),
+          color: primaryColor,
+        },
+        data: transformedData,
+        isLoading: false,
+        error: undefined,
+      };
+    });
+  }, [isPlaygroundMode, filteredPlaygroundCharts]);
+
+  // Get the metrics to pass to CollagePreview (chain-based or playground-based)
+  const collageMetricsForPreview = isPlaygroundMode ? playgroundChartsAsMetrics : filteredCollageMetrics;
 
   // Calculate chart stats from display data for all series
   const chartStats = useMemo(() => {
@@ -1011,7 +1324,6 @@ export function ImageExportStudio({
 
     return series.map((s) => {
       const commonProps = {
-        key: s.id,
         dataKey: s.id,
         name: s.name,
         yAxisId: s.yAxis === "right" ? "right" : "left",
@@ -1025,6 +1337,7 @@ export function ImageExportStudio({
         case "bar":
           return (
             <Bar
+              key={s.id}
               {...commonProps}
               fill={s.color}
               radius={[2, 2, 0, 0]}
@@ -1043,6 +1356,7 @@ export function ImageExportStudio({
         case "area":
           return (
             <Area
+              key={s.id}
               {...commonProps}
               type="monotone"
               stroke={s.color}
@@ -1065,6 +1379,7 @@ export function ImageExportStudio({
         default:
           return (
             <Line
+              key={s.id}
               {...commonProps}
               type="monotone"
               stroke={s.color}
@@ -1089,8 +1404,14 @@ export function ImageExportStudio({
   // Determine if we have right Y axis
   const hasRightAxis = seriesInfo.some(s => s.yAxis === "right");
 
-  // Primary color for brush
-  const primaryColor = seriesInfo[0]?.color || "#e84142";
+  // Primary color for brush (use first selected playground chart's color in playground mode)
+  const primaryColor = useMemo(() => {
+    if (isPlaygroundMode && selectedPlaygroundChartIds.length > 0) {
+      const firstChart = playgroundCharts.find(c => c.id === selectedPlaygroundChartIds[0]);
+      return firstChart?.color || firstChart?.seriesInfo[0]?.color || "#e84142";
+    }
+    return seriesInfo[0]?.color || "#e84142";
+  }, [isPlaygroundMode, selectedPlaygroundChartIds, playgroundCharts, seriesInfo]);
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => {
@@ -1761,7 +2082,7 @@ export function ImageExportStudio({
           </div>
         </DialogHeader>
 
-        {/* Mobile: Collapsible Metrics Section (Collage mode only) */}
+        {/* Mobile: Collapsible Metrics/Charts Section (Collage mode only) */}
         {isCollageMode && (
           <div className="md:hidden border-b">
             <button
@@ -1778,7 +2099,7 @@ export function ImageExportStudio({
                   </>
                 ) : (
                   <>
-                    <ChevronDown className="h-4 w-4" /> {selectedMetrics.length} metrics selected
+                    <ChevronDown className="h-4 w-4" /> {isPlaygroundMode ? selectedPlaygroundChartIds.length : selectedMetrics.length} {isPlaygroundMode ? "charts" : "metrics"} selected
                   </>
                 )}
               </span>
@@ -1787,8 +2108,14 @@ export function ImageExportStudio({
                   <button
                     type="button"
                     onClick={() => {
-                      const toSelect = availableMetrics.slice(0, 9).map((m) => m.metricKey);
-                      setSelectedMetrics(toSelect);
+                      if (isPlaygroundMode) {
+                        const chartsWithData = playgroundCharts.filter(c => c.data.length > 0 && c.seriesInfo.length > 0);
+                        const toSelect = chartsWithData.slice(0, 9).map((c) => c.id);
+                        setSelectedPlaygroundChartIds(toSelect);
+                      } else {
+                        const toSelect = availableMetrics.slice(0, 9).map((m) => m.metricKey);
+                        setSelectedMetrics(toSelect);
+                      }
                     }}
                     className="text-xs px-2 py-1 rounded border border-border bg-muted hover:bg-muted/80 hover:border-foreground/30 transition-colors"
                   >
@@ -1796,7 +2123,13 @@ export function ImageExportStudio({
                   </button>
                   <button
                     type="button"
-                    onClick={() => setSelectedMetrics([])}
+                    onClick={() => {
+                      if (isPlaygroundMode) {
+                        setSelectedPlaygroundChartIds([]);
+                      } else {
+                        setSelectedMetrics([]);
+                      }
+                    }}
                     className="text-xs px-2 py-1 rounded border border-border bg-muted hover:bg-muted/80 hover:border-foreground/30 transition-colors"
                   >
                     Clear
@@ -1806,13 +2139,22 @@ export function ImageExportStudio({
             </button>
             {mobileMetricsExpanded && (
               <div className="max-h-[300px] overflow-y-auto px-4 pb-4 overscroll-contain touch-pan-y">
-                <CollageMetricSelector
-                  availableMetrics={availableMetrics}
-                  selectedMetrics={selectedMetrics}
-                  onSelectionChange={setSelectedMetrics}
-                  metricsData={metricsData}
-                  hideHeader={true}
-                />
+                {isPlaygroundMode ? (
+                  <PlaygroundChartSelector
+                    availableCharts={playgroundCharts}
+                    selectedChartIds={selectedPlaygroundChartIds}
+                    onSelectionChange={setSelectedPlaygroundChartIds}
+                    hideHeader={true}
+                  />
+                ) : (
+                  <CollageMetricSelector
+                    availableMetrics={availableMetrics}
+                    selectedMetrics={selectedMetrics}
+                    onSelectionChange={setSelectedMetrics}
+                    metricsData={metricsData}
+                    hideHeader={true}
+                  />
+                )}
               </div>
             )}
           </div>
@@ -1820,15 +2162,23 @@ export function ImageExportStudio({
 
         {/* Content */}
         <div className="flex flex-col md:flex-row flex-1 overflow-hidden min-h-0">
-          {/* Collage Mode: Metric Selector (left side) - Desktop only */}
+          {/* Collage Mode: Metric/Chart Selector (left side) - Desktop only */}
           {isCollageMode && (
             <div className="hidden md:block w-[240px] border-r p-4 overflow-y-auto shrink-0 bg-background">
-              <CollageMetricSelector
-                availableMetrics={availableMetrics}
-                selectedMetrics={selectedMetrics}
-                onSelectionChange={setSelectedMetrics}
-                metricsData={metricsData}
-              />
+              {isPlaygroundMode ? (
+                <PlaygroundChartSelector
+                  availableCharts={playgroundCharts}
+                  selectedChartIds={selectedPlaygroundChartIds}
+                  onSelectionChange={setSelectedPlaygroundChartIds}
+                />
+              ) : (
+                <CollageMetricSelector
+                  availableMetrics={availableMetrics}
+                  selectedMetrics={selectedMetrics}
+                  onSelectionChange={setSelectedMetrics}
+                  metricsData={metricsData}
+                />
+              )}
             </div>
           )}
 
@@ -1839,10 +2189,10 @@ export function ImageExportStudio({
               <div className={cn("w-full mx-auto", getPreviewMaxWidth())}>
                 <div ref={exportRef} className="relative">
                   <CollagePreview
-                    metrics={filteredCollageMetrics}
+                    metrics={collageMetricsForPreview}
                     settings={settings}
                     collageSettings={collageSettings}
-                    chainName={chainName}
+                    chainName={isPlaygroundMode ? "Playground" : chainName}
                     period={period}
                     pageUrl={chartData.pageUrl}
                     capturedAt={capturedAt}
