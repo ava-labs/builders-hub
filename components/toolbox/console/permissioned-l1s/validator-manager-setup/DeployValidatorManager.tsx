@@ -4,7 +4,6 @@ import { useToolboxStore, useViemChainStore } from "@/components/toolbox/stores/
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 import { useState } from "react";
 import { Button } from "@/components/toolbox/components/Button";
-import { keccak256 } from 'viem';
 import ValidatorManagerABI from "@/contracts/icm-contracts/compiled/ValidatorManager.json";
 import ValidatorMessagesABI from "@/contracts/icm-contracts/compiled/ValidatorMessages.json";
 import { Steps, Step } from "fumadocs-ui/components/steps";
@@ -14,17 +13,11 @@ import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalle
 import versions from '@/scripts/versions.json';
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
+import { getLinkedBytecode } from "@/components/toolbox/utils/contract-deployment";
 
 const ICM_COMMIT = versions["ava-labs/icm-contracts"];
 const VALIDATOR_MANAGER_SOURCE_URL = `https://github.com/ava-labs/icm-contracts/blob/${ICM_COMMIT}/contracts/validator-manager/ValidatorManager.sol`;
 const VALIDATOR_MESSAGES_SOURCE_URL = `https://github.com/ava-labs/icm-contracts/blob/${ICM_COMMIT}/contracts/validator-manager/ValidatorMessages.sol`;
-
-function calculateLibraryHash(libraryPath: string) {
-    const hash = keccak256(
-        new TextEncoder().encode(libraryPath)
-    ).slice(2);
-    return hash.slice(0, 34);
-}
 
 const metadata: ConsoleToolMetadata = {
     title: "Deploy Validator Contracts",
@@ -45,24 +38,15 @@ function DeployValidatorContracts({ onSuccess }: BaseConsoleToolProps) {
 
     const { sendCoreWalletNotSetNotification, notify } = useConsoleNotifications();
 
-    const getLinkedBytecode = () => {
+    const getLinkedValidatorManagerBytecode = () => {
         if (!validatorMessagesLibAddress) {
             throw new Error('ValidatorMessages library must be deployed first');
         }
 
-        const libraryPath = `${Object.keys(ValidatorManagerABI.bytecode.linkReferences)[0]}:${Object.keys(Object.values(ValidatorManagerABI.bytecode.linkReferences)[0])[0]}`;
-        const libraryHash = calculateLibraryHash(libraryPath);
-        const libraryPlaceholder = `__$${libraryHash}$__`;
-
-        const linkedBytecode = ValidatorManagerABI.bytecode.object
-            .split(libraryPlaceholder)
-            .join(validatorMessagesLibAddress.slice(2).padStart(40, '0'));
-
-        if (linkedBytecode.includes("$__")) {
-            throw new Error("Failed to replace library placeholder with actual address");
-        }
-
-        return linkedBytecode as `0x${string}`;
+        return getLinkedBytecode(
+            ValidatorManagerABI.bytecode,
+            validatorMessagesLibAddress
+        );
     };
 
     async function deployValidatorMessages() {
@@ -105,7 +89,7 @@ function DeployValidatorContracts({ onSuccess }: BaseConsoleToolProps) {
         await coreWalletClient.switchChain({ id: viemChain.id });
         const deployPromise = coreWalletClient.deployContract({
             abi: ValidatorManagerABI.abi as any,
-            bytecode: getLinkedBytecode(),
+            bytecode: getLinkedValidatorManagerBytecode(),
             args: [0],
             chain: viemChain,
             account: walletEVMAddress as `0x${string}`

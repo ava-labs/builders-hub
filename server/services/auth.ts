@@ -12,30 +12,36 @@ export async function upsertUser(user: User, account: Account | null, profile: P
     where: { email: user.email },
   });
 
-
   const updatedAuthMode = existingUser?.authentication_mode?.includes(account?.provider ?? "")
     ? existingUser.authentication_mode
     : `${existingUser?.authentication_mode ?? ""},${account?.provider}`.replace(/^,/, "");
 
-  return await prisma.user.upsert({
-    where: { email: user.email },
-    update: {
-      name: user.name || "",
-      image: existingUser?.image || user.image || "",
-      authentication_mode: updatedAuthMode,
-      last_login: new Date(),
-      user_name: (profile as any)?.login ?? "",
-    },
-    create: {
-      email: user.email,
-      notification_email: user.email,
-      name: user.name || "",
-      image: user.image || "",
-      authentication_mode: account?.provider ?? "",
-      last_login: new Date(),
-      user_name: (profile as any)?.login ?? "",
-      notifications: null,
-    },
-  });
+  if (existingUser) {
+    // Usuario existe, actualizar
+    return await prisma.user.update({
+      where: { email: user.email },
+      data: {
+        name: user.name || "",
+        image: existingUser.image || user.image || "",
+        authentication_mode: updatedAuthMode,
+        last_login: new Date(),
+        user_name: (profile as any)?.login ?? "",
+      },
+    });
+  } else {
+    // Usuario no existe, crear
+    return await prisma.user.create({
+      data: {
+        email: user.email,
+        notification_email: user.email,
+        name: user.name || "",
+        image: user.image || "",
+        authentication_mode: account?.provider ?? "",
+        last_login: new Date(),
+        user_name: (profile as any)?.login ?? "",
+        notifications: null,
+      },
+    });
+  }
 
 }
