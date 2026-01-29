@@ -1,0 +1,61 @@
+---
+title: Galaksio
+category: Orchestrators
+available: ["C-Chain"]
+description: "Pay-as-you-go cloud compute and storage over HTTP, powered by USDC and the x402 Protocol."
+logo: /images/galaksio.png
+developer: Galaksio
+website: https://galaksio.cloud/
+documentation: https://galaksio.cloud/
+---
+
+## Overview
+
+Galaksio is a pay-as-you-go cloud infrastructure layer that allows developers to execute scripts, run AI workloads, and store results using simple HTTP requests, with payments handled automatically in USDC via **HTTP 402 Payment Required** and the **x402 Protocol**.
+
+It connects Web2-style developer workflows with decentralized infrastructure, running jobs on networks like Akash or E2B and storing results on Arweave, IPFS, or Filecoin, while abstracting wallets, gas, and on-chain complexity from end users.
+
+## Features
+
+- **HTTP-based Web3 resources**: Access compute and storage using standard HTTP calls.
+- **Decentralized sandboxes**: Run scripts and AI jobs securely on Akash, E2B, or similar networks.
+- **Permanent and ephemeral storage**: Store results on Arweave for permanence or IPFS/Filecoin for caching.
+- **Pay-as-you-go USDC**: Pay only for what you use, settled automatically via HTTPayer.
+- **GitHub integration**: Connect repositories and deploy workloads directly from GitHub.
+- **Real-time analytics**: Monitor deployments, logs, and usage through detailed dashboards.
+- **x402-native access control**: Services return HTTP 402 and are unlocked via on-chain payment flows.
+- **GLUSD stablecoin**: A non-rebasing, yield-bearing stablecoin backed by real usage and x402 revenue.
+
+## Documentation
+
+For early access information, product updates, and upcoming documentation, visit the [Galaksio website](https://galaksio.cloud/).
+
+## Use Cases
+
+Galaksio supports a range of Avalanche-native developer workflows:
+
+- **AI workloads**: Run inference, fine-tuning, or batch jobs without managing infrastructure.
+- **Serverless compute**: Execute scripts on demand for automation, data processing, or integrations.
+- **Decentralized storage pipelines**: Persist results, logs, or datasets in permanent or verifiable storage.
+- **Agent tooling**: Provide AI agents with access to paid tools, compute, or data via HTTP.
+- **Developer platforms**: Add programmable compute and storage primitives into apps and SDKs.
+
+## How It Works
+
+Galaksio uses a unified pay-as-you-go flow powered by HTTPayer:
+
+1. **Service returns HTTP 402**  
+   A compute or storage endpoint responds with HTTP 402 Payment Required.
+
+2. **Payment handled automatically**  
+   HTTPayer settles the required USDC payment on-chain using the x402 Protocol.
+
+3. **Job executes securely**  
+   The workload runs in a decentralized sandbox such as Akash or E2B.
+
+4. **Results stored and accessible**  
+   Outputs are stored on Arweave for permanence or IPFS/Filecoin for ephemeral access, with logs available in real time.
+
+## Conclusion
+
+Galaksio provides a bridge between traditional developer workflows and decentralized infrastructure, enabling programmable access to compute and storage using HTTP, USDC, and the x402 Protocol on Avalanche C-Chain.
