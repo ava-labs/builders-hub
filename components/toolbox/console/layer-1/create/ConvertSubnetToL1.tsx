@@ -151,6 +151,16 @@ function ConvertToL1({ onSuccess }: BaseConsoleToolProps) {
                 </Step>
             </Steps>
 
+            <div className="text-xs text-muted-foreground mb-3">
+                Issues a{" "}
+                <Link
+                    href="/docs/rpcs/p-chain/txn-format#unsigned-convert-subnet-to-l1-tx"
+                    className="text-primary hover:underline"
+                >
+                    ConvertSubnetToL1Tx
+                </Link>{" "}
+                on the P-Chain. This conversion is <strong>irreversible</strong>.
+            </div>
             <Button
                 variant="primary"
                 onClick={handleConvertToL1}

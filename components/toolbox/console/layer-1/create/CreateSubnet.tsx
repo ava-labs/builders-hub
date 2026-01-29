@@ -92,6 +92,16 @@ function CreateSubnet(_props: BaseConsoleToolProps) {
                             disabled={true}
                             type="text"
                         />
+                        <p className="text-xs text-muted-foreground mb-3">
+                            Issues a{" "}
+                            <Link
+                                href="/docs/rpcs/p-chain/txn-format#unsigned-create-subnet-tx"
+                                className="text-primary hover:underline"
+                            >
+                                CreateSubnetTx
+                            </Link>{" "}
+                            on the P-Chain.
+                        </p>
                         <Button
                             onClick={handleCreateSubnet}
                             loading={isCreatingSubnet}

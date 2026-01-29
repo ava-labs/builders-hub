@@ -241,7 +241,14 @@ function CreateChain({ onSuccess, embedded = false }: CreateChainProps) {
                     <div>
                         <h2 className="text-[14px] font-semibold mb-1">Create Chain</h2>
                         <p className="text-[12px] text-zinc-500 dark:text-zinc-400">
-                            Create your chain by issuing a CreateChainTx transaction.
+                            Create your chain by issuing a{" "}
+                            <Link
+                                href="/docs/rpcs/p-chain/txn-format#unsigned-create-chain-tx"
+                                className="text-primary hover:underline"
+                            >
+                                CreateChainTx
+                            </Link>{" "}
+                            transaction.
                         </p>
                     </div>
                     {!canProceedToStep3 ? (

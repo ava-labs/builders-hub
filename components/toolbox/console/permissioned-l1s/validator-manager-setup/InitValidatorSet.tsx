@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Step, Steps } from "fumadocs-ui/components/steps";
+import Link from "next/link";
 
 import { useSelectedL1 } from "@/components/toolbox/stores/l1ListStore";
 import { useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
@@ -182,7 +183,14 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
                 <Steps>
                     <Step>
                         <h2 className="text-lg font-semibold">Step 1: Aggregate Signature of Conversion Data</h2>
-                        <p>Enter the P-Chain Transaction ID of the ConvertSubnetToL1Tx of the L1 this Validator Manager it is for. It is needed to fetch the conversion data containing the initial validator set. This validator set will be set up in the validator manager contract so the consensus weight of these validators can be changed or they can be removed entirely if desired.</p>
+                        <p>Enter the P-Chain Transaction ID of the{" "}
+                            <Link
+                                href="/docs/rpcs/p-chain/txn-format#unsigned-convert-subnet-to-l1-tx"
+                                className="text-primary hover:underline"
+                            >
+                                ConvertSubnetToL1Tx
+                            </Link>{" "}
+                            of the L1 this Validator Manager is for. It is needed to fetch the conversion data containing the initial validator set. This validator set will be set up in the validator manager contract so the consensus weight of these validators can be changed or they can be removed entirely if desired.</p>
                         <div className="space-y-4">
                             <Input
                                 label="Conversion Tx ID"
