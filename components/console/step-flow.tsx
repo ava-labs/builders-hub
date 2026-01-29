@@ -1,7 +1,9 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useMemo, useState, useCallback } from "react";
 import Link from "next/link";
+import { FlowCompletionModal, type FlowCompletionAction } from "./flow-completion-modal";
+import { getFlowMetadata, type FlowMetadata } from "@/config/console-flows";
 
 type SingleStep = {
   type: "single";
@@ -30,9 +32,36 @@ export type StepDefinition = SingleStep | BranchStep;
 type StepFlowProps = {
   steps: StepDefinition[];
   className?: string;
+  /**
+   * Callback when flow finishes. If not provided and showCompletionModal is true,
+   * the modal will be shown automatically.
+   */
   onFinish?: () => void;
   basePath: string;
   currentStepKey: string;
+  /**
+   * Whether to show the built-in completion modal when the flow finishes.
+   * If true and the flow has metadata in console-flows.ts, the modal will be shown.
+   * Default: false (for backward compatibility)
+   */
+  showCompletionModal?: boolean;
+  /**
+   * Custom metadata for the completion modal. If not provided,
+   * metadata will be looked up from console-flows.ts based on basePath.
+   */
+  completionMetadata?: FlowMetadata & { accomplishments: string[] };
+  /**
+   * Transaction hash to display in the completion modal
+   */
+  transactionHash?: string;
+  /**
+   * Block explorer URL for the transaction
+   */
+  explorerUrl?: string;
+  /**
+   * Custom actions for the completion modal footer
+   */
+  completionActions?: FlowCompletionAction[];
 };
 
 export default function StepFlow({
@@ -41,7 +70,30 @@ export default function StepFlow({
   onFinish,
   basePath,
   currentStepKey,
+  showCompletionModal = false,
+  completionMetadata,
+  transactionHash,
+  explorerUrl,
+  completionActions,
 }: StepFlowProps) {
+  const [isCompletionModalOpen, setIsCompletionModalOpen] = useState(false);
+
+  // Get flow metadata for completion modal
+  const flowMetadata = useMemo(() => {
+    if (completionMetadata) return completionMetadata;
+    return getFlowMetadata(basePath, steps);
+  }, [basePath, steps, completionMetadata]);
+
+  // Handle finish button click
+  const handleFinish = useCallback(() => {
+    if (onFinish) {
+      onFinish();
+    }
+    if (showCompletionModal && flowMetadata) {
+      setIsCompletionModalOpen(true);
+    }
+  }, [onFinish, showCompletionModal, flowMetadata]);
+
   // Find which step we're on - could be a single step or a branch option
   const { currentIndex, currentStep, selectedBranchOption } = useMemo(() => {
     // First check if it's a single step
@@ -247,7 +299,7 @@ export default function StepFlow({
             {atLast ? (
               <button
                 type="button"
-                onClick={onFinish}
+                onClick={handleFinish}
                 className="rounded-md bg-blue-600 text-white px-4 py-2 text-sm"
               >
                 Finish
@@ -265,6 +317,18 @@ export default function StepFlow({
           </div>
         </div>
       </div>
+
+      {/* Completion Modal */}
+      {showCompletionModal && flowMetadata && (
+        <FlowCompletionModal
+          open={isCompletionModalOpen}
+          onOpenChange={setIsCompletionModalOpen}
+          metadata={flowMetadata}
+          transactionHash={transactionHash}
+          explorerUrl={explorerUrl}
+          customActions={completionActions}
+        />
+      )}
     </div>
   );
 }

@@ -10,6 +10,9 @@ import { WalletProvider } from "@/components/toolbox/providers/WalletProvider";
 import { useAutomatedFaucet } from "@/hooks/useAutomatedFaucet";
 import { TrackNewUser } from "@/components/analytics/TrackNewUser";
 import { LoginModalWrapper } from "@/components/login/LoginModalWrapper";
+import { CommandPalette } from "@/components/console/command-palette";
+import { OnboardingTour } from "@/components/console/onboarding-tour";
+import { WelcomeModal } from "@/components/console/onboarding-tour/welcome-modal";
 
 function ConsoleContent({ children }: { children: ReactNode }) {
   useAutomatedFaucet();
@@ -34,6 +37,9 @@ function ConsoleContent({ children }: { children: ReactNode }) {
         </SidebarInset>
       </SidebarProvider>
       <Toaster position="bottom-right" richColors expand={true} visibleToasts={5}/>
+      <CommandPalette />
+      <OnboardingTour />
+      <WelcomeModal />
     </WalletProvider>
   );
 }

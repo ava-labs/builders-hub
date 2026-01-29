@@ -16,8 +16,18 @@ import { Fragment } from "react";
 import { useBreadcrumbs } from "@/hooks/use-breadcrumbs";
 import { pathToBreadcrumb } from "./breadcrumbs-mapping";
 import { BuilderHubAccountButton } from "./builder-hub-account-button";
-import { History } from "lucide-react";
+import { History, HelpCircle, Gamepad2, Book, MessageCircle } from "lucide-react";
 import Link from "next/link";
+import { CommandPaletteTrigger } from "./command-palette";
+import { NotificationCenter } from "./notification-center";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useOnboardingTour } from "@/hooks/useOnboardingTour";
 
 const TestnetMainnetSwitch = dynamic(() => import("@/components/toolbox/components/console-header/testnet-mainnet-switch").then(m => m.TestnetMainnetSwitch), { ssr: false });
 const WalletPChain = dynamic(() => import("@/components/toolbox/components/console-header/pchain-wallet").then(m => m.WalletPChain), { ssr: false });
@@ -25,6 +35,15 @@ const EvmNetworkWallet = dynamic(() => import("@/components/toolbox/components/c
 
 export function SiteHeader() {
   const breadcrumbs = useBreadcrumbs(pathToBreadcrumb);
+  const { startTour, resetTour } = useOnboardingTour();
+
+  const handleRestartTour = () => {
+    resetTour();
+    // Small delay to let the reset propagate
+    setTimeout(() => {
+      startTour();
+    }, 100);
+  };
 
   return (
     <header className="sticky top-0 z-50 flex h-(--header-height) shrink-0 items-center gap-2 border-b backdrop-blur  transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height) rounded-t-2xl overflow-x-hidden min-w-0">
@@ -57,9 +76,20 @@ export function SiteHeader() {
           </BreadcrumbList>
         </Breadcrumb>
         <div className="ml-auto flex items-center gap-2">
-          <TestnetMainnetSwitch />
-          <EvmNetworkWallet />
-          <WalletPChain />
+          <div data-tour="command-palette">
+            <CommandPaletteTrigger />
+          </div>
+          <Separator
+            orientation="vertical"
+            className="h-4!"
+          />
+          <div data-tour="network-switch">
+            <TestnetMainnetSwitch />
+          </div>
+          <div data-tour="wallet-connect">
+            <EvmNetworkWallet />
+            <WalletPChain />
+          </div>
           <Separator
             orientation="vertical"
             className="h-4!"
@@ -69,6 +99,35 @@ export function SiteHeader() {
               <History className="h-4 w-4" />
             </Button>
           </Link>
+          <div data-tour="notifications">
+            <NotificationCenter />
+          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" title="Help & Resources">
+                <HelpCircle className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem onClick={handleRestartTour} className="cursor-pointer">
+                <Gamepad2 className="mr-2 h-4 w-4" />
+                Restart Tour
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link href="/docs" className="cursor-pointer">
+                  <Book className="mr-2 h-4 w-4" />
+                  Documentation
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <a href="https://discord.gg/avax" target="_blank" rel="noopener noreferrer" className="cursor-pointer">
+                  <MessageCircle className="mr-2 h-4 w-4" />
+                  Discord Support
+                </a>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <BuilderHubAccountButton />
           <ThemeToggle />
         </div>

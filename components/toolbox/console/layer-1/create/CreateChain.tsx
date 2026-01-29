@@ -11,15 +11,16 @@ import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalle
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
+import { AlertTriangle, BookOpen, GraduationCap, ExternalLink } from "lucide-react";
+import Link from "next/link";
 
-// Import new Genesis Wizard components
+// Import Genesis Wizard components
 import { GenesisWizard } from "@/components/toolbox/components/genesis/GenesisWizard";
-import { SubnetStep } from "@/components/toolbox/components/genesis/SubnetStep";
 import { ChainConfigStep, generateRandomChainName } from "@/components/toolbox/components/genesis/ChainConfigStep";
 
 const metadata: ConsoleToolMetadata = {
     title: "Create Chain",
-    description: "Create a subnet and add a new blockchain with custom parameters and genesis data",
+    description: "Configure and create a new blockchain on your subnet",
     toolRequirements: [
         WalletRequirementsConfigKey.PChainBalance
     ],
@@ -34,7 +35,6 @@ function CreateChain({ onSuccess, embedded = false }: CreateChainProps) {
     const store = useCreateChainStore();
     const subnetId = store(state => state.subnetId);
     const setChainID = store(state => state.setChainID);
-    const setSubnetID = store(state => state.setSubnetID);
     const genesisData = store(state => state.genesisData);
     const setGenesisData = store(state => state.setGenesisData);
     const setChainName = store(state => state.setChainName);
@@ -81,23 +81,64 @@ function CreateChain({ onSuccess, embedded = false }: CreateChainProps) {
         }
     }
 
-    const canProceedToStep2 = !!subnetId;
-    const canProceedToStep3 = canProceedToStep2 && !!localChainName;
-    const canProceedToStep4 = canProceedToStep3 && !!genesisData && genesisData !== "" && !genesisData.startsWith("Error:");
-    const canCreateChain = canProceedToStep4;
+    const hasSubnet = !!subnetId;
+    const canProceedToStep2 = hasSubnet && !!localChainName;
+    const canProceedToStep3 = canProceedToStep2 && !!genesisData && genesisData !== "" && !genesisData.startsWith("Error:");
+    const canCreateChain = canProceedToStep3;
+
+    // Show warning if no subnet selected
+    if (!hasSubnet) {
+        return (
+            <div className="flex flex-col items-center justify-center py-12 px-4">
+                <div className="p-4 rounded-full bg-yellow-100 dark:bg-yellow-900/30 mb-4">
+                    <AlertTriangle className="h-8 w-8 text-yellow-600 dark:text-yellow-400" />
+                </div>
+                <h3 className="text-lg font-medium text-center mb-2">No Subnet Selected</h3>
+                <p className="text-sm text-muted-foreground text-center max-w-md">
+                    Please go back to the previous step and create or select a subnet before configuring your chain.
+                </p>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6">
-            <Steps>
-                {/* Step 1: Create Subnet */}
-                <Step>
-                    <SubnetStep
-                        subnetId={subnetId}
-                        onSubnetIdChange={setSubnetID}
-                    />
-                </Step>
+            {/* Context Box */}
+            <div className="text-sm text-muted-foreground bg-muted/50 rounded-lg p-4">
+                <p className="mb-3">
+                    A <strong>Chain</strong> is your L1 blockchain running on the Subnet. Configure its name, virtual machine,
+                    and genesis parameters to define the initial state, token allocations, and chain behavior.
+                </p>
+                <div className="flex flex-wrap gap-3">
+                    <Link
+                        href="/docs/avalanche-l1s/building-your-first-avalanche-l1"
+                        className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
+                    >
+                        <BookOpen className="h-3 w-3" />
+                        Build Your First L1
+                        <ExternalLink className="h-3 w-3" />
+                    </Link>
+                    <Link
+                        href="/docs/avalanche-l1s/evm-customization/customize-your-l1-evm"
+                        className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
+                    >
+                        <BookOpen className="h-3 w-3" />
+                        EVM Customization
+                        <ExternalLink className="h-3 w-3" />
+                    </Link>
+                    <Link
+                        href="/academy/avalanche-l1/avalanche-fundamentals"
+                        className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
+                    >
+                        <GraduationCap className="h-3 w-3" />
+                        Fundamentals Course
+                        <ExternalLink className="h-3 w-3" />
+                    </Link>
+                </div>
+            </div>
 
-                {/* Step 2: Chain Configuration */}
+            <Steps>
+                {/* Step 1: Chain Configuration */}
                 <Step>
                     <div>
                         <h2 className="text-[14px] font-semibold mb-1">Chain Configuration</h2>
@@ -105,45 +146,32 @@ function CreateChain({ onSuccess, embedded = false }: CreateChainProps) {
                             Configure your chain name and virtual machine.
                         </p>
                     </div>
-                    {!canProceedToStep2 ? (
-                        <div className="flex items-center justify-center py-12">
-                            <div className="text-center">
-                                <h3 className="text-lg font-medium text-zinc-900 dark:text-zinc-100 mb-2">
-                                    Create or Select a Subnet First
-                                </h3>
-                                <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                                    Please complete the subnet selection in Step 1 before proceeding.
-                                </p>
-                            </div>
-                        </div>
-                    ) : (
-                        <ChainConfigStep
-                            chainName={localChainName}
-                            onChainNameChange={setLocalChainName}
-                            vmId={vmId}
-                            onVmIdChange={handleVmIdChange}
-                        />
-                    )}
+                    <ChainConfigStep
+                        chainName={localChainName}
+                        onChainNameChange={setLocalChainName}
+                        vmId={vmId}
+                        onVmIdChange={handleVmIdChange}
+                    />
                 </Step>
 
-                {/* Step 3: Genesis Configuration */}
+                {/* Step 2: Genesis Configuration */}
                 <Step>
                     <div>
                         <h2 className="text-[14px] font-semibold mb-1">Genesis Configuration</h2>
                         <p className="text-[12px] text-zinc-500 dark:text-zinc-400">
-                            {vmId === SUBNET_EVM_VM_ID 
+                            {vmId === SUBNET_EVM_VM_ID
                                 ? "Configure the genesis parameters for your chain."
                                 : "Provide the genesis JSON for your custom virtual machine."}
                         </p>
                     </div>
-                    {!canProceedToStep3 ? (
+                    {!canProceedToStep2 ? (
                         <div className="flex items-center justify-center py-12">
                             <div className="text-center">
                                 <h3 className="text-lg font-medium text-zinc-900 dark:text-zinc-100 mb-2">
                                     Configure Chain First
                                 </h3>
                                 <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                                    Please configure your chain name and VM in Step 2 before proceeding.
+                                    Please configure your chain name in Step 1 before proceeding.
                                 </p>
                             </div>
                         </div>
@@ -176,7 +204,7 @@ function CreateChain({ onSuccess, embedded = false }: CreateChainProps) {
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <div>
                                 <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
                                     Genesis JSON
@@ -208,22 +236,29 @@ function CreateChain({ onSuccess, embedded = false }: CreateChainProps) {
                     )}
                 </Step>
 
-                {/* Step 4: Create Chain */}
+                {/* Step 3: Create Chain */}
                 <Step>
                     <div>
                         <h2 className="text-[14px] font-semibold mb-1">Create Chain</h2>
                         <p className="text-[12px] text-zinc-500 dark:text-zinc-400">
-                            Create your chain by issuing a CreateChainTx transaction.
+                            Create your chain by issuing a{" "}
+                            <Link
+                                href="/docs/rpcs/p-chain/txn-format#unsigned-create-chain-tx"
+                                className="text-primary hover:underline"
+                            >
+                                CreateChainTx
+                            </Link>{" "}
+                            transaction.
                         </p>
                     </div>
-                    {!canProceedToStep4 ? (
+                    {!canProceedToStep3 ? (
                         <div className="flex items-center justify-center py-12">
                             <div className="text-center">
                                 <h3 className="text-lg font-medium text-zinc-900 dark:text-zinc-100 mb-2">
                                     Configure Genesis First
                                 </h3>
                                 <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                                    Please complete the genesis configuration in Step 3 before creating your chain.
+                                    Please complete the genesis configuration in Step 2 before creating your chain.
                                 </p>
                             </div>
                         </div>

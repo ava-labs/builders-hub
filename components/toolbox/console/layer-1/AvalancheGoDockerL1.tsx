@@ -6,7 +6,6 @@ import { networkIDs } from "@avalabs/avalanchejs";
 import { Container } from "../../components/Container";
 import { getBlockchainInfo, getSubnetInfo } from "../../coreViem/utils/glacier";
 import InputSubnetId from "../../components/InputSubnetId";
-import BlockchainDetailsDisplay from "../../components/BlockchainDetailsDisplay";
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
 import { Button } from "../../components/Button";
@@ -18,6 +17,7 @@ import { SUBNET_EVM_VM_ID } from "@/constants/console";
 import { generateChainConfig, generateDockerCommand, generateConfigFileCommand } from "./node-config";
 import { useNodeConfigHighlighting } from "./useNodeConfigHighlighting";
 import { DockerInstallation } from "../../components/DockerInstallation";
+import { NetworkingGuide } from "@/components/console/networking-guide";
 
 function AvalanchegoDockerInner() {
     const { setHighlightPath, clearHighlight, highlightPath } = useGenesisHighlight();
@@ -317,6 +317,11 @@ function AvalanchegoDockerInner() {
                         </a>
                         .
                     </p>
+
+                    {/* Network Requirements */}
+                    <div className="mt-6">
+                        <NetworkingGuide />
+                    </div>
                 </Step>
 
                 <Step>
@@ -330,22 +335,6 @@ function AvalanchegoDockerInner() {
                         onChange={setSubnetId}
                         error={subnetIdError}
                     />
-
-                    {subnet && subnet.blockchains && subnet.blockchains.length > 0 && (
-                        <div className="space-y-4 mt-4">
-                            {subnet.blockchains.map((blockchain: { blockchainId: string; blockchainName: string; createBlockTimestamp: number; createBlockNumber: string; vmId: string; subnetId: string; evmChainId: number }) => (
-                                <BlockchainDetailsDisplay
-                                    key={blockchain.blockchainId}
-                                    blockchain={{
-                                        ...blockchain,
-                                        isTestnet: detectedIsTestnet ?? (avalancheNetworkID === networkIDs.FujiID)
-                                    }}
-                                    isLoading={isLoading}
-                                    customTitle={`${blockchain.blockchainName} Blockchain Details`}
-                                />
-                            ))}
-                        </div>
-                    )}
                 </Step>
 
                 {subnetId && blockchainInfo && (
