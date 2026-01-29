@@ -329,6 +329,30 @@
     "color": "#22C55E",
     "category": "General",
     "explorers": []
+  }, {
+    "chainId": "2027",
+    "chainName": "MartianChain",
+    "isActive": true,
+    "description": "Martian is a decentralized blockchain. Martian use Erol as native token.",
+    "website": "https://martianchain.com,
+    "socials": {
+      "twitter": "MartianChain"
+    },
+    "chainLogoURI": "https://martianchain.com/martian.png",
+    "subnetId": "KQnyo57ynwQ5QD1xcLYySYSVxvR1yQCU3vmH7krZ6XLhZjSrV",
+    "slug": "martian",
+    "color": "#EC6532",
+    "category": "General",
+    "explorers": [
+      {
+        "name": "MartianScan",
+        "link": "http://explorer.martianchain.com/"
+      }
+    ],
+     "rpcUrl": "https://martian-rpc1.amichain.org/",
+     "coingeckoId": "erol-musk",
+    "tokenSymbol": "EROL"
+    
   },
   {
     "chainId": "42069",
