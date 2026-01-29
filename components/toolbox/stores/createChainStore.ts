@@ -15,9 +15,13 @@ const createChainInitialState = {
     convertToL1TxId: "",
     validatorWeights: Array(100).fill(100) as number[],
     nodePopJsons: [""] as string[],
+    blueprint: null as string | null,
 }
 
-export const getCreateChainStore = (isTestnet: boolean) => create(
+// Cache store instances to ensure the same instance is returned for each network
+const storeCache: { testnet?: ReturnType<typeof createStore>; mainnet?: ReturnType<typeof createStore> } = {};
+
+const createStore = (isTestnet: boolean) => create(
     persist(
         combine(createChainInitialState, (set) => ({
             setSubnetID: (subnetId: string) => set({ subnetId }),
@@ -31,6 +35,7 @@ export const getCreateChainStore = (isTestnet: boolean) => create(
             setConvertToL1TxId: (convertToL1TxId: string) => set({ convertToL1TxId }),
             setValidatorWeights: (validatorWeights: number[]) => set({ validatorWeights }),
             setNodePopJsons: (nodePopJsons: string[]) => set({ nodePopJsons }),
+            setBlueprint: (blueprint: string | null) => set({ blueprint }),
 
             reset: () => {
                 window?.localStorage.removeItem(`${STORE_VERSION}-create-chain-store-${isTestnet ? 'testnet' : 'mainnet'}`);
@@ -41,7 +46,15 @@ export const getCreateChainStore = (isTestnet: boolean) => create(
             storage: createJSONStorage(localStorageComp),
         },
     ),
-)
+);
+
+export const getCreateChainStore = (isTestnet: boolean) => {
+    const key = isTestnet ? 'testnet' : 'mainnet';
+    if (!storeCache[key]) {
+        storeCache[key] = createStore(isTestnet);
+    }
+    return storeCache[key]!;
+}
 
 export const useCreateChainStore = () => {
     const { isTestnet } = useWalletStore();
