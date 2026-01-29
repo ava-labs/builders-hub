@@ -11,7 +11,8 @@ import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalle
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, BookOpen, GraduationCap, ExternalLink } from "lucide-react";
+import Link from "next/link";
 
 // Import Genesis Wizard components
 import { GenesisWizard } from "@/components/toolbox/components/genesis/GenesisWizard";
@@ -102,12 +103,38 @@ function CreateChain({ onSuccess, embedded = false }: CreateChainProps) {
 
     return (
         <div className="space-y-6">
-            {/* Subnet Info */}
-            <div className="p-3 rounded-lg bg-muted/50 border">
-                <p className="text-xs text-muted-foreground">
-                    <span className="font-medium">Subnet:</span>{" "}
-                    <span className="font-mono">{subnetId}</span>
+            {/* Context Box */}
+            <div className="text-sm text-muted-foreground bg-muted/50 rounded-lg p-4">
+                <p className="mb-3">
+                    A <strong>Chain</strong> is your L1 blockchain running on the Subnet. Configure its name, virtual machine,
+                    and genesis parameters to define the initial state, token allocations, and chain behavior.
                 </p>
+                <div className="flex flex-wrap gap-3">
+                    <Link
+                        href="/docs/avalanche-l1s/building-your-first-avalanche-l1"
+                        className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
+                    >
+                        <BookOpen className="h-3 w-3" />
+                        Build Your First L1
+                        <ExternalLink className="h-3 w-3" />
+                    </Link>
+                    <Link
+                        href="/docs/avalanche-l1s/evm-customization/customize-your-l1-evm"
+                        className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
+                    >
+                        <BookOpen className="h-3 w-3" />
+                        EVM Customization
+                        <ExternalLink className="h-3 w-3" />
+                    </Link>
+                    <Link
+                        href="/academy/avalanche-l1/avalanche-fundamentals"
+                        className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
+                    >
+                        <GraduationCap className="h-3 w-3" />
+                        Fundamentals Course
+                        <ExternalLink className="h-3 w-3" />
+                    </Link>
+                </div>
             </div>
 
             <Steps>

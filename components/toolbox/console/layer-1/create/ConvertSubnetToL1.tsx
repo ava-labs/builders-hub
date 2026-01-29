@@ -16,7 +16,7 @@ import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 import { Step, Steps } from 'fumadocs-ui/components/steps';
 import Link from "next/link";
-import { BookOpen, ExternalLink } from "lucide-react";
+import { BookOpen, ExternalLink, AlertTriangle } from "lucide-react";
 
 const metadata: ConsoleToolMetadata = {
     title: "Convert Subnet to L1",
@@ -106,8 +106,15 @@ function ConvertToL1({ onSuccess }: BaseConsoleToolProps) {
                     <h3 className="font-medium mb-3">Validator Manager</h3>
                     <p className="text-sm text-muted-foreground mb-4">
                         The validator manager contract controls your L1's validator set.
-                        A proxy is pre-deployed at <code className="text-xs bg-muted px-1 py-0.5 rounded">0xfacade...</code>
+                        If you used <strong>Console defaults</strong> for your L1 genesis, a proxy is pre-deployed at{" "}
+                        <code className="text-xs bg-muted px-1 py-0.5 rounded">0xfacade...</code>
                     </p>
+
+                    <p className="text-xs text-muted-foreground mb-4 flex items-center gap-1.5">
+                        <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
+                        <span>These values are <strong>permanent</strong> and cannot be changed after conversion.</span>
+                    </p>
+
                     <div className="space-y-4">
                         <InputChainId
                             value={validatorManagerChainID}
