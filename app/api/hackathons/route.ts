@@ -39,8 +39,12 @@ export async function GET(req: NextRequest) {
       
       // If user is devrel, show all hackathons; otherwise filter by user ID
       const createdByFilter = isDevrel ? undefined : userId;
-      
+
       options.created_by = createdByFilter || undefined;
+      // Only narrow by cohost email for non-devrel users; devrel should see all
+      if (!isDevrel) {
+        options.cohost_email = user.email || undefined;
+      }
       options.include_private = isDevrel || isTeam1Admin || isHackathonCreator; // These roles can see private hackathons
       
       console.log('API GET /hackathons:', { userId, isDevrel, isTeam1Admin, isHackathonCreator, createdByFilter, options });

@@ -32,6 +32,7 @@ model Hackathon {
   updated_by_user User?          @relation("HackathonUpdatedBy", fields: [updated_by], references: [id])
   projects        Project[]
   registrations   RegisterForm[]
+  cohosts         String[]       @default([])
 }
 
 model User {

@@ -10,6 +10,7 @@ export type HackathonHeader = {
   participants: number
   tags: string[]
   organizers: string 
+  cohosts: string[]
   status: HackathonStatus
   small_banner: string
   banner: string
