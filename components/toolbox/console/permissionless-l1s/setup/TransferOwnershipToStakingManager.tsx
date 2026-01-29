@@ -35,7 +35,6 @@ function TransferOwnershipToStakingManager({ onSuccess }: BaseConsoleToolProps) 
           </p>
         </Callout>
       )}
-
       {!stakingManagerAddress && (
         <Callout type="warn" className="mb-4">
           <p className="font-semibold mb-2">No Staking Manager Found</p>
