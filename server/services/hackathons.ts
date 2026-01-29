@@ -104,6 +104,7 @@ export interface GetHackathonsOptions {
   search?: string;
   created_by?: string | null;
   include_private?: boolean;
+  cohost_email?: string | null;
 }
 
 export async function getHackathon(id: string) {
@@ -155,14 +156,28 @@ export async function getFilteredHackathons(options: GetHackathonsOptions) {
     }
   }
 
-  if (options.created_by) {
-    // Show hackathons where user is either creator OR updater
-    conditions.push({
-      OR: [
+  if (options.created_by || options.cohost_email) {
+    const ownershipConditions: any[] = [];
+    if (options.created_by) {
+      // Show hackathons where user is either creator OR updater
+      ownershipConditions.push(
         { created_by: options.created_by },
-        { updated_by: options.created_by },
-      ],
-    });
+        { updated_by: options.created_by }
+      );
+    }
+    if (options.cohost_email) {
+      ownershipConditions.push({
+        cohosts: {
+          has: options.cohost_email,
+        },
+      });
+    }
+
+    if (ownershipConditions.length > 0) {
+      conditions.push({
+        OR: ownershipConditions,
+      });
+    }
   }
 
   if (options.date) {
@@ -311,6 +326,7 @@ export async function createHackathon(
       participants: hackathonData.participants!,
       tags: hackathonData.tags!,
       timezone: hackathonData.timezone!,
+      cohosts: hackathonData.cohosts ?? [],
       icon: hackathonData.icon!,
       banner: hackathonData.banner!,
       small_banner: hackathonData.small_banner!,
@@ -397,6 +413,8 @@ export async function updateHackathon(
     updateData.top_most = hackathonData.top_most;
   if (hackathonData.organizers !== undefined)
     updateData.organizers = hackathonData.organizers;
+  if (hackathonData.cohosts !== undefined)
+    updateData.cohosts = hackathonData.cohosts;
   if (hackathonData.custom_link !== undefined)
     updateData.custom_link = hackathonData.custom_link;
   if (hackathonData.created_by !== undefined)

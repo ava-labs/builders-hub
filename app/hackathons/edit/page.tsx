@@ -12,6 +12,7 @@ import axios from 'axios';
 import { initialData, IDataMain, IDataContent, IDataLatest, ITrack, ISchedule, ISpeaker, IResource, IPartner } from './initials';
 import { LanguageButton } from './language-button';
 import HackathonPreview from '@/components/hackathons/HackathonPreview';
+import { EmailListInput } from '@/components/common/EmailListInput';
 
 function toLocalDatetimeString(isoString: string) {
   if (!isoString) return '';
@@ -763,6 +764,7 @@ const HackathonsEdit = () => {
     partners: [{ name: '', logo: '' }],
   });
   const [formDataLatest, setFormDataLatest] = useState<IDataLatest>(initialData.latest);
+  const [cohostsEmails, setCohostsEmails] = useState<string[]>([]);
 
   const getMyHackathons = async () => {
     setLoadingHackathons(true);
@@ -788,11 +790,7 @@ const HackathonsEdit = () => {
   }
   useEffect(() => {
     if (status === "authenticated" && session?.user) {
-      if (session.user.custom_attributes?.includes("hackathonCreator") || 
-          session.user.custom_attributes?.includes("team1-admin") ||
-          session.user.custom_attributes?.includes("devrel")) {
-        getMyHackathons()
-      }
+      getMyHackathons();
     }
   }, [session, status]);
 
@@ -855,6 +853,7 @@ const HackathonsEdit = () => {
       custom_link: hackathon.custom_link ?? null,
       top_most: hackathon.top_most ?? false,
     });
+    setCohostsEmails(hackathon.cohosts ?? []);
     setShowForm(true);
   };
 
@@ -881,11 +880,38 @@ const HackathonsEdit = () => {
   const [scrollTarget, setScrollTarget] = useState<string | undefined>();
   const [rawTrackText, setRawTrackText] = useState<string>('');
   const [rawTrackDescriptions, setRawTrackDescriptions] = useState<{ [key: number]: string }>({});
+  const [hasEditPermission, setHasEditPermission] = useState<boolean>(false);
 
   const scrollToSection = (section: string) => {
     setScrollTarget(section);
     setTimeout(() => setScrollTarget(undefined), 1000);
   };
+
+  useEffect(() => {
+    if (!session?.user) {
+      setHasEditPermission(false);
+      return;
+    }
+    const customAttributes: string[] = session.user.custom_attributes || [];
+    const isSpecialRole =
+      customAttributes.includes("hackathonCreator") ||
+      customAttributes.includes("team1-admin") ||
+      customAttributes.includes("devrel");
+    
+    // If no hackathon is selected, allow editing only for special roles (for creating new hackathons)
+    if (!selectedHackathon) {
+      setHasEditPermission(isSpecialRole);
+      return;
+    }
+    
+    // If hackathon is selected, check if user is creator/updater, special role, or cohost
+    const userEmail = session.user.email || "";
+    const isCohost =
+      !!userEmail && Array.isArray(selectedHackathon.cohosts)
+        ? selectedHackathon.cohosts.includes(userEmail)
+        : false;
+    setHasEditPermission(isSpecialRole || isCohost);
+  }, [selectedHackathon, session]);
 
   const convertToMarkdown = (text: string) => {
     if (!text) return '';
@@ -1132,6 +1158,7 @@ const HackathonsEdit = () => {
       ...formDataMain,
       content,
       ...latest,
+      cohosts: cohostsEmails,
       custom_link: formDataLatest.custom_link ? formDataLatest.custom_link : null,
       status: selectedHackathon?.status ?? "UPCOMING"
     };
@@ -1716,8 +1743,24 @@ const HackathonsEdit = () => {
           </Button> */}
         </div>
       )}
-      {showForm && (
+      {showForm && hasEditPermission && (
         <>
+          {/* Cohosts Section - Always Visible */}
+          <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-6 mb-6">
+            <h2 className="text-xl font-semibold mb-2 text-blue-300">{t[language].cohostsTitle}</h2>
+            <p className="text-sm text-blue-200 mb-4">
+              {t[language].cohostsDescription}
+            </p>
+            <EmailListInput
+              value={cohostsEmails}
+              onChange={(emails) => {
+                setCohostsEmails(emails);
+              }}
+              placeholder={t[language].cohostsPlaceholder}
+              label={t[language].cohostsLabel}
+              description={t[language].cohostsHelp}
+            />
+          </div>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
               <div className="flex items-center justify-between mb-4">
@@ -2631,6 +2674,14 @@ const HackathonsEdit = () => {
             )}
           </form>
         </>
+      )}
+      {showForm && !hasEditPermission && (
+        <div className="mt-8 p-6 rounded-lg border border-red-500/40 bg-red-900/10 text-red-100 max-w-2xl mx-auto text-center">
+          <h2 className="text-xl font-semibold mb-2">You don&apos;t have permission to edit this hackathon</h2>
+          <p className="text-sm text-red-200">
+            Only the creator, authorized roles, or configured cohosts can edit this hackathon. Please contact the hackathon owner if you believe this is a mistake.
+          </p>
+        </div>
       )}
       {loading && (
               <div className="flex justify-center items-center my-4">

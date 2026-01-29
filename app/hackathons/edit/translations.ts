@@ -93,6 +93,11 @@ export const t = {
     scheduleDuration: "Duration (minutes)",
     speakersBanner: 'Speakers Banner',
     speakersBannerHelp: 'Text for the speakers banner.',
+    cohostsTitle: 'Cohosts',
+    cohostsDescription: 'Add email addresses of people who should co-host and help manage this hackathon. They will be able to edit this hackathon.',
+    cohostsLabel: 'Cohost Emails',
+    cohostsPlaceholder: 'cohost@example.com',
+    cohostsHelp: 'Enter email addresses and press Enter to add them. These users will have editing permissions for this hackathon.',
   },
   es: {
     mainTopics: 'Temas principales',
@@ -188,5 +193,10 @@ export const t = {
     scheduleDuration: "Duración (minutos)",
     speakersBanner: 'Banner de Speakers',
     speakersBannerHelp: 'Texto para el banner de speakers.',
+    cohostsTitle: 'Co-organizadores',
+    cohostsDescription: 'Añade las direcciones de correo de las personas que deben co-organizar y ayudar a gestionar este hackathon. Podrán editar este hackathon.',
+    cohostsLabel: 'Correos de Co-organizadores',
+    cohostsPlaceholder: 'coorganizador@ejemplo.com',
+    cohostsHelp: 'Ingresa las direcciones de correo y presiona Enter para añadirlas. Estos usuarios tendrán permisos de edición para este hackathon.',
   }
 }; 
