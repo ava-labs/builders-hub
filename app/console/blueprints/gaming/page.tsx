@@ -307,6 +307,7 @@ export default function GamingBlueprintPage() {
           <ConfigViewer
             genesis={gamingConfig.genesis}
             chainConfig={gamingConfig.chainConfig}
+            blueprintType="gaming"
           />
         </div>
 

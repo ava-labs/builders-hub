@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ConfigViewer, IntegrationsSection } from "@/components/console/blueprints/config-viewer";
 import { rwaConfig } from "@/components/console/blueprints/blueprint-configs";
+import { RwaDemo } from "@/components/console/blueprints/rwa-demo";
 
 export default function RWABlueprintPage() {
   return (
@@ -38,37 +39,9 @@ export default function RWABlueprintPage() {
           </p>
         </div>
 
-        {/* Demo placeholder */}
-        <div className="mb-12 p-8 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
-          <div className="text-center">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs font-medium mb-4">
-              Demo coming soon
-            </div>
-            <h2 className="text-lg font-medium text-zinc-900 dark:text-zinc-100 mb-2">
-              KYC Verification Flow
-            </h2>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400 max-w-md mx-auto mb-6">
-              Experience the compliance-gated transaction flow. Only verified wallets can transact on this permissioned L1.
-            </p>
-
-            {/* Steps */}
-            <div className="flex items-center justify-center gap-3 text-sm">
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-zinc-100 dark:bg-zinc-800">
-                <span className="w-5 h-5 rounded-full bg-zinc-200 dark:bg-zinc-700 flex items-center justify-center text-xs text-zinc-500">1</span>
-                <span className="text-zinc-600 dark:text-zinc-400">Connect</span>
-              </div>
-              <span className="text-zinc-300 dark:text-zinc-600">→</span>
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-zinc-100 dark:bg-zinc-800">
-                <span className="w-5 h-5 rounded-full bg-zinc-200 dark:bg-zinc-700 flex items-center justify-center text-xs text-zinc-500">2</span>
-                <span className="text-zinc-600 dark:text-zinc-400">Verify</span>
-              </div>
-              <span className="text-zinc-300 dark:text-zinc-600">→</span>
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-zinc-100 dark:bg-zinc-800">
-                <span className="w-5 h-5 rounded-full bg-zinc-200 dark:bg-zinc-700 flex items-center justify-center text-xs text-zinc-500">3</span>
-                <span className="text-zinc-600 dark:text-zinc-400">Transact</span>
-              </div>
-            </div>
-          </div>
+        {/* Interactive Demo */}
+        <div className="mb-12">
+          <RwaDemo />
         </div>
 
         {/* Why Tokenization L1 */}
@@ -124,6 +97,7 @@ export default function RWABlueprintPage() {
           <ConfigViewer
             genesis={rwaConfig.genesis}
             chainConfig={rwaConfig.chainConfig}
+            blueprintType="rwa"
           />
         </div>
 

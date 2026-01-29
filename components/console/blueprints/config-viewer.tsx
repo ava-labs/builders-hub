@@ -18,6 +18,7 @@ interface ConfigSectionData {
 interface ConfigViewerProps {
   genesis: ConfigSectionData;
   chainConfig: ConfigSectionData;
+  blueprintType?: 'gaming' | 'defi' | 'rwa';
 }
 
 function ConfigSection({
@@ -100,7 +101,7 @@ function ConfigSection({
   );
 }
 
-export function ConfigViewer({ genesis, chainConfig }: ConfigViewerProps) {
+export function ConfigViewer({ genesis, chainConfig, blueprintType }: ConfigViewerProps) {
   return (
     <div className="space-y-6">
       <h3 className="text-lg font-medium text-zinc-900 dark:text-zinc-100">Configuration</h3>
@@ -123,7 +124,7 @@ export function ConfigViewer({ genesis, chainConfig }: ConfigViewerProps) {
 
       <div className="flex gap-3">
         <Link
-          href="/console/layer-1/create"
+          href={`/console/layer-1/create${blueprintType ? `?blueprint=${blueprintType}` : ''}`}
           className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-sm font-medium hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors"
         >
           Deploy with this config
