@@ -40,13 +40,16 @@ interface EnableStakingManagerMintingProps extends BaseConsoleToolProps {
   initialTokenType?: TokenType;
 }
 
-function EnableStakingManagerMinting({ initialTokenType = 'native' }: EnableStakingManagerMintingProps) {
-  const [tokenType, setTokenType] = useState<TokenType>(initialTokenType);
+function EnableStakingManagerMinting({ initialTokenType }: EnableStakingManagerMintingProps) {
   const { nativeStakingManagerAddress, erc20StakingManagerAddress } = useToolboxStore();
   const { publicClient, coreWalletClient, walletEVMAddress } = useWalletStore();
   const viemChain = useViemChainStore();
   const { notify } = useConsoleNotifications();
   const { setCriticalError } = useCriticalError();
+
+  // Auto-detect token type based on which staking manager address is stored from step 1
+  const detectedTokenType: TokenType = erc20StakingManagerAddress ? 'erc20' : 'native';
+  const tokenType = initialTokenType || detectedTokenType;
 
   // ERC20-specific state
   const [stakingTokenAddress, setStakingTokenAddress] = useState<string>("");
@@ -345,44 +348,6 @@ function EnableStakingManagerMinting({ initialTokenType = 'native' }: EnableStak
 
   return (
     <div className="space-y-6">
-      <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-lg p-4 border border-zinc-200 dark:border-zinc-700">
-        <h3 className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">
-          Select Token Type
-        </h3>
-        <div className="flex gap-3">
-          <button
-            onClick={() => setTokenType('native')}
-            className={`flex-1 px-4 py-3 rounded-lg border-2 transition-all ${
-              tokenType === 'native'
-                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600'
-            } cursor-pointer`}
-          >
-            <div className="text-left">
-              <div className="font-semibold text-sm">Native Token</div>
-              <div className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
-                Add staking manager to native minter allowlist
-              </div>
-            </div>
-          </button>
-          <button
-            onClick={() => setTokenType('erc20')}
-            className={`flex-1 px-4 py-3 rounded-lg border-2 transition-all ${
-              tokenType === 'erc20'
-                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600'
-            } cursor-pointer`}
-          >
-            <div className="text-left">
-              <div className="font-semibold text-sm">ERC20 Token</div>
-              <div className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
-                Grant minting permissions to staking manager
-              </div>
-            </div>
-          </button>
-        </div>
-      </div>
-
       {isNative ? <NativeTokenContent /> : <ERC20TokenContent />}
     </div>
   );

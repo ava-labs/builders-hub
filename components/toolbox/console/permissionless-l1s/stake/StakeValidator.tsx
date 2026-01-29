@@ -2,11 +2,14 @@
 
 import React, { useState } from 'react';
 import { Steps, Step } from "fumadocs-ui/components/steps";
+import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { Success } from '@/components/toolbox/components/Success';
 import { Input } from '@/components/toolbox/components/Input';
 import InitiateValidatorRegistration from '@/components/toolbox/console/permissionless-l1s/stake/InitiateValidatorRegistration';
-import CompleteValidatorRegistration from '@/components/toolbox/console/permissionless-l1s/stake/CompleteValidatorRegistration';
+import CompletePChainRegistration from '@/components/toolbox/console/shared/CompletePChainRegistration';
+import SubmitPChainTxRegisterL1Validator from '@/components/toolbox/console/permissioned-l1s/AddValidator/SubmitPChainTxRegisterL1Validator';
 import { useToolboxStore } from '@/components/toolbox/stores/toolboxStore';
+import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { BaseConsoleToolProps } from '../../../components/WithConsoleToolMetadata';
 import { Alert } from '@/components/toolbox/components/Alert';
 import { L1SubnetStep, StepFlowFooter, useL1SubnetState } from '../shared';
@@ -24,13 +27,55 @@ export default function StakeValidator({ tokenType, onSuccess }: StakeValidatorP
     // State for passing data between components
     const [nodeID, setNodeID] = useState<string>('');
     const [blsPublicKey, setBlsPublicKey] = useState<string>('');
+    const [blsProofOfPossession, setBlsProofOfPossession] = useState<string>('');
+    const [nodeInfoJson, setNodeInfoJson] = useState<string>('');
+    const [nodeInfoError, setNodeInfoError] = useState<string | null>(null);
     const [validationID, setValidationID] = useState<string>('');
     const [initiateRegistrationTxHash, setInitiateRegistrationTxHash] = useState<string>('');
     const [completeRegistrationTxHash, setCompleteRegistrationTxHash] = useState<string>('');
+    const [pChainTxId, setPChainTxId] = useState<string>('');
+    const [validatorBalance, setValidatorBalance] = useState<string>('0.1'); // Initial P-Chain balance for validator
+
+    // Parse the JSON response from info.getNodeID
+    const parseNodeInfoJson = (json: string) => {
+        setNodeInfoJson(json);
+        setNodeInfoError(null);
+        
+        if (!json.trim()) {
+            setNodeID('');
+            setBlsPublicKey('');
+            setBlsProofOfPossession('');
+            return;
+        }
+
+        try {
+            const parsed = JSON.parse(json);
+            
+            if (parsed.result) {
+                if (parsed.result.nodeID) {
+                    setNodeID(parsed.result.nodeID);
+                }
+                if (parsed.result.nodePOP?.publicKey) {
+                    setBlsPublicKey(parsed.result.nodePOP.publicKey);
+                }
+                if (parsed.result.nodePOP?.proofOfPossession) {
+                    setBlsProofOfPossession(parsed.result.nodePOP.proofOfPossession);
+                }
+            } else {
+                setNodeInfoError('Invalid response format. Expected a JSON-RPC response with "result" field.');
+            }
+        } catch {
+            setNodeInfoError('Invalid JSON. Please paste the complete response from the curl command.');
+        }
+    };
 
     const { exampleErc20Address } = useToolboxStore();
+    const { pChainBalance } = useWalletStore();
     const l1State = useL1SubnetState();
     const { validatorManagerDetails } = l1State;
+    
+    // Convert P-Chain balance to nAVAX (bigint)
+    const userPChainBalanceNavax = pChainBalance ? BigInt(Math.floor(pChainBalance * 1e9)) : null;
 
     const isNative = tokenType === 'native';
     const tokenLabel = isNative ? 'Native Token' : 'ERC20 Token';
@@ -40,9 +85,14 @@ export default function StakeValidator({ tokenType, onSuccess }: StakeValidatorP
         setGlobalSuccess(null);
         setNodeID('');
         setBlsPublicKey('');
+        setBlsProofOfPossession('');
+        setNodeInfoJson('');
+        setNodeInfoError(null);
         setValidationID('');
         setInitiateRegistrationTxHash('');
         setCompleteRegistrationTxHash('');
+        setPChainTxId('');
+        setValidatorBalance('0.1');
         l1State.setSubnetIdL1('');
         l1State.incrementResetKey();
     };
@@ -65,9 +115,40 @@ export default function StakeValidator({ tokenType, onSuccess }: StakeValidatorP
                 />
 
                 <Step>
+                    <h2 className="text-lg font-semibold">Set Up Your Validator Node</h2>
+                    <p className="text-sm text-gray-500 mb-4">
+                        Before registering a validator, you need to have a node running and synced with your L1.
+                    </p>
+
+                    <Alert variant="info" className="mb-4">
+                        <p className="text-sm mb-2">
+                            <strong>Node Setup Required:</strong> If you haven&apos;t set up your validator node yet, use our{' '}
+                            <a href="/console/layer-1/l1-node-setup" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline font-medium">
+                                L1 Node Setup with Docker
+                            </a>{' '}
+                            tool to configure and run your node.
+                        </p>
+                    </Alert>
+
+                    <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-lg p-4 border border-zinc-200 dark:border-zinc-700">
+                        <h3 className="text-sm font-semibold mb-2">Get your Node ID and BLS Keys</h3>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                            Once your node is running, run this command to get your Node ID and BLS public key:
+                        </p>
+                        <DynamicCodeBlock
+                            lang="bash"
+                            code={`curl -X POST --data '{"jsonrpc":"2.0","method":"info.getNodeID","params":{},"id":1}' -H 'content-type:application/json;' 127.0.0.1:9650/ext/info`}
+                        />
+                        <p className="text-xs text-gray-500 mt-2">
+                            Copy the entire JSON response and paste it in the next step.
+                        </p>
+                    </div>
+                </Step>
+
+                <Step>
                     <h2 className="text-lg font-semibold">Enter Validator Details</h2>
                     <p className="text-sm text-gray-500 mb-4">
-                        Provide your validator&apos;s Node ID and BLS Public Key.
+                        Paste the JSON response from the previous step. We&apos;ll automatically extract your Node ID and BLS keys.
                     </p>
 
                     {validatorManagerDetails.ownerType && validatorManagerDetails.ownerType !== 'StakingManager' && (
@@ -76,22 +157,48 @@ export default function StakeValidator({ tokenType, onSuccess }: StakeValidatorP
                         </Alert>
                     )}
 
-                    <div className="space-y-3">
-                        <Input
-                            label="Node ID"
-                            value={nodeID}
-                            onChange={setNodeID}
-                            placeholder="0x..."
-                            helperText="Your validator's Node ID from the P-Chain"
-                        />
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                                JSON Response from info.getNodeID
+                            </label>
+                            <textarea
+                                value={nodeInfoJson}
+                                onChange={(e) => parseNodeInfoJson(e.target.value)}
+                                placeholder='{"jsonrpc":"2.0","result":{"nodeID":"NodeID-...","nodePOP":{"publicKey":"0x...","proofOfPossession":"0x..."}},"id":1}'
+                                className="w-full h-24 px-3 py-2 text-sm font-mono border border-zinc-300 dark:border-zinc-600 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                            {nodeInfoError && (
+                                <p className="text-xs text-red-500 mt-1">{nodeInfoError}</p>
+                            )}
+                        </div>
 
-                        <Input
-                            label="BLS Public Key"
-                            value={blsPublicKey}
-                            onChange={setBlsPublicKey}
-                            placeholder="0x..."
-                            helperText="Your validator's BLS public key for signing"
-                        />
+                        {(nodeID || blsPublicKey) && (
+                            <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800 space-y-3">
+                                <h4 className="text-sm font-semibold text-green-800 dark:text-green-200">Extracted Values</h4>
+                                
+                                {nodeID && (
+                                    <div>
+                                        <p className="text-xs text-green-700 dark:text-green-300 font-medium">Node ID</p>
+                                        <code className="text-xs text-green-900 dark:text-green-100 break-all">{nodeID}</code>
+                                    </div>
+                                )}
+                                
+                                {blsPublicKey && (
+                                    <div>
+                                        <p className="text-xs text-green-700 dark:text-green-300 font-medium">BLS Public Key</p>
+                                        <code className="text-xs text-green-900 dark:text-green-100 break-all">{blsPublicKey}</code>
+                                    </div>
+                                )}
+                                
+                                {blsProofOfPossession && (
+                                    <div>
+                                        <p className="text-xs text-green-700 dark:text-green-300 font-medium">BLS Proof of Possession</p>
+                                        <code className="text-xs text-green-900 dark:text-green-100 break-all">{blsProofOfPossession}</code>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </Step>
 
@@ -121,27 +228,41 @@ export default function StakeValidator({ tokenType, onSuccess }: StakeValidatorP
                 <Step>
                     <h2 className="text-lg font-semibold">Submit P-Chain Transaction</h2>
                     <p className="text-sm text-gray-500 mb-4">
-                        After initiating registration, you need to submit a transaction on the P-Chain
-                        to actually register the validator on the network.
+                        Sign the warp message and submit the validator registration to the P-Chain.
                     </p>
 
-                    <Alert variant="info">
-                        <p className="text-sm mb-2">
-                            <strong>Use AvalancheGo CLI or Core Wallet:</strong>
-                        </p>
-                        <ul className="list-disc list-inside text-sm space-y-1">
-                            <li>Use your validation ID from the previous step</li>
-                            <li>Submit an AddL1ValidatorTx on the P-Chain</li>
-                            <li>Wait for the transaction to be confirmed</li>
-                            <li>Once confirmed, proceed to complete registration</li>
-                        </ul>
-                    </Alert>
+                    <div className="mb-4">
+                        <Input
+                            label="Initial Validator Balance (AVAX)"
+                            value={validatorBalance}
+                            onChange={setValidatorBalance}
+                            type="number"
+                            min="0.1"
+                            step="0.1"
+                            placeholder="0.1"
+                            helperText="The initial P-Chain balance for your validator (minimum 0.1 AVAX). This covers transaction fees on the P-Chain."
+                        />
+                    </div>
 
-                    {validationID && (
+                    <SubmitPChainTxRegisterL1Validator
+                        subnetIdL1={l1State.subnetIdL1}
+                        validatorBalance={validatorBalance}
+                        userPChainBalanceNavax={userPChainBalanceNavax}
+                        blsProofOfPossession={blsProofOfPossession}
+                        evmTxHash={initiateRegistrationTxHash}
+                        signingSubnetId={l1State.subnetIdL1}
+                        onSuccess={(txId) => {
+                            setPChainTxId(txId);
+                            setGlobalError(null);
+                        }}
+                        onError={(message) => setGlobalError(message)}
+                    />
+
+                    {pChainTxId && (
                         <div className="mt-4">
                             <Success
-                                label="Your Validation ID"
-                                value={validationID}
+                                label="P-Chain Transaction ID"
+                                value={pChainTxId}
                             />
                         </div>
                     )}
@@ -154,11 +275,14 @@ export default function StakeValidator({ tokenType, onSuccess }: StakeValidatorP
                         to activate your validator on the L1.
                     </p>
 
-                    <CompleteValidatorRegistration
+                    <CompletePChainRegistration
                         key={`complete-${l1State.resetKey}-${tokenType}`}
+                        subnetIdL1={l1State.subnetIdL1}
+                        pChainTxId={pChainTxId}
                         validationID={validationID}
-                        stakingManagerAddress={validatorManagerDetails.contractOwner || ''}
-                        tokenType={tokenType}
+                        signingSubnetId={l1State.subnetIdL1}
+                        managerType={tokenType === 'native' ? 'PoS-Native' : 'PoS-ERC20'}
+                        managerAddress={validatorManagerDetails.contractOwner || ''}
                         onSuccess={(data) => {
                             setCompleteRegistrationTxHash(data.txHash);
                             setGlobalSuccess(data.message);
@@ -172,7 +296,7 @@ export default function StakeValidator({ tokenType, onSuccess }: StakeValidatorP
 
             <StepFlowFooter
                 globalSuccess={globalSuccess}
-                showReset={!!(initiateRegistrationTxHash || completeRegistrationTxHash || globalError || globalSuccess)}
+                showReset={!!(initiateRegistrationTxHash || pChainTxId || completeRegistrationTxHash || globalError || globalSuccess)}
                 onReset={handleReset}
             />
         </div>

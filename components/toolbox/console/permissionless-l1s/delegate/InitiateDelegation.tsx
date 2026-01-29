@@ -119,10 +119,19 @@ const InitiateDelegation: React.FC<InitiateDelegationProps> = ({
             const amountWei = parseEther(delegationAmount);
             const recipient = rewardRecipient || walletEVMAddress || '';
 
-            const args = [
-                validationID as `0x${string}`,
-                recipient as `0x${string}`,
-            ];
+            // Build args based on token type
+            // NativeTokenStakingManager: (bytes32 validationID, address rewardRecipient) payable
+            // ERC20TokenStakingManager: (bytes32 validationID, uint256 delegationAmount, address rewardRecipient)
+            const args = isNative
+                ? [
+                    validationID as `0x${string}`,
+                    recipient as `0x${string}`,
+                ]
+                : [
+                    validationID as `0x${string}`,
+                    amountWei,
+                    recipient as `0x${string}`,
+                ];
 
             // For native token, send value. For ERC20, no value but tokens must be approved
             const txConfig: any = {

@@ -3,9 +3,10 @@
 import React, { useState } from 'react';
 import { Steps, Step } from "fumadocs-ui/components/steps";
 import { Success } from '@/components/toolbox/components/Success';
-import { Input } from '@/components/toolbox/components/Input';
 import InitiateDelegation from '@/components/toolbox/console/permissionless-l1s/delegate/InitiateDelegation';
-import CompleteDelegation from '@/components/toolbox/console/permissionless-l1s/delegate/CompleteDelegation';
+import SubmitPChainTxWeightUpdate from '@/components/toolbox/console/shared/SubmitPChainTxWeightUpdate';
+import CompletePChainWeightUpdate from '@/components/toolbox/console/shared/CompletePChainWeightUpdate';
+import SelectValidationID, { ValidationSelection } from '@/components/toolbox/components/SelectValidationID';
 import { useToolboxStore } from '@/components/toolbox/stores/toolboxStore';
 import { BaseConsoleToolProps } from '../../../components/WithConsoleToolMetadata';
 import { Alert } from '@/components/toolbox/components/Alert';
@@ -22,9 +23,10 @@ export default function DelegateValidator({ tokenType, onSuccess }: DelegateVali
     const [globalSuccess, setGlobalSuccess] = useState<string | null>(null);
 
     // State for passing data between components
-    const [validationID, setValidationID] = useState<string>('');
+    const [validatorSelection, setValidatorSelection] = useState<ValidationSelection>({ validationId: '', nodeId: '' });
     const [delegationID, setDelegationID] = useState<string>('');
     const [initiateDelegationTxHash, setInitiateDelegationTxHash] = useState<string>('');
+    const [pChainTxId, setPChainTxId] = useState<string>('');
     const [completeDelegationTxHash, setCompleteDelegationTxHash] = useState<string>('');
 
     const { exampleErc20Address } = useToolboxStore();
@@ -37,9 +39,10 @@ export default function DelegateValidator({ tokenType, onSuccess }: DelegateVali
     const handleReset = () => {
         setGlobalError(null);
         setGlobalSuccess(null);
-        setValidationID('');
+        setValidatorSelection({ validationId: '', nodeId: '' });
         setDelegationID('');
         setInitiateDelegationTxHash('');
+        setPChainTxId('');
         setCompleteDelegationTxHash('');
         l1State.setSubnetIdL1('');
         l1State.incrementResetKey();
@@ -65,7 +68,7 @@ export default function DelegateValidator({ tokenType, onSuccess }: DelegateVali
                 <Step>
                     <h2 className="text-lg font-semibold">Select Validator</h2>
                     <p className="text-sm text-gray-500 mb-4">
-                        Enter the validation ID of the validator you want to delegate to.
+                        Choose an active validator to delegate your {tokenLabel.toLowerCase()}s to.
                     </p>
 
                     {validatorManagerDetails.ownerType && validatorManagerDetails.ownerType !== 'StakingManager' && (
@@ -74,15 +77,21 @@ export default function DelegateValidator({ tokenType, onSuccess }: DelegateVali
                         </Alert>
                     )}
 
-                    <div className="space-y-3">
-                        <Input
-                            label="Validation ID"
-                            value={validationID}
-                            onChange={setValidationID}
-                            placeholder="0x..."
-                            helperText="The validation ID of the active validator you want to delegate to"
-                        />
-                    </div>
+                    <SelectValidationID
+                        value={validatorSelection.validationId}
+                        onChange={setValidatorSelection}
+                        format="hex"
+                        subnetId={l1State.subnetIdL1}
+                    />
+
+                    {validatorSelection.nodeId && (
+                        <div className="mt-3 bg-green-50 dark:bg-green-900/20 rounded-lg p-3 border border-green-200 dark:border-green-800">
+                            <p className="text-xs text-green-700 dark:text-green-300 font-medium">Selected Validator</p>
+                            <p className="text-sm font-mono text-green-900 dark:text-green-100 mt-1">
+                                {validatorSelection.nodeId}
+                            </p>
+                        </div>
+                    )}
                 </Step>
 
                 <Step>
@@ -94,7 +103,7 @@ export default function DelegateValidator({ tokenType, onSuccess }: DelegateVali
 
                     <InitiateDelegation
                         key={`initiate-${l1State.resetKey}-${tokenType}`}
-                        validationID={validationID}
+                        validationID={validatorSelection.validationId}
                         stakingManagerAddress={validatorManagerDetails.contractOwner || ''}
                         tokenType={tokenType}
                         erc20TokenAddress={!isNative ? exampleErc20Address : undefined}
@@ -110,30 +119,28 @@ export default function DelegateValidator({ tokenType, onSuccess }: DelegateVali
                 <Step>
                     <h2 className="text-lg font-semibold">Submit P-Chain Transaction</h2>
                     <p className="text-sm text-gray-500 mb-4">
-                        After initiating delegation, you need to submit a transaction on the P-Chain
-                        to update the validator&apos;s weight with your delegation.
+                        Sign the warp message and submit the weight update to the P-Chain.
                     </p>
 
-                    <Alert variant="info">
-                        <p className="text-sm mb-2">
-                            <strong>Use AvalancheGo CLI or Core Wallet:</strong>
-                        </p>
-                        <ul className="list-disc list-inside text-sm space-y-1">
-                            <li>Use your delegation ID from the previous step</li>
-                            <li>Submit a transaction to increase the validator&apos;s weight on the P-Chain</li>
-                            <li>Wait for the transaction to be confirmed</li>
-                            <li>Once confirmed, proceed to complete delegation</li>
-                        </ul>
-                    </Alert>
-
-                    {delegationID && (
-                        <div className="mt-4">
-                            <Success
-                                label="Your Delegation ID"
-                                value={delegationID}
-                            />
-                        </div>
-                    )}
+                    <SubmitPChainTxWeightUpdate
+                        key={`pchain-${l1State.resetKey}-${tokenType}`}
+                        subnetIdL1={l1State.subnetIdL1}
+                        initialEvmTxHash={initiateDelegationTxHash}
+                        signingSubnetId={l1State.subnetIdL1}
+                        txHashLabel="Initiate Delegation Transaction Hash"
+                        txHashPlaceholder="Enter the transaction hash from Step 3 (0x...)"
+                        additionalInfo={delegationID ? (
+                            <div className="text-sm text-zinc-600 dark:text-zinc-400">
+                                <p><strong>Delegation ID:</strong></p>
+                                <p className="font-mono text-xs break-all">{delegationID}</p>
+                            </div>
+                        ) : undefined}
+                        onSuccess={(txId) => {
+                            setPChainTxId(txId);
+                            setGlobalError(null);
+                        }}
+                        onError={(message) => setGlobalError(message)}
+                    />
                 </Step>
 
                 <Step>
@@ -143,10 +150,14 @@ export default function DelegateValidator({ tokenType, onSuccess }: DelegateVali
                         to activate your delegation on the L1.
                     </p>
 
-                    <CompleteDelegation
+                    <CompletePChainWeightUpdate
                         key={`complete-${l1State.resetKey}-${tokenType}`}
+                        subnetIdL1={l1State.subnetIdL1}
+                        pChainTxId={pChainTxId}
+                        signingSubnetId={l1State.subnetIdL1}
+                        updateType="Delegation"
+                        managerAddress={validatorManagerDetails.contractOwner || ''}
                         delegationID={delegationID}
-                        stakingManagerAddress={validatorManagerDetails.contractOwner || ''}
                         tokenType={tokenType}
                         onSuccess={(data) => {
                             setCompleteDelegationTxHash(data.txHash);
@@ -161,7 +172,7 @@ export default function DelegateValidator({ tokenType, onSuccess }: DelegateVali
 
             <StepFlowFooter
                 globalSuccess={globalSuccess}
-                showReset={!!(initiateDelegationTxHash || completeDelegationTxHash || globalError || globalSuccess)}
+                showReset={!!(initiateDelegationTxHash || pChainTxId || completeDelegationTxHash || globalError || globalSuccess)}
                 onReset={handleReset}
             />
         </div>

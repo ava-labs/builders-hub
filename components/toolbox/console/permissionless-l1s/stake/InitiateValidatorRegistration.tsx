@@ -1,15 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { Button } from '@/components/toolbox/components/Button';
 import { Input } from '@/components/toolbox/components/Input';
 import { Success } from '@/components/toolbox/components/Success';
 import { Alert } from '@/components/toolbox/components/Alert';
+import { parseNodeID, parsePChainAddress } from '@/components/toolbox/coreViem/utils/ids';
 import NativeTokenStakingManager from '@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json';
 import ERC20TokenStakingManager from '@/contracts/icm-contracts/compiled/ERC20TokenStakingManager.json';
 import ExampleERC20 from '@/contracts/icm-contracts/compiled/ExampleERC20.json';
 import { parseEther, formatEther } from 'viem';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
+
+interface ContractSettings {
+    minimumStakeAmount: string;
+    maximumStakeAmount: string;
+    minimumStakeDuration: string;
+    minimumDelegationFeeBips: number;
+}
 
 type TokenType = 'native' | 'erc20';
 
@@ -32,13 +40,14 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
     onSuccess,
     onError,
 }) => {
-    const { coreWalletClient, publicClient, walletEVMAddress } = useWalletStore();
+    const { coreWalletClient, publicClient, walletEVMAddress, pChainAddress } = useWalletStore();
     const viemChain = useViemChainStore();
     const { notify } = useConsoleNotifications();
 
     const [stakeAmount, setStakeAmount] = useState<string>('');
     const [delegationFeeBips, setDelegationFeeBips] = useState<string>('100'); // 1% default
     const [minStakeDuration, setMinStakeDuration] = useState<string>('86400'); // 1 day default
+    // P-Chain addresses in bech32 format (e.g., P-avax1... or P-fuji1...)
     const [remainingBalanceOwner, setRemainingBalanceOwner] = useState<string>('');
     const [disableOwner, setDisableOwner] = useState<string>('');
 
@@ -47,10 +56,51 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
     const [error, setErrorState] = useState<string | null>(null);
     const [txHash, setTxHash] = useState<string | null>(null);
     const [validationID, setValidationID] = useState<string | null>(null);
+    const [contractSettings, setContractSettings] = useState<ContractSettings | null>(null);
+    const [settingsError, setSettingsError] = useState<string | null>(null);
 
     const contractAbi = tokenType === 'native' ? NativeTokenStakingManager.abi : ERC20TokenStakingManager.abi;
     const tokenLabel = tokenType === 'native' ? 'Native Token' : 'ERC20 Token';
     const isNative = tokenType === 'native';
+
+    // Fetch contract settings to help with debugging
+    useEffect(() => {
+        const fetchSettings = async () => {
+            if (!publicClient || !stakingManagerAddress) return;
+            
+            try {
+                // Use getStakingManagerSettings which returns all settings in one call
+                const settings = await publicClient.readContract({
+                    address: stakingManagerAddress as `0x${string}`,
+                    abi: contractAbi,
+                    functionName: 'getStakingManagerSettings',
+                }) as {
+                    manager: string;
+                    minimumStakeAmount: bigint;
+                    maximumStakeAmount: bigint;
+                    minimumStakeDuration: bigint;
+                    minimumDelegationFeeBips: number;
+                    maximumStakeMultiplier: number;
+                    weightToValueFactor: bigint;
+                    rewardCalculator: string;
+                    uptimeBlockchainID: string;
+                };
+                
+                setContractSettings({
+                    minimumStakeAmount: formatEther(settings.minimumStakeAmount),
+                    maximumStakeAmount: formatEther(settings.maximumStakeAmount),
+                    minimumStakeDuration: String(settings.minimumStakeDuration),
+                    minimumDelegationFeeBips: Number(settings.minimumDelegationFeeBips),
+                });
+                setSettingsError(null);
+            } catch (err: any) {
+                console.error('Failed to fetch contract settings:', err);
+                setSettingsError(`Failed to read contract settings: ${err.message || 'Unknown error'}. The staking manager may not be initialized.`);
+            }
+        };
+        
+        fetchSettings();
+    }, [publicClient, stakingManagerAddress, contractAbi]);
 
     const handleApproveERC20 = async () => {
         if (!erc20TokenAddress || !coreWalletClient || !publicClient || !viemChain) {
@@ -133,32 +183,98 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
             return;
         }
 
+        // Validate against contract settings if available
+        if (contractSettings) {
+            const stakeAmountNum = parseFloat(stakeAmount);
+            const minStakeNum = parseFloat(contractSettings.minimumStakeAmount);
+            const maxStakeNum = parseFloat(contractSettings.maximumStakeAmount);
+            
+            if (stakeAmountNum < minStakeNum) {
+                const msg = `Stake amount (${stakeAmount}) is below minimum (${contractSettings.minimumStakeAmount})`;
+                setErrorState(msg);
+                onError(msg);
+                return;
+            }
+            
+            if (stakeAmountNum > maxStakeNum) {
+                const msg = `Stake amount (${stakeAmount}) exceeds maximum (${contractSettings.maximumStakeAmount})`;
+                setErrorState(msg);
+                onError(msg);
+                return;
+            }
+            
+            if (feeBips < contractSettings.minimumDelegationFeeBips) {
+                const msg = `Delegation fee (${feeBips} bips) is below minimum (${contractSettings.minimumDelegationFeeBips} bips)`;
+                setErrorState(msg);
+                onError(msg);
+                return;
+            }
+            
+            const minDurationNum = parseInt(contractSettings.minimumStakeDuration);
+            if (duration < minDurationNum) {
+                const msg = `Stake duration (${duration}s) is below minimum (${contractSettings.minimumStakeDuration}s)`;
+                setErrorState(msg);
+                onError(msg);
+                return;
+            }
+        }
+
         setIsProcessing(true);
         try {
             const amountWei = parseEther(stakeAmount);
 
-            // Build PChainOwner structs
-            const remainingOwner = remainingBalanceOwner || walletEVMAddress || '';
-            const disableOwnerAddr = disableOwner || walletEVMAddress || '';
+            // Build PChainOwner structs - addresses must be P-Chain format (bech32)
+            // Use the connected wallet's P-Chain address as default
+            const remainingOwnerAddress = remainingBalanceOwner || pChainAddress || '';
+            const disableOwnerAddress = disableOwner || pChainAddress || '';
 
+            if (!remainingOwnerAddress) {
+                throw new Error('Remaining Balance Owner is required. Please connect a wallet with P-Chain access or enter a P-Chain address.');
+            }
+            if (!disableOwnerAddress) {
+                throw new Error('Disable Owner is required. Please connect a wallet with P-Chain access or enter a P-Chain address.');
+            }
+
+            // Convert P-Chain addresses from bech32 to hex
             const remainingBalanceOwnerStruct = {
                 threshold: 1,
-                addresses: [remainingOwner as `0x${string}`],
+                addresses: [parsePChainAddress(remainingOwnerAddress)],
             };
 
             const disableOwnerStruct = {
                 threshold: 1,
-                addresses: [disableOwnerAddr as `0x${string}`],
+                addresses: [parsePChainAddress(disableOwnerAddress)],
             };
 
-            const args = [
-                nodeID as `0x${string}`,
-                blsPublicKey as `0x${string}`,
-                remainingBalanceOwnerStruct,
-                disableOwnerStruct,
-                feeBips,
-                duration,
-            ];
+            // Build args based on token type
+            // NativeTokenStakingManager: (bytes nodeID, bytes blsPublicKey, PChainOwner remainingBalanceOwner, PChainOwner disableOwner, uint16 delegationFeeBips, uint64 minStakeDuration, address rewardRecipient)
+            // ERC20TokenStakingManager: (bytes nodeID, bytes blsPublicKey, PChainOwner remainingBalanceOwner, PChainOwner disableOwner, uint16 delegationFeeBips, uint64 minStakeDuration, uint256 stakeAmount, address token)
+            
+            const rewardRecipient = walletEVMAddress as `0x${string}`;
+            
+            // Convert NodeID from CB58 format to hex bytes
+            const nodeIDBytes = parseNodeID(nodeID);
+            
+            const args = isNative
+                ? [
+                    nodeIDBytes as `0x${string}`,
+                    blsPublicKey as `0x${string}`,
+                    remainingBalanceOwnerStruct,
+                    disableOwnerStruct,
+                    feeBips,
+                    BigInt(duration),
+                    rewardRecipient,
+                ]
+                : [
+                    nodeIDBytes as `0x${string}`,
+                    blsPublicKey as `0x${string}`,
+                    remainingBalanceOwnerStruct,
+                    disableOwnerStruct,
+                    feeBips,
+                    BigInt(duration),
+                    amountWei,
+                    erc20TokenAddress as `0x${string}`,
+                ];
 
             // For native token, send value. For ERC20, no value but tokens must be approved
             const txConfig: any = {
@@ -172,6 +288,23 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
 
             if (isNative) {
                 txConfig.value = amountWei;
+            }
+
+            // Estimate gas first to catch revert reasons early
+            try {
+                const gasEstimate = await publicClient.estimateContractGas(txConfig);
+                txConfig.gas = gasEstimate + (gasEstimate * 20n / 100n); // Add 20% buffer
+            } catch (gasError: any) {
+                console.error('Gas estimation failed:', gasError);
+                const gasMessage = gasError instanceof Error ? gasError.message : String(gasError);
+                
+                // Try to extract the actual revert reason
+                if (gasMessage.includes('execution reverted')) {
+                    throw new Error(`Contract reverted: ${gasMessage}. Check that the staking manager is initialized and you have sufficient balance.`);
+                } else if (gasMessage.includes('insufficient funds')) {
+                    throw new Error(`Insufficient balance: You need at least ${stakeAmount} ${isNative ? 'native tokens' : 'ERC20 tokens'} plus gas fees.`);
+                }
+                throw new Error(`Gas estimation failed: ${gasMessage}`);
             }
 
             const writePromise = coreWalletClient.writeContract(txConfig);
@@ -233,6 +366,38 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
                 <Alert variant="error">{error}</Alert>
             )}
 
+            {settingsError && (
+                <Alert variant="warning">
+                    {settingsError}
+                </Alert>
+            )}
+
+            {contractSettings && (
+                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+                    <h4 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">
+                        Staking Manager Requirements
+                    </h4>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div>
+                            <span className="text-blue-600 dark:text-blue-400">Min Stake:</span>{' '}
+                            <span className="font-mono text-blue-900 dark:text-blue-100">{contractSettings.minimumStakeAmount} tokens</span>
+                        </div>
+                        <div>
+                            <span className="text-blue-600 dark:text-blue-400">Max Stake:</span>{' '}
+                            <span className="font-mono text-blue-900 dark:text-blue-100">{contractSettings.maximumStakeAmount} tokens</span>
+                        </div>
+                        <div>
+                            <span className="text-blue-600 dark:text-blue-400">Min Duration:</span>{' '}
+                            <span className="font-mono text-blue-900 dark:text-blue-100">{contractSettings.minimumStakeDuration} seconds</span>
+                        </div>
+                        <div>
+                            <span className="text-blue-600 dark:text-blue-400">Min Delegation Fee:</span>{' '}
+                            <span className="font-mono text-blue-900 dark:text-blue-100">{contractSettings.minimumDelegationFeeBips} bips ({contractSettings.minimumDelegationFeeBips / 100}%)</span>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-lg p-4 border border-zinc-200 dark:border-zinc-700">
                 <h3 className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">
                     Validator Registration ({tokenLabel} Staking)
@@ -246,9 +411,11 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
                         type="number"
                         min="0"
                         step="0.01"
-                        placeholder="1000"
+                        placeholder={contractSettings?.minimumStakeAmount || "1000"}
                         disabled={isProcessing || isApproving}
-                        helperText={`Amount of ${tokenLabel.toLowerCase()}s to stake`}
+                        helperText={contractSettings 
+                            ? `Required: ${contractSettings.minimumStakeAmount} - ${contractSettings.maximumStakeAmount} tokens`
+                            : `Amount of ${tokenLabel.toLowerCase()}s to stake`}
                     />
 
                     <Input
@@ -258,9 +425,11 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
                         type="number"
                         min="0"
                         max="10000"
-                        placeholder="100"
+                        placeholder={contractSettings?.minimumDelegationFeeBips?.toString() || "100"}
                         disabled={isProcessing || isApproving}
-                        helperText="Fee charged to delegators (100 = 1%, 10000 = 100%)"
+                        helperText={contractSettings 
+                            ? `Minimum: ${contractSettings.minimumDelegationFeeBips} bips (${contractSettings.minimumDelegationFeeBips / 100}%)`
+                            : "Fee charged to delegators (100 = 1%, 10000 = 100%)"}
                     />
 
                     <Input
@@ -269,42 +438,54 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
                         onChange={setMinStakeDuration}
                         type="number"
                         min="0"
-                        placeholder="86400"
+                        placeholder={contractSettings?.minimumStakeDuration || "86400"}
                         disabled={isProcessing || isApproving}
-                        helperText="Minimum time validators must stake (86400 = 1 day)"
+                        helperText={contractSettings 
+                            ? `Minimum: ${contractSettings.minimumStakeDuration} seconds`
+                            : "Minimum time validators must stake (86400 = 1 day)"}
                     />
 
-                    <Input
-                        label="Remaining Balance Owner (optional)"
-                        value={remainingBalanceOwner}
-                        onChange={setRemainingBalanceOwner}
-                        placeholder={walletEVMAddress || "0x..."}
-                        disabled={isProcessing || isApproving}
-                        helperText="Address to receive remaining balance (defaults to your address)"
-                    />
+                    <div className="space-y-2">
+                        <Input
+                            label="Remaining Balance Owner (P-Chain Address)"
+                            value={remainingBalanceOwner}
+                            onChange={setRemainingBalanceOwner}
+                            placeholder={pChainAddress || "P-avax1... or P-fuji1..."}
+                            disabled={isProcessing || isApproving}
+                            helperText="P-Chain address to receive remaining balance. Use bech32 format (e.g., P-avax1... or P-fuji1...)"
+                        />
+                        <Button
+                            onClick={() => pChainAddress && setRemainingBalanceOwner(pChainAddress)}
+                            disabled={!pChainAddress || remainingBalanceOwner === pChainAddress || isProcessing || isApproving}
+                            variant="secondary"
+                            size="sm"
+                            className="w-full"
+                        >
+                            Use Connected P-Chain Address
+                        </Button>
+                    </div>
 
-                    <Input
-                        label="Disable Owner (optional)"
-                        value={disableOwner}
-                        onChange={setDisableOwner}
-                        placeholder={walletEVMAddress || "0x..."}
-                        disabled={isProcessing || isApproving}
-                        helperText="Address that can disable the validator (defaults to your address)"
-                    />
+                    <div className="space-y-2">
+                        <Input
+                            label="Disable Owner (P-Chain Address)"
+                            value={disableOwner}
+                            onChange={setDisableOwner}
+                            placeholder={pChainAddress || "P-avax1... or P-fuji1..."}
+                            disabled={isProcessing || isApproving}
+                            helperText="P-Chain address that can disable the validator. Use bech32 format (e.g., P-avax1... or P-fuji1...)"
+                        />
+                        <Button
+                            onClick={() => pChainAddress && setDisableOwner(pChainAddress)}
+                            disabled={!pChainAddress || disableOwner === pChainAddress || isProcessing || isApproving}
+                            variant="secondary"
+                            size="sm"
+                            className="w-full"
+                        >
+                            Use Connected P-Chain Address
+                        </Button>
+                    </div>
                 </div>
             </div>
-
-            <Alert variant="info">
-                <p className="text-sm">
-                    <strong>Next Steps After Registration:</strong>
-                </p>
-                <ul className="list-disc list-inside text-sm mt-2 space-y-1">
-                    <li>After initiating registration, you'll receive a validation ID</li>
-                    <li>You'll need to submit a P-Chain transaction to register the validator</li>
-                    <li>Once the P-Chain accepts the validator, complete the registration</li>
-                    <li>Your staked {tokenLabel.toLowerCase()}s will be locked until you remove the validator</li>
-                </ul>
-            </Alert>
 
             {!isNative && erc20TokenAddress && (
                 <div className="space-y-2">

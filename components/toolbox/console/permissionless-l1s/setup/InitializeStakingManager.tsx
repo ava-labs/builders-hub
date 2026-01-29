@@ -41,9 +41,23 @@ interface InitializeStakingManagerProps extends BaseConsoleToolProps {
     initialTokenType?: TokenType;
 }
 
-function InitializeStakingManager({ initialTokenType = 'native' }: InitializeStakingManagerProps) {
+function InitializeStakingManager({ initialTokenType }: InitializeStakingManagerProps) {
     const { setCriticalError } = useCriticalError();
-    const [tokenType, setTokenType] = useState<TokenType>(initialTokenType);
+    const { coreWalletClient, publicClient, walletEVMAddress } = useWalletStore();
+    const viemChain = useViemChainStore();
+    const {
+        nativeStakingManagerAddress,
+        erc20StakingManagerAddress,
+        rewardCalculatorAddress: storedRewardCalculatorAddress,
+        exampleErc20Address
+    } = useToolboxStore();
+    const { notify } = useConsoleNotifications();
+
+    // Auto-detect token type based on which staking manager address is stored from step 1
+    // If ERC20 address is set, use ERC20. Otherwise default to native.
+    const detectedTokenType: TokenType = erc20StakingManagerAddress ? 'erc20' : 'native';
+    const tokenType = initialTokenType || detectedTokenType;
+
     const [stakingManagerAddressInput, setStakingManagerAddressInput] = useState<string>("");
     const [isChecking, setIsChecking] = useState(false);
     const [isInitializing, setIsInitializing] = useState(false);
@@ -63,16 +77,6 @@ function InitializeStakingManager({ initialTokenType = 'native' }: InitializeSta
     const [weightToValueFactor, setWeightToValueFactor] = useState<string>("1");
     const [rewardCalculatorAddress, setRewardCalculatorAddress] = useState<string>("");
     const [stakingTokenAddress, setStakingTokenAddress] = useState<string>("");
-
-    const { coreWalletClient, publicClient, walletEVMAddress } = useWalletStore();
-    const viemChain = useViemChainStore();
-    const {
-        nativeStakingManagerAddress,
-        erc20StakingManagerAddress,
-        rewardCalculatorAddress: storedRewardCalculatorAddress,
-        exampleErc20Address
-    } = useToolboxStore();
-    const { notify } = useConsoleNotifications();
 
     const isNative = tokenType === 'native';
     const contractJson = isNative ? NativeTokenStakingManager : ERC20TokenStakingManager;
@@ -147,30 +151,24 @@ function InitializeStakingManager({ initialTokenType = 'native' }: InitializeSta
                     toast.info('Contract is not initialized yet');
                 }
             } else {
-                // ERC20 token staking manager
-                const data = await publicClient.readContract({
+                // ERC20 token staking manager - use getStakingManagerSettings
+                const settings = await publicClient.readContract({
                     address: stakingManagerAddressInput as `0x${string}`,
                     abi: ERC20TokenStakingManager.abi,
-                    functionName: 'minimumStakeAmount',
-                });
+                    functionName: 'getStakingManagerSettings',
+                }) as any;
 
-                const initialized = BigInt(data as string) > 0n;
+                const initialized = BigInt(settings.minimumStakeAmount) > 0n;
                 setIsInitialized(initialized);
 
                 if (initialized) {
-                    const [settings, token] = await Promise.all([
-                        publicClient.readContract({
-                            address: stakingManagerAddressInput as `0x${string}`,
-                            abi: ERC20TokenStakingManager.abi,
-                            functionName: 'minimumStakeAmount',
-                        }),
-                        publicClient.readContract({
-                            address: stakingManagerAddressInput as `0x${string}`,
-                            abi: ERC20TokenStakingManager.abi,
-                            functionName: 'erc20',
-                        })
-                    ]);
-                    setInitEvent({ minimumStakeAmount: settings, stakingToken: token });
+                    // Also get the ERC20 token address
+                    const token = await publicClient.readContract({
+                        address: stakingManagerAddressInput as `0x${string}`,
+                        abi: ERC20TokenStakingManager.abi,
+                        functionName: 'erc20',
+                    });
+                    setInitEvent({ settings, stakingToken: token });
                     toast.success('Contract is already initialized');
                 } else {
                     toast.info('Contract is not initialized yet');
@@ -258,46 +256,6 @@ function InitializeStakingManager({ initialTokenType = 'native' }: InitializeSta
 
     return (
         <>
-            <div className="mb-6 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg p-4 border border-zinc-200 dark:border-zinc-700">
-                <h3 className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">
-                    Select Token Type
-                </h3>
-                <div className="flex gap-3">
-                    <button
-                        onClick={() => setTokenType('native')}
-                        disabled={isInitializing || isInitialized === true}
-                        className={`flex-1 px-4 py-3 rounded-lg border-2 transition-all ${
-                            tokenType === 'native'
-                                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                                : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600'
-                        } ${isInitializing || isInitialized === true ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                    >
-                        <div className="text-left">
-                            <div className="font-semibold text-sm">Native Token</div>
-                            <div className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
-                                Use the L1's native token for staking
-                            </div>
-                        </div>
-                    </button>
-                    <button
-                        onClick={() => setTokenType('erc20')}
-                        disabled={isInitializing || isInitialized === true}
-                        className={`flex-1 px-4 py-3 rounded-lg border-2 transition-all ${
-                            tokenType === 'erc20'
-                                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                                : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600'
-                        } ${isInitializing || isInitialized === true ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                    >
-                        <div className="text-left">
-                            <div className="font-semibold text-sm">ERC20 Token</div>
-                            <div className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
-                                Use a custom ERC20 token for staking
-                            </div>
-                        </div>
-                    </button>
-                </div>
-            </div>
-
             <Steps>
                 <Step>
                     <h2 className="text-lg font-semibold">Select L1 Subnet</h2>
