@@ -29,12 +29,13 @@ export async function getExtendedProfile(id: string): Promise<ExtendedProfile | 
     }
 
     // Parse user_type from JSON to object, with default values if it doesn't exist
-    const userType: UserType = user.user_type ? 
-        (typeof user.user_type === 'string' ? JSON.parse(user.user_type) : user.user_type) : 
+    const userType: UserType = user.user_type ?
+        (typeof user.user_type === 'string' ? JSON.parse(user.user_type) : user.user_type) :
         {
             is_student: false,
             is_founder: false,
             is_employee: false,
+            is_developer: false,
             is_enthusiast: false,
         };
 
@@ -186,6 +187,7 @@ export async function updateExtendedProfile(
                 founder_company_name: updatedProfile.user_type?.founder_company_name,
                 employee_company_name: updatedProfile.user_type?.employee_company_name,
                 employee_role: updatedProfile.user_type?.employee_role,
+                is_developer: updatedProfile.user_type?.is_developer,
                 is_enthusiast: updatedProfile.user_type?.is_enthusiast,
             });
         } catch (error) {

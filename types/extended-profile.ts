@@ -5,6 +5,7 @@ export type UserType = {
     is_student: boolean;
     is_founder: boolean;
     is_employee: boolean;
+    is_developer: boolean;
     is_enthusiast: boolean;
     student_institution?: string;
     founder_company_name?: string;
@@ -45,6 +46,7 @@ export type UpdateExtendedProfileData = Partial<Omit<ExtendedProfile, 'id'>> & {
     is_student?: boolean;
     is_founder?: boolean;
     is_employee?: boolean;
+    is_developer?: boolean;
     is_enthusiast?: boolean;
     student_institution?: string;
     founder_company_name?: string;

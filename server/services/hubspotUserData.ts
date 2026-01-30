@@ -25,6 +25,7 @@ export interface UserDataForHubSpot {
   is_employee?: boolean;
   employee_company_name?: string;
   employee_role?: string;
+  is_developer?: boolean;
   is_enthusiast?: boolean;
 }
 
@@ -174,6 +175,7 @@ async function getOrCreateUserDataContact(
       ...(userData.founder_company_name && { project_name: userData.founder_company_name }),
       ...(userData.employee_company_name && { company: userData.employee_company_name }),
       ...(userData.employee_role && { hs_role: userData.employee_role }),
+      ...(userData.is_developer !== undefined && { developer_check: userData.is_developer ? "Yes" : "No" }),
     }
 
     const createResponse = await fetch(
@@ -233,6 +235,7 @@ async function updateUserDataContact(
       ...(userData.founder_company_name && { project_name: userData.founder_company_name }),
       ...(userData.employee_company_name && { company: userData.employee_company_name }),
       ...(userData.employee_role && { hs_role: userData.employee_role }),
+      ...(userData.is_developer !== undefined && { developer_check: userData.is_developer ? "Yes" : "No" }),
     };
 
     // Only make API call if there are properties to update
