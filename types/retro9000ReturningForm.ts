@@ -19,18 +19,8 @@ export const jobRoles = [
 ]
 
 export const projectTypes = [
-  "L1 Blockchain",
-  "DeFi Protocol",
-  "Infrastructure",
-  "Gaming",
-  "NFT/Culture",
-  "Enterprise",
-  "Wallet",
-  "Bridge",
-  "Oracle",
-  "Data/Analytics",
-  "Developer Tools",
-  "Other",
+  "L1",
+  "L1 Tooling",
 ]
 
 export const projectVerticals = [
