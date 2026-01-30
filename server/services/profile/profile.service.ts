@@ -184,7 +184,6 @@ export async function updateExtendedProfile(
                 student_institution: updatedProfile.user_type?.student_institution,
                 is_founder: updatedProfile.user_type?.is_founder,
                 founder_company_name: updatedProfile.user_type?.founder_company_name,
-                is_employee: updatedProfile.user_type?.is_employee,
                 employee_company_name: updatedProfile.user_type?.employee_company_name,
                 employee_role: updatedProfile.user_type?.employee_role,
                 is_enthusiast: updatedProfile.user_type?.is_enthusiast,

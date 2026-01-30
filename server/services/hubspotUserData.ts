@@ -170,7 +170,7 @@ async function getOrCreateUserDataContact(
       ...(userData.name && { fullname: userData.name.trim() }),
       ...(userData.country && { country: userData.country }),
       ...(userData.is_student !== undefined && { university_affiliated_check: userData.is_student }),
-      ...(userData.is_founder !== undefined && { founder_check: userData.is_founder }),
+      ...(userData.is_founder !== undefined && { founder_check: userData.is_founder ? "Yes" : "No" }),
       ...(userData.founder_company_name && { project_name: userData.founder_company_name }),
       ...(userData.employee_company_name && { company: userData.employee_company_name }),
       ...(userData.employee_role && { hs_role: userData.employee_role }),
@@ -229,7 +229,7 @@ async function updateUserDataContact(
       ...(userData.name && { fullname: userData.name.trim() }),
       ...(userData.country && { country: userData.country }),
       ...(userData.is_student !== undefined && { university_affiliated_check: userData.is_student }),
-      ...(userData.is_founder !== undefined && { founder_check: userData.is_founder }),
+      ...(userData.is_founder !== undefined && { founder_check: userData.is_founder ? "Yes" : "No" }),
       ...(userData.founder_company_name && { project_name: userData.founder_company_name }),
       ...(userData.employee_company_name && { company: userData.employee_company_name }),
       ...(userData.employee_role && { hs_role: userData.employee_role }),
@@ -240,7 +240,7 @@ async function updateUserDataContact(
       return;
     }
 
-    await fetch(
+    const updateResponse = await fetch(
       `https://api.hubapi.com/crm/v3/objects/contacts/${contactId}`,
       {
         method: 'PATCH',
@@ -253,6 +253,16 @@ async function updateUserDataContact(
         }),
       }
     );
+
+    if (!updateResponse.ok) {
+      const errorText = await updateResponse.text();
+      console.error(
+        '[HubSpot UserData] Failed to update contact:',
+        updateResponse.status,
+        errorText
+      );
+      return;
+    }
 
     console.log(`[HubSpot UserData] Updated contact: ${userData.email} (ID: ${contactId})`);
   } catch (error) {
