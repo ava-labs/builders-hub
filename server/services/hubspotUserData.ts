@@ -17,6 +17,16 @@ export interface UserDataForHubSpot {
   email: string;
   name?: string;
   userId?: string;
+  gdpr?: boolean;
+  country?: string;
+  is_student?: boolean;
+  student_institution?: string;
+  is_founder?: boolean;
+  founder_company_name?: string;
+  is_employee?: boolean;
+  employee_company_name?: string;
+  employee_role?: string;
+  is_enthusiast?: boolean;
 }
 
 /**
@@ -147,19 +157,29 @@ async function getOrCreateUserDataContact(
         const contactId = searchResult.results[0].id;
         console.log(`[HubSpot UserData] Found existing contact: ${userData.email} (ID: ${contactId})`);
 
-        // Optionally update the contact with the latest name if provided
-        if (userData.name) {
-          await updateUserDataContact(contactId, userData);
-        }
+        // Update the contact with any provided data
+        await updateUserDataContact(contactId, userData);
 
         return contactId;
       }
     }
 
     // Contact doesn't exist, create a new one
-    const nameParts = userData.name?.trim().split(' ') || [];
-    const firstName = nameParts[0] || '';
-    const lastName = nameParts.slice(1).join(' ') || '';
+    // Email is the only mandatory field, all others are optional
+    const properties: Record<string, any> = {
+      email: userData.email,
+      ...(userData.name && { fullname: userData.name.trim() }),
+      ...(userData.gdpr !== undefined && { gdpr: userData.gdpr }),
+      ...(userData.country && { country: userData.country }),
+      ...(userData.is_student !== undefined && { is_student: userData.is_student }),
+      ...(userData.student_institution && { student_institution: userData.student_institution }),
+      ...(userData.is_founder !== undefined && { is_founder: userData.is_founder }),
+      ...(userData.founder_company_name && { founder_company_name: userData.founder_company_name }),
+      ...(userData.is_employee !== undefined && { is_employee: userData.is_employee }),
+      ...(userData.employee_company_name && { employee_company_name: userData.employee_company_name }),
+      ...(userData.employee_role && { employee_role: userData.employee_role }),
+      ...(userData.is_enthusiast !== undefined && { is_enthusiast: userData.is_enthusiast }),
+    }
 
     const createResponse = await fetch(
       `https://api.hubapi.com/crm/v3/objects/contacts`,
@@ -170,11 +190,7 @@ async function getOrCreateUserDataContact(
           'Authorization': `Bearer ${HUBSPOT_API_KEY}`,
         },
         body: JSON.stringify({
-          properties: {
-            email: userData.email,
-            firstname: firstName,
-            lastname: lastName,
-          },
+          properties,
         }),
       }
     );
@@ -209,14 +225,29 @@ async function updateUserDataContact(
   contactId: string,
   userData: UserDataForHubSpot
 ): Promise<void> {
-  if (!HUBSPOT_API_KEY || !userData.name) {
+  if (!HUBSPOT_API_KEY) {
     return;
   }
 
   try {
-    const nameParts = userData.name.trim().split(' ');
-    const firstName = nameParts[0] || '';
-    const lastName = nameParts.slice(1).join(' ') || '';
+    const properties: Record<string, any> = {
+      ...(userData.name && { fullname: userData.name.trim() }),
+      ...(userData.gdpr !== undefined && { gdpr: userData.gdpr }),
+      ...(userData.country && { country: userData.country }),
+      ...(userData.is_student !== undefined && { is_student: userData.is_student }),
+      ...(userData.student_institution && { student_institution: userData.student_institution }),
+      ...(userData.is_founder !== undefined && { is_founder: userData.is_founder }),
+      ...(userData.founder_company_name && { founder_company_name: userData.founder_company_name }),
+      ...(userData.is_employee !== undefined && { is_employee: userData.is_employee }),
+      ...(userData.employee_company_name && { employee_company_name: userData.employee_company_name }),
+      ...(userData.employee_role && { employee_role: userData.employee_role }),
+      ...(userData.is_enthusiast !== undefined && { is_enthusiast: userData.is_enthusiast }),
+    };
+
+    // Only make API call if there are properties to update
+    if (Object.keys(properties).length === 0) {
+      return;
+    }
 
     await fetch(
       `https://api.hubapi.com/crm/v3/objects/contacts/${contactId}`,
@@ -227,10 +258,7 @@ async function updateUserDataContact(
           'Authorization': `Bearer ${HUBSPOT_API_KEY}`,
         },
         body: JSON.stringify({
-          properties: {
-            firstname: firstName,
-            lastname: lastName,
-          },
+          properties,
         }),
       }
     );
