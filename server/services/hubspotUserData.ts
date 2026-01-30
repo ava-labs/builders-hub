@@ -17,7 +17,6 @@ export interface UserDataForHubSpot {
   email: string;
   name?: string;
   userId?: string;
-  gdpr?: boolean;
   country?: string;
   is_student?: boolean;
   student_institution?: string;
@@ -169,16 +168,12 @@ async function getOrCreateUserDataContact(
     const properties: Record<string, any> = {
       email: userData.email,
       ...(userData.name && { fullname: userData.name.trim() }),
-      ...(userData.gdpr !== undefined && { gdpr: userData.gdpr }),
       ...(userData.country && { country: userData.country }),
-      ...(userData.is_student !== undefined && { is_student: userData.is_student }),
-      ...(userData.student_institution && { student_institution: userData.student_institution }),
-      ...(userData.is_founder !== undefined && { is_founder: userData.is_founder }),
-      ...(userData.founder_company_name && { founder_company_name: userData.founder_company_name }),
-      ...(userData.is_employee !== undefined && { is_employee: userData.is_employee }),
-      ...(userData.employee_company_name && { employee_company_name: userData.employee_company_name }),
-      ...(userData.employee_role && { employee_role: userData.employee_role }),
-      ...(userData.is_enthusiast !== undefined && { is_enthusiast: userData.is_enthusiast }),
+      ...(userData.is_student !== undefined && { university_affiliated_check: userData.is_student }),
+      ...(userData.is_founder !== undefined && { founder_check: userData.is_founder }),
+      ...(userData.founder_company_name && { project_name: userData.founder_company_name }),
+      ...(userData.employee_company_name && { company: userData.employee_company_name }),
+      ...(userData.employee_role && { hs_role: userData.employee_role }),
     }
 
     const createResponse = await fetch(
@@ -232,16 +227,12 @@ async function updateUserDataContact(
   try {
     const properties: Record<string, any> = {
       ...(userData.name && { fullname: userData.name.trim() }),
-      ...(userData.gdpr !== undefined && { gdpr: userData.gdpr }),
       ...(userData.country && { country: userData.country }),
-      ...(userData.is_student !== undefined && { is_student: userData.is_student }),
-      ...(userData.student_institution && { student_institution: userData.student_institution }),
-      ...(userData.is_founder !== undefined && { is_founder: userData.is_founder }),
-      ...(userData.founder_company_name && { founder_company_name: userData.founder_company_name }),
-      ...(userData.is_employee !== undefined && { is_employee: userData.is_employee }),
-      ...(userData.employee_company_name && { employee_company_name: userData.employee_company_name }),
-      ...(userData.employee_role && { employee_role: userData.employee_role }),
-      ...(userData.is_enthusiast !== undefined && { is_enthusiast: userData.is_enthusiast }),
+      ...(userData.is_student !== undefined && { university_affiliated_check: userData.is_student }),
+      ...(userData.is_founder !== undefined && { founder_check: userData.is_founder }),
+      ...(userData.founder_company_name && { project_name: userData.founder_company_name }),
+      ...(userData.employee_company_name && { company: userData.employee_company_name }),
+      ...(userData.employee_role && { hs_role: userData.employee_role }),
     };
 
     // Only make API call if there are properties to update
