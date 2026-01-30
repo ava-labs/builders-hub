@@ -86,7 +86,7 @@ export function SiteHeader() {
           <div data-tour="network-switch">
             <TestnetMainnetSwitch />
           </div>
-          <div data-tour="wallet-connect">
+          <div data-tour="wallet-connect" className="flex items-center gap-2">
             <EvmNetworkWallet />
             <WalletPChain />
           </div>
