@@ -255,7 +255,7 @@ export function SDKCodeViewer({
               </div>
               {/* Code - fallback */}
               <pre
-                ref={codeScrollRef as React.RefObject<HTMLPreElement>}
+                ref={codeScrollRef as unknown as React.RefObject<HTMLPreElement>}
                 className={cn(
                   "flex-1 py-4 pl-4 pr-4 text-zinc-800 dark:text-zinc-200 whitespace-pre font-mono overflow-x-auto",
                   height === "auto" ? "" : "overflow-y-auto"

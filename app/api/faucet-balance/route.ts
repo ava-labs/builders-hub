@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createPublicClient, http, formatEther, defineChain } from 'viem';
 import { avalancheFuji } from 'viem/chains';
-import { pvm, Context, utils } from "@avalabs/avalanchejs";
 import { getL1ListStore, type L1ListItem } from '@/components/toolbox/stores/l1ListStore';
 
 const FAUCET_C_CHAIN_ADDRESS = process.env.FAUCET_C_CHAIN_ADDRESS;
@@ -58,21 +57,32 @@ async function getPChainBalance(): Promise<{ balance: string; balanceFormatted: 
   if (!FAUCET_P_CHAIN_ADDRESS) return null;
 
   try {
-    const pvmApi = new pvm.PVMApi("https://api.avax-test.network");
-    const { utxos } = await pvmApi.getUTXOs({ addresses: [FAUCET_P_CHAIN_ADDRESS] });
+    // Use JSON-RPC API directly for proper typing
+    const response = await fetch('https://api.avax-test.network/ext/bc/P', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'platform.getBalance',
+        params: {
+          addresses: [FAUCET_P_CHAIN_ADDRESS],
+        },
+      }),
+    });
 
-    // Sum up all UTXO amounts
-    let totalNAvax = BigInt(0);
-    for (const utxo of utxos) {
-      const output = utxo.output;
-      if ('amount' in output) {
-        totalNAvax += output.amount();
-      }
+    const data = await response.json();
+    if (data.error) {
+      throw new Error(data.error.message || 'Failed to fetch P-chain balance');
     }
 
-    const balanceAvax = Number(totalNAvax) / 1e9;
+    const balanceNAvax = BigInt(data.result.balance);
+    const balanceAvax = Number(balanceNAvax) / 1e9;
+
     return {
-      balance: totalNAvax.toString(),
+      balance: balanceNAvax.toString(),
       balanceFormatted: balanceAvax.toFixed(2),
     };
   } catch (error) {
@@ -120,7 +130,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<FaucetBala
     // Fetch all balances in parallel
     const [pChainResult, ...evmResults] = await Promise.all([
       getPChainBalance(),
-      ...chainsWithFaucet.map(chain => getEVMChainBalance(chain)),
+      ...chainsWithFaucet.map((chain: L1ListItem) => getEVMChainBalance(chain)),
     ]);
 
     const evmChains = evmResults.filter((result): result is ChainBalance => result !== null);

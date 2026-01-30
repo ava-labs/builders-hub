@@ -262,7 +262,7 @@ export function ContractDeployViewer({
               </div>
               {/* Code - scrollable both directions */}
               <pre
-                ref={codeScrollRef as React.RefObject<HTMLPreElement>}
+                ref={codeScrollRef as unknown as React.RefObject<HTMLPreElement>}
                 className="flex-1 py-4 pl-4 pr-4 text-zinc-800 dark:text-zinc-200 whitespace-pre overflow-auto font-mono"
                 style={{
                   "--code-font-size": `${fontSize}px`,
