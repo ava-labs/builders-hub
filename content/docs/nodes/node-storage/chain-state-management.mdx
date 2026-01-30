@@ -95,9 +95,9 @@ Even with the same configuration, different types of state grow at different rat
 
 | Growth Type | Rate | Description |
 |-------------|------|-------------|
-| Archival state | ~[TBD] GB/month | Complete history stored at every block |
-| Active state + snapshots | ~[TBD] GB/month | Active state + Snapshots every 4000 blocks for serving peers |
-| Active state | ~[TBD] GB/month | Current blockchain state only |
+| Archival state | ~250 GB/month | Complete history stored at every block |
+| Active state + snapshots | ~100 GB/month | Active state + Snapshots every 4000 blocks for serving peers |
+| Active state | ~20 GB/month | Current blockchain state only |
 
 <Callout title="Note">
 State sync snapshots are retained to help other nodes bootstrap. Even if you don't need archival state, these snapshots accumulate over time and increase disk usage.
