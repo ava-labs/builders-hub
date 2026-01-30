@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState, useCallback } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { FlowCompletionModal, type FlowCompletionAction } from "./flow-completion-modal";
 import { getFlowMetadata, type FlowMetadata } from "@/config/console-flows";
 
@@ -42,7 +43,8 @@ type StepFlowProps = {
   /**
    * Whether to show the built-in completion modal when the flow finishes.
    * If true and the flow has metadata in console-flows.ts, the modal will be shown.
-   * Default: false (for backward compatibility)
+   * If false or no metadata exists, navigates to /console as fallback.
+   * Default: true
    */
   showCompletionModal?: boolean;
   /**
@@ -70,12 +72,13 @@ export default function StepFlow({
   onFinish,
   basePath,
   currentStepKey,
-  showCompletionModal = false,
+  showCompletionModal = true,
   completionMetadata,
   transactionHash,
   explorerUrl,
   completionActions,
 }: StepFlowProps) {
+  const router = useRouter();
   const [isCompletionModalOpen, setIsCompletionModalOpen] = useState(false);
 
   // Get flow metadata for completion modal
@@ -91,8 +94,11 @@ export default function StepFlow({
     }
     if (showCompletionModal && flowMetadata) {
       setIsCompletionModalOpen(true);
+    } else {
+      // Fallback: navigate to console home if no modal configured
+      router.push("/console");
     }
-  }, [onFinish, showCompletionModal, flowMetadata]);
+  }, [onFinish, showCompletionModal, flowMetadata, router]);
 
   // Find which step we're on - could be a single step or a branch option
   const { currentIndex, currentStep, selectedBranchOption } = useMemo(() => {

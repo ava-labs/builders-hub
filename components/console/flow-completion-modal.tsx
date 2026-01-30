@@ -1,16 +1,12 @@
 "use client";
 
-import { useMemo, useState, useCallback } from "react";
+import { useState, useCallback } from "react";
 import Link from "next/link";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
 } from "@/components/ui/dialog";
-import { CheckCircle, Star, ArrowRight, PartyPopper, History, ExternalLink, Copy, Check } from "lucide-react";
+import { Check, ArrowRight, Copy, ExternalLink } from "lucide-react";
 import type { FlowMetadata, FlowNextStep } from "@/config/console-flows";
 
 /**
@@ -29,131 +25,107 @@ type FlowCompletionModalProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   metadata: FlowMetadata & { accomplishments: string[] };
-  /** Optional transaction hash to display and copy */
   transactionHash?: string;
-  /** Optional block explorer URL for the transaction */
   explorerUrl?: string;
-  /** Custom actions to display in the footer */
   customActions?: FlowCompletionAction[];
-  /** Show "View History" link (default: true if no custom actions) */
   showHistoryLink?: boolean;
-  /** Custom history path (default: /console/history) */
   historyPath?: string;
-  /** Callback when modal is closed */
   onClose?: () => void;
 };
 
 /**
- * Reusable accomplishment item with checkmark
+ * Transaction hash with copy functionality
  */
-function AccomplishmentItem({ text }: { text: string }) {
-  return (
-    <li className="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
-      <CheckCircle className="h-4 w-4 flex-shrink-0 text-green-500" />
-      <span>{text}</span>
-    </li>
-  );
-}
-
-/**
- * Reusable next step card with navigation link
- */
-function NextStepCard({
-  step,
-  isRecommended,
-}: {
-  step: FlowNextStep;
-  isRecommended: boolean;
-}) {
-  return (
-    <Link
-      href={step.path}
-      className={`
-        group flex items-center justify-between p-3 rounded-lg border transition-all
-        ${
-          isRecommended
-            ? "border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30 hover:bg-blue-100 dark:hover:bg-blue-950/50"
-            : "border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
-        }
-      `}
-    >
-      <div className="flex items-start gap-3">
-        {isRecommended && (
-          <Star className="h-4 w-4 mt-0.5 text-blue-500 flex-shrink-0" />
-        )}
-        <div>
-          <h4 className="font-medium text-sm text-zinc-900 dark:text-zinc-100">
-            {step.title}
-          </h4>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-            {step.description}
-          </p>
-        </div>
-      </div>
-      <ArrowRight className="h-4 w-4 text-zinc-400 group-hover:text-zinc-600 dark:group-hover:text-zinc-300 transition-colors" />
-    </Link>
-  );
-}
-
-/**
- * Transaction hash display with copy functionality
- */
-function TransactionHashDisplay({
-  hash,
-  explorerUrl,
-}: {
-  hash: string;
-  explorerUrl?: string;
-}) {
+function TxHash({ hash, explorerUrl }: { hash: string; explorerUrl?: string }) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = useCallback(async () => {
-    try {
-      await navigator.clipboard.writeText(hash);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error("Failed to copy:", err);
-    }
+    await navigator.clipboard.writeText(hash);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   }, [hash]);
 
-  const truncatedHash = `${hash.slice(0, 10)}...${hash.slice(-8)}`;
-
   return (
-    <div className="flex items-center gap-2 p-2 rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700">
-      <code className="flex-1 text-xs font-mono text-zinc-600 dark:text-zinc-400 truncate">
-        {truncatedHash}
+    <div className="flex items-center gap-3 p-3 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/80 dark:border-zinc-700/50">
+      <code className="flex-1 text-sm font-mono text-zinc-600 dark:text-zinc-400 truncate">
+        {hash.slice(0, 10)}...{hash.slice(-8)}
       </code>
-      <button
-        type="button"
-        onClick={handleCopy}
-        className="p-1 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded transition-colors"
-        title="Copy transaction hash"
-      >
-        {copied ? (
-          <Check className="h-4 w-4 text-green-500" />
-        ) : (
-          <Copy className="h-4 w-4 text-zinc-400" />
-        )}
-      </button>
-      {explorerUrl && (
-        <a
-          href={explorerUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="p-1 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded transition-colors"
-          title="View on explorer"
+      <div className="flex items-center gap-1">
+        <button
+          type="button"
+          onClick={handleCopy}
+          className="p-2 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
+          title="Copy hash"
         >
-          <ExternalLink className="h-4 w-4 text-zinc-400" />
-        </a>
-      )}
+          {copied ? (
+            <Check className="h-4 w-4 text-green-500" />
+          ) : (
+            <Copy className="h-4 w-4 text-zinc-400" />
+          )}
+        </button>
+        {explorerUrl && (
+          <a
+            href={explorerUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="p-2 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
+            title="View on explorer"
+          >
+            <ExternalLink className="h-4 w-4 text-zinc-400" />
+          </a>
+        )}
+      </div>
     </div>
   );
 }
 
 /**
- * Completion modal shown when user finishes a console flow.
- * Displays accomplishments and recommended next steps.
+ * Next step card - matches console card style
+ */
+function NextStepCard({
+  step,
+  index,
+  isRecommended,
+}: {
+  step: FlowNextStep;
+  index: number;
+  isRecommended: boolean;
+}) {
+  return (
+    <Link href={step.path} className="group block">
+      <div className="relative p-4 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 transition-all duration-200 hover:border-zinc-300 dark:hover:border-zinc-700 hover:shadow-lg hover:shadow-zinc-200/50 dark:hover:shadow-zinc-900/50">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <span className="text-[13px] tabular-nums text-zinc-400 dark:text-zinc-500 shrink-0">
+              {String(index + 1).padStart(2, "0")}
+            </span>
+            <div className="min-w-0">
+              <h4 className="text-[15px] font-medium text-zinc-900 dark:text-zinc-100 truncate">
+                {step.title}
+              </h4>
+              <p className="text-[13px] text-zinc-500 dark:text-zinc-400 truncate">
+                {step.description}
+              </p>
+            </div>
+          </div>
+          <div className="shrink-0 w-8 h-8 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center group-hover:bg-zinc-900 dark:group-hover:bg-zinc-100 transition-colors">
+            <ArrowRight className="w-4 h-4 text-zinc-400 group-hover:text-white dark:group-hover:text-zinc-900 transition-colors" />
+          </div>
+        </div>
+        {isRecommended && (
+          <div className="absolute -top-2 right-4">
+            <span className="px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-full">
+              Recommended
+            </span>
+          </div>
+        )}
+      </div>
+    </Link>
+  );
+}
+
+/**
+ * Completion modal - matches console design language
  */
 export function FlowCompletionModal({
   open,
@@ -162,23 +134,11 @@ export function FlowCompletionModal({
   transactionHash,
   explorerUrl,
   customActions,
-  showHistoryLink,
   historyPath = "/console",
   onClose,
 }: FlowCompletionModalProps) {
-  // Split next steps by priority for grouped display
-  const { recommended, optional } = useMemo(
-    () => ({
-      recommended: metadata.nextSteps.filter((s) => s.priority === "recommended"),
-      optional: metadata.nextSteps.filter((s) => s.priority === "optional"),
-    }),
-    [metadata.nextSteps]
-  );
-
-  const firstRecommendedPath = recommended[0]?.path;
-
-  // Show history link by default if no custom actions are provided
-  const shouldShowHistory = showHistoryLink ?? !customActions?.length;
+  const recommended = metadata.nextSteps.filter((s) => s.priority === "recommended");
+  const optional = metadata.nextSteps.filter((s) => s.priority === "optional");
 
   const handleClose = useCallback(() => {
     onClose?.();
@@ -187,71 +147,69 @@ export function FlowCompletionModal({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-lg bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700">
-        <DialogHeader className="text-center sm:text-left">
-          <div className="flex items-center gap-2 mb-2">
-            <PartyPopper className="h-6 w-6 text-yellow-500" />
-            <DialogTitle className="text-xl">Congratulations!</DialogTitle>
+      <DialogContent className="sm:max-w-lg p-0 gap-0 bg-zinc-50 dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 overflow-hidden">
+        {/* Header */}
+        <div className="p-6 bg-white dark:bg-zinc-900 border-b border-zinc-200/80 dark:border-zinc-800">
+          <div className="flex items-start gap-4">
+            <div className="shrink-0 w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+              <Check className="w-6 h-6 text-green-600 dark:text-green-400" strokeWidth={2.5} />
+            </div>
+            <div className="flex-1 min-w-0 pt-1">
+              <h2 className="text-xl font-medium text-zinc-900 dark:text-zinc-100">
+                {metadata.title}
+              </h2>
+              <p className="mt-1 text-[15px] text-zinc-500 dark:text-zinc-400">
+                {metadata.completionSummary}
+              </p>
+            </div>
           </div>
-          <DialogDescription className="text-base">
-            {metadata.completionSummary}
-          </DialogDescription>
-        </DialogHeader>
 
-        {/* Transaction Hash (if provided) */}
-        {transactionHash && (
-          <div className="space-y-2">
-            <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
-              Transaction
-            </h3>
-            <TransactionHashDisplay hash={transactionHash} explorerUrl={explorerUrl} />
-          </div>
-        )}
-
-        {/* Accomplishments Section */}
-        <div className="space-y-3">
-          <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
-            What you accomplished
-          </h3>
-          <ul className="space-y-2">
-            {metadata.accomplishments.map((text, index) => (
-              <AccomplishmentItem key={index} text={text} />
-            ))}
-          </ul>
+          {/* Transaction hash */}
+          {transactionHash && (
+            <div className="mt-4">
+              <TxHash hash={transactionHash} explorerUrl={explorerUrl} />
+            </div>
+          )}
         </div>
 
-        {/* Next Steps Section */}
-        {metadata.nextSteps.length > 0 && (
-          <div className="space-y-3 border-t border-zinc-200 dark:border-zinc-700 pt-4">
-            {/* Recommended Next Steps */}
+        {/* Next Steps */}
+        {(recommended.length > 0 || optional.length > 0) && (
+          <div className="p-6">
             {recommended.length > 0 && (
-              <div className="space-y-2">
-                <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
-                  Recommended Next Steps
+              <div className="space-y-3">
+                <h3 className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+                  Next Steps
                 </h3>
                 <div className="space-y-2">
-                  {recommended.map((step) => (
+                  {recommended.map((step, i) => (
                     <NextStepCard
                       key={step.path}
                       step={step}
-                      isRecommended={true}
+                      index={i}
+                      isRecommended={i === 0}
                     />
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Optional Next Steps */}
             {optional.length > 0 && (
-              <div className="space-y-2">
-                <h3 className="text-sm font-medium text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
-                  Optional
-                </h3>
+              <div className={recommended.length > 0 ? "mt-6" : ""}>
+                {recommended.length > 0 && (
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="flex-1 h-px bg-zinc-200 dark:bg-zinc-800" />
+                    <span className="text-xs text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">
+                      or
+                    </span>
+                    <div className="flex-1 h-px bg-zinc-200 dark:bg-zinc-800" />
+                  </div>
+                )}
                 <div className="space-y-2">
-                  {optional.map((step) => (
+                  {optional.map((step, i) => (
                     <NextStepCard
                       key={step.path}
                       step={step}
+                      index={recommended.length + i}
                       isRecommended={false}
                     />
                   ))}
@@ -261,85 +219,58 @@ export function FlowCompletionModal({
           </div>
         )}
 
-        <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-2">
-          {/* Custom Actions */}
-          {customActions?.map((action, index) => {
-            const buttonClass = `w-full sm:w-auto px-4 py-2 text-sm rounded-md flex items-center justify-center gap-2 transition-colors ${
-              action.variant === "primary"
-                ? "bg-blue-600 text-white hover:bg-blue-700"
-                : action.variant === "secondary"
-                ? "bg-zinc-200 dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 hover:bg-zinc-300 dark:hover:bg-zinc-600"
-                : "border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800"
-            }`;
+        {/* Footer */}
+        <div className="p-4 bg-white dark:bg-zinc-900 border-t border-zinc-200/80 dark:border-zinc-800">
+          <div className="flex items-center justify-between">
+            {customActions?.length ? (
+              <div className="flex items-center gap-2 w-full">
+                {customActions.map((action, index) => {
+                  const isPrimary = action.variant === "primary";
+                  const className = isPrimary
+                    ? "flex-1 px-4 py-2.5 text-sm font-medium rounded-xl bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors text-center"
+                    : "px-4 py-2.5 text-sm text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors";
 
-            if (action.href) {
-              return (
+                  if (action.href) {
+                    return (
+                      <Link key={index} href={action.href} className={className}>
+                        {action.label}
+                      </Link>
+                    );
+                  }
+                  return (
+                    <button key={index} type="button" onClick={action.onClick} className={className}>
+                      {action.label}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <>
                 <Link
-                  key={index}
-                  href={action.href}
-                  className={buttonClass}
-                  target={action.external ? "_blank" : undefined}
-                  rel={action.external ? "noopener noreferrer" : undefined}
+                  href={historyPath}
+                  className="px-4 py-2.5 text-sm text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
                 >
-                  {action.icon}
-                  {action.label}
-                  {action.external && <ExternalLink className="h-3 w-3" />}
+                  Back to Console
                 </Link>
-              );
-            }
-
-            return (
-              <button
-                key={index}
-                type="button"
-                onClick={action.onClick}
-                className={buttonClass}
-              >
-                {action.icon}
-                {action.label}
-              </button>
-            );
-          })}
-
-          {/* History Link */}
-          {shouldShowHistory && (
-            <Link
-              href={historyPath}
-              className="w-full sm:w-auto px-4 py-2 text-sm rounded-md border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors flex items-center justify-center gap-2"
-            >
-              <History className="h-4 w-4" />
-              Back to Console
-            </Link>
-          )}
-
-          {/* Close button (only show if no custom actions or history link) */}
-          {!customActions?.length && !shouldShowHistory && (
-            <button
-              onClick={handleClose}
-              className="w-full sm:w-auto px-4 py-2 text-sm rounded-md border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-            >
-              Close
-            </button>
-          )}
-
-          {/* Go to Next Step button */}
-          {firstRecommendedPath && (
-            <Link
-              href={firstRecommendedPath}
-              className="w-full sm:w-auto px-4 py-2 text-sm rounded-md bg-blue-600 text-white hover:bg-blue-700 transition-colors text-center"
-            >
-              Go to Next Step
-            </Link>
-          )}
-        </DialogFooter>
+                {recommended[0] && (
+                  <Link
+                    href={recommended[0].path}
+                    className="px-5 py-2.5 text-sm font-medium rounded-xl bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors"
+                  >
+                    {recommended[0].title}
+                  </Link>
+                )}
+              </>
+            )}
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );
 }
 
 /**
- * Hook for managing flow completion modal state.
- * Makes it easy to integrate the completion modal into any step flow.
+ * Hook for managing flow completion modal state
  */
 export function useFlowCompletion() {
   const [isOpen, setIsOpen] = useState(false);
@@ -349,9 +280,7 @@ export function useFlowCompletion() {
   }>({});
 
   const showCompletion = useCallback((data?: { transactionHash?: string; explorerUrl?: string }) => {
-    if (data) {
-      setCompletionData(data);
-    }
+    if (data) setCompletionData(data);
     setIsOpen(true);
   }, []);
 

@@ -318,10 +318,25 @@ export const generateDockerCommand = (
         env.AVAGO_VM_ALIASES_FILE_CONTENT = btoa(JSON.stringify(vmAliases, null, 2));
     }
 
+    // Port mapping based on node type:
+    // - Validator: 9651 public (P2P/staking), 9650 localhost-only (admin)
+    // - RPC: 9650 public (HTTP API), 9651 not exposed (no inbound P2P needed)
+    // - Both: 9650 + 9651 public
+    const isValidator = nodeType === 'validator' || nodeType === 'validator-rpc';
+    let portMapping: string;
+    if (nodeType === 'validator') {
+        portMapping = '-p 127.0.0.1:9650:9650 -p 9651:9651';
+    } else if (nodeType === 'public-rpc') {
+        portMapping = '-p 9650:9650';
+    } else {
+        // validator-rpc: both ports public
+        portMapping = '-p 9650:9650 -p 9651:9651';
+    }
+
     const chunks = [
         "docker run -it -d",
         `--name avago`,
-        `-p ${isRPC ? "" : "127.0.0.1:"}9650:9650 -p 9651:9651`,
+        portMapping,
         `-v ~/.avalanchego:/root/.avalanchego`,
         ...Object.entries(env).map(([key, value]) => `-e ${key}=${value}`),
         `avaplatform/subnet-evm_avalanchego:${versions['avaplatform/subnet-evm_avalanchego']}`
