@@ -13,6 +13,49 @@ import { Alert } from "../../../components/Alert";
 import { useDisableL1Validator, ValidatorData } from "./DisableL1ValidatorContext";
 import ValidatorSelector from "./ValidatorSelector";
 import { formatAvaxBalance } from "@/components/toolbox/coreViem/utils/format";
+import { SDKCodeViewer, SDKCodeSource } from "@/components/console/sdk-code-viewer";
+
+// TypeScript code showing the P-Chain disable operation
+const DISABLE_VALIDATOR_CODE = `// Disable an L1 Validator directly on the P-Chain
+// This is an emergency operation that bypasses the Validator Manager
+
+import { createCoreWalletClient } from "@/coreViem";
+
+const walletClient = createCoreWalletClient({
+  chain: "fuji", // or "mainnet"
+});
+
+// Get the validator's validation ID from the P-Chain API
+// This is the CB58-encoded ID returned when the validator was registered
+const validationId = selectedValidator.validationId;
+
+// Find your wallet's index in the deactivation owner addresses
+// The deactivation owner was set when the validator was registered
+const deactivationOwner = selectedValidator.deactivationOwner;
+const authIndex = deactivationOwner.addresses.findIndex(
+  (addr) => addr.toLowerCase() === myPChainAddress.toLowerCase()
+);
+
+// Submit DisableL1ValidatorTx to the P-Chain
+// This immediately removes the validator and returns remaining balance
+const txHash = await walletClient.disableL1Validator({
+  validationId: validationId,  // CB58 validation ID
+  disableAuth: [authIndex],    // Index of authorized signer
+});
+
+// The remaining balance is sent to the remainingBalanceOwner
+// addresses that were configured during registration`;
+
+// Code sources for the SDK viewer
+const CODE_SOURCES: SDKCodeSource[] = [
+  {
+    name: "Disable Validator",
+    filename: "disableL1Validator.ts",
+    code: DISABLE_VALIDATOR_CODE,
+    description: "Direct P-Chain operation to disable a validator (bypasses Validator Manager)",
+    githubUrl: "https://github.com/ava-labs/avalanche-sdk",
+  },
+];
 
 const metadata: ConsoleToolMetadata = {
   title: "Disable L1 Validator",
@@ -181,139 +224,141 @@ function DisableValidator({ onSuccess }: BaseConsoleToolProps) {
   }
 
   return (
-    <div className="space-y-4 w-full">
-      {/* Warning Banner */}
-      <Alert variant="warning">
-        <span><strong>Emergency Operation:</strong> This operation disables a validator directly on the P-Chain, bypassing the Validator Manager Contract. Use this only when the L1 is down or unreachable.</span>
-      </Alert>
+    <SDKCodeViewer sources={CODE_SOURCES} height="auto">
+      <div className="space-y-4 w-full">
+        {/* Warning Banner */}
+        <Alert variant="warning">
+          <span><strong>Emergency Operation:</strong> This operation disables a validator directly on the P-Chain, bypassing the Validator Manager Contract. Use this only when the L1 is down or unreachable.</span>
+        </Alert>
 
-      {/* Step 1: Select Subnet */}
-      <SelectSubnetId
-        value={subnetId}
-        onChange={(id) => {
-          setSubnetId(id);
-          setSelectedValidator(null);
-          setError(null);
-        }}
-        hidePrimaryNetwork={true}
-      />
-
-      {/* Step 2: Select Validator */}
-      {subnetId && (
-        <ValidatorSelector
-          subnetId={subnetId}
-          onSelect={setSelectedValidator}
-          selectedValidator={selectedValidator}
+        {/* Step 1: Select Subnet */}
+        <SelectSubnetId
+          value={subnetId}
+          onChange={(id) => {
+            setSubnetId(id);
+            setSelectedValidator(null);
+            setError(null);
+          }}
+          hidePrimaryNetwork={true}
         />
-      )}
 
-      {/* Step 3: Authorization Check */}
-      {selectedValidator && (
-        <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-lg p-4 space-y-3 border border-zinc-200 dark:border-zinc-700">
-          <div className="flex items-center gap-2">
-            <Users className="w-4 h-4 text-zinc-500" />
-            <h4 className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Deactivation Owner</h4>
-          </div>
-
-          {selectedValidator.deactivationOwner ? (
-            <div className="space-y-2">
-              <div className="text-xs text-zinc-600 dark:text-zinc-400">
-                <span className="font-medium">Threshold:</span> {selectedValidator.deactivationOwner.threshold} of {selectedValidator.deactivationOwner.addresses.length}
-              </div>
-              <div className="space-y-1">
-                {selectedValidator.deactivationOwner.addresses.map((addr, idx) => {
-                  const isCurrentWallet = pChainAddress &&
-                    normalizePChainAddress(addr) === normalizePChainAddress(pChainAddress);
-                  return (
-                    <div
-                      key={idx}
-                      className={`text-xs font-mono p-2 rounded ${
-                        isCurrentWallet
-                          ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800"
-                          : "bg-zinc-100 dark:bg-zinc-700/50 text-zinc-600 dark:text-zinc-400"
-                      }`}
-                    >
-                      {addr}
-                      {isCurrentWallet && (
-                        <span className="ml-2 text-green-600 dark:text-green-400">(Your wallet)</span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          ) : (
-            <div className="text-sm text-zinc-500 dark:text-zinc-400">
-              No deactivation owner configured for this validator.
-            </div>
-          )}
-
-          {isAuthorized === false && (
-            <Alert variant="error" className="mt-2">
-              Your connected P-Chain address ({pChainAddress?.substring(0, 16)}...) is not authorized to disable this validator.
-            </Alert>
-          )}
-
-          {isAuthorized === true && (
-            <Alert variant="success" className="mt-2">
-              Your wallet is authorized to disable this validator.
-            </Alert>
-          )}
-        </div>
-      )}
-
-      {/* Remaining Balance Owner Info */}
-      {selectedValidator?.remainingBalanceOwner && (
-        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 space-y-2 border border-blue-200 dark:border-blue-800">
-          <div className="flex items-center gap-2">
-            <ShieldOff className="w-4 h-4 text-blue-500" />
-            <h4 className="text-sm font-medium text-blue-700 dark:text-blue-300">Remaining Balance Owner</h4>
-          </div>
-          <p className="text-xs text-blue-600 dark:text-blue-400">
-            When disabled, the validator's remaining balance ({formatAvaxBalance(parseFloat(selectedValidator.remainingBalance))}) will be returned to:
-          </p>
-          <div className="space-y-1">
-            {selectedValidator.remainingBalanceOwner.addresses.map((addr, idx) => (
-              <div
-                key={idx}
-                className="text-xs font-mono p-2 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400"
-              >
-                {addr}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {error && (
-        <Alert variant="error">{error}</Alert>
-      )}
-
-      {/* Submit Button */}
-      <Button
-        variant="primary"
-        onClick={handleDisableValidator}
-        disabled={
-          isProcessing ||
-          !selectedValidator ||
-          !isAuthorized ||
-          !coreWalletClient
-        }
-        className="w-full py-2 px-4 text-sm font-medium"
-      >
-        {isProcessing ? (
-          <span className="flex items-center justify-center">
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            Disabling Validator...
-          </span>
-        ) : (
-          <span className="flex items-center justify-center gap-2">
-            <ShieldOff className="w-4 h-4" />
-            Disable Validator
-          </span>
+        {/* Step 2: Select Validator */}
+        {subnetId && (
+          <ValidatorSelector
+            subnetId={subnetId}
+            onSelect={setSelectedValidator}
+            selectedValidator={selectedValidator}
+          />
         )}
-      </Button>
-    </div>
+
+        {/* Step 3: Authorization Check */}
+        {selectedValidator && (
+          <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-lg p-4 space-y-3 border border-zinc-200 dark:border-zinc-700">
+            <div className="flex items-center gap-2">
+              <Users className="w-4 h-4 text-zinc-500" />
+              <h4 className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Deactivation Owner</h4>
+            </div>
+
+            {selectedValidator.deactivationOwner ? (
+              <div className="space-y-2">
+                <div className="text-xs text-zinc-600 dark:text-zinc-400">
+                  <span className="font-medium">Threshold:</span> {selectedValidator.deactivationOwner.threshold} of {selectedValidator.deactivationOwner.addresses.length}
+                </div>
+                <div className="space-y-1">
+                  {selectedValidator.deactivationOwner.addresses.map((addr, idx) => {
+                    const isCurrentWallet = pChainAddress &&
+                      normalizePChainAddress(addr) === normalizePChainAddress(pChainAddress);
+                    return (
+                      <div
+                        key={idx}
+                        className={`text-xs font-mono p-2 rounded ${
+                          isCurrentWallet
+                            ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800"
+                            : "bg-zinc-100 dark:bg-zinc-700/50 text-zinc-600 dark:text-zinc-400"
+                        }`}
+                      >
+                        {addr}
+                        {isCurrentWallet && (
+                          <span className="ml-2 text-green-600 dark:text-green-400">(Your wallet)</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              <div className="text-sm text-zinc-500 dark:text-zinc-400">
+                No deactivation owner configured for this validator.
+              </div>
+            )}
+
+            {isAuthorized === false && (
+              <Alert variant="error" className="mt-2">
+                Your connected P-Chain address ({pChainAddress?.substring(0, 16)}...) is not authorized to disable this validator.
+              </Alert>
+            )}
+
+            {isAuthorized === true && (
+              <Alert variant="success" className="mt-2">
+                Your wallet is authorized to disable this validator.
+              </Alert>
+            )}
+          </div>
+        )}
+
+        {/* Remaining Balance Owner Info */}
+        {selectedValidator?.remainingBalanceOwner && (
+          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 space-y-2 border border-blue-200 dark:border-blue-800">
+            <div className="flex items-center gap-2">
+              <ShieldOff className="w-4 h-4 text-blue-500" />
+              <h4 className="text-sm font-medium text-blue-700 dark:text-blue-300">Remaining Balance Owner</h4>
+            </div>
+            <p className="text-xs text-blue-600 dark:text-blue-400">
+              When disabled, the validator's remaining balance ({formatAvaxBalance(parseFloat(selectedValidator.remainingBalance))}) will be returned to:
+            </p>
+            <div className="space-y-1">
+              {selectedValidator.remainingBalanceOwner.addresses.map((addr, idx) => (
+                <div
+                  key={idx}
+                  className="text-xs font-mono p-2 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400"
+                >
+                  {addr}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {error && (
+          <Alert variant="error">{error}</Alert>
+        )}
+
+        {/* Submit Button */}
+        <Button
+          variant="primary"
+          onClick={handleDisableValidator}
+          disabled={
+            isProcessing ||
+            !selectedValidator ||
+            !isAuthorized ||
+            !coreWalletClient
+          }
+          className="w-full py-2 px-4 text-sm font-medium"
+        >
+          {isProcessing ? (
+            <span className="flex items-center justify-center">
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Disabling Validator...
+            </span>
+          ) : (
+            <span className="flex items-center justify-center gap-2">
+              <ShieldOff className="w-4 h-4" />
+              Disable Validator
+            </span>
+          )}
+        </Button>
+      </div>
+    </SDKCodeViewer>
   );
 }
 

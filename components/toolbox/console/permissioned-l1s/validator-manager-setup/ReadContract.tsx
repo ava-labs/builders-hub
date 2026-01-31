@@ -142,7 +142,7 @@ function ReadContract({ onSuccess }: BaseConsoleToolProps) {
   const totalEvents = Object.values(eventLogs).reduce((acc, logs) => acc + logs.length, 0);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
       {/* Left: Contract Data */}
       <div className="flex flex-col rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
         {/* Header */}

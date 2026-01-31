@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { AddChainModal } from './modals/AddChainModal';
+import { SwitchNetworkModal } from './modals/SwitchNetworkModal';
 import { WalletBootstrap } from '../components/console-header/wallet-bootstrap';
 
 export function WalletProvider({ children }: { children: React.ReactNode }) {
@@ -12,6 +13,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
             <WalletBootstrap />
             {/* Wallet-related modals */}
             <AddChainModal />
+            <SwitchNetworkModal />
         </>
     );
 }

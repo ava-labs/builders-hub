@@ -19,6 +19,39 @@ import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } fr
 import { useConnectedWallet } from '@/components/toolbox/contexts/ConnectedWalletContext';
 import { Alert } from '@/components/toolbox/components/Alert';
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
+import { StepCodeViewer } from "@/components/console/step-code-viewer";
+import versions from "@/scripts/versions.json";
+
+const ICM_COMMIT = versions["ava-labs/icm-contracts"];
+
+// TypeScript code for P-Chain step (Step 5)
+const PCHAIN_CODE = `// Step 5a: Aggregate signatures using Avalanche SDK
+import { Avalanche } from "@avalabs/avalanche-sdk";
+
+const sdk = new Avalanche({ network: "fuji" });
+
+// Get the unsigned warp message from the EVM transaction receipt
+const receipt = await publicClient.waitForTransactionReceipt({
+  hash: evmTxHash
+});
+const unsignedWarpMessage = receipt.logs[0].data;
+
+// Aggregate signatures from the subnet validators (67% quorum)
+const { signedMessage } = await sdk.data.signatureAggregator.aggregate({
+  signatureAggregatorRequest: {
+    message: unsignedWarpMessage,
+    signingSubnetId: subnetId,
+    quorumPercentage: 67,
+  }
+});
+
+// Step 5b: Submit RegisterL1ValidatorTx to P-Chain
+// balance and blsProofOfPossession come from validator config (Step 3)
+const txHash = await walletClient.registerL1Validator({
+  balance: validatorBalance,         // From validator config (in AVAX)
+  blsProofOfPossession: blsPop,      // From validator's node info
+  signedWarpMessage: signedMessage,  // Aggregated warp message
+});`;
 
 // Helper functions for BigInt serialization
 const serializeValidators = (validators: ConvertToL1Validator[]) => {
@@ -49,10 +82,47 @@ const metadata: ConsoleToolMetadata = {
   githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
 };
 
+// Step configuration for the code viewer
+const STEP_CONFIG = [
+  { id: 'setup', title: 'Setup', description: 'Prerequisites and node setup' },
+  { id: 'select', title: 'Select L1', description: 'Choose your L1 subnet' },
+  { id: 'details', title: 'Validator Details', description: 'Configure validator parameters' },
+  {
+    id: 'initiate',
+    title: 'Initiate Registration',
+    description: 'Call initiateValidatorRegistration on ValidatorManager',
+    codeType: 'solidity' as const,
+    sourceUrl: `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/validator-manager/ValidatorManager.sol`,
+    githubUrl: `https://github.com/ava-labs/icm-contracts/blob/${ICM_COMMIT}/contracts/validator-manager/ValidatorManager.sol`,
+    highlightFunction: 'initiateValidatorRegistration',
+    filename: 'ValidatorManager.sol',
+  },
+  {
+    id: 'pchain',
+    title: 'P-Chain Registration',
+    description: 'Aggregate signatures and submit RegisterL1ValidatorTx',
+    codeType: 'typescript' as const,
+    code: PCHAIN_CODE,
+    filename: 'registerL1Validator.ts',
+    githubUrl: 'https://github.com/ava-labs/avalanche-sdk',
+  },
+  {
+    id: 'complete',
+    title: 'Complete Registration',
+    description: 'Call completeValidatorRegistration on ValidatorManager',
+    codeType: 'solidity' as const,
+    sourceUrl: `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/validator-manager/ValidatorManager.sol`,
+    githubUrl: `https://github.com/ava-labs/icm-contracts/blob/${ICM_COMMIT}/contracts/validator-manager/ValidatorManager.sol`,
+    highlightFunction: 'completeValidatorRegistration',
+    filename: 'ValidatorManager.sol',
+  },
+];
+
 const AddValidatorExpert: React.FC<BaseConsoleToolProps> = ({ onSuccess }) => {
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [globalSuccess, setGlobalSuccess] = useState<string | null>(null);
   const [isValidatorManagerDetailsExpanded, setIsValidatorManagerDetailsExpanded] = useState<boolean>(false);
+  const [activeStep, setActiveStep] = useState<number>(3); // Start at step 4 (initiate) which has code
 
   // State for passing data between components
   const [pChainTxId, setPChainTxId] = useState<string>('');
@@ -119,7 +189,6 @@ const AddValidatorExpert: React.FC<BaseConsoleToolProps> = ({ onSuccess }) => {
       setValidatorBalance((Number(validator.validatorBalance) / 1e9).toString());
       setBlsProofOfPossession(validator.nodePOP.proofOfPossession);
     } else if (validators.length === 0) {
-      // Clear values when all validators are removed
       setValidatorBalance('');
       setBlsProofOfPossession('');
     }
@@ -142,21 +211,17 @@ const AddValidatorExpert: React.FC<BaseConsoleToolProps> = ({ onSuccess }) => {
       : null;
   }, [contractOwner, walletEVMAddress]);
 
-  // Determine UI state based on ownership:
-  // Case 1: Contract is owned by another contract → show MultisigOption
-  // Case 2: Contract is owned by current wallet → show regular button
-  // Case 3: Contract is owned by different EOA → show error
   const ownershipState = useMemo(() => {
     if (isOwnerContract) {
-      return 'contract'; // Case 1: Show MultisigOption
+      return 'contract';
     }
     if (isContractOwner === true) {
-      return 'currentWallet'; // Case 2: Show regular button
+      return 'currentWallet';
     }
     if (isContractOwner === false) {
-      return 'differentEOA'; // Case 3: Show error
+      return 'differentEOA';
     }
-    return 'loading'; // Still determining ownership
+    return 'loading';
   }, [isOwnerContract, isContractOwner]);
 
   const handleReset = () => {
@@ -168,91 +233,94 @@ const AddValidatorExpert: React.FC<BaseConsoleToolProps> = ({ onSuccess }) => {
     setEvmTxHash('');
     setSubnetIdL1('');
     setValidators([]);
-    // Clear localStorage
+    setActiveStep(3);
     if (typeof window !== 'undefined') {
       localStorage.removeItem(STORAGE_KEY);
     }
-    setResetKey(prev => prev + 1); // Force re-render of all child components
+    setResetKey(prev => prev + 1);
   };
 
   return (
-    <>
-        <div className="space-y-6">
-          {globalError && (
-            <Alert variant="error">Error: {globalError}</Alert>
-          )}
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Left: Wizard Steps */}
+      <div className="space-y-6">
+        {globalError && (
+          <Alert variant="error">Error: {globalError}</Alert>
+        )}
 
-          <Steps>
-            <Step>
-              <h2 className="text-lg font-semibold">Ensure L1 Node is Running</h2>
-              <p className="text-sm text-gray-500 mb-4">
-                Before adding a validator, you must have an L1 node set up and running. If you haven't done this yet, 
-                visit the <Link href="/console/layer-1/l1-node-setup" className="text-blue-600 hover:text-blue-800 underline">L1 Node Setup Tool</Link> first.
-                {isTestnet && (
-                  <>
-                    {' '}On testnet, you can also use our <Link href="/console/testnet-infra/nodes" className="text-blue-600 hover:text-blue-800 underline">free testnet infrastructure</Link>.
-                  </>
-                )}
-              </p>
-            </Step>
-            
-            <Step>
-              <h2 className="text-lg font-semibold">Select L1 Subnet</h2>
-              <p className="text-sm text-gray-500 mb-4">
-                Choose the L1 subnet where you want to add the validator.
-              </p>
-              <div className="space-y-2">
-                <SelectSubnetId
-                  value={subnetIdL1}
-                  onChange={setSubnetIdL1}
-                  error={validatorManagerError}
-                  hidePrimaryNetwork={true}
-                />
-                <ValidatorManagerDetails
-                  validatorManagerAddress={validatorManagerAddress}
-                  blockchainId={blockchainId}
-                  subnetId={subnetIdL1}
-                  isLoading={isLoadingVMCDetails}
-                  signingSubnetId={signingSubnetId}
-                  contractTotalWeight={contractTotalWeight}
-                  l1WeightError={l1WeightError}
-                  isLoadingL1Weight={isLoadingL1Weight}
-                  contractOwner={contractOwner}
-                  ownershipError={ownershipError}
-                  isLoadingOwnership={isLoadingOwnership}
-                  isOwnerContract={isOwnerContract}
-                  ownerType={ownerType}
-                  isDetectingOwnerType={isDetectingOwnerType}
-                  isExpanded={isValidatorManagerDetailsExpanded}
-                  onToggleExpanded={() => setIsValidatorManagerDetailsExpanded(!isValidatorManagerDetailsExpanded)}
-                />
-              </div>
-            </Step>
+        <Steps>
+          <Step>
+            <h2 className="text-lg font-semibold">Ensure L1 Node is Running</h2>
+            <p className="text-sm text-gray-500 mb-4">
+              Before adding a validator, you must have an L1 node set up and running. If you haven't done this yet,
+              visit the <Link href="/console/layer-1/l1-node-setup" className="text-blue-600 hover:text-blue-800 underline">L1 Node Setup Tool</Link> first.
+              {isTestnet && (
+                <>
+                  {' '}On testnet, you can also use our <Link href="/console/testnet-infra/nodes" className="text-blue-600 hover:text-blue-800 underline">free testnet infrastructure</Link>.
+                </>
+              )}
+            </p>
+          </Step>
 
-            <Step>
-              <h2 className="text-lg font-semibold">Add Validator Details</h2>
-              <p className="text-sm text-gray-500 mb-4">
-                Add the validator details including node credentials and configuration.
-              </p>
-
-              <ValidatorListInput
-                key={`validator-input-${resetKey}`}
-                validators={validators}
-                onChange={setValidators}
-                defaultAddress={pChainAddress ? pChainAddress : ""}
-                label=""
-                l1TotalInitializedWeight={!l1WeightError && contractTotalWeight > 0n ? contractTotalWeight : null}
-                userPChainBalanceNavax={userPChainBalanceNavax}
-                maxValidators={1}
+          <Step>
+            <h2 className="text-lg font-semibold">Select L1 Subnet</h2>
+            <p className="text-sm text-gray-500 mb-4">
+              Choose the L1 subnet where you want to add the validator.
+            </p>
+            <div className="space-y-2">
+              <SelectSubnetId
+                value={subnetIdL1}
+                onChange={setSubnetIdL1}
+                error={validatorManagerError}
+                hidePrimaryNetwork={true}
               />
-            </Step>
+              <ValidatorManagerDetails
+                validatorManagerAddress={validatorManagerAddress}
+                blockchainId={blockchainId}
+                subnetId={subnetIdL1}
+                isLoading={isLoadingVMCDetails}
+                signingSubnetId={signingSubnetId}
+                contractTotalWeight={contractTotalWeight}
+                l1WeightError={l1WeightError}
+                isLoadingL1Weight={isLoadingL1Weight}
+                contractOwner={contractOwner}
+                ownershipError={ownershipError}
+                isLoadingOwnership={isLoadingOwnership}
+                isOwnerContract={isOwnerContract}
+                ownerType={ownerType}
+                isDetectingOwnerType={isDetectingOwnerType}
+                isExpanded={isValidatorManagerDetailsExpanded}
+                onToggleExpanded={() => setIsValidatorManagerDetailsExpanded(!isValidatorManagerDetailsExpanded)}
+              />
+            </div>
+          </Step>
 
-            <Step>
-              <h2 className="text-lg font-semibold">Initiate Validator Registration</h2>
-              <p className="text-sm text-gray-500 mb-4">
-                Call the <a href="https://github.com/ava-labs/icm-contracts/blob/main/contracts/validator-manager/ValidatorManager.sol#L308" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline">initiateValidatorRegistration</a> function on the Validator Manager contract. This transaction will emit a <a href="/docs/acps/77-reinventing-subnets#registerl1validatormessage" className="text-blue-600 hover:text-blue-800 underline">RegisterL1ValidatorMessage</a> warp message.
-              </p>
+          <Step>
+            <h2 className="text-lg font-semibold">Add Validator Details</h2>
+            <p className="text-sm text-gray-500 mb-4">
+              Add the validator details including node credentials and configuration.
+            </p>
 
+            <ValidatorListInput
+              key={`validator-input-${resetKey}`}
+              validators={validators}
+              onChange={setValidators}
+              defaultAddress={pChainAddress ? pChainAddress : ""}
+              label=""
+              l1TotalInitializedWeight={!l1WeightError && contractTotalWeight > 0n ? contractTotalWeight : null}
+              userPChainBalanceNavax={userPChainBalanceNavax}
+              maxValidators={1}
+            />
+          </Step>
+
+          <Step>
+            <h2 className="text-lg font-semibold">Initiate Validator Registration</h2>
+            <p className="text-sm text-gray-500 mb-4">
+              Call <code className="px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-sm font-mono">initiateValidatorRegistration</code> on the Validator Manager contract.
+            </p>
+
+            {/* Focus wrapper - switches code viewer to step 4 */}
+            <div onFocus={() => setActiveStep(3)}>
               <InitiateValidatorRegistration
                 key={`initiate-${resetKey}`}
                 subnetId={subnetIdL1}
@@ -266,16 +334,21 @@ const AddValidatorExpert: React.FC<BaseConsoleToolProps> = ({ onSuccess }) => {
                   setBlsProofOfPossession(data.blsProofOfPossession);
                   setEvmTxHash(data.txHash);
                   setGlobalError(null);
+                  setActiveStep(4); // Advance to P-Chain step
                 }}
                 onError={(message) => setGlobalError(message)}
               />
-            </Step>
+            </div>
+          </Step>
 
-            <Step>
-              <h2 className="text-lg font-semibold">Sign RegisterL1ValidatorMessage & Submit RegisterL1ValidatorTx to P-Chain</h2>
-              <p className="text-sm text-gray-500 mb-4">
-                Sign the emitted <a href="/docs/acps/77-reinventing-subnets#registerl1validatormessage" className="text-blue-600 hover:text-blue-800 underline">RegisterL1ValidatorMessage</a> and submit a <a href="/docs/acps/77-reinventing-subnets#registerl1validatortx" className="text-blue-600 hover:text-blue-800 underline">RegisterL1ValidatorTx</a> to P-Chain. This transaction will emit a <a href="/docs/acps/77-reinventing-subnets#l1validatorregistrationmessage" className="text-blue-600 hover:text-blue-800 underline">L1ValidatorRegistrationMessage</a> warp message.
-              </p>
+          <Step>
+            <h2 className="text-lg font-semibold">Submit to P-Chain</h2>
+            <p className="text-sm text-gray-500 mb-4">
+              Aggregate validator signatures and submit <code className="px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-sm font-mono">RegisterL1ValidatorTx</code> to P-Chain.
+            </p>
+
+            {/* Focus wrapper - switches code viewer to step 5 */}
+            <div onFocus={() => setActiveStep(4)}>
               <SubmitPChainTxRegisterL1Validator
                 key={`submit-pchain-${resetKey}`}
                 subnetIdL1={subnetIdL1}
@@ -286,17 +359,22 @@ const AddValidatorExpert: React.FC<BaseConsoleToolProps> = ({ onSuccess }) => {
                 onSuccess={(pChainTxId) => {
                   setPChainTxId(pChainTxId);
                   setGlobalError(null);
+                  setActiveStep(5); // Advance to complete step
                 }}
                 onError={(message) => setGlobalError(message)}
                 userPChainBalanceNavax={userPChainBalanceNavax}
               />
-            </Step>
+            </div>
+          </Step>
 
-            <Step>
-              <h2 className="text-lg font-semibold">Sign L1ValidatorRegistrationMessage & Submit completeValidatorRegistration on Validator Manager contract</h2>
-              <p className="text-sm text-gray-500 mb-4">
-                Complete the validator registration by signing the P-Chain <a href="/docs/acps/77-reinventing-subnets#l1validatorregistrationmessage" className="text-blue-600 hover:text-blue-800 underline">L1ValidatorRegistrationMessage</a> and calling the <a href="https://github.com/ava-labs/icm-contracts/blob/main/contracts/validator-manager/ValidatorManager.sol#L425" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline">completeValidatorRegistration</a> function on the Validator Manager contract.
-              </p>
+          <Step>
+            <h2 className="text-lg font-semibold">Complete Registration</h2>
+            <p className="text-sm text-gray-500 mb-4">
+              Call <code className="px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-sm font-mono">completeValidatorRegistration</code> on the Validator Manager contract.
+            </p>
+
+            {/* Focus wrapper - switches code viewer to step 6 */}
+            <div onFocus={() => setActiveStep(5)}>
               <CompleteValidatorRegistration
                 key={`complete-registration-${resetKey}`}
                 subnetIdL1={subnetIdL1}
@@ -314,23 +392,31 @@ const AddValidatorExpert: React.FC<BaseConsoleToolProps> = ({ onSuccess }) => {
                 }}
                 onError={(message) => setGlobalError(message)}
               />
-            </Step>
-          </Steps>
+            </div>
+          </Step>
+        </Steps>
 
-          {globalSuccess && (
-            <Success
-              label="Process Complete"
-              value={globalSuccess}
-            />
-          )}
+        {globalSuccess && (
+          <Success
+            label="Process Complete"
+            value={globalSuccess}
+          />
+        )}
 
-          {(pChainTxId || globalError || globalSuccess) && (
-            <Button onClick={handleReset} variant="secondary" className="mt-6">
-              Reset All Steps
-            </Button>
-          )}
-        </div>
-    </>
+        {(pChainTxId || globalError || globalSuccess) && (
+          <Button onClick={handleReset} variant="secondary" className="mt-6">
+            Reset All Steps
+          </Button>
+        )}
+      </div>
+
+      {/* Right: Code Viewer - follows activeStep */}
+      <StepCodeViewer
+        activeStep={activeStep}
+        steps={STEP_CONFIG}
+        className="lg:sticky lg:top-4 lg:self-start"
+      />
+    </div>
   );
 };
 

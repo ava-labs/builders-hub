@@ -129,12 +129,12 @@ export function ContractDeployViewer({
   const isLoading = loading[activeTab];
 
   return (
-    <div className={`grid grid-cols-1 lg:grid-cols-2 gap-6 ${className}`}>
+    <div className={`grid grid-cols-1 lg:grid-cols-2 gap-6 items-start ${className}`}>
       {/* Left: Deploy Controls */}
       <div>{children}</div>
 
-      {/* Right: Source Code Viewer */}
-      <div className="flex flex-col rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 overflow-hidden h-[500px]">
+      {/* Right: Source Code Viewer - Sticky on scroll */}
+      <div className="lg:sticky lg:top-4 flex flex-col rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 overflow-hidden h-[500px]">
         {/* Tab Bar */}
         <div className="shrink-0 flex items-center gap-1 px-2 pt-2 bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200/80 dark:border-zinc-800">
           {contracts.map((contract, i) => (
