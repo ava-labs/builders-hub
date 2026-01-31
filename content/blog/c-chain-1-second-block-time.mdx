@@ -1,0 +1,110 @@
+---
+title: Avalanche C-Chain Reaches 1-Second Block Times
+description: The Avalanche C-Chain now operates with 1-second block times, delivering faster transactions and improved user experience for builders and users alike.
+date: 2026-01-08
+authors: [AvaxDevelopers]
+topics: [C-Chain, Block Time, Performance, ACP-226, Network Upgrade]
+comments: true
+---
+
+## A New Speed Milestone for the C-Chain
+
+The Avalanche C-Chain has reached a major milestone: block times have been reduced to 1 second. For years, the C-Chain operated with 2-second block times, already fast by industry standards. Recent optimizations have now cut that in half, marking a significant leap forward in performance.
+
+For builders, enterprises, and users on the C-Chain, this means faster transaction confirmations, more responsive applications, and a significantly improved on-chain experience.
+
+---
+
+## Quick Take
+
+- **1-second block times** are now live on the Avalanche C-Chain
+- Enabled by [ACP-226: Dynamic Minimum Block Times](/docs/acps/226-dynamic-minimum-block-times), activated in the [Granite upgrade](/blog/granite-upgrade)
+
+---
+
+## Why This Matters
+
+Faster block times translate directly into better user experiences and new possibilities for builders. Here's what 1-second blocks unlock:
+
+### For DeFi Builders
+
+Speed is critical in decentralized finance. Faster blocks mean:
+
+- **Tighter spreads on DEXs** — Arbitrageurs can correct prices more quickly, benefiting traders
+- **Reduced slippage** — Less time between submission and execution means prices stay closer to quoted values
+- **Better MEV dynamics** — Shorter block times compress the window for harmful MEV extraction
+- **Faster liquidations** — Lending protocols can respond to market movements more efficiently
+
+### For Gaming and Real-Time Applications
+
+Games and interactive applications demand responsiveness. With 1-second blocks:
+
+- **Near-instant state updates** — Player actions reflect on-chain almost immediately
+- **Smoother multiplayer experiences** — Reduced latency for turn-based and competitive games
+- **Live event handling** — Auctions, raffles, and timed events execute with precision
+
+### For Payments and Commerce
+
+Payment applications need speed that matches user expectations:
+
+- **Point-of-sale confirmations** — Transactions finalize while customers are still at the counter
+- **Streaming payments** — Micro-transactions and pay-per-use models become more practical
+- **Cross-border transfers** — International payments settle in seconds
+
+### For All Developers
+
+Regardless of your use case, faster blocks simplify development:
+
+- **Simpler UX patterns** — Less need for optimistic UI updates or complex pending states
+- **Easier testing and iteration** — Faster feedback loops during development
+- **Reduced timeout handling** — Applications can rely on quick confirmations
+
+---
+
+## How We Got Here
+
+This milestone was made possible by [ACP-226: Dynamic Minimum Block Times](/docs/acps/226-dynamic-minimum-block-times), which was activated as part of the [Granite upgrade](/blog/granite-upgrade) in November 2025.
+
+ACP-226 introduced a flexible mechanism that allows validators to dynamically adjust block times based on network conditions and performance capabilities. Rather than requiring a network upgrade to change block intervals, validators can now signal their preferred minimum block delay, with the network converging on a stake-weighted median.
+
+This approach enables continuous optimization as the network evolves. With improvements like [Streaming Asynchronous Execution (SAE)](/docs/acps/194-streaming-asynchronous-execution) and Firewood Database integration on the horizon, validators can progressively signal for even faster block times as infrastructure supports it.
+
+---
+
+## How Avalanche Compares
+
+The C-Chain's 1-second block time positions Avalanche among the fastest major Layer 1 networks. But block time alone doesn't tell the full story — finality matters too.
+
+| Blockchain | Block Time | Time to Finality |
+|------------|------------|------------------|
+| **Avalanche C-Chain** | **1 second** | **~1-2 seconds** |
+| Ethereum | 12 seconds | ~13 minutes |
+| Solana | ~400ms | ~12.8 seconds |
+| BNB Chain (BSC) | 0.75 seconds | ~1.9 seconds |
+| Polygon PoS | ~2 seconds | ~5 seconds |
+
+**Key insight**: Avalanche delivers one of the best combinations of fast block times AND fast finality among major EVM-compatible networks. While some chains produce blocks faster, they require significantly longer to achieve finality. Avalanche's consensus mechanism ensures that once a block is produced, it's final — no waiting for additional confirmations.
+
+---
+
+## What's Next
+
+Reaching 1-second blocks is a milestone, not a destination. The Avalanche ecosystem continues to push performance boundaries:
+
+- **Sub-second potential** — ACP-226's dynamic mechanism allows for even faster blocks as the network and validator infrastructure evolve
+- **[Streaming Asynchronous Execution (SAE)](/docs/acps/194-streaming-asynchronous-execution)** — Separating execution from consensus will enable higher throughput without sacrificing block times
+- **Firewood Database** — Optimized storage will reduce validator overhead, supporting faster block production
+
+The path to sub-second blocks is now a matter of continued optimization rather than protocol changes.
+
+---
+
+## About Avalanche
+
+Avalanche is a high-performance blockchain platform designed for builders who need to scale. Engineered with a revolutionary three-part Layer 1 (L1) architecture, Avalanche is anchored by its Avalanche Consensus Mechanism, ensuring near-instant finality for transactions. The platform also features an open-source Layer 0 (L0) framework, enabling the seamless creation of interoperable Layer 1 blockchains with high throughput on both public and private networks.
+
+Supported by a global community of developers and validators, Avalanche offers a fast, low-cost environment for building the next generation of decentralized applications (dApps). With its unique blend of speed, flexibility, and scalability, Avalanche is the preferred choice for innovators pushing the boundaries of blockchain technology.
+
+---
+
+**Follow [@AvaxDevelopers](https://x.com/AvaxDevelopers) for updates and join our developer community to stay informed about future upgrades and tooling improvements.**
