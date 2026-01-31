@@ -20,6 +20,7 @@ import { toPng } from "html-to-image";
 import { ChartWatermark } from "@/components/stats/ChartWatermark";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import { ImageExportStudio } from "@/components/stats/image-export";
+import type { PlaygroundChartData } from "@/components/stats/image-export";
 import { parseDateString, calculateDateRangeDays, formatXAxisLabel, generateXAxisTicks } from "@/components/stats/chart-axis-utils";
 
 // Types
@@ -98,6 +99,12 @@ export interface ChartDataPoint {
   [key: string]: string | number;
 }
 
+// Data structure for exposing chart data to parent components
+export interface ChartDataExport {
+  data: ChartDataPoint[];
+  seriesInfo: { id: string; name: string; color: string; yAxis?: string }[];
+}
+
 export interface ConfigurableChartProps {
   title?: string;
   initialDataSeries?: Partial<DataSeries>[];
@@ -118,6 +125,10 @@ export interface ConfigurableChartProps {
   initialBrushStartIndex?: number | null;
   initialBrushEndIndex?: number | null;
   onBrushChange?: (startIndex: number | null, endIndex: number | null) => void;
+  // Callback to expose chart data for external use (e.g., playground collage)
+  onChartDataReady?: (data: ChartDataExport) => void;
+  // Playground charts for collage mode in Image Export Studio
+  playgroundCharts?: PlaygroundChartData[];
 }
 
 const DEFAULT_COLORS = [
@@ -203,6 +214,8 @@ export default function ConfigurableChart({
   initialBrushStartIndex,
   initialBrushEndIndex,
   onBrushChange,
+  onChartDataReady,
+  playgroundCharts,
 }: ConfigurableChartProps) {
   const { resolvedTheme } = useTheme();
   const [isMounted, setIsMounted] = useState(false);
@@ -284,6 +297,11 @@ export default function ConfigurableChart({
   const prevDataSeriesRef = useRef<DataSeries[]>(dataSeries);
   const onDataSeriesChangeRef = useRef(onDataSeriesChange);
   onDataSeriesChangeRef.current = onDataSeriesChange;
+
+  // Store onChartDataReady in a ref to avoid infinite re-render loops
+  // (parent may pass inline arrow function that changes on every render)
+  const onChartDataReadyRef = useRef(onChartDataReady);
+  onChartDataReadyRef.current = onChartDataReady;
 
   useEffect(() => {
     // Only call callback if dataSeries actually changed
@@ -659,6 +677,21 @@ export default function ConfigurableChart({
       .filter((s) => s.visible)
       .sort((a, b) => a.zIndex - b.zIndex); // Sort by z-index: lower values render first (behind)
   }, [dataSeries]);
+
+  // Notify parent when chart data is ready for export (e.g., playground collage)
+  useEffect(() => {
+    if (onChartDataReadyRef.current && aggregatedData.length > 0 && visibleSeries.length > 0) {
+      onChartDataReadyRef.current({
+        data: aggregatedData,
+        seriesInfo: visibleSeries.map((s) => ({
+          id: s.id,
+          name: s.name,
+          color: s.color,
+          yAxis: s.yAxis,
+        })),
+      });
+    }
+  }, [aggregatedData, visibleSeries]);
 
   // Group series by metricKey for stacking
   const seriesByMetric = useMemo(() => {
@@ -1431,7 +1464,7 @@ export default function ConfigurableChart({
                         const isLastAllChains = isAllChains && index < filteredChains.length - 1 && filteredChains[index + 1].chainId !== "all";
                         
                         return (
-                          <div key={chain.chainId}>
+                          <div key={`${chain.chainId}-${index}`}>
                             <button
                               onClick={() =>
                                 handleChainSelect(chain.chainId, chain.chainName)
@@ -1828,6 +1861,7 @@ export default function ConfigurableChart({
           metricLabel: "Latest",
           pageUrl: typeof window !== "undefined" ? window.location.href : undefined,
         }}
+        playgroundCharts={playgroundCharts}
       />
     </Card>
   );

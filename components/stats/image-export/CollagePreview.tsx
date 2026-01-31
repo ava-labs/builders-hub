@@ -371,7 +371,7 @@ export const CollagePreview = forwardRef<HTMLDivElement, CollagePreviewProps>(
                   )}
                   {/* URL */}
                   {footer.showUrl && pageUrl && (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 min-w-0 overflow-hidden">
                       <Link2 className="h-3.5 w-3.5 shrink-0" />
                       <span className="truncate">{pageUrl}</span>
                     </div>
@@ -428,7 +428,7 @@ export const CollagePreview = forwardRef<HTMLDivElement, CollagePreviewProps>(
                 )}
                 {/* URL */}
                 {footer.showUrl && pageUrl && (
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 min-w-0 overflow-hidden">
                     <Link2 className="h-3.5 w-3.5 shrink-0" />
                     <span className="truncate">{pageUrl}</span>
                   </div>
