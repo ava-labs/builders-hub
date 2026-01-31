@@ -104,6 +104,8 @@ export interface GetHackathonsOptions {
   search?: string;
   created_by?: string | null;
   include_private?: boolean;
+  cohost_email?: string | null;
+  event?: string | null;
 }
 
 export async function getHackathon(id: string) {
@@ -155,14 +157,28 @@ export async function getFilteredHackathons(options: GetHackathonsOptions) {
     }
   }
 
-  if (options.created_by) {
-    // Show hackathons where user is either creator OR updater
-    conditions.push({
-      OR: [
+  if (options.created_by || options.cohost_email) {
+    const ownershipConditions: any[] = [];
+    if (options.created_by) {
+      // Show hackathons where user is either creator OR updater
+      ownershipConditions.push(
         { created_by: options.created_by },
-        { updated_by: options.created_by },
-      ],
-    });
+        { updated_by: options.created_by }
+      );
+    }
+    if (options.cohost_email) {
+      ownershipConditions.push({
+        cohosts: {
+          has: options.cohost_email,
+        },
+      });
+    }
+
+    if (ownershipConditions.length > 0) {
+      conditions.push({
+        OR: ownershipConditions,
+      });
+    }
   }
 
   if (options.date) {
@@ -229,6 +245,15 @@ export async function getFilteredHackathons(options: GetHackathonsOptions) {
       case "UPCOMING":
         conditions.push({ start_date: { gt: new Date() } });
         break;
+    }
+  }
+
+  if (options.event) {
+    const eventTypes = options.event.split(',').map((e: string) => e.trim());
+    if (eventTypes.length === 1) {
+      conditions.push({ event: eventTypes[0] });
+    } else {
+      conditions.push({ event: { in: eventTypes } });
     }
   }
 
@@ -311,11 +336,13 @@ export async function createHackathon(
       participants: hackathonData.participants!,
       tags: hackathonData.tags!,
       timezone: hackathonData.timezone!,
+      cohosts: hackathonData.cohosts ?? [],
       icon: hackathonData.icon!,
       banner: hackathonData.banner!,
       small_banner: hackathonData.small_banner!,
       top_most: hackathonData.top_most ?? false,
       content: content,
+      event: hackathonData.event ?? 'hackathon',
     },
   });
   hackathonData.id = newHackathon.id;
@@ -397,12 +424,16 @@ export async function updateHackathon(
     updateData.top_most = hackathonData.top_most;
   if (hackathonData.organizers !== undefined)
     updateData.organizers = hackathonData.organizers;
+  if (hackathonData.cohosts !== undefined)
+    updateData.cohosts = hackathonData.cohosts;
   if (hackathonData.custom_link !== undefined)
     updateData.custom_link = hackathonData.custom_link;
   if (hackathonData.created_by !== undefined)
     updateData.created_by = hackathonData.created_by;
   if (hackathonData.is_public !== undefined)
     updateData.is_public = hackathonData.is_public;
+  if (hackathonData.event !== undefined)
+    updateData.event = hackathonData.event;
   if (userId) updateData.updated_by = userId;
   if (hackathonData.content !== undefined) {
     const content = {

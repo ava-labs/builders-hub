@@ -10,6 +10,7 @@ export type HackathonHeader = {
   participants: number
   tags: string[]
   organizers: string 
+  cohosts: string[]
   status: HackathonStatus
   small_banner: string
   banner: string
@@ -23,6 +24,7 @@ export type HackathonHeader = {
   updated_by?: string
   updated_by_name?: string
   is_public: boolean
+  event?: string
 }
 
 export type HackathonsFilters = {

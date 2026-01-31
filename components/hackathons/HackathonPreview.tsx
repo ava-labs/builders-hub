@@ -150,6 +150,7 @@ export default function HackathonPreview({ hackathonData, isRegistered = false, 
     top_most: false,
     custom_link: undefined,
     created_by: '',
+    cohosts: [],
     is_public: hackathonData.is_public ?? true,
     content: {
       tracks_text: hackathonData.content?.tracks_text || '',
