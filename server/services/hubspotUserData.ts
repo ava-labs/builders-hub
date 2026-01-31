@@ -27,6 +27,10 @@ export interface UserDataForHubSpot {
   employee_role?: string;
   is_developer?: boolean;
   is_enthusiast?: boolean;
+  github?: string;
+  telegram_user?: string;
+  wallet?: string[];
+  socials?: string[];
 }
 
 /**
@@ -176,6 +180,10 @@ async function getOrCreateUserDataContact(
       ...(userData.employee_company_name && { company: userData.employee_company_name }),
       ...(userData.employee_role && { hs_role: userData.employee_role }),
       ...(userData.is_developer !== undefined && { developer_check: userData.is_developer ? "Yes" : "No" }),
+      ...(userData.github && { github_url: userData.github }),
+      ...(userData.telegram_user && { telegram_handle: userData.telegram_user }),
+      ...(userData.wallet && userData.wallet.length > 0 && { wallet: userData.wallet.join('; ') }),
+      ...(userData.socials && userData.socials.length > 0 && { contact_othersocials: userData.socials.join('; ') }),
     }
 
     const createResponse = await fetch(
@@ -236,6 +244,10 @@ async function updateUserDataContact(
       ...(userData.employee_company_name && { company: userData.employee_company_name }),
       ...(userData.employee_role && { hs_role: userData.employee_role }),
       ...(userData.is_developer !== undefined && { developer_check: userData.is_developer ? "Yes" : "No" }),
+      ...(userData.github && { github_url: userData.github }),
+      ...(userData.telegram_user && { telegram_handle: userData.telegram_user }),
+      ...(userData.wallet && userData.wallet.length > 0 && { wallet: userData.wallet.join('; ') }),
+      ...(userData.socials && userData.socials.length > 0 && { contact_othersocials: userData.socials.join('; ') }),
     };
 
     // Only make API call if there are properties to update

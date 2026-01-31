@@ -189,6 +189,10 @@ export async function updateExtendedProfile(
                 employee_role: updatedProfile.user_type?.employee_role,
                 is_developer: updatedProfile.user_type?.is_developer,
                 is_enthusiast: updatedProfile.user_type?.is_enthusiast,
+                github: updatedProfile.github || undefined,
+                telegram_user: updatedProfile.telegram_user || undefined,
+                wallet: updatedProfile.wallet || undefined,
+                socials: updatedProfile.socials || undefined,
             });
         } catch (error) {
             console.error('[HubSpot UserData] Failed to sync updated profile:', error);
