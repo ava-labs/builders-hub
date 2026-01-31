@@ -1,19 +1,21 @@
 /**
- * Estructura del campo user_type (almacenado como JSON en la BD)
+ * Structure of the user_type field (stored as JSON in the database)
  */
 export type UserType = {
     is_student: boolean;
     is_founder: boolean;
     is_employee: boolean;
+    is_developer: boolean;
     is_enthusiast: boolean;
     student_institution?: string;
-    company_name?: string;
-    role?: string;
+    founder_company_name?: string;
+    employee_company_name?: string;
+    employee_role?: string;
 }
 
 /**
- * Tipo extendido de perfil que incluye todos los campos nuevos
- * Este tipo representa la estructura completa del perfil de usuario
+ * Extended profile type that includes all new fields
+ * This type represents the complete structure of the user profile
  */
 export type ExtendedProfile = {
     id: string;
@@ -35,18 +37,20 @@ export type ExtendedProfile = {
 }
 
 /**
- * Tipo para los datos que se pueden actualizar en el perfil
- * Todos los campos son opcionales para permitir actualizaciones parciales
- * Permite tanto la estructura anidada (user_type) como campos planos para facilidad de uso
+ * Type for data that can be updated in the profile
+ * All fields are optional to allow partial updates
+ * Allows both nested structure (user_type) and flat fields for ease of use
  */
 export type UpdateExtendedProfileData = Partial<Omit<ExtendedProfile, 'id'>> & {
-    // Permitir campos de UserType a nivel superior para facilitar validaciones
+    // Allow UserType fields at the top level for easier validations
     is_student?: boolean;
     is_founder?: boolean;
     is_employee?: boolean;
+    is_developer?: boolean;
     is_enthusiast?: boolean;
     student_institution?: string;
-    company_name?: string;
-    role?: string;
+    founder_company_name?: string;
+    employee_company_name?: string;
+    employee_role?: string;
 };
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { AuthOptions } from '@/lib/auth/authOptions';
 import { prisma } from '@/prisma/prisma';
+import { syncUserDataToHubSpot } from '@/server/services/hubspotUserData';
 
 /**
  * API endpoint to create a new user after they accept terms.
@@ -52,6 +53,21 @@ export async function POST(req: NextRequest) {
         notifications: notifications,
       },
     });
+
+    // Sync user data to HubSpot (after terms acceptance)
+    if (newUser.email) {
+      try {
+        await syncUserDataToHubSpot({
+          email: newUser.email,
+          name: newUser.name || undefined,
+          notifications: newUser.notifications ?? undefined,
+          gdpr: true, // User accepted terms and conditions
+        });
+      } catch (error) {
+        console.error('[HubSpot UserData] Failed to sync new user:', error);
+        // Don't block user creation if HubSpot sync fails
+      }
+    }
 
     return NextResponse.json({
       id: newUser.id,
