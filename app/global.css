@@ -87,6 +87,12 @@ nav#nd-nav {
   background-color: var(--background) !important;
 }
 
+/* Remove fumadocs HomeLayout padding-top since navbar is sticky (in document flow) */
+/* Fumadocs adds pt-14 (56px) for a fixed navbar, but we use sticky positioning */
+#nd-home-layout {
+  padding-top: 0 !important;
+}
+
 /* Remove ALL left whitespace from navbar to fill screen edge */
 body > div > nav,
 body > div > header,
