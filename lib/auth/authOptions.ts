@@ -4,7 +4,7 @@ import GithubProvider from 'next-auth/providers/github';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import TwitterProvider from 'next-auth/providers/twitter';
 import { prisma } from '../../prisma/prisma';
-import { JWT } from 'next-auth/jwt';
+import { encode, JWT } from 'next-auth/jwt';
 import type { VerifyOTPResult } from '@/types/verifyOTPResult';
 import { upsertUser } from '@/server/services/auth';
 import { badgeAssignmentService } from '@/server/services/badgeAssignmentService';
@@ -13,6 +13,7 @@ import { BadgeCategory } from '@/server/services/badge';
 
 declare module 'next-auth' {
   export interface Session {
+    jwt_token?: string;
     user: {
       id: string;
       avatar?: string;
@@ -219,7 +220,7 @@ export const AuthOptions: NextAuthOptions = {
       session.user.email = token.email ?? '';
       session.user.is_new_user = !!token.is_new_user;
       session.user.authentication_mode = token.authentication_mode ?? '';
-      return session;
+      return {...session, jwt_token: await encode({secret: process.env.NEXTAUTH_SECRET ?? '', token: token })}
     },
     async redirect({ url, baseUrl }) {
       // If the URL is relative, convert it to absolute

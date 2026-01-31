@@ -1403,3 +1403,23 @@ html.embed-mode #nd-toc {
   grid-column: 2 !important;
 }
 
+.dark .custom-scroll::-webkit-scrollbar {
+  max-width: 8px;
+  background-color: #161617;
+  border-radius: 5px;
+}
+.dark .custom-scroll::-webkit-scrollbar-thumb {
+  background-color: #2F2F33;
+  border-radius: 5px;
+}
+
+.custom-scroll::-webkit-scrollbar {
+  max-width: 8px;
+  background-color: #16161710;
+  border-radius: 5px;
+}
+.custom-scroll::-webkit-scrollbar-thumb {
+  background-color: #2f2f3353;
+  border-radius: 5px;
+}
+
