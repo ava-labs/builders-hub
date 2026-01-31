@@ -54,12 +54,14 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Sync user data to HubSpot
+    // Sync user data to HubSpot (after terms acceptance)
     if (newUser.email) {
       try {
         await syncUserDataToHubSpot({
           email: newUser.email,
           name: newUser.name || undefined,
+          notifications: newUser.notifications ?? undefined,
+          gdpr: true, // User accepted terms and conditions
         });
       } catch (error) {
         console.error('[HubSpot UserData] Failed to sync new user:', error);

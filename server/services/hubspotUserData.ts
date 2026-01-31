@@ -31,6 +31,8 @@ export interface UserDataForHubSpot {
   telegram_user?: string;
   wallet?: string[];
   socials?: string[];
+  notifications?: boolean;
+  gdpr?: boolean;
 }
 
 /**
@@ -56,6 +58,8 @@ function buildHubSpotUserProperties(userData: UserDataForHubSpot, includeEmail: 
     ...(userData.telegram_user && { telegram_handle: userData.telegram_user }),
     ...(userData.wallet && userData.wallet.length > 0 && { wallet: userData.wallet.join('; ') }),
     ...(userData.socials && userData.socials.length > 0 && { contact_othersocials: userData.socials.join('; ') }),
+    ...(userData.notifications !== undefined && { marketing_consent: userData.notifications }),
+    ...(userData.gdpr !== undefined && { gdpr: userData.gdpr }),
   };
 
   return properties;
