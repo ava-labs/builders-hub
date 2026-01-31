@@ -1027,6 +1027,30 @@ export default function ConfigurableChart({
     }
   };
 
+  // CSV download function
+  const downloadCSV = () => {
+    if (displayData.length === 0 || visibleSeries.length === 0) return;
+
+    const headers = ["Date", ...visibleSeries.map((s) => s.name)];
+    const rows = displayData.map((point) => {
+      const values = [point.date];
+      visibleSeries.forEach((series) => {
+        const value = (point as Record<string, string | number>)[series.id];
+        values.push(value !== undefined ? String(value) : "");
+      });
+      return values.join(",");
+    });
+
+    const csvContent = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${chartTitle || "chart"}_${resolution}_${new Date().toISOString().split("T")[0]}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   const toggleColSpan = () => {
     if (onColSpanChange) {
       onColSpanChange(colSpan === 12 ? 6 : 12);
@@ -1293,54 +1317,58 @@ export default function ConfigurableChart({
           </div>
 
           {/* Configuration Controls */}
-          {!disableControls && (
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="stack-same-metrics"
-                  checked={stackSameMetrics}
-                  onChange={(e) => {
-                    const newValue = e.target.checked;
-                    setStackSameMetrics(newValue);
-                    if (onStackSameMetricsChange) {
-                      onStackSameMetricsChange(newValue);
-                    }
-                  }}
-                  className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 dark:focus:ring-blue-400 cursor-pointer"
-                />
-                <label
-                  htmlFor="stack-same-metrics"
-                  className="text-xs text-gray-700 dark:text-gray-300 cursor-pointer flex items-center gap-1.5"
-                >
-                  <Layers className="h-3.5 w-3.5" />
-                  <span>Stack all series</span>
-                </label>
-              </div>
+          <div className="flex flex-wrap items-center gap-3">
+            {!disableControls && (
+              <>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="stack-same-metrics"
+                    checked={stackSameMetrics}
+                    onChange={(e) => {
+                      const newValue = e.target.checked;
+                      setStackSameMetrics(newValue);
+                      if (onStackSameMetricsChange) {
+                        onStackSameMetricsChange(newValue);
+                      }
+                    }}
+                    className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 dark:focus:ring-blue-400 cursor-pointer"
+                  />
+                  <label
+                    htmlFor="stack-same-metrics"
+                    className="text-xs text-gray-700 dark:text-gray-300 cursor-pointer flex items-center gap-1.5"
+                  >
+                    <Layers className="h-3.5 w-3.5" />
+                    <span>Stack all series</span>
+                  </label>
+                </div>
 
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="abbreviate-numbers"
-                  checked={abbreviateNumbers}
-                  onChange={(e) => {
-                    const newValue = e.target.checked;
-                    setAbbreviateNumbers(newValue);
-                    if (onAbbreviateNumbersChange) {
-                      onAbbreviateNumbersChange(newValue);
-                    }
-                  }}
-                  className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 dark:focus:ring-blue-400 cursor-pointer"
-                />
-                <label
-                  htmlFor="abbreviate-numbers"
-                  className="text-xs text-gray-700 dark:text-gray-300 cursor-pointer"
-                >
-                  <span>Abbreviate numbers</span>
-                </label>
-              </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="abbreviate-numbers"
+                    checked={abbreviateNumbers}
+                    onChange={(e) => {
+                      const newValue = e.target.checked;
+                      setAbbreviateNumbers(newValue);
+                      if (onAbbreviateNumbersChange) {
+                        onAbbreviateNumbersChange(newValue);
+                      }
+                    }}
+                    className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 dark:focus:ring-blue-400 cursor-pointer"
+                  />
+                  <label
+                    htmlFor="abbreviate-numbers"
+                    className="text-xs text-gray-700 dark:text-gray-300 cursor-pointer"
+                  >
+                    <span>Abbreviate numbers</span>
+                  </label>
+                </div>
+              </>
+            )}
 
-              <div className="ml-auto flex items-center gap-2">
+            <div className="ml-auto flex items-center gap-2">
+              {!disableControls && (
                 <div className="relative">
                   <button
                     onClick={() => {
@@ -1471,7 +1499,8 @@ export default function ConfigurableChart({
                   </div>
                 )}
                 </div>
-                <DropdownMenu>
+              )}
+              <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button
                       className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
@@ -1491,6 +1520,13 @@ export default function ConfigurableChart({
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
+              <button
+                onClick={downloadCSV}
+                className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
+                title="Download CSV"
+              >
+                <Download className="h-4 w-4" />
+              </button>
                 {onTimeFilterChange && !disableControls && (
                   <Popover open={showTimeFilterPopover} onOpenChange={setShowTimeFilterPopover}>
                     <PopoverTrigger asChild>
@@ -1662,7 +1698,6 @@ export default function ConfigurableChart({
                 )}
               </div>
             </div>
-          )}
         </div>
 
 

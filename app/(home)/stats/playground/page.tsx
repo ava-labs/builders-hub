@@ -95,7 +95,7 @@ function PlaygroundContent() {
   const hasLoadedRef = useRef(false);
   
   const initialCharts: ChartConfig[] = [
-    { id: "1", title: "Chart 1", colSpan: 6, dataSeries: [], stackSameMetrics: false, abbreviateNumbers: true },
+    { id: "1", title: "Chart 1", colSpan: 12, dataSeries: [], stackSameMetrics: false, abbreviateNumbers: true },
   ];
   const [charts, setCharts] = useState<ChartConfig[]>(initialCharts);
   const [savedCharts, setSavedCharts] = useState<ChartConfig[]>(initialCharts);
@@ -172,7 +172,7 @@ function PlaygroundContent() {
 
   const addChart = () => {
     const newId = String(charts.length + 1);
-    setCharts([...charts, { id: newId, title: `Chart ${newId}`, colSpan: 6, dataSeries: [], stackSameMetrics: false, abbreviateNumbers: true }]);
+    setCharts([...charts, { id: newId, title: `Chart ${newId}`, colSpan: 12, dataSeries: [], stackSameMetrics: false, abbreviateNumbers: true }]);
   };
 
   const removeChart = (chartId: string) => {
@@ -180,7 +180,7 @@ function PlaygroundContent() {
       // If this is the last chart, create a new blank one instead of removing it
       if (prev.length === 1) {
         const newId = String(prev.length + 1);
-        return [{ id: newId, title: `Blank Chart`, colSpan: 6, dataSeries: [], stackSameMetrics: false, abbreviateNumbers: true }];
+        return [{ id: newId, title: `Blank Chart`, colSpan: 12, dataSeries: [], stackSameMetrics: false, abbreviateNumbers: true }];
       }
       // Otherwise, remove the chart normally
       return prev.filter((chart) => chart.id !== chartId);
@@ -482,7 +482,7 @@ function PlaygroundContent() {
       setTempGlobalEndTime(undefined);
       // Create new chart objects to ensure React detects the change and remounts ConfigurableChart
       const resetCharts: ChartConfig[] = [
-        { id: `chart-${Date.now()}`, title: "Chart 1", colSpan: 6, dataSeries: [], stackSameMetrics: false, abbreviateNumbers: true }
+        { id: `chart-${Date.now()}`, title: "Chart 1", colSpan: 12, dataSeries: [], stackSameMetrics: false, abbreviateNumbers: true }
       ];
       setCharts(resetCharts);
       setSavedCharts(resetCharts.map(chart => ({ ...chart })));
