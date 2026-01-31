@@ -10,7 +10,7 @@ import { Success } from '@/components/toolbox/components/Success';
 
 import InitiateValidatorRegistration from '@/components/toolbox/console/permissioned-l1s/AddValidator/InitiateValidatorRegistration';
 import SubmitPChainTxRegisterL1Validator from '@/components/toolbox/console/permissioned-l1s/AddValidator/SubmitPChainTxRegisterL1Validator';
-import CompleteValidatorRegistration from '@/components/toolbox/console/permissioned-l1s/AddValidator/CompleteValidatorRegistration';
+import CompletePChainRegistration from '@/components/toolbox/console/shared/CompletePChainRegistration';
 import { ValidatorListInput, ConvertToL1Validator } from '@/components/toolbox/components/ValidatorListInput';
 import { useCreateChainStore } from '@/components/toolbox/stores/createChainStore';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
@@ -297,18 +297,19 @@ const AddValidatorExpert: React.FC<BaseConsoleToolProps> = ({ onSuccess }) => {
               <p className="text-sm text-gray-500 mb-4">
                 Complete the validator registration by signing the P-Chain <a href="/docs/acps/77-reinventing-subnets#l1validatorregistrationmessage" className="text-blue-600 hover:text-blue-800 underline">L1ValidatorRegistrationMessage</a> and calling the <a href="https://github.com/ava-labs/icm-contracts/blob/main/contracts/validator-manager/ValidatorManager.sol#L425" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline">completeValidatorRegistration</a> function on the Validator Manager contract.
               </p>
-              <CompleteValidatorRegistration
+              <CompletePChainRegistration
                 key={`complete-registration-${resetKey}`}
                 subnetIdL1={subnetIdL1}
                 pChainTxId={pChainTxId}
-                ownershipState={ownershipState}
-                validatorManagerAddress={validatorManagerAddress}
                 signingSubnetId={signingSubnetId}
+                managerType="PoA"
+                managerAddress={validatorManagerAddress}
+                ownershipState={ownershipState}
                 contractOwner={contractOwner}
                 isLoadingOwnership={isLoadingOwnership}
                 ownerType={ownerType}
-                onSuccess={(message) => {
-                  setGlobalSuccess(message);
+                onSuccess={(data) => {
+                  setGlobalSuccess(data.message);
                   setGlobalError(null);
                   onSuccess?.();
                 }}

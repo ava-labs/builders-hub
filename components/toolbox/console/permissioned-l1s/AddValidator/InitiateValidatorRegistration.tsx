@@ -6,9 +6,7 @@ import { ConvertToL1Validator } from '@/components/toolbox/components/ValidatorL
 import { validateStakePercentage } from '@/components/toolbox/coreViem/hooks/getTotalStake';
 import validatorManagerAbi from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
 import { Success } from '@/components/toolbox/components/Success';
-import { parseNodeID } from '@/components/toolbox/coreViem/utils/ids';
-import { fromBytes } from 'viem';
-import { utils } from '@avalabs/avalanchejs';
+import { parseNodeID, parsePChainAddress } from '@/components/toolbox/coreViem/utils/ids';
 import { MultisigOption } from '@/components/toolbox/components/MultisigOption';
 import { getValidationIdHex } from '@/components/toolbox/coreViem/hooks/getValidationID';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
@@ -118,16 +116,9 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
       const validator = validators[0];
       const [account] = await coreWalletClient.requestAddresses();
 
-      // Process P-Chain Addresses
-      const pChainRemainingBalanceOwnerAddressesHex = validator.remainingBalanceOwner.addresses.map(address => {
-        const addressBytes = utils.bech32ToBytes(address);
-        return fromBytes(addressBytes, "hex");
-      });
-
-      const pChainDisableOwnerAddressesHex = validator.deactivationOwner.addresses.map(address => {
-        const addressBytes = utils.bech32ToBytes(address);
-        return fromBytes(addressBytes, "hex");
-      });
+      // Process P-Chain Addresses using shared utility
+      const pChainRemainingBalanceOwnerAddressesHex = validator.remainingBalanceOwner.addresses.map(parsePChainAddress);
+      const pChainDisableOwnerAddressesHex = validator.deactivationOwner.addresses.map(parsePChainAddress);
 
       // Build arguments for transaction
       const args = [
@@ -312,16 +303,9 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
 
     const validator = validators[0];
     
-    // Process all P-Chain addresses for multisig
-    const pChainRemainingBalanceOwnerAddressesHex = validator.remainingBalanceOwner.addresses.map(address => {
-      const addressBytes = utils.bech32ToBytes(address);
-      return fromBytes(addressBytes, "hex");
-    });
-
-    const pChainDisableOwnerAddressesHex = validator.deactivationOwner.addresses.map(address => {
-      const addressBytes = utils.bech32ToBytes(address);
-      return fromBytes(addressBytes, "hex");
-    });
+    // Process all P-Chain addresses for multisig using shared utility
+    const pChainRemainingBalanceOwnerAddressesHex = validator.remainingBalanceOwner.addresses.map(parsePChainAddress);
+    const pChainDisableOwnerAddressesHex = validator.deactivationOwner.addresses.map(parsePChainAddress);
 
     return [
       parseNodeID(validator.nodeID),
