@@ -34,6 +34,34 @@ export interface UserDataForHubSpot {
 }
 
 /**
+ * Build HubSpot properties object from user data
+ * Maps our internal field names to HubSpot property names
+ * @param userData - User data to map
+ * @param includeEmail - Whether to include email in properties (needed for create, not update)
+ * @returns Properties object ready for HubSpot API
+ */
+function buildHubSpotUserProperties(userData: UserDataForHubSpot, includeEmail: boolean = false): Record<string, any> {
+  const properties: Record<string, any> = {
+    ...(includeEmail && { email: userData.email }),
+    ...(userData.name && { fullname: userData.name.trim() }),
+    ...(userData.country && { country: userData.country }),
+    ...(userData.is_student !== undefined && { university_affiliated_check: userData.is_student }),
+    ...(userData.student_institution && { student_institution: userData.student_institution }),
+    ...(userData.is_founder !== undefined && { founder_check: userData.is_founder ? "Yes" : "No" }),
+    ...(userData.founder_company_name && { project_name: userData.founder_company_name }),
+    ...(userData.employee_company_name && { company: userData.employee_company_name }),
+    ...(userData.employee_role && { hs_role: userData.employee_role }),
+    ...(userData.is_developer !== undefined && { developer_check: userData.is_developer ? "Yes" : "No" }),
+    ...(userData.github && { github_url: userData.github }),
+    ...(userData.telegram_user && { telegram_handle: userData.telegram_user }),
+    ...(userData.wallet && userData.wallet.length > 0 && { wallet: userData.wallet.join('; ') }),
+    ...(userData.socials && userData.socials.length > 0 && { contact_othersocials: userData.socials.join('; ') }),
+  };
+
+  return properties;
+}
+
+/**
  * Sync user data to HubSpot and add them to the user data list
  * This function creates/updates a contact in HubSpot and adds them to the specified list
  *
@@ -170,21 +198,7 @@ async function getOrCreateUserDataContact(
 
     // Contact doesn't exist, create a new one
     // Email is the only mandatory field, all others are optional
-    const properties: Record<string, any> = {
-      email: userData.email,
-      ...(userData.name && { fullname: userData.name.trim() }),
-      ...(userData.country && { country: userData.country }),
-      ...(userData.is_student !== undefined && { university_affiliated_check: userData.is_student }),
-      ...(userData.is_founder !== undefined && { founder_check: userData.is_founder ? "Yes" : "No" }),
-      ...(userData.founder_company_name && { project_name: userData.founder_company_name }),
-      ...(userData.employee_company_name && { company: userData.employee_company_name }),
-      ...(userData.employee_role && { hs_role: userData.employee_role }),
-      ...(userData.is_developer !== undefined && { developer_check: userData.is_developer ? "Yes" : "No" }),
-      ...(userData.github && { github_url: userData.github }),
-      ...(userData.telegram_user && { telegram_handle: userData.telegram_user }),
-      ...(userData.wallet && userData.wallet.length > 0 && { wallet: userData.wallet.join('; ') }),
-      ...(userData.socials && userData.socials.length > 0 && { contact_othersocials: userData.socials.join('; ') }),
-    }
+    const properties = buildHubSpotUserProperties(userData, true);
 
     const createResponse = await fetch(
       `https://api.hubapi.com/crm/v3/objects/contacts`,
@@ -235,20 +249,7 @@ async function updateUserDataContact(
   }
 
   try {
-    const properties: Record<string, any> = {
-      ...(userData.name && { fullname: userData.name.trim() }),
-      ...(userData.country && { country: userData.country }),
-      ...(userData.is_student !== undefined && { university_affiliated_check: userData.is_student }),
-      ...(userData.is_founder !== undefined && { founder_check: userData.is_founder ? "Yes" : "No" }),
-      ...(userData.founder_company_name && { project_name: userData.founder_company_name }),
-      ...(userData.employee_company_name && { company: userData.employee_company_name }),
-      ...(userData.employee_role && { hs_role: userData.employee_role }),
-      ...(userData.is_developer !== undefined && { developer_check: userData.is_developer ? "Yes" : "No" }),
-      ...(userData.github && { github_url: userData.github }),
-      ...(userData.telegram_user && { telegram_handle: userData.telegram_user }),
-      ...(userData.wallet && userData.wallet.length > 0 && { wallet: userData.wallet.join('; ') }),
-      ...(userData.socials && userData.socials.length > 0 && { contact_othersocials: userData.socials.join('; ') }),
-    };
+    const properties = buildHubSpotUserProperties(userData, false);
 
     // Only make API call if there are properties to update
     if (Object.keys(properties).length === 0) {
