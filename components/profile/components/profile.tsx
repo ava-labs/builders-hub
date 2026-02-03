@@ -172,15 +172,10 @@ export default function Profile() {
                     )}
                   />
 
-                  {/* I'm */}
+                  {/* Roles */}
                   <div className="space-y-4">
                     <div className="flex flex-row items-center gap-4">
-                      <FormLabel className="w-32 flex-shrink-0">I'm</FormLabel>
-                      <div className="flex-1">
-                        <FormDescription className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
-                          Select all roles that describe you.
-                        </FormDescription>
-                      </div>
+                      <FormLabel className="flex-shrink-0">Select all roles that apply.</FormLabel>
                     </div>
                     
                     {/* Student */}
@@ -282,6 +277,30 @@ export default function Profile() {
                           )}
                         />
                       )}
+                    </div>
+
+                    {/* Developer */}
+                    <div className="flex items-center gap-3">
+                      <FormField
+                        control={form.control}
+                        name="is_developer"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                            <FormControl>
+                              <Checkbox
+                               className="dark:border-white rounded-md"
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      <FormLabel className="text-sm font-normal cursor-pointer" onClick={() => {
+                        form.setValue("is_developer", !watchedValues.is_developer, { shouldDirty: true });
+                      }}>
+                        Developer
+                      </FormLabel>
                     </div>
 
                     {/* Employee */}

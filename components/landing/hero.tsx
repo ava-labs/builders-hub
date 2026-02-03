@@ -5,7 +5,7 @@ import { cn } from "@/utils/cn";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Sponsors } from '@/components/landing/globe';
+import { Sponsors, GlobeData } from '@/components/landing/globe';
 import { GraduationCap, Sparkles, ArrowRight } from 'lucide-react';
 
 // Premium animation styles
@@ -303,7 +303,11 @@ export function HeroBackground() {
   );
 }
 
-export default function Hero() {
+interface HeroProps {
+  globeData?: GlobeData;
+}
+
+export default function Hero({ globeData }: HeroProps) {
   return (
     <section className="min-h-[50vh] w-full flex items-center justify-center relative py-12 lg:py-16 px-4">
       <div className="relative z-10 w-full max-w-7xl mx-auto">
@@ -356,7 +360,7 @@ export default function Hero() {
 
           {/* Ecosystem Visualization */}
           <div className="relative lg:block hidden">
-            <Sponsors />
+            <Sponsors globeData={globeData} />
           </div>
         </div>
       </div>

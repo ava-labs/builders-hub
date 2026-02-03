@@ -364,3 +364,54 @@ model BuildGamesApplication {
   @@index([referrer_handle])
   @@index([area_of_focus])
 }
+
+model Retro9000ReturningApplication {
+  id                              String   @id @default(uuid())
+  email                           String   @unique
+
+  // PROJECT OVERVIEW
+  project_name                    String
+  project_type                    String
+  project_vertical                String
+  project_website                 String?
+  project_x_handle                String?
+  project_github                  String
+  project_hq                      String
+  project_continent               String
+  media_kit                       String
+
+  // FINANCIAL OVERVIEW
+  previous_retro9000_snapshot_funding String?
+  requested_funding_range         String
+
+  // GRANT INFORMATION
+  eligibility_and_metrics         String   @db.Text
+  requested_grant_size_budget     String
+  changes_since_last_snapshot     String   @db.Text
+
+  // APPLICANT INFORMATION
+  first_name                      String
+  last_name                       String
+  pseudonym                       String?
+  role                            String
+  x_account                       String
+  telegram                        String
+  linkedin                        String?
+  github                          String?
+  country                         String?
+  other_url                       String?
+  bio                             String   @db.Text
+
+  // COMPLIANCE
+  kyb_willing                     String
+  gdpr                            Boolean  @default(false)
+  marketing_consent               Boolean  @default(false)
+
+  created_at                      DateTime @default(now()) @db.Timestamptz(3)
+  updated_at                      DateTime @updatedAt @db.Timestamptz(3)
+
+  @@index([created_at])
+  @@index([project_name])
+  @@index([project_vertical])
+  @@index([requested_funding_range])
+}

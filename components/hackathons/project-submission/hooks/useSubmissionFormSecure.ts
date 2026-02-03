@@ -8,118 +8,173 @@ import { useSession } from 'next-auth/react';
 import { useToast } from '@/hooks/use-toast';
 import { useProjectSubmission } from '../context/ProjectSubmissionContext';
 import { useRouter } from 'next/navigation';
-export const FormSchema = z
-  .object({
-    project_name: z
-      .string()
-      .min(2, { message: 'Project Name must be at least 2 characters' })
-      .max(60, { message: 'Max 60 characters allowed' }),
-    short_description: z
-      .string()
-      .min(30, { message: 'Short description must be at least 30 characters' })
-      .max(280, { message: 'Max 280 characters allowed' }),
-    full_description: z
-      .string()
-      .min(30, { message: 'Full description must be at least 30 characters' }),
-    tech_stack: z
-      .string()
-      .min(30, { message: 'Tech stack must be at least 30 characters' }),
-    github_repository: z.preprocess(
-      (val) => {
-        if (!val) return [];
-        if (typeof val === 'string') return [];
-        return val;
-      },
-      z.array(z.string().min(1, { message: 'Repository link is required' }))
-        .min(1, { message: 'At least one link is required' })
-        .refine((links) => new Set(links).size === links.length, {
-          message: 'Duplicate repository links are not allowed',
-        })
-        .superRefine((links, ctx) => {
-          const invalidLinks = links.filter((link) => {
-            if (link.startsWith('http')) {
-              try { new URL(link); return false; } catch { return true; }
-            }
-            return link.trim().length === 0;
-          });
+// Base schema without refinements - needed for .pick() to work
+const BaseFormSchema = z.object({
+  project_name: z
+    .string()
+    .min(2, { message: 'Project Name must be at least 2 characters' })
+    .max(60, { message: 'Max 60 characters allowed' }),
+  short_description: z
+    .string()
+    .min(30, { message: 'Short description must be at least 30 characters' })
+    .max(280, { message: 'Max 280 characters allowed' }),
+  full_description: z
+    .string()
+    .min(30, { message: 'Full description must be at least 30 characters' }),
+  tech_stack: z
+    .string()
+    .min(30, { message: 'Tech stack must be at least 30 characters' }),
+  github_repository: z.preprocess(
+    (val) => {
+      if (!val) return [];
+      if (typeof val === 'string') return [];
+      return val;
+    },
+    z.array(z.string().min(1, { message: 'Repository link is required' }))
+      .min(1, { message: 'At least one link is required' })
+      .refine((links) => new Set(links).size === links.length, {
+        message: 'Duplicate repository links are not allowed',
+      })
+      .superRefine((links, ctx) => {
+        const invalidLinks = links.filter((link) => {
+          if (link.startsWith('http')) {
+            try { new URL(link); return false; } catch { return true; }
+          }
+          return link.trim().length === 0;
+        });
 
-          if (invalidLinks.length > 0) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              message: 'Please enter valid links (URLs or other formats)',
-              path: [], // o ['github_repository'] si prefieres
-            });
-          }
-        })
-    ),
-    explanation: z.string().optional(),
-    demo_link: z.preprocess(
-      (val) => {
-        if (!val) return [];
-        if (typeof val === 'string') return [];
-        return val;
-      },
-      z.array(
-        z.string()
-          .min(1, { message: 'Demo link cannot be empty' })
-      )
-        .min(1, { message: 'At least one demo link is required' })
-        .refine(
-          (links) => {
-            const uniqueLinks = new Set(links);
-            return uniqueLinks.size === links.length;
-          },
-          { message: 'Duplicate demo links are not allowed' }
-        )
-        .refine(
-          (links) => {
-            return links.every(url => {
-              try {
-                new URL(url);
-                return true;
-              } catch {
-                return false;
-              }
-            });
-          },
-          { message: 'Please enter a valid URL' }
-        )
-    ),
-    is_preexisting_idea: z.boolean(),
-    logoFile: z.any().optional(),
-    coverFile: z.any().optional(),
-    screenshots: z.any().optional(),
-    demo_video_link: z
-      .string()
-      .url({ message: 'Please enter a valid URL' })
-      .optional()
-      .or(z.literal(''))
+        if (invalidLinks.length > 0) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'Please enter valid links (URLs or other formats)',
+            path: [],
+          });
+        }
+      })
+  ),
+  explanation: z.string().optional(),
+  demo_link: z.preprocess(
+    (val) => {
+      if (!val) return [];
+      if (typeof val === 'string') return [];
+      return val;
+    },
+    z.array(
+      z.string()
+        .min(1, { message: 'Demo link cannot be empty' })
+    )
+      .min(1, { message: 'At least one demo link is required' })
       .refine(
-        (val) => {
-          if (!val) return true;
-          try {
-            const url = new URL(val);
-            return (
-              url.hostname.includes('youtube.com') ||
-              url.hostname.includes('youtu.be') ||
-              url.hostname.includes('loom.com')
-            );
-          } catch {
-            return false;
-          }
+        (links) => {
+          const uniqueLinks = new Set(links);
+          return uniqueLinks.size === links.length;
         },
-        { message: 'Please enter a valid YouTube or Loom URL' }
-      ),
-    tracks: z.array(z.string()).optional().default([]),
-    categories: z.array(z.string()).optional().default([]),
-    other_category: z.string().optional(),
-    logo_url: z.string().optional(),
-    cover_url: z.string().optional(),
-    hackaton_id: z.string().optional(),
-    user_id: z.string().optional(),
-    is_winner: z.boolean().optional(),
-    isDraft: z.boolean().optional(),
-  })
+        { message: 'Duplicate demo links are not allowed' }
+      )
+      .refine(
+        (links) => {
+          return links.every(url => {
+            try {
+              new URL(url);
+              return true;
+            } catch {
+              return false;
+            }
+          });
+        },
+        { message: 'Please enter a valid URL' }
+      )
+  ),
+  is_preexisting_idea: z.boolean(),
+  logoFile: z.any().optional(),
+  coverFile: z.any().optional(),
+  screenshots: z.any().optional(),
+  demo_video_link: z
+    .string()
+    .url({ message: 'Please enter a valid URL' })
+    .optional()
+    .or(z.literal(''))
+    .refine(
+      (val) => {
+        if (!val) return true;
+        try {
+          const url = new URL(val);
+          return (
+            url.hostname.includes('youtube.com') ||
+            url.hostname.includes('youtu.be') ||
+            url.hostname.includes('loom.com')
+          );
+        } catch {
+          return false;
+        }
+      },
+      { message: 'Please enter a valid YouTube or Loom URL' }
+    ),
+  tracks: z.array(z.string()).optional().default([]),
+  categories: z.array(z.string()).optional().default([]),
+  other_category: z.string().optional(),
+  logo_url: z.string().optional(),
+  cover_url: z.string().optional(),
+  hackaton_id: z.string().optional(),
+  user_id: z.string().optional(),
+  is_winner: z.boolean().optional(),
+  isDraft: z.boolean().optional(),
+});
+
+// Step schemas created from base schema (before refinements)
+export const Step1Schema = BaseFormSchema.pick({
+  project_name: true,
+  short_description: true,
+  full_description: true,
+  tracks: true,
+  categories: true,
+  other_category: true,
+  hackaton_id: true,
+}).superRefine((data, ctx) => {
+  // Validación condicional para tracks cuando hay hackathon_id
+  if (data.hackaton_id) {
+    if (!data.tracks || data.tracks.length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'At least one track is required when submitting to a hackathon',
+        path: ['tracks'],
+      });
+    }
+  }
+  
+  // Validación para other_category si se selecciona "Other (Specify)"
+  if (data.categories && data.categories.includes('Other (Specify)')) {
+    if (!data.other_category || data.other_category.trim().length < 2) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Please specify the other category',
+        path: ['other_category'],
+      });
+    }
+  }
+});
+
+export const Step2Schema = BaseFormSchema.pick({
+  tech_stack: true,
+  github_repository: true,
+  explanation: true,
+  demo_link: true,
+  is_preexisting_idea: true,
+}).refine(
+  (data) => {
+    if (data.is_preexisting_idea) {
+      return data.explanation && data.explanation.length >= 2;
+    }
+    return true;
+  },
+  {
+    message: 'explanation is required when the idea is pre-existing',
+    path: ['explanation'],
+  }
+);
+
+// Full schema with all refinements
+export const FormSchema = BaseFormSchema
   .refine(
     (data) => {
       if (data.is_preexisting_idea) {
@@ -160,57 +215,6 @@ export const FormSchema = z
   );
 
 export type SubmissionForm = z.infer<typeof FormSchema>;
-export const Step1Schema = FormSchema.pick({
-  project_name: true,
-  short_description: true,
-  full_description: true,
-  tracks: true,
-  categories: true,
-  other_category: true,
-  hackaton_id: true,
-}).superRefine((data, ctx) => {
-  // Validación condicional para tracks cuando hay hackathon_id
-  if (data.hackaton_id) {
-    if (!data.tracks || data.tracks.length === 0) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'At least one track is required when submitting to a hackathon',
-        path: ['tracks'],
-      });
-    }
-  }
-  
-  // Validación para other_category si se selecciona "Other (Specify)"
-  // Categories es opcional, pero si se selecciona "Other (Specify)", other_category es requerido
-  if (data.categories && data.categories.includes('Other (Specify)')) {
-    if (!data.other_category || data.other_category.trim().length < 2) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'Please specify the other category',
-        path: ['other_category'],
-      });
-    }
-  }
-});
-
-export const Step2Schema = FormSchema.pick({
-  tech_stack: true,
-  github_repository: true,
-  explanation: true,
-  demo_link: true,
-  is_preexisting_idea: true,
-}).refine(
-  (data) => {
-    if (data.is_preexisting_idea) {
-      return data.explanation && data.explanation.length >= 2;
-    }
-    return true;
-  },
-  {
-    message: 'explanation is required when the idea is pre-existing',
-    path: ['explanation'],
-  }
-);
 export const useSubmissionFormSecure = () => {
   const { data: session } = useSession();
   const { toast } = useToast();
@@ -224,7 +228,7 @@ export const useSubmissionFormSecure = () => {
   }>({});
 
   const form = useForm<SubmissionForm>({
-    resolver: zodResolver(FormSchema, undefined, { mode: 'async' }),
+    resolver: zodResolver(FormSchema),
     reValidateMode: 'onChange',
     mode: 'onSubmit',
     defaultValues: {
@@ -277,8 +281,8 @@ export const useSubmissionFormSecure = () => {
             }
 
             timersRef.current[fieldName] = setTimeout(() => {
-              // Fix: Pass an array of field names instead of object to FormSchema.pick
-              const schema = FormSchema.pick([fieldName]);
+              // Use BaseFormSchema for .pick() since FormSchema has refinements
+              const schema = BaseFormSchema.pick({ [fieldName]: true } as any);
 
               schema.safeParseAsync(form.getValues()).then(result => {
                 if (result.success) {
@@ -376,7 +380,7 @@ export const useSubmissionFormSecure = () => {
         user_id: session?.user?.id || ''
       });
       if (state.hackathonId) {
-        params.append('hackathon_id', state.hackathonId);
+        params.append('hackaton_id', state.hackathonId);
       }
       await fetch(`/api/file?${params.toString()}`, {
         method: 'DELETE',
@@ -419,7 +423,7 @@ export const useSubmissionFormSecure = () => {
 
         coverFileUrl:
           data.coverFile &&
-            (!Array.isArray(data.coverFile) || data.logoFile.length > 0)
+            (!Array.isArray(data.coverFile) || data.coverFile.length > 0)
             ? typeof data.coverFile === 'string'
               ? data.coverFile
               : originalImages.coverFile
