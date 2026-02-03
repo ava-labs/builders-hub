@@ -152,11 +152,6 @@ function AvalanchegoDockerInner() {
             setMinDelayTarget(500); // Default block time for L1
             setAllowUnfinalizedQueries(false);
             setStateSyncEnabled(true); // Validators benefit from fast sync
-            // Standard cache sizes for validators
-            setTrieCleanCache(512);
-            setTrieDirtyCache(512);
-            setSnapshotCache(256);
-            setAcceptedCacheSize(32);
             setTransactionHistory(0); // Keep all tx history by default
             setIncludeEthApis(false); // Validators don't need external eth-apis
         } else if (nodeType === "public-rpc") {
@@ -168,11 +163,6 @@ function AvalanchegoDockerInner() {
             setLogLevel("info");
             setAllowUnfinalizedQueries(false); // Default to finalized queries for safety
             setStateSyncEnabled(false); // RPC nodes need full historical data
-            // Larger caches for better RPC performance
-            setTrieCleanCache(1024); // 2x for better read performance
-            setTrieDirtyCache(1024);
-            setSnapshotCache(512); // 2x for snapshot queries
-            setAcceptedCacheSize(64); // Larger for more recent history
             setTransactionHistory(0); // Keep all tx history by default for getLogs
             setIncludeEthApis(true); // RPC nodes need external eth-apis
         } else if (nodeType === "validator-rpc") {
@@ -185,11 +175,6 @@ function AvalanchegoDockerInner() {
             setMinDelayTarget(500); // Block production timing
             setAllowUnfinalizedQueries(false); // Default to finalized queries for safety
             setStateSyncEnabled(false); // Need full historical data for RPC queries
-            // Larger caches for RPC performance while validating
-            setTrieCleanCache(1024);
-            setTrieDirtyCache(1024);
-            setSnapshotCache(512);
-            setAcceptedCacheSize(64);
             setTransactionHistory(0); // Keep all tx history
             setIncludeEthApis(true); // Validator-RPC needs external eth-apis
         }
