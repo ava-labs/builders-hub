@@ -720,18 +720,18 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                                                     <label className="flex items-center space-x-2">
                                                         <input
                                                             type="checkbox"
-                                                            checked={skipTxIndexing}
-                                                            onChange={(e) => setSkipTxIndexing(e.target.checked)}
+                                                            checked={!skipTxIndexing}
+                                                            onChange={(e) => setSkipTxIndexing(!e.target.checked)}
                                                             onFocus={() => setHighlightPath('skipTxIndexing')}
                                                             onBlur={clearHighlight}
                                                             className="rounded"
                                                         />
                                                         <span className="text-xs text-gray-600 dark:text-gray-400">
-                                                            Skip Transaction Indexing
+                                                            Enable Transaction Indexing
                                                         </span>
                                                     </label>
                                                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-6">
-                                                        Disable tx indexing entirely (saves disk space)
+                                                        Index transactions for querying (uses more disk space)
                                                     </p>
                                                 </div>
 
