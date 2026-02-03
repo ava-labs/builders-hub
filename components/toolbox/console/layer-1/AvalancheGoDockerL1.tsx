@@ -1,5 +1,6 @@
 "use client";
 
+// L1 Node Docker Setup
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 import { useState, useEffect } from "react";
 import { networkIDs } from "@avalabs/avalanchejs";
