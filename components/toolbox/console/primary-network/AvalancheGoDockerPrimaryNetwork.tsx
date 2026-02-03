@@ -131,7 +131,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
             // - Pruning enabled (reduces disk usage)
             // - State sync enabled (fast bootstrap)
             // - External eth-apis OFF (validators don't need to expose APIs)
-            // - minDelayTarget = 0 (don't vote on block timing by default)
+            // - Cache sizes use Subnet-EVM defaults (512, 512, 256, 32)
             setDomain("");
             setEnableDebugTrace(false);
             setAdminApiEnabled(false);
@@ -140,10 +140,6 @@ function AvalancheGoDockerPrimaryNetworkInner() {
             setMinDelayTarget(0); // Don't include in config - use node default
             setAllowUnfinalizedQueries(false);
             setStateSyncEnabled(true); // Validators benefit from fast sync
-            setTrieCleanCache(512);
-            setTrieDirtyCache(512);
-            setSnapshotCache(256);
-            setAcceptedCacheSize(32);
             setTransactionHistory(0);
             setIncludeEthApis(false); // Validators don't need external eth-apis
         } else if (nodeType === "public-rpc") {
@@ -151,14 +147,11 @@ function AvalancheGoDockerPrimaryNetworkInner() {
             // - Pruning disabled (archival - need full history)
             // - State sync disabled (need full historical data)
             // - External eth-apis ON (RPC nodes need to expose APIs)
+            // - Cache sizes use Subnet-EVM defaults (512, 512, 256, 32)
             setPruningEnabled(false);
             setLogLevel("info");
-            setAllowUnfinalizedQueries(true);
+            setAllowUnfinalizedQueries(false); // Default to finalized queries for safety
             setStateSyncEnabled(false); // RPC nodes need full historical data
-            setTrieCleanCache(1024);
-            setTrieDirtyCache(1024);
-            setSnapshotCache(512);
-            setAcceptedCacheSize(64);
             setTransactionHistory(0);
             setIncludeEthApis(true); // RPC nodes need external eth-apis
         }
@@ -413,20 +406,37 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                             </div>
 
                             {nodeType === "public-rpc" && (
-                                <div onMouseEnter={() => setHighlightPath('ethApis')} onMouseLeave={clearHighlight}>
-                                    <label className="flex items-center space-x-2">
-                                        <input
-                                            type="checkbox"
-                                            checked={enableDebugTrace}
-                                            onChange={(e) => setEnableDebugTrace(e.target.checked)}
-                                            className="rounded"
-                                        />
-                                        <span className="text-sm">Enable Debug Trace</span>
-                                    </label>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                        Enables debug APIs and detailed tracing capabilities
-                                    </p>
-                                </div>
+                                <>
+                                    <div onMouseEnter={() => setHighlightPath('ethApis')} onMouseLeave={clearHighlight}>
+                                        <label className="flex items-center space-x-2">
+                                            <input
+                                                type="checkbox"
+                                                checked={enableDebugTrace}
+                                                onChange={(e) => setEnableDebugTrace(e.target.checked)}
+                                                className="rounded"
+                                            />
+                                            <span className="text-sm">Enable Debug Trace</span>
+                                        </label>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                            Enables debug APIs and detailed tracing capabilities
+                                        </p>
+                                    </div>
+
+                                    <div onMouseEnter={() => setHighlightPath('skipTxIndexing')} onMouseLeave={clearHighlight}>
+                                        <label className="flex items-center space-x-2">
+                                            <input
+                                                type="checkbox"
+                                                checked={!skipTxIndexing}
+                                                onChange={(e) => setSkipTxIndexing(!e.target.checked)}
+                                                className="rounded"
+                                            />
+                                            <span className="text-sm">Enable Transaction Indexing</span>
+                                        </label>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                            Required for eth_getLogs and transaction lookups. Disable to save disk space.
+                                        </p>
+                                    </div>
+                                </>
                             )}
 
                             {/* Advanced Settings */}
