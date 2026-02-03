@@ -126,10 +126,14 @@ export const generateChainConfig = (
         config["state-sync-enabled"] = true;
     }
 
-    // Transaction indexing - only add if non-default
-    if (skipTxIndexing) {
-        config["skip-tx-indexing"] = true;
-    } else if (transactionHistory > 0) {
+    // Transaction indexing - always show to make the relationship between
+    // "Enable Transaction Indexing" checkbox and config value clear:
+    // - Checkbox checked (enabled) → skip-tx-indexing: false
+    // - Checkbox unchecked (disabled) → skip-tx-indexing: true
+    config["skip-tx-indexing"] = skipTxIndexing;
+
+    // Transaction history - only add if specified
+    if (!skipTxIndexing && transactionHistory > 0) {
         config["transaction-history"] = transactionHistory;
     }
 
