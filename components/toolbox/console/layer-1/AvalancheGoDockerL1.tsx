@@ -448,37 +448,20 @@ function AvalanchegoDockerInner() {
                         </div>
 
                         {isRPC && (
-                            <>
-                                <div onMouseEnter={() => setHighlightPath('ethApis')} onMouseLeave={clearHighlight}>
-                                    <label className="flex items-center space-x-2">
-                                        <input
-                                            type="checkbox"
-                                            checked={enableDebugTrace}
-                                            onChange={(e) => setEnableDebugTrace(e.target.checked)}
-                                            className="rounded"
-                                        />
-                                        <span className="text-sm">Enable Debug Trace</span>
-                                    </label>
-                                    <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-                                        Enables debug APIs and detailed tracing capabilities
-                                    </p>
-                                </div>
-
-                                <div onMouseEnter={() => setHighlightPath('skipTxIndexing')} onMouseLeave={clearHighlight}>
-                                    <label className="flex items-center space-x-2">
-                                        <input
-                                            type="checkbox"
-                                            checked={!skipTxIndexing}
-                                            onChange={(e) => setSkipTxIndexing(!e.target.checked)}
-                                            className="rounded"
-                                        />
-                                        <span className="text-sm">Enable Transaction Indexing</span>
-                                    </label>
-                                    <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-                                        Required for eth_getLogs and transaction lookups. Disable to save disk space.
-                                    </p>
-                                </div>
-                            </>
+                            <div onMouseEnter={() => setHighlightPath('ethApis')} onMouseLeave={clearHighlight}>
+                                <label className="flex items-center space-x-2">
+                                    <input
+                                        type="checkbox"
+                                        checked={enableDebugTrace}
+                                        onChange={(e) => setEnableDebugTrace(e.target.checked)}
+                                        className="rounded"
+                                    />
+                                    <span className="text-sm">Enable Debug Trace</span>
+                                </label>
+                                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+                                    Enables debug APIs and detailed tracing capabilities
+                                </p>
+                            </div>
                         )}
 
                                     {/* Advanced Settings */}
