@@ -108,10 +108,9 @@ export const generateChainConfig = (
         config["log-level"] = logLevel;
     }
 
-    // Metrics - only add if enabled (default is false)
-    if (true) { // We always want expensive metrics enabled
-        config["metrics-expensive-enabled"] = true;
-    }
+    // Metrics - always enable for observability
+    config["metrics-enabled"] = true;
+    config["metrics-expensive-enabled"] = true;
 
     // Min delay target - only add if non-zero (default is 0, meaning no minimum delay)
     if (minDelayTarget > 0) {
