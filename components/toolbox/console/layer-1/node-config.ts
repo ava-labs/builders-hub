@@ -111,11 +111,11 @@ export const generateChainConfig = (
         config["log-level"] = logLevel;
     }
 
-    // Metrics - always enable basic metrics for observability
-    config["metrics-enabled"] = true;
-
-    // Expensive metrics - only add if explicitly enabled (default is false)
-    // These include debug-level metrics like Firewood metrics that can impact performance
+    // Expensive metrics - only add if explicitly enabled
+    // Note: There is no "metrics-enabled" chain config option - metrics are controlled
+    // at the node level via --api-metrics-enabled flag.
+    // metrics-expensive-enabled controls debug-level metrics (Firewood, etc.) that can impact performance.
+    // AvalancheGo default is true, but we default to false to avoid performance impact.
     if (metricsExpensiveEnabled) {
         config["metrics-expensive-enabled"] = true;
     }
