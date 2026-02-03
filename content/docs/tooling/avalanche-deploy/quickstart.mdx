@@ -1,0 +1,153 @@
+---
+title: Quick Start
+description: Deploy an Avalanche L1 blockchain on AWS in 5 steps
+---
+
+This guide walks you through deploying a production-ready Avalanche L1 blockchain on AWS using Terraform and Ansible.
+
+## Prerequisites
+
+Install the required tools:
+
+```bash
+brew install terraform ansible awscli jq go
+```
+
+Ensure you have:
+- AWS account with programmatic access
+- SSH key pair for node access
+- Funded P-Chain address on Fuji (for testnet) or Mainnet
+
+## Step 1: Clone and Setup
+
+```bash
+git clone https://github.com/ava-labs/avalanche-deploy.git
+cd avalanche-deploy
+make setup
+```
+
+## Step 2: Configure AWS Credentials
+
+```bash
+export AWS_ACCESS_KEY_ID="your-access-key"
+export AWS_SECRET_ACCESS_KEY="your-secret-key"
+```
+
+## Step 3: Configure Terraform
+
+```bash
+cd terraform/aws
+cp terraform.tfvars.example terraform.tfvars
+```
+
+Edit `terraform.tfvars`:
+
+```hcl
+name_prefix     = "my-l1"
+environment     = "fuji"
+validator_count = 2
+rpc_count       = 1
+ssh_public_key  = "ssh-rsa AAAA..."
+ssh_private_key_file = "~/.ssh/avalanche-deploy"
+```
+
+## Step 4: Deploy Infrastructure
+
+```bash
+# Create cloud infrastructure
+terraform init && terraform apply
+
+# Return to project root
+cd ../..
+
+# Install avalanchego on nodes
+make deploy
+
+# Wait for nodes to sync (check status)
+make status
+```
+
+<Callout type="info">
+Wait until all nodes show "P:OK" before proceeding. This indicates they've synced with the P-Chain.
+</Callout>
+
+## Step 5: Create Your L1
+
+```bash
+# Set your funded P-Chain private key
+export AVALANCHE_PRIVATE_KEY="PrivateKey-ewoq..."
+
+# Get validator IPs from Terraform
+export VALIDATORS=$(cd terraform/aws && terraform output -json validator_ips | jq -r 'join(",")')
+
+# Build and run the L1 creation tool
+make create-l1
+./tools/create-l1/create-l1 \
+  --network=fuji \
+  --validators=$VALIDATORS \
+  --chain-name=mychain \
+  --output=l1.env
+
+# Configure nodes to track your new L1
+source l1.env
+make configure-l1 SUBNET_ID=$SUBNET_ID CHAIN_ID=$CHAIN_ID
+```
+
+## Your L1 is Running
+
+Your L1 blockchain is now live. Access it via:
+
+```bash
+# RPC endpoint
+curl http://<rpc-ip>:9650/ext/bc/$CHAIN_ID/rpc \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"eth_chainId","params":[],"id":1}'
+```
+
+## Next Steps
+
+<Cards>
+  <Card title="Add Monitoring" href="/docs/tooling/avalanche-deploy/architecture#monitoring">
+    Deploy Prometheus and Grafana dashboards
+  </Card>
+  <Card title="Deploy Block Explorer" href="/docs/tooling/avalanche-deploy/architecture#blockscout">
+    Add Blockscout for transaction visibility
+  </Card>
+  <Card title="Customize Genesis" href="/docs/tooling/avalanche-deploy/architecture#genesis-configuration">
+    Configure chain parameters and pre-funded accounts
+  </Card>
+</Cards>
+
+## Optional: Monitoring
+
+```bash
+make monitoring
+# Access Grafana at http://<monitoring-ip>:3000 (admin/admin)
+```
+
+## Optional: Block Explorer
+
+```bash
+source l1.env
+make deploy-blockscout CHAIN_ID=$CHAIN_ID EVM_CHAIN_ID=99999
+# Access Blockscout at http://<rpc-ip>:4001
+```
+
+## Cleanup
+
+<Callout type="warn">
+Always destroy infrastructure when done testing to stop AWS billing.
+</Callout>
+
+```bash
+make destroy
+```
+
+## Troubleshooting
+
+| Problem | Solution |
+|---------|----------|
+| Ansible can't connect | Check SSH key path in `ansible/inventory/aws_hosts` |
+| Nodes not syncing | Run `make logs` to view avalanchego errors |
+| "insufficient funds" | Fund your P-Chain address on Fuji faucet |
+| "illegal name character" | Chain names must be alphanumeric only (no hyphens) |

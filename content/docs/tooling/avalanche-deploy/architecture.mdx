@@ -1,0 +1,223 @@
+---
+title: Architecture
+description: Understanding the Avalanche Deploy infrastructure components
+---
+
+Avalanche Deploy creates a complete infrastructure stack for running Avalanche L1 blockchains in production.
+
+## Architecture Overview
+
+```
+                         Avalanche Network (Fuji/Mainnet)
+                                    │
+          ┌─────────────────────────┼─────────────────────────┐
+          │                         │                         │
+          ▼                         ▼                         ▼
+    ┌───────────┐            ┌───────────┐            ┌───────────┐
+    │ Validator │◄──── P2P ──►│ Validator │◄─── P2P ──►│    RPC    │
+    │     1     │             │     2     │            │   Node    │
+    │   :9651   │             │   :9651   │            │:9650/:9651│
+    └─────┬─────┘             └─────┬─────┘            └─────┬─────┘
+          │                         │                        │
+          └─────────────────────────┴────────────────────────┘
+                                    │ metrics
+                                    ▼
+                             ┌─────────────┐
+                             │  Monitoring │
+                             │  Prometheus │
+                             │ Grafana:3000│
+                             └─────────────┘
+
+External Access:
+  • RPC API:    http://<rpc-ip>:9650/ext/bc/<chain>/rpc
+  • Blockscout: http://<rpc-ip>:4001
+  • Grafana:    http://<monitoring-ip>:3000
+```
+
+## Project Structure
+
+```
+avalanche-deploy/
+├── terraform/              # Infrastructure as Code
+│   ├── aws/               # AWS-specific configuration
+│   ├── gcp/               # GCP-specific configuration
+│   ├── azure/             # Azure-specific configuration
+│   └── modules/           # Shared compute/networking modules
+├── ansible/               # Configuration management
+│   ├── playbooks/         # Numbered deployment phases
+│   │   ├── 01-deploy-nodes.yml      # Install avalanchego
+│   │   ├── 02-configure-l1.yml      # Add subnet tracking
+│   │   └── 03-setup-monitoring.yml  # Prometheus/Grafana
+│   └── roles/             # avalanchego, prometheus, grafana
+├── tools/
+│   ├── create-l1/         # Go CLI for L1 creation
+│   └── pchain-cli/        # P-Chain utilities library
+├── shared/                # Genesis templates, configs, dashboards
+└── scripts/               # Helper scripts (status.sh, wait-for-sync.sh)
+```
+
+## Deployment Workflow
+
+### Three-Phase Ansible Deployment
+
+1. **01-deploy-nodes.yml** - Installs avalanchego, generates staking keys, starts syncing with the network
+2. **02-configure-l1.yml** - Adds `track-subnets` configuration after L1 creation
+3. **03-setup-monitoring.yml** - Deploys Prometheus and Grafana monitoring stack
+
+### Terraform to Ansible Integration
+
+Terraform automatically generates Ansible inventory files with node IPs and SSH key paths:
+
+```
+terraform/aws/          →  ansible/inventory/aws_hosts
+terraform/gcp/          →  ansible/inventory/gcp_hosts
+terraform/azure/        →  ansible/inventory/azure_hosts
+```
+
+## Cloud Provider Configuration
+
+### AWS (Default)
+
+```bash
+make infra          # Uses terraform/aws/
+```
+
+Default instance types:
+- Validators: `c5.2xlarge`
+- RPC Node: `c5.2xlarge`
+- Monitoring: `t3.medium`
+
+### GCP
+
+```bash
+make infra CLOUD=gcp
+```
+
+Default machine types:
+- Validators: `n2-standard-8`
+- RPC Node: `n2-standard-8`
+- Monitoring: `e2-medium`
+
+### Azure
+
+```bash
+make infra CLOUD=azure
+```
+
+Default VM sizes:
+- Validators: `Standard_D8s_v3`
+- RPC Node: `Standard_D8s_v3`
+- Monitoring: `Standard_B2s`
+
+## Genesis Configuration
+
+The `genesis.json` file in the project root configures your L1 chain. Key fields:
+
+```json
+{
+  "config": {
+    "chainId": 99999,
+    "feeConfig": {
+      "gasLimit": 15000000,
+      "targetBlockRate": 2,
+      "minBaseFee": 25000000000
+    },
+    "warpConfig": {
+      "blockTimestamp": 0,
+      "quorumNumerator": 67
+    }
+  },
+  "alloc": {
+    "0xYourAddress": {
+      "balance": "0x52B7D2DCC80CD2E4000000"
+    }
+  }
+}
+```
+
+| Field | Description |
+|-------|-------------|
+| `chainId` | Unique chain ID (check [chainlist.org](https://chainlist.org)) |
+| `gasLimit` | Maximum gas per block |
+| `targetBlockRate` | Target seconds between blocks |
+| `minBaseFee` | Minimum gas price in wei |
+| `alloc` | Pre-funded addresses (balance in wei, hex format) |
+
+## Monitoring
+
+The monitoring stack includes:
+
+- **Prometheus**: Metrics collection from all nodes
+- **Grafana**: Pre-configured dashboards for avalanchego metrics
+
+Access Grafana at `http://<monitoring-ip>:3000` with default credentials `admin/admin`.
+
+### Key Metrics
+
+- Block height and sync status
+- P2P peer connections
+- Transaction throughput
+- Resource utilization (CPU, memory, disk)
+
+## Blockscout
+
+Optional block explorer deployment:
+
+```bash
+make deploy-blockscout CHAIN_ID=$CHAIN_ID EVM_CHAIN_ID=99999
+```
+
+Provides:
+- Transaction explorer
+- Block explorer
+- Address tracking
+- Contract verification
+
+## Tools
+
+### create-l1
+
+Go CLI tool that issues P-Chain transactions to create your L1:
+
+1. `CreateSubnetTx` - Creates a new subnet
+2. `CreateChainTx` - Creates a chain with SubnetEVM and your genesis
+3. `ConvertSubnetToL1Tx` - Registers validators
+
+### pchain-cli
+
+Library and CLI for P-Chain operations:
+
+```bash
+# Build the CLI
+cd tools/pchain-cli && go build -o pchain-cli .
+
+# Check wallet balance
+./pchain-cli wallet balance --private-key "PrivateKey-..."
+
+# Get node information
+./pchain-cli node info --ip 10.0.0.1
+```
+
+## Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `AWS_ACCESS_KEY_ID` | AWS credentials |
+| `AWS_SECRET_ACCESS_KEY` | AWS credentials |
+| `AVALANCHE_PRIVATE_KEY` | P-Chain private key for L1 creation |
+| `L1_VALIDATOR_BALANCE_AVAX` | Initial validator balance (default: 1 AVAX) |
+
+## Commands Reference
+
+| Command | Description |
+|---------|-------------|
+| `make setup` | Install terraform, ansible, jq |
+| `make infra` | Create cloud infrastructure |
+| `make deploy` | Install avalanchego on nodes |
+| `make status` | Check node sync status |
+| `make create-l1` | Build the L1 creation tool |
+| `make configure-l1` | Configure nodes for L1 |
+| `make monitoring` | Deploy Prometheus + Grafana |
+| `make deploy-blockscout` | Deploy block explorer |
+| `make logs` | View avalanchego logs |
+| `make destroy` | Tear down infrastructure |

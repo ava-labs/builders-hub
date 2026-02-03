@@ -1,0 +1,74 @@
+---
+title: Avalanche Deploy
+description: Infrastructure as Code for deploying production-ready Avalanche L1 blockchains on AWS, GCP, or Azure
+---
+
+Avalanche Deploy automates the deployment of production-ready Avalanche L1 blockchains using Infrastructure as Code (IaC). Deploy validator nodes, RPC endpoints, and monitoring infrastructure to major cloud providers with a single command.
+
+## Key Features
+
+- **Multi-Cloud Support**: Deploy to AWS, GCP, or Azure with the same workflow
+- **Automated Node Deployment**: Install and configure avalanchego validators and RPC nodes
+- **L1 Creation**: Create subnets and chains with the integrated `create-l1` tool
+- **Monitoring Stack**: Built-in Prometheus and Grafana dashboards
+- **Block Explorer**: Optional Blockscout deployment for your L1
+
+## Deployment Paths
+
+Avalanche Deploy supports two deployment approaches:
+
+| Approach | Best For | Tools Used |
+|----------|----------|------------|
+| **Terraform + Ansible** | Production deployments on cloud VMs | Terraform (infrastructure), Ansible (configuration) |
+| **Kubernetes** | Existing K8s clusters | Helm charts |
+
+## What You Get
+
+| Component | Default | Purpose |
+|-----------|---------|---------|
+| **Validators** | 2 | Block production, consensus |
+| **RPC Node** | 1 | External queries, block explorer |
+| **Monitoring** | 1 | Prometheus + Grafana dashboards |
+
+## Quick Links
+
+<Cards>
+  <Card title="Quick Start" href="/docs/tooling/avalanche-deploy/quickstart">
+    Deploy your first L1 in minutes
+  </Card>
+  <Card title="Architecture" href="/docs/tooling/avalanche-deploy/architecture">
+    Understand the infrastructure components
+  </Card>
+  <Card title="GitHub Repository" href="https://github.com/ava-labs/avalanche-deploy">
+    View source code and contribute
+  </Card>
+</Cards>
+
+## Cost Estimate
+
+| Provider | Monthly (2 validators + 1 RPC + monitoring) |
+|----------|---------------------------------------------|
+| AWS | ~$225 |
+| GCP | ~$195 |
+| Azure | ~$420 |
+
+<Callout type="warn">
+Remember to run `make destroy` when done testing to stop billing!
+</Callout>
+
+## Comparison with Avalanche-CLI
+
+| Feature | Avalanche Deploy | Avalanche-CLI |
+|---------|-----------------|---------------|
+| **Focus** | Production infrastructure | Development & testing |
+| **Cloud Deployment** | Automated VM provisioning | Manual or requires separate setup |
+| **Monitoring** | Built-in Prometheus/Grafana | Not included |
+| **Block Explorer** | Optional Blockscout | Not included |
+| **Best For** | DevOps teams, production | Developers, local testing |
+
+For local development and testing, consider [Avalanche-CLI](/docs/tooling/avalanche-cli). For production deployments with Infrastructure as Code, use Avalanche Deploy.
+
+## Support
+
+- [GitHub Issues](https://github.com/ava-labs/avalanche-deploy/issues)
+- [Discord Community](https://chat.avalabs.org/)
