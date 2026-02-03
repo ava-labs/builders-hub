@@ -386,16 +386,19 @@ body[data-layout="docs"] #nd-sidebar nav {
   padding-right: 0 !important;
 }
 
-/* Fix content overflow into TOC sidebar - ensure wide content (tables, code blocks) scroll horizontally */
+/* Constrain article width but allow overflow for step numbers */
+/* Individual elements (tables, pre) handle their own horizontal scrolling */
 body[data-layout="docs"] article,
 body[data-layout="docs"] #nd-page {
-  overflow-x: auto !important;
   max-width: 100% !important;
+  overflow-x: visible !important;  /* Allow step numbers to extend left */
 }
 
 /* Constrain wide elements within article to prevent TOC overlap */
-body[data-layout="docs"] article > *,
-body[data-layout="docs"] .prose > * {
+/* Tables, pre, and other wide content get overflow-x: auto */
+/* But NOT containers that hold .fd-steps (those need overflow: visible for step numbers) */
+body[data-layout="docs"] article > *:not(.fd-steps):not(:has(.fd-steps)),
+body[data-layout="docs"] .prose > *:not(.fd-steps):not(:has(.fd-steps)) {
   max-width: 100% !important;
   overflow-x: auto !important;
 }
@@ -413,6 +416,19 @@ body[data-layout="docs"] article pre,
 body[data-layout="docs"] .prose pre {
   overflow-x: auto !important;
   max-width: 100% !important;
+}
+
+/* Ensure Steps component step numbers are not clipped */
+body[data-layout="docs"] article .fd-steps,
+body[data-layout="docs"] .prose .fd-steps,
+.nd-layout-notebook article .fd-steps {
+  overflow: visible !important;
+  padding-left: 2rem !important; /* Space for step numbers */
+}
+
+/* Ensure prose container doesn't clip step numbers */
+body[data-layout="docs"] .prose:has(.fd-steps) {
+  overflow: visible !important;
 }
 
 /* Reduce heading top margin */
@@ -476,7 +492,7 @@ aside[aria-label*="On this page" i] > div:first-child,
     width: 100% !important;
     max-width: 100% !important;
   }
-  
+
   /* Prevent any TOC from appearing above subnavbar */
   body[data-layout="docs"] aside:not(#nd-sidebar):not([data-sidebar]):not([id*="sidebar" i]) {
     z-index: 0 !important;
