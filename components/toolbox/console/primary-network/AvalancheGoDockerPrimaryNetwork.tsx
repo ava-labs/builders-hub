@@ -132,21 +132,13 @@ function AvalancheGoDockerPrimaryNetworkInner() {
             setMinDelayTarget(1200);
             setAllowUnfinalizedQueries(false);
             setStateSyncEnabled(true); // Validators benefit from fast sync
-            setTrieCleanCache(512);
-            setTrieDirtyCache(512);
-            setSnapshotCache(256);
-            setAcceptedCacheSize(32);
             setTransactionHistory(0);
         } else if (nodeType === "public-rpc") {
             // RPC node defaults
             setPruningEnabled(false);
             setLogLevel("info");
-            setAllowUnfinalizedQueries(true);
+            setAllowUnfinalizedQueries(false); // Default to finalized queries for safety
             setStateSyncEnabled(false); // RPC nodes need full historical data
-            setTrieCleanCache(1024);
-            setTrieDirtyCache(1024);
-            setSnapshotCache(512);
-            setAcceptedCacheSize(64);
             setTransactionHistory(0);
         }
     }, [nodeType]);
@@ -423,20 +415,37 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                             </div>
 
                             {nodeType === "public-rpc" && (
-                                <div onMouseEnter={() => setHighlightPath('ethApis')} onMouseLeave={clearHighlight}>
-                                    <label className="flex items-center space-x-2">
-                                        <input
-                                            type="checkbox"
-                                            checked={enableDebugTrace}
-                                            onChange={(e) => setEnableDebugTrace(e.target.checked)}
-                                            className="rounded border-zinc-300 dark:border-zinc-600"
-                                        />
-                                        <span className="text-sm text-zinc-700 dark:text-zinc-300">Enable Debug Trace</span>
-                                    </label>
-                                    <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-                                        Enables debug APIs and detailed tracing capabilities
-                                    </p>
-                                </div>
+                                <>
+                                    <div onMouseEnter={() => setHighlightPath('ethApis')} onMouseLeave={clearHighlight}>
+                                        <label className="flex items-center space-x-2">
+                                            <input
+                                                type="checkbox"
+                                                checked={enableDebugTrace}
+                                                onChange={(e) => setEnableDebugTrace(e.target.checked)}
+                                                className="rounded border-zinc-300 dark:border-zinc-600"
+                                            />
+                                            <span className="text-sm text-zinc-700 dark:text-zinc-300">Enable Debug Trace</span>
+                                        </label>
+                                        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+                                            Enables debug APIs and detailed tracing capabilities
+                                        </p>
+                                    </div>
+
+                                    <div onMouseEnter={() => setHighlightPath('skipTxIndexing')} onMouseLeave={clearHighlight}>
+                                        <label className="flex items-center space-x-2">
+                                            <input
+                                                type="checkbox"
+                                                checked={!skipTxIndexing}
+                                                onChange={(e) => setSkipTxIndexing(!e.target.checked)}
+                                                className="rounded border-zinc-300 dark:border-zinc-600"
+                                            />
+                                            <span className="text-sm text-zinc-700 dark:text-zinc-300">Enable Transaction Indexing</span>
+                                        </label>
+                                        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+                                            Required for eth_getLogs and transaction lookups. Disable to save disk space.
+                                        </p>
+                                    </div>
+                                </>
                             )}
 
                             {/* Advanced Settings */}
