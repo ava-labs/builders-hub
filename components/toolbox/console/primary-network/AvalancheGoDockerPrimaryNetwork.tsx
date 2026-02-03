@@ -293,64 +293,106 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                     </Step>
 
                     <Step>
-                    <h3 className="text-xl font-bold mb-4">Configure Node Settings</h3>
+                    <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Configure Node Settings</h3>
+                    <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
+                        Choose your network, node type, and configure settings. The configuration preview updates in real-time.
+                    </p>
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <div className="space-y-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                <label className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400 mb-2">
                                     Network
                                 </label>
-                                <select
-                                    value={selectedNetwork}
-                                    onChange={(e) => setSelectedNetwork(e.target.value as "mainnet" | "fuji")}
-                                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                                >
-                                    <option value="mainnet">Mainnet</option>
-                                    <option value="fuji">Fuji (Testnet)</option>
-                                </select>
-                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                    Select which Avalanche network to connect to
-                                </p>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setSelectedNetwork("mainnet")}
+                                        className={`p-3 rounded-xl border-2 text-left transition-all ${
+                                            selectedNetwork === "mainnet"
+                                                ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                                                : "border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600"
+                                        }`}
+                                    >
+                                        <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Mainnet</div>
+                                        <div className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5">Production network</div>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setSelectedNetwork("fuji")}
+                                        className={`p-3 rounded-xl border-2 text-left transition-all ${
+                                            selectedNetwork === "fuji"
+                                                ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                                                : "border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600"
+                                        }`}
+                                    >
+                                        <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Fuji</div>
+                                        <div className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5">Testnet</div>
+                                    </button>
+                                </div>
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                <label className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400 mb-2">
                                     Node Type
                                 </label>
-                                <select
-                                    value={nodeType}
-                                    onChange={(e) => setNodeType(e.target.value as "validator" | "public-rpc")}
-                                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                                >
-                                    <option value="validator">Validator Node</option>
-                                    <option value="public-rpc">Public RPC Node</option>
-                                </select>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setNodeType("validator")}
+                                        className={`p-3 rounded-xl border-2 text-left transition-all ${
+                                            nodeType === "validator"
+                                                ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                                                : "border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600"
+                                        }`}
+                                    >
+                                        <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Validator</div>
+                                        <div className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5">Port 9651 (P2P)</div>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setNodeType("public-rpc")}
+                                        className={`p-3 rounded-xl border-2 text-left transition-all ${
+                                            nodeType === "public-rpc"
+                                                ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                                                : "border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600"
+                                        }`}
+                                    >
+                                        <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">RPC Node</div>
+                                        <div className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5">Port 9650 (HTTP)</div>
+                                    </button>
+                                </div>
                             </div>
 
                             <div onMouseEnter={() => setHighlightPath('logLevel')} onMouseLeave={clearHighlight}>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                <label className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400 mb-2">
                                     Log Level
                                 </label>
-                                <select
-                                    value={logLevel}
-                                    onChange={(e) => setLogLevel(e.target.value)}
-                                    onFocus={() => setHighlightPath('logLevel')}
-                                    onBlur={clearHighlight}
-                                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                                >
-                                    <option value="off">Off - No logs</option>
-                                    <option value="fatal">Fatal - Only fatal errors</option>
-                                    <option value="error">Error - Recoverable errors</option>
-                                    <option value="warn">Warn - Warnings</option>
-                                    <option value="info">Info - Status updates (default)</option>
-                                    <option value="trace">Trace - Container job results</option>
-                                    <option value="debug">Debug - Debugging information</option>
-                                    <option value="verbo">Verbo - Verbose output</option>
-                                </select>
-                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                    Controls the verbosity of node logs
-                                </p>
+                                <div className="flex flex-wrap gap-1.5">
+                                    {[
+                                        { value: "error", label: "Error" },
+                                        { value: "warn", label: "Warn" },
+                                        { value: "info", label: "Info", default: true },
+                                        { value: "debug", label: "Debug" },
+                                        { value: "verbo", label: "Verbose" },
+                                    ].map((level) => (
+                                        <button
+                                            key={level.value}
+                                            type="button"
+                                            onClick={() => setLogLevel(level.value)}
+                                            className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-all ${
+                                                logLevel === level.value
+                                                    ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
+                                                    : "border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-300 dark:hover:border-zinc-600"
+                                            }`}
+                                        >
+                                            {level.label}
+                                            {level.default && logLevel !== level.value && (
+                                                <span className="ml-1 text-[10px] text-zinc-400">(default)</span>
+                                            )}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
 
                             <div onMouseEnter={() => setHighlightPath('pruning')} onMouseLeave={clearHighlight}>
@@ -744,7 +786,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
 
                                         {nodeType === "validator" && (
                                             <div className="border-t pt-3">
-                                                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Block Timing (Validator)</h4>
+                                                <h4 className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">Block Timing (Validator)</h4>
                                                 <p className="text-xs text-amber-600 dark:text-amber-400 mb-3 flex items-start gap-1">
                                                     <svg className="w-4 h-4 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                                                         <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
@@ -754,29 +796,37 @@ function AvalancheGoDockerPrimaryNetworkInner() {
 
                                                 <div className="space-y-3">
                                                     <div onMouseEnter={() => setHighlightPath('minDelayTarget')} onMouseLeave={clearHighlight}>
-                                                        <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
-                                                            Min Delay Target (ms)
-                                                        </label>
+                                                        <div className="flex items-center justify-between mb-2">
+                                                            <label className="block text-xs text-zinc-600 dark:text-zinc-400">
+                                                                Min Delay Target
+                                                            </label>
+                                                            <span className="text-xs font-mono text-zinc-900 dark:text-zinc-100 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded">
+                                                                {minDelayTarget === 0 ? "default" : `${minDelayTarget}ms`}
+                                                            </span>
+                                                        </div>
                                                         <input
-                                                            type="number"
+                                                            type="range"
                                                             value={minDelayTarget}
-                                                            onChange={(e) => {
-                                                                const value = Math.min(2000, Math.max(0, parseInt(e.target.value) || 0));
-                                                                setMinDelayTarget(value);
-                                                            }}
+                                                            onChange={(e) => setMinDelayTarget(parseInt(e.target.value))}
                                                             onFocus={() => setHighlightPath('minDelayTarget')}
                                                             onBlur={clearHighlight}
                                                             min="0"
                                                             max="2000"
-                                                            className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                                                            step="100"
+                                                            className="w-full h-2 bg-zinc-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
                                                         />
-                                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                        <div className="flex justify-between text-[10px] text-zinc-400 mt-1">
+                                                            <span>0 (default)</span>
+                                                            <span>1000ms</span>
+                                                            <span>2000ms</span>
+                                                        </div>
+                                                        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
                                                             Set to 0 to use node default (recommended). Non-zero values vote on block timing.
                                                         </p>
                                                     </div>
 
                                                     <div onMouseEnter={() => setHighlightPath('pushGossipNumValidators')} onMouseLeave={clearHighlight}>
-                                                        <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                                                        <label className="block text-xs text-zinc-600 dark:text-zinc-400 mb-1">
                                                             Push Gossip Num Validators
                                                         </label>
                                                         <input
@@ -785,15 +835,15 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                                                             onChange={(e) => setPushGossipNumValidators(Math.max(0, parseInt(e.target.value) || 0))}
                                                             onFocus={() => setHighlightPath('pushGossipNumValidators')}
                                                             onBlur={clearHighlight}
-                                                            className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                                                            className="w-full px-2 py-1.5 text-sm border border-zinc-200 dark:border-zinc-700 rounded-md dark:bg-zinc-800 dark:text-white"
                                                         />
-                                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
                                                             Number of validators to push gossip to (default: 100)
                                                         </p>
                                                     </div>
 
                                                     <div onMouseEnter={() => setHighlightPath('pushGossipPercentStake')} onMouseLeave={clearHighlight}>
-                                                        <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                                                        <label className="block text-xs text-zinc-600 dark:text-zinc-400 mb-1">
                                                             Push Gossip Percent Stake
                                                         </label>
                                                         <input
@@ -805,9 +855,9 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                                                             onChange={(e) => setPushGossipPercentStake(Math.min(1, Math.max(0, parseFloat(e.target.value) || 0)))}
                                                             onFocus={() => setHighlightPath('pushGossipPercentStake')}
                                                             onBlur={clearHighlight}
-                                                            className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                                                            className="w-full px-2 py-1.5 text-sm border border-zinc-200 dark:border-zinc-700 rounded-md dark:bg-zinc-800 dark:text-white"
                                                         />
-                                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
                                                             Percentage of total stake to gossip to (default: 0.9)
                                                         </p>
                                                     </div>
