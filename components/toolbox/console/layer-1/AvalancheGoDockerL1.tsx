@@ -152,6 +152,7 @@ function AvalanchegoDockerInner() {
             setMinDelayTarget(500); // Default block time for L1
             setAllowUnfinalizedQueries(false);
             setStateSyncEnabled(true); // Validators benefit from fast sync
+            setSkipTxIndexing(true); // Validators don't need tx indexing
             setTransactionHistory(0); // Keep all tx history by default
             setIncludeEthApis(false); // Validators don't need external eth-apis
         } else if (nodeType === "public-rpc") {
@@ -163,6 +164,7 @@ function AvalanchegoDockerInner() {
             setLogLevel("info");
             setAllowUnfinalizedQueries(false); // Default to finalized queries for safety
             setStateSyncEnabled(false); // RPC nodes need full historical data
+            setSkipTxIndexing(false); // RPC nodes need tx indexing for queries
             setTransactionHistory(0); // Keep all tx history by default for getLogs
             setIncludeEthApis(true); // RPC nodes need external eth-apis
         } else if (nodeType === "validator-rpc") {
@@ -175,6 +177,7 @@ function AvalanchegoDockerInner() {
             setMinDelayTarget(500); // Block production timing
             setAllowUnfinalizedQueries(false); // Default to finalized queries for safety
             setStateSyncEnabled(false); // Need full historical data for RPC queries
+            setSkipTxIndexing(false); // Validator-RPC needs tx indexing for queries
             setTransactionHistory(0); // Keep all tx history
             setIncludeEthApis(true); // Validator-RPC needs external eth-apis
         }

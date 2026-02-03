@@ -140,6 +140,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
             setMinDelayTarget(0); // Don't include in config - use node default
             setAllowUnfinalizedQueries(false);
             setStateSyncEnabled(true); // Validators benefit from fast sync
+            setSkipTxIndexing(true); // Validators don't need tx indexing
             setTransactionHistory(0);
             setIncludeEthApis(false); // Validators don't need external eth-apis
         } else if (nodeType === "public-rpc") {
@@ -152,6 +153,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
             setLogLevel("info");
             setAllowUnfinalizedQueries(false); // Default to finalized queries for safety
             setStateSyncEnabled(false); // RPC nodes need full historical data
+            setSkipTxIndexing(false); // RPC nodes need tx indexing for queries
             setTransactionHistory(0);
             setIncludeEthApis(true); // RPC nodes need external eth-apis
         }
