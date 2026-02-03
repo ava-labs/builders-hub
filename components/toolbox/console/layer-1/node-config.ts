@@ -122,9 +122,6 @@ export const generateChainConfig = (
     addIfNotDefault("batch-request-limit", batchRequestLimit);
     addIfNotDefault("batch-response-max-size", batchResponseMaxSize);
 
-    // Warp API - typically enabled for L1s, but not a default for all Subnet-EVM chains
-    config["warp-api-enabled"] = true;
-
     // State sync - only add if enabled
     if (stateSyncEnabled) {
         config["state-sync-enabled"] = true;
