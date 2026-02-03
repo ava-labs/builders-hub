@@ -39,7 +39,7 @@ export const generateChainConfig = (
     adminApiEnabled: boolean = false,
     pruningEnabled: boolean = true,
     logLevel: string = "info",
-    minDelayTarget: number = 250,
+    minDelayTarget: number = 0,
     trieCleanCache: number = 512,
     trieDirtyCache: number = 512,
     trieDirtyCommitTarget: number = 20,
@@ -62,7 +62,11 @@ export const generateChainConfig = (
     pushGossipNumValidators: number = 100,
     pushGossipPercentStake: number = 0.9,
     continuousProfilerDir: string = "",
-    continuousProfilerFrequency: string = "15m"
+    continuousProfilerFrequency: string = "15m",
+    // New option to control whether to include eth-apis in config
+    // When false (default for validators), eth-apis are omitted (uses node defaults)
+    // When true (for RPC nodes), eth-apis are explicitly included
+    includeEthApis: boolean = false
 ) => {
     const isRPC = nodeType === 'public-rpc' || nodeType === 'validator-rpc';
     const isValidator = nodeType === 'validator' || nodeType === 'validator-rpc';
@@ -142,7 +146,10 @@ export const generateChainConfig = (
     }
 
     // Configure APIs based on node type
-    // Always include eth-apis for explicitness in L1 node setup
+    // Only include eth-apis when:
+    // 1. Debug trace is enabled (RPC nodes that need debug APIs)
+    // 2. includeEthApis is true (RPC nodes that want explicit API config)
+    // For validators, we omit eth-apis to use node defaults (no external exposure)
     if (enableDebugTrace) {
         config["eth-apis"] = [
             "eth",
@@ -161,9 +168,8 @@ export const generateChainConfig = (
             "debug-file-tracer",
             "debug-handler"
         ];
-    } else {
-        // Include standard APIs explicitly for L1 nodes (even though these are defaults)
-        // This makes the configuration more explicit and easier to understand
+    } else if (includeEthApis) {
+        // For RPC nodes without debug: include standard APIs explicitly
         config["eth-apis"] = [
             "eth",
             "eth-filter",
@@ -174,13 +180,27 @@ export const generateChainConfig = (
             "internal-transaction"
         ];
     }
+    // For validators (includeEthApis=false, enableDebugTrace=false):
+    // Omit eth-apis entirely to use node defaults
 
     // Admin API - only enable if explicitly requested
     if (adminApiEnabled) {
         config["admin-api-enabled"] = true;
-        // Add admin to eth-apis if not already present (when debug is disabled)
-        if (!enableDebugTrace && !config["eth-apis"].includes("admin")) {
+        // Add admin to eth-apis if present and not already included
+        if (config["eth-apis"] && !config["eth-apis"].includes("admin")) {
             config["eth-apis"].push("admin");
+        } else if (!config["eth-apis"]) {
+            // If eth-apis wasn't set, create it with admin
+            config["eth-apis"] = [
+                "eth",
+                "eth-filter",
+                "net",
+                "web3",
+                "internal-eth",
+                "internal-blockchain",
+                "internal-transaction",
+                "admin"
+            ];
         }
     }
 
@@ -196,11 +216,15 @@ export const generateChainConfig = (
         }
     }
 
-    // Gossip settings (primarily for validators) - only add if non-default
+    // Gossip settings (primarily for validators) - only add if different from defaults
+    // Default values: push-gossip-num-validators=100, push-gossip-percent-stake=0.9
     if (isValidator) {
-        // These don't have documented defaults, so we always add them for validators
-        config["push-gossip-num-validators"] = pushGossipNumValidators;
-        config["push-gossip-percent-stake"] = pushGossipPercentStake;
+        if (pushGossipNumValidators !== 100) {
+            config["push-gossip-num-validators"] = pushGossipNumValidators;
+        }
+        if (pushGossipPercentStake !== 0.9) {
+            config["push-gossip-percent-stake"] = pushGossipPercentStake;
+        }
     }
 
     // Continuous profiling - only add if enabled

@@ -25,9 +25,13 @@ function AvalancheGoDockerPrimaryNetworkInner() {
     const [adminApiEnabled, setAdminApiEnabled] = useState<boolean>(false);
     const [pruningEnabled, setPruningEnabled] = useState<boolean>(true);
     const [logLevel, setLogLevel] = useState<string>("info");
-    const [minDelayTarget, setMinDelayTarget] = useState<number>(1200);
+    // min-delay-target: 0 means don't include in config (use node default)
+    // C-Chain has sub-second block times, so validators shouldn't vote on this by default
+    const [minDelayTarget, setMinDelayTarget] = useState<number>(0);
     const [configJson, setConfigJson] = useState<string>("");
     const [nodeIsReady, setNodeIsReady] = useState<boolean>(false);
+    // Control whether to include eth-apis in config (true for RPC, false for validators)
+    const [includeEthApis, setIncludeEthApis] = useState<boolean>(false);
 
     // Advanced cache settings
     const [trieCleanCache, setTrieCleanCache] = useState<number>(512);
@@ -112,23 +116,28 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                 pushGossipNumValidators,
                 pushGossipPercentStake,
                 continuousProfilerDir,
-                continuousProfilerFrequency
+                continuousProfilerFrequency,
+                includeEthApis
             );
             setConfigJson(JSON.stringify(config, null, 2));
         } catch (error) {
             setConfigJson(`Error: ${(error as Error).message}`);
         }
-    }, [nodeType, enableDebugTrace, adminApiEnabled, pruningEnabled, logLevel, minDelayTarget, trieCleanCache, trieDirtyCache, trieDirtyCommitTarget, triePrefetcherParallelism, snapshotCache, commitInterval, stateSyncServerTrieCache, rpcGasCap, rpcTxFeeCap, apiMaxBlocksPerRequest, allowUnfinalizedQueries, batchRequestLimit, batchResponseMaxSize, acceptedCacheSize, transactionHistory, stateSyncEnabled, skipTxIndexing, preimagesEnabled, localTxsEnabled, pushGossipNumValidators, pushGossipPercentStake, continuousProfilerDir, continuousProfilerFrequency]);
+    }, [nodeType, enableDebugTrace, adminApiEnabled, pruningEnabled, logLevel, minDelayTarget, trieCleanCache, trieDirtyCache, trieDirtyCommitTarget, triePrefetcherParallelism, snapshotCache, commitInterval, stateSyncServerTrieCache, rpcGasCap, rpcTxFeeCap, apiMaxBlocksPerRequest, allowUnfinalizedQueries, batchRequestLimit, batchResponseMaxSize, acceptedCacheSize, transactionHistory, stateSyncEnabled, skipTxIndexing, preimagesEnabled, localTxsEnabled, pushGossipNumValidators, pushGossipPercentStake, continuousProfilerDir, continuousProfilerFrequency, includeEthApis]);
 
     useEffect(() => {
         if (nodeType === "validator") {
-            // Validator node defaults
+            // Validator node defaults:
+            // - Pruning enabled (reduces disk usage)
+            // - State sync enabled (fast bootstrap)
+            // - External eth-apis OFF (validators don't need to expose APIs)
+            // - minDelayTarget = 0 (don't vote on block timing by default)
             setDomain("");
             setEnableDebugTrace(false);
             setAdminApiEnabled(false);
             setPruningEnabled(true);
             setLogLevel("info");
-            setMinDelayTarget(1200);
+            setMinDelayTarget(0); // Don't include in config - use node default
             setAllowUnfinalizedQueries(false);
             setStateSyncEnabled(true); // Validators benefit from fast sync
             setTrieCleanCache(512);
@@ -136,8 +145,12 @@ function AvalancheGoDockerPrimaryNetworkInner() {
             setSnapshotCache(256);
             setAcceptedCacheSize(32);
             setTransactionHistory(0);
+            setIncludeEthApis(false); // Validators don't need external eth-apis
         } else if (nodeType === "public-rpc") {
-            // RPC node defaults
+            // RPC node defaults:
+            // - Pruning disabled (archival - need full history)
+            // - State sync disabled (need full historical data)
+            // - External eth-apis ON (RPC nodes need to expose APIs)
             setPruningEnabled(false);
             setLogLevel("info");
             setAllowUnfinalizedQueries(true);
@@ -147,6 +160,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
             setSnapshotCache(512);
             setAcceptedCacheSize(64);
             setTransactionHistory(0);
+            setIncludeEthApis(true); // RPC nodes need external eth-apis
         }
     }, [nodeType]);
 
@@ -164,7 +178,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
         setAdminApiEnabled(false);
         setPruningEnabled(true);
         setLogLevel("info");
-        setMinDelayTarget(1200);
+        setMinDelayTarget(0); // Don't include in config by default
         setConfigJson("");
         setTrieCleanCache(512);
         setTrieDirtyCache(512);
@@ -191,6 +205,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
         setContinuousProfilerFrequency("15m");
         setShowAdvancedSettings(false);
         setNodeIsReady(false);
+        setIncludeEthApis(false); // Validators don't need external eth-apis
     };
 
     // Generate Docker command for Primary Network (using file-based config)
@@ -337,30 +352,6 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                                     Controls the verbosity of node logs
                                 </p>
                             </div>
-
-                            {nodeType === "validator" && (
-                                <div onMouseEnter={() => setHighlightPath('minDelayTarget')} onMouseLeave={clearHighlight}>
-                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                                Min Delay Target (ms)
-                                            </label>
-                                            <input
-                                                type="number"
-                                        value={minDelayTarget}
-                                                onChange={(e) => {
-                                                    const value = Math.min(2000, Math.max(0, parseInt(e.target.value) || 0));
-                                                    setMinDelayTarget(value);
-                                                }}
-                                        onFocus={() => setHighlightPath('minDelayTarget')}
-                                        onBlur={clearHighlight}
-                                                min="0"
-                                                max="2000"
-                                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                                            />
-                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                        The minimum delay between blocks (in milliseconds). Maximum: 2000ms. Default: 1200ms.
-                                    </p>
-                                </div>
-                            )}
 
                             <div onMouseEnter={() => setHighlightPath('pruning')} onMouseLeave={clearHighlight}>
                                 <label className="flex items-center space-x-2">
@@ -753,9 +744,37 @@ function AvalancheGoDockerPrimaryNetworkInner() {
 
                                         {nodeType === "validator" && (
                                             <div className="border-t pt-3">
-                                                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Gossip Settings (Validator)</h4>
+                                                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Block Timing (Validator)</h4>
+                                                <p className="text-xs text-amber-600 dark:text-amber-400 mb-3 flex items-start gap-1">
+                                                    <svg className="w-4 h-4 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                                    </svg>
+                                                    <span>C-Chain has sub-second block times. Only modify if you understand the consensus implications.</span>
+                                                </p>
 
                                                 <div className="space-y-3">
+                                                    <div onMouseEnter={() => setHighlightPath('minDelayTarget')} onMouseLeave={clearHighlight}>
+                                                        <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                                                            Min Delay Target (ms)
+                                                        </label>
+                                                        <input
+                                                            type="number"
+                                                            value={minDelayTarget}
+                                                            onChange={(e) => {
+                                                                const value = Math.min(2000, Math.max(0, parseInt(e.target.value) || 0));
+                                                                setMinDelayTarget(value);
+                                                            }}
+                                                            onFocus={() => setHighlightPath('minDelayTarget')}
+                                                            onBlur={clearHighlight}
+                                                            min="0"
+                                                            max="2000"
+                                                            className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                                                        />
+                                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                            Set to 0 to use node default (recommended). Non-zero values vote on block timing.
+                                                        </p>
+                                                    </div>
+
                                                     <div onMouseEnter={() => setHighlightPath('pushGossipNumValidators')} onMouseLeave={clearHighlight}>
                                                         <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
                                                             Push Gossip Num Validators
@@ -769,7 +788,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                                                             className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
                                                         />
                                                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                                            Number of validators to push gossip to
+                                                            Number of validators to push gossip to (default: 100)
                                                         </p>
                                                     </div>
 
@@ -789,7 +808,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                                                             className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
                                                         />
                                                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                                            Percentage of total stake to gossip to (0-1)
+                                                            Percentage of total stake to gossip to (default: 0.9)
                                                         </p>
                                                     </div>
                                                 </div>
