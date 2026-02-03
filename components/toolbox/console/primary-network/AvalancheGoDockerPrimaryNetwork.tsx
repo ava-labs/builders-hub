@@ -33,6 +33,9 @@ function AvalancheGoDockerPrimaryNetworkInner() {
     // Control whether to include eth-apis in config (true for RPC, false for validators)
     const [includeEthApis, setIncludeEthApis] = useState<boolean>(false);
 
+    // Enable expensive debug-level metrics (disabled by default)
+    const [metricsExpensiveEnabled, setMetricsExpensiveEnabled] = useState<boolean>(false);
+
     // Advanced cache settings
     const [trieCleanCache, setTrieCleanCache] = useState<number>(512);
     const [trieDirtyCache, setTrieDirtyCache] = useState<number>(512);
@@ -117,13 +120,14 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                 pushGossipPercentStake,
                 continuousProfilerDir,
                 continuousProfilerFrequency,
-                includeEthApis
+                includeEthApis,
+                metricsExpensiveEnabled
             );
             setConfigJson(JSON.stringify(config, null, 2));
         } catch (error) {
             setConfigJson(`Error: ${(error as Error).message}`);
         }
-    }, [nodeType, enableDebugTrace, adminApiEnabled, pruningEnabled, logLevel, minDelayTarget, trieCleanCache, trieDirtyCache, trieDirtyCommitTarget, triePrefetcherParallelism, snapshotCache, commitInterval, stateSyncServerTrieCache, rpcGasCap, rpcTxFeeCap, apiMaxBlocksPerRequest, allowUnfinalizedQueries, batchRequestLimit, batchResponseMaxSize, acceptedCacheSize, transactionHistory, stateSyncEnabled, skipTxIndexing, preimagesEnabled, localTxsEnabled, pushGossipNumValidators, pushGossipPercentStake, continuousProfilerDir, continuousProfilerFrequency, includeEthApis]);
+    }, [nodeType, enableDebugTrace, adminApiEnabled, pruningEnabled, logLevel, minDelayTarget, trieCleanCache, trieDirtyCache, trieDirtyCommitTarget, triePrefetcherParallelism, snapshotCache, commitInterval, stateSyncServerTrieCache, rpcGasCap, rpcTxFeeCap, apiMaxBlocksPerRequest, allowUnfinalizedQueries, batchRequestLimit, batchResponseMaxSize, acceptedCacheSize, transactionHistory, stateSyncEnabled, skipTxIndexing, preimagesEnabled, localTxsEnabled, pushGossipNumValidators, pushGossipPercentStake, continuousProfilerDir, continuousProfilerFrequency, includeEthApis, metricsExpensiveEnabled]);
 
     useEffect(() => {
         if (nodeType === "validator") {
@@ -201,6 +205,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
         setShowAdvancedSettings(false);
         setNodeIsReady(false);
         setIncludeEthApis(false); // Validators don't need external eth-apis
+        setMetricsExpensiveEnabled(false); // Expensive metrics disabled by default
     };
 
     // Generate Docker command for Primary Network (using file-based config)
@@ -595,6 +600,30 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                                                     />
                                                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                                                         Trie cache for state sync server
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="border-t pt-3">
+                                            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Metrics Settings</h4>
+                                            <div className="space-y-3">
+                                                <div onMouseEnter={() => setHighlightPath('metricsExpensive')} onMouseLeave={clearHighlight}>
+                                                    <label className="flex items-center space-x-2">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={metricsExpensiveEnabled}
+                                                            onChange={(e) => setMetricsExpensiveEnabled(e.target.checked)}
+                                                            onFocus={() => setHighlightPath('metricsExpensive')}
+                                                            onBlur={clearHighlight}
+                                                            className="rounded"
+                                                        />
+                                                        <span className="text-xs text-gray-600 dark:text-gray-400">
+                                                            Enable Expensive Metrics
+                                                        </span>
+                                                    </label>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-6">
+                                                        Enables debug-level metrics including Firewood metrics. May impact performance.
                                                     </p>
                                                 </div>
                                             </div>

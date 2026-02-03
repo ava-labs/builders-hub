@@ -66,7 +66,10 @@ export const generateChainConfig = (
     // New option to control whether to include eth-apis in config
     // When false (default for validators), eth-apis are omitted (uses node defaults)
     // When true (for RPC nodes), eth-apis are explicitly included
-    includeEthApis: boolean = false
+    includeEthApis: boolean = false,
+    // Enable expensive debug-level metrics (includes Firewood metrics)
+    // Default false - only enable if you need detailed metrics and understand the performance impact
+    metricsExpensiveEnabled: boolean = false
 ) => {
     const isRPC = nodeType === 'public-rpc' || nodeType === 'validator-rpc';
     const isValidator = nodeType === 'validator' || nodeType === 'validator-rpc';
@@ -108,9 +111,14 @@ export const generateChainConfig = (
         config["log-level"] = logLevel;
     }
 
-    // Metrics - always enable for observability
+    // Metrics - always enable basic metrics for observability
     config["metrics-enabled"] = true;
-    config["metrics-expensive-enabled"] = true;
+
+    // Expensive metrics - only add if explicitly enabled (default is false)
+    // These include debug-level metrics like Firewood metrics that can impact performance
+    if (metricsExpensiveEnabled) {
+        config["metrics-expensive-enabled"] = true;
+    }
 
     // Min delay target - only add if non-zero (default is 0, meaning no minimum delay)
     if (minDelayTarget > 0) {
