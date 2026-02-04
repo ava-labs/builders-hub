@@ -7,11 +7,11 @@ import { Steps, Step } from "fumadocs-ui/components/steps";
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
 import { DockerInstallation } from "@/components/toolbox/components/DockerInstallation";
-import { NodeBootstrapCheck } from "@/components/toolbox/components/NodeBootstrapCheck";
 import { ReverseProxySetup } from "@/components/toolbox/components/ReverseProxySetup";
 import { Button } from "@/components/toolbox/components/Button";
 import { SyntaxHighlightedJSON } from "@/components/toolbox/components/genesis/SyntaxHighlightedJSON";
 import { GenesisHighlightProvider, useGenesisHighlight } from "@/components/toolbox/components/genesis/GenesisHighlightContext";
+import { StorageRequirements } from "@/components/toolbox/components/StorageRequirements";
 import { generateChainConfig, generateConfigFileCommand } from "@/components/toolbox/console/layer-1/node-config";
 import { useNodeConfigHighlighting } from "@/components/toolbox/console/layer-1/useNodeConfigHighlighting";
 import { C_CHAIN_ID } from "@/components/toolbox/console/layer-1/create/config";
@@ -19,7 +19,7 @@ import { getContainerVersions } from "@/components/toolbox/utils/containerVersio
 
 function AvalancheGoDockerPrimaryNetworkInner() {
     const { setHighlightPath, clearHighlight, highlightPath } = useGenesisHighlight();
-    const [nodeType, setNodeType] = useState<"validator" | "public-rpc">("validator");
+    const [nodeType, setNodeType] = useState<"validator" | "rpc" | "archival">("validator");
     const [domain, setDomain] = useState("");
     const [enableDebugTrace, setEnableDebugTrace] = useState<boolean>(false);
     const [adminApiEnabled, setAdminApiEnabled] = useState<boolean>(false);
@@ -29,9 +29,6 @@ function AvalancheGoDockerPrimaryNetworkInner() {
     // C-Chain has sub-second block times, so validators shouldn't vote on this by default
     const [minDelayTarget, setMinDelayTarget] = useState<number>(0);
     const [configJson, setConfigJson] = useState<string>("");
-    const [nodeIsReady, setNodeIsReady] = useState<boolean>(false);
-    // Control whether to include eth-apis in config (true for RPC, false for validators)
-    const [includeEthApis, setIncludeEthApis] = useState<boolean>(false);
 
     // Enable expensive debug-level metrics (disabled by default)
     const [metricsExpensiveEnabled, setMetricsExpensiveEnabled] = useState<boolean>(false);
@@ -50,7 +47,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
     const [rpcTxFeeCap, setRpcTxFeeCap] = useState<number>(100);
     const [apiMaxBlocksPerRequest, setApiMaxBlocksPerRequest] = useState<number>(0);
     const [allowUnfinalizedQueries, setAllowUnfinalizedQueries] = useState<boolean>(false);
-    const [batchRequestLimit, setBatchRequestLimit] = useState<number>(0);
+    const [batchRequestLimit, setBatchRequestLimit] = useState<number>(1000); // AvalancheGo default
     const [batchResponseMaxSize, setBatchResponseMaxSize] = useState<number>(25000000);
 
     // State and history
@@ -82,7 +79,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
     // Use selected network for configuration (1 = mainnet, 5 = fuji)
     const effectiveNetworkID = selectedNetwork === "fuji" ? 5 : 1;
 
-    const isRPC = nodeType === "public-rpc";
+    const isRPC = nodeType === "rpc" || nodeType === "archival";
 
     // Get highlighted lines for JSON preview
     const highlightedLines = useNodeConfigHighlighting(highlightPath, configJson);
@@ -120,22 +117,21 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                 pushGossipPercentStake,
                 continuousProfilerDir,
                 continuousProfilerFrequency,
-                includeEthApis,
                 metricsExpensiveEnabled
             );
             setConfigJson(JSON.stringify(config, null, 2));
         } catch (error) {
             setConfigJson(`Error: ${(error as Error).message}`);
         }
-    }, [nodeType, enableDebugTrace, adminApiEnabled, pruningEnabled, logLevel, minDelayTarget, trieCleanCache, trieDirtyCache, trieDirtyCommitTarget, triePrefetcherParallelism, snapshotCache, commitInterval, stateSyncServerTrieCache, rpcGasCap, rpcTxFeeCap, apiMaxBlocksPerRequest, allowUnfinalizedQueries, batchRequestLimit, batchResponseMaxSize, acceptedCacheSize, transactionHistory, stateSyncEnabled, skipTxIndexing, preimagesEnabled, localTxsEnabled, pushGossipNumValidators, pushGossipPercentStake, continuousProfilerDir, continuousProfilerFrequency, includeEthApis, metricsExpensiveEnabled]);
+    }, [nodeType, enableDebugTrace, adminApiEnabled, pruningEnabled, logLevel, minDelayTarget, trieCleanCache, trieDirtyCache, trieDirtyCommitTarget, triePrefetcherParallelism, snapshotCache, commitInterval, stateSyncServerTrieCache, rpcGasCap, rpcTxFeeCap, apiMaxBlocksPerRequest, allowUnfinalizedQueries, batchRequestLimit, batchResponseMaxSize, acceptedCacheSize, transactionHistory, stateSyncEnabled, skipTxIndexing, preimagesEnabled, localTxsEnabled, pushGossipNumValidators, pushGossipPercentStake, continuousProfilerDir, continuousProfilerFrequency, metricsExpensiveEnabled]);
 
     useEffect(() => {
         if (nodeType === "validator") {
             // Validator node defaults:
             // - Pruning enabled (reduces disk usage)
             // - State sync enabled (fast bootstrap)
-            // - External eth-apis OFF (validators don't need to expose APIs)
-            // - Cache sizes use Subnet-EVM defaults (512, 512, 256, 32)
+            // - TX indexing OFF (validators don't need to query transactions)
+            // - eth-apis: node uses sensible defaults automatically
             setDomain("");
             setEnableDebugTrace(false);
             setAdminApiEnabled(false);
@@ -146,20 +142,32 @@ function AvalancheGoDockerPrimaryNetworkInner() {
             setStateSyncEnabled(true); // Validators benefit from fast sync
             setSkipTxIndexing(true); // Validators don't need tx indexing
             setTransactionHistory(0);
-            setIncludeEthApis(false); // Validators don't need external eth-apis
-        } else if (nodeType === "public-rpc") {
+        } else if (nodeType === "rpc") {
             // RPC node defaults:
-            // - Pruning disabled (archival - need full history)
-            // - State sync disabled (need full historical data)
-            // - External eth-apis ON (RPC nodes need to expose APIs)
-            // - Cache sizes use Subnet-EVM defaults (512, 512, 256, 32)
+            // - Pruning enabled (reduces disk usage - only serves current state)
+            // - State sync enabled (fast bootstrap)
+            // - TX indexing ON (RPC nodes need to query transactions)
+            // - eth-apis: node uses sensible defaults automatically
+            // Best for: Cost-effective RPC serving current/recent state
+            setPruningEnabled(true);
+            setLogLevel("info");
+            setAllowUnfinalizedQueries(false); // Default to finalized queries for safety
+            setStateSyncEnabled(true); // RPC nodes can use fast sync
+            setSkipTxIndexing(false); // RPC nodes need tx indexing for queries
+            setTransactionHistory(0);
+        } else if (nodeType === "archival") {
+            // Archival node defaults:
+            // - Pruning disabled (full historical state)
+            // - State sync disabled (need to replay all blocks for full history)
+            // - TX indexing ON (archival nodes need full tx history)
+            // - eth-apis: node uses sensible defaults automatically
+            // Best for: Historical queries, block explorers, analytics
             setPruningEnabled(false);
             setLogLevel("info");
             setAllowUnfinalizedQueries(false); // Default to finalized queries for safety
-            setStateSyncEnabled(false); // RPC nodes need full historical data
-            setSkipTxIndexing(false); // RPC nodes need tx indexing for queries
+            setStateSyncEnabled(false); // Archival nodes need full historical data
+            setSkipTxIndexing(false); // Archival nodes need tx indexing for queries
             setTransactionHistory(0);
-            setIncludeEthApis(true); // RPC nodes need external eth-apis
         }
     }, [nodeType]);
 
@@ -190,7 +198,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
         setRpcTxFeeCap(100);
         setApiMaxBlocksPerRequest(0);
         setAllowUnfinalizedQueries(false);
-        setBatchRequestLimit(0);
+        setBatchRequestLimit(1000); // AvalancheGo default
         setBatchResponseMaxSize(25000000);
         setAcceptedCacheSize(32);
         setTransactionHistory(0);
@@ -203,8 +211,6 @@ function AvalancheGoDockerPrimaryNetworkInner() {
         setContinuousProfilerDir("");
         setContinuousProfilerFrequency("15m");
         setShowAdvancedSettings(false);
-        setNodeIsReady(false);
-        setIncludeEthApis(false); // Validators don't need external eth-apis
         setMetricsExpensiveEnabled(false); // Expensive metrics disabled by default
     };
 
@@ -263,20 +269,50 @@ function AvalancheGoDockerPrimaryNetworkInner() {
             >
                 <Steps>
                     <Step>
-                        <h3 className="text-xl font-bold mb-4">Set up Instance</h3>
-                        <p>Set up a linux server with any cloud provider, like AWS, GCP, Azure, or Digital Ocean. Requirements:</p>
-                        <ul className="list-disc pl-5 mt-2 mb-4">
-                            <li><strong>CPU:</strong> 8+ cores recommended for validators with high stake, 4 cores minimum</li>
-                            <li><strong>RAM:</strong> 16GB minimum, 32GB recommended for high traffic</li>
-                            <li><strong>Storage:</strong> 1TB NVMe SSD (pruning enabled) or 2TB+ NVMe SSD (archival/RPC)</li>
-                        </ul>
-                        <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-2">
-                            Note: Disk space requirements depend on pruning settings, not stake weight. See pruning options in the configuration step.
-                        </p>
-                        <p className="text-sm text-amber-600 dark:text-amber-400 mb-4">
-                            <strong>Important:</strong> Use local NVMe storage, not cloud block storage (EBS, Persistent Disk). See <a href="/docs/nodes/system-requirements" className="underline hover:no-underline">system requirements</a> for details.
-                        </p>
-                        <p>If you do not have access to a server, you can also run a node for educational purposes locally. Simply select the &quot;Public RPC Node&quot; option in the next step.</p>
+                        <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-3">Set up Instance</h3>
+
+                        {/* Hardware requirements - compact grid */}
+                        <div className="grid grid-cols-3 gap-3 mb-4">
+                            <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-lg p-3 border border-zinc-200 dark:border-zinc-800">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <svg className="w-4 h-4 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+                                    </svg>
+                                    <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">CPU</span>
+                                </div>
+                                <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">4-8+ cores</div>
+                            </div>
+                            <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-lg p-3 border border-zinc-200 dark:border-zinc-800">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <svg className="w-4 h-4 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                                    </svg>
+                                    <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">RAM</span>
+                                </div>
+                                <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">16-32 GB</div>
+                            </div>
+                            <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-lg p-3 border border-zinc-200 dark:border-zinc-800">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <svg className="w-4 h-4 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
+                                    </svg>
+                                    <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Storage</span>
+                                </div>
+                                <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">1-15 TB NVMe</div>
+                            </div>
+                        </div>
+
+                        {/* Notices - compact */}
+                        <div className="text-xs text-zinc-500 dark:text-zinc-400 space-y-1.5">
+                            <p className="flex items-start gap-1.5">
+                                <span className="text-amber-500 mt-0.5">⚠</span>
+                                <span>Use <strong className="text-zinc-700 dark:text-zinc-300">local NVMe</strong>, not cloud block storage (EBS, Persistent Disk). <a href="/docs/nodes/system-requirements" className="text-blue-500 hover:underline">Details →</a></span>
+                            </p>
+                            <p className="flex items-start gap-1.5">
+                                <span className="text-blue-500 mt-0.5">ℹ</span>
+                                <span>No server? Run locally for testing — select &quot;RPC&quot; node type below.</span>
+                            </p>
+                        </div>
                     </Step>
 
                     <Step>
@@ -340,7 +376,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                                 <label className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400 mb-2">
                                     Node Type
                                 </label>
-                                <div className="grid grid-cols-2 gap-2">
+                                <div className="grid grid-cols-3 gap-2">
                                     <button
                                         type="button"
                                         onClick={() => setNodeType("validator")}
@@ -351,19 +387,31 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                                         }`}
                                     >
                                         <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Validator</div>
-                                        <div className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5">Port 9651 (P2P)</div>
+                                        <div className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5">P2P only</div>
                                     </button>
                                     <button
                                         type="button"
-                                        onClick={() => setNodeType("public-rpc")}
+                                        onClick={() => setNodeType("rpc")}
                                         className={`p-3 rounded-xl border-2 text-left transition-all ${
-                                            nodeType === "public-rpc"
+                                            nodeType === "rpc"
                                                 ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
                                                 : "border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600"
                                         }`}
                                     >
-                                        <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">RPC Node</div>
-                                        <div className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5">Port 9650 (HTTP)</div>
+                                        <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">RPC</div>
+                                        <div className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5">Pruned</div>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setNodeType("archival")}
+                                        className={`p-3 rounded-xl border-2 text-left transition-all ${
+                                            nodeType === "archival"
+                                                ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                                                : "border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600"
+                                        }`}
+                                    >
+                                        <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Archival</div>
+                                        <div className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5">Full history</div>
                                     </button>
                                 </div>
                             </div>
@@ -417,15 +465,12 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                                             className="rounded"
                                         />
                                         <span className="text-sm font-medium">Enable Pruning</span>
-                                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${pruningEnabled ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'}`}>
-                                            {pruningEnabled ? '~150GB' : '~2TB+'}
-                                        </span>
                                     </label>
                                     <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 ml-6">
-                                        <strong className="text-zinc-700 dark:text-zinc-300">Pruning reduces disk usage by ~15x</strong> by removing old state data.
-                                        {nodeType === "validator"
-                                            ? " Recommended for validators."
-                                            : " Not recommended for RPC nodes that need full historical data."}
+                                        <strong className="text-zinc-700 dark:text-zinc-300">Pruning reduces disk usage by ~44x</strong> (13TB → 300GB) by removing old state data.
+                                        {nodeType === "validator" && " Recommended for validators."}
+                                        {nodeType === "rpc" && " Recommended for RPC nodes serving current state."}
+                                        {nodeType === "archival" && " Not recommended for archival nodes that need full historical data."}
                                     </p>
                                 </div>
 
@@ -441,9 +486,9 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                                     </label>
                                     <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 ml-6">
                                         Fast bootstrap by syncing from a state summary instead of replaying all blocks.
-                                        {nodeType === "validator"
-                                            ? " Recommended for validators to speed up initial sync."
-                                            : " Disable for RPC nodes that need full historical data."}
+                                        {nodeType === "validator" && " Recommended for validators to speed up initial sync."}
+                                        {nodeType === "rpc" && " Recommended for RPC nodes."}
+                                        {nodeType === "archival" && " Disable for archival nodes that need full historical data."}
                                     </p>
                                 </div>
 
@@ -463,7 +508,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                                 )}
                             </div>
 
-                            {nodeType === "public-rpc" && (
+                            {isRPC && (
                                 <>
                                     <div onMouseEnter={() => setHighlightPath('ethApis')} onMouseLeave={clearHighlight}>
                                         <label className="flex items-center space-x-2">
@@ -1052,6 +1097,16 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                                     )}
                                 </div>
                             </div>
+
+                            {/* Storage Requirements Visualization */}
+                            <StorageRequirements
+                                nodeType={nodeType}
+                                pruningEnabled={pruningEnabled}
+                                skipTxIndexing={skipTxIndexing}
+                                stateSyncEnabled={stateSyncEnabled}
+                                debugEnabled={enableDebugTrace}
+                                network={selectedNetwork}
+                            />
                         </div>
                     </div>
                     </Step>
@@ -1119,7 +1174,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                         </Accordions>
                     </Step>
 
-                    {nodeType === "public-rpc" && (
+                    {isRPC && (
                         <Step>
                             <ReverseProxySetup
                                 domain={domain}
@@ -1131,6 +1186,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                     )}
 
                     {nodeType === "validator" && (
+                        <>
                         <Step>
                         <h3 className="text-xl font-bold mb-4">Wait for the Node to Bootstrap</h3>
                             <p>Your node will now bootstrap and sync the Primary Network (P-Chain, X-Chain, and C-Chain). This process can take <strong>several hours to days</strong> depending on your hardware and network connection.</p>
@@ -1160,92 +1216,89 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                                 </Accordion>
                             </Accordions>
 
-                            <NodeBootstrapCheck
-                                chainId={C_CHAIN_ID}
-                                domain={domain || "127.0.0.1:9650"}
-                                isDebugTrace={enableDebugTrace}
-                                onBootstrapCheckChange={(checked: boolean) => setNodeIsReady(checked)}
-                            />
-                        </Step>
-                    )}
-
-                    {nodeIsReady && nodeType === "validator" && (
-                        <>
-                        <Step>
-                            <h3 className="text-xl font-bold mb-4">Node Setup Complete</h3>
-                            <p>Your AvalancheGo Primary Network node is now fully bootstrapped and ready to be used as a validator node.</p>
-
-                            <div className="mt-4 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-                                <div className="flex items-center">
-                                    <div className="flex-shrink-0">
-                                        <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                        </svg>
-                                    </div>
-                                    <div className="ml-3">
-                                        <p className="text-sm font-medium text-green-800 dark:text-green-200">
-                                            Node is ready for validation
-                                        </p>
-                                        <p className="text-sm text-green-700 dark:text-green-300 mt-1">
-                                            Your node has successfully synced with the Primary Network and is ready to be added as a validator.
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
                         </Step>
 
                         <Step>
-                            <h3 className="text-xl font-bold mb-4">Backup Validator Credentials</h3>
-                            <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800 mb-4">
-                                <div className="flex items-start">
-                                    <div className="flex-shrink-0">
-                                        <svg className="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                                        </svg>
-                                    </div>
-                                    <div className="ml-3">
-                                        <p className="text-sm font-medium text-red-800 dark:text-red-200">
-                                            Critical: Back up your staking credentials
-                                        </p>
-                                        <p className="text-sm text-red-700 dark:text-red-300 mt-1">
-                                            If you lose your staking keys, you will <strong>permanently lose access to your validator</strong> and any staked funds may be at risk. This is especially important when running on NVMe storage, which can fail without warning.
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
-                                Your validator credentials are stored in the <code className="px-1 py-0.5 bg-zinc-100 dark:bg-zinc-800 rounded text-xs">staking</code> directory. Back up these files to a secure, offline location:
+                            <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Backup Validator Credentials</h3>
+                            <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
+                                Your validator identity is defined by these files in <code className="px-1 py-0.5 bg-zinc-100 dark:bg-zinc-800 rounded text-xs">~/.avalanchego/staking/</code>
                             </p>
 
-                            <DynamicCodeBlock lang="bash" code={`# Create a backup of your validator credentials
+                            {/* Key files - compact grid */}
+                            <div className="grid grid-cols-3 gap-3 mb-4">
+                                <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-lg p-3 border border-zinc-200 dark:border-zinc-800">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <svg className="w-4 h-4 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                                        </svg>
+                                        <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">TLS Cert</span>
+                                    </div>
+                                    <div className="text-sm font-mono text-zinc-900 dark:text-zinc-100">staker.crt</div>
+                                    <div className="text-[10px] text-zinc-400 mt-1">Node identity</div>
+                                </div>
+                                <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3 border border-red-200 dark:border-red-800">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <svg className="w-4 h-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                                        </svg>
+                                        <span className="text-xs font-medium text-red-600 dark:text-red-400">Private Key</span>
+                                    </div>
+                                    <div className="text-sm font-mono text-red-700 dark:text-red-300">staker.key</div>
+                                    <div className="text-[10px] text-red-400 mt-1">Keep secret!</div>
+                                </div>
+                                <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3 border border-red-200 dark:border-red-800">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <svg className="w-4 h-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                        </svg>
+                                        <span className="text-xs font-medium text-red-600 dark:text-red-400">BLS Key</span>
+                                    </div>
+                                    <div className="text-sm font-mono text-red-700 dark:text-red-300">signer.key</div>
+                                    <div className="text-[10px] text-red-400 mt-1">P-Chain signing</div>
+                                </div>
+                            </div>
+
+                            <DynamicCodeBlock lang="bash" code={`# Backup your validator credentials
 mkdir -p ~/avalanche-backup
 cp -r ~/.avalanchego/staking ~/avalanche-backup/
 
-# Verify the backup contains your keys
-ls -la ~/avalanche-backup/staking/
+# Verify backup
+ls -la ~/avalanche-backup/staking/`} />
 
-# You should see:
-# - staker.crt (your node's TLS certificate)
-# - staker.key (your node's private key - KEEP THIS SAFE!)
-# - signer.key (BLS key for P-Chain signing)`} />
-
-                            <div className="mt-4 space-y-2">
-                                <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                                    <strong>Recommended backup locations:</strong>
-                                </p>
-                                <ul className="list-disc pl-5 text-sm text-zinc-600 dark:text-zinc-400">
-                                    <li>Encrypted USB drive stored in a secure location</li>
-                                    <li>Hardware security module (HSM) for enterprise deployments</li>
-                                    <li>Encrypted cloud storage (e.g., encrypted S3 bucket)</li>
-                                    <li>Multiple geographic locations for disaster recovery</li>
-                                </ul>
+                            {/* Backup locations - inline */}
+                            <div className="mt-4 flex flex-wrap items-center gap-2">
+                                <span className="text-xs text-zinc-500 dark:text-zinc-400">Store securely:</span>
+                                <span className="px-2 py-0.5 rounded text-xs bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">Encrypted USB</span>
+                                <span className="px-2 py-0.5 rounded text-xs bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">Encrypted S3</span>
+                                <span className="px-2 py-0.5 rounded text-xs bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">Multiple locations</span>
                             </div>
 
-                            <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
-                                <p className="text-xs text-amber-700 dark:text-amber-300">
-                                    <strong>Never share your staker.key or signer.key files.</strong> Anyone with access to these files can impersonate your validator node.
+                            {/* Warnings - compact */}
+                            <div className="text-xs text-zinc-500 dark:text-zinc-400 space-y-1.5 mt-4">
+                                <p className="flex items-start gap-1.5">
+                                    <span className="text-red-500 mt-0.5">⚠</span>
+                                    <span>Lost keys = <strong className="text-zinc-700 dark:text-zinc-300">missed staking rewards</strong> (validator can&apos;t sign). NVMe drives can fail without warning.</span>
                                 </p>
+                                <p className="flex items-start gap-1.5">
+                                    <span className="text-amber-500 mt-0.5">🔒</span>
+                                    <span>Never share private keys — anyone with them can impersonate your validator.</span>
+                                </p>
+                            </div>
+
+                            {/* Links */}
+                            <div className="mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-800 flex flex-wrap gap-4 text-xs">
+                                <a href="/docs/nodes/maintain/cube-signer-sidecar" className="text-blue-500 hover:underline flex items-center gap-1">
+                                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                                    </svg>
+                                    CubeSigner Remote Signing
+                                </a>
+                                <a href="/docs/nodes/maintain/backup-restore" className="text-blue-500 hover:underline flex items-center gap-1">
+                                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
+                                    </svg>
+                                    Full Backup Guide
+                                </a>
                             </div>
                         </Step>
                         </>

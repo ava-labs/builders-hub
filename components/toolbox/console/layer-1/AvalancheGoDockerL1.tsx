@@ -75,9 +75,6 @@ function AvalanchegoDockerInner() {
     const [continuousProfilerDir, setContinuousProfilerDir] = useState<string>("");
     const [continuousProfilerFrequency, setContinuousProfilerFrequency] = useState<string>("15m");
 
-    // Control whether to include eth-apis in config (true for RPC, false for validators)
-    const [includeEthApis, setIncludeEthApis] = useState<boolean>(false);
-
     // Enable expensive debug-level metrics (disabled by default)
     const [metricsExpensiveEnabled, setMetricsExpensiveEnabled] = useState<boolean>(false);
 
@@ -138,21 +135,20 @@ function AvalanchegoDockerInner() {
                 pushGossipPercentStake,
                 continuousProfilerDir,
                 continuousProfilerFrequency,
-                includeEthApis,
                 metricsExpensiveEnabled
             );
             setConfigJson(JSON.stringify(config, null, 2));
         } catch (error) {
             setConfigJson(`Error: ${(error as Error).message}`);
         }
-    }, [nodeType, enableDebugTrace, adminApiEnabled, pruningEnabled, logLevel, minDelayTarget, overrideMinDelayTarget, trieCleanCache, trieDirtyCache, trieDirtyCommitTarget, triePrefetcherParallelism, snapshotCache, commitInterval, stateSyncServerTrieCache, rpcGasCap, rpcTxFeeCap, apiMaxBlocksPerRequest, allowUnfinalizedQueries, batchRequestLimit, batchResponseMaxSize, acceptedCacheSize, transactionHistory, stateSyncEnabled, skipTxIndexing, preimagesEnabled, localTxsEnabled, pushGossipNumValidators, pushGossipPercentStake, continuousProfilerDir, continuousProfilerFrequency, includeEthApis, metricsExpensiveEnabled]);
+    }, [nodeType, enableDebugTrace, adminApiEnabled, pruningEnabled, logLevel, minDelayTarget, overrideMinDelayTarget, trieCleanCache, trieDirtyCache, trieDirtyCommitTarget, triePrefetcherParallelism, snapshotCache, commitInterval, stateSyncServerTrieCache, rpcGasCap, rpcTxFeeCap, apiMaxBlocksPerRequest, allowUnfinalizedQueries, batchRequestLimit, batchResponseMaxSize, acceptedCacheSize, transactionHistory, stateSyncEnabled, skipTxIndexing, preimagesEnabled, localTxsEnabled, pushGossipNumValidators, pushGossipPercentStake, continuousProfilerDir, continuousProfilerFrequency, metricsExpensiveEnabled]);
 
     useEffect(() => {
         if (nodeType === "validator") {
             // Validator node defaults:
             // - Pruning enabled (reduces disk usage)
             // - State sync enabled (fast bootstrap)
-            // - External eth-apis OFF (validators don't need to expose APIs)
+            // - eth-apis: node uses sensible defaults automatically
             setDomain("");
             setEnableDebugTrace(false);
             setAdminApiEnabled(false);
@@ -164,12 +160,11 @@ function AvalanchegoDockerInner() {
             setStateSyncEnabled(true); // Validators benefit from fast sync
             setSkipTxIndexing(true); // Validators don't need tx indexing
             setTransactionHistory(0); // Keep all tx history by default
-            setIncludeEthApis(false); // Validators don't need external eth-apis
         } else if (nodeType === "public-rpc") {
             // RPC node defaults:
             // - Pruning disabled (archival - need full history)
             // - State sync disabled (need full historical data)
-            // - External eth-apis ON (RPC nodes need to expose APIs)
+            // - eth-apis: node uses sensible defaults automatically
             setPruningEnabled(false); // RPC nodes typically need full history
             setLogLevel("info");
             setOverrideMinDelayTarget(false); // RPC doesn't need block timing config
@@ -177,12 +172,11 @@ function AvalanchegoDockerInner() {
             setStateSyncEnabled(false); // RPC nodes need full historical data
             setSkipTxIndexing(false); // RPC nodes need tx indexing for queries
             setTransactionHistory(0); // Keep all tx history by default for getLogs
-            setIncludeEthApis(true); // RPC nodes need external eth-apis
         } else if (nodeType === "validator-rpc") {
             // Combined Validator + RPC node defaults (TESTNET ONLY)
             // - Pruning disabled (archival for RPC queries)
             // - State sync disabled (need full historical data)
-            // - External eth-apis ON (needs RPC capabilities)
+            // - eth-apis: node uses sensible defaults automatically
             setPruningEnabled(false); // Need full history for RPC queries
             setLogLevel("info");
             setOverrideMinDelayTarget(false); // Use default (2000ms)
@@ -191,7 +185,6 @@ function AvalanchegoDockerInner() {
             setStateSyncEnabled(false); // Need full historical data for RPC queries
             setSkipTxIndexing(false); // Validator-RPC needs tx indexing for queries
             setTransactionHistory(0); // Keep all tx history
-            setIncludeEthApis(true); // Validator-RPC needs external eth-apis
         }
     }, [nodeType]);
 
@@ -304,7 +297,6 @@ function AvalanchegoDockerInner() {
         setContinuousProfilerDir("");
         setContinuousProfilerFrequency("15m");
         setShowAdvancedSettings(false);
-        setIncludeEthApis(false); // Validators don't need external eth-apis
         setMetricsExpensiveEnabled(false); // Expensive metrics disabled by default
     };
 

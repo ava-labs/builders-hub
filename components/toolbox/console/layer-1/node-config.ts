@@ -3,7 +3,7 @@ import { SUBNET_EVM_VM_ID } from '@/constants/console';
 import { getContainerVersions } from '@/components/toolbox/utils/containerVersions';
 
 // Subnet-EVM default configuration values
-// Reference: https://build.avax.network/docs/nodes/chain-configs/subnet-evm
+// Source: avalanchego/graft/subnet-evm/plugin/evm/config/default_config.go
 const SUBNET_EVM_DEFAULTS = {
     "pruning-enabled": true,
     "commit-interval": 4096,
@@ -16,16 +16,17 @@ const SUBNET_EVM_DEFAULTS = {
     "rpc-gas-cap": 50000000,
     "rpc-tx-fee-cap": 100,
     "log-level": "info",
+    // Note: AvalancheGo default is true, but we default to false to avoid performance impact
     "metrics-expensive-enabled": false,
     "accepted-cache-size": 32,
-    "batch-request-limit": 0,
+    "batch-request-limit": 1000,  // AvalancheGo default is 1000
     "batch-response-max-size": 25000000,
     "state-sync-enabled": false,
     "allow-unfinalized-queries": false,
     "api-max-duration": 0,
     "api-max-blocks-per-request": 0,
-    // Default eth-apis
-    "eth-apis": ["eth", "eth-filter", "net", "web3", "internal-eth", "internal-blockchain", "internal-transaction"],
+    // eth-apis are auto-included by the node - no need to specify unless adding debug APIs
+    // Default: ["eth", "eth-filter", "net", "web3", "internal-eth", "internal-blockchain", "internal-transaction"]
 };
 
 /**
@@ -34,7 +35,7 @@ const SUBNET_EVM_DEFAULTS = {
  * This configuration is saved to ~/.avalanchego/configs/chains/<blockchainID>/config.json
  */
 export const generateChainConfig = (
-    nodeType: 'validator' | 'public-rpc' | 'validator-rpc',
+    nodeType: 'validator' | 'public-rpc' | 'validator-rpc' | 'rpc' | 'archival',
     enableDebugTrace: boolean = false,
     adminApiEnabled: boolean = false,
     pruningEnabled: boolean = true,
@@ -51,7 +52,7 @@ export const generateChainConfig = (
     rpcTxFeeCap: number = 100,
     apiMaxBlocksPerRequest: number = 0,
     allowUnfinalizedQueries: boolean = false,
-    batchRequestLimit: number = 0,
+    batchRequestLimit: number = 1000,  // AvalancheGo default
     batchResponseMaxSize: number = 25000000,
     acceptedCacheSize: number = 32,
     transactionHistory: number = 0,
@@ -63,15 +64,11 @@ export const generateChainConfig = (
     pushGossipPercentStake: number = 0.9,
     continuousProfilerDir: string = "",
     continuousProfilerFrequency: string = "15m",
-    // New option to control whether to include eth-apis in config
-    // When false (default for validators), eth-apis are omitted (uses node defaults)
-    // When true (for RPC nodes), eth-apis are explicitly included
-    includeEthApis: boolean = false,
     // Enable expensive debug-level metrics (includes Firewood metrics)
-    // Default false - only enable if you need detailed metrics and understand the performance impact
+    // Note: AvalancheGo default is true, but we default to false to avoid performance impact
     metricsExpensiveEnabled: boolean = false
 ) => {
-    const isRPC = nodeType === 'public-rpc' || nodeType === 'validator-rpc';
+    const isRPC = nodeType === 'public-rpc' || nodeType === 'validator-rpc' || nodeType === 'rpc' || nodeType === 'archival';
     const isValidator = nodeType === 'validator' || nodeType === 'validator-rpc';
     const config: any = {};
 
@@ -121,9 +118,9 @@ export const generateChainConfig = (
     }
 
     // Min delay target:
-    // - Pass -1 to indicate "don't include" (use node default, which is 2000ms for Subnet-EVM)
-    // - Pass 0 or any positive value to include it explicitly in the config
-    if (minDelayTarget >= 0) {
+    // - Pass 0 to indicate "don't include" (use node default, which is 2000ms for Subnet-EVM)
+    // - Pass any positive value to include it explicitly in the config
+    if (minDelayTarget > 0) {
         config["min-delay-target"] = minDelayTarget;
     }
 
@@ -155,17 +152,15 @@ export const generateChainConfig = (
         config["local-txs-enabled"] = true;
     }
 
-    // Configure APIs based on node type
-    // Only include eth-apis when:
-    // 1. Debug trace is enabled (RPC nodes that need debug APIs)
-    // 2. includeEthApis is true (RPC nodes that want explicit API config)
-    // For validators, we omit eth-apis to use node defaults (no external exposure)
+    // eth-apis configuration:
+    // The node automatically enables default APIs: ["eth", "eth-filter", "net", "web3", "internal-eth", "internal-blockchain", "internal-transaction"]
+    // We only need to specify eth-apis when adding debug or admin APIs
     if (enableDebugTrace) {
+        // Debug trace requires additional debug APIs
         config["eth-apis"] = [
             "eth",
             "eth-filter",
             "net",
-            "admin",
             "web3",
             "internal-eth",
             "internal-blockchain",
@@ -176,10 +171,11 @@ export const generateChainConfig = (
             "debug",
             "debug-tracer",
             "debug-file-tracer",
-            "debug-handler"
+            "debug-handler",
+            ...(adminApiEnabled ? ["admin"] : [])
         ];
-    } else if (includeEthApis) {
-        // For RPC nodes without debug: include standard APIs explicitly
+    } else if (adminApiEnabled) {
+        // Admin API requires explicit eth-apis with admin included
         config["eth-apis"] = [
             "eth",
             "eth-filter",
@@ -187,31 +183,15 @@ export const generateChainConfig = (
             "web3",
             "internal-eth",
             "internal-blockchain",
-            "internal-transaction"
+            "internal-transaction",
+            "admin"
         ];
     }
-    // For validators (includeEthApis=false, enableDebugTrace=false):
-    // Omit eth-apis entirely to use node defaults
+    // Otherwise: omit eth-apis entirely - node uses sensible defaults
 
-    // Admin API - only enable if explicitly requested
+    // Admin API enabled flag (separate from eth-apis)
     if (adminApiEnabled) {
         config["admin-api-enabled"] = true;
-        // Add admin to eth-apis if present and not already included
-        if (config["eth-apis"] && !config["eth-apis"].includes("admin")) {
-            config["eth-apis"].push("admin");
-        } else if (!config["eth-apis"]) {
-            // If eth-apis wasn't set, create it with admin
-            config["eth-apis"] = [
-                "eth",
-                "eth-filter",
-                "net",
-                "web3",
-                "internal-eth",
-                "internal-blockchain",
-                "internal-transaction",
-                "admin"
-            ];
-        }
     }
 
     // RPC-specific settings
