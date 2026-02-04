@@ -36,7 +36,8 @@ function AvalanchegoDockerInner() {
     const [logLevel, setLogLevel] = useState<string>("info");
     const [subnetIdError, setSubnetIdError] = useState<string | null>(null);
     const [selectedRPCBlockchainId, setSelectedRPCBlockchainId] = useState<string>("");
-    const [minDelayTarget, setMinDelayTarget] = useState<number>(500);
+    const [minDelayTarget, setMinDelayTarget] = useState<number>(2000);
+    const [overrideMinDelayTarget, setOverrideMinDelayTarget] = useState<boolean>(false);
     const [configJson, setConfigJson] = useState<string>("");
 
     // Advanced cache settings
@@ -103,13 +104,17 @@ function AvalanchegoDockerInner() {
     // Note: Config generation doesn't require L1 selection - it's based on node settings only
     useEffect(() => {
         try {
+            // Only include minDelayTarget in config if override is enabled
+            // Pass -1 to indicate "don't include in config" (use node default 2000ms)
+            // Pass any value >= 0 to include that value in the config
+            const effectiveMinDelayTarget = overrideMinDelayTarget ? minDelayTarget : -1;
             const config = generateChainConfig(
                 nodeType,
                 enableDebugTrace,
                 adminApiEnabled,
                 pruningEnabled,
                 logLevel,
-                minDelayTarget,
+                effectiveMinDelayTarget,
                 trieCleanCache,
                 trieDirtyCache,
                 trieDirtyCommitTarget,
@@ -140,7 +145,7 @@ function AvalanchegoDockerInner() {
         } catch (error) {
             setConfigJson(`Error: ${(error as Error).message}`);
         }
-    }, [nodeType, enableDebugTrace, adminApiEnabled, pruningEnabled, logLevel, minDelayTarget, trieCleanCache, trieDirtyCache, trieDirtyCommitTarget, triePrefetcherParallelism, snapshotCache, commitInterval, stateSyncServerTrieCache, rpcGasCap, rpcTxFeeCap, apiMaxBlocksPerRequest, allowUnfinalizedQueries, batchRequestLimit, batchResponseMaxSize, acceptedCacheSize, transactionHistory, stateSyncEnabled, skipTxIndexing, preimagesEnabled, localTxsEnabled, pushGossipNumValidators, pushGossipPercentStake, continuousProfilerDir, continuousProfilerFrequency, includeEthApis, metricsExpensiveEnabled]);
+    }, [nodeType, enableDebugTrace, adminApiEnabled, pruningEnabled, logLevel, minDelayTarget, overrideMinDelayTarget, trieCleanCache, trieDirtyCache, trieDirtyCommitTarget, triePrefetcherParallelism, snapshotCache, commitInterval, stateSyncServerTrieCache, rpcGasCap, rpcTxFeeCap, apiMaxBlocksPerRequest, allowUnfinalizedQueries, batchRequestLimit, batchResponseMaxSize, acceptedCacheSize, transactionHistory, stateSyncEnabled, skipTxIndexing, preimagesEnabled, localTxsEnabled, pushGossipNumValidators, pushGossipPercentStake, continuousProfilerDir, continuousProfilerFrequency, includeEthApis, metricsExpensiveEnabled]);
 
     useEffect(() => {
         if (nodeType === "validator") {
@@ -153,7 +158,8 @@ function AvalanchegoDockerInner() {
             setAdminApiEnabled(false);
             setPruningEnabled(true);
             setLogLevel("info");
-            setMinDelayTarget(500); // Default block time for L1
+            setOverrideMinDelayTarget(false); // Use default (2000ms)
+            setMinDelayTarget(2000);
             setAllowUnfinalizedQueries(false);
             setStateSyncEnabled(true); // Validators benefit from fast sync
             setSkipTxIndexing(true); // Validators don't need tx indexing
@@ -166,6 +172,7 @@ function AvalanchegoDockerInner() {
             // - External eth-apis ON (RPC nodes need to expose APIs)
             setPruningEnabled(false); // RPC nodes typically need full history
             setLogLevel("info");
+            setOverrideMinDelayTarget(false); // RPC doesn't need block timing config
             setAllowUnfinalizedQueries(false); // Default to finalized queries for safety
             setStateSyncEnabled(false); // RPC nodes need full historical data
             setSkipTxIndexing(false); // RPC nodes need tx indexing for queries
@@ -178,7 +185,8 @@ function AvalanchegoDockerInner() {
             // - External eth-apis ON (needs RPC capabilities)
             setPruningEnabled(false); // Need full history for RPC queries
             setLogLevel("info");
-            setMinDelayTarget(500); // Block production timing
+            setOverrideMinDelayTarget(false); // Use default (2000ms)
+            setMinDelayTarget(2000);
             setAllowUnfinalizedQueries(false); // Default to finalized queries for safety
             setStateSyncEnabled(false); // Need full historical data for RPC queries
             setSkipTxIndexing(false); // Validator-RPC needs tx indexing for queries
@@ -269,7 +277,8 @@ function AvalanchegoDockerInner() {
         setLogLevel("info");
         setSubnetIdError(null);
         setSelectedRPCBlockchainId("");
-        setMinDelayTarget(500);
+        setMinDelayTarget(2000);
+        setOverrideMinDelayTarget(false);
         setConfigJson("");
         setTrieCleanCache(512);
         setTrieDirtyCache(512);
@@ -344,7 +353,7 @@ function AvalanchegoDockerInner() {
                                         }`}
                                     >
                                         <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">RPC Node</div>
-                                        <div className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5">Port 9650 (HTTP)</div>
+                                        <div className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5">Ports 9650 + 9651</div>
                                     </button>
                                     <button
                                         type="button"
@@ -401,29 +410,46 @@ function AvalanchegoDockerInner() {
                             {isValidator && (
                                 <div onMouseEnter={() => setHighlightPath('minDelayTarget')} onMouseLeave={clearHighlight}>
                                     <div className="flex items-center justify-between mb-2">
-                                        <label className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400">
-                                            Min Block Delay
+                                        <label className="flex items-center space-x-2">
+                                            <input
+                                                type="checkbox"
+                                                checked={overrideMinDelayTarget}
+                                                onChange={(e) => setOverrideMinDelayTarget(e.target.checked)}
+                                                className="rounded"
+                                            />
+                                            <span className="text-[11px] font-medium text-zinc-600 dark:text-zinc-400">
+                                                Override Min Block Delay
+                                            </span>
                                         </label>
                                         <span className="text-xs font-mono text-zinc-900 dark:text-zinc-100 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded">
-                                            {minDelayTarget}ms
+                                            {overrideMinDelayTarget ? `${minDelayTarget}ms` : '2000ms (default)'}
                                         </span>
                                     </div>
-                                    <input
-                                        type="range"
-                                        value={minDelayTarget}
-                                        onChange={(e) => setMinDelayTarget(parseInt(e.target.value))}
-                                        onFocus={() => setHighlightPath('minDelayTarget')}
-                                        onBlur={clearHighlight}
-                                        min="0"
-                                        max="2000"
-                                        step="50"
-                                        className="w-full h-2 bg-zinc-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
-                                    />
-                                    <div className="flex justify-between text-[10px] text-zinc-400 mt-1">
-                                        <span>0ms (fastest)</span>
-                                        <span>500ms</span>
-                                        <span>2000ms (slowest)</span>
-                                    </div>
+                                    {overrideMinDelayTarget && (
+                                        <>
+                                            <input
+                                                type="range"
+                                                value={minDelayTarget}
+                                                onChange={(e) => setMinDelayTarget(parseInt(e.target.value))}
+                                                onFocus={() => setHighlightPath('minDelayTarget')}
+                                                onBlur={clearHighlight}
+                                                min="0"
+                                                max="2000"
+                                                step="50"
+                                                className="w-full h-2 bg-zinc-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                                            />
+                                            <div className="flex justify-between text-[10px] text-zinc-400 mt-1">
+                                                <span>0ms (fastest)</span>
+                                                <span>1000ms</span>
+                                                <span>2000ms (slowest)</span>
+                                            </div>
+                                        </>
+                                    )}
+                                    <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+                                        {overrideMinDelayTarget
+                                            ? "Minimum time between blocks. Lower values = faster blocks but more network load."
+                                            : "Using Subnet-EVM default (2000ms). Enable override to customize block timing."}
+                                    </p>
                                 </div>
                             )}
 

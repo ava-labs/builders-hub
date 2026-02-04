@@ -120,8 +120,10 @@ export const generateChainConfig = (
         config["metrics-expensive-enabled"] = true;
     }
 
-    // Min delay target - only add if non-zero (default is 0, meaning no minimum delay)
-    if (minDelayTarget > 0) {
+    // Min delay target:
+    // - Pass -1 to indicate "don't include" (use node default, which is 2000ms for Subnet-EVM)
+    // - Pass 0 or any positive value to include it explicitly in the config
+    if (minDelayTarget >= 0) {
         config["min-delay-target"] = minDelayTarget;
     }
 
