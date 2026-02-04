@@ -57,6 +57,7 @@ export async function getExtendedProfile(id: string): Promise<ExtendedProfile | 
         notifications: user.notifications,
         profile_privacy: user.profile_privacy,
         telegram_user: user.telegram_user || null,
+        notification_means: user.notification_means || null,
     } as ExtendedProfile;
 }
 
@@ -143,7 +144,7 @@ export async function updateExtendedProfile(
     }
 
     // map username to user_name and socials to social_media
-    const { username, socials, user_type, ...restData } = profileData;
+    const { username, socials, user_type, notification_means, ...restData } = profileData;
     
     const updateData: any = {
         ...restData,
@@ -162,6 +163,11 @@ export async function updateExtendedProfile(
     // convert user_type to JSON to store in the database
     if (user_type !== undefined) {
         updateData.user_type = user_type;
+    }
+
+    // handle notification_means updates
+    if (notification_means !== undefined) {
+        updateData.notification_means = notification_means;
     }
 
     await prisma.user.update({
