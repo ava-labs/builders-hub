@@ -264,11 +264,15 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                 <Steps>
                     <Step>
                         <h3 className="text-xl font-bold mb-4">Set up Instance</h3>
-                        <p>Set up a linux server with any cloud provider, like AWS, GCP, Azure, or Digital Ocean. Requirements scale with stake weight:</p>
+                        <p>Set up a linux server with any cloud provider, like AWS, GCP, Azure, or Digital Ocean. Requirements:</p>
                         <ul className="list-disc pl-5 mt-2 mb-4">
-                            <li><strong>Low stake:</strong> 4 cores, 16GB RAM, 1TB NVMe SSD</li>
-                            <li><strong>High stake:</strong> 8+ cores, 32GB RAM, 2TB NVMe SSD</li>
+                            <li><strong>CPU:</strong> 8+ cores recommended for validators with high stake, 4 cores minimum</li>
+                            <li><strong>RAM:</strong> 16GB minimum, 32GB recommended for high traffic</li>
+                            <li><strong>Storage:</strong> 1TB NVMe SSD (pruning enabled) or 2TB+ NVMe SSD (archival/RPC)</li>
                         </ul>
+                        <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-2">
+                            Note: Disk space requirements depend on pruning settings, not stake weight. See pruning options in the configuration step.
+                        </p>
                         <p className="text-sm text-amber-600 dark:text-amber-400 mb-4">
                             <strong>Important:</strong> Use local NVMe storage, not cloud block storage (EBS, Persistent Disk). See <a href="/docs/nodes/system-requirements" className="underline hover:no-underline">system requirements</a> for details.
                         </p>
@@ -395,21 +399,68 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                                 </div>
                             </div>
 
-                            <div onMouseEnter={() => setHighlightPath('pruning')} onMouseLeave={clearHighlight}>
-                                <label className="flex items-center space-x-2">
-                                    <input
-                                        type="checkbox"
-                                        checked={pruningEnabled}
-                                        onChange={(e) => setPruningEnabled(e.target.checked)}
-                                        className="rounded"
-                                    />
-                                    <span className="text-sm">Enable Pruning</span>
-                                </label>
-                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                    {nodeType === "validator"
-                                        ? "Recommended for validators. Reduces disk usage by removing old state data."
-                                        : "Not recommended for RPC nodes that need full historical data."}
-                                </p>
+                            {/* Pruning and State Sync - grouped together due to their interdependency */}
+                            <div className="border border-zinc-200 dark:border-zinc-700 rounded-lg p-4 space-y-4">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <svg className="w-4 h-4 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
+                                    </svg>
+                                    <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Storage Settings</span>
+                                </div>
+
+                                <div onMouseEnter={() => setHighlightPath('pruning')} onMouseLeave={clearHighlight}>
+                                    <label className="flex items-center space-x-2">
+                                        <input
+                                            type="checkbox"
+                                            checked={pruningEnabled}
+                                            onChange={(e) => setPruningEnabled(e.target.checked)}
+                                            className="rounded"
+                                        />
+                                        <span className="text-sm font-medium">Enable Pruning</span>
+                                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${pruningEnabled ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'}`}>
+                                            {pruningEnabled ? '~150GB' : '~2TB+'}
+                                        </span>
+                                    </label>
+                                    <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 ml-6">
+                                        <strong className="text-zinc-700 dark:text-zinc-300">Pruning reduces disk usage by ~15x</strong> by removing old state data.
+                                        {nodeType === "validator"
+                                            ? " Recommended for validators."
+                                            : " Not recommended for RPC nodes that need full historical data."}
+                                    </p>
+                                </div>
+
+                                <div onMouseEnter={() => setHighlightPath('stateSyncEnabled')} onMouseLeave={clearHighlight}>
+                                    <label className="flex items-center space-x-2">
+                                        <input
+                                            type="checkbox"
+                                            checked={stateSyncEnabled}
+                                            onChange={(e) => setStateSyncEnabled(e.target.checked)}
+                                            className="rounded"
+                                        />
+                                        <span className="text-sm font-medium">Enable State Sync</span>
+                                    </label>
+                                    <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 ml-6">
+                                        Fast bootstrap by syncing from a state summary instead of replaying all blocks.
+                                        {nodeType === "validator"
+                                            ? " Recommended for validators to speed up initial sync."
+                                            : " Disable for RPC nodes that need full historical data."}
+                                    </p>
+                                </div>
+
+                                {/* Warning when pruning and state sync settings don't match */}
+                                {pruningEnabled !== stateSyncEnabled && (
+                                    <div className="flex items-start gap-2 p-2 rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+                                        <svg className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                        </svg>
+                                        <p className="text-xs text-amber-700 dark:text-amber-300">
+                                            <strong>Mismatched settings:</strong> Pruning and State Sync are typically used together.
+                                            {pruningEnabled && !stateSyncEnabled
+                                                ? " Pruning is enabled but State Sync is disabled. For validators, enable both for optimal performance."
+                                                : " State Sync is enabled but Pruning is disabled. For archival RPC nodes, disable both to preserve full history."}
+                                        </p>
+                                    </div>
+                                )}
                             </div>
 
                             {nodeType === "public-rpc" && (
@@ -766,25 +817,6 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                                                     </p>
                                                 </div>
 
-                                                <div onMouseEnter={() => setHighlightPath('stateSyncEnabled')} onMouseLeave={clearHighlight}>
-                                                    <label className="flex items-center space-x-2">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={stateSyncEnabled}
-                                                            onChange={(e) => setStateSyncEnabled(e.target.checked)}
-                                                            onFocus={() => setHighlightPath('stateSyncEnabled')}
-                                                            onBlur={clearHighlight}
-                                                            className="rounded"
-                                                        />
-                                                        <span className="text-xs text-gray-600 dark:text-gray-400">
-                                                            Enable State Sync
-                                                        </span>
-                                                    </label>
-                                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-6">
-                                                        Fast sync from state summary
-                                                    </p>
-                                                </div>
-
                                                 <div onMouseEnter={() => setHighlightPath('preimagesEnabled')} onMouseLeave={clearHighlight}>
                                                     <label className="flex items-center space-x-2">
                                                         <input
@@ -943,7 +975,10 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                                                             </span>
                                                         </label>
                                                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-6">
-                                                            Allows queries for unfinalized/pending blocks
+                                                            When enabled, allows queries using block tags like <code className="px-1 py-0.5 bg-zinc-100 dark:bg-zinc-800 rounded text-[10px]">pending</code>, <code className="px-1 py-0.5 bg-zinc-100 dark:bg-zinc-800 rounded text-[10px]">safe</code>, and <code className="px-1 py-0.5 bg-zinc-100 dark:bg-zinc-800 rounded text-[10px]">latest</code> that may return data from blocks not yet finalized.
+                                                        </p>
+                                                        <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 ml-6">
+                                                            <strong>Important:</strong> Enable this if your applications use these block tags (common in Ethereum tooling). Without this, only <code className="px-1 py-0.5 bg-zinc-100 dark:bg-zinc-800 rounded text-[10px]">finalized</code> queries are allowed, which may break some dApps.
                                                         </p>
                                                     </div>
                                                 </div>
@@ -1135,6 +1170,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                     )}
 
                     {nodeIsReady && nodeType === "validator" && (
+                        <>
                         <Step>
                             <h3 className="text-xl font-bold mb-4">Node Setup Complete</h3>
                             <p>Your AvalancheGo Primary Network node is now fully bootstrapped and ready to be used as a validator node.</p>
@@ -1157,6 +1193,62 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                                 </div>
                             </div>
                         </Step>
+
+                        <Step>
+                            <h3 className="text-xl font-bold mb-4">Backup Validator Credentials</h3>
+                            <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800 mb-4">
+                                <div className="flex items-start">
+                                    <div className="flex-shrink-0">
+                                        <svg className="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                        </svg>
+                                    </div>
+                                    <div className="ml-3">
+                                        <p className="text-sm font-medium text-red-800 dark:text-red-200">
+                                            Critical: Back up your staking credentials
+                                        </p>
+                                        <p className="text-sm text-red-700 dark:text-red-300 mt-1">
+                                            If you lose your staking keys, you will <strong>permanently lose access to your validator</strong> and any staked funds may be at risk. This is especially important when running on NVMe storage, which can fail without warning.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
+                                Your validator credentials are stored in the <code className="px-1 py-0.5 bg-zinc-100 dark:bg-zinc-800 rounded text-xs">staking</code> directory. Back up these files to a secure, offline location:
+                            </p>
+
+                            <DynamicCodeBlock lang="bash" code={`# Create a backup of your validator credentials
+mkdir -p ~/avalanche-backup
+cp -r ~/.avalanchego/staking ~/avalanche-backup/
+
+# Verify the backup contains your keys
+ls -la ~/avalanche-backup/staking/
+
+# You should see:
+# - staker.crt (your node's TLS certificate)
+# - staker.key (your node's private key - KEEP THIS SAFE!)
+# - signer.key (BLS key for P-Chain signing)`} />
+
+                            <div className="mt-4 space-y-2">
+                                <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                                    <strong>Recommended backup locations:</strong>
+                                </p>
+                                <ul className="list-disc pl-5 text-sm text-zinc-600 dark:text-zinc-400">
+                                    <li>Encrypted USB drive stored in a secure location</li>
+                                    <li>Hardware security module (HSM) for enterprise deployments</li>
+                                    <li>Encrypted cloud storage (e.g., encrypted S3 bucket)</li>
+                                    <li>Multiple geographic locations for disaster recovery</li>
+                                </ul>
+                            </div>
+
+                            <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                                <p className="text-xs text-amber-700 dark:text-amber-300">
+                                    <strong>Never share your staker.key or signer.key files.</strong> Anyone with access to these files can impersonate your validator node.
+                                </p>
+                            </div>
+                        </Step>
+                        </>
                     )}
                 </Steps>
 
