@@ -1,0 +1,229 @@
+---
+title: Quick Start
+description: Deploy an Avalanche L1 blockchain on AWS with Terraform and Ansible
+---
+
+This guide walks you through deploying a complete Avalanche L1 blockchain on AWS. The same workflow applies to GCP and Azure with minor configuration changes.
+
+## Prerequisites
+
+Install the required tools:
+
+```bash
+# macOS
+brew install terraform ansible awscli jq go
+
+# Or use the setup command
+make setup
+```
+
+**Go private dependency setup** (required for the L1 creation tool):
+
+```bash
+go env -w GOPRIVATE=github.com/ava-labs/platform-cli
+git config --global url."git@github.com:".insteadOf "https://github.com/"
+```
+
+## Step 1: Configure AWS Credentials
+
+```bash
+export AWS_ACCESS_KEY_ID="your-access-key"
+export AWS_SECRET_ACCESS_KEY="your-secret-key"
+export AWS_DEFAULT_REGION="us-east-1"
+```
+
+## Step 2: Generate SSH Key
+
+Create a dedicated SSH key for your deployment:
+
+```bash
+ssh-keygen -t rsa -b 4096 -f ~/.ssh/avalanche-deploy -N ""
+```
+
+## Step 3: Configure Terraform
+
+```bash
+cd terraform/aws
+cp terraform.tfvars.example terraform.tfvars
+```
+
+Edit `terraform.tfvars`:
+
+```hcl
+name_prefix        = "my-l1"
+environment        = "fuji"        # or "mainnet"
+validator_count    = 2
+rpc_count          = 1
+ssh_public_key     = "ssh-rsa AAAA..."  # contents of ~/.ssh/avalanche-deploy.pub
+ssh_private_key_file = "~/.ssh/avalanche-deploy"
+```
+
+## Step 4: Create Infrastructure
+
+```bash
+terraform init
+terraform apply
+cd ../..
+```
+
+This creates:
+- 2 validator VMs (t3.xlarge)
+- 1 RPC node VM (t3.xlarge)
+- 1 monitoring VM (t3.medium)
+- VPC, security groups, and networking
+
+## Step 5: Deploy Avalanchego
+
+```bash
+make deploy
+```
+
+Wait for nodes to sync. Check progress with:
+
+```bash
+make status
+```
+
+You should see `P:OK` on all nodes before proceeding:
+
+```
+validator-1 (10.0.1.10)
+  P: OK (height: 49823692)
+  Bootstrapped: true
+
+validator-2 (10.0.1.11)
+  P: OK (height: 49823692)
+  Bootstrapped: true
+```
+
+## Step 6: Get a Funded P-Chain Address
+
+You need AVAX on the P-Chain to create your L1.
+
+**Option 1: Core Wallet**
+1. Install [Core Wallet](https://core.app/)
+2. Switch to Fuji testnet
+3. Get AVAX from [Fuji Faucet](https://faucet.avax.network/)
+4. Transfer to P-Chain
+5. Export private key
+
+**Option 2: Avalanche CLI**
+```bash
+avalanche key create mykey
+avalanche key export mykey
+```
+
+Export your private key:
+
+```bash
+export AVALANCHE_PRIVATE_KEY="PrivateKey-ewoqjP7PxY4yr3iLTp..."
+```
+
+Supported formats:
+- CB58: `PrivateKey-ewoqjP7PxY4yr3iLTp...`
+- Hex: `0x56289e99c94b6912bfc12adc...`
+
+## Step 7: Create Your L1
+
+Build the L1 creation tool:
+
+```bash
+make create-l1
+```
+
+Get validator IPs and create the L1:
+
+```bash
+export VALIDATORS=$(cd terraform/aws && terraform output -json validator_ips | jq -r 'join(",")')
+
+./tools/create-l1/create-l1 \
+  --network=fuji \
+  --validators=$VALIDATORS \
+  --chain-name=mychain \
+  --output=l1.env
+```
+
+This executes three P-Chain transactions:
+1. **CreateSubnetTx** - Creates the subnet
+2. **CreateChainTx** - Deploys your chain with genesis config
+3. **ConvertSubnetToL1Tx** - Registers validators as L1 validators
+
+## Step 8: Configure Nodes
+
+Load the L1 configuration and update nodes:
+
+```bash
+source l1.env
+make configure-l1 SUBNET_ID=$SUBNET_ID CHAIN_ID=$CHAIN_ID
+```
+
+Verify all nodes are tracking your L1:
+
+```bash
+make status
+```
+
+## Step 9: Access Your L1
+
+Your L1 RPC endpoint is available at:
+
+```
+http://<rpc-ip>:9650/ext/bc/<CHAIN_ID>/rpc
+```
+
+Get the RPC node IP:
+
+```bash
+cd terraform/aws && terraform output rpc_ip
+```
+
+Test the endpoint:
+
+```bash
+curl -X POST -H "Content-Type: application/json" \
+  --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' \
+  http://<rpc-ip>:9650/ext/bc/$CHAIN_ID/rpc
+```
+
+## Optional: Deploy Monitoring
+
+```bash
+make monitoring
+```
+
+Access Grafana at `http://<monitoring-ip>:3000` (default credentials: admin/admin).
+
+## Optional: Deploy Block Explorer
+
+```bash
+source l1.env
+make deploy-blockscout CHAIN_ID=$CHAIN_ID EVM_CHAIN_ID=99999 CHAIN_NAME="My L1"
+```
+
+Access Blockscout at `http://<rpc-ip>:4001`.
+
+## Cleanup
+
+<Callout type="warn">
+  Remember to destroy infrastructure when done testing to stop billing!
+</Callout>
+
+```bash
+make destroy
+```
+
+## Troubleshooting
+
+| Problem | Solution |
+|---------|----------|
+| Ansible can't connect | Check SSH key path in `ansible/inventory/aws_hosts` |
+| Nodes not syncing | Run `make logs` to view avalanchego logs |
+| "insufficient funds" | Fund your P-Chain address on Fuji faucet |
+| "illegal name character" | Chain names must be alphanumeric (no hyphens) |
+| Can't reach RPC endpoint | Validators don't expose 9650; use the RPC node |
+
+## Next Steps
+
+- [Architecture](/docs/tooling/avalanche-deploy/architecture) - Understand the infrastructure layout
+- [Genesis Configuration](/docs/avalanche-l1s/evm-configuration/genesis) - Customize your chain's genesis
+- [Cross-Chain Messaging](/docs/cross-chain/interchain-messaging/overview) - Enable ICM for your L1

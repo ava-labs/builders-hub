@@ -1,0 +1,268 @@
+---
+title: Architecture
+description: Infrastructure components, data flow, and project structure for Avalanche Deploy
+---
+
+## Infrastructure Overview
+
+Avalanche Deploy creates a complete L1 infrastructure with the following components:
+
+```
+                         Avalanche Network (Fuji/Mainnet)
+                                    │
+          ┌─────────────────────────┼─────────────────────────┐
+          │                         │                         │
+          ▼                         ▼                         ▼
+    ┌───────────┐            ┌───────────┐            ┌───────────┐
+    │ Validator │◄──── P2P ──►│ Validator │◄─── P2P ──►│    RPC    │
+    │     1     │             │     2     │            │   Node    │
+    │   :9651   │             │   :9651   │            │:9650/:9651│
+    └─────┬─────┘             └─────┬─────┘            └─────┬─────┘
+          │                         │                        │
+          └─────────────────────────┴────────────────────────┘
+                                    │ metrics
+                                    ▼
+                             ┌─────────────┐
+                             │  Monitoring │
+                             │  Prometheus │
+                             │ Grafana:3000│
+                             └─────────────┘
+```
+
+### Component Roles
+
+| Component | Port | Purpose |
+|-----------|------|---------|
+| **Validators** | 9651 (P2P only) | Participate in consensus, produce blocks. No external API access. |
+| **RPC Node** | 9650 (API), 9651 (P2P) | Serve external API requests. Archive mode enabled for full query support. |
+| **Monitoring** | 3000 (Grafana) | Collect metrics from all nodes, provide dashboards. |
+
+### External Access Points
+
+| Service | URL | Notes |
+|---------|-----|-------|
+| L1 RPC API | `http://<rpc-ip>:9650/ext/bc/<chain-id>/rpc` | EVM JSON-RPC endpoint |
+| Blockscout | `http://<rpc-ip>:4001` | Optional block explorer |
+| Grafana | `http://<monitoring-ip>:3000` | Metrics dashboards (admin/admin) |
+
+## Project Structure
+
+```
+avalanche-deploy/
+├── terraform/              # Infrastructure as Code
+│   ├── aws/               # AWS-specific configuration
+│   │   ├── main.tf        # VM definitions, VPC, security groups
+│   │   ├── variables.tf   # Input variables
+│   │   ├── outputs.tf     # IP addresses, SSH key paths
+│   │   └── terraform.tfvars.example
+│   ├── gcp/               # GCP-specific configuration
+│   ├── azure/             # Azure-specific configuration
+│   └── modules/           # Shared compute/networking modules
+│
+├── ansible/               # Configuration Management
+│   ├── playbooks/         # Numbered deployment phases
+│   │   ├── 01-deploy-nodes.yml       # Install avalanchego
+│   │   ├── 02-configure-l1.yml       # Add subnet tracking
+│   │   ├── 03-setup-monitoring.yml   # Prometheus/Grafana
+│   │   ├── 04-deploy-blockscout.yml  # Block explorer
+│   │   └── 05-deploy-safe.yml        # Safe multisig (experimental)
+│   ├── roles/             # Reusable role definitions
+│   │   ├── avalanchego/   # Node installation and config
+│   │   ├── prometheus/    # Metrics collection
+│   │   ├── grafana/       # Dashboards
+│   │   └── blockscout/    # Block explorer
+│   └── inventory/         # Auto-generated host files
+│
+├── tools/create-l1/       # Go CLI for L1 creation
+│   ├── main.go            # Entry point
+│   └── go.mod             # Dependencies (avalanchego SDK)
+│
+├── shared/                # Shared configurations
+│   ├── genesis-templates/ # Clean genesis files
+│   └── safe/              # Safe contract merge scripts
+│
+├── scripts/               # Helper scripts
+│   ├── status.sh          # Node health check
+│   └── wait-for-sync.sh   # Wait for P-Chain sync
+│
+├── genesis.json           # Your L1's genesis configuration
+├── validator-chain-config.json  # Validator-specific chain config
+├── rpc-chain-config.json        # RPC node chain config (archive mode)
+└── Makefile               # Command shortcuts
+```
+
+## Deployment Phases
+
+### Phase 1: Infrastructure (Terraform)
+
+Terraform creates cloud resources and generates Ansible inventory:
+
+```
+terraform apply
+    │
+    ├── Creates VPC and networking
+    ├── Creates security groups (ports 9650, 9651, 22)
+    ├── Launches validator VMs
+    ├── Launches RPC node VM
+    ├── Launches monitoring VM
+    │
+    └── Outputs → ansible/inventory/aws_hosts
+```
+
+The generated inventory file contains:
+
+```ini
+[validators]
+10.0.1.10 ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/avalanche-deploy
+10.0.1.11 ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/avalanche-deploy
+
+[rpc]
+10.0.1.20 ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/avalanche-deploy
+
+[monitoring]
+10.0.1.30 ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/avalanche-deploy
+```
+
+### Phase 2: Node Deployment (Ansible)
+
+`01-deploy-nodes.yml` installs and configures avalanchego:
+
+```
+ansible-playbook 01-deploy-nodes.yml
+    │
+    ├── Install avalanchego binary
+    ├── Generate staking keys (BLS + TLS)
+    ├── Configure node.json
+    │   ├── Validators: partial-sync-primary-network=true
+    │   └── RPC: archive mode, debug APIs enabled
+    ├── Start avalanchego service
+    │
+    └── Nodes begin syncing P-Chain
+```
+
+### Phase 3: L1 Creation (Go Tool)
+
+The `create-l1` tool executes P-Chain transactions:
+
+```
+./create-l1 --network=fuji --validators=10.0.1.10,10.0.1.11
+    │
+    ├── CreateSubnetTx → SUBNET_ID
+    ├── CreateChainTx  → CHAIN_ID (deploys genesis)
+    ├── ConvertSubnetToL1Tx (registers validators)
+    │
+    └── Outputs → l1.env
+```
+
+### Phase 4: L1 Configuration (Ansible)
+
+`02-configure-l1.yml` updates nodes to track the new L1:
+
+```
+ansible-playbook 02-configure-l1.yml -e subnet_id=xxx -e chain_id=yyy
+    │
+    ├── Add track-subnets to node config
+    ├── Copy chain-specific config
+    │   ├── Validators: validator-chain-config.json
+    │   └── RPC: rpc-chain-config.json
+    ├── Restart avalanchego
+    │
+    └── Nodes begin syncing L1 chain
+```
+
+## Configuration Files
+
+### Node Configuration
+
+**Validators** (`validator-node-config.json`):
+```json
+{
+  "partial-sync-primary-network": true,
+  "track-subnets": "<SUBNET_ID>"
+}
+```
+
+**RPC Node** (`rpc-node-config.json`):
+```json
+{
+  "partial-sync-primary-network": true,
+  "track-subnets": "<SUBNET_ID>"
+}
+```
+
+### Chain Configuration
+
+**Validators** (`validator-chain-config.json`):
+```json
+{
+  "pruning-enabled": true,
+  "state-sync-enabled": true,
+  "eth-apis": ["eth", "net", "web3"]
+}
+```
+
+**RPC Node** (`rpc-chain-config.json`):
+```json
+{
+  "pruning-enabled": false,
+  "state-sync-enabled": false,
+  "eth-apis": ["eth", "net", "web3", "debug", "txpool"]
+}
+```
+
+### Genesis Configuration
+
+Your L1's genesis configuration lives in `genesis.json`:
+
+```json
+{
+  "config": {
+    "chainId": 99999,
+    "feeConfig": {
+      "gasLimit": 15000000,
+      "targetBlockRate": 2,
+      "minBaseFee": 25000000000,
+      "baseFeeChangeDenominator": 48
+    },
+    "subnetEVMTimestamp": 0,
+    "durangoTimestamp": 0
+  },
+  "alloc": {
+    "0xYourAddress": {
+      "balance": "0x52B7D2DCC80CD2E4000000"
+    }
+  }
+}
+```
+
+See [Genesis Configuration](/docs/avalanche-l1s/evm-configuration/genesis) for detailed options.
+
+## Security Groups
+
+### Default Ports
+
+| Port | Protocol | Source | Purpose |
+|------|----------|--------|---------|
+| 22 | TCP | Your IP | SSH access |
+| 9650 | TCP | 0.0.0.0/0 | API (RPC node only) |
+| 9651 | TCP | 0.0.0.0/0 | P2P consensus |
+| 3000 | TCP | Your IP | Grafana (monitoring only) |
+| 4001 | TCP | 0.0.0.0/0 | Blockscout (if deployed) |
+
+### Security Recommendations
+
+- Restrict SSH access to your IP range
+- Consider putting Grafana behind a VPN
+- Use HTTPS termination (nginx/ALB) for production RPC endpoints
+- Rotate SSH keys periodically
+
+## Cloud Provider Differences
+
+| Aspect | AWS | GCP | Azure |
+|--------|-----|-----|-------|
+| VM Type | t3.xlarge | e2-standard-4 | Standard_D4s_v3 |
+| Storage | gp3 EBS | pd-ssd | Premium SSD |
+| Networking | VPC | VPC | VNet |
+| Config Path | `terraform/aws/` | `terraform/gcp/` | `terraform/azure/` |
+
+All providers use the same Ansible playbooks after infrastructure is created.

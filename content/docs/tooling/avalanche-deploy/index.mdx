@@ -1,0 +1,98 @@
+---
+title: Overview
+description: Deploy production-ready Avalanche L1 blockchains on AWS, GCP, or Azure using Terraform and Ansible
+---
+
+Avalanche Deploy automates the deployment of production-ready Avalanche L1 blockchains on major cloud providers. It handles infrastructure provisioning, node installation, monitoring setup, and optional block explorer deployment—all through simple make commands.
+
+## What You Get
+
+| Component | Default | Purpose |
+|-----------|---------|---------|
+| **Validators** | 2 | Block production, consensus participation |
+| **RPC Node** | 1 | External API queries, block explorer backend |
+| **Monitoring** | 1 | Prometheus metrics + Grafana dashboards |
+
+**Optional Add-ons:**
+- **Blockscout** - Full-featured block explorer for your L1
+- **Safe Multisig** - Gnosis Safe infrastructure (experimental)
+
+## Supported Cloud Providers
+
+| Provider | Command | Monthly Cost Estimate |
+|----------|---------|----------------------|
+| AWS | `make infra` | ~$225 |
+| GCP | `make infra CLOUD=gcp` | ~$195 |
+| Azure | `make infra CLOUD=azure` | ~$420 |
+
+Cost estimates are for 2 validators + 1 RPC node + 1 monitoring instance.
+
+## Deployment Paths
+
+### Terraform + Ansible (Recommended)
+
+Creates cloud VMs from scratch and configures them with avalanchego:
+
+```bash
+make setup      # Install tools
+make infra      # Create cloud VMs
+make deploy     # Install avalanchego
+make create-l1  # Create your L1 blockchain
+make status     # Verify everything works
+```
+
+### Kubernetes (Alternative)
+
+For teams with existing Kubernetes clusters, deploy using Helm charts in the `kubernetes/` directory.
+
+## Key Features
+
+| Feature | Description |
+|---------|-------------|
+| **Multi-Cloud** | Deploy to AWS, GCP, or Azure with the same workflow |
+| **Auto-Generated Inventory** | Terraform outputs feed directly into Ansible |
+| **Production Configs** | Validator vs RPC node configurations optimized for their roles |
+| **Monitoring Included** | Prometheus + Grafana with Avalanche-specific dashboards |
+| **Block Explorer** | Optional Blockscout deployment with one command |
+| **L1 Creation Tool** | Go CLI handles P-Chain transactions (CreateSubnet, CreateChain, ConvertToL1) |
+
+## Quick Commands
+
+| Command | Description |
+|---------|-------------|
+| `make setup` | Install terraform, ansible, aws-cli, jq |
+| `make infra` | Create cloud infrastructure |
+| `make deploy` | Install avalanchego on nodes |
+| `make status` | Check node sync status |
+| `make create-l1` | Build the L1 creation tool |
+| `make configure-l1` | Configure nodes after L1 creation |
+| `make monitoring` | Deploy Prometheus + Grafana |
+| `make deploy-blockscout` | Deploy block explorer |
+| `make destroy` | Tear down infrastructure (stops billing!) |
+
+## Getting Started
+
+<Cards>
+  <Card title="Quick Start" href="/docs/tooling/avalanche-deploy/quickstart">
+    Deploy your first L1 on AWS in under 30 minutes
+  </Card>
+  <Card title="Architecture" href="/docs/tooling/avalanche-deploy/architecture">
+    Understand the infrastructure components and data flow
+  </Card>
+</Cards>
+
+## Prerequisites
+
+Before starting, you'll need:
+
+- **Cloud credentials** - AWS, GCP, or Azure account with appropriate permissions
+- **SSH key** - For accessing the deployed VMs
+- **Funded P-Chain address** - With AVAX on Fuji (testnet) or Mainnet
+- **Local tools** - Terraform, Ansible, Go 1.21+
+
+## Resources
+
+- [GitHub Repository](https://github.com/ava-labs/avalanche-deploy)
+- [Fuji Faucet](https://faucet.avax.network/) - Get test AVAX
+- [Chain List](https://chainlist.org/) - Check chain ID availability
+- [Builder Console](https://build.avax.network/) - Generate genesis configurations

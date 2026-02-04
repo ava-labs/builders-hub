@@ -1,0 +1,10 @@
+{
+  "title": "Avalanche Deploy",
+  "description": "Infrastructure as Code for deploying Avalanche L1 blockchains",
+  "root": true,
+  "pages": [
+    "index",
+    "quickstart",
+    "architecture"
+  ]
+}
