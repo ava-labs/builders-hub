@@ -1,19 +1,55 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSession, getSession } from "next-auth/react";
 import ReferralModal from "./ReferralModal";
 import { captureReferrerFromUrl } from "@/lib/referral";
+import { useLoginModalTrigger } from "@/hooks/useLoginModal";
 
 export default function ReferralButton() {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const { data: session, status } = useSession();
+  const { openLoginModal } = useLoginModalTrigger();
 
   // Capture referrer from URL on mount
   useEffect(() => {
     captureReferrerFromUrl();
   }, []);
 
-  const handleClick = () => {
-    setIsModalOpen(true);
+  // Check if user just logged in and wanted to open referral modal
+  useEffect(() => {
+    if (status === "authenticated" && session?.user) {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('openReferral') === 'true') {
+        setIsModalOpen(true);
+        // Clean up URL without reloading
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.delete('openReferral');
+        window.history.replaceState({}, '', newUrl.toString());
+      }
+    }
+  }, [status, session]);
+
+  const handleClick = async () => {
+    // First check the current session state from useSession
+    if (status === "authenticated" && session?.user) {
+      // User is logged in, open referral modal
+      setIsModalOpen(true);
+      return;
+    }
+
+    // If useSession says unauthenticated, double-check with getSession()
+    // This handles race conditions where useSession hasn't updated yet
+    const freshSession = await getSession();
+    if (freshSession?.user) {
+      // User is actually authenticated, open referral modal
+      setIsModalOpen(true);
+    } else {
+      // User is not logged in, open login modal with openReferral param
+      const currentUrl = new URL(window.location.href);
+      currentUrl.searchParams.set('openReferral', 'true');
+      openLoginModal(currentUrl.toString());
+    }
   };
 
   return (

@@ -45,11 +45,30 @@ export function captureReferrerFromUrl(): string | null {
 const BASE_URL = 'https://build.avax.network/build-games';
 
 /**
- * Generates a referral link with the given X handle
+ * Generates a referral link with the given X handle and optional user ID
+ * If userId is provided, the referral code will be: first4chars-last4chars-handle
+ * If userId is not provided, the referral code will be: handle
  */
-export function generateReferralLink(handle: string): string {
+export function generateReferralLink(handle: string, userId?: string): string {
   const cleanHandle = handle.startsWith('@') ? handle.slice(1) : handle;
-  return `${BASE_URL}?ref=${encodeURIComponent(cleanHandle)}`;
+
+  let referralCode = cleanHandle;
+
+  // Try to include user ID prefix if available
+  if (userId) {
+    try {
+      // Use first 4 and last 4 characters of user ID
+      const firstFour = userId.substring(0, 4);
+      const lastFour = userId.substring(userId.length - 4);
+      const userIdPrefix = `${firstFour}-${lastFour}`;
+      referralCode = `${userIdPrefix}-${cleanHandle}`;
+    } catch (error) {
+      // If any error occurs, just use the handle
+      console.error('Error processing user ID for referral:', error);
+    }
+  }
+
+  return `${BASE_URL}?ref=${encodeURIComponent(referralCode)}`;
 }
 
 /**

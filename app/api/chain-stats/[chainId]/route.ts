@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 import { Avalanche } from "@avalanche-sdk/chainkit";
 import { TimeSeriesDataPoint, TimeSeriesMetric, ICMDataPoint, ICMMetric, STATS_CONFIG, getTimestampsFromTimeRange, createTimeSeriesMetric, createICMMetric } from "@/types/stats";
+import l1ChainsData from "@/constants/l1-chains.json";
+
+// Filter to only mainnet chains for ICM aggregation
+const mainnetChains = l1ChainsData.filter(c => (c as { isTestnet?: boolean }).isTestnet !== true);
 
 export const dynamic = 'force-dynamic';
 
@@ -356,14 +360,12 @@ async function fetchPrimaryNetworkFeesData(): Promise<PrimaryNetworkFeesData> {
 }
 
 async function getICMData(
-  chainId: string, 
+  chainId: string,
   timeRange: string,
   startTimestamp?: number,
   endTimestamp?: number
 ): Promise<ICMDataPoint[]> {
   try {
-    const apiChainId = chainId === "all" ? "global" : chainId;
-    
     let days: number;
     if (startTimestamp !== undefined && endTimestamp !== undefined) {
       const startDate = new Date(startTimestamp * 1000);
@@ -382,8 +384,13 @@ async function getICMData(
       days = getDaysFromTimeRange(timeRange);
     }
 
+    // For "all" chains, aggregate data from all mainnet chains
+    if (chainId === "all") {
+      return await aggregateAllChainsICMData(days, startTimestamp, endTimestamp);
+    }
+
     const response = await fetchWithTimeout(
-      `https://idx6.solokhin.com/api/${apiChainId}/metrics/dailyMessageVolume?days=${days}`,
+      `https://idx6.solokhin.com/api/${chainId}/metrics/dailyMessageVolume?days=${days}`,
       { headers: { 'Accept': 'application/json' } }
     );
 
@@ -400,13 +407,13 @@ async function getICMData(
         incomingCount: item.incomingCount || 0,
         outgoingCount: item.outgoingCount || 0,
       }));
-    
+
     if (startTimestamp !== undefined && endTimestamp !== undefined) {
-      filteredData = filteredData.filter((item: ICMDataPoint) => 
+      filteredData = filteredData.filter((item: ICMDataPoint) =>
         item.timestamp >= startTimestamp && item.timestamp <= endTimestamp
       );
     }
-    
+
     return filteredData;
   } catch (error) {
     if (error instanceof Error && error.name !== 'AbortError') {
@@ -414,6 +421,70 @@ async function getICMData(
     }
     return [];
   }
+}
+
+// Helper function to aggregate ICM data from all mainnet chains
+async function aggregateAllChainsICMData(
+  days: number,
+  startTimestamp?: number,
+  endTimestamp?: number
+): Promise<ICMDataPoint[]> {
+  const aggregatedByDate = new Map<string, ICMDataPoint>();
+
+  // Process chains in batches to avoid overwhelming the API
+  const BATCH_SIZE = 20;
+
+  for (let i = 0; i < mainnetChains.length; i += BATCH_SIZE) {
+    const batch = mainnetChains.slice(i, i + BATCH_SIZE);
+
+    await Promise.all(
+      batch.map(async (chain) => {
+        try {
+          const response = await fetchWithTimeout(
+            `https://idx6.solokhin.com/api/${chain.chainId}/metrics/dailyMessageVolume?days=${days}`,
+            { headers: { 'Accept': 'application/json' } }
+          );
+
+          if (response.ok) {
+            const data = await response.json();
+            if (Array.isArray(data)) {
+              data.forEach((item: any) => {
+                const dateKey = item.date;
+                const existing = aggregatedByDate.get(dateKey);
+
+                if (existing) {
+                  existing.messageCount += item.messageCount || 0;
+                  existing.incomingCount += item.incomingCount || 0;
+                  existing.outgoingCount += item.outgoingCount || 0;
+                } else {
+                  aggregatedByDate.set(dateKey, {
+                    timestamp: item.timestamp,
+                    date: item.date,
+                    messageCount: item.messageCount || 0,
+                    incomingCount: item.incomingCount || 0,
+                    outgoingCount: item.outgoingCount || 0,
+                  });
+                }
+              });
+            }
+          }
+        } catch {
+          // skip chains that fail or timeout
+        }
+      })
+    );
+  }
+
+  let result = Array.from(aggregatedByDate.values())
+    .sort((a, b) => b.timestamp - a.timestamp);
+
+  if (startTimestamp !== undefined && endTimestamp !== undefined) {
+    result = result.filter((item) =>
+      item.timestamp >= startTimestamp && item.timestamp <= endTimestamp
+    );
+  }
+
+  return result;
 }
 
 const ALL_METRICS = [

@@ -47,6 +47,14 @@ export default function BubbleNavigation({
   // Check if any item has an icon (determines which style to use)
   const hasIcons = config.items.some((item) => item.icon);
 
+  // Store refs to avoid dependency issues
+  const configRef = useRef(config);
+  const getActiveItemRef = useRef(getActiveItem);
+
+  // Update refs when props change
+  configRef.current = config;
+  getActiveItemRef.current = getActiveItem;
+
   useEffect(() => {
     // Skip the first run since we already initialized with the correct value
     if (isInitialMount.current) {
@@ -56,9 +64,9 @@ export default function BubbleNavigation({
 
     if (isControlled) return;
 
-    const newActiveItem = computeActiveItem(pathname, config, getActiveItem);
-    setUncontrolledActiveItem(newActiveItem);
-  }, [pathname, config, getActiveItem, isControlled]);
+    const newActiveItem = computeActiveItem(pathname, configRef.current, getActiveItemRef.current);
+    setUncontrolledActiveItem(prev => prev === newActiveItem ? prev : newActiveItem);
+  }, [pathname, isControlled]);
 
   useEffect(() => {
     const handleScroll = () => {

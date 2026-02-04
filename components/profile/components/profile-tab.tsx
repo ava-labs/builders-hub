@@ -121,7 +121,7 @@ export default function ProfileTab({ achievements }: ProfileTabProps) {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <Tabs value={activeTab} onValueChange={handleTabChange} className="flex flex-col lg:flex-row gap-6">
           {/* Left Sidebar - Profile Header + Tabs Navigation */}
-          <div className="w-full lg:w-[300px] lg:flex-shrink-0">
+          <div className="w-full lg:w-[300px] lg:shrink-0">
             <div className=" rounded-lg   p-6 lg:sticky lg:top-4 lg:self-start space-y-6">
               {/* Profile Header */}
               <ProfileHeader

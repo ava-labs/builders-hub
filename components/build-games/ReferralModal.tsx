@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Copy, Check } from "lucide-react";
+import { getSession } from "next-auth/react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { generateReferralLink, generateXShareUrl, generateLinkedInShareUrl } from "@/lib/referral";
@@ -16,9 +17,24 @@ export default function ReferralModal({ isOpen, onClose }: ReferralModalProps) {
   const [referralLink, setReferralLink] = useState("");
   const [copied, setCopied] = useState(false);
 
-  const handleGenerateLink = () => {
+  const handleGenerateLink = async () => {
     if (!handle.trim()) return;
-    const link = generateReferralLink(handle.trim());
+
+    let userId: string | undefined;
+
+    // Try to get the user ID with a try-catch
+    try {
+      // Use getSession() to get the freshest session data
+      const freshSession = await getSession();
+      if (freshSession?.user?.id) {
+        userId = freshSession.user.id;
+      }
+    } catch (error) {
+      console.error('Error getting user ID for referral:', error);
+      // userId remains undefined if error occurs
+    }
+
+    const link = generateReferralLink(handle.trim(), userId);
     setReferralLink(link);
   };
 

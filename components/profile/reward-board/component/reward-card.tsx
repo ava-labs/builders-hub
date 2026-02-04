@@ -61,7 +61,7 @@ export const RewardCard = ({
           <DialogTitle>{name ?? "Badge details"}</DialogTitle>
         </VisuallyHidden>
         <DialogContent
-          hideCloseButton={true}
+       
           onOpenAutoFocus={(e) => e.preventDefault()}
           onCloseAutoFocus={(e) => e.preventDefault()}
           className="max-w-lg   bg-transparent shadow-none border-none  p-0 flex flex-col items-center"

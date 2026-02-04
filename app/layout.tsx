@@ -5,12 +5,14 @@ import type { Viewport } from "next";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import type { ReactNode } from "react";
+import { Suspense } from "react";
 import { baseUrl, createMetadata } from "@/utils/metadata";
-import Chatbot from "@/components/ui/chatbot";
 import { PrivacyPolicyBox } from "@/components/privacy-policy";
 import { SearchRootProvider } from "./searchRootProvider";
 import { Body } from "./layout.client";
 import { CustomCountdownBanner } from "@/components/ui/custom-countdown-banner";
+import { HideOnChatPage } from "@/components/layout/chat-page-hider";
+import { EmbedModeDetector } from "@/components/layout/embed-mode-detector";
 import { ThemeProvider } from "@/components/content-design/theme-observer";
 
 export const metadata = createMetadata({
@@ -39,14 +41,21 @@ export default function Layout({ children }: { children: ReactNode }) {
     >
       <PHProvider>
         <body className="flex min-h-screen flex-col">
-          <CustomCountdownBanner />
+          {/* Detect embed mode and add class to document for CSS targeting */}
+          <Suspense fallback={null}>
+            <EmbedModeDetector />
+          </Suspense>
+          <HideOnChatPage>
+            <CustomCountdownBanner />
+          </HideOnChatPage>
           <Body>
             <ThemeProvider>
               <SearchRootProvider>{children}</SearchRootProvider>
-              <Chatbot />
-              <div id="privacy-banner-root" className="relative">
-                <PrivacyPolicyBox />
-              </div>
+              <HideOnChatPage>
+                <div id="privacy-banner-root" className="relative">
+                  <PrivacyPolicyBox />
+                </div>
+              </HideOnChatPage>
             </ThemeProvider>
           </Body>
         </body>

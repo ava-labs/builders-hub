@@ -12,7 +12,6 @@ import ValidatorManagerABI from "@/contracts/icm-contracts/compiled/ValidatorMan
 
 import { Button } from "@/components/toolbox/components/Button";
 import { Input } from "@/components/toolbox/components/Input";
-import { utils } from '@avalabs/avalanchejs';
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { getSubnetInfo } from '@/components/toolbox/coreViem/utils/glacier';
 import { useAvalancheSDKChainkit } from "@/components/toolbox/stores/useAvalancheSDKChainkit";
@@ -21,8 +20,8 @@ import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } fr
 import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
+import { cb58ToHex } from '@/components/toolbox/console/utilities/format-converter/FormatConverter';
 
-const cb58ToHex = (cb58: string) => utils.bufferToHex(utils.base58check.decode(cb58));
 const add0x = (hex: string): `0x${string}` => hex.startsWith('0x') ? hex as `0x${string}` : `0x${hex}`;
 
 const metadata: ConsoleToolMetadata = {
@@ -117,8 +116,8 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
             const { validators, subnetId, chainId, managerAddress } = await coreWalletClient.extractWarpMessageFromPChainTx({ txId: conversionTxID });
             const txArgs = [
                 {
-                    subnetID: cb58ToHex(subnetId),
-                    validatorManagerBlockchainID: cb58ToHex(chainId),
+                    subnetID: add0x(cb58ToHex(subnetId)),
+                    validatorManagerBlockchainID: add0x(cb58ToHex(chainId)),
                     validatorManagerAddress: managerAddress as `0x${string}`,
                     initialValidators: validators
                         .map(({ nodeID, weight, signer }: { nodeID: string, weight: number, signer: { publicKey: string } }) => {

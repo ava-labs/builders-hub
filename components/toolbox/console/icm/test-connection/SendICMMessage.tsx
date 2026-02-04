@@ -6,8 +6,8 @@ import { Button } from "@/components/toolbox/components/Button";
 import { Success } from "@/components/toolbox/components/Success";
 import { createPublicClient, http } from 'viem';
 import ICMDemoABI from "@/contracts/example-contracts/compiled/ICMDemo.json";
-import { utils } from "@avalabs/avalanchejs";
 import { Input } from "@/components/toolbox/components/Input";
+import { cb58ToHex } from '@/components/toolbox/console/utilities/format-converter/FormatConverter';
 import SelectBlockchainId from "@/components/toolbox/components/SelectBlockchainId";
 import { useL1ByChainId, useSelectedL1 } from "@/components/toolbox/stores/l1ListStore";
 import { useEffect } from "react";
@@ -70,7 +70,7 @@ function SendICMMessage({ onSuccess }: BaseConsoleToolProps) {
     const destinationBlockchainIDHex = useMemo(() => {
         if (!targetL1?.id) return undefined;
         try {
-            return utils.bufferToHex(utils.base58check.decode(targetL1.id));
+            return cb58ToHex(targetL1.id);
         } catch (e) {
             console.error("Error decoding destination chain ID:", e);
             return undefined;
