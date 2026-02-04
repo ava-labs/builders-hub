@@ -246,7 +246,8 @@ function normalizeUser(user: Partial<User>): User {
     skills: user.skills ?? [],
     noun_avatar_seed: user.noun_avatar_seed ?? null,
     noun_avatar_enabled: user.noun_avatar_enabled ?? false,
-  };
+    notification_means: (user as any).notification_means ?? null,
+  } as unknown as User;
 }
 export async function getProject(projectId: string): Promise<Project | null> {
   const projectData = await prisma.project.findUnique({

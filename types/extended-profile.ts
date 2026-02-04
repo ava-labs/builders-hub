@@ -34,6 +34,7 @@ export type ExtendedProfile = {
     notifications: boolean | null;
     profile_privacy: string | null;
     telegram_user?: string | null;
+    notification_means?: any;
 }
 
 /**

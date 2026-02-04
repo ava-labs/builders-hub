@@ -165,7 +165,7 @@ export default function Profile() {
                   {/* Roles */}
                   <div className="space-y-4">
                     <div className="flex flex-row items-center gap-4">
-                      <FormLabel className="flex-shrink-0">Select all roles that apply.</FormLabel>
+                      <FormLabel className="shrink-0">Select all roles that apply.</FormLabel>
                     </div>
                     
                     {/* Student */}

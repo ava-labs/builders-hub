@@ -2,6 +2,7 @@
 import { prisma } from "@/prisma/prisma";
 import { Account, Profile, User } from "next-auth";
 import { syncUserDataToHubSpot } from "@/server/services/hubspotUserData";
+import { getDefaultNotificationMeans } from "@/lib/notificationDefaults";
 
 export async function upsertUser(user: User, account: Account | null, profile: Profile | undefined) {
   if (!user.email) {
@@ -43,6 +44,7 @@ export async function upsertUser(user: User, account: Account | null, profile: P
         last_login: new Date(),
         user_name: (profile as any)?.login ?? "",
         notifications: null,
+        notification_means: getDefaultNotificationMeans(),
       },
     });
   }

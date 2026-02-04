@@ -62,6 +62,7 @@ model User {
   skills                   String[]                  @default([])
   user_type                Json?
   wallet                   String[]                  @default([])
+  notification_means       Json?
   chatConversations        ChatConversation[]
   consoleLog               ConsoleLog[]
   faucetClaims             FaucetClaim[]
