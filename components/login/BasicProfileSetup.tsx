@@ -14,7 +14,6 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-  FormDescription,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import {
@@ -42,6 +41,7 @@ const basicProfileSchema = z.object({
   is_employee: z.boolean().default(false),
   employee_company_name: z.string().optional(),
   employee_role: z.string().optional(),
+  is_developer: z.boolean().default(false),
   is_enthusiast: z.boolean().default(false),
 });
 
@@ -70,6 +70,7 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
       is_employee: false,
       employee_company_name: '',
       employee_role: '',
+      is_developer: false,
       is_enthusiast: false,
     },
   });
@@ -88,6 +89,7 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
         is_employee,
         employee_company_name,
         employee_role,
+        is_developer,
         is_enthusiast,
         name,
         country
@@ -101,6 +103,7 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
           is_student,
           is_founder,
           is_employee,
+          is_developer,
           is_enthusiast,
           ...(student_institution && { student_institution }),
           ...(founder_company_name && { founder_company_name }),
@@ -197,7 +200,7 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
                             <SelectValue placeholder="Select your country" />
                           </SelectTrigger>
                         </FormControl>
-                        <SelectContent className="rounded-md shadow-md max-h-[300px] overflow-y-auto z-[20000]">
+                        <SelectContent className="rounded-md shadow-md max-h-[300px] overflow-y-auto z-20000">
                           {countries.map((countryOption) => (
                             <SelectItem key={countryOption.value} value={countryOption.label}>
                               {countryOption.label}
@@ -212,12 +215,9 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
               </div>
             </div>
 
-            {/* I'm */}
+            {/* Roles */}
             <div className="space-y-3 sm:space-y-4">
-              <FormLabel className="text-sm sm:text-base">I'm</FormLabel>
-              <FormDescription className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
-                Select all roles that describe you.
-              </FormDescription>
+              <FormLabel className="text-sm sm:text-base">Select all roles that apply.</FormLabel>
 
               {/* Student */}
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
@@ -323,6 +323,29 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
                 )}
               </div>
 
+              {/* Developer */}
+              <div className="flex items-center gap-2 sm:gap-3">
+                <FormField
+                  control={form.control}
+                  name="is_developer"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center space-x-2 sm:space-x-3 space-y-0">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                <FormLabel className="text-sm sm:text-base font-normal cursor-pointer" onClick={() => {
+                  form.setValue("is_developer", !watchedValues.is_developer);
+                }}>
+                  Developer
+                </FormLabel>
+              </div>
+
               {/* Employee */}
               <div className="flex items-center gap-3">
                 <FormField
@@ -345,7 +368,7 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
                     </FormItem>
                   )}
                 />
-                <FormLabel className="text-sm font-normal cursor-pointer flex-shrink-0 w-[70px]" onClick={() => {
+                <FormLabel className="text-sm font-normal cursor-pointer shrink-0 w-[70px]" onClick={() => {
                   const currentValue = watchedValues.is_employee;
                   form.setValue("is_employee", !currentValue);
                   if (currentValue) {
@@ -384,7 +407,7 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
                                 <SelectValue placeholder="role" />
                               </SelectTrigger>
                             </FormControl>
-                            <SelectContent className="z-[20000]">
+                            <SelectContent className="z-20000">
                               {hsEmploymentRoles.map((roleOption) => (
                                 <SelectItem key={roleOption.value} value={roleOption.label}>
                                   {roleOption.label}
