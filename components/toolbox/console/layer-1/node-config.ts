@@ -35,7 +35,7 @@ const SUBNET_EVM_DEFAULTS = {
  * This configuration is saved to ~/.avalanchego/configs/chains/<blockchainID>/config.json
  */
 export const generateChainConfig = (
-    nodeType: 'validator' | 'public-rpc' | 'validator-rpc' | 'rpc' | 'archival',
+    nodeType: 'validator' | 'rpc' | 'archival',
     enableDebugTrace: boolean = false,
     adminApiEnabled: boolean = false,
     pruningEnabled: boolean = true,
@@ -68,8 +68,8 @@ export const generateChainConfig = (
     // Note: AvalancheGo default is true, but we default to false to avoid performance impact
     metricsExpensiveEnabled: boolean = false
 ) => {
-    const isRPC = nodeType === 'public-rpc' || nodeType === 'validator-rpc' || nodeType === 'rpc' || nodeType === 'archival';
-    const isValidator = nodeType === 'validator' || nodeType === 'validator-rpc';
+    const isRPC = nodeType === 'rpc' || nodeType === 'archival';
+    const isValidator = nodeType === 'validator';
     const config: any = {};
 
     // Helper function to add config only if it differs from default
@@ -117,10 +117,8 @@ export const generateChainConfig = (
         config["metrics-expensive-enabled"] = true;
     }
 
-    // Min delay target:
-    // - Pass 0 to indicate "don't include" (use node default, which is 2000ms for Subnet-EVM)
-    // - Pass any positive value to include it explicitly in the config
-    if (minDelayTarget > 0) {
+    // Min delay target - only include if different from default (2000ms)
+    if (minDelayTarget !== 2000) {
         config["min-delay-target"] = minDelayTarget;
     }
 
@@ -133,11 +131,14 @@ export const generateChainConfig = (
         config["state-sync-enabled"] = true;
     }
 
-    // Transaction indexing - always show to make the relationship between
-    // "Enable Transaction Indexing" checkbox and config value clear:
-    // - Checkbox checked (enabled) → skip-tx-indexing: false
-    // - Checkbox unchecked (disabled) → skip-tx-indexing: true
-    config["skip-tx-indexing"] = skipTxIndexing;
+    // Transaction indexing:
+    // - Validators: omit entirely (they skip indexing, use node default)
+    // - RPC nodes: explicitly show false to indicate indexing is enabled
+    if (isRPC && !skipTxIndexing) {
+        config["skip-tx-indexing"] = false;
+    } else if (skipTxIndexing) {
+        config["skip-tx-indexing"] = true;
+    }
 
     // Transaction history - only add if specified
     if (!skipTxIndexing && transactionHistory > 0) {
@@ -232,7 +233,7 @@ export const generateChainConfig = (
 export const generateDeploymentMetadata = (
     subnetId: string,
     blockchainId: string,
-    nodeType: 'validator' | 'public-rpc' | 'validator-rpc',
+    nodeType: 'validator' | 'rpc' | 'archival',
     networkID: number,
     vmId: string = SUBNET_EVM_VM_ID,
     domain?: string
@@ -271,7 +272,132 @@ export const encodeChainConfig = (
 };
 
 /**
+ * Generates the node-level configuration (node.json)
+ * This configures AvalancheGo itself: networking, HTTP, subnets to track, etc.
+ * Saved to: ~/.avalanchego/configs/node.json
+ */
+export const generateNodeConfig = (
+    subnetId: string,
+    nodeType: 'validator' | 'rpc' | 'archival',
+    networkID: number,
+    options: {
+        publicIp?: string;
+        httpPort?: number;
+        stakingPort?: number;
+        apiAdminEnabled?: boolean;
+        apiMetricsEnabled?: boolean;
+    } = {}
+) => {
+    const isRPC = nodeType === 'rpc' || nodeType === 'archival';
+    const isTestnet = networkID === 5;
+
+    const config: Record<string, any> = {
+        // Network
+        "network-id": isTestnet ? "fuji" : "mainnet",
+
+        // Public IP resolution
+        "public-ip-resolution-service": "opendns",
+
+        // HTTP API
+        "http-host": "0.0.0.0",
+        "http-port": options.httpPort || 9650,
+
+        // Staking port
+        "staking-port": options.stakingPort || 9651,
+
+        // L1 nodes only need Primary Network headers, not full state
+        "partial-sync-primary-network": true,
+
+        // Track this L1's subnet
+        "track-subnets": subnetId
+    };
+
+    // RPC nodes allow external HTTP requests
+    if (isRPC) {
+        config["http-allowed-hosts"] = "*";
+    }
+
+    // Optional: explicit public IP (otherwise uses resolution service)
+    if (options.publicIp) {
+        config["public-ip"] = options.publicIp;
+        delete config["public-ip-resolution-service"];
+    }
+
+    // Optional: admin API for node management
+    if (options.apiAdminEnabled) {
+        config["api-admin-enabled"] = true;
+    }
+
+    // Optional: metrics endpoint
+    if (options.apiMetricsEnabled) {
+        config["api-metrics-enabled"] = true;
+    }
+
+    return config;
+};
+
+/**
+ * Generates VM aliases file for custom VMs
+ * Maps custom VM ID to subnet-evm so the node knows how to run it
+ * Saved to: ~/.avalanchego/configs/vms/aliases.json
+ */
+export const generateVmAliases = (vmId: string) => {
+    if (vmId === SUBNET_EVM_VM_ID) {
+        return null; // No aliases needed for standard subnet-evm
+    }
+    return {
+        [vmId]: [SUBNET_EVM_VM_ID]
+    };
+};
+
+/**
+ * Generates shell commands to create all config files
+ */
+export const generateAllConfigCommands = (
+    subnetId: string,
+    blockchainId: string,
+    nodeConfig: any,
+    chainConfig: any,
+    vmId: string = SUBNET_EVM_VM_ID
+) => {
+    const commands: string[] = [];
+    const isCustomVM = vmId !== SUBNET_EVM_VM_ID;
+
+    // Create directory structure
+    commands.push(`# Create config directories
+mkdir -p ~/.avalanchego/configs/chains/${blockchainId}
+mkdir -p ~/.avalanchego/configs/vms`);
+
+    // Node config
+    commands.push(`
+# Node config (network, http, subnets)
+cat > ~/.avalanchego/configs/node.json << 'EOF'
+${JSON.stringify(nodeConfig, null, 2)}
+EOF`);
+
+    // Chain config
+    commands.push(`
+# Chain config (${blockchainId})
+cat > ~/.avalanchego/configs/chains/${blockchainId}/config.json << 'EOF'
+${JSON.stringify(chainConfig, null, 2)}
+EOF`);
+
+    // VM aliases (only for custom VMs)
+    if (isCustomVM) {
+        const vmAliases = generateVmAliases(vmId);
+        commands.push(`
+# VM aliases (maps custom VM to subnet-evm)
+cat > ~/.avalanchego/configs/vms/aliases.json << 'EOF'
+${JSON.stringify(vmAliases, null, 2)}
+EOF`);
+    }
+
+    return commands.join('\n');
+};
+
+/**
  * Generates a command to create the chain config file in the correct location
+ * @deprecated Use generateAllConfigCommands instead
  */
 export const generateConfigFileCommand = (
     blockchainId: string,
@@ -280,9 +406,6 @@ export const generateConfigFileCommand = (
     const configJson = JSON.stringify(chainConfig, null, 2);
     const configPath = `~/.avalanchego/configs/chains/${blockchainId}`;
 
-    // Escape single quotes in the JSON for the shell command
-    const escapedJson = configJson.replace(/'/g, "'\\''");
-
     return `# Create the chain config directory and file
 mkdir -p ${configPath} && cat > ${configPath}/config.json << 'EOF'
 ${configJson}
@@ -290,54 +413,107 @@ EOF`;
 };
 
 /**
- * Generates the complete Docker command
- * The chain config is read from the mounted volume at ~/.avalanchego/configs/chains/<blockchainID>/config.json
+ * Generates the node-level configuration for Primary Network nodes
+ * Unlike L1 nodes, Primary Network nodes don't use partial-sync or track-subnets
+ * Saved to: ~/.avalanchego/configs/node.json
+ */
+export const generatePrimaryNetworkNodeConfig = (
+    nodeType: 'validator' | 'rpc' | 'archival',
+    networkID: number,
+    options: {
+        publicIp?: string;
+        httpPort?: number;
+        stakingPort?: number;
+        apiAdminEnabled?: boolean;
+        apiMetricsEnabled?: boolean;
+    } = {}
+) => {
+    const isRPC = nodeType === 'rpc' || nodeType === 'archival';
+    const isTestnet = networkID === 5;
+
+    const config: Record<string, any> = {
+        // Network
+        "network-id": isTestnet ? "fuji" : "mainnet",
+
+        // Public IP resolution
+        "public-ip-resolution-service": "opendns",
+
+        // HTTP API
+        "http-host": "0.0.0.0",
+        "http-port": options.httpPort || 9650,
+
+        // Staking port
+        "staking-port": options.stakingPort || 9651
+    };
+
+    // RPC nodes allow external HTTP requests
+    if (isRPC) {
+        config["http-allowed-hosts"] = "*";
+    }
+
+    // Optional: explicit public IP (otherwise uses resolution service)
+    if (options.publicIp) {
+        config["public-ip"] = options.publicIp;
+        delete config["public-ip-resolution-service"];
+    }
+
+    // Optional: admin API for node management
+    if (options.apiAdminEnabled) {
+        config["api-admin-enabled"] = true;
+    }
+
+    // Optional: metrics endpoint
+    if (options.apiMetricsEnabled) {
+        config["api-metrics-enabled"] = true;
+    }
+
+    return config;
+};
+
+/**
+ * Generates the Docker run command for Primary Network nodes
+ * Config is read from mounted volume - no env vars needed!
+ */
+export const generatePrimaryNetworkDockerCommand = (
+    nodeType: 'validator' | 'rpc' | 'archival',
+    networkID: number
+) => {
+    const isRPC = nodeType === 'rpc' || nodeType === 'archival';
+    const isTestnet = networkID === 5;
+    const versions = getContainerVersions(isTestnet);
+
+    const chunks = [
+        "docker run -it -d",
+        "--name avago",
+        `-p ${isRPC ? "" : "127.0.0.1:"}9650:9650 -p 9651:9651`,
+        "-v ~/.avalanchego:/root/.avalanchego",
+        `avaplatform/avalanchego:${versions['avaplatform/avalanchego']}`
+    ];
+
+    return chunks.map(chunk => `    ${chunk}`).join(" \\\n").trim();
+};
+
+/**
+ * Generates the Docker run command for L1 nodes
+ * Config is read from mounted volume - no env vars needed!
  */
 export const generateDockerCommand = (
     subnetId: string,
     blockchainId: string,
     chainConfig: any,
-    nodeType: 'validator' | 'public-rpc' | 'validator-rpc',
+    nodeType: 'validator' | 'rpc' | 'archival',
     networkID: number,
     vmId: string = SUBNET_EVM_VM_ID
 ) => {
-    const isRPC = nodeType === 'public-rpc' || nodeType === 'validator-rpc';
-    const isTestnet = networkID === 5; // Fuji
-    const isCustomVM = vmId !== SUBNET_EVM_VM_ID;
+    const isRPC = nodeType === 'rpc' || nodeType === 'archival';
+    const isTestnet = networkID === 5;
     const versions = getContainerVersions(isTestnet);
-
-    const env: Record<string, string> = {
-        AVAGO_PUBLIC_IP_RESOLUTION_SERVICE: "opendns",
-        AVAGO_HTTP_HOST: "0.0.0.0",
-        AVAGO_PARTIAL_SYNC_PRIMARY_NETWORK: "true",
-        AVAGO_TRACK_SUBNETS: subnetId,
-        AVAGO_CHAIN_CONFIG_DIR: "/root/.avalanchego/configs/chains"
-    };
-
-    // Set network ID
-    if (networkID === 5) {
-        env.AVAGO_NETWORK_ID = "fuji";
-    }
-
-    // Configure RPC settings
-    if (isRPC) {
-        env.AVAGO_HTTP_ALLOWED_HOSTS = '"*"';
-    }
-
-    // Add VM aliases if custom VM
-    if (isCustomVM) {
-        const vmAliases = {
-            [vmId]: [SUBNET_EVM_VM_ID]
-        };
-        env.AVAGO_VM_ALIASES_FILE_CONTENT = btoa(JSON.stringify(vmAliases, null, 2));
-    }
 
     const chunks = [
         "docker run -it -d",
-        `--name avago`,
+        "--name avago",
         `-p ${isRPC ? "" : "127.0.0.1:"}9650:9650 -p 9651:9651`,
-        `-v ~/.avalanchego:/root/.avalanchego`,
-        ...Object.entries(env).map(([key, value]) => `-e ${key}=${value}`),
+        "-v ~/.avalanchego:/root/.avalanchego",
         `avaplatform/subnet-evm_avalanchego:${versions['avaplatform/subnet-evm_avalanchego']}`
     ];
 

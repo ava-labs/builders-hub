@@ -12,10 +12,9 @@ import { Button } from "@/components/toolbox/components/Button";
 import { SyntaxHighlightedJSON } from "@/components/toolbox/components/genesis/SyntaxHighlightedJSON";
 import { GenesisHighlightProvider, useGenesisHighlight } from "@/components/toolbox/components/genesis/GenesisHighlightContext";
 import { StorageRequirements } from "@/components/toolbox/components/StorageRequirements";
-import { generateChainConfig, generateConfigFileCommand } from "@/components/toolbox/console/layer-1/node-config";
+import { generateChainConfig, generatePrimaryNetworkNodeConfig, generatePrimaryNetworkDockerCommand } from "@/components/toolbox/console/layer-1/node-config";
 import { useNodeConfigHighlighting } from "@/components/toolbox/console/layer-1/useNodeConfigHighlighting";
 import { C_CHAIN_ID } from "@/components/toolbox/console/layer-1/create/config";
-import { getContainerVersions } from "@/components/toolbox/utils/containerVersions";
 
 function AvalancheGoDockerPrimaryNetworkInner() {
     const { setHighlightPath, clearHighlight, highlightPath } = useGenesisHighlight();
@@ -25,9 +24,8 @@ function AvalancheGoDockerPrimaryNetworkInner() {
     const [adminApiEnabled, setAdminApiEnabled] = useState<boolean>(false);
     const [pruningEnabled, setPruningEnabled] = useState<boolean>(true);
     const [logLevel, setLogLevel] = useState<string>("info");
-    // min-delay-target: 0 means don't include in config (use node default)
-    // C-Chain has sub-second block times, so validators shouldn't vote on this by default
-    const [minDelayTarget, setMinDelayTarget] = useState<number>(0);
+    // min-delay-target: 2000ms is the Subnet-EVM default - when set to default, it's omitted from config
+    const [minDelayTarget, setMinDelayTarget] = useState<number>(2000);
     const [configJson, setConfigJson] = useState<string>("");
 
     // Enable expensive debug-level metrics (disabled by default)
@@ -137,7 +135,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
             setAdminApiEnabled(false);
             setPruningEnabled(true);
             setLogLevel("info");
-            setMinDelayTarget(0); // Don't include in config - use node default
+            setMinDelayTarget(2000); // Default value - omitted from config
             setAllowUnfinalizedQueries(false);
             setStateSyncEnabled(true); // Validators benefit from fast sync
             setSkipTxIndexing(true); // Validators don't need tx indexing
@@ -185,7 +183,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
         setAdminApiEnabled(false);
         setPruningEnabled(true);
         setLogLevel("info");
-        setMinDelayTarget(0); // Don't include in config by default
+        setMinDelayTarget(2000); // Default value - omitted from config
         setConfigJson("");
         setTrieCleanCache(512);
         setTrieDirtyCache(512);
@@ -214,50 +212,12 @@ function AvalancheGoDockerPrimaryNetworkInner() {
         setMetricsExpensiveEnabled(false); // Expensive metrics disabled by default
     };
 
-    // Generate Docker command for Primary Network (using file-based config)
+    // Generate Docker command for Primary Network (config read from mounted volume)
     const getDockerCommand = () => {
         try {
-            const isTestnet = effectiveNetworkID === 5;
-            const versions = getContainerVersions(isTestnet);
-
-            const env: Record<string, string> = {
-                AVAGO_PUBLIC_IP_RESOLUTION_SERVICE: "opendns",
-                AVAGO_HTTP_HOST: "0.0.0.0",
-                AVAGO_CHAIN_CONFIG_DIR: "/root/.avalanchego/configs/chains"
-            };
-
-            // Set network ID
-            if (effectiveNetworkID === 5) {
-                env.AVAGO_NETWORK_ID = "fuji";
-            }
-
-            // Configure RPC settings
-            if (isRPC) {
-                env.AVAGO_HTTP_ALLOWED_HOSTS = '"*"';
-            }
-
-            const chunks = [
-                "docker run -it -d",
-                "--name avago",
-                `-p ${isRPC ? "" : "127.0.0.1:"}9650:9650 -p 9651:9651`,
-                "-v ~/.avalanchego:/root/.avalanchego",
-                ...Object.entries(env).map(([key, value]) => `-e ${key}=${value}`),
-                `avaplatform/avalanchego:${versions['avaplatform/avalanchego']}`
-            ];
-
-            return chunks.map(chunk => `    ${chunk}`).join(" \\\n").trim();
+            return generatePrimaryNetworkDockerCommand(nodeType, effectiveNetworkID);
         } catch (error) {
             return `# Error: ${(error as Error).message}`;
-        }
-    };
-
-    // Generate the config file command
-    const getConfigFileCommand = () => {
-        try {
-            const config = JSON.parse(configJson);
-            return generateConfigFileCommand(C_CHAIN_ID, config);
-        } catch {
-            return "# Error generating config file command";
         }
     };
 
@@ -268,70 +228,6 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                 githubUrl="https://github.com/ava-labs/builders-hub/edit/master/components/toolbox/console/primary-network/AvalancheGoDockerPrimaryNetwork.tsx"
             >
                 <Steps>
-                    <Step>
-                        <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-3">Set up Instance</h3>
-
-                        {/* Hardware requirements - compact grid */}
-                        <div className="grid grid-cols-3 gap-3 mb-4">
-                            <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-lg p-3 border border-zinc-200 dark:border-zinc-800">
-                                <div className="flex items-center gap-2 mb-1">
-                                    <svg className="w-4 h-4 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
-                                    </svg>
-                                    <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">CPU</span>
-                                </div>
-                                <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">4-8+ cores</div>
-                            </div>
-                            <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-lg p-3 border border-zinc-200 dark:border-zinc-800">
-                                <div className="flex items-center gap-2 mb-1">
-                                    <svg className="w-4 h-4 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                                    </svg>
-                                    <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">RAM</span>
-                                </div>
-                                <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">16-32 GB</div>
-                            </div>
-                            <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-lg p-3 border border-zinc-200 dark:border-zinc-800">
-                                <div className="flex items-center gap-2 mb-1">
-                                    <svg className="w-4 h-4 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
-                                    </svg>
-                                    <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Storage</span>
-                                </div>
-                                <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">1-15 TB NVMe</div>
-                            </div>
-                        </div>
-
-                        {/* Notices - compact */}
-                        <div className="text-xs text-zinc-500 dark:text-zinc-400 space-y-1.5">
-                            <p className="flex items-start gap-1.5">
-                                <span className="text-amber-500 mt-0.5">⚠</span>
-                                <span>Use <strong className="text-zinc-700 dark:text-zinc-300">local NVMe</strong>, not cloud block storage (EBS, Persistent Disk). <a href="/docs/nodes/system-requirements" className="text-blue-500 hover:underline">Details →</a></span>
-                            </p>
-                            <p className="flex items-start gap-1.5">
-                                <span className="text-blue-500 mt-0.5">ℹ</span>
-                                <span>No server? Run locally for testing — select &quot;RPC&quot; node type below.</span>
-                            </p>
-                        </div>
-                    </Step>
-
-                    <Step>
-                        <DockerInstallation includeCompose={false} />
-
-                        <p className="mt-4">
-                            If you do not want to use Docker, you can follow the instructions{" "}
-                            <a
-                                href="https://github.com/ava-labs/avalanchego?tab=readme-ov-file#installation"
-                                target="_blank"
-                                className="text-blue-600 dark:text-blue-400 hover:underline"
-                                rel="noreferrer"
-                            >
-                                here
-                            </a>
-                            .
-                        </p>
-                    </Step>
-
                     <Step>
                     <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Configure Node Settings</h3>
                     <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
@@ -919,7 +815,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                                                                 Min Delay Target
                                                             </label>
                                                             <span className="text-xs font-mono text-zinc-900 dark:text-zinc-100 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded">
-                                                                {minDelayTarget === 0 ? "default" : `${minDelayTarget}ms`}
+                                                                {minDelayTarget}ms{minDelayTarget === 2000 ? " (default)" : ""}
                                                             </span>
                                                         </div>
                                                         <input
@@ -934,12 +830,12 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                                                             className="w-full h-2 bg-zinc-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
                                                         />
                                                         <div className="flex justify-between text-[10px] text-zinc-400 mt-1">
-                                                            <span>0 (default)</span>
+                                                            <span>0ms (fastest)</span>
                                                             <span>1000ms</span>
-                                                            <span>2000ms</span>
+                                                            <span>2000ms (default)</span>
                                                         </div>
                                                         <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-                                                            Set to 0 to use node default (recommended). Non-zero values vote on block timing.
+                                                            Minimum time between blocks. Lower values = faster blocks but more network load.
                                                         </p>
                                                     </div>
 
@@ -1112,64 +1008,219 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                     </Step>
 
                     <Step>
-                        <h3 className="text-xl font-bold mb-4">Create Configuration File</h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                            Run this command on your server to create the C-Chain configuration file:
+                        <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Set up Instance</h3>
+                        <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
+                            Provision a server with the following specifications.
                         </p>
 
-                        <DynamicCodeBlock lang="bash" code={getConfigFileCommand()} />
+                        {/* Hardware requirements - compact grid */}
+                        <div className="grid grid-cols-3 gap-3 mb-4">
+                            <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-lg p-3 border border-zinc-200 dark:border-zinc-800">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <svg className="w-4 h-4 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+                                    </svg>
+                                    <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">CPU</span>
+                                </div>
+                                <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">4-8+ cores</div>
+                            </div>
+                            <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-lg p-3 border border-zinc-200 dark:border-zinc-800">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <svg className="w-4 h-4 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                                    </svg>
+                                    <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">RAM</span>
+                                </div>
+                                <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">16-32 GB</div>
+                            </div>
+                            <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-lg p-3 border border-zinc-200 dark:border-zinc-800">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <svg className="w-4 h-4 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
+                                    </svg>
+                                    <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Storage</span>
+                                </div>
+                                <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                                    {nodeType === "archival" ? "20 TB" : "1 TB"} {nodeType === "validator" && "NVMe"}
+                                </div>
+                            </div>
+                        </div>
 
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-                            This creates the configuration file at <code className="px-1 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-xs">~/.avalanchego/configs/chains/{C_CHAIN_ID}/config.json</code>
-                        </p>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                            Read the documentation for more information on the configuration options. {" "}
-                            <a
-                                href="https://build.avax.network/docs/nodes/configure/configs-flags"
-                                target="_blank"
-                                className="text-blue-600 dark:text-blue-400 hover:underline"
-                                rel="noreferrer"
-                            >
-                                AvalancheGo configuration
-                            </a>
-                            {" "}and{" "}
-                            <a
-                                href="https://build.avax.network/docs/nodes/chain-configs/c-chain"
-                                target="_blank"
-                                className="text-blue-600 dark:text-blue-400 hover:underline"
-                                rel="noreferrer"
-                            >
-                                C-Chain configuration
-                            </a>
+                        {/* Storage note */}
+                        <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                            {nodeType === "validator" ? (
+                                <>Use local NVMe, not cloud block storage (EBS, Persistent Disk).{" "}</>
+                            ) : nodeType === "archival" ? (
+                                <>Full historical state requires significant storage.{" "}</>
+                            ) : (
+                                <>Can use cloud block storage (EBS, Persistent Disk).{" "}</>
+                            )}
+                            <a href="/docs/nodes/system-requirements" className="text-blue-500 hover:underline">Details →</a>
                         </p>
                     </Step>
 
                     <Step>
-                    <h3 className="text-xl font-bold mb-4">Run Docker Command</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                        Start the node using Docker:
-                    </p>
+                        <DockerInstallation includeCompose={false} />
 
-                    <DynamicCodeBlock lang="bash" code={getDockerCommand()} />
+                        <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">
+                            If you do not want to use Docker, you can follow the{" "}
+                            <a
+                                href="https://github.com/ava-labs/avalanchego?tab=readme-ov-file#installation"
+                                target="_blank"
+                                className="text-blue-500 hover:underline"
+                                rel="noreferrer"
+                            >
+                                manual installation instructions
+                            </a>.
+                        </p>
+                    </Step>
 
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-                        The container will read the config from <code className="px-1 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-xs">~/.avalanchego/configs/chains/{C_CHAIN_ID}/config.json</code> via the mounted volume.
-                    </p>
+                    <Step>
+                        <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Create Configuration Files</h3>
+                        <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
+                            Run these commands to create the config files. AvalancheGo reads from these default locations on startup.
+                        </p>
 
-                    <Accordions type="single" className="mt-4">
-                            <Accordion title="Running Multiple Nodes on the same machine">
-                            <p className="text-sm">To run multiple nodes on the same machine, ensure each node has:</p>
-                            <ul className="list-disc pl-5 mt-1 text-sm">
+                        <Steps>
+                            <Step>
+                                <h4 className="text-sm font-medium mb-2">Create config directories</h4>
+                                <DynamicCodeBlock
+                                    lang="bash"
+                                    code={`mkdir -p ~/.avalanchego/configs/chains/${C_CHAIN_ID}`}
+                                />
+                            </Step>
+
+                            <Step>
+                                <h4 className="text-sm font-medium mb-2">
+                                    Node config <code className="text-xs bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded ml-2">~/.avalanchego/configs/node.json</code>
+                                </h4>
+                                <DynamicCodeBlock
+                                    lang="bash"
+                                    code={(() => {
+                                        try {
+                                            const nodeConfig = generatePrimaryNetworkNodeConfig(nodeType, effectiveNetworkID);
+                                            return `cat > ~/.avalanchego/configs/node.json << 'EOF'\n${JSON.stringify(nodeConfig, null, 2)}\nEOF`;
+                                        } catch {
+                                            return "# Error generating node config";
+                                        }
+                                    })()}
+                                />
+                            </Step>
+
+                            <Step>
+                                <h4 className="text-sm font-medium mb-2">
+                                    C-Chain config <code className="text-xs bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded ml-2">~/.avalanchego/configs/chains/{C_CHAIN_ID.slice(0, 8)}...</code>
+                                </h4>
+                                <DynamicCodeBlock
+                                    lang="bash"
+                                    code={(() => {
+                                        try {
+                                            const chainConfig = JSON.parse(configJson);
+                                            return `cat > ~/.avalanchego/configs/chains/${C_CHAIN_ID}/config.json << 'EOF'\n${JSON.stringify(chainConfig, null, 2)}\nEOF`;
+                                        } catch {
+                                            return "# Error generating chain config";
+                                        }
+                                    })()}
+                                />
+                            </Step>
+                        </Steps>
+
+                        <div className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">
+                            Docs: {" "}
+                            <a
+                                href="https://build.avax.network/docs/nodes/configure/configs-flags"
+                                target="_blank"
+                                className="text-blue-500 hover:underline"
+                                rel="noreferrer"
+                            >
+                                Node config
+                            </a>
+                            {" · "}
+                            <a
+                                href="https://build.avax.network/docs/nodes/chain-configs/c-chain"
+                                target="_blank"
+                                className="text-blue-500 hover:underline"
+                                rel="noreferrer"
+                            >
+                                C-Chain config
+                            </a>
+                        </div>
+                    </Step>
+
+                    <Step>
+                        <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Configure Firewall</h3>
+                        <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
+                            Open the required ports for your node to communicate with the network.
+                        </p>
+
+                        {/* Port explanation */}
+                        <div className="grid grid-cols-2 gap-3 mb-4">
+                            <div className={`rounded-lg p-3 border ${isRPC ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800' : 'bg-zinc-50 dark:bg-zinc-900/50 border-zinc-200 dark:border-zinc-800'}`}>
+                                <div className="flex items-center justify-between mb-1">
+                                    <span className="text-sm font-mono font-medium text-zinc-900 dark:text-zinc-100">9651</span>
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">Required</span>
+                                </div>
+                                <div className="text-xs text-zinc-500 dark:text-zinc-400">P2P / Staking port</div>
+                                <div className="text-[10px] text-zinc-400 mt-1">Node-to-node communication</div>
+                            </div>
+                            <div className={`rounded-lg p-3 border ${isRPC ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800' : 'bg-zinc-50 dark:bg-zinc-900/50 border-zinc-200 dark:border-zinc-800 opacity-50'}`}>
+                                <div className="flex items-center justify-between mb-1">
+                                    <span className="text-sm font-mono font-medium text-zinc-900 dark:text-zinc-100">9650</span>
+                                    <span className={`text-[10px] px-1.5 py-0.5 rounded ${isRPC ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500'}`}>
+                                        {isRPC ? 'Required' : 'RPC only'}
+                                    </span>
+                                </div>
+                                <div className="text-xs text-zinc-500 dark:text-zinc-400">HTTP / RPC port</div>
+                                <div className="text-[10px] text-zinc-400 mt-1">API requests from clients</div>
+                            </div>
+                        </div>
+
+                        <DynamicCodeBlock
+                            lang="bash"
+                            code={isRPC
+                                ? `# Open P2P and RPC ports
+sudo ufw allow 9651/tcp comment 'AvalancheGo P2P'
+sudo ufw allow 9650/tcp comment 'AvalancheGo RPC'
+sudo ufw --force enable
+sudo ufw status`
+                                : `# Open P2P port only (validators don't expose RPC)
+sudo ufw allow 9651/tcp comment 'AvalancheGo P2P'
+sudo ufw --force enable
+sudo ufw status`}
+                        />
+
+                        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-3">
+                            {isRPC
+                                ? "RPC nodes need both ports open. Consider using a reverse proxy (nginx) for SSL termination on port 9650."
+                                : "Validators only need the P2P port. The RPC port is bound to localhost for security."}
+                        </p>
+                    </Step>
+
+                    <Step>
+                        <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Run Docker</h3>
+                        <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
+                            Start the node. Config is read from the mounted volume — no env vars needed.
+                        </p>
+
+                        <DynamicCodeBlock lang="bash" code={getDockerCommand()} />
+
+                        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2">
+                            Restart anytime with <code className="px-1 py-0.5 bg-zinc-100 dark:bg-zinc-800 rounded">docker restart avago</code> — config changes are picked up automatically.
+                        </p>
+
+                        <Accordions type="single" className="mt-4">
+                            <Accordion title="Running Multiple Nodes">
+                                <p className="text-sm">To run multiple nodes on the same machine, ensure each node has:</p>
+                                <ul className="list-disc pl-5 mt-1 text-sm">
                                     <li>Unique container name (change <code>--name</code> parameter)</li>
-                                <li>Different ports (modify port mappings)</li>
-                                <li>Separate data directories (change <code>~/.avalanchego</code> path)</li>
+                                    <li>Different ports (modify port mappings)</li>
+                                    <li>Separate data directories (change <code>~/.avalanchego</code> path)</li>
                                 </ul>
-                            <p className="mt-1 text-sm">Example for second node: Use ports 9652/9653, container name &quot;avago2&quot;, and data directory &quot;~/.avalanchego2&quot;</p>
-                        </Accordion>
+                            </Accordion>
 
-                        <Accordion title="Monitoring Logs">
-                            <p className="text-sm mb-2">Monitor your node with:</p>
-                            <DynamicCodeBlock lang="bash" code="docker logs -f avago" />
+                            <Accordion title="Monitoring Logs">
+                                <p className="text-sm mb-2">Monitor your node with:</p>
+                                <DynamicCodeBlock lang="bash" code="docker logs -f avago" />
                             </Accordion>
                         </Accordions>
                     </Step>
