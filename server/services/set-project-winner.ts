@@ -7,6 +7,27 @@ export async function SetWinner(
   isWinner: boolean,
   awardedBy: string
 ) {
+  // Check if project exists and get current winner status
+  const existingProject = await prisma.project.findUnique({
+    where: { id: project_id },
+    select: { is_winner: true },
+  });
+
+  if (!existingProject) {
+    throw new Error("Project not found");
+  }
+
+  // Check if project is already a winner
+  if (existingProject.is_winner === true && isWinner === true) {
+    return {
+      success: false,
+      message: "Project is already set as winner",
+      alreadyWinner: true,
+      badge_id: "",
+      user_id: "",
+      badges: [],
+    };
+  }
 
   const project = await prisma.project.update({
     where: { id: project_id },
@@ -19,9 +40,9 @@ export async function SetWinner(
     awardedBy: awardedBy,
     category: BadgeCategory.project,
   };
-  let badge: AssignBadgeResult = {
-    success: false,
-    message: "No badges assigned",
+  let result: AssignBadgeResult & { alreadyWinner?: boolean } = {
+    success: true,
+    message: "Project winner status updated successfully",
     badge_id: "",
     user_id: "",
     badges: [],
@@ -34,8 +55,12 @@ export async function SetWinner(
       hackathonId: project.hackaton_id ?? undefined,
     };
 
-    badge = await badgeAssignmentService.assignBadge(sanitizedBody, awardedBy);
+    const badge = await badgeAssignmentService.assignBadge(sanitizedBody, awardedBy);
+    result = {
+      ...badge,
+      success: true,
+    };
   }
 
-  return badge;
+  return result;
 }

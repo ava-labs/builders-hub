@@ -11,23 +11,25 @@ export const PUT = withAuthRole("badge_admin", async (req: NextRequest) => {
   try {
     if (!body.project_id) {
       return NextResponse.json(
-        { error: "project_id parameter is required" },
+        { success: false, error: "project_id parameter is required" },
         { status: 400 }
       );
     }
-    if (!body.isWinner) {
+    if (body.isWinner === undefined) {
       return NextResponse.json(
-        { error: "IsWinner parameter is required" },
+        { success: false, error: "isWinner parameter is required" },
         { status: 400 }
       );
     }
-    const badge = await SetWinner(body.project_id, body.isWinner, name);
+    
+    const result = await SetWinner(body.project_id, body.isWinner, name);
 
-    return NextResponse.json(badge, { status: 200 });
+    return NextResponse.json(result, { status: 200 });
   } catch (error) {
-    console.error("Error checking user by email:", error);
+    console.error("Error setting project winner:", error);
+    const errorMessage = error instanceof Error ? error.message : "Internal server error";
     return NextResponse.json(
-      { error: "Internal server error" },
+      { success: false, error: errorMessage, message: errorMessage },
       { status: 500 }
     );
   }
