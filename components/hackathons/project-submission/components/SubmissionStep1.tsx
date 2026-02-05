@@ -5,6 +5,7 @@ import { useFormContext } from 'react-hook-form';
 
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
 
 import {
   FormControl,
@@ -62,6 +63,7 @@ const SubmitStep1: FC<projectProps> = (project) => {
   const shortDescription = form.watch('short_description');
   const categories = form.watch('categories') || [];
   const hasOtherCategory = categories.includes('Other (Specify)');
+  const deployedAddresses = form.watch('deployed_addresses') || [];
 
   useLayoutEffect(() => {
     const textareas = ['full_description', 'short_description'];
@@ -229,6 +231,88 @@ const SubmitStep1: FC<projectProps> = (project) => {
                     {...field}
                   />
                 </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
+
+        {/* Deployed Addresses (Only for projects without hackathon) */}
+        {!hasHackathon && (
+          <FormField
+            control={form.control}
+            name='deployed_addresses'
+            render={({ field }) => (
+              <FormItem>
+                <FormLabelWithCheck
+                  label='Deployed Addresses'
+                  checked={!!field.value && field.value.length > 0}
+                />
+                <div className='space-y-3'>
+                  {(field.value && field.value.length > 0) ? (
+                    <div className='space-y-3'>
+                      {field.value.map((addressItem: { address: string; tag?: string }, index: number) => (
+                        <div key={index} className='flex gap-3 items-start'>
+                          <div className='flex-1'>
+                            <Input
+                              placeholder='address'
+                              value={addressItem.address || ''}
+                              onChange={(e) => {
+                                const newAddresses = [...(field.value || [])];
+                                newAddresses[index] = {
+                                  ...newAddresses[index],
+                                  address: e.target.value,
+                                };
+                                field.onChange(newAddresses);
+                              }}
+                              className='w-full dark:bg-zinc-950'
+                            />
+                          </div>
+                          <div className='w-32'>
+                            <Input
+                              placeholder='Tag'
+                              value={addressItem.tag || ''}
+                              onChange={(e) => {
+                                const newAddresses = [...(field.value || [])];
+                                newAddresses[index] = {
+                                  ...newAddresses[index],
+                                  tag: e.target.value,
+                                };
+                                field.onChange(newAddresses);
+                              }}
+                              className='w-full dark:bg-zinc-950'
+                            />
+                          </div>
+                          <Button
+                            type='button'
+                            variant='ghost'
+                            size='icon'
+                            onClick={() => {
+                              const newAddresses = field.value.filter(
+                                (_: any, i: number) => i !== index
+                              );
+                              field.onChange(newAddresses);
+                            }}
+                            className='h-10 w-10 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950'
+                          >
+                            ×
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+
+                  <Button
+                    type='button'
+                    onClick={() => {
+                      const newAddresses = [...(field.value || []), { address: '', tag: '' }];
+                      field.onChange(newAddresses);
+                    }}
+               className="bg-white text-black border border-gray-300 hover:text-black hover:bg-gray-100 cursor-pointer"
+                  >
+                    + new address
+                  </Button>
+                </div>
                 <FormMessage />
               </FormItem>
             )}
