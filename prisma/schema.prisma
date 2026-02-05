@@ -35,40 +35,40 @@ model Hackathon {
 }
 
 model User {
-  id                  String             @id @default(cuid())
-  name                String?
-  email               String?            @unique
-  image               String?
-  authentication_mode String?
-  integration         String?
-  last_login          DateTime?
-  user_name           String?
-  bio                 String?
-  notification_email  String?
-  notifications       Boolean?
-  profile_privacy     String?            @default("public")
-  social_media        String[]
-  custom_attributes   String[]
-  telegram_user       String?
-  created_at          DateTime      @default(now()) @db.Timestamptz(3)
-  country             String?
-  user_type           Json?
-  github              String?
-  skills              String[]      @default([])
-  noun_avatar_seed    Json?
-  noun_avatar_enabled Boolean       @default(false)
-  wallet              String[]      @default([])
-  updated_hackathons  Hackathon[] @relation("HackathonUpdatedBy")
-  memberships         Member[]
-  registrations       RegisterForm[]
-  badges              UserBadge[]
-  managedTestnetNodes NodeRegistration[]
-  consoleLog          ConsoleLog[]
-  hackathons          Hackathon[]
-  statsPlaygrounds    StatsPlayground[]
+  id                       String                    @id @default(cuid())
+  name                     String?
+  email                    String?                   @unique
+  image                    String?
+  authentication_mode      String?
+  integration              String?
+  last_login               DateTime?
+  user_name                String?
+  bio                      String?
+  notification_email       String?
+  notifications            Boolean?
+  profile_privacy          String?                   @default("public")
+  social_media             String[]
+  custom_attributes        String[]
+  telegram_user            String?
+  created_at               DateTime                  @default(now()) @db.Timestamptz(3)
+  country                  String?
+  github                   String?
+  noun_avatar_enabled      Boolean                   @default(false)
+  noun_avatar_seed         Json?
+  skills                   String[]                  @default([])
+  user_type                Json?
+  wallet                   String[]                  @default([])
+  chatConversations        ChatConversation[]
+  consoleLog               ConsoleLog[]
+  faucetClaims             FaucetClaim[]
+  hackathons               Hackathon[]
+  updated_hackathons       Hackathon[]               @relation("HackathonUpdatedBy")
+  memberships              Member[]
+  managedTestnetNodes      NodeRegistration[]
+  registrations            RegisterForm[]
+  statsPlaygrounds         StatsPlayground[]
   statsPlaygroundFavorites StatsPlaygroundFavorite[] @relation("StatsPlaygroundFavorites")
-  faucetClaims        FaucetClaim[]
-  chatConversations   ChatConversation[]
+  badges                   UserBadge[]
 }
 
 model VerificationToken {
@@ -102,7 +102,7 @@ model RegisterForm {
   updated_at              DateTime  @updatedAt @db.Timestamptz(3)
   web3_proficiency        String
   telegram_user           String?
-  referrer_handle         String?   // X/Twitter handle of the person who referred this applicant
+  referrer_handle         String?
   user                    User      @relation(fields: [email], references: [email], onDelete: Cascade)
   hackathon               Hackathon @relation(fields: [hackathon_id], references: [id], onDelete: Cascade)
 
@@ -130,9 +130,10 @@ model Project {
   small_cover_url     String?        @default("")
   tags                String[]       @default([])
   is_winner           Boolean?       @default(false)
-  origin              String         @default("unknown")
   categories          String[]       @default([])
+  origin              String         @default("unknown")
   other_category      String?
+  deployed_addresses  Json[]         @default([])
   formData            FormData[]
   members             Member[]
   prizes              Prize[]
@@ -209,7 +210,6 @@ model NodeRegistration {
   subnet_id           String
   blockchain_id       String
   node_id             String
-  node_index          Int?
   public_key          String
   proof_of_possession String
   rpc_url             String
@@ -218,6 +218,7 @@ model NodeRegistration {
   created_at          DateTime @default(now()) @db.Timestamptz(3)
   expires_at          DateTime @db.Timestamptz(3)
   updated_at          DateTime @updatedAt @db.Timestamptz(3)
+  node_index          Int?
   user                User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@unique([user_id, subnet_id, node_index])
@@ -230,9 +231,9 @@ model ConsoleLog {
   id          String   @id @default(uuid())
   user_id     String
   status      String
-  action_path String?
   data        Json?
   created_at  DateTime @default(now()) @db.Timestamptz(3)
+  action_path String?
   user        User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([user_id])
@@ -240,16 +241,16 @@ model ConsoleLog {
 }
 
 model StatsPlayground {
-  id          String   @id @default(uuid())
-  user_id     String
-  name        String
-  is_public   Boolean  @default(false)
-  charts      Json     // Array of chart configurations
-  view_count  Int      @default(0)
-  created_at  DateTime @default(now()) @db.Timestamptz(3)
-  updated_at  DateTime @updatedAt @db.Timestamptz(3)
-  user        User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  favorites   StatsPlaygroundFavorite[]
+  id         String                    @id @default(uuid())
+  user_id    String
+  name       String
+  is_public  Boolean                   @default(false)
+  charts     Json
+  created_at DateTime                  @default(now()) @db.Timestamptz(3)
+  updated_at DateTime                  @updatedAt @db.Timestamptz(3)
+  view_count Int                       @default(0)
+  user       User                      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  favorites  StatsPlaygroundFavorite[]
 
   @@index([user_id])
   @@index([is_public])
@@ -257,12 +258,12 @@ model StatsPlayground {
 }
 
 model StatsPlaygroundFavorite {
-  id           String    @id @default(uuid())
+  id            String          @id @default(uuid())
   playground_id String
-  user_id      String
-  created_at   DateTime  @default(now()) @db.Timestamptz(3)
-  playground   StatsPlayground @relation(fields: [playground_id], references: [id], onDelete: Cascade)
-  user         User      @relation("StatsPlaygroundFavorites", fields: [user_id], references: [id], onDelete: Cascade)
+  user_id       String
+  created_at    DateTime        @default(now()) @db.Timestamptz(3)
+  playground    StatsPlayground @relation(fields: [playground_id], references: [id], onDelete: Cascade)
+  user          User            @relation("StatsPlaygroundFavorites", fields: [user_id], references: [id], onDelete: Cascade)
 
   @@unique([playground_id, user_id])
   @@index([playground_id])
@@ -272,8 +273,8 @@ model StatsPlaygroundFavorite {
 model FaucetClaim {
   id                  String   @id @default(uuid())
   user_id             String
-  faucet_type         String   // "pchain" or "evm"
-  chain_id            String?  // For EVM faucets, the chain ID
+  faucet_type         String
+  chain_id            String?
   destination_address String
   amount              String
   tx_hash             String?
@@ -287,33 +288,30 @@ model FaucetClaim {
 }
 
 model ChatConversation {
-  id         String        @id @default(uuid())
-  user_id    String
-  title      String
-  created_at DateTime      @default(now()) @db.Timestamptz(3)
-  updated_at DateTime      @updatedAt @db.Timestamptz(3)
-
-  // Sharing fields
-  is_shared        Boolean   @default(false)
-  share_token      String?   @unique  // Cryptographically secure, non-guessable
-  shared_at        DateTime? @db.Timestamptz(3)
-  share_expires_at DateTime? @db.Timestamptz(3)  // Link expiration (default: 30 days from share)
-  view_count       Int       @default(0)
-
-  user       User          @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  messages   ChatMessage[]
+  id               String        @id @default(uuid())
+  user_id          String
+  title            String
+  created_at       DateTime      @default(now()) @db.Timestamptz(3)
+  updated_at       DateTime      @updatedAt @db.Timestamptz(3)
+  is_shared        Boolean       @default(false)
+  share_expires_at DateTime?     @db.Timestamptz(3)
+  share_token      String?       @unique
+  shared_at        DateTime?     @db.Timestamptz(3)
+  view_count       Int           @default(0)
+  user             User          @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  messages         ChatMessage[]
 
   @@index([user_id])
   @@index([updated_at])
-  @@index([share_token])  // Fast public lookup
-  @@index([is_shared])    // Filter shared conversations
+  @@index([share_token])
+  @@index([is_shared])
 }
 
 model ChatMessage {
   id              String           @id @default(uuid())
   conversation_id String
-  role            String           // "user" or "assistant"
-  content         String           @db.Text
+  role            String
+  content         String
   created_at      DateTime         @default(now()) @db.Timestamptz(3)
   conversation    ChatConversation @relation(fields: [conversation_id], references: [id], onDelete: Cascade)
 
@@ -331,34 +329,34 @@ model FormData {
 }
 
 model BuildGamesApplication {
-  id                        String   @id @default(uuid())
-  email                     String   @unique
-  first_name                String
-  last_name                 String
-  telegram                  String?
-  github                    String?
-  country                   String
-  ready_to_win              String
-  previous_avalanche_grant  String
-  hackathon_experience      String?
-  hackathon_details         String?
-  employment_role           String?
-  current_role              String?
-  employment_status         String?
-  project_name              String
-  project_description       String
-  area_of_focus             String
-  why_you                   String
-  how_did_you_hear          String
-  how_did_you_hear_specify  String?
-  referrer_name             String?
-  referrer_handle           String?
-  university_affiliation    String
+  id                         String   @id @default(uuid())
+  email                      String   @unique
+  first_name                 String
+  last_name                  String
+  telegram                   String?
+  github                     String?
+  country                    String
+  ready_to_win               String
+  previous_avalanche_grant   String
+  hackathon_experience       String?
+  hackathon_details          String?
+  employment_role            String?
+  current_role               String?
+  employment_status          String?
+  project_name               String
+  project_description        String
+  area_of_focus              String
+  why_you                    String
+  how_did_you_hear           String
+  how_did_you_hear_specify   String?
+  referrer_name              String?
+  referrer_handle            String?
+  university_affiliation     String
   avalanche_ecosystem_member String
-  privacy_policy_read       Boolean  @default(false)
-  marketing_consent         Boolean  @default(false)
-  created_at                DateTime @default(now()) @db.Timestamptz(3)
-  updated_at                DateTime @updatedAt @db.Timestamptz(3)
+  privacy_policy_read        Boolean  @default(false)
+  marketing_consent          Boolean  @default(false)
+  created_at                 DateTime @default(now()) @db.Timestamptz(3)
+  updated_at                 DateTime @updatedAt @db.Timestamptz(3)
 
   @@index([created_at])
   @@index([referrer_handle])
@@ -366,49 +364,38 @@ model BuildGamesApplication {
 }
 
 model Retro9000ReturningApplication {
-  id                              String   @id @default(uuid())
-  email                           String   @unique
-
-  // PROJECT OVERVIEW
-  project_name                    String
-  project_type                    String
-  project_vertical                String
-  project_website                 String?
-  project_x_handle                String?
-  project_github                  String
-  project_hq                      String
-  project_continent               String
-  media_kit                       String
-
-  // FINANCIAL OVERVIEW
+  id                                  String   @id @default(uuid())
+  email                               String   @unique
+  project_name                        String
+  project_type                        String
+  project_vertical                    String
+  project_website                     String?
+  project_x_handle                    String?
+  project_github                      String
+  project_hq                          String
+  project_continent                   String
+  media_kit                           String
   previous_retro9000_snapshot_funding String?
-  requested_funding_range         String
-
-  // GRANT INFORMATION
-  eligibility_and_metrics         String   @db.Text
-  requested_grant_size_budget     String
-  changes_since_last_snapshot     String   @db.Text
-
-  // APPLICANT INFORMATION
-  first_name                      String
-  last_name                       String
-  pseudonym                       String?
-  role                            String
-  x_account                       String
-  telegram                        String
-  linkedin                        String?
-  github                          String?
-  country                         String?
-  other_url                       String?
-  bio                             String   @db.Text
-
-  // COMPLIANCE
-  kyb_willing                     String
-  gdpr                            Boolean  @default(false)
-  marketing_consent               Boolean  @default(false)
-
-  created_at                      DateTime @default(now()) @db.Timestamptz(3)
-  updated_at                      DateTime @updatedAt @db.Timestamptz(3)
+  requested_funding_range             String
+  eligibility_and_metrics             String
+  requested_grant_size_budget         String
+  changes_since_last_snapshot         String
+  first_name                          String
+  last_name                           String
+  pseudonym                           String?
+  role                                String
+  x_account                           String
+  telegram                            String
+  linkedin                            String?
+  github                              String?
+  country                             String?
+  other_url                           String?
+  bio                                 String
+  kyb_willing                         String
+  gdpr                                Boolean  @default(false)
+  marketing_consent                   Boolean  @default(false)
+  created_at                          DateTime @default(now()) @db.Timestamptz(3)
+  updated_at                          DateTime @updatedAt @db.Timestamptz(3)
 
   @@index([created_at])
   @@index([project_name])

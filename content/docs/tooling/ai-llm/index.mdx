@@ -10,9 +10,9 @@ The Builder Hub provides AI-friendly access to documentation through standardize
 
 | Endpoint | Purpose |
 | :------- | :------ |
-| `/llms.txt` | AI sitemap - structured index of all documentation |
+| `/llms.txt` | AI sitemap - structured index of all documentation with `.md` links |
 | `/llms-full.txt` | Complete docs in one file for full context loading |
-| `/api/llms/page?path=...` | Fetch any single page as markdown |
+| `/{path}.md` | Append `.md` to any page URL to get processed markdown |
 | `/api/mcp` | MCP server for dynamic search and retrieval |
 
 ## llms.txt
@@ -37,14 +37,16 @@ Contains 1300+ pages. For models with limited context, use the MCP server or ind
 
 ## Individual Pages
 
-Fetch any page as markdown:
+Append `.md` to any page URL to get processed markdown:
 
 ```
-https://build.avax.network/api/llms/page?path=/docs/primary-network/overview
-https://build.avax.network/api/llms/page?path=/academy/blockchain-fundamentals/blockchain-intro
+https://build.avax.network/docs/primary-network/overview.md
+https://build.avax.network/academy/blockchain-fundamentals/blockchain-intro.md
+https://build.avax.network/blog/your-first-l1.md
+https://build.avax.network/integrations/chainlink.md
 ```
 
-Supports `/docs/`, `/academy/`, `/integrations/`, and `/blog/` paths.
+Works with `/docs/`, `/academy/`, `/integrations/`, and `/blog/` paths. Returns clean markdown with JSX components stripped for optimal AI consumption.
 
 ## MCP Server
 
