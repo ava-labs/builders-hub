@@ -459,7 +459,9 @@ svg.lucide.lucide-folder-open {
     z-index: 250;
   }
 
-  [data-state='open'] {
+  /* Elevate open elements ONLY when mobile sidebar is NOT open */
+  /* When sidebar IS open, content must stay below sidebar (z-60) */
+  body:not(:has(#nd-sidebar-mobile[data-state="open"])) [data-state='open'] {
     z-index: 450;
   }
 }
@@ -1033,11 +1035,13 @@ nav button[aria-current="page"]:hover {
     z-index: 44 !important; /* Below PopoverContent (z-10000) */
   }
   
-  /* CRITICAL: Prevent backdrop from blocking PopoverContent - backdrop must NOT block PopoverContent */
-  body:has([data-radix-popover-content][data-state="open"]) div.fixed.inset-0.backdrop-blur-xs[data-state="open"]:not(#nd-sidebar-mobile):not(aside):not([id]),
-  body:has([data-radix-popover-content][data-state="open"]) div.fixed.z-40.inset-0[data-state="open"]:not(#nd-sidebar-mobile):not(aside):not([id]) {
-    pointer-events: none !important; /* CRITICAL: Allow clicks through to PopoverContent when it's open */
-    z-index: 44 !important; /* Below PopoverContent (z-9999) */
+  /* Allow clicks through to PopoverContent ONLY when mobile sidebar is NOT open */
+  /* When sidebar IS open, backdrop must block all page content interactions */
+  /* Popovers inside sidebar still work because they're at z-10000 with pointer-events: auto */
+  body:not(:has(#nd-sidebar-mobile[data-state="open"])):has([data-radix-popover-content][data-state="open"]) div.fixed.inset-0.backdrop-blur-xs[data-state="open"]:not(#nd-sidebar-mobile):not(aside):not([id]),
+  body:not(:has(#nd-sidebar-mobile[data-state="open"])):has([data-radix-popover-content][data-state="open"]) div.fixed.z-40.inset-0[data-state="open"]:not(#nd-sidebar-mobile):not(aside):not([id]) {
+    pointer-events: none !important;
+    z-index: 44 !important;
   }
   
   /* Ensure mobile sidebar is above the backdrop and navbar */
@@ -1068,7 +1072,7 @@ nav button[aria-current="page"]:hover {
     opacity: 1 !important;
     pointer-events: auto !important;
   }
-  
+
   /* Ensure mobile hamburger and dropdown are clickable */
   #nd-nav ul.flex.flex-row.items-center.ms-auto,
   #nd-nav ul.flex.flex-row.items-center.ms-auto button,
@@ -1401,5 +1405,25 @@ html.embed-mode .fd-layout-docs > aside#nd-toc,
 html.embed-mode [data-docs-layout] > aside#nd-toc,
 html.embed-mode #nd-toc {
   grid-column: 2 !important;
+}
+
+.dark .custom-scroll::-webkit-scrollbar {
+  max-width: 8px;
+  background-color: #161617;
+  border-radius: 5px;
+}
+.dark .custom-scroll::-webkit-scrollbar-thumb {
+  background-color: #2F2F33;
+  border-radius: 5px;
+}
+
+.custom-scroll::-webkit-scrollbar {
+  max-width: 8px;
+  background-color: #16161710;
+  border-radius: 5px;
+}
+.custom-scroll::-webkit-scrollbar-thumb {
+  background-color: #2f2f3353;
+  border-radius: 5px;
 }
 

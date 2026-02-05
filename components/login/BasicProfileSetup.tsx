@@ -200,7 +200,7 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
                             <SelectValue placeholder="Select your country" />
                           </SelectTrigger>
                         </FormControl>
-                        <SelectContent className="rounded-md shadow-md max-h-[300px] overflow-y-auto z-[20000]">
+                        <SelectContent className="rounded-md shadow-md max-h-[300px] overflow-y-auto z-20000">
                           {countries.map((countryOption) => (
                             <SelectItem key={countryOption.value} value={countryOption.label}>
                               {countryOption.label}
@@ -368,7 +368,7 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
                     </FormItem>
                   )}
                 />
-                <FormLabel className="text-sm font-normal cursor-pointer flex-shrink-0 w-[70px]" onClick={() => {
+                <FormLabel className="text-sm font-normal cursor-pointer shrink-0 w-[70px]" onClick={() => {
                   const currentValue = watchedValues.is_employee;
                   form.setValue("is_employee", !currentValue);
                   if (currentValue) {
@@ -407,7 +407,7 @@ export function BasicProfileSetup({ userId, onSuccess, onCompleteProfile }: Basi
                                 <SelectValue placeholder="role" />
                               </SelectTrigger>
                             </FormControl>
-                            <SelectContent className="z-[20000]">
+                            <SelectContent className="z-20000">
                               {hsEmploymentRoles.map((roleOption) => (
                                 <SelectItem key={roleOption.value} value={roleOption.label}>
                                   {roleOption.label}

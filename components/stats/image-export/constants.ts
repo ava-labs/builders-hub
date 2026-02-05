@@ -47,6 +47,7 @@ const DEFAULT_CHART_DISPLAY = {
   showSummaryStats: true,
   showTrendIndicator: false,
   showAvgLine: true,
+  showTotalLine: false,
 };
 
 const DEFAULT_EXPORT_QUALITY = {

@@ -40,6 +40,30 @@ function normalizeCategories(categories: string | string[] | undefined): string[
   return [];
 }
 
+// Helper function to normalize deployed_addresses from JsonValue[] to Array<{ address: string; tag?: string }>
+function normalizeDeployedAddresses(
+  addresses: any
+): Array<{ address: string; tag?: string }> {
+  if (!addresses) return [];
+  if (!Array.isArray(addresses)) return [];
+  
+  return addresses
+    .filter((item): item is { address: string; tag?: string } => {
+      return (
+        item &&
+        typeof item === 'object' &&
+        'address' in item &&
+        typeof item.address === 'string' &&
+        item.address.trim().length > 0 &&
+        (!item.tag || typeof item.tag === 'string')
+      );
+    })
+    .map((item) => ({
+      address: item.address.trim(),
+      ...(item.tag && item.tag.trim().length > 0 ? { tag: item.tag.trim() } : {}),
+    }));
+}
+
 export async function createProject(
   projectData: Partial<Project>
 ): Promise<Project> {
@@ -119,6 +143,7 @@ export async function createProject(
           tracks: projectData.tracks ?? [],
           categories: normalizeCategories(projectData.categories),
           other_category: projectData.other_category ?? null,
+          deployed_addresses: normalizeDeployedAddresses(projectData.deployed_addresses),
         },
       });
 
@@ -142,6 +167,7 @@ export async function createProject(
         tracks: projectData.tracks ?? [],
         categories: normalizeCategories(projectData.categories),
         other_category: projectData.other_category ?? null,
+        deployed_addresses: normalizeDeployedAddresses(projectData.deployed_addresses),
         explanation: projectData.explanation ?? "",
         origin: "Project submission",
         hackaton_id: projectData.hackaton_id ?? null,
@@ -241,6 +267,7 @@ export async function getProject(projectId: string): Promise<Project | null> {
     tracks: projectData.tracks,
     categories: normalizeCategories(projectData.categories),
     other_category: projectData.other_category ?? undefined,
+    deployed_addresses: normalizeDeployedAddresses(projectData.deployed_addresses),
     is_winner: false,
 
     members: projectData.members?.map((member) => {

@@ -68,6 +68,7 @@ export function LoginModalWrapper() {
     if (session.user.is_new_user) {
       // Only show if not explicitly set to "false" (user already accepted)
       if (termsKeyValue !== "false") {
+        setTermsUserId(session.user.id);
         setShowTerms(true);
         localStorage.setItem(termsKey, "true");
       }

@@ -42,11 +42,12 @@
   }
 
   /* Main content layout and padding */
-  [data-route-layout="docs"] main#nd-docs-layout.fd-notebook-layout,
-  [data-route-layout="docs"] main#nd-docs-layout.fd-default-layout {
+  /* padding-left: just the sidebar offset - grid handles sidebar width via its column */
+  /* padding-right is minimal buffer (no TOC below 1280px) */
+  body[data-layout="docs"] #nd-notebook-layout {
     margin-left: 0 !important;
     margin-right: 0 !important;
-    padding-left: calc(3rem + var(--fd-sidebar-width) + 0.5rem) !important;
+    padding-left: 3rem !important;
     padding-right: 2rem !important;
   }
 
@@ -68,11 +69,24 @@
   }
 }
 
-/* XL screens: Account for TOC sidebar width (268px) when visible */
+/* XL screens: Account for TOC sidebar width (286px) when visible */
 @media (min-width: 1280px) {
-  [data-route-layout="docs"] main#nd-docs-layout.fd-notebook-layout,
-  [data-route-layout="docs"] main#nd-docs-layout.fd-default-layout {
-    padding-right: calc(var(--fd-toc-width, 268px) + 2rem) !important;
+  /* Override the 1024px+ centering rules to left-align content on XL screens */
+  /* This prevents content from centering and overlapping the TOC sidebar */
+  body[data-layout="docs"] #nd-page,
+  body[data-layout="docs"] div#nd-page,
+  [data-route-layout="docs"] #nd-page {
+    margin-left: 0 !important;      /* Reset auto margin - LEFT align */
+    margin-right: 0 !important;     /* Reset auto margin - prevent centering */
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Children should respect parent width */
+  body[data-layout="docs"] #nd-page > * {
+    max-width: 100% !important;
   }
 }
 
@@ -82,9 +96,16 @@
     --fd-sidebar-width: 0px;
   }
 
-  [data-route-layout="docs"] #nd-docs-layout {
+  [data-route-layout="docs"] #nd-notebook-layout {
     --fd-sidebar-width: 0px !important;
-    padding-inline-start: 0 !important;
+    /* Removed: padding-inline-start: 0 - article handles its own padding */
+  }
+
+  /* Mobile article padding - content should not touch screen edges */
+  [data-route-layout="docs"] .nd-layout-notebook article {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+    box-sizing: border-box !important;
   }
 
   /* Subnavbar fixed on mobile */

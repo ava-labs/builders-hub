@@ -113,6 +113,27 @@ const BaseFormSchema = z.object({
   tracks: z.array(z.string()).optional().default([]),
   categories: z.array(z.string()).optional().default([]),
   other_category: z.string().optional(),
+  deployed_addresses: z.array(z.object({
+    address: z.string().min(1, { message: 'Address is required' }),
+    tag: z.string().optional(),
+  }))
+    .optional()
+    .default([])
+    .transform((arr) => {
+      // Si el array está vacío o es undefined, retornar array vacío (campo opcional)
+      if (!arr || arr.length === 0) {
+        return [];
+      }
+      // Filtrar entradas donde address esté vacío o tag esté vacío (si existe)
+      const filtered = arr.filter((item) => {
+        const hasValidAddress = item.address && item.address.trim().length > 0;
+        const hasValidTag = !item.tag || item.tag.trim().length > 0;
+        // Solo guardar si tiene address válido Y (no tiene tag o tiene tag válido)
+        return hasValidAddress && hasValidTag;
+      });
+      // Retornar array vacío si todas las entradas fueron filtradas (campo opcional)
+      return filtered;
+    }),
   logo_url: z.string().optional(),
   cover_url: z.string().optional(),
   hackaton_id: z.string().optional(),
@@ -129,6 +150,7 @@ export const Step1Schema = BaseFormSchema.pick({
   tracks: true,
   categories: true,
   other_category: true,
+  deployed_addresses: true,
   hackaton_id: true,
 }).superRefine((data, ctx) => {
   // Validación condicional para tracks cuando hay hackathon_id
@@ -239,6 +261,7 @@ export const useSubmissionFormSecure = () => {
       tracks: [],
       categories: [],
       other_category: '',
+      deployed_addresses: [],
       is_preexisting_idea: false,
       github_repository: [],
       demo_link: [],
@@ -469,6 +492,14 @@ export const useSubmissionFormSecure = () => {
       });
 
 
+      // Filtrar deployed_addresses para eliminar entradas con address o tag vacíos
+      const filteredDeployedAddresses = (data.deployed_addresses || []).filter(
+        (item: { address: string; tag?: string }) => 
+          item.address && 
+          item.address.trim().length > 0 &&
+          (!item.tag || item.tag.trim().length > 0)
+      );
+
       const finalData = {
         ...data,
         logo_url: uploadedFiles.logoFileUrl ?? '',
@@ -477,6 +508,7 @@ export const useSubmissionFormSecure = () => {
         github_repository: data.github_repository?.join(',') ?? "",
         demo_link: data.demo_link?.join(',') ?? "",
         categories: data.categories?.join(',') ?? "",
+        deployed_addresses: filteredDeployedAddresses,
         is_winner: false,
         ...(state.hackathonId && { hackaton_id: state.hackathonId }),
         user_id: session?.user?.id,
@@ -583,6 +615,9 @@ export const useSubmissionFormSecure = () => {
         ? project.categories 
         : (project.categories ? project.categories.split(',').filter(Boolean) : []),
       other_category: project.other_category ?? '',
+      deployed_addresses: Array.isArray(project.deployed_addresses) 
+        ? project.deployed_addresses 
+        : [],
       logoFile: project.logo_url ?? undefined,
       coverFile: project.cover_url ?? undefined,
       screenshots: project.screenshots ?? [],
