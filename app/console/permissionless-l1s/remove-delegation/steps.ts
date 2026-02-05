@@ -1,6 +1,6 @@
 import { type StepDefinition } from "@/components/console/step-flow";
-import RemoveDelegationNative from "@/components/toolbox/console/permissionless-l1s/withdraw/RemoveDelegationNative";
-import RemoveDelegationERC20 from "@/components/toolbox/console/permissionless-l1s/withdraw/RemoveDelegationERC20";
+import RemoveDelegationNative from "@/components/toolbox/console/permissionless-l1s/Withdraw/RemoveDelegationNative";
+import RemoveDelegationERC20 from "@/components/toolbox/console/permissionless-l1s/Withdraw/RemoveDelegationERC20";
 
 export const steps: StepDefinition[] = [
     {
