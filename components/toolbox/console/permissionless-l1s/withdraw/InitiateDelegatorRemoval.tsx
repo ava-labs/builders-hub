@@ -7,9 +7,7 @@ import { Success } from '@/components/toolbox/components/Success';
 import { Alert } from '@/components/toolbox/components/Alert';
 import NativeTokenStakingManager from '@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json';
 import ERC20TokenStakingManager from '@/contracts/icm-contracts/compiled/ERC20TokenStakingManager.json';
-import { hexToBytes } from 'viem';
-import { packWarpIntoAccessList } from '@/components/tools/common/utils/packWarp';
-import { useUptimeProof } from '@/components/toolbox/hooks/useUptimeProof';
+import { decodeErrorResult } from 'viem';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 
 type TokenType = 'native' | 'erc20';
@@ -27,8 +25,6 @@ interface InitiateDelegatorRemovalProps {
 const InitiateDelegatorRemoval: React.FC<InitiateDelegatorRemovalProps> = ({
     delegationID,
     stakingManagerAddress,
-    rpcUrl,
-    signingSubnetId,
     tokenType,
     onSuccess,
     onError,
@@ -36,18 +32,16 @@ const InitiateDelegatorRemoval: React.FC<InitiateDelegatorRemovalProps> = ({
     const { coreWalletClient, publicClient, walletEVMAddress } = useWalletStore();
     const viemChain = useViemChainStore();
     const { notify } = useConsoleNotifications();
-    const { createAndSignUptimeProof, isLoading: isLoadingUptimeProof } = useUptimeProof();
 
-    const [includeUptimeProof, setIncludeUptimeProof] = useState(false);
     const [messageIndex, setMessageIndex] = useState<string>('0');
     const [isProcessing, setIsProcessing] = useState(false);
     const [error, setErrorState] = useState<string | null>(null);
     const [txHash, setTxHash] = useState<string | null>(null);
-    const [uptimeSeconds, setUptimeSeconds] = useState<bigint | null>(null);
     const [delegationInfo, setDelegationInfo] = useState<{
         owner: string;
         validationID: string;
         weight: string;
+        status: number;
     } | null>(null);
 
     const contractAbi = tokenType === 'native' ? NativeTokenStakingManager.abi : ERC20TokenStakingManager.abi;
@@ -65,17 +59,17 @@ const InitiateDelegatorRemoval: React.FC<InitiateDelegatorRemovalProps> = ({
                 const info = await publicClient.readContract({
                     address: stakingManagerAddress as `0x${string}`,
                     abi: contractAbi,
-                    functionName: 'getDelegator',
+                    functionName: 'getDelegatorInfo',
                     args: [delegationID as `0x${string}`],
                 }) as any;
-
+                
                 setDelegationInfo({
                     owner: info.owner,
                     validationID: info.validationID,
                     weight: info.weight?.toString() || '0',
+                    status: Number(info.status),
                 });
             } catch (err) {
-                console.error('Failed to fetch delegation info:', err);
                 setDelegationInfo(null);
             }
         };
@@ -86,76 +80,153 @@ const InitiateDelegatorRemoval: React.FC<InitiateDelegatorRemovalProps> = ({
     const handleInitiateRemoval = async () => {
         setErrorState(null);
         setTxHash(null);
-        setUptimeSeconds(null);
 
         if (!coreWalletClient || !publicClient || !viemChain) {
-            setErrorState("Wallet or chain configuration is not properly initialized.");
-            onError("Wallet or chain configuration is not properly initialized.");
+            const msg = "Wallet or chain configuration is not properly initialized.";
+            setErrorState(msg);
+            onError(msg);
             return;
         }
 
         if (!delegationID || delegationID === '0x0000000000000000000000000000000000000000000000000000000000000000') {
-            setErrorState("Valid delegation ID is required.");
-            onError("Valid delegation ID is required.");
+            const msg = "Valid delegation ID is required.";
+            setErrorState(msg);
+            onError(msg);
             return;
         }
 
         if (!stakingManagerAddress) {
-            setErrorState("Staking Manager address is required.");
-            onError("Staking Manager address is required.");
+            const msg = "Staking Manager address is required.";
+            setErrorState(msg);
+            onError(msg);
             return;
         }
 
         const msgIndex = parseInt(messageIndex);
         if (isNaN(msgIndex) || msgIndex < 0) {
-            setErrorState("Message index must be a non-negative number.");
-            onError("Message index must be a non-negative number.");
+            const msg = "Message index must be a non-negative number.";
+            setErrorState(msg);
+            onError(msg);
             return;
         }
 
         setIsProcessing(true);
         try {
-            let accessList: any[] = [];
+            // Pre-check delegation status
+            const fullDelegationInfo = await publicClient.readContract({
+                address: stakingManagerAddress as `0x${string}`,
+                abi: contractAbi,
+                functionName: 'getDelegatorInfo',
+                args: [delegationID as `0x${string}`],
+            }) as {
+                status: number;
+                owner: string;
+                validationID: string;
+                weight: bigint;
+                startTime: bigint;
+            };
+            
+            const DelegatorStatusNames: Record<number, string> = {
+                0: 'Unknown', 1: 'PendingAdded', 2: 'Active', 3: 'PendingRemoved', 4: 'Completed'
+            };
+            
+            const status = Number(fullDelegationInfo.status);
+            
+            if (status === 4) {
+                throw new Error(`This delegation has already been completed. It cannot be removed again.`);
+            }
+            
+            if (status === 3) {
+                throw new Error(`This delegation is already pending removal. Please complete the removal instead.`);
+            }
+            
+            if (fullDelegationInfo.weight === 0n) {
+                throw new Error(`This delegation has zero weight, which typically means it has already been removed.`);
+            }
+            
+            if (status !== 2) {
+                throw new Error(`Delegation is not active. Current status: ${DelegatorStatusNames[status] || 'Unknown'}. Only active delegations can be removed.`);
+            }
 
-            // If uptime proof is requested, create and sign it
-            if (includeUptimeProof) {
-                if (!delegationInfo?.validationID) {
-                    throw new Error('Cannot create uptime proof: delegation validation ID not found');
-                }
-
+            // Check minimum stake duration
+            if (fullDelegationInfo.startTime > 0n) {
                 try {
-                    const uptimeProofResult = await createAndSignUptimeProof(
-                        delegationInfo.validationID,
-                        rpcUrl,
-                        signingSubnetId
-                    );
-
-                    setUptimeSeconds(uptimeProofResult.uptimeSeconds);
-                    console.log(`[InitiateDelegatorRemoval] Using uptime proof: ${uptimeProofResult.uptimeSeconds} seconds`);
-
-                    // Pack the signed warp message into access list
-                    const signedWarpBytes = hexToBytes(`0x${uptimeProofResult.signedWarpMessage}`);
-                    accessList = packWarpIntoAccessList(signedWarpBytes);
-                } catch (uptimeErr) {
-                    const message = uptimeErr instanceof Error ? uptimeErr.message : String(uptimeErr);
-                    throw new Error(`Failed to create uptime proof: ${message}`);
+                    const stakingSettings = await publicClient.readContract({
+                        address: stakingManagerAddress as `0x${string}`,
+                        abi: contractAbi,
+                        functionName: 'getStakingManagerSettings',
+                    }) as { minimumStakeDuration: bigint };
+                    
+                    const currentTime = BigInt(Math.floor(Date.now() / 1000));
+                    const stakingDuration = currentTime - fullDelegationInfo.startTime;
+                    
+                    if (stakingDuration < stakingSettings.minimumStakeDuration) {
+                        const remainingSeconds = stakingSettings.minimumStakeDuration - stakingDuration;
+                        const remainingHours = Number(remainingSeconds) / 3600;
+                        throw new Error(`Minimum stake duration has not passed. You can remove this delegation in approximately ${remainingHours.toFixed(1)} hours.`);
+                    }
+                } catch (settingsErr: any) {
+                    if (settingsErr.message?.includes('Minimum stake duration')) {
+                        throw settingsErr;
+                    }
                 }
             }
 
-            // Call initiateDelegatorRemoval
-            const writePromise = coreWalletClient.writeContract({
+            // Always use forceInitiateDelegatorRemoval (bypasses uptime proof requirement)
+            const txConfig: any = {
                 address: stakingManagerAddress as `0x${string}`,
                 abi: contractAbi,
-                functionName: "initiateDelegatorRemoval",
+                functionName: "forceInitiateDelegatorRemoval",
                 args: [
                     delegationID as `0x${string}`,
-                    includeUptimeProof,
+                    false, // includeUptimeProof - always false for force remove
                     msgIndex
                 ],
-                ...(accessList.length > 0 ? { accessList } : {}),
                 account: walletEVMAddress as `0x${string}`,
                 chain: viemChain,
-            });
+            };
+
+            // Estimate gas
+            try {
+                const gasEstimate = await publicClient.estimateContractGas(txConfig);
+                txConfig.gas = gasEstimate + (gasEstimate * 20n / 100n);
+            } catch (gasError: any) {
+                // Try to decode the error
+                const errorData = gasError.cause?.data || gasError.data || gasError.cause?.cause?.data;
+                
+                if (errorData && typeof errorData === 'string' && errorData.startsWith('0x')) {
+                    try {
+                        const decoded = decodeErrorResult({
+                            abi: contractAbi,
+                            data: errorData as `0x${string}`,
+                        });
+                        
+                        if (decoded.errorName === 'MinStakeDurationNotPassed') {
+                            throw new Error('Minimum stake duration has not passed. Please wait before removing this delegation.');
+                        } else if (decoded.errorName === 'InvalidDelegatorStatus') {
+                            throw new Error('Invalid delegator status. The delegation may already be pending removal or completed.');
+                        } else if (decoded.errorName === 'UnauthorizedOwner') {
+                            throw new Error(`You are not authorized to remove this delegation.`);
+                        } else if (decoded.errorName === 'InvalidDelegationID') {
+                            throw new Error('Invalid delegation ID.');
+                        } else {
+                            throw new Error(`Contract error: ${decoded.errorName}`);
+                        }
+                    } catch (decodeErr: any) {
+                        if (decodeErr.message?.includes('Contract error') || 
+                            decodeErr.message?.includes('Minimum stake') ||
+                            decodeErr.message?.includes('Invalid delegator') ||
+                            decodeErr.message?.includes('not authorized')) {
+                            throw decodeErr;
+                        }
+                    }
+                }
+                
+                throw new Error(`Gas estimation failed: ${gasError.message}`);
+            }
+
+            // Send transaction
+            const writePromise = coreWalletClient.writeContract(txConfig);
 
             notify({
                 type: 'call',
@@ -175,17 +246,8 @@ const InitiateDelegatorRemoval: React.FC<InitiateDelegatorRemovalProps> = ({
         } catch (err: any) {
             let message = err instanceof Error ? err.message : String(err);
 
-            // Provide more helpful error messages
             if (message.includes('User rejected')) {
                 message = 'Transaction was rejected by user';
-            } else if (message.includes('InvalidDelegationID')) {
-                message = 'Invalid delegation ID. The delegation may not exist or is not active.';
-            } else if (message.includes('MinStakeDurationNotPassed')) {
-                message = 'Minimum stake duration has not passed yet. Please wait before removing this delegation.';
-            } else if (message.includes('Unauthorized')) {
-                message = 'You are not authorized to remove this delegation. Only the delegator owner or validator owner can remove delegations.';
-            } else if (message.includes('InvalidWarpMessage')) {
-                message = 'Invalid uptime proof. Please try again without uptime proof or check validator status.';
             }
 
             setErrorState(`Failed to initiate delegator removal: ${message}`);
@@ -193,6 +255,10 @@ const InitiateDelegatorRemoval: React.FC<InitiateDelegatorRemovalProps> = ({
         } finally {
             setIsProcessing(false);
         }
+    };
+
+    const DelegatorStatusNames: Record<number, string> = {
+        0: 'Unknown', 1: 'PendingAdded', 2: 'Active', 3: 'PendingRemoved', 4: 'Completed'
     };
 
     return (
@@ -207,8 +273,9 @@ const InitiateDelegatorRemoval: React.FC<InitiateDelegatorRemovalProps> = ({
                         Delegation Information ({tokenLabel} Staking)
                     </h3>
                     <div className="text-sm text-zinc-600 dark:text-zinc-400 space-y-1">
+                        <p><strong>Status:</strong> {DelegatorStatusNames[delegationInfo.status] || 'Unknown'}</p>
                         <p><strong>Owner:</strong> <code className="text-xs">{delegationInfo.owner}</code></p>
-                        <p><strong>Validation ID:</strong> <code className="text-xs">{delegationInfo.validationID}</code></p>
+                        <p><strong>Validation ID:</strong> <code className="text-xs">{delegationInfo.validationID?.substring(0, 18)}...</code></p>
                         <p><strong>Weight:</strong> {delegationInfo.weight}</p>
                     </div>
                 </div>
@@ -223,7 +290,7 @@ const InitiateDelegatorRemoval: React.FC<InitiateDelegatorRemovalProps> = ({
                     <Input
                         label="Delegation ID"
                         value={delegationID}
-                        onChange={() => { }} // Read-only, set by parent
+                        onChange={() => { }}
                         disabled={true}
                     />
 
@@ -235,66 +302,24 @@ const InitiateDelegatorRemoval: React.FC<InitiateDelegatorRemovalProps> = ({
                         min="0"
                         placeholder="0"
                         disabled={isProcessing}
-                        helperText="Index of the warp message to use (usually 0)"
+                        helperText="Index of the warp message (usually 0)"
                     />
-
-                    <div className="flex items-center space-x-2">
-                        <input
-                            type="checkbox"
-                            id="includeUptimeProof"
-                            checked={includeUptimeProof}
-                            onChange={(e) => setIncludeUptimeProof(e.target.checked)}
-                            disabled={isProcessing || !delegationInfo}
-                            className="rounded border-zinc-300 dark:border-zinc-600"
-                        />
-                        <label
-                            htmlFor="includeUptimeProof"
-                            className="text-sm text-zinc-700 dark:text-zinc-300 cursor-pointer"
-                        >
-                            Include uptime proof (may increase rewards)
-                        </label>
-                    </div>
-
-                    {includeUptimeProof && (
-                        <Alert variant="info">
-                            <p className="text-sm">
-                                Uptime proof will be fetched for the validator you delegated to.
-                                This may increase your delegation rewards based on the validator's uptime.
-                            </p>
-                        </Alert>
-                    )}
                 </div>
             </div>
 
-            {uptimeSeconds !== null && (
-                <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-md">
-                    <p className="text-sm text-green-800 dark:text-green-200">
-                        <strong>Uptime Proof Created:</strong> {uptimeSeconds.toString()} seconds
-                    </p>
-                </div>
-            )}
-
-            <Alert variant="warning">
+            <Alert variant="info">
                 <p className="text-sm">
-                    <strong>Important:</strong> Only the delegation owner or validator owner can initiate removal.
-                    Validator owners can only remove delegations after the minimum stake duration has passed.
+                    <strong>Note:</strong> Only the delegation owner or validator owner can initiate removal.
+                    The minimum stake duration must have passed.
                 </p>
             </Alert>
 
             <Button
                 onClick={handleInitiateRemoval}
-                disabled={
-                    isProcessing ||
-                    isLoadingUptimeProof ||
-                    !delegationID ||
-                    !!txHash ||
-                    !delegationInfo
-                }
-                loading={isProcessing || isLoadingUptimeProof}
+                disabled={isProcessing || !delegationID || !!txHash || !delegationInfo}
+                loading={isProcessing}
             >
-                {isLoadingUptimeProof
-                    ? 'Creating Uptime Proof...'
-                    : (isProcessing ? 'Processing...' : 'Initiate Delegator Removal')}
+                {isProcessing ? 'Processing...' : 'Initiate Delegator Removal'}
             </Button>
 
             {txHash && (
@@ -303,13 +328,6 @@ const InitiateDelegatorRemoval: React.FC<InitiateDelegatorRemovalProps> = ({
                     value={txHash}
                 />
             )}
-
-            <Alert variant="info">
-                <p className="text-sm">
-                    <strong>Next Step:</strong> After initiating removal, you'll need to complete the removal process
-                    to finalize the delegation removal and receive your staked tokens plus rewards (minus fees).
-                </p>
-            </Alert>
         </div>
     );
 };

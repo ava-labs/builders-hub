@@ -7,9 +7,7 @@ import { Success } from '@/components/toolbox/components/Success';
 import { Alert } from '@/components/toolbox/components/Alert';
 import NativeTokenStakingManager from '@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json';
 import ERC20TokenStakingManager from '@/contracts/icm-contracts/compiled/ERC20TokenStakingManager.json';
-import { hexToBytes, bytesToHex } from 'viem';
-import { packWarpIntoAccessList } from '@/components/tools/common/utils/packWarp';
-import { useUptimeProof } from '@/components/toolbox/hooks/useUptimeProof';
+import { decodeErrorResult } from 'viem';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 
 type TokenType = 'native' | 'erc20';
@@ -27,8 +25,6 @@ interface InitiateValidatorRemovalProps {
 const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
     validationID,
     stakingManagerAddress,
-    rpcUrl,
-    signingSubnetId,
     tokenType,
     onSuccess,
     onError,
@@ -36,14 +32,11 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
     const { coreWalletClient, publicClient, walletEVMAddress } = useWalletStore();
     const viemChain = useViemChainStore();
     const { notify } = useConsoleNotifications();
-    const { createAndSignUptimeProof, isLoading: isLoadingUptimeProof } = useUptimeProof();
 
-    const [includeUptimeProof, setIncludeUptimeProof] = useState(false);
     const [messageIndex, setMessageIndex] = useState<string>('0');
     const [isProcessing, setIsProcessing] = useState(false);
     const [error, setErrorState] = useState<string | null>(null);
     const [txHash, setTxHash] = useState<string | null>(null);
-    const [uptimeSeconds, setUptimeSeconds] = useState<bigint | null>(null);
 
     const contractAbi = tokenType === 'native' ? NativeTokenStakingManager.abi : ERC20TokenStakingManager.abi;
     const tokenLabel = tokenType === 'native' ? 'Native Token' : 'ERC20 Token';
@@ -51,72 +44,178 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
     const handleInitiateRemoval = async () => {
         setErrorState(null);
         setTxHash(null);
-        setUptimeSeconds(null);
 
         if (!coreWalletClient || !publicClient || !viemChain) {
-            setErrorState("Wallet or chain configuration is not properly initialized.");
-            onError("Wallet or chain configuration is not properly initialized.");
+            const msg = "Wallet or chain configuration is not properly initialized.";
+            setErrorState(msg);
+            onError(msg);
             return;
         }
 
         if (!validationID || validationID === '0x0000000000000000000000000000000000000000000000000000000000000000') {
-            setErrorState("Valid validation ID is required.");
-            onError("Valid validation ID is required.");
+            const msg = "Valid validation ID is required.";
+            setErrorState(msg);
+            onError(msg);
             return;
         }
 
         if (!stakingManagerAddress) {
-            setErrorState("Staking Manager address is required.");
-            onError("Staking Manager address is required.");
+            const msg = "Staking Manager address is required.";
+            setErrorState(msg);
+            onError(msg);
             return;
         }
 
         const msgIndex = parseInt(messageIndex);
         if (isNaN(msgIndex) || msgIndex < 0) {
-            setErrorState("Message index must be a non-negative number.");
-            onError("Message index must be a non-negative number.");
+            const msg = "Message index must be a non-negative number.";
+            setErrorState(msg);
+            onError(msg);
             return;
         }
 
         setIsProcessing(true);
         try {
-            let accessList: any[] = [];
+            // Pre-check validator state
+            try {
+                const stakingValidatorInfo = await publicClient.readContract({
+                    address: stakingManagerAddress as `0x${string}`,
+                    abi: contractAbi,
+                    functionName: 'getStakingValidator',
+                    args: [validationID as `0x${string}`]
+                }) as { owner: string; delegationFeeBips: number; minStakeDuration: bigint; uptimeSeconds: bigint };
 
-            // If uptime proof is requested, create and sign it
-            if (includeUptimeProof) {
-                try {
-                    const uptimeProofResult = await createAndSignUptimeProof(
-                        validationID,
-                        rpcUrl,
-                        signingSubnetId
-                    );
+                const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
+                const isGenesisValidator = stakingValidatorInfo.owner === ZERO_ADDRESS;
 
-                    setUptimeSeconds(uptimeProofResult.uptimeSeconds);
-                    console.log(`[InitiateValidatorRemoval] Using uptime proof: ${uptimeProofResult.uptimeSeconds} seconds`);
+                // For non-genesis validators, check ownership
+                if (!isGenesisValidator && stakingValidatorInfo.owner.toLowerCase() !== walletEVMAddress?.toLowerCase()) {
+                    throw new Error(`You are not the owner of this validator. Owner: ${stakingValidatorInfo.owner}`);
+                }
 
-                    // Pack the signed warp message into access list
-                    const signedWarpBytes = hexToBytes(`0x${uptimeProofResult.signedWarpMessage}`);
-                    accessList = packWarpIntoAccessList(signedWarpBytes);
-                } catch (uptimeErr) {
-                    const message = uptimeErr instanceof Error ? uptimeErr.message : String(uptimeErr);
-                    throw new Error(`Failed to create uptime proof: ${message}`);
+                // Get ValidatorManager address to check validator status
+                const settings = await publicClient.readContract({
+                    address: stakingManagerAddress as `0x${string}`,
+                    abi: contractAbi,
+                    functionName: 'getStakingManagerSettings',
+                }) as { manager: string; minimumStakeDuration: bigint };
+
+                const ValidatorManagerAbi = [
+                    {
+                        type: 'function',
+                        name: 'getValidator',
+                        inputs: [{ name: 'validationID', type: 'bytes32' }],
+                        outputs: [{
+                            type: 'tuple',
+                            components: [
+                                { name: 'status', type: 'uint8' },
+                                { name: 'nodeID', type: 'bytes' },
+                                { name: 'startingWeight', type: 'uint64' },
+                                { name: 'weight', type: 'uint64' },
+                                { name: 'startTime', type: 'uint64' },
+                                { name: 'endedAt', type: 'uint64' }
+                            ]
+                        }],
+                        stateMutability: 'view'
+                    }
+                ];
+
+                const validatorInfo = await publicClient.readContract({
+                    address: settings.manager as `0x${string}`,
+                    abi: ValidatorManagerAbi,
+                    functionName: 'getValidator',
+                    args: [validationID as `0x${string}`]
+                }) as { status: number; startingWeight: bigint; weight: bigint; startTime: bigint };
+
+                const statusNames: Record<number, string> = {
+                    0: 'Unknown', 1: 'Pending', 2: 'Active', 3: 'Removing', 4: 'Completed'
+                };
+                
+                if (Number(validatorInfo.status) !== 2) {
+                    throw new Error(`Validator is not active. Current status: ${statusNames[validatorInfo.status] || validatorInfo.status}. Only active validators can be removed.`);
+                }
+
+                // Note: We no longer block on weight > startingWeight check here.
+                // This check was causing false positives due to state sync issues between 
+                // delegation completion and validator weight updates.
+                // The contract itself will enforce proper delegation removal.
+
+                // Check minimum stake duration for PoS validators
+                if (!isGenesisValidator && stakingValidatorInfo.minStakeDuration > 0n) {
+                    const currentTime = BigInt(Math.floor(Date.now() / 1000));
+                    const endTime = validatorInfo.startTime + stakingValidatorInfo.minStakeDuration;
+                    
+                    if (currentTime < endTime) {
+                        const remaining = endTime - currentTime;
+                        const hours = Number(remaining) / 3600;
+                        throw new Error(`Minimum stake duration has not passed. Time remaining: ${hours.toFixed(1)} hours.`);
+                    }
+                }
+            } catch (preCheckErr) {
+                if (preCheckErr instanceof Error && (
+                    preCheckErr.message.includes('not the owner') ||
+                    preCheckErr.message.includes('stake duration') ||
+                    preCheckErr.message.includes('not active') ||
+                    preCheckErr.message.includes('active delegations')
+                )) {
+                    throw preCheckErr;
                 }
             }
 
-            // Call initiateValidatorRemoval
-            const writePromise = coreWalletClient.writeContract({
+            // Always use force removal (no uptime proof)
+            const txConfig: any = {
                 address: stakingManagerAddress as `0x${string}`,
                 abi: contractAbi,
-                functionName: "initiateValidatorRemoval",
+                functionName: "forceInitiateValidatorRemoval",
                 args: [
                     validationID as `0x${string}`,
-                    includeUptimeProof,
+                    false, // includeUptimeProof - always false
                     msgIndex
                 ],
-                ...(accessList.length > 0 ? { accessList } : {}),
                 account: walletEVMAddress as `0x${string}`,
                 chain: viemChain,
-            });
+            };
+
+            // Try gas estimation
+            try {
+                const gasEstimate = await publicClient.estimateContractGas(txConfig);
+                txConfig.gas = (gasEstimate * 120n) / 100n;
+            } catch (gasError: any) {
+                // Try to decode the error
+                const errorData = gasError?.cause?.data || gasError?.data;
+                if (errorData) {
+                    try {
+                        const decoded = decodeErrorResult({
+                            abi: contractAbi,
+                            data: errorData
+                        });
+                        
+                        if (decoded.errorName === 'MinStakeDurationNotPassed') {
+                            throw new Error('Minimum stake duration has not passed.');
+                        } else if (decoded.errorName === 'InvalidValidatorStatus') {
+                            throw new Error('Validator is not in a valid state for removal.');
+                        } else if (decoded.errorName === 'UnauthorizedOwner') {
+                            throw new Error('You are not authorized to remove this validator.');
+                        } else if (decoded.errorName === 'ValidatorNotPoS') {
+                            throw new Error('This is a genesis/PoA validator and cannot be removed through the StakingManager.');
+                        } else {
+                            throw new Error(`Contract error: ${decoded.errorName}`);
+                        }
+                    } catch (decodeErr: any) {
+                        if (decodeErr.message?.includes('Contract error') ||
+                            decodeErr.message?.includes('Minimum stake') ||
+                            decodeErr.message?.includes('not authorized') ||
+                            decodeErr.message?.includes('genesis/PoA')) {
+                            throw decodeErr;
+                        }
+                    }
+                }
+                
+                throw new Error(`Gas estimation failed: ${gasError?.message || 'Unknown error'}`);
+            }
+
+            // Send transaction
+            const writePromise = coreWalletClient.writeContract(txConfig);
 
             notify({
                 type: 'call',
@@ -136,15 +235,8 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
         } catch (err: any) {
             let message = err instanceof Error ? err.message : String(err);
 
-            // Provide more helpful error messages
             if (message.includes('User rejected')) {
                 message = 'Transaction was rejected by user';
-            } else if (message.includes('InvalidValidationID')) {
-                message = 'Invalid validation ID. The validator may not exist or is not active.';
-            } else if (message.includes('MinStakeDurationNotPassed')) {
-                message = 'Minimum stake duration has not passed yet. Please wait before removing this validator.';
-            } else if (message.includes('InvalidWarpMessage')) {
-                message = 'Invalid uptime proof. Please try again without uptime proof or check validator status.';
             }
 
             setErrorState(`Failed to initiate validator removal: ${message}`);
@@ -169,7 +261,7 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
                     <Input
                         label="Validation ID"
                         value={validationID}
-                        onChange={() => { }} // Read-only, set by parent
+                        onChange={() => { }}
                         disabled={true}
                     />
 
@@ -181,58 +273,24 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
                         min="0"
                         placeholder="0"
                         disabled={isProcessing}
-                        helperText="Index of the warp message to use (usually 0)"
+                        helperText="Index of the warp message (usually 0)"
                     />
-
-                    <div className="flex items-center space-x-2">
-                        <input
-                            type="checkbox"
-                            id="includeUptimeProof"
-                            checked={includeUptimeProof}
-                            onChange={(e) => setIncludeUptimeProof(e.target.checked)}
-                            disabled={isProcessing}
-                            className="rounded border-zinc-300 dark:border-zinc-600"
-                        />
-                        <label
-                            htmlFor="includeUptimeProof"
-                            className="text-sm text-zinc-700 dark:text-zinc-300 cursor-pointer"
-                        >
-                            Include uptime proof (may increase rewards)
-                        </label>
-                    </div>
-
-                    {includeUptimeProof && (
-                        <Alert variant="info">
-                            <p className="text-sm">
-                                Uptime proof will be fetched from the validators RPC endpoint and signed.
-                                This may take a few moments and will attempt different quorum percentages if needed.
-                            </p>
-                        </Alert>
-                    )}
                 </div>
             </div>
 
-            {uptimeSeconds !== null && (
-                <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-md">
-                    <p className="text-sm text-green-800 dark:text-green-200">
-                        <strong>Uptime Proof Created:</strong> {uptimeSeconds.toString()} seconds
-                    </p>
-                </div>
-            )}
+            <Alert variant="info">
+                <p className="text-sm">
+                    <strong>Requirements:</strong> You must be the validator owner. All delegations must be removed first. 
+                    The minimum stake duration must have passed.
+                </p>
+            </Alert>
 
             <Button
                 onClick={handleInitiateRemoval}
-                disabled={
-                    isProcessing ||
-                    isLoadingUptimeProof ||
-                    !validationID ||
-                    !!txHash
-                }
-                loading={isProcessing || isLoadingUptimeProof}
+                disabled={isProcessing || !validationID || !!txHash}
+                loading={isProcessing}
             >
-                {isLoadingUptimeProof
-                    ? 'Creating Uptime Proof...'
-                    : (isProcessing ? 'Processing...' : 'Initiate Validator Removal')}
+                {isProcessing ? 'Processing...' : 'Initiate Validator Removal'}
             </Button>
 
             {txHash && (
@@ -241,13 +299,6 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
                     value={txHash}
                 />
             )}
-
-            <Alert variant="warning">
-                <p className="text-sm">
-                    <strong>Note:</strong> After initiating removal, you'll need to complete the removal process
-                    to finalize the validator removal and receive rewards.
-                </p>
-            </Alert>
         </div>
     );
 };

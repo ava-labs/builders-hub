@@ -95,7 +95,6 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
 
                 // If we get here without error, contract is initialized
                 setIsInitialized(true);
-                console.log('Contract is initialized, admin:', isInit);
                 return;
             } catch (readError) {
                 // If this fails with a specific revert message about not being initialized, we know it's not initialized
@@ -119,7 +118,6 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
                 toBlock: 'latest'
             });
 
-            console.log('Initialization logs:', logs);
             setIsInitialized(logs.length > 0);
             if (logs.length > 0) {
                 setInitEvent(logs[0]);

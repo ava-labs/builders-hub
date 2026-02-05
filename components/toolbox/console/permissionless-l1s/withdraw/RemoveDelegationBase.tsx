@@ -1,16 +1,18 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Steps, Step } from "fumadocs-ui/components/steps";
-import { Input } from '@/components/toolbox/components/Input';
+import { Input, type Suggestion } from '@/components/toolbox/components/Input';
 import InitiateDelegatorRemoval from '@/components/toolbox/console/permissionless-l1s/withdraw/InitiateDelegatorRemoval';
 import CompleteDelegatorRemoval from '@/components/toolbox/console/permissionless-l1s/withdraw/CompleteDelegatorRemoval';
+import SubmitPChainTxWeightUpdate from '@/components/toolbox/console/shared/SubmitPChainTxWeightUpdate';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { BaseConsoleToolProps } from '../../../components/WithConsoleToolMetadata';
 import { Alert } from '@/components/toolbox/components/Alert';
 import { L1SubnetStep, StepFlowFooter, useL1SubnetState } from '../shared';
 import NativeTokenStakingManager from '@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json';
 import ERC20TokenStakingManager from '@/contracts/icm-contracts/compiled/ERC20TokenStakingManager.json';
+import { formatEther } from 'viem';
 
 export type TokenType = 'native' | 'erc20';
 
@@ -25,12 +27,14 @@ export default function RemoveDelegationBase({ tokenType, onSuccess }: RemoveDel
     // State for passing data between components
     const [delegationID, setDelegationID] = useState<string>('');
     const [initiateRemovalTxHash, setInitiateRemovalTxHash] = useState<string>('');
+    const [pChainTxId, setPChainTxId] = useState<string>('');
     const [removalCompleteTxHash, setRemovalCompleteTxHash] = useState<string>('');
-    const [userDelegations, setUserDelegations] = useState<Array<{
+    const [allDelegations, setAllDelegations] = useState<Array<{
         delegationID: string;
         validationID: string;
         weight: string;
         owner: string;
+        status: 'active' | 'completed';
     }>>([]);
     const [isLoadingDelegations, setIsLoadingDelegations] = useState(false);
 
@@ -45,7 +49,7 @@ export default function RemoveDelegationBase({ tokenType, onSuccess }: RemoveDel
     useEffect(() => {
         const fetchUserDelegations = async () => {
             if (!publicClient || !validatorManagerDetails.contractOwner || !walletEVMAddress) {
-                setUserDelegations([]);
+                setAllDelegations([]);
                 return;
             }
 
@@ -85,15 +89,17 @@ export default function RemoveDelegationBase({ tokenType, onSuccess }: RemoveDel
                             const info = await publicClient.readContract({
                                 address: validatorManagerDetails.contractOwner as `0x${string}`,
                                 abi: contractAbi,
-                                functionName: 'getDelegator',
+                                functionName: 'getDelegatorInfo',
                                 args: [logDelegationID as `0x${string}`],
                             }) as { weight?: bigint; owner?: string };
 
+                            const weightStr = info.weight?.toString() || '0';
                             return {
                                 delegationID: logDelegationID,
                                 validationID,
-                                weight: info.weight?.toString() || '0',
+                                weight: weightStr,
                                 owner: info.owner || '',
+                                status: (weightStr === '0' ? 'completed' : 'active') as 'active' | 'completed',
                             };
                         } catch (err) {
                             console.warn(`Could not fetch info for delegation ${logDelegationID}:`, err);
@@ -102,17 +108,18 @@ export default function RemoveDelegationBase({ tokenType, onSuccess }: RemoveDel
                     })
                 );
 
-                // Filter out null entries and delegations that are no longer active
-                const activeDelegations = delegations.filter(d => d !== null && d.weight !== '0') as Array<{
+                // Filter out null entries and store all delegations
+                const validDelegations = delegations.filter(d => d !== null) as Array<{
                     delegationID: string;
                     validationID: string;
                     weight: string;
                     owner: string;
+                    status: 'active' | 'completed';
                 }>;
-                setUserDelegations(activeDelegations);
+                setAllDelegations(validDelegations);
             } catch (err) {
                 console.error('Failed to fetch user delegations:', err);
-                setUserDelegations([]);
+                setAllDelegations([]);
             } finally {
                 setIsLoadingDelegations(false);
             }
@@ -121,11 +128,40 @@ export default function RemoveDelegationBase({ tokenType, onSuccess }: RemoveDel
         fetchUserDelegations();
     }, [publicClient, validatorManagerDetails.contractOwner, walletEVMAddress, contractAbi]);
 
+    // Create suggestions for the delegation input (similar to SelectValidationID)
+    const delegationSuggestions: Suggestion[] = useMemo(() => {
+        return allDelegations.map((delegation) => {
+            const isCompleted = delegation.status === 'completed';
+            const isSelected = delegationID === delegation.delegationID;
+            const statusLabel = isCompleted ? ' (Completed)' : '';
+            const selectedLabel = isSelected ? ' ✓' : '';
+            
+            // Format weight for display
+            let weightDisplay = delegation.weight;
+            try {
+                // Try to convert weight to a more readable format
+                const weightBigInt = BigInt(delegation.weight);
+                if (weightBigInt > 0n) {
+                    weightDisplay = formatEther(weightBigInt) + ' tokens';
+                }
+            } catch {
+                // Keep original weight if conversion fails
+            }
+
+            return {
+                title: `${delegation.delegationID.substring(0, 18)}...${selectedLabel}`,
+                value: delegation.delegationID,
+                description: `Weight: ${weightDisplay}${statusLabel}`,
+            };
+        });
+    }, [allDelegations, delegationID]);
+
     const handleReset = () => {
         setGlobalError(null);
         setGlobalSuccess(null);
         setDelegationID('');
         setInitiateRemovalTxHash('');
+        setPChainTxId('');
         setRemovalCompleteTxHash('');
         l1State.setSubnetIdL1('');
         l1State.incrementResetKey();
@@ -151,7 +187,8 @@ export default function RemoveDelegationBase({ tokenType, onSuccess }: RemoveDel
                 <Step>
                     <h2 className="text-lg font-semibold">Select Delegation to Remove</h2>
                     <p className="text-sm text-gray-500 mb-4">
-                        Select the delegation you want to remove. Only your active delegations will be shown.
+                        Select the delegation you want to remove from the dropdown or enter the delegation ID directly.
+                        Both active and completed delegations are shown.
                     </p>
 
                     {validatorManagerDetails.ownerType && validatorManagerDetails.ownerType !== 'StakingManager' && (
@@ -160,53 +197,58 @@ export default function RemoveDelegationBase({ tokenType, onSuccess }: RemoveDel
                         </Alert>
                     )}
 
-                    {isLoadingDelegations && (
-                        <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-md mb-4">
-                            <p className="text-sm text-blue-800 dark:text-blue-200">
-                                Loading your delegations...
-                            </p>
-                        </div>
-                    )}
-
-                    {!isLoadingDelegations && userDelegations.length === 0 && walletEVMAddress && validatorManagerDetails.contractOwner && (
+                    {!isLoadingDelegations && allDelegations.length === 0 && walletEVMAddress && validatorManagerDetails.contractOwner && (
                         <Alert variant="warning" className="mb-4">
-                            No active delegations found for your address on this L1.
+                            No delegations found for your address on this L1.
                         </Alert>
                     )}
 
-                    {userDelegations.length > 0 && (
-                        <div className="space-y-2 mb-4">
-                            <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                                Your Delegations
-                            </label>
-                            <div className="space-y-2">
-                                {userDelegations.map((delegation) => (
-                                    <div
-                                        key={delegation.delegationID}
-                                        className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                                            delegationID === delegation.delegationID
-                                                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                                                : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600'
-                                        }`}
-                                        onClick={() => setDelegationID(delegation.delegationID)}
-                                    >
-                                        <div className="text-sm space-y-1">
-                                            <p><strong>Delegation ID:</strong> <code className="text-xs">{delegation.delegationID}</code></p>
-                                            <p><strong>Weight:</strong> {delegation.weight}</p>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
                     <Input
-                        label="Delegation ID (or select from above)"
+                        label="Delegation ID"
                         value={delegationID}
                         onChange={setDelegationID}
-                        placeholder="0x..."
-                        helperText="The unique identifier for your delegation"
+                        suggestions={delegationSuggestions}
+                        placeholder={isLoadingDelegations ? "Loading delegations..." : "Enter delegation ID or select from suggestions"}
+                        helperText="Select your delegation from the dropdown or enter the delegation ID manually"
                     />
+
+                    {/* Show selected delegation info */}
+                    {delegationID && allDelegations.find(d => d.delegationID === delegationID) && (
+                        <div className="mt-3 p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg border border-zinc-200 dark:border-zinc-700">
+                            {(() => {
+                                const selectedDelegation = allDelegations.find(d => d.delegationID === delegationID);
+                                if (!selectedDelegation) return null;
+                                const isCompleted = selectedDelegation.status === 'completed';
+                                return (
+                                    <div className="text-sm space-y-1">
+                                        <div className="flex items-center justify-between">
+                                            <p className="text-zinc-700 dark:text-zinc-300"><strong>Status:</strong></p>
+                                            <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                                isCompleted 
+                                                    ? 'bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400' 
+                                                    : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                                            }`}>
+                                                {isCompleted ? 'Completed' : 'Active'}
+                                            </span>
+                                        </div>
+                                        <p className="text-zinc-600 dark:text-zinc-400">
+                                            <strong>Validation ID:</strong> <code className="text-xs">{selectedDelegation.validationID.substring(0, 18)}...</code>
+                                        </p>
+                                        <p className="text-zinc-600 dark:text-zinc-400">
+                                            <strong>Weight:</strong> {selectedDelegation.weight}
+                                        </p>
+                                        {isCompleted && (
+                                            <Alert variant="info" className="mt-2">
+                                                <p className="text-xs">
+                                                    This delegation is already completed. You can use this ID for reference but cannot remove it again.
+                                                </p>
+                                            </Alert>
+                                        )}
+                                    </div>
+                                );
+                            })()}
+                        </div>
+                    )}
                 </Step>
 
                 <Step>
@@ -239,10 +281,32 @@ export default function RemoveDelegationBase({ tokenType, onSuccess }: RemoveDel
                 </Step>
 
                 <Step>
+                    <h2 className="text-lg font-semibold">Submit P-Chain Transaction</h2>
+                    <p className="text-sm text-gray-500 mb-4">
+                        Submit the weight update to the P-Chain. This step aggregates signatures from L1 validators
+                        and updates the validator&apos;s weight on the P-Chain to reflect the removed delegation.
+                    </p>
+
+                    <SubmitPChainTxWeightUpdate
+                        key={`pchain-${l1State.resetKey}-${tokenType}`}
+                        subnetIdL1={l1State.subnetIdL1}
+                        initialEvmTxHash={initiateRemovalTxHash}
+                        signingSubnetId={validatorManagerDetails.signingSubnetId}
+                        txHashLabel="Initiate Removal Transaction Hash"
+                        txHashPlaceholder="Enter the transaction hash from the initiate removal step (0x...)"
+                        onSuccess={(txId) => {
+                            setPChainTxId(txId);
+                            setGlobalError(null);
+                        }}
+                        onError={(message) => setGlobalError(message)}
+                    />
+                </Step>
+
+                <Step>
                     <h2 className="text-lg font-semibold">Complete Delegator Removal</h2>
                     <p className="text-sm text-gray-500 mb-4">
                         Finalize the delegation removal by calling <a href="https://github.com/ava-labs/icm-contracts/blob/main/contracts/validator-manager/StakingManager.sol" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline">completeDelegatorRemoval</a>.
-                        This will return your delegated stake and distribute rewards (minus delegation fees).
+                        This will aggregate the P-Chain signature, return your delegated stake, and distribute rewards (minus delegation fees).
                     </p>
 
                     <CompleteDelegatorRemoval
@@ -250,6 +314,9 @@ export default function RemoveDelegationBase({ tokenType, onSuccess }: RemoveDel
                         delegationID={delegationID}
                         stakingManagerAddress={validatorManagerDetails.contractOwner || ''}
                         tokenType={tokenType}
+                        subnetIdL1={l1State.subnetIdL1}
+                        signingSubnetId={validatorManagerDetails.signingSubnetId}
+                        pChainTxId={pChainTxId}
                         onSuccess={(data) => {
                             setRemovalCompleteTxHash(data.txHash);
                             setGlobalSuccess(data.message);
@@ -263,7 +330,7 @@ export default function RemoveDelegationBase({ tokenType, onSuccess }: RemoveDel
 
             <StepFlowFooter
                 globalSuccess={globalSuccess}
-                showReset={!!(initiateRemovalTxHash || removalCompleteTxHash || globalError || globalSuccess)}
+                showReset={!!(initiateRemovalTxHash || pChainTxId || removalCompleteTxHash || globalError || globalSuccess)}
                 onReset={handleReset}
             />
         </div>

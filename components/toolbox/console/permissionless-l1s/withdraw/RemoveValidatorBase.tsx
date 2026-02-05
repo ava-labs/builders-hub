@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Steps, Step } from "fumadocs-ui/components/steps";
 import SelectValidationID, { ValidationSelection } from '@/components/toolbox/components/SelectValidationID';
 import InitiateValidatorRemoval from '@/components/toolbox/console/permissionless-l1s/withdraw/InitiateValidatorRemoval';
+import SubmitPChainTxWeightUpdate from '@/components/toolbox/console/shared/SubmitPChainTxWeightUpdate';
 import CompleteValidatorRemoval from '@/components/toolbox/console/permissionless-l1s/withdraw/CompleteValidatorRemoval';
 import ClaimDelegationFees from '@/components/toolbox/console/permissionless-l1s/withdraw/ClaimDelegationFees';
 import { BaseConsoleToolProps } from '../../../components/WithConsoleToolMetadata';
@@ -26,6 +27,7 @@ export default function RemoveValidatorBase({ tokenType }: RemoveValidatorBasePr
         nodeId: ''
     });
     const [initiateRemovalTxHash, setInitiateRemovalTxHash] = useState<string>('');
+    const [pChainTxId, setPChainTxId] = useState<string>('');
     const [removalCompleteTxHash, setRemovalCompleteTxHash] = useState<string>('');
     const [feeClaimTxHash, setFeeClaimTxHash] = useState<string>('');
 
@@ -39,6 +41,7 @@ export default function RemoveValidatorBase({ tokenType }: RemoveValidatorBasePr
         setGlobalSuccess(null);
         setValidationSelection({ validationId: '', nodeId: '' });
         setInitiateRemovalTxHash('');
+        setPChainTxId('');
         setRemovalCompleteTxHash('');
         setFeeClaimTxHash('');
         l1State.setSubnetIdL1('');
@@ -93,16 +96,8 @@ export default function RemoveValidatorBase({ tokenType }: RemoveValidatorBasePr
                     <h2 className="text-lg font-semibold">Initiate Validator Removal</h2>
                     <p className="text-sm text-gray-500 mb-4">
                         Call the <a href="https://github.com/ava-labs/icm-contracts/blob/main/contracts/validator-manager/StakingManager.sol#L241" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline">initiateValidatorRemoval</a> function on the Staking Manager contract.
-                        You can optionally include an uptime proof to potentially increase your rewards.
+                        This will start the validator removal process and emit a warp message for P-Chain submission.
                     </p>
-
-                    <Alert variant="info" className="mb-4">
-                        <p className="text-sm">
-                            <strong>Uptime Proof:</strong> Including an uptime proof fetches the validator&apos;s actual uptime
-                            from the network and may result in higher reward calculations. The system will automatically
-                            try different signature quorum percentages to ensure successful signing.
-                        </p>
-                    </Alert>
 
                     <InitiateValidatorRemoval
                         key={`initiate-${l1State.resetKey}-${tokenType}`}
@@ -113,6 +108,28 @@ export default function RemoveValidatorBase({ tokenType }: RemoveValidatorBasePr
                         tokenType={tokenType}
                         onSuccess={(data) => {
                             setInitiateRemovalTxHash(data.txHash);
+                            setGlobalError(null);
+                        }}
+                        onError={(message) => setGlobalError(message)}
+                    />
+                </Step>
+
+                <Step>
+                    <h2 className="text-lg font-semibold">Submit P-Chain Transaction</h2>
+                    <p className="text-sm text-gray-500 mb-4">
+                        Submit the weight update to the P-Chain. This step aggregates signatures from L1 validators
+                        and updates the validator&apos;s weight on the P-Chain to reflect the removal.
+                    </p>
+
+                    <SubmitPChainTxWeightUpdate
+                        key={`pchain-${l1State.resetKey}-${tokenType}`}
+                        subnetIdL1={l1State.subnetIdL1}
+                        initialEvmTxHash={initiateRemovalTxHash}
+                        signingSubnetId={validatorManagerDetails.signingSubnetId}
+                        txHashLabel="Initiate Removal Transaction Hash"
+                        txHashPlaceholder="Enter the transaction hash from the initiate removal step (0x...)"
+                        onSuccess={(txId) => {
+                            setPChainTxId(txId);
                             setGlobalError(null);
                         }}
                         onError={(message) => setGlobalError(message)}
@@ -131,6 +148,9 @@ export default function RemoveValidatorBase({ tokenType }: RemoveValidatorBasePr
                         validationID={validationSelection.validationId}
                         stakingManagerAddress={validatorManagerDetails.contractOwner || ''}
                         tokenType={tokenType}
+                        subnetIdL1={l1State.subnetIdL1}
+                        signingSubnetId={validatorManagerDetails.signingSubnetId}
+                        pChainTxId={pChainTxId}
                         onSuccess={(data) => {
                             setRemovalCompleteTxHash(data.txHash);
                             setGlobalSuccess(data.message);
@@ -163,7 +183,7 @@ export default function RemoveValidatorBase({ tokenType }: RemoveValidatorBasePr
 
             <StepFlowFooter
                 globalSuccess={globalSuccess}
-                showReset={!!(initiateRemovalTxHash || removalCompleteTxHash || feeClaimTxHash || globalError || globalSuccess)}
+                showReset={!!(initiateRemovalTxHash || pChainTxId || removalCompleteTxHash || feeClaimTxHash || globalError || globalSuccess)}
                 onReset={handleReset}
             />
         </div>

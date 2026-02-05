@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { Button } from '@/components/toolbox/components/Button';
@@ -7,8 +7,11 @@ import { Success } from '@/components/toolbox/components/Success';
 import { Alert } from '@/components/toolbox/components/Alert';
 import NativeTokenStakingManager from '@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json';
 import ERC20TokenStakingManager from '@/contracts/icm-contracts/compiled/ERC20TokenStakingManager.json';
-import { formatEther } from 'viem';
+import { hexToBytes, bytesToHex } from 'viem';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
+import { packWarpIntoAccessList } from '@/components/toolbox/console/permissioned-l1s/ValidatorManager/packWarp';
+import { packL1ValidatorWeightMessage } from '@/components/toolbox/coreViem/utils/convertWarp';
+import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
 
 type TokenType = 'native' | 'erc20';
 
@@ -16,6 +19,9 @@ interface CompleteDelegatorRemovalProps {
     delegationID: string;
     stakingManagerAddress: string;
     tokenType: TokenType;
+    subnetIdL1: string;
+    signingSubnetId?: string;
+    pChainTxId?: string;
     onSuccess: (data: { txHash: string; message: string }) => void;
     onError: (message: string) => void;
 }
@@ -24,17 +30,28 @@ const CompleteDelegatorRemoval: React.FC<CompleteDelegatorRemovalProps> = ({
     delegationID,
     stakingManagerAddress,
     tokenType,
+    subnetIdL1,
+    signingSubnetId,
+    pChainTxId: initialPChainTxId,
     onSuccess,
     onError,
 }) => {
-    const { coreWalletClient, publicClient, walletEVMAddress } = useWalletStore();
+    const { coreWalletClient, publicClient, walletEVMAddress, avalancheNetworkID } = useWalletStore();
+    const { aggregateSignature } = useAvalancheSDKChainkit();
     const viemChain = useViemChainStore();
     const { notify } = useConsoleNotifications();
 
+    const [pChainTxId, setPChainTxId] = useState<string>(initialPChainTxId || '');
     const [messageIndex, setMessageIndex] = useState<string>('0');
     const [isProcessing, setIsProcessing] = useState(false);
     const [error, setErrorState] = useState<string | null>(null);
     const [txHash, setTxHash] = useState<string | null>(null);
+    const [pChainSignature, setPChainSignature] = useState<string | null>(null);
+    const [extractedData, setExtractedData] = useState<{
+        validationID: string;
+        nonce: bigint;
+        weight: bigint;
+    } | null>(null);
     const [rewardInfo, setRewardInfo] = useState<{
         stakeReturned: string;
         rewardsDistributed: boolean;
@@ -43,10 +60,19 @@ const CompleteDelegatorRemoval: React.FC<CompleteDelegatorRemovalProps> = ({
     const contractAbi = tokenType === 'native' ? NativeTokenStakingManager.abi : ERC20TokenStakingManager.abi;
     const tokenLabel = tokenType === 'native' ? 'Native Token' : 'ERC20 Token';
 
+    // Update pChainTxId when prop changes
+    useEffect(() => {
+        if (initialPChainTxId && initialPChainTxId !== pChainTxId) {
+            setPChainTxId(initialPChainTxId);
+        }
+    }, [initialPChainTxId]);
+
     const handleCompleteRemoval = async () => {
         setErrorState(null);
         setTxHash(null);
         setRewardInfo(null);
+        setPChainSignature(null);
+        setExtractedData(null);
 
         if (!coreWalletClient || !publicClient || !viemChain) {
             setErrorState("Wallet or chain configuration is not properly initialized.");
@@ -66,6 +92,18 @@ const CompleteDelegatorRemoval: React.FC<CompleteDelegatorRemovalProps> = ({
             return;
         }
 
+        if (!pChainTxId.trim()) {
+            setErrorState("P-Chain transaction ID is required.");
+            onError("P-Chain transaction ID is required.");
+            return;
+        }
+
+        if (!subnetIdL1) {
+            setErrorState("L1 Subnet ID is required.");
+            onError("L1 Subnet ID is required.");
+            return;
+        }
+
         const msgIndex = parseInt(messageIndex);
         if (isNaN(msgIndex) || msgIndex < 0) {
             setErrorState("Message index must be a non-negative number.");
@@ -81,21 +119,64 @@ const CompleteDelegatorRemoval: React.FC<CompleteDelegatorRemovalProps> = ({
                 const delegatorInfo = await publicClient.readContract({
                     address: stakingManagerAddress as `0x${string}`,
                     abi: contractAbi,
-                    functionName: 'getDelegator',
+                    functionName: 'getDelegatorInfo',
                     args: [delegationID as `0x${string}`],
                 }) as any;
 
                 delegationWeight = delegatorInfo.weight?.toString() || '0';
-            } catch (err) {
-                console.warn('Could not fetch delegation info before removal:', err);
+            } catch {
+                // Continue without delegation weight
             }
 
-            // Call completeDelegatorRemoval with both delegationID and messageIndex
+            // Step 1: Extract L1ValidatorWeightMessage from P-Chain transaction
+            const weightMessageData = await coreWalletClient.extractL1ValidatorWeightMessage({
+                txId: pChainTxId
+            });
+
+            setExtractedData({
+                validationID: weightMessageData.validationID,
+                nonce: weightMessageData.nonce,
+                weight: weightMessageData.weight
+            });
+
+            // Step 2: Create L1ValidatorWeightMessage for completion
+            const validationIDBytes = hexToBytes(weightMessageData.validationID as `0x${string}`);
+            const l1ValidatorWeightMessage = packL1ValidatorWeightMessage(
+                {
+                    validationID: validationIDBytes,
+                    nonce: weightMessageData.nonce,
+                    weight: weightMessageData.weight,
+                },
+                avalancheNetworkID,
+                "11111111111111111111111111111111LpoYY"
+            );
+
+            // Step 3: Aggregate P-Chain signature
+            const aggregateSignaturePromise = aggregateSignature({
+                message: bytesToHex(l1ValidatorWeightMessage),
+                signingSubnetId: signingSubnetId || subnetIdL1,
+                quorumPercentage: 67,
+            });
+            
+            notify({
+                type: 'local',
+                name: 'Aggregate P-Chain Signatures'
+            }, aggregateSignaturePromise);
+            
+            const signature = await aggregateSignaturePromise;
+            setPChainSignature(signature.signedMessage);
+
+            // Step 4: Package warp message into access list
+            const signedPChainWarpMsgBytes = hexToBytes(`0x${signature.signedMessage}`);
+            const accessList = packWarpIntoAccessList(signedPChainWarpMsgBytes);
+
+            // Step 5: Call completeDelegatorRemoval with proper warp message
             const writePromise = coreWalletClient.writeContract({
                 address: stakingManagerAddress as `0x${string}`,
                 abi: contractAbi,
                 functionName: "completeDelegatorRemoval",
                 args: [delegationID as `0x${string}`, msgIndex],
+                accessList,
                 account: walletEVMAddress as `0x${string}`,
                 chain: viemChain,
             });
@@ -143,9 +224,13 @@ const CompleteDelegatorRemoval: React.FC<CompleteDelegatorRemovalProps> = ({
             } else if (message.includes('InvalidDelegationID')) {
                 message = 'Invalid delegation ID. The delegation may not exist or removal was not initiated.';
             } else if (message.includes('DelegatorNotRemovable')) {
-                message = 'Delegator cannot be removed yet. Ensure you have initiated removal first.';
+                message = 'Delegator cannot be removed yet. Ensure you have initiated removal and submitted the P-Chain transaction first.';
             } else if (message.includes('InvalidDelegatorStatus')) {
-                message = 'Delegation is not in the correct status for completion. Check if removal was initiated.';
+                message = 'Delegation is not in the correct status for completion. Check if removal was initiated and P-Chain transaction submitted.';
+            } else if (message.includes('not found') && message.toLowerCase().includes('p-chain')) {
+                message = 'P-Chain transaction not found. Please verify the transaction ID.';
+            } else if (message.includes('InvalidWarpMessage')) {
+                message = 'Invalid warp message. Ensure the P-Chain transaction was successful.';
             }
 
             setErrorState(`Failed to complete delegator removal: ${message}`);
@@ -154,6 +239,8 @@ const CompleteDelegatorRemoval: React.FC<CompleteDelegatorRemovalProps> = ({
             setIsProcessing(false);
         }
     };
+
+    const isButtonDisabled = isProcessing || !!txHash || !pChainTxId.trim();
 
     return (
         <div className="space-y-4">
@@ -172,6 +259,15 @@ const CompleteDelegatorRemoval: React.FC<CompleteDelegatorRemovalProps> = ({
                     </div>
 
                     <Input
+                        label="P-Chain Transaction ID"
+                        value={pChainTxId}
+                        onChange={setPChainTxId}
+                        placeholder="Enter the P-Chain transaction ID from the previous step"
+                        disabled={isProcessing || !!txHash}
+                        helperText="The transaction ID from the P-Chain weight update step"
+                    />
+
+                    <Input
                         label="Message Index"
                         value={messageIndex}
                         onChange={setMessageIndex}
@@ -179,26 +275,48 @@ const CompleteDelegatorRemoval: React.FC<CompleteDelegatorRemovalProps> = ({
                         min="0"
                         placeholder="0"
                         disabled={isProcessing}
-                        helperText="Index of the warp message (should match the one used in initiate removal, usually 0)"
+                        helperText="Index of the warp message (usually 0)"
                     />
                 </div>
             </div>
+
+            {extractedData && (
+                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+                    <h4 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">
+                        Extracted Weight Update Data
+                    </h4>
+                    <div className="space-y-1 text-xs font-mono">
+                        <p><span className="text-blue-600 dark:text-blue-400">Validation ID:</span> {extractedData.validationID.slice(0, 18)}...</p>
+                        <p><span className="text-blue-600 dark:text-blue-400">New Weight:</span> {extractedData.weight.toString()}</p>
+                        <p><span className="text-blue-600 dark:text-blue-400">Nonce:</span> {extractedData.nonce.toString()}</p>
+                    </div>
+                </div>
+            )}
+
+            {pChainSignature && (
+                <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3 border border-green-200 dark:border-green-800">
+                    <p className="text-xs text-green-700 dark:text-green-300">
+                        P-Chain signature aggregated successfully
+                    </p>
+                </div>
+            )}
 
             <Alert variant="info">
                 <p className="text-sm">
                     <strong>What happens when you complete removal:</strong>
                 </p>
                 <ul className="list-disc list-inside text-sm mt-2 space-y-1">
+                    <li>Extract weight update from P-Chain transaction</li>
+                    <li>Aggregate signatures from L1 validators (67% quorum)</li>
                     <li>Your delegated stake will be returned</li>
                     <li>Rewards will be calculated and distributed based on validator uptime</li>
                     <li>Delegation fees will be deducted from your rewards</li>
-                    <li>The validator's weight will be updated to remove your delegation</li>
                 </ul>
             </Alert>
 
             <Button
                 onClick={handleCompleteRemoval}
-                disabled={isProcessing || !!txHash}
+                disabled={isButtonDisabled}
                 loading={isProcessing}
             >
                 {isProcessing ? 'Processing...' : 'Complete Delegator Removal & Receive Rewards'}

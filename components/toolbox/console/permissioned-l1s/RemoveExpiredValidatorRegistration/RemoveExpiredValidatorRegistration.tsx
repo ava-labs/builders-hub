@@ -156,8 +156,6 @@ const RemoveExpiredValidatorRegistration: React.FC = () => {
       let cursor = startBlock
       const allLogs: any[] = []
       
-      console.log(`Searching ${totalBlocks} blocks (${totalChunks} chunks) from block ${startBlock} to ${latest}`)
-      
       while (cursor <= latest) {
         const to = cursor + CHUNK_SIZE > latest ? latest : cursor + CHUNK_SIZE
         currentChunk++
@@ -172,8 +170,6 @@ const RemoveExpiredValidatorRegistration: React.FC = () => {
         allLogs.push(...chunkLogs)
         cursor = to + 1n
       }
-
-      console.log(`Found ${allLogs.length} InitiatedValidatorRegistration events`)
 
       const parsed: ParsedInitiatedRegistration[] = allLogs.map((log: any) => {
         const args = (log as Log & { args?: any }).args || {}
@@ -329,7 +325,6 @@ const RemoveExpiredValidatorRegistration: React.FC = () => {
       const justification = await GetRegistrationJustification(validationId, subnetId, publicClient)
       if (!justification) throw new Error('Could not build justification for this validation ID')
 
-      console.log("justification", justification)
       const validationIDBytes = hexToBytes(validationId as `0x${string}`)
       const removeValidatorMessage = packL1ValidatorRegistration(
         validationIDBytes,
@@ -349,7 +344,6 @@ const RemoveExpiredValidatorRegistration: React.FC = () => {
       }, signaturePromise);
       const signature = await signaturePromise;
       const signedMessage = signature.signedMessage
-      console.log("signedMessage", signedMessage)
       const signedPChainWarpMsgBytes = hexToBytes(`0x${signedMessage}`)
       const accessList = packWarpIntoAccessList(signedPChainWarpMsgBytes)
 

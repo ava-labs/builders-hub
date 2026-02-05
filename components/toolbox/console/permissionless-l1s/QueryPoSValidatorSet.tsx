@@ -421,9 +421,6 @@ export default function QueryPoSValidatorSet() {
             endingNonce: bigint;
           }
 
-          // Skip completed/removed delegations
-          if (info.status === 4 || info.weight === 0n) continue
-
           const delegation: DelegationInfo = {
             delegationID,
             validationID,
@@ -527,11 +524,12 @@ export default function QueryPoSValidatorSet() {
       )
       setFilteredValidators(filtered)
     } else {
+      // Show all delegations (active and completed)
       if (!term.trim()) {
         setFilteredDelegations(delegations)
         return
       }
-      const filtered = delegations.filter(delegation =>
+      const filtered = delegations.filter((delegation: DelegationInfo) =>
         delegation.delegationID.toLowerCase().includes(term) ||
         delegation.validationID.toLowerCase().includes(term) ||
         delegation.nodeId?.toLowerCase().includes(term)
@@ -546,6 +544,7 @@ export default function QueryPoSValidatorSet() {
   }, [enrichedValidators])
 
   useEffect(() => {
+    // Show all delegations (active and completed)
     setFilteredDelegations(delegations)
   }, [delegations])
 
@@ -1004,7 +1003,7 @@ export default function QueryPoSValidatorSet() {
                 <div className="text-center py-8 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg">
                   <Coins className="h-6 w-6 text-zinc-400 mx-auto mb-2" />
                   <p className="text-zinc-600 dark:text-zinc-400 text-sm font-medium mb-1">No delegations found</p>
-                  <p className="text-zinc-500 dark:text-zinc-500 text-xs">You don&apos;t have any active delegations on this L1</p>
+                  <p className="text-zinc-500 dark:text-zinc-500 text-xs">You don&apos;t have any delegations on this L1</p>
                 </div>
               )}
             </>

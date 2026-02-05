@@ -198,9 +198,8 @@ const CompletePChainRegistration: React.FC<CompletePChainRegistrationProps> = ({
                     }) as any;
                     
                     validationIdQueryAddress = settings.manager;
-                    console.log('[Registration] Querying ValidatorManager for validation ID:', validationIdQueryAddress);
                 } catch (err) {
-                    console.warn("Failed to get ValidatorManager from settings, using manager address:", err);
+                    // Failed to get ValidatorManager from settings, use manager address as fallback
                 }
             }
 

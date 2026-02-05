@@ -90,7 +90,6 @@ export function useValidatorManagerDetails({ subnetId }: UseValidatorManagerDeta
 
             const cacheKey = `${avalancheNetworkID}-${subnetId}`;
             if (subnetCache.current[cacheKey]) {
-                console.log(`Using cached Validator Manager details for subnet: ${subnetId}`);
                 const cached = subnetCache.current[cacheKey];
                 setValidatorManagerAddress(cached.validatorManagerAddress);
                 setBlockchainId(cached.blockchainId);
@@ -101,7 +100,6 @@ export function useValidatorManagerDetails({ subnetId }: UseValidatorManagerDeta
 
             try {
                 const network = avalancheNetworkID === networkIDs.MainnetID ? "mainnet" : "testnet";
-                console.log(`Fetching Validator Manager details for subnet: ${subnetId} on network: ${network}`);
 
                 const subnetInfo = await getSubnetInfoForNetwork(network, subnetId);
 

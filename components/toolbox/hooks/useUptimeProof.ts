@@ -3,6 +3,7 @@ import { bytesToHex, hexToBytes } from 'viem';
 import { packValidationUptimeMessage } from '@/components/toolbox/coreViem/utils/convertWarp';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
+import { cb58ToHex, hexToCB58 } from '@/components/toolbox/console/utilities/format-converter/FormatConverter';
 
 interface UptimeProofResult {
     uptimeSeconds: bigint;
@@ -27,15 +28,11 @@ export function useUptimeProof() {
             const validatorsRpcUrl = rpcUrl.replace('/rpc', '/validators');
             const response = await fetch(validatorsRpcUrl, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     jsonrpc: "2.0",
                     method: "validators.getCurrentValidators",
-                    params: {
-                        nodeIDs: []
-                    },
+                    params: { nodeIDs: [] },
                     id: 1
                 }),
             });
@@ -49,15 +46,47 @@ export function useUptimeProof() {
                 throw new Error('No validators found in response');
             }
 
-            const validator = data.result.validators.find(
-                (v: any) => v.validationID === validationID
-            );
+            let hexValidationID = validationID;
+            let cb58ValidationID = '';
+            
+            if (validationID.startsWith('0x')) {
+                hexValidationID = validationID.toLowerCase();
+                try {
+                    cb58ValidationID = hexToCB58(validationID.slice(2));
+                } catch {
+                    // If conversion fails, just use hex
+                }
+            } else {
+                cb58ValidationID = validationID;
+                try {
+                    hexValidationID = '0x' + cb58ToHex(validationID).toLowerCase();
+                } catch {
+                    // If conversion fails, just use CB58
+                }
+            }
+
+            const validator = data.result.validators.find((v: any) => {
+                const responseId = v.validationID || '';
+                if (responseId === validationID) return true;
+                if (responseId.toLowerCase() === hexValidationID) return true;
+                if (responseId === cb58ValidationID) return true;
+                
+                if (!responseId.startsWith('0x') && hexValidationID) {
+                    try {
+                        const responseHex = '0x' + cb58ToHex(responseId).toLowerCase();
+                        if (responseHex === hexValidationID) return true;
+                    } catch {
+                        // Conversion failed, skip
+                    }
+                }
+                
+                return false;
+            });
 
             if (!validator) {
                 throw new Error(`Validator with validationID ${validationID} not found`);
             }
 
-            // Return uptimeSeconds as bigint
             return BigInt(validator.uptimeSeconds || 0);
         } catch (err) {
             const message = err instanceof Error ? err.message : String(err);
@@ -74,16 +103,11 @@ export function useUptimeProof() {
         signingSubnetId: string
     ): Uint8Array {
         try {
-            const warpMessage = packValidationUptimeMessage(
-                {
-                    validationID,
-                    uptime: uptimeSeconds,
-                },
+            return packValidationUptimeMessage(
+                { validationID, uptime: uptimeSeconds },
                 avalancheNetworkID,
                 signingSubnetId
             );
-
-            return warpMessage;
         } catch (err) {
             const message = err instanceof Error ? err.message : String(err);
             throw new Error(`Failed to create uptime proof warp message: ${message}`);
@@ -91,50 +115,8 @@ export function useUptimeProof() {
     }
 
     /**
-     * Sign uptime proof with retry logic
-     * Tries different quorum percentages: 67%, then increases to 70%, 75%, 80%, etc.
-     * If all high percentages fail, tries lower: 60%, 55%, 50%
-     */
-    async function signUptimeProofWithRetry(
-        unsignedWarpMessage: string,
-        signingSubnetId: string,
-        maxRetries: number = 10
-    ): Promise<string> {
-        // Try standard quorum first (67%)
-        const quorumSequence = [67, 70, 75, 80, 85, 90, 60, 55, 50, 45];
-
-        let lastError: Error | null = null;
-
-        for (let i = 0; i < Math.min(maxRetries, quorumSequence.length); i++) {
-            const quorumPercentage = quorumSequence[i];
-
-            try {
-                console.log(`[UptimeProof] Attempting signature aggregation with ${quorumPercentage}% quorum...`);
-
-                const { signedMessage } = await aggregateSignature({
-                    message: unsignedWarpMessage,
-                    signingSubnetId,
-                    quorumPercentage,
-                });
-
-                console.log(`[UptimeProof] Successfully signed with ${quorumPercentage}% quorum`);
-                return signedMessage;
-            } catch (err) {
-                lastError = err instanceof Error ? err : new Error(String(err));
-                console.warn(`[UptimeProof] Failed with ${quorumPercentage}% quorum:`, lastError.message);
-
-                // Continue to next quorum percentage
-                continue;
-            }
-        }
-
-        throw new Error(
-            `Failed to sign uptime proof after ${maxRetries} attempts. Last error: ${lastError?.message || 'Unknown error'}`
-        );
-    }
-
-    /**
      * Complete uptime proof flow: fetch uptime, create message, and sign
+     * Tries progressively lower uptime percentages if aggregation fails
      */
     async function createAndSignUptimeProof(
         validationID: string,
@@ -145,32 +127,66 @@ export function useUptimeProof() {
         setError(null);
 
         try {
-            // Step 1: Get uptime from RPC
-            const uptimeSeconds = await getValidatorUptime(validationID, rpcUrl);
-            console.log(`[UptimeProof] Retrieved uptime: ${uptimeSeconds} seconds`);
-
-            // Step 2: Create unsigned warp message
+            const reportedUptime = await getValidatorUptime(validationID, rpcUrl);
             const validationIDBytes = hexToBytes(validationID as `0x${string}`);
-            const unsignedMessage = createUptimeProofWarpMessage(
-                validationIDBytes,
-                uptimeSeconds,
-                signingSubnetId
-            );
-            const unsignedWarpMessage = bytesToHex(unsignedMessage);
-            console.log(`[UptimeProof] Created unsigned warp message`);
+            
+            // Try with progressively lower uptime percentages
+            const reductionPercentages = [100, 90, 80, 70, 60, 50, 40, 30, 20, 10];
+            let allServerErrors = true;
+            
+            for (const percentage of reductionPercentages) {
+                const adjustedUptime = (reportedUptime * BigInt(percentage)) / 100n;
 
-            // Step 3: Sign with retry logic
-            const signedWarpMessage = await signUptimeProofWithRetry(
-                unsignedWarpMessage,
-                signingSubnetId
-            );
-            console.log(`[UptimeProof] Successfully signed warp message`);
+                try {
+                    const unsignedMessage = createUptimeProofWarpMessage(
+                        validationIDBytes,
+                        adjustedUptime,
+                        signingSubnetId
+                    );
+                    const unsignedWarpMessage = bytesToHex(unsignedMessage);
 
-            return {
-                uptimeSeconds,
-                signedWarpMessage,
-                unsignedWarpMessage,
-            };
+                    // Use timeout to fail faster
+                    const timeoutPromise = new Promise<never>((_, reject) => {
+                        setTimeout(() => reject(new Error('Signature aggregation timeout')), 10000);
+                    });
+
+                    const signaturePromise = aggregateSignature({
+                        message: unsignedWarpMessage,
+                        signingSubnetId,
+                        quorumPercentage: 67,
+                    });
+
+                    const result = await Promise.race([signaturePromise, timeoutPromise]);
+                    
+                    return {
+                        uptimeSeconds: adjustedUptime,
+                        signedWarpMessage: result.signedMessage,
+                        unsignedWarpMessage,
+                    };
+                } catch (err) {
+                    const errorMessage = err instanceof Error ? err.message : String(err);
+                    const isServerError = errorMessage.includes('500') || 
+                        errorMessage.includes('InternalServerError') ||
+                        errorMessage.includes('Failed to process') ||
+                        errorMessage.includes('timeout');
+                    
+                    if (!isServerError) {
+                        allServerErrors = false;
+                    }
+                    continue;
+                }
+            }
+
+            if (allServerErrors) {
+                throw new Error(
+                    'Signature aggregation service is currently unavailable. ' +
+                    'Please try again later or proceed without uptime proof.'
+                );
+            } else {
+                throw new Error(
+                    'Failed to sign uptime proof. No uptime value was accepted by validators.'
+                );
+            }
         } catch (err) {
             const message = err instanceof Error ? err.message : String(err);
             setError(message);
@@ -183,7 +199,6 @@ export function useUptimeProof() {
     return {
         getValidatorUptime,
         createUptimeProofWarpMessage,
-        signUptimeProofWithRetry,
         createAndSignUptimeProof,
         isLoading,
         error,

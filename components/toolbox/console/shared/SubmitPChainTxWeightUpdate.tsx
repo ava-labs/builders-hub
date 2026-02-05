@@ -6,6 +6,7 @@ import { Success } from '@/components/toolbox/components/Success';
 import { Alert } from '@/components/toolbox/components/Alert';
 import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
+import { decodeAbiParameters } from 'viem';
 
 export interface WeightUpdateEventData {
     validationID: `0x${string}`;
@@ -95,8 +96,6 @@ const SubmitPChainTxWeightUpdate: React.FC<SubmitPChainTxWeightUpdateProps> = ({
                     throw new Error("Failed to get warp message from transaction receipt.");
                 }
 
-                console.log("[WeightUpdate] Transaction receipt logs:", receipt.logs.length);
-
                 // Look for warp message from the warp precompile
                 let extractedWarpMessage: string | null = null;
                 const warpMessageTopic = "0x56600c567728a800c0aa927500f831cb451df66a7af570eb4df4dfbf4674887d";
@@ -108,14 +107,36 @@ const SubmitPChainTxWeightUpdate: React.FC<SubmitPChainTxWeightUpdateProps> = ({
                 });
 
                 if (warpEventLog && warpEventLog.data) {
-                    console.log("[WeightUpdate] Found warp message from precompile event");
-                    extractedWarpMessage = warpEventLog.data;
+                    // The warp precompile event data is ABI-encoded as bytes
+                    try {
+                        const [decodedMessage] = decodeAbiParameters(
+                            [{ type: 'bytes', name: 'message' }],
+                            warpEventLog.data as `0x${string}`
+                        );
+                        extractedWarpMessage = decodedMessage as string;
+                    } catch {
+                        extractedWarpMessage = warpEventLog.data;
+                    }
                 } else if (receipt.logs.length > 1 && receipt.logs[1].data) {
-                    console.log("[WeightUpdate] Using receipt.logs[1].data");
-                    extractedWarpMessage = receipt.logs[1].data;
+                    try {
+                        const [decodedMessage] = decodeAbiParameters(
+                            [{ type: 'bytes', name: 'message' }],
+                            receipt.logs[1].data as `0x${string}`
+                        );
+                        extractedWarpMessage = decodedMessage as string;
+                    } catch {
+                        extractedWarpMessage = receipt.logs[1].data;
+                    }
                 } else if (receipt.logs[0].data) {
-                    console.log("[WeightUpdate] Using receipt.logs[0].data as fallback");
-                    extractedWarpMessage = receipt.logs[0].data;
+                    try {
+                        const [decodedMessage] = decodeAbiParameters(
+                            [{ type: 'bytes', name: 'message' }],
+                            receipt.logs[0].data as `0x${string}`
+                        );
+                        extractedWarpMessage = decodedMessage as string;
+                    } catch {
+                        extractedWarpMessage = receipt.logs[0].data;
+                    }
                 }
 
                 if (!extractedWarpMessage) {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { Button } from '@/components/toolbox/components/Button';
@@ -7,7 +7,11 @@ import { Success } from '@/components/toolbox/components/Success';
 import { Alert } from '@/components/toolbox/components/Alert';
 import NativeTokenStakingManager from '@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json';
 import ERC20TokenStakingManager from '@/contracts/icm-contracts/compiled/ERC20TokenStakingManager.json';
+import { hexToBytes, bytesToHex } from 'viem';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
+import { packWarpIntoAccessList } from '@/components/toolbox/console/permissioned-l1s/ValidatorManager/packWarp';
+import { packL1ValidatorWeightMessage } from '@/components/toolbox/coreViem/utils/convertWarp';
+import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
 
 type TokenType = 'native' | 'erc20';
 
@@ -15,6 +19,9 @@ interface CompleteValidatorRemovalProps {
     validationID?: string;
     stakingManagerAddress: string;
     tokenType: TokenType;
+    subnetIdL1: string;
+    signingSubnetId?: string;
+    pChainTxId?: string;
     onSuccess: (data: { txHash: string; message: string }) => void;
     onError: (message: string) => void;
 }
@@ -23,26 +30,49 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
     validationID,
     stakingManagerAddress,
     tokenType,
+    subnetIdL1,
+    signingSubnetId,
+    pChainTxId: initialPChainTxId,
     onSuccess,
     onError,
 }) => {
-    const { coreWalletClient, publicClient, walletEVMAddress } = useWalletStore();
+    const { coreWalletClient, publicClient, walletEVMAddress, avalancheNetworkID } = useWalletStore();
+    const { aggregateSignature } = useAvalancheSDKChainkit();
     const viemChain = useViemChainStore();
     const { notify } = useConsoleNotifications();
 
+    const [pChainTxId, setPChainTxId] = useState<string>(initialPChainTxId || '');
     const [messageIndex, setMessageIndex] = useState<string>('0');
     const [isProcessing, setIsProcessing] = useState(false);
     const [error, setErrorState] = useState<string | null>(null);
     const [txHash, setTxHash] = useState<string | null>(null);
-    const [rewardsDistributed, setRewardsDistributed] = useState(false);
+    const [pChainSignature, setPChainSignature] = useState<string | null>(null);
+    const [extractedData, setExtractedData] = useState<{
+        validationID: string;
+        nonce: bigint;
+        weight: bigint;
+    } | null>(null);
+    const [rewardInfo, setRewardInfo] = useState<{
+        stakeReturned: string;
+        rewardsDistributed: boolean;
+    } | null>(null);
 
     const contractAbi = tokenType === 'native' ? NativeTokenStakingManager.abi : ERC20TokenStakingManager.abi;
     const tokenLabel = tokenType === 'native' ? 'Native Token' : 'ERC20 Token';
 
+    // Update pChainTxId when prop changes
+    useEffect(() => {
+        if (initialPChainTxId && initialPChainTxId !== pChainTxId) {
+            setPChainTxId(initialPChainTxId);
+        }
+    }, [initialPChainTxId]);
+
     const handleCompleteRemoval = async () => {
         setErrorState(null);
         setTxHash(null);
-        setRewardsDistributed(false);
+        setRewardInfo(null);
+        setPChainSignature(null);
+        setExtractedData(null);
 
         if (!coreWalletClient || !publicClient || !viemChain) {
             setErrorState("Wallet or chain configuration is not properly initialized.");
@@ -56,6 +86,18 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
             return;
         }
 
+        if (!pChainTxId.trim()) {
+            setErrorState("P-Chain transaction ID is required.");
+            onError("P-Chain transaction ID is required.");
+            return;
+        }
+
+        if (!subnetIdL1) {
+            setErrorState("L1 Subnet ID is required.");
+            onError("L1 Subnet ID is required.");
+            return;
+        }
+
         const msgIndex = parseInt(messageIndex);
         if (isNaN(msgIndex) || msgIndex < 0) {
             setErrorState("Message index must be a non-negative number.");
@@ -65,12 +107,74 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
 
         setIsProcessing(true);
         try {
-            // Call completeValidatorRemoval with messageIndex
+            // Step 1: Extract L1ValidatorWeightMessage from P-Chain transaction
+            const weightMessageData = await coreWalletClient.extractL1ValidatorWeightMessage({
+                txId: pChainTxId
+            });
+
+            setExtractedData({
+                validationID: weightMessageData.validationID,
+                nonce: weightMessageData.nonce,
+                weight: weightMessageData.weight
+            });
+
+            // Step 2: Create L1ValidatorWeightMessage for completion
+            const validationIDBytes = hexToBytes(weightMessageData.validationID as `0x${string}`);
+            const l1ValidatorWeightMessage = packL1ValidatorWeightMessage(
+                {
+                    validationID: validationIDBytes,
+                    nonce: weightMessageData.nonce,
+                    weight: weightMessageData.weight,
+                },
+                avalancheNetworkID,
+                "11111111111111111111111111111111LpoYY"
+            );
+
+            // Step 3: Aggregate P-Chain signature with retry
+            const effectiveSigningSubnetId = signingSubnetId || subnetIdL1;
+            let signature;
+            let lastError;
+            
+            // Try different quorum percentages if needed
+            const quorumPercentages = [67, 80, 100];
+            for (const quorum of quorumPercentages) {
+                try {
+                    const aggregateSignaturePromise = aggregateSignature({
+                        message: bytesToHex(l1ValidatorWeightMessage),
+                        signingSubnetId: effectiveSigningSubnetId,
+                        quorumPercentage: quorum,
+                    });
+                    
+                    notify({
+                        type: 'local',
+                        name: `Aggregate P-Chain Signatures (${quorum}% quorum)`
+                    }, aggregateSignaturePromise);
+                    
+                    signature = await aggregateSignaturePromise;
+                    break; // Success, exit loop
+                } catch (err) {
+                    lastError = err;
+                    // Continue to next quorum percentage
+                }
+            }
+            
+            if (!signature) {
+                throw new Error(`Failed to aggregate signatures after trying multiple quorum percentages. Signing subnet: ${effectiveSigningSubnetId}. Last error: ${lastError instanceof Error ? lastError.message : String(lastError)}`);
+            }
+            
+            setPChainSignature(signature.signedMessage);
+
+            // Step 4: Package warp message into access list
+            const signedPChainWarpMsgBytes = hexToBytes(`0x${signature.signedMessage}`);
+            const accessList = packWarpIntoAccessList(signedPChainWarpMsgBytes);
+
+            // Step 5: Call completeValidatorRemoval with proper warp message
             const writePromise = coreWalletClient.writeContract({
                 address: stakingManagerAddress as `0x${string}`,
                 abi: contractAbi,
                 functionName: "completeValidatorRemoval",
                 args: [msgIndex],
+                accessList,
                 account: walletEVMAddress as `0x${string}`,
                 chain: viemChain,
             });
@@ -89,17 +193,18 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
                 throw new Error(`Transaction failed with status: ${receipt.status}`);
             }
 
-            // Check for ValidatorRemovalCompleted event to confirm rewards were distributed
+            // Check for ValidatorRemovalCompleted event
             const hasRemovalEvent = receipt.logs.some(log =>
                 log.topics[0]?.toLowerCase().includes('removal') ||
                 log.topics[0]?.toLowerCase().includes('complete')
             );
 
-            if (hasRemovalEvent) {
-                setRewardsDistributed(true);
-            }
+            setRewardInfo({
+                stakeReturned: 'Stake returned successfully',
+                rewardsDistributed: hasRemovalEvent
+            });
 
-            const successMsg = rewardsDistributed
+            const successMsg = hasRemovalEvent
                 ? 'Validator removal completed and rewards distributed successfully.'
                 : 'Validator removal completed successfully.';
 
@@ -119,6 +224,8 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
                 message = 'Validator cannot be removed yet. Ensure you have initiated removal first.';
             } else if (message.includes('InvalidValidatorStatus')) {
                 message = 'Validator is not in the correct status for completion. Check if removal was initiated.';
+            } else if (message.includes('InvalidNonce')) {
+                message = 'Invalid nonce. The P-Chain transaction may be outdated or incorrect.';
             }
 
             setErrorState(`Failed to complete validator removal: ${message}`);
@@ -147,6 +254,15 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
                     )}
 
                     <Input
+                        label="P-Chain Transaction ID"
+                        value={pChainTxId}
+                        onChange={setPChainTxId}
+                        placeholder="Enter the P-Chain transaction ID from the previous step"
+                        disabled={isProcessing}
+                        helperText="The transaction ID from the P-Chain weight update step"
+                    />
+
+                    <Input
                         label="Message Index"
                         value={messageIndex}
                         onChange={setMessageIndex}
@@ -154,10 +270,29 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
                         min="0"
                         placeholder="0"
                         disabled={isProcessing}
-                        helperText="Index of the warp message (should match the one used in initiate removal, usually 0)"
+                        helperText="Index of the warp message (usually 0)"
                     />
+
+                    {subnetIdL1 && (
+                        <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-2">
+                            <p><strong>Signing Subnet ID:</strong> {signingSubnetId || subnetIdL1}</p>
+                        </div>
+                    )}
                 </div>
             </div>
+
+            {extractedData && (
+                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+                    <h4 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">
+                        Extracted Weight Message Data
+                    </h4>
+                    <div className="text-xs space-y-1 text-blue-700 dark:text-blue-300">
+                        <p><strong>Validation ID:</strong> <code>{extractedData.validationID}</code></p>
+                        <p><strong>Nonce:</strong> {extractedData.nonce.toString()}</p>
+                        <p><strong>Weight:</strong> {extractedData.weight.toString()}</p>
+                    </div>
+                </div>
+            )}
 
             <Alert variant="info">
                 <p className="text-sm">
@@ -173,11 +308,19 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
 
             <Button
                 onClick={handleCompleteRemoval}
-                disabled={isProcessing || !!txHash}
+                disabled={isProcessing || !!txHash || !pChainTxId.trim()}
                 loading={isProcessing}
             >
                 {isProcessing ? 'Processing...' : 'Complete Validator Removal & Distribute Rewards'}
             </Button>
+
+            {pChainSignature && !txHash && (
+                <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-md">
+                    <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                        P-Chain signature aggregated. Waiting for transaction confirmation...
+                    </p>
+                </div>
+            )}
 
             {txHash && (
                 <>
@@ -185,7 +328,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
                         label="Transaction Hash"
                         value={txHash}
                     />
-                    {rewardsDistributed && (
+                    {rewardInfo?.rewardsDistributed && (
                         <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-md">
                             <p className="text-sm text-green-800 dark:text-green-200">
                                 <strong>Success!</strong> Validator has been removed and rewards have been distributed.
