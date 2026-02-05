@@ -107,6 +107,7 @@ const KEYBOARD_SHORTCUTS = [
   { keys: ["G"], description: "Toggle grid" },
   { keys: ["D"], description: "Toggle labels" },
   { keys: ["R"], description: "Avg reference" },
+  { keys: ["T"], description: "Total line" },
   { keys: ["Del"], description: "Delete annotation" },
   { keys: ["↑↓←→"], description: "Nudge annotation" },
 ];
@@ -420,6 +421,27 @@ export function ImageExportStudio({
     return dataArray.slice(start, end + 1);
   }, [brushRange, dataArray]);
 
+  // Compute display data with cumulative totals for the Total line feature
+  const displayDataWithCumulative = useMemo(() => {
+    if (!settings.chartDisplay.showTotalLine || displayData.length === 0) return displayData;
+
+    const series = seriesInfo.length > 0 ? seriesInfo : [{ id: "value", name: "Value", color: "#e84142" }];
+    // Use the first series for cumulative calculation
+    const primarySeriesId = series[0]?.id || "value";
+
+    let cumulative = 0;
+    return displayData.map((point) => {
+      const value = point[primarySeriesId];
+      if (typeof value === "number") {
+        cumulative += value;
+      }
+      return {
+        ...point,
+        cumulative,
+      };
+    });
+  }, [displayData, settings.chartDisplay.showTotalLine, seriesInfo]);
+
   // Compute filtered collage metrics based on brush range
   const filteredCollageMetrics = useMemo(() => {
     if (!isCollageMode || !brushRange || brushReferenceData.length === 0) {
@@ -496,13 +518,19 @@ export function ImageExportStudio({
 
     if (allStats.length === 0) return null;
 
+    // Calculate cumulative total if Total line is enabled
+    const cumulativeTotal = settings.chartDisplay.showTotalLine
+      ? displayDataWithCumulative[displayDataWithCumulative.length - 1]?.cumulative as number | undefined
+      : undefined;
+
     // Return primary stats for backwards compatibility, plus all series stats
     const primary = allStats[0];
     return {
       ...primary,
       allSeries: allStats,
+      cumulativeTotal,
     };
-  }, [displayData, seriesInfo]);
+  }, [displayData, seriesInfo, settings.chartDisplay.showTotalLine, displayDataWithCumulative]);
 
   // Safe brush range for the component (uses brushReferenceData for collage mode)
   const safeBrushRange = useMemo(() => {
@@ -870,6 +898,13 @@ export function ImageExportStudio({
         return;
       }
 
+      // T: Toggle total cumulative line
+      if (!isMod && e.key.toLowerCase() === "t") {
+        e.preventDefault();
+        setChartDisplay({ showTotalLine: !settings.chartDisplay.showTotalLine });
+        return;
+      }
+
       // === Annotation Shortcuts ===
 
       // Delete/Backspace: Delete selected annotation
@@ -1086,8 +1121,8 @@ export function ImageExportStudio({
     });
   };
 
-  // Determine if we have right Y axis
-  const hasRightAxis = seriesInfo.some(s => s.yAxis === "right");
+  // Determine if we have right Y axis (includes Total line when enabled)
+  const hasRightAxis = seriesInfo.some(s => s.yAxis === "right") || settings.chartDisplay.showTotalLine;
 
   // Primary color for brush
   const primaryColor = seriesInfo[0]?.color || "#e84142";
@@ -1887,7 +1922,7 @@ export function ImageExportStudio({
                       >
                         <ResponsiveContainer width="100%" height={250}>
                           <ComposedChart
-                            data={displayData}
+                            data={displayDataWithCumulative}
                             margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
                           >
                             {settings.chartDisplay.showGridLines && (
@@ -1917,6 +1952,19 @@ export function ImageExportStudio({
                               />
                             )}
                             {renderChartContent()}
+                            {/* Total cumulative line - purple line showing running total */}
+                            {settings.chartDisplay.showTotalLine && (
+                              <Line
+                                type="monotone"
+                                dataKey="cumulative"
+                                stroke="#a855f7"
+                                strokeWidth={1.5}
+                                dot={false}
+                                yAxisId="right"
+                                name="Total"
+                                strokeOpacity={0.9}
+                              />
+                            )}
                             {/* Average reference line - rendered after chart content to be on top */}
                             {settings.chartDisplay.showAvgLine && chartStats && (
                               <ReferenceLine

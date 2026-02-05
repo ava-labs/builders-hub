@@ -4,6 +4,7 @@ import "./styles.css";
 import ReferralButton from "@/components/build-games/ReferralButton";
 import ReferralLink from "@/components/build-games/ReferralLink";
 import { ApplyButton } from "@/components/build-games/ApplyButton";
+import ApplicationStatusTracker from "@/components/build-games/ApplicationStatusTracker";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import type { Metadata } from "next";
 
@@ -1075,7 +1076,7 @@ function MainContent() {
     <div className="absolute content-stretch flex flex-col items-start left-[-0.05px] right-[0.05px] top-0" data-name="Main">
       <HeroSection />
       <HeroTilesSection />
-      <ApplyTodayCTA />
+      <ApplicationStatusTracker />
       <div className="relative shrink-0 w-full" data-name="CTA">
         <div className="flex flex-col justify-center size-full">
           <div className="content-stretch flex flex-col gap-[16px] items-start justify-center px-[186px] py-0 relative w-full">

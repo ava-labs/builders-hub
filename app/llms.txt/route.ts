@@ -49,6 +49,10 @@ export async function GET() {
 
 Avalanche is a high-performance blockchain platform for decentralized applications, new financial primitives, and interoperable blockchains. The Builder Hub helps developers create custom Layer 1 blockchains (Avalanche L1s), build cross-chain applications using Interchain Messaging (ICM), and leverage the Avalanche ecosystem.
 
+## Raw Markdown Access
+
+All documentation links below end with \`.md\` and return raw markdown content for easy AI consumption. You can append \`.md\` to any documentation, academy, blog, or integration URL on this site to get the raw markdown source.
+
 ## Full Documentation
 
 - [Full Documentation (llms-full.txt)](${baseUrl}/llms-full.txt): Complete documentation content for AI context loading
@@ -80,7 +84,7 @@ Core technical documentation for building on Avalanche:
       const topPages = docSections[section].slice(0, 5);
       for (const page of topPages) {
         const desc = page.description ? `: ${page.description}` : '';
-        content += `- [${page.title}](${baseUrl}${page.url})${desc}\n`;
+        content += `- [${page.title}](${baseUrl}${page.url}.md)${desc}\n`;
       }
       content += '\n';
       delete docSections[section];
@@ -111,7 +115,7 @@ Structured learning paths and interactive tutorials:
       const topPages = academySections[section].slice(0, 3);
       for (const page of topPages) {
         const desc = page.description ? `: ${page.description}` : '';
-        content += `- [${page.title}](${baseUrl}${page.url})${desc}\n`;
+        content += `- [${page.title}](${baseUrl}${page.url}.md)${desc}\n`;
       }
       content += '\n';
       delete academySections[section];
@@ -129,7 +133,7 @@ Third-party tools and services for the Avalanche ecosystem:
   const topIntegrations = integrationPages.slice(0, 10);
   for (const page of topIntegrations) {
     const desc = page.data.description ? `: ${page.data.description}` : '';
-    content += `- [${page.data.title}](${baseUrl}${page.url})${desc}\n`;
+    content += `- [${page.data.title}](${baseUrl}${page.url}.md)${desc}\n`;
   }
 
   content += `
@@ -143,7 +147,7 @@ Latest announcements, tutorials, and ecosystem updates:
   const recentBlogs = blogPages.slice(0, 5);
   for (const page of recentBlogs) {
     const desc = page.data.description ? `: ${page.data.description}` : '';
-    content += `- [${page.data.title}](${baseUrl}${page.url})${desc}\n`;
+    content += `- [${page.data.title}](${baseUrl}${page.url}.md)${desc}\n`;
   }
 
   content += `
@@ -168,7 +172,7 @@ Additional resources and reference documentation:
   if (docSections['api-reference']) {
     const apiPages = docSections['api-reference'].slice(0, 5);
     for (const page of apiPages) {
-      content += `- [${page.title}](${baseUrl}${page.url})\n`;
+      content += `- [${page.title}](${baseUrl}${page.url}.md)\n`;
     }
     delete docSections['api-reference'];
   }
@@ -180,7 +184,7 @@ Additional resources and reference documentation:
   if (docSections['rpcs']) {
     const rpcPages = docSections['rpcs'].slice(0, 5);
     for (const page of rpcPages) {
-      content += `- [${page.title}](${baseUrl}${page.url})\n`;
+      content += `- [${page.title}](${baseUrl}${page.url}.md)\n`;
     }
     delete docSections['rpcs'];
   }
@@ -192,7 +196,7 @@ Additional resources and reference documentation:
   if (docSections['tooling']) {
     const toolingPages = docSections['tooling'].slice(0, 5);
     for (const page of toolingPages) {
-      content += `- [${page.title}](${baseUrl}${page.url})\n`;
+      content += `- [${page.title}](${baseUrl}${page.url}.md)\n`;
     }
     delete docSections['tooling'];
   }
@@ -204,7 +208,7 @@ Additional resources and reference documentation:
   if (docSections['acps']) {
     const acpPages = docSections['acps'].slice(0, 5);
     for (const page of acpPages) {
-      content += `- [${page.title}](${baseUrl}${page.url})\n`;
+      content += `- [${page.title}](${baseUrl}${page.url}.md)\n`;
     }
   }
 

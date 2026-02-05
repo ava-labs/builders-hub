@@ -1,6 +1,6 @@
 "use client";
 
-import { Grid3X3, Tag, BarChart3, TrendingUp, Minus } from "lucide-react";
+import { Grid3X3, Tag, BarChart3, TrendingUp, Minus, Sigma } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Tooltip,
@@ -27,10 +27,11 @@ const DISPLAY_OPTIONS: {
   { key: "showSummaryStats", label: "Stats", icon: <BarChart3 className="h-3.5 w-3.5" /> },
   { key: "showTrendIndicator", label: "Trend", icon: <TrendingUp className="h-3.5 w-3.5" />, tooltip: "Show percentage change from first to last value" },
   { key: "showAvgLine", label: "Avg", icon: <Minus className="h-3.5 w-3.5" />, tooltip: "Show average line across the chart" },
+  { key: "showTotalLine", label: "Total", icon: <Sigma className="h-3.5 w-3.5" />, tooltip: "Show cumulative total line (purple)" },
 ];
 
 // Options that don't work in collage mode
-const COLLAGE_DISABLED_OPTIONS: (keyof ChartDisplaySettings)[] = ["showDataLabels", "showTrendIndicator"];
+const COLLAGE_DISABLED_OPTIONS: (keyof ChartDisplaySettings)[] = ["showDataLabels", "showTrendIndicator", "showTotalLine"];
 
 export function ChartDisplayControl({ value, onChange, isCollageMode = false }: ChartDisplayControlProps) {
   const renderButton = (option: typeof DISPLAY_OPTIONS[number], isDisabled: boolean = false) => (
