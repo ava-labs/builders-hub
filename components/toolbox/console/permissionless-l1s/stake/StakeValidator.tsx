@@ -5,7 +5,7 @@ import { Steps, Step } from "fumadocs-ui/components/steps";
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { Success } from '@/components/toolbox/components/Success';
 import { Input } from '@/components/toolbox/components/Input';
-import InitiateValidatorRegistration from '@/components/toolbox/console/permissionless-l1s/stake/InitiateValidatorRegistration';
+import InitiateValidatorRegistration from '@/components/toolbox/console/permissionless-l1s/Stake/InitiateValidatorRegistration';
 import CompletePChainRegistration from '@/components/toolbox/console/shared/CompletePChainRegistration';
 import SubmitPChainTxRegisterL1Validator from '@/components/toolbox/console/permissioned-l1s/AddValidator/SubmitPChainTxRegisterL1Validator';
 import { useToolboxStore } from '@/components/toolbox/stores/toolboxStore';

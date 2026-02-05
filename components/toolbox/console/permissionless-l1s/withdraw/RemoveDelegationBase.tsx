@@ -3,8 +3,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Steps, Step } from "fumadocs-ui/components/steps";
 import { Input, type Suggestion } from '@/components/toolbox/components/Input';
-import InitiateDelegatorRemoval from '@/components/toolbox/console/permissionless-l1s/withdraw/InitiateDelegatorRemoval';
-import CompleteDelegatorRemoval from '@/components/toolbox/console/permissionless-l1s/withdraw/CompleteDelegatorRemoval';
+import InitiateDelegatorRemoval from '@/components/toolbox/console/permissionless-l1s/Withdraw/InitiateDelegatorRemoval';
+import CompleteDelegatorRemoval from '@/components/toolbox/console/permissionless-l1s/Withdraw/CompleteDelegatorRemoval';
 import SubmitPChainTxWeightUpdate from '@/components/toolbox/console/shared/SubmitPChainTxWeightUpdate';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { BaseConsoleToolProps } from '../../../components/WithConsoleToolMetadata';

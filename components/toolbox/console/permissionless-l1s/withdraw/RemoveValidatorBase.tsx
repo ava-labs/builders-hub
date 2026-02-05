@@ -3,10 +3,10 @@
 import React, { useState } from 'react';
 import { Steps, Step } from "fumadocs-ui/components/steps";
 import SelectValidationID, { ValidationSelection } from '@/components/toolbox/components/SelectValidationID';
-import InitiateValidatorRemoval from '@/components/toolbox/console/permissionless-l1s/withdraw/InitiateValidatorRemoval';
+import InitiateValidatorRemoval from '@/components/toolbox/console/permissionless-l1s/Withdraw/InitiateValidatorRemoval';
 import SubmitPChainTxWeightUpdate from '@/components/toolbox/console/shared/SubmitPChainTxWeightUpdate';
-import CompleteValidatorRemoval from '@/components/toolbox/console/permissionless-l1s/withdraw/CompleteValidatorRemoval';
-import ClaimDelegationFees from '@/components/toolbox/console/permissionless-l1s/withdraw/ClaimDelegationFees';
+import CompleteValidatorRemoval from '@/components/toolbox/console/permissionless-l1s/Withdraw/CompleteValidatorRemoval';
+import ClaimDelegationFees from '@/components/toolbox/console/permissionless-l1s/Withdraw/ClaimDelegationFees';
 import { BaseConsoleToolProps } from '../../../components/WithConsoleToolMetadata';
 import { Alert } from '@/components/toolbox/components/Alert';
 import { L1SubnetStep, StepFlowFooter, useL1SubnetState } from '../shared';

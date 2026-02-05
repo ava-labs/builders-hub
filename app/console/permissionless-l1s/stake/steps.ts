@@ -1,6 +1,6 @@
 import { type StepDefinition } from "@/components/console/step-flow";
-import StakeNative from "@/components/toolbox/console/permissionless-l1s/stake/StakeNative";
-import StakeERC20 from "@/components/toolbox/console/permissionless-l1s/stake/StakeERC20";
+import StakeNative from "@/components/toolbox/console/permissionless-l1s/Stake/StakeNative";
+import StakeERC20 from "@/components/toolbox/console/permissionless-l1s/Stake/StakeERC20";
 
 export const steps: StepDefinition[] = [
     {

@@ -1,12 +1,12 @@
 import { type StepDefinition } from "@/components/console/step-flow";
 import ReadContract from "@/components/toolbox/console/permissioned-l1s/validator-manager-setup/ReadContract";
-import DeployNativeStakingManager from "@/components/toolbox/console/permissionless-l1s/setup/DeployNativeStakingManager";
-import DeployERC20StakingManager from "@/components/toolbox/console/permissionless-l1s/setup/DeployERC20StakingManager";
-import InitializeStakingManager from "@/components/toolbox/console/permissionless-l1s/setup/InitializeStakingManager";
-import DeployExampleRewardCalculator from "@/components/toolbox/console/permissionless-l1s/setup/DeployExampleRewardCalculator";
+import DeployNativeStakingManager from "@/components/toolbox/console/permissionless-l1s/staking-manager-setup/DeployNativeStakingManager";
+import DeployERC20StakingManager from "@/components/toolbox/console/permissionless-l1s/staking-manager-setup/DeployERC20StakingManager";
+import InitializeStakingManager from "@/components/toolbox/console/permissionless-l1s/staking-manager-setup/InitializeStakingManager";
+import DeployExampleRewardCalculator from "@/components/toolbox/console/permissionless-l1s/staking-manager-setup/DeployExampleRewardCalculator";
 import DeployExampleERC20 from "@/components/toolbox/console/ictt/setup/DeployExampleERC20";
-import TransferOwnershipToStakingManager from "@/components/toolbox/console/permissionless-l1s/setup/TransferOwnershipToStakingManager";
-import EnableStakingManagerMinting from "@/components/toolbox/console/permissionless-l1s/setup/EnableStakingManagerMinting";
+import TransferOwnershipToStakingManager from "@/components/toolbox/console/permissionless-l1s/staking-manager-setup/TransferOwnershipToStakingManager";
+import EnableStakingManagerMinting from "@/components/toolbox/console/permissionless-l1s/staking-manager-setup/EnableStakingManagerMinting";
 
 export const steps: StepDefinition[] = [
     {
