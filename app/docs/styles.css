@@ -1,26 +1,25 @@
 @import 'fumadocs-openapi/css/preset.css';
 
-/* Adjust APIPage layout to match content alignment */
-body[data-layout="docs"] .fd-api-page,
-body[data-layout="docs"] [data-api-page],
-body[data-layout="docs"] article[data-full="true"],
-body[data-layout="docs"] .nd-layout-notebook article[data-full="true"] {
-  padding-left: 0 !important;
-  padding-right: 0 !important;
-  margin-left: 0 !important;
-  margin-right: 0 !important;
-  max-width: none !important;
-}
+/* Adjust APIPage layout - remove extra padding but keep centering - DESKTOP ONLY */
+@media (min-width: 1024px) {
+  body[data-layout="docs"] [class*="-api-playground"],
+  body[data-layout="docs"] article[data-full="true"],
+  body[data-layout="docs"] .nd-layout-notebook article[data-full="true"] {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    /* Removed: margin-left: 0, margin-right: 0, max-width: none */
+    /* Let the centering rules from #nd-page apply */
+  }
 
-/* Remove extra padding from API page content containers */
-body[data-layout="docs"] .fd-api-page > *,
-body[data-layout="docs"] [data-api-page] > * {
-  padding-left: 0 !important;
-}
+  /* Remove extra padding from API page content containers */
+  body[data-layout="docs"] [class*="-api-playground"] > * {
+    padding-left: 0 !important;
+  }
 
-/* Override inline padding-start on API pages */
-body[data-layout="docs"] main.fd-notebook-layout {
-  padding-inline-start: 0 !important;
+  /* Override inline padding-start on API pages */
+  body[data-layout="docs"] #nd-notebook-layout {
+    padding-inline-start: 0 !important;
+  }
 }
 
 /* Force ONLY main navbar to extend to left edge - DOCS PAGE ONLY */
@@ -112,7 +111,7 @@ header + * {
 /* Mobile navigation: Separate main navbar and docs sidebar menus */
 @media (max-width: 1023px) {
   /* When we force mobile at <=1023px, kill desktop sidebar spacing */
-  body[data-layout="docs"] #nd-docs-layout {
+  body[data-layout="docs"] #nd-notebook-layout {
     --fd-sidebar-width: 0px !important;
     margin-left: 0 !important;
     margin-right: 0 !important;
@@ -282,29 +281,43 @@ header + * {
   }
   
   /* Center content while maintaining sidebar and TOC spacing */
-  body[data-layout="docs"] main#nd-docs-layout.fd-notebook-layout,
-  body[data-layout="docs"] main#nd-docs-layout.fd-default-layout {
+  /* padding-left: just the sidebar offset - grid handles sidebar width via its column */
+  /* padding-right is minimal buffer for LG screens without TOC */
+  body[data-layout="docs"] #nd-notebook-layout {
     margin-left: 0 !important;
     margin-right: 0 !important;
-    /* Responsive padding that accounts for sidebar position (3rem) + width + spacing (0.5rem) */
-    padding-left: calc(3rem + var(--fd-sidebar-width) + 0.5rem) !important;
+    padding-left: 3rem !important;
     padding-right: 2rem !important;
   }
-  
+
   /* Center the page content within available space */
-  body[data-layout="docs"] #nd-page {
+  body[data-layout="docs"] #nd-page,
+  body[data-layout="docs"] article#nd-page {
     margin-left: auto !important;
     margin-right: auto !important;
     max-width: var(--fd-page-width) !important;
   }
 }
 
-/* XL screens: Account for TOC sidebar width (268px) when visible */
+/* XL screens: Account for TOC sidebar width (286px) when visible */
 @media (min-width: 1280px) {
-  body[data-layout="docs"] main#nd-docs-layout.fd-notebook-layout,
-  body[data-layout="docs"] main#nd-docs-layout.fd-default-layout {
-    /* Add right padding for TOC sidebar (268px) + some breathing room */
-    padding-right: calc(var(--fd-toc-width, 268px) + 2rem) !important;
+  /* Override the 1024px+ centering rules to left-align content on XL screens */
+  /* This prevents content from centering and overlapping the TOC sidebar */
+  body[data-layout="docs"] #nd-page,
+  body[data-layout="docs"] div#nd-page,
+  body[data-layout="docs"] article#nd-page,
+  [data-route-layout="docs"] #nd-page {
+    margin-left: 0 !important;      /* Reset auto margin - LEFT align */
+    margin-right: 0 !important;     /* Reset auto margin - prevent centering */
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Children should respect parent width */
+  body[data-layout="docs"] #nd-page > * {
+    max-width: 100% !important;
   }
 }
 
@@ -379,20 +392,41 @@ body[data-layout="docs"] #nd-sidebar nav {
   padding-top: 0 !important;
 }
 
-/* Tighten main content spacing */
-.nd-layout-notebook article {
-  padding-top: 0 !important;
-  padding-left: 0 !important;
-  padding-right: 0 !important;
+/* Tighten main content spacing - desktop only */
+@media (min-width: 1024px) {
+  .nd-layout-notebook article {
+    padding-top: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
 }
 
-/* Constrain article width but allow overflow for step numbers */
-/* Individual elements (tables, pre) handle their own horizontal scrolling */
-body[data-layout="docs"] article,
-body[data-layout="docs"] #nd-page {
-  max-width: 100% !important;
-  overflow-x: visible !important;  /* Allow step numbers to extend left */
+/* XL breakpoint: Add right padding buffer when TOC is visible */
+@media (min-width: 1280px) {
+  body[data-layout="docs"] .nd-layout-notebook article,
+  body[data-layout="docs"] #nd-page article {
+    padding-right: 2rem !important;
+    box-sizing: border-box !important;
+  }
 }
+
+/* Mobile: Keep top padding removal only */
+@media (max-width: 1023px) {
+  .nd-layout-notebook article {
+    padding-top: 0 !important;
+  }
+}
+
+/* Mobile: Constrain article width but allow overflow for step numbers */
+/* Individual elements (tables, pre) handle their own horizontal scrolling */
+@media (max-width: 1023px) {
+  body[data-layout="docs"] article,
+  body[data-layout="docs"] #nd-page {
+    max-width: 100% !important;
+    overflow-x: visible !important;  /* Allow step numbers to extend left */
+  }
+}
+
 
 /* Constrain wide elements within article to prevent TOC overlap */
 /* Tables, pre, and other wide content get overflow-x: auto */
@@ -416,6 +450,43 @@ body[data-layout="docs"] article pre,
 body[data-layout="docs"] .prose pre {
   overflow-x: auto !important;
   max-width: 100% !important;
+}
+
+/* Desktop: Constrain images to prevent overflow into TOC */
+@media (min-width: 1024px) {
+  body[data-layout="docs"] article img,
+  body[data-layout="docs"] #nd-page article img,
+  body[data-layout="docs"] .prose img {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+}
+
+/* XL breakpoint: Ensure all content respects container bounds */
+@media (min-width: 1280px) {
+  body[data-layout="docs"] #nd-page article,
+  body[data-layout="docs"] #nd-page .prose {
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Images must respect article width */
+  body[data-layout="docs"] #nd-page article img,
+  body[data-layout="docs"] #nd-page .prose img {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+
+  /* Math blocks (KaTeX/MathJax) - horizontal scroll for wide formulas */
+  body[data-layout="docs"] #nd-page article .katex-display,
+  body[data-layout="docs"] #nd-page article .math-display,
+  body[data-layout="docs"] #nd-page article mjx-container,
+  body[data-layout="docs"] #nd-page .prose .katex-display,
+  body[data-layout="docs"] #nd-page .prose .math-display,
+  body[data-layout="docs"] #nd-page .prose mjx-container {
+    max-width: 100% !important;
+    overflow-x: auto !important;
+  }
 }
 
 /* Ensure Steps component step numbers are not clipped */
@@ -488,14 +559,141 @@ aside[aria-label*="On this page" i] > div:first-child,
   }
   
   /* Ensure article takes full width on mobile when TOC is hidden */
+  /* Add horizontal padding so content doesn't touch screen edges */
   body[data-layout="docs"] .nd-layout-notebook article {
     width: 100% !important;
     max-width: 100% !important;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Mobile: API pages need explicit padding - fumadocs-openapi doesn't provide any */
+  /* Target the actual wrapper classes: data-api-playground, metrics-api-playground, etc. */
+  body[data-layout="docs"] [class*="-api-playground"],
+  body[data-layout="docs"] article[data-full="true"],
+  body[data-layout="docs"] .nd-layout-notebook article[data-full="true"] {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    overflow-wrap: break-word !important;
+    word-wrap: break-word !important;
+  }
+
+  /* Mobile: Constrain wide content (images, tables, code) to viewport */
+  body[data-layout="docs"] [class*="-api-playground"] img,
+  body[data-layout="docs"] article[data-full="true"] img {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+
+  body[data-layout="docs"] [class*="-api-playground"] pre,
+  body[data-layout="docs"] article[data-full="true"] pre {
+    max-width: 100% !important;
+    overflow-x: auto !important;
+  }
+
+  body[data-layout="docs"] [class*="-api-playground"] table,
+  body[data-layout="docs"] article[data-full="true"] table {
+    display: block !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
   }
 
   /* Prevent any TOC from appearing above subnavbar */
   body[data-layout="docs"] aside:not(#nd-sidebar):not([data-sidebar]):not([id*="sidebar" i]) {
     z-index: 0 !important;
+  }
+}
+
+/* Mobile: Prevent horizontal scrolling from 100vw elements and content overflow */
+/* Step numbers extend left (negative margin) so they remain visible */
+/* The overflow issue is content extending right beyond viewport - this clips it */
+@media (max-width: 1023px) {
+  body[data-layout="docs"] {
+    overflow-x: hidden !important;
+  }
+}
+
+/* Mobile: Ensure sidebar has solid background and overlay dims page content */
+/* NOTE: z-index is handled by global.css (sidebar: z-60, overlay: z-45) */
+@media (max-width: 1023px) {
+  /* Sidebar - explicit opaque background colors (not CSS variables that might be translucent) */
+  body[data-layout="docs"] #nd-sidebar-mobile,
+  body[data-layout="docs"] #nd-sidebar-mobile[data-state="open"],
+  body[data-layout="docs"] #nd-sidebar-mobile[data-state="closed"] {
+    background-color: #ffffff !important;
+    /* DO NOT override z-index - global.css sets it to z-60 correctly */
+  }
+
+  /* Dark mode: solid dark background */
+  .dark body[data-layout="docs"] #nd-sidebar-mobile,
+  .dark body[data-layout="docs"] #nd-sidebar-mobile[data-state="open"],
+  .dark body[data-layout="docs"] #nd-sidebar-mobile[data-state="closed"],
+  body[data-layout="docs"].dark #nd-sidebar-mobile,
+  body[data-layout="docs"].dark #nd-sidebar-mobile[data-state="open"],
+  body[data-layout="docs"].dark #nd-sidebar-mobile[data-state="closed"] {
+    background-color: #0a0a0a !important;
+  }
+
+  /* Overlay backdrop - target fumadocs overlay specifically */
+  /* The overlay is a div with: fixed, inset-0, backdrop-blur-xs, data-state */
+  body[data-layout="docs"] div.fixed.inset-0[data-state="open"]:not(aside):not([id]) {
+    background-color: rgba(0, 0, 0, 0.5) !important;
+  }
+
+  /* Override fumadocs default grey hover states on mobile sidebar */
+  /* Target all interactive elements including Tailwind utility-styled wrappers */
+  body[data-layout="docs"] #nd-sidebar-mobile a:hover,
+  body[data-layout="docs"] #nd-sidebar-mobile button:hover,
+  body[data-layout="docs"] #nd-sidebar-mobile [role="button"]:hover,
+  body[data-layout="docs"] #nd-sidebar-mobile [role="link"]:hover,
+  body[data-layout="docs"] #nd-sidebar-mobile li > div:hover,
+  body[data-layout="docs"] #nd-sidebar-mobile nav li:hover > *,
+  body[data-layout="docs"] #nd-sidebar-mobile [class*="hover\:bg-"]:hover {
+    background-color: rgba(0, 0, 0, 0.05) !important;
+  }
+
+  /* Dark mode hover states */
+  .dark body[data-layout="docs"] #nd-sidebar-mobile a:hover,
+  .dark body[data-layout="docs"] #nd-sidebar-mobile button:hover,
+  .dark body[data-layout="docs"] #nd-sidebar-mobile [role="button"]:hover,
+  .dark body[data-layout="docs"] #nd-sidebar-mobile [role="link"]:hover,
+  .dark body[data-layout="docs"] #nd-sidebar-mobile li > div:hover,
+  .dark body[data-layout="docs"] #nd-sidebar-mobile nav li:hover > *,
+  .dark body[data-layout="docs"] #nd-sidebar-mobile [class*="hover\:bg-"]:hover,
+  body[data-layout="docs"].dark #nd-sidebar-mobile a:hover,
+  body[data-layout="docs"].dark #nd-sidebar-mobile button:hover,
+  body[data-layout="docs"].dark #nd-sidebar-mobile [role="button"]:hover,
+  body[data-layout="docs"].dark #nd-sidebar-mobile [role="link"]:hover,
+  body[data-layout="docs"].dark #nd-sidebar-mobile li > div:hover,
+  body[data-layout="docs"].dark #nd-sidebar-mobile nav li:hover > *,
+  body[data-layout="docs"].dark #nd-sidebar-mobile [class*="hover\:bg-"]:hover {
+    background-color: rgba(255, 255, 255, 0.08) !important;
+  }
+}
+
+/* Desktop: Ensure API playground content respects container width */
+/* Tables were extending beyond visible content area on API reference pages */
+@media (min-width: 1024px) {
+  body[data-layout="docs"] [class*="-api-playground"],
+  body[data-layout="docs"] article[data-full="true"] {
+    max-width: 100% !important;
+    overflow-x: auto !important;
+  }
+
+  body[data-layout="docs"] [class*="-api-playground"] > *,
+  body[data-layout="docs"] article[data-full="true"] > * {
+    max-width: 100% !important;
+  }
+
+  /* Ensure tables within API playground have proper overflow handling */
+  body[data-layout="docs"] [class*="-api-playground"] table,
+  body[data-layout="docs"] article[data-full="true"] table {
+    display: block !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
   }
 }
 
