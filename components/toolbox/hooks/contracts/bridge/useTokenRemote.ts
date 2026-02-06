@@ -42,9 +42,7 @@ export interface TokenRemoteHook {
   send: (input: SendTokensInput, amount: bigint) => Promise<string>;
   sendAndCall: (input: any, amount: bigint) => Promise<string>;
   registerWithHome: (
-    teleporterAddress: string,
-    amount: bigint,
-    requiredGasLimit: bigint
+    feeInfo: readonly [`0x${string}`, bigint]
   ) => Promise<string>;
   initialize: (
     teleporterRegistryAddress: string,
@@ -385,9 +383,7 @@ export function useTokenRemote(
   };
 
   const registerWithHome = async (
-    teleporterAddress: string,
-    amount: bigint,
-    requiredGasLimit: bigint
+    feeInfo: readonly [`0x${string}`, bigint]
   ): Promise<string> => {
     if (!coreWalletClient || !contractAddress || !walletEVMAddress || !viemChain) {
       throw new Error('Wallet not connected or contract not ready');
@@ -397,15 +393,10 @@ export function useTokenRemote(
       address: contractAddress as `0x${string}`,
       abi: abi,
       functionName: 'registerWithHome',
-      args: [teleporterAddress, requiredGasLimit],
+      args: [feeInfo],
       chain: viemChain,
       account: walletEVMAddress as `0x${string}`
     };
-
-    // For native tokens, send the amount as value
-    if (tokenType === 'native') {
-      config.value = amount;
-    }
 
     const writePromise = coreWalletClient.writeContract(config);
 

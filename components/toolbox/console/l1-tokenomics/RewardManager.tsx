@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
-import { useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
 import { Button } from "@/components/toolbox/components/Button";
 import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput";
 import { AllowlistComponent } from "@/components/toolbox/components/AllowListComponents";
@@ -14,6 +13,7 @@ import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalle
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../components/WithConsoleToolMetadata";
 import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
+import { usePrecompiles } from "@/components/toolbox/hooks/contracts";
 
 // Default Reward Manager address
 const DEFAULT_REWARD_MANAGER_ADDRESS =
@@ -58,7 +58,7 @@ const metadata: ConsoleToolMetadata = {
 function RewardManager({ onSuccess }: BaseConsoleToolProps) {
   const { publicClient, walletEVMAddress } = useWalletStore();
   const { coreWalletClient } = useConnectedWallet();
-  const viemChain = useViemChainStore();
+  const precompiles = usePrecompiles();
 
   // Fee config state
   const [isAllowingFeeRecipients, setIsAllowingFeeRecipients] = useState(false);
@@ -81,15 +81,9 @@ function RewardManager({ onSuccess }: BaseConsoleToolProps) {
     setActiveTransaction("allow-fee-recipients");
 
     try {
-      const hash = await coreWalletClient.writeContract({
-        address: DEFAULT_REWARD_MANAGER_ADDRESS as `0x${string}`,
-        abi: rewardManagerAbi.abi,
-        functionName: "allowFeeRecipients",
-        account: coreWalletClient.account,
-        chain: viemChain,
-      });
+      const hash = await precompiles.rewardManager.allowFeeRecipients([]);
 
-      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      const receipt = await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
 
       if (receipt.status === "success") {
         setTxHash(hash);
@@ -124,15 +118,9 @@ function RewardManager({ onSuccess }: BaseConsoleToolProps) {
     setActiveTransaction("disable-rewards");
 
     try {
-      const hash = await coreWalletClient.writeContract({
-        address: DEFAULT_REWARD_MANAGER_ADDRESS as `0x${string}`,
-        abi: rewardManagerAbi.abi,
-        functionName: "disableRewards",
-        account: coreWalletClient.account,
-        chain: viemChain,
-      });
+      const hash = await precompiles.rewardManager.disableRewards();
 
-      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      const receipt = await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
 
       if (receipt.status === "success") {
         setTxHash(hash);
@@ -171,16 +159,9 @@ function RewardManager({ onSuccess }: BaseConsoleToolProps) {
     setActiveTransaction("set-reward-address");
 
     try {
-      const hash = await coreWalletClient.writeContract({
-        address: DEFAULT_REWARD_MANAGER_ADDRESS as `0x${string}`,
-        abi: rewardManagerAbi.abi,
-        functionName: "setRewardAddress",
-        args: [rewardAddress],
-        account: coreWalletClient.account,
-        chain: viemChain,
-      });
+      const hash = await precompiles.rewardManager.setRewardAddress(rewardAddress);
 
-      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      const receipt = await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
 
       if (receipt.status === "success") {
         setTxHash(hash);

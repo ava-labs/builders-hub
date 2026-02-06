@@ -2,18 +2,17 @@
 
 import { useState } from "react";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
-import { useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
 import { Button } from "@/components/toolbox/components/Button";
 import { Input } from "@/components/toolbox/components/Input";
 import { ResultField } from "@/components/toolbox/components/ResultField";
 import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput";
-import nativeMinterAbi from "@/contracts/precompiles/NativeMinter.json";
 import { AllowlistComponent } from "@/components/toolbox/components/AllowListComponents";
 import { CheckPrecompile } from "@/components/toolbox/components/CheckPrecompile";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../components/WithConsoleToolMetadata";
 import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
+import { usePrecompiles } from "@/components/toolbox/hooks/contracts";
 
 // Default Native Minter address
 const DEFAULT_NATIVE_MINTER_ADDRESS =
@@ -31,7 +30,7 @@ const metadata: ConsoleToolMetadata = {
 function NativeMinter({ onSuccess }: BaseConsoleToolProps) {
   const { publicClient, walletEVMAddress } = useWalletStore();
   const { coreWalletClient } = useConnectedWallet();
-  const viemChain = useViemChainStore();
+  const precompiles = usePrecompiles();
   const [amount, setAmount] = useState<string>("");
   const [recipient, setRecipient] = useState<string>("");
   const [isMinting, setIsMinting] = useState(false);
@@ -44,19 +43,11 @@ function NativeMinter({ onSuccess }: BaseConsoleToolProps) {
       // Convert amount to Wei
       const amountInWei = BigInt(amount) * BigInt(10 ** 18);
 
-      // Call the mintNativeCoin function using the contract ABI
-      const hash = await coreWalletClient.writeContract({
-        address: DEFAULT_NATIVE_MINTER_ADDRESS as `0x${string}`,
-        abi: nativeMinterAbi.abi,
-        functionName: "mintNativeCoin",
-        args: [recipient, amountInWei],
-        account: walletEVMAddress as `0x${string}`,
-        chain: viemChain,
-        gas: BigInt(1_000_000),
-      });
+      // Call the mintNativeCoin function using the hook
+      const hash = await precompiles.nativeMinter.mintNativeCoin(recipient, amountInWei);
 
       // Wait for transaction confirmation
-      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      const receipt = await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
 
       if (receipt.status === "success") {
         setTxHash(hash);
