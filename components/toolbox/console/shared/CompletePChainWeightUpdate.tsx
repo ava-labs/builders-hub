@@ -7,14 +7,12 @@ import { Success } from '@/components/toolbox/components/Success';
 import { Alert } from '@/components/toolbox/components/Alert';
 import { packWarpIntoAccessList } from '@/components/toolbox/console/permissioned-l1s/ValidatorManager/packWarp';
 import { hexToBytes, bytesToHex } from 'viem';
-import validatorManagerAbi from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
-import poaManagerAbi from '@/contracts/icm-contracts/compiled/PoAManager.json';
 import NativeTokenStakingManager from '@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json';
 import ERC20TokenStakingManager from '@/contracts/icm-contracts/compiled/ERC20TokenStakingManager.json';
 import { GetRegistrationJustification } from '@/components/toolbox/console/permissioned-l1s/ValidatorManager/justification';
 import { packL1ValidatorWeightMessage } from '@/components/toolbox/coreViem/utils/convertWarp';
 import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
-import useConsoleNotifications from '@/hooks/useConsoleNotifications';
+import { useValidatorManager, usePoAManager, useNativeTokenStakingManager, useERC20TokenStakingManager } from '@/components/toolbox/hooks/contracts';
 
 export type WeightUpdateType = 'ChangeWeight' | 'Delegation';
 export type OwnerType = 'PoAManager' | 'StakingManager' | 'EOA' | null;
@@ -87,30 +85,23 @@ const CompletePChainWeightUpdate: React.FC<CompletePChainWeightUpdateProps> = ({
     const isDelegation = updateType === 'Delegation';
     const isChangeWeight = updateType === 'ChangeWeight';
     const useMultisig = ownerType === 'PoAManager';
-    
-    // Select ABI based on update type
-    const getContractAbi = () => {
-        if (isDelegation) {
-            return tokenType === 'native' 
-                ? NativeTokenStakingManager.abi 
-                : ERC20TokenStakingManager.abi;
-        }
-        // ChangeWeight
-        return useMultisig ? poaManagerAbi.abi : validatorManagerAbi.abi;
-    };
-    
-    // Determine target contract address
-    const getTargetAddress = (): string => {
-        if (isChangeWeight && useMultisig && contractOwner) {
-            return contractOwner;
-        }
-        return managerAddress;
-    };
 
-    const contractAbi = getContractAbi();
-    const targetAddress = getTargetAddress();
-    const typeLabel = isDelegation 
-        ? `Delegation (${tokenType === 'native' ? 'Native Token' : 'ERC20 Token'})` 
+    // Initialize hooks for all possible manager types
+    const validatorManager = useValidatorManager(
+        (isChangeWeight && !useMultisig) ? managerAddress : null
+    );
+    const poaManager = usePoAManager(
+        (isChangeWeight && useMultisig && contractOwner) ? contractOwner : null
+    );
+    const nativeStakingManager = useNativeTokenStakingManager(
+        (isDelegation && tokenType === 'native') ? managerAddress : null
+    );
+    const erc20StakingManager = useERC20TokenStakingManager(
+        (isDelegation && tokenType === 'erc20') ? managerAddress : null
+    );
+
+    const typeLabel = isDelegation
+        ? `Delegation (${tokenType === 'native' ? 'Native Token' : 'ERC20 Token'})`
         : 'Weight Change';
 
     // Initialize state with prop values when they become available
@@ -241,31 +232,22 @@ const CompletePChainWeightUpdate: React.FC<CompletePChainWeightUpdateProps> = ({
             const signedPChainWarpMsgBytes = hexToBytes(`0x${signature.signedMessage}`);
             const accessList = packWarpIntoAccessList(signedPChainWarpMsgBytes);
 
-            // Different function calls based on update type
-            const functionName = isDelegation ? "completeDelegatorRegistration" : "completeValidatorWeightUpdate";
-            const args = isDelegation 
-                ? [delegationIDState as `0x${string}`, 0] // delegationID and messageIndex
-                : [0]; // messageIndex only
+            // Call appropriate hook based on update type
+            let hash: string;
+            if (isDelegation) {
+                hash = tokenType === 'native'
+                    ? await nativeStakingManager.completeDelegatorRegistration(delegationIDState as `0x${string}`, 0, accessList)
+                    : await erc20StakingManager.completeDelegatorRegistration(delegationIDState as `0x${string}`, 0, accessList);
+            } else {
+                // ChangeWeight
+                hash = useMultisig
+                    ? await poaManager.completeValidatorWeightUpdate(0, accessList)
+                    : await validatorManager.completeValidatorWeightUpdate(0, accessList);
+            }
 
-            const writePromise = coreWalletClient!.writeContract({
-                address: targetAddress as `0x${string}`,
-                abi: contractAbi,
-                functionName,
-                args,
-                accessList,
-                account: walletEVMAddress as `0x${string}`,
-                chain: viemChain,
-            });
-
-            notify({
-                type: 'call',
-                name: isDelegation ? 'Complete Delegation' : 'Complete Weight Update'
-            }, writePromise, viemChain ?? undefined);
-
-            const hash = await writePromise;
             setTxHash(hash);
 
-            const receipt = await publicClient!.waitForTransactionReceipt({ hash });
+            const receipt = await publicClient!.waitForTransactionReceipt({ hash: hash as `0x${string}` });
             if (receipt.status !== 'success') {
                 throw new Error(`Transaction failed with status: ${receipt.status}`);
             }

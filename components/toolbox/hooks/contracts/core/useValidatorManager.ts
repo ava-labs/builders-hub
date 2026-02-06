@@ -31,6 +31,8 @@ export interface ValidatorData {
 
 export interface ValidatorSetParams {
   subnetID: string;
+  validatorManagerBlockchainID: string;
+  validatorManagerAddress: string;
   initialValidators: Array<{
     nodeID: string;
     blsPublicKey: string;
@@ -59,14 +61,14 @@ export interface ValidatorManagerHook {
 
   // Write functions
   initiateValidatorRegistration: (params: ValidatorRegistrationParams) => Promise<string>;
-  completeValidatorRegistration: (index: number) => Promise<string>;
+  completeValidatorRegistration: (index: number, accessList?: any[]) => Promise<string>;
   resendRegisterValidatorMessage: (validationID: string) => Promise<string>;
   initiateValidatorRemoval: (validationID: string) => Promise<string>;
   completeValidatorRemoval: (index: number, accessList?: any[]) => Promise<string>;
   resendValidatorRemovalMessage: (validationID: string) => Promise<string>;
   initiateValidatorWeightUpdate: (validationID: string, weight: bigint) => Promise<string>;
-  completeValidatorWeightUpdate: (index: number) => Promise<string>;
-  initializeValidatorSet: (params: ValidatorSetParams) => Promise<string>;
+  completeValidatorWeightUpdate: (index: number, accessList?: any[]) => Promise<string>;
+  initializeValidatorSet: (params: ValidatorSetParams, messageIndex: number, accessList?: any[]) => Promise<string>;
   initialize: (params: InitParams) => Promise<string>;
   transferOwnership: (newOwner: string) => Promise<string>;
   migrateFromV1: (params: MigrationParams) => Promise<string>;
@@ -191,19 +193,25 @@ export function useValidatorManager(
     return await writePromise;
   };
 
-  const completeValidatorRegistration = async (index: number): Promise<string> => {
+  const completeValidatorRegistration = async (index: number, accessList?: any[]): Promise<string> => {
     if (!coreWalletClient || !contractAddress || !walletEVMAddress || !viemChain) {
       throw new Error('Wallet not connected or contract not ready');
     }
 
-    const writePromise = coreWalletClient.writeContract({
+    const txConfig: any = {
       address: contractAddress as `0x${string}`,
       abi: contractAbi,
       functionName: 'completeValidatorRegistration',
       args: [index],
       chain: viemChain,
       account: walletEVMAddress as `0x${string}`
-    });
+    };
+
+    if (accessList) {
+      txConfig.accessList = accessList;
+    }
+
+    const writePromise = coreWalletClient.writeContract(txConfig);
 
     notify({
       type: 'call',
@@ -329,19 +337,25 @@ export function useValidatorManager(
     return await writePromise;
   };
 
-  const completeValidatorWeightUpdate = async (index: number): Promise<string> => {
+  const completeValidatorWeightUpdate = async (index: number, accessList?: any[]): Promise<string> => {
     if (!coreWalletClient || !contractAddress || !walletEVMAddress || !viemChain) {
       throw new Error('Wallet not connected or contract not ready');
     }
 
-    const writePromise = coreWalletClient.writeContract({
+    const txConfig: any = {
       address: contractAddress as `0x${string}`,
       abi: contractAbi,
       functionName: 'completeValidatorWeightUpdate',
       args: [index],
       chain: viemChain,
       account: walletEVMAddress as `0x${string}`
-    });
+    };
+
+    if (accessList) {
+      txConfig.accessList = accessList;
+    }
+
+    const writePromise = coreWalletClient.writeContract(txConfig);
 
     notify({
       type: 'call',
@@ -351,19 +365,25 @@ export function useValidatorManager(
     return await writePromise;
   };
 
-  const initializeValidatorSet = async (params: ValidatorSetParams): Promise<string> => {
+  const initializeValidatorSet = async (params: ValidatorSetParams, messageIndex: number, accessList?: any[]): Promise<string> => {
     if (!coreWalletClient || !contractAddress || !walletEVMAddress || !viemChain) {
       throw new Error('Wallet not connected or contract not ready');
     }
 
-    const writePromise = coreWalletClient.writeContract({
+    const txConfig: any = {
       address: contractAddress as `0x${string}`,
       abi: contractAbi,
       functionName: 'initializeValidatorSet',
-      args: [params.subnetID, params.initialValidators],
+      args: [params, messageIndex],
       chain: viemChain,
       account: walletEVMAddress as `0x${string}`
-    });
+    };
+
+    if (accessList) {
+      txConfig.accessList = accessList;
+    }
+
+    const writePromise = coreWalletClient.writeContract(txConfig);
 
     notify({
       type: 'call',
