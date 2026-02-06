@@ -1599,17 +1599,6 @@ const config = {
         permanent: true,
       },
       {
-        source: "/academy/avalanche-l1/interchain-token-transfer",
-        destination: "/academy/avalanche-l1/native-token-bridge",
-        permanent: true,
-      },
-      {
-        source: "/academy/avalanche-l1/interchain-token-transfer/:path*",
-        destination: "/academy/avalanche-l1/native-token-bridge/:path*",
-        permanent: true,
-      },
-      // Broken links from analytics - round 8
-      {
         source: "/docs/overview/getting-started/avalanche-consensus",
         destination: "/docs/primary-network/avalanche-consensus",
         permanent: true,
@@ -1821,7 +1810,65 @@ const config = {
         source: "/docs/nodes/maintain/chain-state-size-reduction",
         destination: "/docs/nodes/node-storage/periodic-state-sync",
         permanent: true,
+      },
+      // Academy query parameter redirects - January 2026
+      {
+        source: "/academy",
+        has: [
+          {
+            type: 'query',
+            key: 'path',
+            value: 'avalanche-l1',
+          },
+        ],
+        destination: "/academy/avalanche-l1",
+        permanent: true,
+      },
+      {
+        source: "/academy",
+        has: [
+          {
+            type: 'query',
+            key: 'path',
+            value: 'blockchain',
+          },
+        ],
+        destination: "/academy/blockchain",
+        permanent: true,
+      },
+      {
+        source: "/academy",
+        has: [
+          {
+            type: 'query',
+            key: 'path',
+            value: 'entrepreneur',
+          },
+        ],
+        destination: "/academy/entrepreneur",
+        permanent: true,
       }
+    ];
+  },
+  async rewrites() {
+    return [
+      // Rewrite .md requests to serve raw markdown content
+      {
+        source: '/docs/:path*.md',
+        destination: '/api/raw/docs/:path*',
+      },
+      {
+        source: '/academy/:path*.md',
+        destination: '/api/raw/academy/:path*',
+      },
+      {
+        source: '/blog/:path*.md',
+        destination: '/api/raw/blog/:path*',
+      },
+      {
+        source: '/integrations/:path*.md',
+        destination: '/api/raw/integrations/:path*',
+      },
     ];
   },
 };

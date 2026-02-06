@@ -6,7 +6,6 @@ export const avalancheDeveloperAcademyLandingPageConfig: AcademyLandingPageConfi
     heroTitle: 'Avalanche',
     heroAccent: 'L1',
     heroAccentWords: ['L1 Developer', 'Blockchain', 'Entrepreneur'],
-    heroDescription: 'Learn through our Avalanche L1, Blockchain and Entrepreneur Academies. Use the navigation buttons below to switch between academies and discover each learning tree with courses tailored to your journey.',
+    heroDescription: 'Learn Avalanche L1 development with courses designed for builders launching custom blockchains. Master the fundamentals and advance to building production-ready Layer 1 solutions.',
     pathType: 'avalanche',
-    showBlogs: true,
 };

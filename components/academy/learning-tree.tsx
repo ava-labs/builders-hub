@@ -3,7 +3,8 @@
 import React from "react";
 import Link from "next/link";
 import { cn } from "@/utils/cn";
-import { ArrowRight, ChevronDown, GraduationCap, BookOpen, Shield } from "lucide-react";
+import { ArrowRight, ChevronDown, GraduationCap, BookOpen, Shield, Clock, Monitor, Terminal, MessageSquare, Hammer, Settings, Network, Code, Hexagon, Users, Wallet, Lock } from "lucide-react";
+import { getCourseDurations, getCourseTools } from "@/content/courses";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 // CourseNode interface definition
@@ -25,13 +26,59 @@ import { blockchainLearningPaths, blockchainCategoryStyles } from './learning-pa
 
 interface LearningTreeProps {
   pathType?: 'avalanche' | 'entrepreneur' | 'blockchain';
+  externalHoveredCategory?: string | null;
+  onCategoryHover?: (category: string | null) => void;
 }
 
-export default function LearningTree({ pathType = 'avalanche' }: LearningTreeProps) {
+// Get course durations and tools once
+const courseDurations = getCourseDurations();
+const courseTools = getCourseTools();
+
+// Tool icon mapping
+const toolIconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+  "Console": Monitor,
+  "Avalanche CLI": Terminal,
+  "ICM": MessageSquare,
+  "Foundry": Hammer,
+  "Starter-Kit": Code,
+  "Validator Manager": Settings,
+  "P-Chain": Network,
+  "AvaCloudSDK": Code,
+  "AvaCloud API": Code,
+  "HyperSDK": Terminal,
+  "Chainlink VRF": Hexagon,
+  "Entrepreneur": Users,
+  "Thirdweb x402": Wallet,
+};
+
+// Helper to extract course slug from full path (e.g., "avalanche-l1/avalanche-fundamentals" -> "avalanche-fundamentals")
+const getCourseSlug = (fullSlug: string): string => {
+  const parts = fullSlug.split('/');
+  return parts[parts.length - 1];
+};
+
+export default function LearningTree({ 
+  pathType = 'avalanche',
+  externalHoveredCategory,
+  onCategoryHover
+}: LearningTreeProps) {
   const [hoveredNode, setHoveredNode] = React.useState<string | null>(null);
-  const [hoveredCategory, setHoveredCategory] = React.useState<string | null>(null);
+  const [internalHoveredCategory, setInternalHoveredCategory] = React.useState<string | null>(null);
   const [isDarkMode, setIsDarkMode] = React.useState(false);
   const isMobile = useIsMobile();
+  
+  // Use external category if provided, otherwise use internal state
+  const hoveredCategory = externalHoveredCategory ?? internalHoveredCategory;
+  
+  // Sync internal state with external hover state changes
+  React.useEffect(() => {
+    setInternalHoveredCategory(externalHoveredCategory ?? null);
+  }, [externalHoveredCategory]);
+  
+  const setHoveredCategory = (category: string | null) => {
+    setInternalHoveredCategory(category);
+    onCategoryHover?.(category);
+  };
 
   // Detect dark mode
   React.useEffect(() => {
@@ -99,7 +146,7 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
   }, [hoveredNode]);
 
   // Calculate SVG dimensions based on node positions
-  const maxY = Math.max(...learningPaths.map(node => node.position.y)) + 250;
+  const maxY = Math.max(...learningPaths.map(node => node.position.y)) + 200;
 
   // Legend component
   const Legend = ({ isMobile = false, vertical = false }: { isMobile?: boolean; vertical?: boolean }) => (
@@ -143,6 +190,7 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
     </div>
   );
 
+  // Draw connections using SVG curved paths
   const drawConnections = () => {
     const connections: React.JSX.Element[] = [];
 
@@ -159,7 +207,7 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
             const childCenterX = node.position.x;
 
             // Card dimensions
-            const cardHeight = 110;
+            const cardHeight = 95;
 
             // Lines should connect from bottom of parent to top of child
             const parentBottomY = parentNode.position.y + cardHeight;
@@ -169,7 +217,7 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
             const midY = (parentBottomY + childTopY) / 2;
 
             // Adjust the end point to account for arrow marker
-            const adjustedChildTopY = childTopY + (isActive ? 6 : 5); // Account for marker size
+            const adjustedChildTopY = childTopY + (isActive ? 6 : 5);
 
             // Create a curved path
             const pathData = `M ${parentCenterX} ${parentBottomY} C ${parentCenterX} ${midY}, ${childCenterX} ${midY}, ${childCenterX} ${adjustedChildTopY}`;
@@ -241,7 +289,7 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
                 >
                   <div
                     className={cn(
-                      "relative w-full p-4 rounded-xl transition-all duration-300",
+                      "relative w-full p-3 rounded-lg transition-all duration-300",
                       "bg-white dark:bg-zinc-900",
                       "border-2 dark:border-zinc-800",
                       "shadow-sm active:shadow-lg",
@@ -261,27 +309,75 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
                   >
                     {/* Category icon */}
                     <div className={cn(
-                      "absolute -top-2 -right-2 w-8 h-8 rounded-full",
+                      "absolute -top-2 -right-2 w-7 h-7 rounded-full",
                       "bg-gradient-to-br shadow-md",
                       "flex items-center justify-center",
                       "text-white",
                       style?.gradient
                     )}>
-                      <Icon className="w-4 h-4" />
+                      <Icon className="w-3.5 h-3.5" />
                     </div>
 
                     {/* Content */}
-                    <h4 className="font-semibold text-base mb-1 text-zinc-900 dark:text-white leading-tight pr-8">
+                    <h4 className="font-semibold text-sm mb-1 text-zinc-900 dark:text-white leading-tight pr-6">
                       {node.name}
                     </h4>
-                    <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
+                    <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
                       {node.description}
                     </p>
 
-                    {/* Mobile tap indicator */}
-                    <div className="absolute bottom-3 right-3">
-                      <ArrowRight className="w-4 h-4 text-zinc-400" />
-                    </div>
+                    {/* Mobile duration and tool indicator - below description */}
+                    {(() => {
+                      const courseSlug = getCourseSlug(node.slug);
+                      const duration = courseDurations[courseSlug];
+                      const tool = courseTools[courseSlug];
+                      const ToolIcon = tool ? toolIconMap[tool] || Monitor : null;
+                      
+                      // Category-based background colors (lighter versions)
+                      const categoryBgColors: Record<string, string> = {
+                        // Avalanche categories
+                        "Fundamentals": "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300",
+                        "Interoperability": "bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300",
+                        "L1 Development": "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300",
+                        "L1 Tokenomics": "bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300",
+                        "VM Customization": "bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300",
+                        // Entrepreneur categories
+                        "Community": "bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300",
+                        "Business Strategy": "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300",
+                        "Finance": "bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300",
+                        // Blockchain categories
+                        "Development": "bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300",
+                        "Privacy": "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300",
+                      };
+                      const bgColorClass = categoryBgColors[node.category] || "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400";
+                      
+                      return (duration || tool) ? (
+                        <div className="mt-1.5 flex items-center justify-between">
+                          {tool && ToolIcon ? (
+                            <div className={cn(
+                              "flex items-center gap-1 px-1.5 py-0.5 rounded-full",
+                              bgColorClass
+                            )}>
+                              <ToolIcon className="w-2.5 h-2.5" />
+                              <span className="text-[10px] font-medium">{tool}</span>
+                            </div>
+                          ) : <div />}
+                          {duration && (
+                            <div className={cn(
+                              "flex items-center gap-1 px-1.5 py-0.5 rounded-full",
+                              bgColorClass
+                            )}>
+                              <Clock className="w-2.5 h-2.5" />
+                              <span className="text-[10px] font-medium">{duration}</span>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="absolute bottom-2 right-2">
+                          <ArrowRight className="w-3.5 h-3.5 text-zinc-400" />
+                        </div>
+                      );
+                    })()}
                   </div>
                 </Link>
               </div>
@@ -292,7 +388,7 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
     );
   };
 
-  // Desktop layout component (existing code)
+  // Desktop layout component
   const DesktopLayout = () => (
     <>
       <div className="relative p-8 lg:p-12" style={{ minHeight: `${maxY}px` }}>
@@ -386,11 +482,17 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
                 left: `${node.position.x}%`,
                 top: `${node.position.y}px`,
                 transform: 'translateX(-50%)',
-                width: '280px',
+                width: '238px',
                 zIndex: isHighlighted || isCategoryHovered ? 20 : 10
               }}
-              onMouseEnter={() => setHoveredNode(node.id)}
-              onMouseLeave={() => setHoveredNode(null)}
+              onMouseEnter={() => {
+                setHoveredNode(node.id);
+                setHoveredCategory(node.category);
+              }}
+              onMouseLeave={() => {
+                setHoveredNode(null);
+                setHoveredCategory(null);
+              }}
             >
               <Link
                 href={resolveSlug(node.slug)}
@@ -398,7 +500,7 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
               >
                 <div
                   className={cn(
-                    "relative w-full p-5 rounded-2xl transition-all duration-300 min-height-[110px]",
+                    "relative w-full p-4 rounded-xl transition-all duration-300",
                     "bg-white dark:bg-zinc-900",
                     "border-2 dark:border-zinc-800",
                     "shadow-sm",
@@ -418,27 +520,74 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
                 >
                   {/* Category icon */}
                   <div className={cn(
-                    "absolute -top-3 -right-3 w-10 h-10 rounded-full",
+                    "absolute -top-2.5 -right-2.5 w-8 h-8 rounded-full",
                     "bg-gradient-to-br shadow-md",
                     "flex items-center justify-center",
                     "text-white",
                     style?.gradient
                   )}>
-                    <Icon className="w-5 h-5" />
+                    <Icon className="w-4 h-4" />
                   </div>
 
                   {/* Content */}
-                  <h4 className="font-semibold text-base mb-2 text-zinc-900 dark:text-white leading-tight pr-8">
+                  <h4 className="font-semibold text-sm mb-1.5 text-zinc-900 dark:text-white leading-tight pr-6">
                     {node.name}
                   </h4>
-                  <p className="text-sm text-zinc-600 dark:text-zinc-400 line-clamp-2 leading-relaxed">
+                  <p className="text-xs text-zinc-600 dark:text-zinc-400 line-clamp-2 leading-relaxed">
                     {node.description}
                   </p>
 
-                  {/* Hover indicator */}
-                  <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <ArrowRight className="w-5 h-5 text-zinc-400" />
-                  </div>
+                  {/* Duration and Tool indicator - appears below description on hover */}
+                  {(() => {
+                    const courseSlug = getCourseSlug(node.slug);
+                    const duration = courseDurations[courseSlug];
+                    const tool = courseTools[courseSlug];
+                    const ToolIcon = tool ? toolIconMap[tool] || Monitor : null;
+                    
+                    // Category-based background colors (lighter versions)
+                    const categoryBgColors: Record<string, string> = {
+                      // Avalanche categories
+                      "Fundamentals": "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300",
+                      "Interoperability": "bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300",
+                      "L1 Development": "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300",
+                      "L1 Tokenomics": "bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300",
+                      "VM Customization": "bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300",
+                      // Entrepreneur categories
+                      "Community": "bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300",
+                      "Business Strategy": "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300",
+                      "Finance": "bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300",
+                      // Blockchain categories
+                      "Development": "bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300",
+                      "Privacy": "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300",
+                    };
+                    const bgColorClass = categoryBgColors[node.category] || "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400";
+                    
+                    return (duration || tool) ? (
+                      <div className={cn(
+                        "mt-2 flex items-center justify-between overflow-hidden transition-all duration-300 ease-out",
+                        "max-h-0 opacity-0 group-hover:max-h-8 group-hover:opacity-100"
+                      )}>
+                        {tool && ToolIcon ? (
+                          <div className={cn(
+                            "flex items-center gap-1 px-2 py-0.5 rounded-full",
+                            bgColorClass
+                          )}>
+                            <ToolIcon className="w-3 h-3" />
+                            <span className="text-[10px] font-medium whitespace-nowrap">{tool}</span>
+                          </div>
+                        ) : <div />}
+                        {duration && (
+                          <div className={cn(
+                            "flex items-center gap-1 px-2 py-0.5 rounded-full",
+                            bgColorClass
+                          )}>
+                            <Clock className="w-3 h-3" />
+                            <span className="text-[10px] font-medium whitespace-nowrap">{duration}</span>
+                          </div>
+                        )}
+                      </div>
+                    ) : null;
+                  })()}
                 </div>
               </Link>
             </div>
@@ -449,35 +598,100 @@ export default function LearningTree({ pathType = 'avalanche' }: LearningTreePro
   );
 
   return (
-    <>
-      {/* Vertical Legend on far left of screen - positioned absolutely relative to viewport */}
-      <div 
-        className="hidden lg:block absolute z-10"
-        style={{
-          left: '1rem',
-          top: '30%',
-          transform: 'translateY(-50%)',
-          marginLeft: 'calc(-50vw + 50%)'
-        }}
-      >
-        <Legend isMobile={false} vertical={true} />
+    <div className="relative w-full">
+      {/* Mobile Layout - visible on small screens, hidden on lg and up */}
+      <div className="block lg:hidden">
+        <MobileLayout />
       </div>
 
-      <div className="relative w-full">
-        {/* Mobile Layout - visible on small screens, hidden on lg and up */}
-        <div className="block lg:hidden">
-          {/* Legend at top for mobile */}
-          <div className="mb-8">
-            <Legend isMobile={true} />
+      {/* Desktop Layout - hidden on small screens, visible on lg and up */}
+      <div className="hidden lg:block">
+        <DesktopLayout />
+      </div>
+    </div>
+  );
+}
+
+// Export Legend component for use in academy-learning-path
+export function LearningTreeLegend({ 
+  pathType = 'avalanche',
+  isMobile = false,
+  activeCategory = null,
+  onCategoryHover
+}: { 
+  pathType?: 'avalanche' | 'entrepreneur' | 'blockchain';
+  isMobile?: boolean;
+  activeCategory?: string | null;
+  onCategoryHover?: (category: string | null) => void;
+}) {
+  const [localHoveredCategory, setLocalHoveredCategory] = React.useState<string | null>(null);
+  
+  // Use external activeCategory if provided, otherwise use local state
+  const hoveredCategory = activeCategory ?? localHoveredCategory;
+  
+  const handleMouseEnter = (category: string) => {
+    setLocalHoveredCategory(category);
+    onCategoryHover?.(category);
+  };
+  
+  const handleMouseLeave = () => {
+    setLocalHoveredCategory(null);
+    onCategoryHover?.(null);
+  };
+  
+  const categoryStyles = pathType === 'avalanche' 
+    ? avalancheCategoryStyles 
+    : pathType === 'blockchain' 
+    ? blockchainCategoryStyles 
+    : entrepreneurCategoryStyles;
+
+  return (
+    <div className={
+      isMobile 
+        ? "flex flex-wrap gap-3 justify-center" 
+        : "flex flex-wrap gap-2 justify-center"
+    }>
+      {Object.entries(categoryStyles).map(([category, style]) => {
+        const Icon = style.icon;
+        const isActive = hoveredCategory === category;
+        return (
+          <div 
+            key={category} 
+            className={cn(
+              "flex items-center cursor-pointer transition-all duration-300 ease-out",
+              "rounded-full",
+              isActive 
+                ? "gap-2 sm:gap-3 bg-zinc-100 dark:bg-zinc-800 px-2 py-1.5" 
+                : "gap-0 px-1 py-1.5"
+            )}
+            onMouseEnter={() => handleMouseEnter(category)}
+            onMouseLeave={handleMouseLeave}
+          >
+            <div className={cn(
+              isMobile ? "w-8 h-8" : "w-9 h-9",
+              "rounded-full bg-gradient-to-br flex items-center justify-center shadow-sm transition-all duration-200",
+              "flex-shrink-0",
+              style.gradient,
+              isActive && "shadow-md scale-110"
+            )}>
+              <Icon className={isMobile ? "w-4 h-4 text-white" : "w-[18px] h-[18px] text-white"} />
+            </div>
+            <div
+              className={cn(
+                "overflow-hidden transition-all duration-300 ease-out",
+                isActive
+                  ? "max-w-[120px] opacity-100"
+                  : "max-w-0 opacity-0"
+              )}
+            >
+              <span className={cn(
+                isMobile ? "text-xs" : "text-sm",
+                "font-medium text-zinc-700 dark:text-zinc-200 whitespace-nowrap pr-1"
+              )}>{style.label || category}</span>
+            </div>
           </div>
-          <MobileLayout />
-        </div>
-
-        {/* Desktop Layout - hidden on small screens, visible on lg and up */}
-        <div className="hidden lg:block">
-          <DesktopLayout />
-        </div>
-      </div>
-    </>
+        );
+      })}
+    </div>
   );
 } 

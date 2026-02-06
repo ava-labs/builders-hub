@@ -8,18 +8,49 @@ import { useSession } from 'next-auth/react';
 import { useToast } from '@/hooks/use-toast';
 import { useProjectSubmission } from '../context/ProjectSubmissionContext';
 import { useRouter } from 'next/navigation';
-export const FormSchema = z.object({
-  project_name: z.string().min(1, { message: 'Project name is required' }),
-  short_description: z.string().min(1, { message: 'Short description is required' }),
-  full_description: z.string().optional(),
-  tech_stack: z.string().optional(),
+// Base schema without refinements - needed for .pick() to work
+const BaseFormSchema = z.object({
+  project_name: z
+    .string()
+    .min(2, { message: 'Project Name must be at least 2 characters' })
+    .max(60, { message: 'Max 60 characters allowed' }),
+  short_description: z
+    .string()
+    .min(30, { message: 'Short description must be at least 30 characters' })
+    .max(280, { message: 'Max 280 characters allowed' }),
+  full_description: z
+    .string()
+    .min(30, { message: 'Full description must be at least 30 characters' }),
+  tech_stack: z
+    .string()
+    .min(30, { message: 'Tech stack must be at least 30 characters' }),
   github_repository: z.preprocess(
     (val) => {
       if (!val) return [];
       if (typeof val === 'string') return [];
       return val;
     },
-    z.array(z.string()).optional()
+    z.array(z.string().min(1, { message: 'Repository link is required' }))
+      .min(1, { message: 'At least one link is required' })
+      .refine((links) => new Set(links).size === links.length, {
+        message: 'Duplicate repository links are not allowed',
+      })
+      .superRefine((links, ctx) => {
+        const invalidLinks = links.filter((link) => {
+          if (link.startsWith('http')) {
+            try { new URL(link); return false; } catch { return true; }
+          }
+          return link.trim().length === 0;
+        });
+
+        if (invalidLinks.length > 0) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'Please enter valid links (URLs or other formats)',
+            path: [],
+          });
+        }
+      })
   ),
   explanation: z.string().optional(),
   demo_link: z.preprocess(
@@ -28,14 +59,81 @@ export const FormSchema = z.object({
       if (typeof val === 'string') return [];
       return val;
     },
-    z.array(z.string()).optional()
+    z.array(
+      z.string()
+        .min(1, { message: 'Demo link cannot be empty' })
+    )
+      .min(1, { message: 'At least one demo link is required' })
+      .refine(
+        (links) => {
+          const uniqueLinks = new Set(links);
+          return uniqueLinks.size === links.length;
+        },
+        { message: 'Duplicate demo links are not allowed' }
+      )
+      .refine(
+        (links) => {
+          return links.every(url => {
+            try {
+              new URL(url);
+              return true;
+            } catch {
+              return false;
+            }
+          });
+        },
+        { message: 'Please enter a valid URL' }
+      )
   ),
-  is_preexisting_idea: z.boolean().optional(),
+  is_preexisting_idea: z.boolean(),
   logoFile: z.any().optional(),
   coverFile: z.any().optional(),
   screenshots: z.any().optional(),
-  demo_video_link: z.string().optional(),
-  tracks: z.array(z.string()).min(1, { message: 'Please select at least one track' }),
+  demo_video_link: z
+    .string()
+    .url({ message: 'Please enter a valid URL' })
+    .optional()
+    .or(z.literal(''))
+    .refine(
+      (val) => {
+        if (!val) return true;
+        try {
+          const url = new URL(val);
+          return (
+            url.hostname.includes('youtube.com') ||
+            url.hostname.includes('youtu.be') ||
+            url.hostname.includes('loom.com')
+          );
+        } catch {
+          return false;
+        }
+      },
+      { message: 'Please enter a valid YouTube or Loom URL' }
+    ),
+  tracks: z.array(z.string()).optional().default([]),
+  categories: z.array(z.string()).optional().default([]),
+  other_category: z.string().optional(),
+  deployed_addresses: z.array(z.object({
+    address: z.string().min(1, { message: 'Address is required' }),
+    tag: z.string().optional(),
+  }))
+    .optional()
+    .default([])
+    .transform((arr) => {
+      // Si el array está vacío o es undefined, retornar array vacío (campo opcional)
+      if (!arr || arr.length === 0) {
+        return [];
+      }
+      // Filtrar entradas donde address esté vacío o tag esté vacío (si existe)
+      const filtered = arr.filter((item) => {
+        const hasValidAddress = item.address && item.address.trim().length > 0;
+        const hasValidTag = !item.tag || item.tag.trim().length > 0;
+        // Solo guardar si tiene address válido Y (no tiene tag o tiene tag válido)
+        return hasValidAddress && hasValidTag;
+      });
+      // Retornar array vacío si todas las entradas fueron filtradas (campo opcional)
+      return filtered;
+    }),
   logo_url: z.string().optional(),
   cover_url: z.string().optional(),
   hackaton_id: z.string().optional(),
@@ -44,21 +142,101 @@ export const FormSchema = z.object({
   isDraft: z.boolean().optional(),
 });
 
-export type SubmissionForm = z.infer<typeof FormSchema>;
-export const Step1Schema = FormSchema.pick({
+// Step schemas created from base schema (before refinements)
+export const Step1Schema = BaseFormSchema.pick({
   project_name: true,
   short_description: true,
   full_description: true,
   tracks: true,
+  categories: true,
+  other_category: true,
+  deployed_addresses: true,
+  hackaton_id: true,
+}).superRefine((data, ctx) => {
+  // Validación condicional para tracks cuando hay hackathon_id
+  if (data.hackaton_id) {
+    if (!data.tracks || data.tracks.length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'At least one track is required when submitting to a hackathon',
+        path: ['tracks'],
+      });
+    }
+  }
+  
+  // Validación para other_category si se selecciona "Other (Specify)"
+  if (data.categories && data.categories.includes('Other (Specify)')) {
+    if (!data.other_category || data.other_category.trim().length < 2) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Please specify the other category',
+        path: ['other_category'],
+      });
+    }
+  }
 });
 
-export const Step2Schema = FormSchema.pick({
+export const Step2Schema = BaseFormSchema.pick({
   tech_stack: true,
   github_repository: true,
   explanation: true,
   demo_link: true,
   is_preexisting_idea: true,
-});
+}).refine(
+  (data) => {
+    if (data.is_preexisting_idea) {
+      return data.explanation && data.explanation.length >= 2;
+    }
+    return true;
+  },
+  {
+    message: 'explanation is required when the idea is pre-existing',
+    path: ['explanation'],
+  }
+);
+
+// Full schema with all refinements
+export const FormSchema = BaseFormSchema
+  .refine(
+    (data) => {
+      if (data.is_preexisting_idea) {
+        return data.explanation && data.explanation.length >= 2;
+      }
+      return true;
+    },
+    {
+      message: 'explanation is required when the idea is pre-existing',
+      path: ['explanation'],
+    }
+  )
+  .refine(
+    (data) => {
+      // Si hay hackathon_id, tracks es requerido
+      if (data.hackaton_id) {
+        return data.tracks && data.tracks.length > 0;
+      }
+      return true;
+    },
+    {
+      message: 'At least one track is required when submitting to a hackathon',
+      path: ['tracks'],
+    }
+  )
+  .refine(
+    (data) => {
+      // Si se selecciona "Other (Specify)", other_category es requerido
+      if (data.categories && data.categories.includes('Other (Specify)')) {
+        return data.other_category && data.other_category.trim().length >= 2;
+      }
+      return true;
+    },
+    {
+      message: 'Please specify the other category',
+      path: ['other_category'],
+    }
+  );
+
+export type SubmissionForm = z.infer<typeof FormSchema>;
 export const useSubmissionFormSecure = () => {
   const { data: session } = useSession();
   const { toast } = useToast();
@@ -72,7 +250,7 @@ export const useSubmissionFormSecure = () => {
   }>({});
 
   const form = useForm<SubmissionForm>({
-    resolver: zodResolver(FormSchema, undefined, { mode: 'async' }),
+    resolver: zodResolver(FormSchema),
     reValidateMode: 'onChange',
     mode: 'onSubmit',
     defaultValues: {
@@ -81,6 +259,9 @@ export const useSubmissionFormSecure = () => {
       full_description: '',
       tech_stack: '',
       tracks: [],
+      categories: [],
+      other_category: '',
+      deployed_addresses: [],
       is_preexisting_idea: false,
       github_repository: [],
       demo_link: [],
@@ -89,7 +270,8 @@ export const useSubmissionFormSecure = () => {
     },
   });
 
-  const canSubmit = state.isEditing && state.hackathonId;
+  // Allow submission even without hackathon - projects can be standalone
+  const canSubmit = state.isEditing;
 
   useEffect(() => {
     const step1Fields: (keyof SubmissionForm)[] = [
@@ -97,6 +279,8 @@ export const useSubmissionFormSecure = () => {
       "short_description",
       "full_description",
       "tracks",
+      "categories",
+      "other_category",
     ];
 
     const step2Fields: (keyof SubmissionForm)[] = [
@@ -120,9 +304,8 @@ export const useSubmissionFormSecure = () => {
             }
 
             timersRef.current[fieldName] = setTimeout(() => {
-              const schema = FormSchema.pick({
-                [fieldName]: true,
-              });
+              // Use BaseFormSchema for .pick() since FormSchema has refinements
+              const schema = BaseFormSchema.pick({ [fieldName]: true } as any);
 
               schema.safeParseAsync(form.getValues()).then(result => {
                 if (result.success) {
@@ -150,13 +333,12 @@ export const useSubmissionFormSecure = () => {
   }, [form]);
 
   const uploadFile = useCallback(async (file: File): Promise<string> => {
-    if (!state.hackathonId) {
-      throw new Error('No hackathon selected');
-    }
-
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('hackaton_id', state.hackathonId);
+    // hackaton_id is optional - only include if exists
+    if (state.hackathonId) {
+      formData.append('hackaton_id', state.hackathonId);
+    }
     formData.append('user_id', session?.user?.id || '');
 
     try {
@@ -181,9 +363,6 @@ export const useSubmissionFormSecure = () => {
     oldImageUrl: string,
     newFile: File
   ): Promise<string> => {
-    if (!state.hackathonId) {
-      throw new Error('No hackathon selected');
-    }
 
     const fileName = oldImageUrl.split('/').pop();
     if (!fileName) throw new Error('Invalid old image URL');
@@ -192,40 +371,55 @@ export const useSubmissionFormSecure = () => {
       await axios.delete('/api/file', {
         params: {
           fileName,
-          hackaton_id: state.hackathonId,
+          ...(state.hackathonId && { hackaton_id: state.hackathonId }),
+          user_id: session?.user?.id
         }
       });
       const newUrl = await uploadFile(newFile);
 
-   
+      toast({
+        title: 'Image replaced',
+        description: 'The image has been replaced successfully.',
+      });
       return newUrl;
     } catch (error: any) {
       const message = error.response?.data?.error || error.message || 'Error replacing image';
-  
+      toast({
+        title: 'Error replacing image',
+        description: message,
+        variant: 'destructive',
+      });
       throw new Error(message);
     }
   }, [state.hackathonId, session?.user?.id, uploadFile, toast]);
 
   const deleteImage = useCallback(async (oldImageUrl: string): Promise<void> => {
-    if (!state.hackathonId) {
-      throw new Error('No hackathon selected');
-    }
-
     const fileName = oldImageUrl.split('/').pop();
     if (!fileName) throw new Error('Invalid old image URL');
 
     try {
-      await axios.delete('/api/file', {
-        params: {
-          fileName,
-          hackaton_id: state.hackathonId,
-        }
+      const params = new URLSearchParams({
+        fileName: encodeURIComponent(fileName),
+        user_id: session?.user?.id || ''
+      });
+      if (state.hackathonId) {
+        params.append('hackaton_id', state.hackathonId);
+      }
+      await fetch(`/api/file?${params.toString()}`, {
+        method: 'DELETE',
       });
 
-     
+      toast({
+        title: 'Image deleted',
+        description: 'The image has been deleted successfully.',
+      });
     } catch (error: any) {
       const message = error.response?.data?.error || error.message || 'Error deleting image';
-     
+      toast({
+        title: 'Error deleting image',
+        description: message,
+        variant: 'destructive',
+      });
       throw new Error(message);
     }
   }, [state.hackathonId, session?.user?.id, toast]);
@@ -252,7 +446,7 @@ export const useSubmissionFormSecure = () => {
 
         coverFileUrl:
           data.coverFile &&
-            (!Array.isArray(data.coverFile) || data.logoFile.length > 0)
+            (!Array.isArray(data.coverFile) || data.coverFile.length > 0)
             ? typeof data.coverFile === 'string'
               ? data.coverFile
               : originalImages.coverFile
@@ -298,6 +492,14 @@ export const useSubmissionFormSecure = () => {
       });
 
 
+      // Filtrar deployed_addresses para eliminar entradas con address o tag vacíos
+      const filteredDeployedAddresses = (data.deployed_addresses || []).filter(
+        (item: { address: string; tag?: string }) => 
+          item.address && 
+          item.address.trim().length > 0 &&
+          (!item.tag || item.tag.trim().length > 0)
+      );
+
       const finalData = {
         ...data,
         logo_url: uploadedFiles.logoFileUrl ?? '',
@@ -305,8 +507,10 @@ export const useSubmissionFormSecure = () => {
         screenshots: uploadedFiles.screenshotsUrls,
         github_repository: data.github_repository?.join(',') ?? "",
         demo_link: data.demo_link?.join(',') ?? "",
+        categories: data.categories?.join(',') ?? "",
+        deployed_addresses: filteredDeployedAddresses,
         is_winner: false,
-        hackaton_id: state.hackathonId,
+        ...(state.hackathonId && { hackaton_id: state.hackathonId }),
         user_id: session?.user?.id,
       };
       const success = await actions.saveProject(finalData);
@@ -345,22 +549,37 @@ export const useSubmissionFormSecure = () => {
         title: 'Project saved',
         description: 'Your project has been saved successfully.',
       });
+      
+      // Redirect to profile projects section if no hackathon
+      if (!state.hackathonId) {
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        router.push('/profile#projects');
+      }
     } catch (error) {
       console.error('Error in handleSaveWithoutRoute:', error);
       throw error;
     }
-  }, [form, saveProject, toast]);
+  }, [form, saveProject, toast, router, state.hackathonId]);
 
 
   const handleSave = useCallback(async (): Promise<void> => {
     try {
       await handleSaveWithoutRoute();
-      toast({
-        title: 'Project saved',
-        description: 'Your project has been successfully saved. You will be redirected to the hackathon page.',
-      });
-      await new Promise((resolve) => setTimeout(resolve, 3000));
-      router.push(`/hackathons/${state.hackathonId}`);
+      if (state.hackathonId) {
+        toast({
+          title: 'Project saved',
+          description: 'Your project has been successfully saved. You will be redirected to the hackathon page.',
+        });
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+        router.push(`/hackathons/${state.hackathonId}`);
+      } else {
+        toast({
+          title: 'Project saved',
+          description: 'Your project has been successfully saved. You will be redirected to your profile.',
+        });
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+        router.push('/profile#projects');
+      }
     } catch (error) {
       console.error('Error in handleSave:', error);
       toast({
@@ -391,7 +610,14 @@ export const useSubmissionFormSecure = () => {
       demo_link: project.demo_link ? project.demo_link.split(',').filter(Boolean) : [],
       is_preexisting_idea: !!project.is_preexisting_idea,
       demo_video_link: project.demo_video_link ?? '',
-      tracks: project.tracks ?? [],
+      tracks: project.tracks ?? (typeof project.tracks === 'string' ? project.tracks.split(',').filter(Boolean) : []),
+      categories: Array.isArray(project.categories) 
+        ? project.categories 
+        : (project.categories ? project.categories.split(',').filter(Boolean) : []),
+      other_category: project.other_category ?? '',
+      deployed_addresses: Array.isArray(project.deployed_addresses) 
+        ? project.deployed_addresses 
+        : [],
       logoFile: project.logo_url ?? undefined,
       coverFile: project.cover_url ?? undefined,
       screenshots: project.screenshots ?? [],

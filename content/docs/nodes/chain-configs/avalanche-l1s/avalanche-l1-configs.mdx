@@ -43,22 +43,20 @@ configuration. If a node sets `validatorOnly` to true, the node exchanges
 messages only with this Subnet's validators. Other peers will not be able to
 learn contents of this Subnet from this node.
 
-:::tip
+<Callout type="info">
 This is a node-specific configuration. Every validator of this Subnet has to use
 this configuration in order to create a full private Subnet.
-
-:::
+</Callout>
 
 #### `allowedNodes` (string list)
 
 If `validatorOnly=true` this allows explicitly specified NodeIDs to be allowed
 to sync the Subnet regardless of validator status. Defaults to be empty.
 
-:::tip
+<Callout type="info">
 This is a node-specific configuration. Every validator of this Subnet has to use
 this configuration in order to properly allow a node in the private Subnet.
-
-:::
+</Callout>
 
 ### Consensus Parameters
 

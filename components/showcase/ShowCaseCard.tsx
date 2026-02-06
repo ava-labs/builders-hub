@@ -25,12 +25,15 @@ import {
 } from '../ui/pagination';
 import React from 'react';
 import { ProjectCard } from './ProjectCard';
-import Link from 'next/link';
 import { ProjectFilters } from '@/types/project';
 import { useRouter } from 'next/navigation';
 import { HackathonHeader } from '@/types/hackathons';
+import { useExports } from './hooks/useExports';
+import { LoadingButton } from '../ui/loading-button';
+import { useSession } from 'next-auth/react';
 const tracks = ['AI', 'DeFi', 'RWA', 'Gaming', 'SocialFi', 'Tooling'];
-
+import { useToast } from "@/hooks/use-toast";
+import { Toaster } from "../ui/toaster";
 type Props = {
   projects: Project[];
   events: HackathonHeader[];
@@ -47,17 +50,66 @@ export default function ShowCaseCard({
   const [searchValue, setSearchValue] = useState('');
   const [filters, setFilters] = useState<ProjectFilters>(initialFilters);
   const [currentPage, setCurrentPage] = useState(initialFilters.page ?? 1);
+  const { data: session } = useSession();
   const [recordsByPage, setRecordsByPage] = useState(
     initialFilters.recordsByPage ?? 12
   );
   const [totalPages, setTotalPages] = useState<number>(
     Math.ceil(totalProjects / recordsByPage) || 1
   );
+  const [isExporting, setIsExporting] = useState(false);
   const router = useRouter();
-
+  const { exportToExcel, isLoading, error } = useExports();
   const selectedHackathon = events.find(event => event.id === filters.event);
   const availableTracks = selectedHackathon?.content?.tracks?.map(track => track.name) ?? [];
-  
+  const [hasRole, setHasRole] = useState(false);
+  const { toast } = useToast();
+  const handleExport = async () => {
+    const exportFilters: Record<string, unknown> = {};
+
+    if (filters.event) {
+      exportFilters.event = filters.event;
+    }
+
+    if (filters.track) {
+      exportFilters.track = filters.track;
+    }
+
+    if (filters.search) {
+      exportFilters.search = filters.search;
+    }
+
+    if (typeof filters.winningProjecs === 'boolean') {
+      exportFilters.winningProjects = filters.winningProjecs;
+    }
+
+    try {
+      setIsExporting(true);
+      await exportToExcel(exportFilters);
+    } catch (err) {
+      console.error('Error exporting:', error);
+      toast({
+        title: "Error exporting projects",
+        description: error,
+        variant: "default",
+        duration: 3000,
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  useEffect(() => {
+    if (session?.user) {
+      if (session?.user?.custom_attributes?.includes('hackathonCreator')) {
+        setHasRole(true);
+      }
+    }
+    else {
+      setHasRole(false);
+    }
+  }, [session]);
+
 
   const handleFilterChange = (type: keyof ProjectFilters, value: string) => {
     const newFilters = {
@@ -101,7 +153,9 @@ export default function ShowCaseCard({
   };
 
   return (
+    
     <Card className='bg-zinc-50 dark:bg-zinc-950 relative border border-zinc-300 dark:border-zinc-800 p-8'>
+       <Toaster />
       <CardHeader className='p-0'>
         <CardTitle className='text-2xl text-zinc-900 dark:text-zinc-50'>
           Showcase
@@ -112,6 +166,14 @@ export default function ShowCaseCard({
         </CardDescription>
       </CardHeader>
       <Separator className='mt-6 bg-zinc-300 dark:bg-zinc-800 h-[2px]' />
+      <div className='flex justify-end'>
+        {hasRole && <LoadingButton variant={'outline'}
+          isLoading={isExporting}
+          onClick={handleExport}
+          className='bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50'>
+          Export Projects
+        </LoadingButton>}
+      </div>
       <div className='grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mt-6'>
         <div className='w-full'>
           <Tabs
@@ -124,28 +186,27 @@ export default function ShowCaseCard({
               <TabsTrigger
                 onClick={() => handleFilterChange('winningProjecs', 'false')}
                 value='allProjects'
-                className={`${
-                  filters.winningProjecs
+                className={`${filters.winningProjecs
                     ? '!bg-transparent'
                     : 'bg-zinc-50 dark:!bg-zinc-950'
-                } border-none`}
+                  } border-none`}
               >
                 All Projects
               </TabsTrigger>
               <TabsTrigger
                 onClick={() => handleFilterChange('winningProjecs', 'true')}
                 value='winingProjects'
-                className={`${
-                  filters.winningProjecs
+                className={`${filters.winningProjecs
                     ? 'bg-zinc-50 dark:!bg-zinc-950'
                     : '!bg-transparent'
-                } border-none`}
+                  } border-none`}
               >
                 Winning Projects
               </TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
+
         <div className='relative w-full'>
           <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-[40px] w-5 text-zinc-400 stroke-zinc-700' />
           <Input
@@ -203,20 +264,16 @@ export default function ShowCaseCard({
           {totalProjects > 1
             ? 'Projects'
             : totalProjects == 0
-            ? 'No projects found'
-            : 'Project'}{' '}
+              ? 'No projects found'
+              : 'Project'}{' '}
           found
         </h1>
         <Separator className='my-8 bg-zinc-300 dark:bg-zinc-800 h-[2px]' />
         <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6'>
           {projects.map((project, index) => (
-            <Link
-              key={index}
-              href={`/showcase/${project.id}`}
-              className='w-full h-full'
-            >
-              <ProjectCard project={project} />
-            </Link>
+
+            <ProjectCard project={project} key={index} />
+
           ))}
         </div>
         <div className='w-full flex justify-end mt-8'>

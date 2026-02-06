@@ -153,7 +153,7 @@ async function findProjectByImageUrl(fileIdentifier: string): Promise<{ id: stri
 /**
  * Verifies if a user is a member of a project
  */
-async function isUserProjectMember(userId: string, projectId: string): Promise<boolean> {
+export async function isUserProjectMember(userId: string, projectId: string): Promise<boolean> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { email: true },

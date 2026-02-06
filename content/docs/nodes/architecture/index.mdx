@@ -22,14 +22,15 @@ AvalancheGo is a full-node implementation that:
 AvalancheGo is written in Go and is designed to be modular, allowing developers to build custom Virtual Machines (VMs) that define their own blockchain logic.
 </Callout>
 
-## Execution at a glance
+## Architecture at a Glance
 
 - **Networking**: Custom P2P stack with mutual TLS (staking certs), throttling, peer scoring, and subnet-aware gossip.
 - **Consensus engines**: Snowman/Snowman++ for all Primary Network chains (P/C/X post-Cortina). The legacy Avalanche DAG engine exists but is unused.
 - **VMs**: PlatformVM (P-Chain), Coreth (C-Chain), AVM (X-Chain), plus pluggable/`rpcchainvm` VMs for custom L1s.
 - **Chain manager**: Boots P/C/X, creates new chains on request, routes consensus messages.
 - **APIs**: HTTP/WS via `/ext/*`, with health/metrics, admin/info, and per-chain RPCs.
-- **Storage**: LevelDB (default) or PebbleDB, shared atomic UTXO memory for cross-chain transfers, optional indexer.
+- **Storage**: LevelDB (default), PebbleDB, or [Firewood](/docs/nodes/architecture/execution/firewood) (experimental), shared atomic UTXO memory for cross-chain transfers.
+- **Execution**: [Streaming Asynchronous Execution](/docs/nodes/architecture/execution/streaming-async-execution) (experimental) decouples consensus from execution for higher throughput.
 
 ## Core Components
 
@@ -90,5 +91,8 @@ AvalancheGo separates concerns into distinct layers:
   </Card>
   <Card title="Networking" href="/docs/nodes/architecture/networking">
     Explore the P2P protocol and peer management system
+  </Card>
+  <Card title="Execution" href="/docs/nodes/architecture/execution">
+    Explore streaming async execution and the Firewood database
   </Card>
 </Cards>

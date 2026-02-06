@@ -157,6 +157,7 @@ export default function NetworkDiagram({
   const { resolvedTheme } = useTheme();
   
   const [dimensions, setDimensions] = useState({ width: 900, height: 600 });
+  const [dpr, setDpr] = useState(1);
   const [hoveredChain, setHoveredChain] = useState<ChainNode | null>(null);
   const [selectedChain, setSelectedChain] = useState<ChainNode | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -549,34 +550,38 @@ export default function NetworkDiagram({
   useEffect(() => {
     let resizeTimeout: ReturnType<typeof setTimeout> | null = null;
     const lastDimensions = { width: 0, height: 0 };
-    
+
     const updateSize = (immediate = false) => {
       if (!containerRef.current) return;
-      
+
       const rect = containerRef.current.getBoundingClientRect();
       const newWidth = Math.round(rect.width);
       const newHeight = Math.round(rect.height);
-      
+
+      // Update device pixel ratio for crisp rendering on HiDPI displays
+      const newDpr = Math.min(window.devicePixelRatio || 1, 2); // Cap at 2 for performance
+      setDpr(newDpr);
+
       // On mobile, browser chrome (address bar) hiding/showing causes height changes
       // Only update if width changes or height changes significantly (more than 100px)
       const widthChanged = Math.abs(newWidth - lastDimensions.width) > 2;
       const heightChangedSignificantly = Math.abs(newHeight - lastDimensions.height) > 100;
-      
+
       if (immediate || widthChanged || heightChangedSignificantly) {
         lastDimensions.width = newWidth;
         lastDimensions.height = newHeight;
         setDimensions({ width: newWidth, height: newHeight });
       }
     };
-    
+
     const handleResize = () => {
       if (resizeTimeout) clearTimeout(resizeTimeout);
       resizeTimeout = setTimeout(() => updateSize(false), 150);
     };
-    
+
     // Initial update is immediate
     updateSize(true);
-    
+
     window.addEventListener('resize', handleResize);
     return () => {
       window.removeEventListener('resize', handleResize);
@@ -584,14 +589,14 @@ export default function NetworkDiagram({
     };
   }, [isFullscreen]);
 
-  // Prevent page scroll when zooming with wheel or touch
+  // Prevent page scroll when zooming with Ctrl+wheel or touch
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
     const handleWheelNative = (e: WheelEvent) => {
-      // Only prevent default if the wheel event is over the container
-      if (container.contains(e.target as Node)) {
+      // Only prevent default if Ctrl is held (for zoom) - otherwise let page scroll
+      if (container.contains(e.target as Node) && (e.ctrlKey || e.metaKey)) {
         e.preventDefault();
       }
     };
@@ -687,18 +692,22 @@ export default function NetworkDiagram({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    // Set canvas resolution for HiDPI displays (pixel-perfect rendering)
+    canvas.width = dimensions.width * dpr;
+    canvas.height = dimensions.height * dpr;
+
     let time = 0;
 
     const draw = () => {
       time += 0.008;
-      
+
       simulatePhysics(nodesRef.current, dimensions.width, dimensions.height, isMobile);
-      
+
       // Update link positions after physics
       if (linksRef.current.length > 0) {
         const nodeMap = new Map<string, ChainNode>();
         nodesRef.current.forEach(n => nodeMap.set(n.id, n));
-        
+
         linksRef.current.forEach(link => {
           const fromNode = nodeMap.get(link.fromId);
           const toNode = nodeMap.get(link.toId);
@@ -719,7 +728,10 @@ export default function NetworkDiagram({
         }
       });
 
-      // === CLEAR CANVAS ===
+      // === CLEAR CANVAS with DPR scaling ===
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // Reset transform and apply DPR scale
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
       ctx.fillStyle = '#020208';
       ctx.fillRect(0, 0, dimensions.width, dimensions.height);
 
@@ -940,45 +952,54 @@ export default function NetworkDiagram({
         });
 
         // Chain name label with logo - show ALL chains
-        const labelFontSize = Math.max(8, Math.min(11, node.radius / 3));
-        const logoSize = labelFontSize + 2;
-        const labelY = node.y + node.radius * scale + 12;
-        
+        // Round font size to integer for crisp text
+        const labelFontSize = Math.round(Math.max(8, Math.min(11, node.radius / 3)));
+        const logoSize = Math.round(labelFontSize + 2);
+        // Round label position to integers for pixel-perfect rendering
+        const labelY = Math.round(node.y + node.radius * scale + 12);
+
         // Draw logo if available
         const logoImg = logoImagesRef.current.get(node.id);
         const hasLogo = logoImg && logoImg.complete && logoImg.naturalWidth > 0;
-        
+
         ctx.font = `${isHovered ? 'bold ' : ''}${labelFontSize}px Inter, system-ui, sans-serif`;
         const textWidth = ctx.measureText(node.name).width;
         const totalWidth = hasLogo ? logoSize + 4 + textWidth : textWidth;
-        const startX = node.x - totalWidth / 2;
-        
+        // Round starting X position to integer
+        const startX = Math.round(node.x - totalWidth / 2);
+
         if (hasLogo) {
+          // Round logo coordinates for crisp rendering
+          const logoCenterX = Math.round(startX + logoSize / 2);
+          const logoDrawX = Math.round(startX);
+          const logoDrawY = Math.round(labelY - logoSize / 2);
+          const logoRadius = logoSize / 2;
+
           // Draw circular logo
           ctx.save();
           ctx.beginPath();
-          ctx.arc(startX + logoSize / 2, labelY, logoSize / 2, 0, Math.PI * 2);
+          ctx.arc(logoCenterX, labelY, logoRadius, 0, Math.PI * 2);
           ctx.clip();
-          ctx.drawImage(logoImg, startX, labelY - logoSize / 2, logoSize, logoSize);
+          ctx.drawImage(logoImg, logoDrawX, logoDrawY, logoSize, logoSize);
           ctx.restore();
-          
+
           // Draw logo border
           ctx.beginPath();
-          ctx.arc(startX + logoSize / 2, labelY, logoSize / 2, 0, Math.PI * 2);
+          ctx.arc(logoCenterX, labelY, logoRadius, 0, Math.PI * 2);
           ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-          ctx.lineWidth = 0.5;
+          ctx.lineWidth = 1;
           ctx.stroke();
         }
-        
-        // Draw chain name
-        const textX = hasLogo ? startX + logoSize + 4 : node.x;
+
+        // Draw chain name - round text position to integers
+        const textX = Math.round(hasLogo ? startX + logoSize + 4 : node.x);
         ctx.textAlign = hasLogo ? 'left' : 'center';
         ctx.textBaseline = 'middle';
-        
+
         // Text shadow
         ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
         ctx.fillText(node.name, textX + 1, labelY + 1);
-        
+
         // Text
         ctx.fillStyle = isHovered ? '#ffffff' : 'rgba(255, 255, 255, 0.9)';
         ctx.fillText(node.name, textX, labelY);
@@ -987,18 +1008,18 @@ export default function NetworkDiagram({
       // Restore transform
       ctx.restore();
 
-      // Watermark (drawn after restore so it stays fixed)
+      // Watermark (drawn after restore so it stays fixed) - use rounded coordinates
       ctx.font = 'bold 11px Inter, system-ui, sans-serif';
       ctx.textAlign = 'center';
       ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
-      ctx.fillText('AVALANCHE NETWORK', dimensions.width / 2, dimensions.height - 20);
-      
-      // Zoom indicator
+      ctx.fillText('AVALANCHE NETWORK', Math.round(dimensions.width / 2), Math.round(dimensions.height - 20));
+
+      // Zoom indicator - use rounded coordinates
       if (zoom !== 1 || panOffset.x !== 0 || panOffset.y !== 0) {
         ctx.font = '10px Inter, system-ui, sans-serif';
         ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
         ctx.textAlign = 'right';
-        ctx.fillText(`${Math.round(zoom * 100)}%`, dimensions.width - 15, 25);
+        ctx.fillText(`${Math.round(zoom * 100)}%`, Math.round(dimensions.width - 15), 25);
       }
 
       animationRef.current = requestAnimationFrame(draw);
@@ -1011,7 +1032,7 @@ export default function NetworkDiagram({
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [dimensions, resolvedTheme, simulatePhysics, zoom, panOffset, selectedChain]);
+  }, [dimensions, dpr, resolvedTheme, simulatePhysics, zoom, panOffset, selectedChain]);
 
   // Mouse interactions
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -1115,31 +1136,34 @@ export default function NetworkDiagram({
     }
   }, [onChainHover, selectedChain]);
 
-  // Zoom with mouse wheel (reduced sensitivity)
+  // Zoom with Ctrl+mouse wheel (reduced sensitivity)
   const handleWheel = useCallback((e: React.WheelEvent<HTMLCanvasElement>) => {
+    // Only zoom when Ctrl (or Cmd on Mac) is held - otherwise let page scroll
+    if (!e.ctrlKey && !e.metaKey) return;
+
     e.preventDefault();
     const minZoom = calculateMinZoom();
     const delta = e.deltaY > 0 ? 0.97 : 1.03; // Very gentle zoom
     const newZoom = Math.max(minZoom, Math.min(5, zoom * delta));
-    
+
     // Zoom towards mouse position
     const canvas = canvasRef.current;
     if (canvas) {
       const rect = canvas.getBoundingClientRect();
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
-      
+
       const centerX = dimensions.width / 2;
       const centerY = dimensions.height / 2;
-      
+
       // Calculate new pan to zoom towards mouse
       const zoomRatio = newZoom / zoom;
       const newPanX = mouseX - (mouseX - centerX - panOffset.x) * zoomRatio - centerX;
       const newPanY = mouseY - (mouseY - centerY - panOffset.y) * zoomRatio - centerY;
-      
+
       setPanOffset({ x: newPanX, y: newPanY });
     }
-    
+
     setZoom(newZoom);
   }, [zoom, dimensions, panOffset, calculateMinZoom]);
 
@@ -1314,9 +1338,8 @@ export default function NetworkDiagram({
     >
       <canvas
         ref={canvasRef}
-        width={dimensions.width}
-        height={dimensions.height}
-        className={`w-full h-full ${isDragging ? 'cursor-grabbing' : 'cursor-grab'} touch-none`}
+        style={{ width: dimensions.width, height: dimensions.height }}
+        className={`${isDragging ? 'cursor-grabbing' : 'cursor-grab'} touch-none`}
         onMouseMove={handleMouseMove}
         onMouseDown={handleMouseDown}
         onMouseUp={handleMouseUp}
@@ -1692,7 +1715,7 @@ export default function NetworkDiagram({
           )}
         </div>
         <div className="mt-2 pt-2 border-t border-white/10 text-white/50">
-          <span>Scroll to zoom • Drag to pan</span>
+          <span>Ctrl+scroll to zoom • Drag to pan</span>
         </div>
       </div>
     </div>

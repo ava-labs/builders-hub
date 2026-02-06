@@ -18,8 +18,8 @@ import { Input, Suggestion } from "@/components/toolbox/components/Input";
 import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput";
 import { createPublicClient, http } from "viem";
 import { Note } from "@/components/toolbox/components/Note";
-import { utils } from "@avalabs/avalanchejs";
 import ERC20TokenHomeABI from "@/contracts/icm-contracts/compiled/ERC20TokenHome.json";
+import { cb58ToHex } from '@/components/toolbox/console/utilities/format-converter/FormatConverter';
 import ExampleERC20 from "@/contracts/icm-contracts/compiled/ExampleERC20.json";
 import SelectBlockchainId from "@/components/toolbox/components/SelectBlockchainId";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
@@ -70,7 +70,7 @@ function DeployERC20TokenRemote() {
   const tokenHomeBlockchainIDHex = useMemo(() => {
     if (!sourceL1?.id) return undefined;
     try {
-      return utils.bufferToHex(utils.base58check.decode(sourceL1.id));
+      return cb58ToHex(sourceL1.id);
     } catch (e) {
       console.error("Error decoding source chain ID:", e);
       return undefined;

@@ -26,24 +26,25 @@ export async function proxy(req: NextRequest) {
   const isShowCase = pathname.startsWith("/showcase");
   const custom_attributes = token?.custom_attributes as string[] ?? []
 
-  if (!isAuthenticated && !isLoginPage) {
-    const protectedPaths = [
-      "/hackathons/registration-form",
-      "/hackathons/project-submission",
-      "/showcase",
-      "/profile",
-      "/student-launchpad",
-      "/grants/"
-    ];
+  const protectedPaths = [
+    "/hackathons/registration-form",
+    "/hackathons/project-submission",
+    "/showcase",
+    "/profile",
+    "/student-launchpad",
+    "/grants/"
+  ];
 
-    const isProtectedPath = protectedPaths.some(path => pathname.startsWith(path));
+  const isProtectedPath = protectedPaths.some(path => pathname.startsWith(path));
 
-    if (isProtectedPath) {
-      const currentUrl = req.url;
-      const loginUrl = new URL("/login", req.url);
-      loginUrl.searchParams.set("callbackUrl", currentUrl);
-      return NextResponse.redirect(loginUrl);
-    }
+  // Protect routes: block unauthenticated access to protected paths without redirecting
+  // The client-side component (AutoLoginModalTrigger) will detect this and show the login modal
+  if (!isAuthenticated && !isLoginPage && isProtectedPath) {
+    // Block access by setting a header, but allow the request to continue
+    // The page will render but the client will show the login modal
+    const blockedResponse = NextResponse.next();
+    blockedResponse.headers.set("x-auth-required", "true");
+    return blockedResponse;
   }
 
   if (isAuthenticated) {
@@ -63,21 +64,26 @@ export async function proxy(req: NextRequest) {
       }
     }
 
-  }
-
-  return withAuth(
-    (authReq: NextRequestWithAuth): NextMiddlewareResult => {
-      return NextResponse.next();
-    },
-    {
-      pages: {
-        signIn: "/login",
-      },
-      callbacks: {
-        authorized: ({ token }) => !!token,
-      }
+    // For authenticated users on protected paths, use withAuth to ensure protection
+    if (isProtectedPath) {
+      return withAuth(
+        (authReq: NextRequestWithAuth): NextMiddlewareResult => {
+          return NextResponse.next();
+        },
+        {
+          pages: {
+            signIn: "/login",
+          },
+          callbacks: {
+            authorized: ({ token }) => !!token,
+          }
+        }
+      )(req as NextRequestWithAuth, {} as any);
     }
-  )(req as NextRequestWithAuth, {} as any);
+  }
+  
+  // For non-protected paths or unauthenticated users on non-protected paths, allow access
+  return NextResponse.next();
 }
 
 export const config = {

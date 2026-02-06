@@ -182,12 +182,14 @@ export default function Hackathons({
       handleSearchChange(searchValue);
     }
   };
-  const topMostHackathon = upcomingHackathons.find((x) => x.top_most) || 
+  const topMostHackathon = upcomingHackathons.find((x) => x.top_most) ||
                           ongoingHackathons.find((x) => x.top_most);
 
   const addNewHackathon = () => {
     router.push('/hackathons/edit');
   };
+
+  const BUILD_GAMES_HACKATHON_ID = '249d2911-7931-4aa0-a696-37d8370b79f9';
 
   return (
     <section className="px-8 py-6">
@@ -199,8 +201,10 @@ export default function Hackathons({
               id={topMostHackathon.id}
               isTopMost={true}
               isRegistered={false} //To keep showing "Learn More" button
+              hideTextOverlay={topMostHackathon.id === BUILD_GAMES_HACKATHON_ID}
+              customRedirectUrl={topMostHackathon.id === BUILD_GAMES_HACKATHON_ID ? '/build-games' : undefined}
             />
-            <Link href={`/hackathons/${topMostHackathon.id}`}>
+            <Link href={topMostHackathon.id === BUILD_GAMES_HACKATHON_ID ? '/build-games' : `/hackathons/${topMostHackathon.id}`}>
               <Image
                 src={
                   topMostHackathon.banner?.trim().trim().length > 0
