@@ -13,7 +13,7 @@ export interface PoAManagerHook {
 
   // Write functions - PoA specific
   completeValidatorRegistration: (messageIndex: number) => Promise<string>;
-  completeValidatorRemoval: (messageIndex: number) => Promise<string>;
+  completeValidatorRemoval: (messageIndex: number, accessList?: any[]) => Promise<string>;
   completeValidatorWeightUpdate: (messageIndex: number) => Promise<string>;
   initiateValidatorRegistration: (
     nodeID: string,
@@ -97,19 +97,25 @@ export function usePoAManager(
     return await writePromise;
   };
 
-  const completeValidatorRemoval = async (messageIndex: number): Promise<string> => {
+  const completeValidatorRemoval = async (messageIndex: number, accessList?: any[]): Promise<string> => {
     if (!coreWalletClient || !contractAddress || !walletEVMAddress || !viemChain) {
       throw new Error('Wallet not connected or contract not ready');
     }
 
-    const writePromise = coreWalletClient.writeContract({
+    const txConfig: any = {
       address: contractAddress as `0x${string}`,
       abi: contractAbi,
       functionName: 'completeValidatorRemoval',
       args: [messageIndex],
       chain: viemChain,
       account: walletEVMAddress as `0x${string}`
-    });
+    };
+
+    if (accessList) {
+      txConfig.accessList = accessList;
+    }
+
+    const writePromise = coreWalletClient.writeContract(txConfig);
 
     notify({
       type: 'call',
