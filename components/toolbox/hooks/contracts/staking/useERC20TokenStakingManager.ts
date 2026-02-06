@@ -23,7 +23,8 @@ export interface ERC20TokenStakingManagerHook {
     disableOwner: any,
     delegationFeeBips: number,
     minStakeDuration: bigint,
-    stakeAmount: bigint
+    stakeAmount: bigint,
+    rewardRecipient: string
   ) => Promise<string>;
   completeValidatorRegistration: (messageIndex: number) => Promise<string>;
   initiateValidatorRemoval: (validationID: string) => Promise<string>;
@@ -31,7 +32,7 @@ export interface ERC20TokenStakingManagerHook {
   forceInitiateValidatorRemoval: (validationID: string, includeUptime: boolean) => Promise<string>;
 
   // Write functions - Delegator operations
-  initiateDelegatorRegistration: (validationID: string, delegationAmount: bigint) => Promise<string>;
+  initiateDelegatorRegistration: (validationID: string, delegationAmount: bigint, rewardRecipient: string) => Promise<string>;
   completeDelegatorRegistration: (messageIndex: number, delegationID: string) => Promise<string>;
   initiateDelegatorRemoval: (delegationID: string) => Promise<string>;
   completeDelegatorRemoval: (messageIndex: number) => Promise<string>;
@@ -45,10 +46,10 @@ export interface ERC20TokenStakingManagerHook {
   submitUptimeProof: (validationID: string, messageIndex: number) => Promise<string>;
 
   // Write functions - Setup
-  initialize: (settings: StakingManagerSettings) => Promise<string>;
+  initialize: (settings: StakingManagerSettings, tokenAddress: string) => Promise<string>;
 
   // Gas estimation
-  estimateInitialize: (settings: StakingManagerSettings) => Promise<bigint>;
+  estimateInitialize: (settings: StakingManagerSettings, tokenAddress: string) => Promise<bigint>;
 
   // Metadata
   contractAddress: string | null;
@@ -149,7 +150,8 @@ export function useERC20TokenStakingManager(
     disableOwner: any,
     delegationFeeBips: number,
     minStakeDuration: bigint,
-    stakeAmount: bigint
+    stakeAmount: bigint,
+    rewardRecipient: string
   ): Promise<string> => {
     if (!coreWalletClient || !contractAddress || !walletEVMAddress || !viemChain) {
       throw new Error('Wallet not connected or contract not ready');
@@ -159,7 +161,7 @@ export function useERC20TokenStakingManager(
       address: contractAddress as `0x${string}`,
       abi: contractAbi,
       functionName: 'initiateValidatorRegistration',
-      args: [nodeID, blsPublicKey, remainingBalanceOwner, disableOwner, delegationFeeBips, minStakeDuration, stakeAmount],
+      args: [nodeID, blsPublicKey, remainingBalanceOwner, disableOwner, delegationFeeBips, minStakeDuration, stakeAmount, rewardRecipient],
       chain: viemChain,
       account: walletEVMAddress as `0x${string}`
     });
@@ -261,7 +263,7 @@ export function useERC20TokenStakingManager(
   };
 
   // Write functions - Delegator operations
-  const initiateDelegatorRegistration = async (validationID: string, delegationAmount: bigint): Promise<string> => {
+  const initiateDelegatorRegistration = async (validationID: string, delegationAmount: bigint, rewardRecipient: string): Promise<string> => {
     if (!coreWalletClient || !contractAddress || !walletEVMAddress || !viemChain) {
       throw new Error('Wallet not connected or contract not ready');
     }
@@ -270,7 +272,7 @@ export function useERC20TokenStakingManager(
       address: contractAddress as `0x${string}`,
       abi: contractAbi,
       functionName: 'initiateDelegatorRegistration',
-      args: [validationID, delegationAmount],
+      args: [validationID, delegationAmount, rewardRecipient],
       chain: viemChain,
       account: walletEVMAddress as `0x${string}`
     });
@@ -483,7 +485,7 @@ export function useERC20TokenStakingManager(
   };
 
   // Write functions - Setup
-  const initialize = async (settings: StakingManagerSettings): Promise<string> => {
+  const initialize = async (settings: StakingManagerSettings, tokenAddress: string): Promise<string> => {
     if (!coreWalletClient || !contractAddress || !walletEVMAddress || !viemChain) {
       throw new Error('Wallet not connected or contract not ready');
     }
@@ -492,7 +494,7 @@ export function useERC20TokenStakingManager(
       address: contractAddress as `0x${string}`,
       abi: contractAbi,
       functionName: 'initialize',
-      args: [settings],
+      args: [settings, tokenAddress],
       chain: viemChain,
       account: walletEVMAddress as `0x${string}`
     });
@@ -506,7 +508,7 @@ export function useERC20TokenStakingManager(
   };
 
   // Gas estimation
-  const estimateInitialize = async (settings: StakingManagerSettings): Promise<bigint> => {
+  const estimateInitialize = async (settings: StakingManagerSettings, tokenAddress: string): Promise<bigint> => {
     if (!publicClient || !contractAddress || !walletEVMAddress) {
       throw new Error('Client not ready or contract not ready');
     }
@@ -515,7 +517,7 @@ export function useERC20TokenStakingManager(
       address: contractAddress as `0x${string}`,
       abi: contractAbi,
       functionName: 'initialize',
-      args: [settings],
+      args: [settings, tokenAddress],
       account: walletEVMAddress as `0x${string}`
     });
   };

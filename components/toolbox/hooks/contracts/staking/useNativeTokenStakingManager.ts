@@ -33,6 +33,7 @@ export interface NativeTokenStakingManagerHook {
     disableOwner: any,
     delegationFeeBips: number,
     minStakeDuration: bigint,
+    rewardRecipient: string,
     stakeAmount: bigint
   ) => Promise<string>;
   completeValidatorRegistration: (messageIndex: number) => Promise<string>;
@@ -41,7 +42,7 @@ export interface NativeTokenStakingManagerHook {
   forceInitiateValidatorRemoval: (validationID: string, includeUptime: boolean) => Promise<string>;
 
   // Write functions - Delegator operations
-  initiateDelegatorRegistration: (validationID: string, delegationAmount: bigint) => Promise<string>;
+  initiateDelegatorRegistration: (validationID: string, rewardRecipient: string, delegationAmount: bigint) => Promise<string>;
   completeDelegatorRegistration: (messageIndex: number, delegationID: string) => Promise<string>;
   initiateDelegatorRemoval: (delegationID: string) => Promise<string>;
   completeDelegatorRemoval: (messageIndex: number) => Promise<string>;
@@ -145,6 +146,7 @@ export function useNativeTokenStakingManager(
     disableOwner: any,
     delegationFeeBips: number,
     minStakeDuration: bigint,
+    rewardRecipient: string,
     stakeAmount: bigint
   ): Promise<string> => {
     if (!coreWalletClient || !contractAddress || !walletEVMAddress || !viemChain) {
@@ -155,7 +157,7 @@ export function useNativeTokenStakingManager(
       address: contractAddress as `0x${string}`,
       abi: contractAbi,
       functionName: 'initiateValidatorRegistration',
-      args: [nodeID, blsPublicKey, remainingBalanceOwner, disableOwner, delegationFeeBips, minStakeDuration],
+      args: [nodeID, blsPublicKey, remainingBalanceOwner, disableOwner, delegationFeeBips, minStakeDuration, rewardRecipient],
       value: stakeAmount,
       chain: viemChain,
       account: walletEVMAddress as `0x${string}`
@@ -258,7 +260,7 @@ export function useNativeTokenStakingManager(
   };
 
   // Write functions - Delegator operations
-  const initiateDelegatorRegistration = async (validationID: string, delegationAmount: bigint): Promise<string> => {
+  const initiateDelegatorRegistration = async (validationID: string, rewardRecipient: string, delegationAmount: bigint): Promise<string> => {
     if (!coreWalletClient || !contractAddress || !walletEVMAddress || !viemChain) {
       throw new Error('Wallet not connected or contract not ready');
     }
@@ -267,7 +269,7 @@ export function useNativeTokenStakingManager(
       address: contractAddress as `0x${string}`,
       abi: contractAbi,
       functionName: 'initiateDelegatorRegistration',
-      args: [validationID],
+      args: [validationID, rewardRecipient],
       value: delegationAmount,
       chain: viemChain,
       account: walletEVMAddress as `0x${string}`

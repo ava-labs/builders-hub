@@ -18,11 +18,11 @@ import ERC20TokenStakingManager from "@/contracts/icm-contracts/compiled/ERC20To
 import { parseEther } from "viem";
 import versions from '@/scripts/versions.json';
 import { cb58ToHex } from '@/components/toolbox/console/utilities/format-converter/FormatConverter';
-import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { toast } from 'sonner';
 import { useCriticalError } from "@/components/toolbox/hooks/useCriticalError";
 import { StakingParametersForm } from "@/components/toolbox/components/StakingParametersForm";
 import { jsonStringifyWithBigint } from "@/components/toolbox/utils/json";
+import { useNativeTokenStakingManager, useERC20TokenStakingManager } from "@/components/toolbox/hooks/contracts";
 
 const ICM_COMMIT = versions["ava-labs/icm-contracts"];
 
@@ -51,7 +51,6 @@ function InitializeStakingManager({ initialTokenType }: InitializeStakingManager
         rewardCalculatorAddress: storedRewardCalculatorAddress,
         exampleErc20Address
     } = useToolboxStore();
-    const { notify } = useConsoleNotifications();
 
     // Auto-detect token type based on which staking manager address is stored from step 1
     // If ERC20 address is set, use ERC20. Otherwise default to native.
@@ -59,6 +58,10 @@ function InitializeStakingManager({ initialTokenType }: InitializeStakingManager
     const tokenType = initialTokenType || detectedTokenType;
 
     const [stakingManagerAddressInput, setStakingManagerAddressInput] = useState<string>("");
+
+    // Initialize hooks for both types
+    const nativeStakingManager = useNativeTokenStakingManager(stakingManagerAddressInput || null);
+    const erc20StakingManager = useERC20TokenStakingManager(stakingManagerAddressInput || null);
     const [isChecking, setIsChecking] = useState(false);
     const [isInitializing, setIsInitializing] = useState(false);
     const [isInitialized, setIsInitialized] = useState<boolean | null>(null);
@@ -214,38 +217,15 @@ function InitializeStakingManager({ initialTokenType }: InitializeStakingManager
                 uptimeBlockchainID: hexBlockchainId as `0x${string}`
             };
 
-            // Build args based on token type
-            const args = isNative ? [settings] : [settings, stakingTokenAddress as `0x${string}`];
+            // Call initialize using the appropriate hook
+            let hash: string;
+            if (isNative) {
+                hash = await nativeStakingManager.initialize(settings);
+            } else {
+                hash = await erc20StakingManager.initialize(settings, stakingTokenAddress as `0x${string}`);
+            }
 
-            // Estimate gas for initialization
-            const gasEstimate = await publicClient.estimateContractGas({
-                address: stakingManagerAddressInput as `0x${string}`,
-                abi: contractJson.abi,
-                functionName: 'initialize',
-                args,
-                account: walletEVMAddress as `0x${string}`,
-            });
-
-            // Add 20% buffer to gas estimate for safety
-            const gasWithBuffer = gasEstimate + (gasEstimate * 20n / 100n);
-
-            const writePromise = coreWalletClient.writeContract({
-                address: stakingManagerAddressInput as `0x${string}`,
-                abi: contractJson.abi,
-                functionName: 'initialize',
-                args,
-                chain: viemChain,
-                gas: gasWithBuffer,
-                account: walletEVMAddress as `0x${string}`,
-            });
-
-            notify({
-                type: 'call',
-                name: `Initialize ${contractName}`
-            }, writePromise, viemChain ?? undefined);
-
-            const hash = await writePromise;
-            await publicClient.waitForTransactionReceipt({ hash });
+            await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
             await checkIfInitialized();
         } catch (error) {
             setCriticalError(error instanceof Error ? error : new Error(String(error)));
