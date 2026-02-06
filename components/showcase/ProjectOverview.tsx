@@ -58,7 +58,6 @@ export default function ProjectOverview({ project, badges }: Props) {
             <Description description={project.full_description} />
           )}
              <TeamBadge projectId={project.id} />
-             <TeamBadge projectId={project.id} />
           {project.members && (
             <TeamMembers
               members={project.members}

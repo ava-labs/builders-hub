@@ -1,5 +1,6 @@
 import { User } from "@prisma/client";
 import { HackathonHeader } from "./hackathons";
+import { ProjectBadge } from "./badge";
 
 export type Project = {
   id: string;
@@ -21,8 +22,10 @@ export type Project = {
   tags: string[];
   created_at: string;
   updated_at: string;
+  is_winner?: boolean;
   members: Member[];
   prizes: ProjectPrize[];
+  badges?: ProjectBadge[];
   hackathon: HackathonHeader;
   origin: string;
 };

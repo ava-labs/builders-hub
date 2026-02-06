@@ -14,6 +14,7 @@ import {
 import { useRouter } from "next/navigation";
 import { ProjectOptions } from "./ProjectOptions";
 import { useState } from "react";
+import { BadgeAwardStatus } from "@/types/badge";
 
 export type Props = {
   project: Project,
@@ -42,10 +43,18 @@ export function ProjectCard({ project, isFromProfile = false }: Props) {
       onClick={handleCardClick}
     >
       <div className="relative px-6 flex items-center justify-between gap-2">
-        <h3 className="text-2xl font-medium flex items-center text-zinc-900 dark:text-zinc-50 break-all leading-tight">
-          {project.project_name.slice(0, 25)}
-          {project.project_name.length > 25 ? "..." : ""}
-        </h3>
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <h3 className="text-2xl font-medium flex items-center text-zinc-900 dark:text-zinc-50 break-all leading-tight">
+            {project.project_name.slice(0, 25)}
+            {project.project_name.length > 25 ? "..." : ""}
+          </h3>
+          {project.is_winner && (
+            <Badge className="bg-yellow-500 hover:bg-yellow-600 text-white border-none flex items-center gap-1 whitespace-nowrap">
+              <Trophy size={14} />
+              Winner
+            </Badge>
+          )}
+        </div>
         <div className="flex items-center">
             <ProjectOptions
               project={project}
@@ -55,11 +64,6 @@ export function ProjectCard({ project, isFromProfile = false }: Props) {
               setIsAssignBadgeOpen={setIsAssignBadgeOpen}
               isFromProfile={isFromProfile}
             />
-          {project.prizes?.length > 0 && (
-            <div className="p-2 bg-red-500 rounded-full">
-              <Trophy size={18} color="white" />
-            </div>
-          )}
         </div>
       </div>
       <div className="w-full h-[156px] relative mt-2">
@@ -76,41 +80,77 @@ export function ProjectCard({ project, isFromProfile = false }: Props) {
         />
       </div>
 
-      <div className="px-6 flex flex-col justify-between gap-1 h-full">
-        <p className="text-sm text-zinc-600 dark:text-zinc-400 line-clamp-4">
+      <div className="px-6 flex flex-col justify-between gap-2 h-full">
+        <p className="text-sm text-zinc-600 dark:text-zinc-400 line-clamp-3">
           {project.short_description.slice(0, 100)}
           {project.short_description.length > 100 ? "..." : ""}
         </p>
-        <div className="flex gap-2 justify-between">
-          <div className="max-w-[60%] flex items-center gap-2 xl:gap-6">
-            <MapPin
-              size={18}
-              className="min-w-4 w-4 h-4 !text-zinc-700 dark:!text-zinc-300"
-            />
-            <p className="text-xs text-zinc-700 dark:text-zinc-300">
-              {eventInfo.slice(0, 30)}
-              {eventInfo.length > 30 ? "..." : ""}
-            </p>
-          </div>
 
-          <div className="flex flex-col items-center gap-2">
-            {project.tracks.slice(0, 2).map((track) => (
-              <TooltipProvider key={track}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Badge
-                      variant="outline"
-                      className="border-2 border-zinc-900 dark:border-zinc-50 flex justify-center rounded-xl max-w-[120px]"
-                    >
-                      <span className="truncate">{track}</span>
-                    </Badge>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>{track}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            ))}
+        <div className="flex flex-col gap-2">
+          {/* Badge Images */}
+          {project.badges && project.badges.filter(b => b.status === BadgeAwardStatus.approved).length > 0 && (
+            <div className="flex items-center gap-1.5">
+              {project.badges
+                .filter(badge => badge.status === BadgeAwardStatus.approved)
+                .slice(0, 4)
+                .map((badge) => (
+                  <TooltipProvider key={badge.id}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="relative w-7 h-7 rounded-full overflow-hidden border-2 border-zinc-300 dark:border-zinc-600 hover:border-yellow-400 transition-colors">
+                          <Image
+                            src={badge.image_path}
+                            alt={badge.name}
+                            fill
+                            className="object-cover"
+                          />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{badge.name}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                ))}
+              {project.badges.filter(b => b.status === BadgeAwardStatus.approved).length > 4 && (
+                <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                  +{project.badges.filter(b => b.status === BadgeAwardStatus.approved).length - 4}
+                </span>
+              )}
+            </div>
+          )}
+
+          <div className="flex gap-2 justify-between">
+            <div className="max-w-[60%] flex items-center gap-2 xl:gap-6">
+              <MapPin
+                size={18}
+                className="min-w-4 w-4 h-4 !text-zinc-700 dark:!text-zinc-300"
+              />
+              <p className="text-xs text-zinc-700 dark:text-zinc-300">
+                {eventInfo.slice(0, 30)}
+                {eventInfo.length > 30 ? "..." : ""}
+              </p>
+            </div>
+
+            <div className="flex flex-col items-center gap-2">
+              {project.tracks.slice(0, 2).map((track) => (
+                <TooltipProvider key={track}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Badge
+                        variant="outline"
+                        className="border-2 border-zinc-900 dark:border-zinc-50 flex justify-center rounded-xl max-w-[120px]"
+                      >
+                        <span className="truncate">{track}</span>
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{track}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              ))}
+            </div>
           </div>
         </div>
       </div>
