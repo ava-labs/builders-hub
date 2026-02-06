@@ -11,9 +11,9 @@ import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalle
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
 import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
 import versions from '@/scripts/versions.json';
-import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 import { getLinkedBytecode } from "@/components/toolbox/utils/contract-deployment";
+import { useContractDeployer } from "@/components/toolbox/hooks/contracts";
 
 const ICM_COMMIT = versions["ava-labs/icm-contracts"];
 const VALIDATOR_MANAGER_SOURCE_URL = `https://github.com/ava-labs/icm-contracts/blob/${ICM_COMMIT}/contracts/validator-manager/ValidatorManager.sol`;
@@ -32,11 +32,8 @@ function DeployValidatorContracts({ onSuccess }: BaseConsoleToolProps) {
     const { validatorMessagesLibAddress, setValidatorMessagesLibAddress, setValidatorManagerAddress, validatorManagerAddress } = useToolboxStore();
     const { publicClient, walletEVMAddress } = useWalletStore();
     const { coreWalletClient } = useConnectedWallet();
-    const [isDeployingMessages, setIsDeployingMessages] = useState(false);
-    const [isDeployingManager, setIsDeployingManager] = useState(false);
     const viemChain = useViemChainStore();
-
-    const { sendCoreWalletNotSetNotification, notify } = useConsoleNotifications();
+    const { deploy, isDeploying } = useContractDeployer();
 
     const getLinkedValidatorManagerBytecode = () => {
         if (!validatorMessagesLibAddress) {
@@ -50,63 +47,37 @@ function DeployValidatorContracts({ onSuccess }: BaseConsoleToolProps) {
     };
 
     async function deployValidatorMessages() {
-        setIsDeployingMessages(true);
         setValidatorMessagesLibAddress("");
 
-        
         if (!viemChain) throw new Error("Viem chain not found");
         await coreWalletClient.addChain({ chain: viemChain });
         await coreWalletClient.switchChain({ id: viemChain.id });
-        const deployPromise = coreWalletClient.deployContract({
+
+        const result = await deploy({
             abi: ValidatorMessagesABI.abi as any,
-            bytecode: ValidatorMessagesABI.bytecode.object as `0x${string}`,
+            bytecode: ValidatorMessagesABI.bytecode.object,
             args: [],
-            chain: viemChain,
-            account: walletEVMAddress as `0x${string}`
+            name: 'ValidatorMessages Library'
         });
 
-        notify({
-            type: 'deploy',
-            name: 'ValidatorMessages Library'
-        }, deployPromise, viemChain ?? undefined);
-
-        const hash = await deployPromise;
-        const receipt = await publicClient.waitForTransactionReceipt({ hash });
-        if (!receipt.contractAddress) {
-            throw new Error('No contract address in receipt');
-        }
-        setValidatorMessagesLibAddress(receipt.contractAddress as string);
-        setIsDeployingMessages(false);
-
+        setValidatorMessagesLibAddress(result.contractAddress);
     }
 
     async function deployValidatorManager() {
-        setIsDeployingManager(true);
         setValidatorManagerAddress("");
 
         if (!viemChain) throw new Error("Viem chain not found");
         await coreWalletClient.addChain({ chain: viemChain });
         await coreWalletClient.switchChain({ id: viemChain.id });
-        const deployPromise = coreWalletClient.deployContract({
+
+        const result = await deploy({
             abi: ValidatorManagerABI.abi as any,
             bytecode: getLinkedValidatorManagerBytecode(),
             args: [0],
-            chain: viemChain,
-            account: walletEVMAddress as `0x${string}`
+            name: 'ValidatorManager'
         });
 
-        notify({
-            type: 'deploy',
-            name: 'ValidatorManager'
-        }, deployPromise, viemChain ?? undefined);
-
-        const hash = await deployPromise;
-        const receipt = await publicClient.waitForTransactionReceipt({ hash });
-        if (!receipt.contractAddress) {
-            throw new Error('No contract address in receipt');
-        }
-        setValidatorManagerAddress(receipt.contractAddress as string);
-        setIsDeployingManager(false);
+        setValidatorManagerAddress(result.contractAddress);
         onSuccess?.();
     }
 
@@ -126,8 +97,8 @@ function DeployValidatorContracts({ onSuccess }: BaseConsoleToolProps) {
                             <Button
                                 variant="primary"
                                 onClick={deployValidatorMessages}
-                                loading={isDeployingMessages}
-                                disabled={isDeployingMessages}
+                                loading={isDeploying}
+                                disabled={isDeploying}
                             >
                                 Deploy Library
                             </Button>
@@ -148,8 +119,8 @@ function DeployValidatorContracts({ onSuccess }: BaseConsoleToolProps) {
                             <Button
                                 variant="primary"
                                 onClick={deployValidatorManager}
-                                loading={isDeployingManager}
-                                disabled={isDeployingManager || !validatorMessagesLibAddress}
+                                loading={isDeploying}
+                                disabled={isDeploying || !validatorMessagesLibAddress}
                                 className="mt-1"
                             >
                                 Deploy Manager Contract

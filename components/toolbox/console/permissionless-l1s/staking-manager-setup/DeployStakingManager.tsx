@@ -11,10 +11,10 @@ import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalle
 import NativeTokenStakingManager from "@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json";
 import ERC20TokenStakingManager from "@/contracts/icm-contracts/compiled/ERC20TokenStakingManager.json";
 import versions from '@/scripts/versions.json';
-import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { getLinkedBytecode } from "@/components/toolbox/utils/contract-deployment";
 import { useCriticalError } from "@/components/toolbox/hooks/useCriticalError";
 import { LibraryRequirementStatus } from "@/components/toolbox/components/LibraryRequirementStatus";
+import { useContractDeployer } from "@/components/toolbox/hooks/contracts";
 
 const ICM_COMMIT = versions["ava-labs/icm-contracts"];
 
@@ -34,7 +34,6 @@ interface DeployStakingManagerProps extends BaseConsoleToolProps {
 }
 
 function DeployStakingManager({ initialTokenType = 'native' }: DeployStakingManagerProps) {
-    const [isDeploying, setIsDeploying] = useState(false);
     const [tokenType, setTokenType] = useState<TokenType>(initialTokenType);
     const { setCriticalError } = useCriticalError();
 
@@ -47,7 +46,7 @@ function DeployStakingManager({ initialTokenType = 'native' }: DeployStakingMana
         setErc20StakingManagerAddress,
         validatorMessagesLibAddress
     } = useToolboxStore();
-    const { notify } = useConsoleNotifications();
+    const { deploy, isDeploying } = useContractDeployer();
 
     const isNative = tokenType === 'native';
     const contractAddress = isNative ? nativeStakingManagerAddress : erc20StakingManagerAddress;
@@ -58,7 +57,6 @@ function DeployStakingManager({ initialTokenType = 'native' }: DeployStakingMana
     const sourceUrl = `https://github.com/ava-labs/icm-contracts/blob/${ICM_COMMIT}/contracts/validator-manager/${isNative ? 'NativeTokenStakingManager' : 'ERC20TokenStakingManager'}.sol`;
 
     async function deployStakingManager() {
-        setIsDeploying(true);
         setContractAddress("");
         try {
             if (!viemChain) throw new Error("Viem chain not found");
@@ -74,31 +72,16 @@ function DeployStakingManager({ initialTokenType = 'native' }: DeployStakingMana
             await coreWalletClient.addChain({ chain: viemChain });
             await coreWalletClient.switchChain({ id: viemChain!.id });
 
-            const deployPromise = coreWalletClient.deployContract({
+            const result = await deploy({
                 abi: contractJson.abi as any,
                 bytecode: getLinkedBytecode(contractJson.bytecode, validatorMessagesLibAddress),
                 args: [0], // ICMInitializable.Allowed
-                chain: viemChain,
-                account: walletEVMAddress as `0x${string}`,
+                name: contractName
             });
 
-            notify({
-                type: 'deploy',
-                name: contractName
-            }, deployPromise, viemChain ?? undefined);
-
-            const hash = await deployPromise;
-            const receipt = await publicClient.waitForTransactionReceipt({ hash });
-
-            if (!receipt.contractAddress) {
-                throw new Error('No contract address in receipt');
-            }
-
-            setContractAddress(receipt.contractAddress);
+            setContractAddress(result.contractAddress);
         } catch (error) {
             setCriticalError(error instanceof Error ? error : new Error(String(error)));
-        } finally {
-            setIsDeploying(false);
         }
     }
 
