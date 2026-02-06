@@ -1,0 +1,563 @@
+import { useWalletStore } from '../../../stores/walletStore';
+import { useViemChainStore } from '../../../stores/toolboxStore';
+import { readContract } from 'viem/actions';
+import useConsoleNotifications from '@/hooks/useConsoleNotifications';
+import { useWallet } from '../../useWallet';
+import ERC20TokenStakingManagerAbi from '@/contracts/icm-contracts/compiled/ERC20TokenStakingManager.json';
+import { StakingManagerSettings } from './useNativeTokenStakingManager';
+
+export interface ERC20TokenStakingManagerHook {
+  // Read functions
+  getStakingManagerSettings: () => Promise<StakingManagerSettings>;
+  getStakingValidator: (validationID: string) => Promise<any>;
+  getDelegatorInfo: (delegationID: string) => Promise<any>;
+  valueToWeight: (value: bigint) => Promise<bigint>;
+  weightToValue: (weight: bigint) => Promise<bigint>;
+  erc20: () => Promise<string>;
+
+  // Write functions - Validator operations
+  initiateValidatorRegistration: (
+    nodeID: string,
+    blsPublicKey: string,
+    remainingBalanceOwner: any,
+    disableOwner: any,
+    delegationFeeBips: number,
+    minStakeDuration: bigint,
+    stakeAmount: bigint
+  ) => Promise<string>;
+  completeValidatorRegistration: (messageIndex: number) => Promise<string>;
+  initiateValidatorRemoval: (validationID: string) => Promise<string>;
+  completeValidatorRemoval: (messageIndex: number) => Promise<string>;
+  forceInitiateValidatorRemoval: (validationID: string, includeUptime: boolean) => Promise<string>;
+
+  // Write functions - Delegator operations
+  initiateDelegatorRegistration: (validationID: string, delegationAmount: bigint) => Promise<string>;
+  completeDelegatorRegistration: (messageIndex: number, delegationID: string) => Promise<string>;
+  initiateDelegatorRemoval: (delegationID: string) => Promise<string>;
+  completeDelegatorRemoval: (messageIndex: number) => Promise<string>;
+  forceInitiateDelegatorRemoval: (delegationID: string, includeUptime: boolean) => Promise<string>;
+  resendUpdateDelegator: (delegationID: string) => Promise<string>;
+
+  // Write functions - Reward operations
+  changeValidatorRewardRecipient: (validationID: string, rewardRecipient: string) => Promise<string>;
+  changeDelegatorRewardRecipient: (delegationID: string, rewardRecipient: string) => Promise<string>;
+  claimDelegationFees: (validationID: string) => Promise<string>;
+  submitUptimeProof: (validationID: string, messageIndex: number) => Promise<string>;
+
+  // Write functions - Setup
+  initialize: (settings: StakingManagerSettings) => Promise<string>;
+
+  // Gas estimation
+  estimateInitialize: (settings: StakingManagerSettings) => Promise<bigint>;
+
+  // Metadata
+  contractAddress: string | null;
+  isReady: boolean;
+}
+
+/**
+ * Hook for interacting with ERC20TokenStakingManager contracts
+ * @param contractAddress - The address of the ERC20TokenStakingManager contract
+ * @param abi - Optional custom ABI (defaults to ERC20TokenStakingManager.json abi)
+ */
+export function useERC20TokenStakingManager(
+  contractAddress: string | null,
+  abi?: any
+): ERC20TokenStakingManagerHook {
+  const { coreWalletClient, walletEVMAddress, publicClient } = useWalletStore();
+  const viemChain = useViemChainStore();
+  const { notify } = useConsoleNotifications();
+  const { avalancheWalletClient } = useWallet();
+
+  const contractAbi = abi ?? ERC20TokenStakingManagerAbi.abi;
+  const isReady = Boolean(contractAddress && avalancheWalletClient && viemChain);
+
+  // Read functions
+  const getStakingManagerSettings = async (): Promise<StakingManagerSettings> => {
+    if (!avalancheWalletClient || !contractAddress) throw new Error('Contract not ready');
+
+    const result = await readContract(avalancheWalletClient as any, {
+      address: contractAddress as `0x${string}`,
+      abi: contractAbi,
+      functionName: 'getStakingManagerSettings',
+      args: []
+    });
+
+    return result as StakingManagerSettings;
+  };
+
+  const getStakingValidator = async (validationID: string): Promise<any> => {
+    if (!avalancheWalletClient || !contractAddress) throw new Error('Contract not ready');
+
+    return await readContract(avalancheWalletClient as any, {
+      address: contractAddress as `0x${string}`,
+      abi: contractAbi,
+      functionName: 'getStakingValidator',
+      args: [validationID]
+    });
+  };
+
+  const getDelegatorInfo = async (delegationID: string): Promise<any> => {
+    if (!avalancheWalletClient || !contractAddress) throw new Error('Contract not ready');
+
+    return await readContract(avalancheWalletClient as any, {
+      address: contractAddress as `0x${string}`,
+      abi: contractAbi,
+      functionName: 'getDelegatorInfo',
+      args: [delegationID]
+    });
+  };
+
+  const valueToWeight = async (value: bigint): Promise<bigint> => {
+    if (!avalancheWalletClient || !contractAddress) throw new Error('Contract not ready');
+
+    return await readContract(avalancheWalletClient as any, {
+      address: contractAddress as `0x${string}`,
+      abi: contractAbi,
+      functionName: 'valueToWeight',
+      args: [value]
+    }) as bigint;
+  };
+
+  const weightToValue = async (weight: bigint): Promise<bigint> => {
+    if (!avalancheWalletClient || !contractAddress) throw new Error('Contract not ready');
+
+    return await readContract(avalancheWalletClient as any, {
+      address: contractAddress as `0x${string}`,
+      abi: contractAbi,
+      functionName: 'weightToValue',
+      args: [weight]
+    }) as bigint;
+  };
+
+  const erc20 = async (): Promise<string> => {
+    if (!avalancheWalletClient || !contractAddress) throw new Error('Contract not ready');
+
+    return await readContract(avalancheWalletClient as any, {
+      address: contractAddress as `0x${string}`,
+      abi: contractAbi,
+      functionName: 'erc20',
+      args: []
+    }) as string;
+  };
+
+  // Write functions - Validator operations
+  const initiateValidatorRegistration = async (
+    nodeID: string,
+    blsPublicKey: string,
+    remainingBalanceOwner: any,
+    disableOwner: any,
+    delegationFeeBips: number,
+    minStakeDuration: bigint,
+    stakeAmount: bigint
+  ): Promise<string> => {
+    if (!coreWalletClient || !contractAddress || !walletEVMAddress || !viemChain) {
+      throw new Error('Wallet not connected or contract not ready');
+    }
+
+    const writePromise = coreWalletClient.writeContract({
+      address: contractAddress as `0x${string}`,
+      abi: contractAbi,
+      functionName: 'initiateValidatorRegistration',
+      args: [nodeID, blsPublicKey, remainingBalanceOwner, disableOwner, delegationFeeBips, minStakeDuration, stakeAmount],
+      chain: viemChain,
+      account: walletEVMAddress as `0x${string}`
+    });
+
+    notify({
+      type: 'call',
+      name: 'Initiate Validator Registration (ERC20 Staking)'
+    }, writePromise, viemChain);
+
+    return await writePromise;
+  };
+
+  const completeValidatorRegistration = async (messageIndex: number): Promise<string> => {
+    if (!coreWalletClient || !contractAddress || !walletEVMAddress || !viemChain) {
+      throw new Error('Wallet not connected or contract not ready');
+    }
+
+    const writePromise = coreWalletClient.writeContract({
+      address: contractAddress as `0x${string}`,
+      abi: contractAbi,
+      functionName: 'completeValidatorRegistration',
+      args: [messageIndex],
+      chain: viemChain,
+      account: walletEVMAddress as `0x${string}`
+    });
+
+    notify({
+      type: 'call',
+      name: 'Complete Validator Registration (ERC20 Staking)'
+    }, writePromise, viemChain);
+
+    return await writePromise;
+  };
+
+  const initiateValidatorRemoval = async (validationID: string): Promise<string> => {
+    if (!coreWalletClient || !contractAddress || !walletEVMAddress || !viemChain) {
+      throw new Error('Wallet not connected or contract not ready');
+    }
+
+    const writePromise = coreWalletClient.writeContract({
+      address: contractAddress as `0x${string}`,
+      abi: contractAbi,
+      functionName: 'initiateValidatorRemoval',
+      args: [validationID],
+      chain: viemChain,
+      account: walletEVMAddress as `0x${string}`
+    });
+
+    notify({
+      type: 'call',
+      name: 'Initiate Validator Removal (ERC20 Staking)'
+    }, writePromise, viemChain);
+
+    return await writePromise;
+  };
+
+  const completeValidatorRemoval = async (messageIndex: number): Promise<string> => {
+    if (!coreWalletClient || !contractAddress || !walletEVMAddress || !viemChain) {
+      throw new Error('Wallet not connected or contract not ready');
+    }
+
+    const writePromise = coreWalletClient.writeContract({
+      address: contractAddress as `0x${string}`,
+      abi: contractAbi,
+      functionName: 'completeValidatorRemoval',
+      args: [messageIndex],
+      chain: viemChain,
+      account: walletEVMAddress as `0x${string}`
+    });
+
+    notify({
+      type: 'call',
+      name: 'Complete Validator Removal (ERC20 Staking)'
+    }, writePromise, viemChain);
+
+    return await writePromise;
+  };
+
+  const forceInitiateValidatorRemoval = async (validationID: string, includeUptime: boolean): Promise<string> => {
+    if (!coreWalletClient || !contractAddress || !walletEVMAddress || !viemChain) {
+      throw new Error('Wallet not connected or contract not ready');
+    }
+
+    const writePromise = coreWalletClient.writeContract({
+      address: contractAddress as `0x${string}`,
+      abi: contractAbi,
+      functionName: 'forceInitiateValidatorRemoval',
+      args: [validationID, includeUptime],
+      chain: viemChain,
+      account: walletEVMAddress as `0x${string}`
+    });
+
+    notify({
+      type: 'call',
+      name: 'Force Initiate Validator Removal (ERC20 Staking)'
+    }, writePromise, viemChain);
+
+    return await writePromise;
+  };
+
+  // Write functions - Delegator operations
+  const initiateDelegatorRegistration = async (validationID: string, delegationAmount: bigint): Promise<string> => {
+    if (!coreWalletClient || !contractAddress || !walletEVMAddress || !viemChain) {
+      throw new Error('Wallet not connected or contract not ready');
+    }
+
+    const writePromise = coreWalletClient.writeContract({
+      address: contractAddress as `0x${string}`,
+      abi: contractAbi,
+      functionName: 'initiateDelegatorRegistration',
+      args: [validationID, delegationAmount],
+      chain: viemChain,
+      account: walletEVMAddress as `0x${string}`
+    });
+
+    notify({
+      type: 'call',
+      name: 'Initiate Delegator Registration (ERC20 Staking)'
+    }, writePromise, viemChain);
+
+    return await writePromise;
+  };
+
+  const completeDelegatorRegistration = async (messageIndex: number, delegationID: string): Promise<string> => {
+    if (!coreWalletClient || !contractAddress || !walletEVMAddress || !viemChain) {
+      throw new Error('Wallet not connected or contract not ready');
+    }
+
+    const writePromise = coreWalletClient.writeContract({
+      address: contractAddress as `0x${string}`,
+      abi: contractAbi,
+      functionName: 'completeDelegatorRegistration',
+      args: [messageIndex, delegationID],
+      chain: viemChain,
+      account: walletEVMAddress as `0x${string}`
+    });
+
+    notify({
+      type: 'call',
+      name: 'Complete Delegator Registration (ERC20 Staking)'
+    }, writePromise, viemChain);
+
+    return await writePromise;
+  };
+
+  const initiateDelegatorRemoval = async (delegationID: string): Promise<string> => {
+    if (!coreWalletClient || !contractAddress || !walletEVMAddress || !viemChain) {
+      throw new Error('Wallet not connected or contract not ready');
+    }
+
+    const writePromise = coreWalletClient.writeContract({
+      address: contractAddress as `0x${string}`,
+      abi: contractAbi,
+      functionName: 'initiateDelegatorRemoval',
+      args: [delegationID],
+      chain: viemChain,
+      account: walletEVMAddress as `0x${string}`
+    });
+
+    notify({
+      type: 'call',
+      name: 'Initiate Delegator Removal (ERC20 Staking)'
+    }, writePromise, viemChain);
+
+    return await writePromise;
+  };
+
+  const completeDelegatorRemoval = async (messageIndex: number): Promise<string> => {
+    if (!coreWalletClient || !contractAddress || !walletEVMAddress || !viemChain) {
+      throw new Error('Wallet not connected or contract not ready');
+    }
+
+    const writePromise = coreWalletClient.writeContract({
+      address: contractAddress as `0x${string}`,
+      abi: contractAbi,
+      functionName: 'completeDelegatorRemoval',
+      args: [messageIndex],
+      chain: viemChain,
+      account: walletEVMAddress as `0x${string}`
+    });
+
+    notify({
+      type: 'call',
+      name: 'Complete Delegator Removal (ERC20 Staking)'
+    }, writePromise, viemChain);
+
+    return await writePromise;
+  };
+
+  const forceInitiateDelegatorRemoval = async (delegationID: string, includeUptime: boolean): Promise<string> => {
+    if (!coreWalletClient || !contractAddress || !walletEVMAddress || !viemChain) {
+      throw new Error('Wallet not connected or contract not ready');
+    }
+
+    const writePromise = coreWalletClient.writeContract({
+      address: contractAddress as `0x${string}`,
+      abi: contractAbi,
+      functionName: 'forceInitiateDelegatorRemoval',
+      args: [delegationID, includeUptime],
+      chain: viemChain,
+      account: walletEVMAddress as `0x${string}`
+    });
+
+    notify({
+      type: 'call',
+      name: 'Force Initiate Delegator Removal (ERC20 Staking)'
+    }, writePromise, viemChain);
+
+    return await writePromise;
+  };
+
+  const resendUpdateDelegator = async (delegationID: string): Promise<string> => {
+    if (!coreWalletClient || !contractAddress || !walletEVMAddress || !viemChain) {
+      throw new Error('Wallet not connected or contract not ready');
+    }
+
+    const writePromise = coreWalletClient.writeContract({
+      address: contractAddress as `0x${string}`,
+      abi: contractAbi,
+      functionName: 'resendUpdateDelegator',
+      args: [delegationID],
+      chain: viemChain,
+      account: walletEVMAddress as `0x${string}`
+    });
+
+    notify({
+      type: 'call',
+      name: 'Resend Update Delegator (ERC20 Staking)'
+    }, writePromise, viemChain);
+
+    return await writePromise;
+  };
+
+  // Write functions - Reward operations
+  const changeValidatorRewardRecipient = async (validationID: string, rewardRecipient: string): Promise<string> => {
+    if (!coreWalletClient || !contractAddress || !walletEVMAddress || !viemChain) {
+      throw new Error('Wallet not connected or contract not ready');
+    }
+
+    const writePromise = coreWalletClient.writeContract({
+      address: contractAddress as `0x${string}`,
+      abi: contractAbi,
+      functionName: 'changeValidatorRewardRecipient',
+      args: [validationID, rewardRecipient],
+      chain: viemChain,
+      account: walletEVMAddress as `0x${string}`
+    });
+
+    notify({
+      type: 'call',
+      name: 'Change Validator Reward Recipient'
+    }, writePromise, viemChain);
+
+    return await writePromise;
+  };
+
+  const changeDelegatorRewardRecipient = async (delegationID: string, rewardRecipient: string): Promise<string> => {
+    if (!coreWalletClient || !contractAddress || !walletEVMAddress || !viemChain) {
+      throw new Error('Wallet not connected or contract not ready');
+    }
+
+    const writePromise = coreWalletClient.writeContract({
+      address: contractAddress as `0x${string}`,
+      abi: contractAbi,
+      functionName: 'changeDelegatorRewardRecipient',
+      args: [delegationID, rewardRecipient],
+      chain: viemChain,
+      account: walletEVMAddress as `0x${string}`
+    });
+
+    notify({
+      type: 'call',
+      name: 'Change Delegator Reward Recipient'
+    }, writePromise, viemChain);
+
+    return await writePromise;
+  };
+
+  const claimDelegationFees = async (validationID: string): Promise<string> => {
+    if (!coreWalletClient || !contractAddress || !walletEVMAddress || !viemChain) {
+      throw new Error('Wallet not connected or contract not ready');
+    }
+
+    const writePromise = coreWalletClient.writeContract({
+      address: contractAddress as `0x${string}`,
+      abi: contractAbi,
+      functionName: 'claimDelegationFees',
+      args: [validationID],
+      chain: viemChain,
+      account: walletEVMAddress as `0x${string}`
+    });
+
+    notify({
+      type: 'call',
+      name: 'Claim Delegation Fees'
+    }, writePromise, viemChain);
+
+    return await writePromise;
+  };
+
+  const submitUptimeProof = async (validationID: string, messageIndex: number): Promise<string> => {
+    if (!coreWalletClient || !contractAddress || !walletEVMAddress || !viemChain) {
+      throw new Error('Wallet not connected or contract not ready');
+    }
+
+    const writePromise = coreWalletClient.writeContract({
+      address: contractAddress as `0x${string}`,
+      abi: contractAbi,
+      functionName: 'submitUptimeProof',
+      args: [validationID, messageIndex],
+      chain: viemChain,
+      account: walletEVMAddress as `0x${string}`
+    });
+
+    notify({
+      type: 'call',
+      name: 'Submit Uptime Proof'
+    }, writePromise, viemChain);
+
+    return await writePromise;
+  };
+
+  // Write functions - Setup
+  const initialize = async (settings: StakingManagerSettings): Promise<string> => {
+    if (!coreWalletClient || !contractAddress || !walletEVMAddress || !viemChain) {
+      throw new Error('Wallet not connected or contract not ready');
+    }
+
+    const writePromise = coreWalletClient.writeContract({
+      address: contractAddress as `0x${string}`,
+      abi: contractAbi,
+      functionName: 'initialize',
+      args: [settings],
+      chain: viemChain,
+      account: walletEVMAddress as `0x${string}`
+    });
+
+    notify({
+      type: 'call',
+      name: 'Initialize ERC20 Token Staking Manager'
+    }, writePromise, viemChain);
+
+    return await writePromise;
+  };
+
+  // Gas estimation
+  const estimateInitialize = async (settings: StakingManagerSettings): Promise<bigint> => {
+    if (!publicClient || !contractAddress || !walletEVMAddress) {
+      throw new Error('Client not ready or contract not ready');
+    }
+
+    return await publicClient.estimateContractGas({
+      address: contractAddress as `0x${string}`,
+      abi: contractAbi,
+      functionName: 'initialize',
+      args: [settings],
+      account: walletEVMAddress as `0x${string}`
+    });
+  };
+
+  return {
+    // Read functions
+    getStakingManagerSettings,
+    getStakingValidator,
+    getDelegatorInfo,
+    valueToWeight,
+    weightToValue,
+    erc20,
+
+    // Write functions - Validator operations
+    initiateValidatorRegistration,
+    completeValidatorRegistration,
+    initiateValidatorRemoval,
+    completeValidatorRemoval,
+    forceInitiateValidatorRemoval,
+
+    // Write functions - Delegator operations
+    initiateDelegatorRegistration,
+    completeDelegatorRegistration,
+    initiateDelegatorRemoval,
+    completeDelegatorRemoval,
+    forceInitiateDelegatorRemoval,
+    resendUpdateDelegator,
+
+    // Write functions - Reward operations
+    changeValidatorRewardRecipient,
+    changeDelegatorRewardRecipient,
+    claimDelegationFees,
+    submitUptimeProof,
+
+    // Write functions - Setup
+    initialize,
+
+    // Gas estimation
+    estimateInitialize,
+
+    // Metadata
+    contractAddress,
+    isReady
+  };
+}
