@@ -13,5 +13,5 @@ export * from './bridge';
 // Precompiles
 export * from './precompiles';
 
-// Utilities (optional - can be added later)
-// export * from './utilities';
+// Utilities
+export * from './utilities';

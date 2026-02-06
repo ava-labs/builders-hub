@@ -44,7 +44,8 @@ export interface InitParams {
 }
 
 export interface MigrationParams {
-  oldManager: string;
+  validationID: string;
+  receivedNonce: number;
 }
 
 export interface ValidatorManagerHook {
@@ -419,7 +420,7 @@ export function useValidatorManager(
       address: contractAddress as `0x${string}`,
       abi: contractAbi,
       functionName: 'migrateFromV1',
-      args: [params.oldManager],
+      args: [params.validationID as `0x${string}`, params.receivedNonce],
       chain: viemChain,
       account: walletEVMAddress as `0x${string}`
     });
