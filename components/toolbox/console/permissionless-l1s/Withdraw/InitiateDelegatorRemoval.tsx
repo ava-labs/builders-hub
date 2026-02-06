@@ -7,8 +7,7 @@ import { Success } from '@/components/toolbox/components/Success';
 import { Alert } from '@/components/toolbox/components/Alert';
 import NativeTokenStakingManager from '@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json';
 import ERC20TokenStakingManager from '@/contracts/icm-contracts/compiled/ERC20TokenStakingManager.json';
-import { decodeErrorResult } from 'viem';
-import useConsoleNotifications from '@/hooks/useConsoleNotifications';
+import { useNativeTokenStakingManager, useERC20TokenStakingManager } from '@/components/toolbox/hooks/contracts';
 
 type TokenType = 'native' | 'erc20';
 
@@ -31,7 +30,9 @@ const InitiateDelegatorRemoval: React.FC<InitiateDelegatorRemovalProps> = ({
 }) => {
     const { coreWalletClient, publicClient, walletEVMAddress } = useWalletStore();
     const viemChain = useViemChainStore();
-    const { notify } = useConsoleNotifications();
+
+    const nativeStakingManager = useNativeTokenStakingManager(tokenType === 'native' ? stakingManagerAddress : null);
+    const erc20StakingManager = useERC20TokenStakingManager(tokenType === 'erc20' ? stakingManagerAddress : null);
 
     const [messageIndex, setMessageIndex] = useState<string>('0');
     const [isProcessing, setIsProcessing] = useState(false);
@@ -172,72 +173,23 @@ const InitiateDelegatorRemoval: React.FC<InitiateDelegatorRemovalProps> = ({
                 }
             }
 
-            // Always use forceInitiateDelegatorRemoval (bypasses uptime proof requirement)
-            const txConfig: any = {
-                address: stakingManagerAddress as `0x${string}`,
-                abi: contractAbi,
-                functionName: "forceInitiateDelegatorRemoval",
-                args: [
+            // Use hook to initiate delegator removal (bypasses uptime proof requirement)
+            const hash = tokenType === 'native'
+                ? await nativeStakingManager.forceInitiateDelegatorRemoval(
                     delegationID as `0x${string}`,
-                    false, // includeUptimeProof - always false for force remove
+                    false, // includeUptimeProof
                     msgIndex
-                ],
-                account: walletEVMAddress as `0x${string}`,
-                chain: viemChain,
-            };
+                )
+                : await erc20StakingManager.forceInitiateDelegatorRemoval(
+                    delegationID as `0x${string}`,
+                    false, // includeUptimeProof
+                    msgIndex
+                );
 
-            // Estimate gas
-            try {
-                const gasEstimate = await publicClient.estimateContractGas(txConfig);
-                txConfig.gas = gasEstimate + (gasEstimate * 20n / 100n);
-            } catch (gasError: any) {
-                // Try to decode the error
-                const errorData = gasError.cause?.data || gasError.data || gasError.cause?.cause?.data;
-                
-                if (errorData && typeof errorData === 'string' && errorData.startsWith('0x')) {
-                    try {
-                        const decoded = decodeErrorResult({
-                            abi: contractAbi,
-                            data: errorData as `0x${string}`,
-                        });
-                        
-                        if (decoded.errorName === 'MinStakeDurationNotPassed') {
-                            throw new Error('Minimum stake duration has not passed. Please wait before removing this delegation.');
-                        } else if (decoded.errorName === 'InvalidDelegatorStatus') {
-                            throw new Error('Invalid delegator status. The delegation may already be pending removal or completed.');
-                        } else if (decoded.errorName === 'UnauthorizedOwner') {
-                            throw new Error(`You are not authorized to remove this delegation.`);
-                        } else if (decoded.errorName === 'InvalidDelegationID') {
-                            throw new Error('Invalid delegation ID.');
-                        } else {
-                            throw new Error(`Contract error: ${decoded.errorName}`);
-                        }
-                    } catch (decodeErr: any) {
-                        if (decodeErr.message?.includes('Contract error') || 
-                            decodeErr.message?.includes('Minimum stake') ||
-                            decodeErr.message?.includes('Invalid delegator') ||
-                            decodeErr.message?.includes('not authorized')) {
-                            throw decodeErr;
-                        }
-                    }
-                }
-                
-                throw new Error(`Gas estimation failed: ${gasError.message}`);
-            }
-
-            // Send transaction
-            const writePromise = coreWalletClient.writeContract(txConfig);
-
-            notify({
-                type: 'call',
-                name: 'Initiate Delegator Removal'
-            }, writePromise, viemChain ?? undefined);
-
-            const hash = await writePromise;
             setTxHash(hash);
 
             // Wait for confirmation
-            const receipt = await publicClient.waitForTransactionReceipt({ hash });
+            const receipt = await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
             if (receipt.status !== 'success') {
                 throw new Error(`Transaction failed with status: ${receipt.status}`);
             }

@@ -7,8 +7,7 @@ import { Success } from '@/components/toolbox/components/Success';
 import { Alert } from '@/components/toolbox/components/Alert';
 import NativeTokenStakingManager from '@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json';
 import ERC20TokenStakingManager from '@/contracts/icm-contracts/compiled/ERC20TokenStakingManager.json';
-import { decodeErrorResult } from 'viem';
-import useConsoleNotifications from '@/hooks/useConsoleNotifications';
+import { useNativeTokenStakingManager, useERC20TokenStakingManager } from '@/components/toolbox/hooks/contracts';
 
 type TokenType = 'native' | 'erc20';
 
@@ -31,7 +30,9 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
 }) => {
     const { coreWalletClient, publicClient, walletEVMAddress } = useWalletStore();
     const viemChain = useViemChainStore();
-    const { notify } = useConsoleNotifications();
+
+    const nativeStakingManager = useNativeTokenStakingManager(tokenType === 'native' ? stakingManagerAddress : null);
+    const erc20StakingManager = useERC20TokenStakingManager(tokenType === 'erc20' ? stakingManagerAddress : null);
 
     const [messageIndex, setMessageIndex] = useState<string>('0');
     const [isProcessing, setIsProcessing] = useState(false);
@@ -162,71 +163,23 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
                 }
             }
 
-            // Always use force removal (no uptime proof)
-            const txConfig: any = {
-                address: stakingManagerAddress as `0x${string}`,
-                abi: contractAbi,
-                functionName: "forceInitiateValidatorRemoval",
-                args: [
+            // Use hook to initiate validator removal (no uptime proof)
+            const hash = tokenType === 'native'
+                ? await nativeStakingManager.forceInitiateValidatorRemoval(
                     validationID as `0x${string}`,
-                    false, // includeUptimeProof - always false
+                    false, // includeUptimeProof
                     msgIndex
-                ],
-                account: walletEVMAddress as `0x${string}`,
-                chain: viemChain,
-            };
+                )
+                : await erc20StakingManager.forceInitiateValidatorRemoval(
+                    validationID as `0x${string}`,
+                    false, // includeUptimeProof
+                    msgIndex
+                );
 
-            // Try gas estimation
-            try {
-                const gasEstimate = await publicClient.estimateContractGas(txConfig);
-                txConfig.gas = (gasEstimate * 120n) / 100n;
-            } catch (gasError: any) {
-                // Try to decode the error
-                const errorData = gasError?.cause?.data || gasError?.data;
-                if (errorData) {
-                    try {
-                        const decoded = decodeErrorResult({
-                            abi: contractAbi,
-                            data: errorData
-                        });
-                        
-                        if (decoded.errorName === 'MinStakeDurationNotPassed') {
-                            throw new Error('Minimum stake duration has not passed.');
-                        } else if (decoded.errorName === 'InvalidValidatorStatus') {
-                            throw new Error('Validator is not in a valid state for removal.');
-                        } else if (decoded.errorName === 'UnauthorizedOwner') {
-                            throw new Error('You are not authorized to remove this validator.');
-                        } else if (decoded.errorName === 'ValidatorNotPoS') {
-                            throw new Error('This is a genesis/PoA validator and cannot be removed through the StakingManager.');
-                        } else {
-                            throw new Error(`Contract error: ${decoded.errorName}`);
-                        }
-                    } catch (decodeErr: any) {
-                        if (decodeErr.message?.includes('Contract error') ||
-                            decodeErr.message?.includes('Minimum stake') ||
-                            decodeErr.message?.includes('not authorized') ||
-                            decodeErr.message?.includes('genesis/PoA')) {
-                            throw decodeErr;
-                        }
-                    }
-                }
-                
-                throw new Error(`Gas estimation failed: ${gasError?.message || 'Unknown error'}`);
-            }
-
-            // Send transaction
-            const writePromise = coreWalletClient.writeContract(txConfig);
-
-            notify({
-                type: 'call',
-                name: 'Initiate Validator Removal'
-            }, writePromise, viemChain ?? undefined);
-
-            const hash = await writePromise;
             setTxHash(hash);
 
             // Wait for confirmation
-            const receipt = await publicClient.waitForTransactionReceipt({ hash });
+            const receipt = await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
             if (receipt.status !== 'success') {
                 throw new Error(`Transaction failed with status: ${receipt.status}`);
             }

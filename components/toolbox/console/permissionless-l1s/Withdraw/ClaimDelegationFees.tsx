@@ -7,7 +7,7 @@ import { Alert } from '@/components/toolbox/components/Alert';
 import NativeTokenStakingManager from '@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json';
 import ERC20TokenStakingManager from '@/contracts/icm-contracts/compiled/ERC20TokenStakingManager.json';
 import { formatEther } from 'viem';
-import useConsoleNotifications from '@/hooks/useConsoleNotifications';
+import { useNativeTokenStakingManager, useERC20TokenStakingManager } from '@/components/toolbox/hooks/contracts';
 
 type TokenType = 'native' | 'erc20';
 
@@ -28,7 +28,9 @@ const ClaimDelegationFees: React.FC<ClaimDelegationFeesProps> = ({
 }) => {
     const { coreWalletClient, publicClient, walletEVMAddress } = useWalletStore();
     const viemChain = useViemChainStore();
-    const { notify } = useConsoleNotifications();
+
+    const nativeStakingManager = useNativeTokenStakingManager(tokenType === 'native' ? stakingManagerAddress : null);
+    const erc20StakingManager = useERC20TokenStakingManager(tokenType === 'erc20' ? stakingManagerAddress : null);
 
     const [isProcessing, setIsProcessing] = useState(false);
     const [error, setErrorState] = useState<string | null>(null);
@@ -92,25 +94,15 @@ const ClaimDelegationFees: React.FC<ClaimDelegationFeesProps> = ({
 
         setIsProcessing(true);
         try {
-            const writePromise = coreWalletClient.writeContract({
-                address: stakingManagerAddress as `0x${string}`,
-                abi: contractAbi,
-                functionName: "claimDelegationFees",
-                args: [validationID as `0x${string}`],
-                account: walletEVMAddress as `0x${string}`,
-                chain: viemChain,
-            });
+            // Use hook to claim delegation fees
+            const hash = tokenType === 'native'
+                ? await nativeStakingManager.claimDelegationFees(validationID as `0x${string}`)
+                : await erc20StakingManager.claimDelegationFees(validationID as `0x${string}`);
 
-            notify({
-                type: 'call',
-                name: 'Claim Delegation Fees'
-            }, writePromise, viemChain ?? undefined);
-
-            const hash = await writePromise;
             setTxHash(hash);
 
             // Wait for confirmation
-            const receipt = await publicClient.waitForTransactionReceipt({ hash });
+            const receipt = await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
             if (receipt.status !== 'success') {
                 throw new Error(`Transaction failed with status: ${receipt.status}`);
             }

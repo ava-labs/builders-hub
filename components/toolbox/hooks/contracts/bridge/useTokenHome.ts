@@ -39,7 +39,7 @@ export interface TokenHomeHook {
   // Write functions
   send: (input: SendTokensInput, amount: bigint) => Promise<string>;
   sendAndCall: (input: any, amount: bigint) => Promise<string>;
-  addCollateral: (blockchainID: string, amount: bigint) => Promise<string>;
+  addCollateral: (blockchainID: string, remoteContractAddress: string, amount: bigint) => Promise<string>;
   initialize: (
     teleporterRegistryAddress: string,
     teleporterManager: string,
@@ -220,19 +220,28 @@ export function useTokenHome(
     return await writePromise;
   };
 
-  const addCollateral = async (blockchainID: string, amount: bigint): Promise<string> => {
+  const addCollateral = async (blockchainID: string, remoteContractAddress: string, amount: bigint): Promise<string> => {
     if (!coreWalletClient || !contractAddress || !walletEVMAddress || !viemChain) {
       throw new Error('Wallet not connected or contract not ready');
     }
 
-    const writePromise = coreWalletClient.writeContract({
+    const txConfig: any = {
       address: contractAddress as `0x${string}`,
       abi: abi,
       functionName: 'addCollateral',
-      args: [blockchainID, amount],
       chain: viemChain,
       account: walletEVMAddress as `0x${string}`
-    });
+    };
+
+    // For native tokens, amount is sent as value; for ERC20, as an argument
+    if (tokenType === 'native') {
+      txConfig.args = [blockchainID as `0x${string}`, remoteContractAddress as `0x${string}`];
+      txConfig.value = amount;
+    } else {
+      txConfig.args = [blockchainID as `0x${string}`, remoteContractAddress as `0x${string}`, amount];
+    }
+
+    const writePromise = coreWalletClient.writeContract(txConfig);
 
     notify({
       type: 'call',

@@ -39,14 +39,14 @@ export interface NativeTokenStakingManagerHook {
   completeValidatorRegistration: (messageIndex: number) => Promise<string>;
   initiateValidatorRemoval: (validationID: string) => Promise<string>;
   completeValidatorRemoval: (messageIndex: number) => Promise<string>;
-  forceInitiateValidatorRemoval: (validationID: string, includeUptime: boolean) => Promise<string>;
+  forceInitiateValidatorRemoval: (validationID: string, includeUptime: boolean, messageIndex: number) => Promise<string>;
 
   // Write functions - Delegator operations
   initiateDelegatorRegistration: (validationID: string, rewardRecipient: string, delegationAmount: bigint) => Promise<string>;
   completeDelegatorRegistration: (messageIndex: number, delegationID: string) => Promise<string>;
   initiateDelegatorRemoval: (delegationID: string) => Promise<string>;
   completeDelegatorRemoval: (messageIndex: number) => Promise<string>;
-  forceInitiateDelegatorRemoval: (delegationID: string, includeUptime: boolean) => Promise<string>;
+  forceInitiateDelegatorRemoval: (delegationID: string, includeUptime: boolean, messageIndex: number) => Promise<string>;
   resendUpdateDelegator: (delegationID: string) => Promise<string>;
 
   // Write functions - Reward operations
@@ -237,7 +237,7 @@ export function useNativeTokenStakingManager(
     return await writePromise;
   };
 
-  const forceInitiateValidatorRemoval = async (validationID: string, includeUptime: boolean): Promise<string> => {
+  const forceInitiateValidatorRemoval = async (validationID: string, includeUptime: boolean, messageIndex: number): Promise<string> => {
     if (!coreWalletClient || !contractAddress || !walletEVMAddress || !viemChain) {
       throw new Error('Wallet not connected or contract not ready');
     }
@@ -246,7 +246,7 @@ export function useNativeTokenStakingManager(
       address: contractAddress as `0x${string}`,
       abi: contractAbi,
       functionName: 'forceInitiateValidatorRemoval',
-      args: [validationID, includeUptime],
+      args: [validationID, includeUptime, messageIndex],
       chain: viemChain,
       account: walletEVMAddress as `0x${string}`
     });
@@ -349,7 +349,7 @@ export function useNativeTokenStakingManager(
     return await writePromise;
   };
 
-  const forceInitiateDelegatorRemoval = async (delegationID: string, includeUptime: boolean): Promise<string> => {
+  const forceInitiateDelegatorRemoval = async (delegationID: string, includeUptime: boolean, messageIndex: number): Promise<string> => {
     if (!coreWalletClient || !contractAddress || !walletEVMAddress || !viemChain) {
       throw new Error('Wallet not connected or contract not ready');
     }
@@ -358,7 +358,7 @@ export function useNativeTokenStakingManager(
       address: contractAddress as `0x${string}`,
       abi: contractAbi,
       functionName: 'forceInitiateDelegatorRemoval',
-      args: [delegationID, includeUptime],
+      args: [delegationID, includeUptime, messageIndex],
       chain: viemChain,
       account: walletEVMAddress as `0x${string}`
     });

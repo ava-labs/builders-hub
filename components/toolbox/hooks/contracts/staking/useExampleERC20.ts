@@ -14,6 +14,9 @@ export type ExampleERC20Hook = ERC20TokenHook & {
   mint: (to: string, amount: string) => Promise<string>;
   burn: (amount: string) => Promise<string>;
   burnFrom: (from: string, amount: string) => Promise<string>;
+
+  // Access control functions
+  grantRole: (role: string, account: string) => Promise<string>;
 };
 
 /**
@@ -96,11 +99,34 @@ export function useExampleERC20(tokenAddress: string | null): ExampleERC20Hook {
     return await writePromise;
   };
 
+  const grantRole = async (role: string, account: string): Promise<string> => {
+    if (!coreWalletClient || !tokenAddress || !walletEVMAddress || !viemChain) {
+      throw new Error('Wallet not connected or contract not ready');
+    }
+
+    const writePromise = coreWalletClient.writeContract({
+      address: tokenAddress as `0x${string}`,
+      abi: ExampleERC20Abi.abi,
+      functionName: 'grantRole',
+      args: [role as `0x${string}`, account as `0x${string}`],
+      chain: viemChain,
+      account: walletEVMAddress as `0x${string}`
+    });
+
+    notify({
+      type: 'call',
+      name: 'Grant Role'
+    }, writePromise, viemChain);
+
+    return await writePromise;
+  };
+
   // Return composition of base ERC20 and additional functions
   return {
     ...erc20Token,
     mint,
     burn,
-    burnFrom
+    burnFrom,
+    grantRole
   };
 }
