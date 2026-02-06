@@ -8,3 +8,10 @@ export type {
   MigrationParams,
   PChainOwner
 } from './useValidatorManager';
+
+export { useContractDeployer } from './useContractDeployer';
+export type {
+  ContractDeployerHook,
+  DeployParams,
+  DeployResult
+} from './useContractDeployer';

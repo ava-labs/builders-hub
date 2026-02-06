@@ -13,6 +13,7 @@ import ERC20TokenStakingManager from '@/contracts/icm-contracts/compiled/ERC20To
 import { packL1ValidatorRegistration } from '@/components/toolbox/coreViem/utils/convertWarp';
 import { getValidationIdHex } from '@/components/toolbox/coreViem/hooks/getValidationID';
 import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
+import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { useValidatorManager, usePoAManager, useNativeTokenStakingManager, useERC20TokenStakingManager } from '@/components/toolbox/hooks/contracts';
 
 export type ManagerType = 'PoA' | 'PoS-Native' | 'PoS-ERC20';
@@ -91,7 +92,7 @@ const CompletePChainRegistration: React.FC<CompletePChainRegistrationProps> = ({
         (isPoA && useMultisig && contractOwner) ? contractOwner : null
     );
     const nativeStakingManager = useNativeTokenStakingManager(
-        (managerType === 'PoS-Native' || (isPoA && useStakingManager && contractOwner)) ? (isPoS ? managerAddress : contractOwner) : null
+        (managerType === 'PoS-Native' || (isPoA && useStakingManager && contractOwner)) ? (isPoS ? managerAddress : contractOwner || null) : null
     );
     const erc20StakingManager = useERC20TokenStakingManager(
         managerType === 'PoS-ERC20' ? managerAddress : null

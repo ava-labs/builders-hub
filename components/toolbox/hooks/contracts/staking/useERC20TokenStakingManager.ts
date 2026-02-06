@@ -26,7 +26,7 @@ export interface ERC20TokenStakingManagerHook {
     stakeAmount: bigint,
     rewardRecipient: string
   ) => Promise<string>;
-  completeValidatorRegistration: (messageIndex: number) => Promise<string>;
+  completeValidatorRegistration: (messageIndex: number, accessList?: any[]) => Promise<string>;
   initiateValidatorRemoval: (validationID: string) => Promise<string>;
   completeValidatorRemoval: (messageIndex: number, accessList?: any[]) => Promise<string>;
   forceInitiateValidatorRemoval: (validationID: string, includeUptime: boolean, messageIndex: number) => Promise<string>;
@@ -174,19 +174,25 @@ export function useERC20TokenStakingManager(
     return await writePromise;
   };
 
-  const completeValidatorRegistration = async (messageIndex: number): Promise<string> => {
+  const completeValidatorRegistration = async (messageIndex: number, accessList?: any[]): Promise<string> => {
     if (!coreWalletClient || !contractAddress || !walletEVMAddress || !viemChain) {
       throw new Error('Wallet not connected or contract not ready');
     }
 
-    const writePromise = coreWalletClient.writeContract({
+    const txConfig: any = {
       address: contractAddress as `0x${string}`,
       abi: contractAbi,
       functionName: 'completeValidatorRegistration',
       args: [messageIndex],
       chain: viemChain,
       account: walletEVMAddress as `0x${string}`
-    });
+    };
+
+    if (accessList) {
+      txConfig.accessList = accessList;
+    }
+
+    const writePromise = coreWalletClient.writeContract(txConfig);
 
     notify({
       type: 'call',
