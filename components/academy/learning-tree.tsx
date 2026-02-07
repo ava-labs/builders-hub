@@ -3,9 +3,11 @@
 import React from "react";
 import Link from "next/link";
 import { cn } from "@/utils/cn";
-import { ArrowRight, ChevronDown, GraduationCap, BookOpen, Shield, Clock, Monitor, Terminal, MessageSquare, Hammer, Settings, Network, Code, Hexagon, Users, Wallet, Lock } from "lucide-react";
+import { ArrowRight, ChevronDown, GraduationCap, BookOpen, Shield, Clock, Monitor, Terminal, MessageSquare, Hammer, Settings, Network, Code, Hexagon, Users, Wallet, Lock, Check } from "lucide-react";
 import { getCourseDurations, getCourseTools } from "@/content/courses";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useCourseCompletion } from "@/hooks/useCourseCompletion";
+import { useCourseBadges } from "@/hooks/useCourseBadges";
 
 // CourseNode interface definition
 export interface CourseNode {
@@ -109,6 +111,16 @@ export default function LearningTree({
     : pathType === 'blockchain' 
     ? blockchainCategoryStyles 
     : entrepreneurCategoryStyles;
+
+  // Course completion tracking
+  const courseEntries = React.useMemo(() =>
+    learningPaths.map(node => ({
+      nodeId: node.id,
+      courseSlug: getCourseSlug(node.slug),
+    })), [learningPaths]
+  );
+  const { completionMap } = useCourseCompletion(courseEntries);
+  const { badgeImageMap } = useCourseBadges(completionMap, courseEntries);
 
   const resolveSlug = (slug: string) => {
     if (pathType === 'entrepreneur') {
@@ -317,6 +329,26 @@ export default function LearningTree({
                     )}>
                       <Icon className="w-3.5 h-3.5" />
                     </div>
+
+                    {/* Completion badge */}
+                    {completionMap.has(node.id) && (
+                      <div className={cn(
+                        "absolute -top-2 -left-2 w-7 h-7 rounded-full overflow-hidden",
+                        "flex items-center justify-center",
+                        "border-2 transition-all duration-300",
+                        completionMap.get(node.id)
+                          ? badgeImageMap.has(node.id)
+                            ? "border-transparent shadow-md"
+                            : cn("bg-gradient-to-br shadow-md text-white border-transparent", style?.gradient)
+                          : "bg-white dark:bg-zinc-800 border-zinc-300 dark:border-zinc-600 text-zinc-400 dark:text-zinc-500 shadow-sm"
+                      )}>
+                        {completionMap.get(node.id) && badgeImageMap.has(node.id) ? (
+                          <img src={badgeImageMap.get(node.id)} alt="Badge" className="w-full h-full object-cover" />
+                        ) : completionMap.get(node.id) ? (
+                          <Check className="w-3.5 h-3.5" />
+                        ) : null}
+                      </div>
+                    )}
 
                     {/* Content */}
                     <h4 className="font-semibold text-sm mb-1 text-zinc-900 dark:text-white leading-tight pr-6">
@@ -528,6 +560,26 @@ export default function LearningTree({
                   )}>
                     <Icon className="w-4 h-4" />
                   </div>
+
+                  {/* Completion badge */}
+                  {completionMap.has(node.id) && (
+                    <div className={cn(
+                      "absolute -top-2.5 -left-2.5 w-8 h-8 rounded-full overflow-hidden",
+                      "flex items-center justify-center",
+                      "border-2 transition-all duration-300",
+                      completionMap.get(node.id)
+                        ? badgeImageMap.has(node.id)
+                          ? "border-transparent shadow-md"
+                          : cn("bg-gradient-to-br shadow-md text-white border-transparent", style?.gradient)
+                        : "bg-white dark:bg-zinc-800 border-zinc-300 dark:border-zinc-600 text-zinc-400 dark:text-zinc-500 shadow-sm"
+                    )}>
+                      {completionMap.get(node.id) && badgeImageMap.has(node.id) ? (
+                        <img src={badgeImageMap.get(node.id)} alt="Badge" className="w-full h-full object-cover" />
+                      ) : completionMap.get(node.id) ? (
+                        <Check className="w-4 h-4" />
+                      ) : null}
+                    </div>
+                  )}
 
                   {/* Content */}
                   <h4 className="font-semibold text-sm mb-1.5 text-zinc-900 dark:text-white leading-tight pr-6">
