@@ -683,24 +683,27 @@ export default function ChainMetricsPage({
     >();
 
     rawData.forEach((point) => {
-      const date = new Date(point.day);
+      // Parse date string directly to avoid timezone issues
+      // point.day is in format "YYYY-MM-DD"
+      const [year, month, day] = point.day.split("-").map(Number);
       let key: string;
 
       if (period === "W") {
-        const weekStart = new Date(date);
-        weekStart.setDate(date.getDate() - date.getDay());
-        key = weekStart.toISOString().split("T")[0];
+        const date = new Date(year, month - 1, day);
+        const weekStartDay = day - date.getDay();
+        const weekStart = new Date(year, month - 1, weekStartDay);
+        const wy = weekStart.getFullYear();
+        const wm = String(weekStart.getMonth() + 1).padStart(2, "0");
+        const wd = String(weekStart.getDate()).padStart(2, "0");
+        key = `${wy}-${wm}-${wd}`;
       } else if (period === "M") {
-        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
-          2,
-          "0"
-        )}`;
+        key = `${year}-${String(month).padStart(2, "0")}`;
       } else if (period === "Q") {
-        const quarter = Math.floor(date.getMonth() / 3) + 1;
-        key = `${date.getFullYear()}-Q${quarter}`;
+        const quarter = Math.floor((month - 1) / 3) + 1;
+        key = `${year}-Q${quarter}`;
       } else {
         // Y
-        key = String(date.getFullYear());
+        key = String(year);
       }
 
       if (!grouped.has(key)) {
@@ -2166,24 +2169,29 @@ function ChartCard({
     >();
 
     rawData.forEach((point) => {
-      const date = new Date(point.day);
+      // Parse date string directly to avoid timezone issues
+      // point.day is in format "YYYY-MM-DD" or "YYYY-MM" (already aggregated)
+      const parts = point.day.split("-").map(Number);
+      const [year, month] = parts;
+      const day = parts[2] || 1;
       let key: string;
 
       if (period === "W") {
-        const weekStart = new Date(date);
-        weekStart.setDate(date.getDate() - date.getDay());
-        key = weekStart.toISOString().split("T")[0];
+        const date = new Date(year, month - 1, day);
+        const weekStartDay = day - date.getDay();
+        const weekStart = new Date(year, month - 1, weekStartDay);
+        const wy = weekStart.getFullYear();
+        const wm = String(weekStart.getMonth() + 1).padStart(2, "0");
+        const wd = String(weekStart.getDate()).padStart(2, "0");
+        key = `${wy}-${wm}-${wd}`;
       } else if (period === "M") {
-        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
-          2,
-          "0"
-        )}`;
+        key = `${year}-${String(month).padStart(2, "0")}`;
       } else if (period === "Q") {
-        const quarter = Math.floor(date.getMonth() / 3) + 1;
-        key = `${date.getFullYear()}-Q${quarter}`;
+        const quarter = Math.floor((month - 1) / 3) + 1;
+        key = `${year}-Q${quarter}`;
       } else {
         // Y
-        key = String(date.getFullYear());
+        key = String(year);
       }
 
       if (!grouped.has(key)) {
@@ -2216,24 +2224,28 @@ function ChartCard({
     const grouped = new Map<string, { maxValue: number; date: string }>();
 
     cumulativeData.forEach((point) => {
-      const date = new Date(point.day);
+      // Parse date string directly to avoid timezone issues
+      const parts = point.day.split("-").map(Number);
+      const [year, month] = parts;
+      const day = parts[2] || 1;
       let key: string;
 
       if (period === "W") {
-        const weekStart = new Date(date);
-        weekStart.setDate(date.getDate() - date.getDay());
-        key = weekStart.toISOString().split("T")[0];
+        const date = new Date(year, month - 1, day);
+        const weekStartDay = day - date.getDay();
+        const weekStart = new Date(year, month - 1, weekStartDay);
+        const wy = weekStart.getFullYear();
+        const wm = String(weekStart.getMonth() + 1).padStart(2, "0");
+        const wd = String(weekStart.getDate()).padStart(2, "0");
+        key = `${wy}-${wm}-${wd}`;
       } else if (period === "M") {
-        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
-          2,
-          "0"
-        )}`;
+        key = `${year}-${String(month).padStart(2, "0")}`;
       } else if (period === "Q") {
-        const quarter = Math.floor(date.getMonth() / 3) + 1;
-        key = `${date.getFullYear()}-Q${quarter}`;
+        const quarter = Math.floor((month - 1) / 3) + 1;
+        key = `${year}-Q${quarter}`;
       } else {
         // Y
-        key = String(date.getFullYear());
+        key = String(year);
       }
 
       if (!grouped.has(key)) {
@@ -2262,24 +2274,28 @@ function ChartCard({
     >();
 
     secondaryData.forEach((point) => {
-      const date = new Date(point.day);
+      // Parse date string directly to avoid timezone issues
+      const parts = point.day.split("-").map(Number);
+      const [year, month] = parts;
+      const day = parts[2] || 1;
       let key: string;
 
       if (period === "W") {
-        const weekStart = new Date(date);
-        weekStart.setDate(date.getDate() - date.getDay());
-        key = weekStart.toISOString().split("T")[0];
+        const date = new Date(year, month - 1, day);
+        const weekStartDay = day - date.getDay();
+        const weekStart = new Date(year, month - 1, weekStartDay);
+        const wy = weekStart.getFullYear();
+        const wm = String(weekStart.getMonth() + 1).padStart(2, "0");
+        const wd = String(weekStart.getDate()).padStart(2, "0");
+        key = `${wy}-${wm}-${wd}`;
       } else if (period === "M") {
-        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
-          2,
-          "0"
-        )}`;
+        key = `${year}-${String(month).padStart(2, "0")}`;
       } else if (period === "Q") {
-        const quarter = Math.floor(date.getMonth() / 3) + 1;
-        key = `${date.getFullYear()}-Q${quarter}`;
+        const quarter = Math.floor((month - 1) / 3) + 1;
+        key = `${year}-Q${quarter}`;
       } else {
         // Y
-        key = String(date.getFullYear());
+        key = String(year);
       }
 
       if (!grouped.has(key)) {
@@ -2426,32 +2442,38 @@ function ChartCard({
       return value;
     }
 
-    const date = new Date(value);
-
     if (period === "M") {
-      return date.toLocaleDateString("en-US", {
-        month: "long",
-        year: "numeric",
-      });
+      // Parse "YYYY-MM" directly to avoid timezone issues
+      const [year, month] = value.split("-").map(Number);
+      const monthNames = [
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December",
+      ];
+      return `${monthNames[month - 1]} ${year}`;
     }
 
     if (period === "W") {
-      const endDate = new Date(date);
-      endDate.setDate(date.getDate() + 6);
+      // Parse "YYYY-MM-DD" directly to avoid timezone issues
+      const [year, month, day] = value.split("-").map(Number);
+      const date = new Date(year, month - 1, day);
+      const endDate = new Date(year, month - 1, day + 6);
 
       const startMonth = date.toLocaleDateString("en-US", { month: "long" });
       const endMonth = endDate.toLocaleDateString("en-US", { month: "long" });
       const startDay = date.getDate();
       const endDay = endDate.getDate();
-      const year = endDate.getFullYear();
+      const endYear = endDate.getFullYear();
 
       if (startMonth === endMonth) {
-        return `${startMonth} ${startDay}-${endDay}, ${year}`;
+        return `${startMonth} ${startDay}-${endDay}, ${endYear}`;
       } else {
-        return `${startMonth} ${startDay} - ${endMonth} ${endDay}, ${year}`;
+        return `${startMonth} ${startDay} - ${endMonth} ${endDay}, ${endYear}`;
       }
     }
 
+    // Daily: parse "YYYY-MM-DD" directly
+    const [year, month, day] = value.split("-").map(Number);
+    const date = new Date(year, month - 1, day);
     return date.toLocaleDateString("en-US", {
       day: "numeric",
       month: "long",

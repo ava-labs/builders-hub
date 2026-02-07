@@ -434,36 +434,6 @@
     }
   },
   {
-    "chainId": "53935",
-    "chainName": "DeFi Kingdoms",
-    "isActive": true,
-    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/6ee8eu4VdSJNo93Rcw6hku/2c6c5691e8a7c3b68654e5a4f219b2a2/chain-logo.png",
-    "subnetId": "Vn3aX6hNRstj5VHHm63TCgPNaeGnRSqCYXQqemSqDd2TQH4qJ",
-    "slug": "defikingdoms",
-    "color": "#EC4899",
-    "category": "Gaming",
-    "description": "DeFi Kingdoms is a fantasy RPG game built on a strong DeFi protocol. The game features DEXs, liquidity pool opportunities, and a market of rare, utility-driven NFTs, which all together create a beautiful, immersive online world in the incredibly nostalgic form of fantasy pixel art.",
-    "website": "https://defikingdoms.com/",
-    "explorers": [
-      {
-        "name": "Avalanche Explorer",
-        "link": "https://subnets.avax.network/defi-kingdoms"
-      },
-      {
-        "name": "Snowtrace",
-        "link": "https://53935.snowtrace.io"
-      }
-    ],
-    "rpcUrl": "https://subnets.avax.network/dinari/mainnet/rpc",
-    "blockchainId": "0x1924d82670129a1cc58c5dda53607e7f3f0302b19c50437465c2ca775b092415",
-    "networkToken": {
-      "name": "DGAS",
-      "symbol": "DGAS",
-      "decimals": 18,
-      "logoUri": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png"
-    }
-  },
-  {
     "chainId": "96786",
     "chainName": "Delaunch",
     "isActive": true,
