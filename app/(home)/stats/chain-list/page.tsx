@@ -518,6 +518,8 @@ export default function ChainListPage() {
                             {chain.chainName}
                           </h3>
                           <div className="flex items-center gap-2 mt-1">
+                            {/* BaaS Providers */}
+                            <BaasProviderList providers={chain.baasProviders} />
                             {/* Testnet chip */}
                             {(chain.isTestnet || chain.chainId === "43113") && (
                               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400">
@@ -597,13 +599,6 @@ export default function ChainListPage() {
                             {expandedDescriptions.has(chain.chainId) ? "Show less" : "Show more"}
                           </button>
                         )}
-                      </div>
-                    )}
-
-                    {/* BaaS Providers */}
-                    {chain.baasProviders && chain.baasProviders.length > 0 && (
-                      <div className="mb-3">
-                        <BaasProviderList providers={chain.baasProviders} showLabel />
                       </div>
                     )}
 

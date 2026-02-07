@@ -1358,17 +1358,20 @@ export default function ChainMetricsPage({
                   socials={socials}
                   explorers={explorers}
                 />
-                {category && (
-                  <div className="mt-3">
-                    <span
-                      className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium"
-                      style={{
-                        backgroundColor: `${themeColor}15`,
-                        color: themeColor,
-                      }}
-                    >
-                      {category}
-                    </span>
+                {(baasProviders?.length || category) && (
+                  <div className="flex items-center gap-2 mt-3 flex-wrap">
+                    <BaasProviderList providers={baasProviders} />
+                    {category && (
+                      <span
+                        className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium"
+                        style={{
+                          backgroundColor: `${themeColor}15`,
+                          color: themeColor,
+                        }}
+                      >
+                        {category}
+                      </span>
+                    )}
                   </div>
                 )}
 
@@ -1457,7 +1460,6 @@ export default function ChainMetricsPage({
                   </div>
                 )}
 
-                <BaasProviderList providers={baasProviders} />
               </div>
             </div>
           </div>
