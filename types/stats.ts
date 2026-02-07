@@ -66,6 +66,11 @@ export interface NetworkToken {
   description?: string;
 }
 
+export interface BaasProvider {
+  name: string;
+  slug: string;
+}
+
 export interface L1Chain {
   chainId: string;
   chainName: string;
@@ -87,6 +92,7 @@ export interface L1Chain {
   networkToken?: NetworkToken;
   sourcifySupport?: boolean;
   isTestnet?: boolean;
+  baasProviders?: BaasProvider[];
 }
 
 export type TimeRange = "30d" | "90d" | "1y" | "all";

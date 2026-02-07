@@ -31,6 +31,7 @@ import { convertL1ListItemToL1Chain } from "@/components/explorer/utils/chainCon
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { toast } from "@/lib/toast";
 import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
+import { BaasProviderList } from "@/components/stats/BaasProviderBadge";
 
 interface ChainListItem extends L1Chain {
   isCustom?: boolean;
@@ -596,6 +597,13 @@ export default function ChainListPage() {
                             {expandedDescriptions.has(chain.chainId) ? "Show less" : "Show more"}
                           </button>
                         )}
+                      </div>
+                    )}
+
+                    {/* BaaS Providers */}
+                    {chain.baasProviders && chain.baasProviders.length > 0 && (
+                      <div className="mb-3">
+                        <BaasProviderList providers={chain.baasProviders} showLabel />
                       </div>
                     )}
 
