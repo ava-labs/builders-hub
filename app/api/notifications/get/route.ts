@@ -6,7 +6,7 @@ type GetNotificationsBody = {
 };
 export const runtime: "nodejs" = "nodejs";
 
-const baseUrl: string | undefined = process.env.AVALANCHE_METRICS_URL;
+const baseUrl: string | undefined = process.env.AVALANCHE_WORKERS_URL;
 
 export async function POST(req: any): Promise<Response> {
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET ?? '' })

@@ -12,11 +12,11 @@ export async function POST(req: any): Promise<Response> {
 
     const body: ReadNotificationsBody = await req.json();
 
-    const baseUrl: string | undefined = process.env.AVALANCHE_METRICS_URL;
+    const baseUrl: string | undefined = process.env.AVALANCHE_WORKERS_URL;
 
     if (!baseUrl) {
       return NextResponse.json(
-        { error: "Missing AVALANCHE_METRICS_URL" },
+        { error: "Missing AVALANCHE_WORKERS_URL" },
         { status: 500 }
       );
     }

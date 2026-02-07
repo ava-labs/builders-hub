@@ -20,8 +20,6 @@ export type DbNotification = {
   template: string;
   status: string;
 };
-const metricsBaseUrl: string | undefined =
-  process.env.NEXT_PUBLIC_AVALANCHE_METRICS_URL;
 type NotificationsResponse = Record<string, DbNotification[]>;
 
 export default function NotificationBell(): React.JSX.Element | null {
