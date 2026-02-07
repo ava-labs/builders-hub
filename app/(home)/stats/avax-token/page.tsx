@@ -8,9 +8,10 @@ import { CircleDotDashed, CircleFadingPlus, Lock, BadgeDollarSign, RefreshCw, Fl
 import { useEffect, useState, useMemo } from "react";
 import Image from "next/image";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer, Brush, LineChart, Line } from "recharts";
-import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
+import { L1BubbleNav } from "@/components/stats/l1-bubble.config";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import { ChartWatermark } from "@/components/stats/ChartWatermark";
+import { LiveBlockBurns } from "@/components/stats/LiveBlockBurns";
 
 interface AvaxSupplyData {
   totalSupply: string;
@@ -430,7 +431,7 @@ export default function AvaxTokenPage() {
             ))}
           </div>
         </div>
-        <StatsBubbleNav />
+        <L1BubbleNav chainSlug="c-chain" rpcUrl="https://api.avax.network/ext/bc/C/rpc" />
       </div>
     );
   }
@@ -446,7 +447,7 @@ export default function AvaxTokenPage() {
             </CardContent>
           </Card>
         </div>
-        <StatsBubbleNav />
+        <L1BubbleNav chainSlug="c-chain" rpcUrl="https://api.avax.network/ext/bc/C/rpc" />
       </div>
     );
   }
@@ -561,6 +562,7 @@ export default function AvaxTokenPage() {
             </div>
           </TooltipProvider>
 
+          {/* Row 1: Chart (2/3) + Live Burns (1/3) */}
           <div className="grid gap-4 lg:grid-cols-3">
             <div className="lg:col-span-2">
               <Card className="border-gray-200 dark:border-gray-700 rounded-md">
@@ -589,8 +591,8 @@ export default function AvaxTokenPage() {
                     </div>
                   </div>
                 </div>
-                <CardContent className="p-2">
-                  <ChartWatermark className="mb-3">
+                <CardContent className="p-2 pb-3">
+                  <ChartWatermark>
                     <ResponsiveContainer width="100%" height={400}>
                       <BarChart data={displayData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                         <CartesianGrid
@@ -667,12 +669,13 @@ export default function AvaxTokenPage() {
                     </ResponsiveContainer>
                   </ChartWatermark>
 
-                  <div className="mt-3 bg-white dark:bg-black pl-[60px]">
-                    <ResponsiveContainer width="100%" height={80}>
-                      <LineChart data={aggregatedFeeData} margin={{ top: 0, right: 30, left: 0, bottom: 5 }}>
+                  {/* Brush slider */}
+                  <div className="block pt-1 overflow-hidden pl-[50px] pr-8">
+                    <ResponsiveContainer width="100%" height={50}>
+                      <LineChart data={aggregatedFeeData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
                         <Brush
                           dataKey="date"
-                          height={80}
+                          height={50}
                           stroke="#E84142"
                           fill="#E8414220"
                           alwaysShowText={false}
@@ -712,127 +715,123 @@ export default function AvaxTokenPage() {
               </Card>
             </div>
 
-            <div className="lg:col-span-1 space-y-4">
-              <Card className="border-gray-200 dark:border-gray-700 rounded-md">
-                <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-                  <h2 className="text-lg font-medium text-black dark:text-white">Fees Burned by Chain</h2>
-                </div>
-                <CardContent className="p-3">
-                  <div className="space-y-3">
-                    {chainData.map((chain) => (
-                      <div key={chain.chain} className="space-y-1.5">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2.5">
-                            <div className="w-8 h-8 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center border border-neutral-200 dark:border-neutral-700">
-                              <Image
-                                src={chain.logo}
-                                alt={`${chain.chain} logo`}
-                                width={20}
-                                height={20}
-                                className="h-5 w-5"
-                              />
-                            </div>
-                            <div>
-                              <p className="font-medium text-sm text-black dark:text-white">
-                                {chain.chain}
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                {chain.burned} AVAX
-                              </p>
-                            </div>
+            <div className="lg:col-span-1">
+              <LiveBlockBurns />
+            </div>
+          </div>
+
+          {/* Row 2: Burn breakdown + Fee metrics */}
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Card className="border-gray-200 dark:border-gray-700 rounded-md">
+              <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+                <h2 className="text-lg font-medium text-black dark:text-white">Fees Burned by Chain</h2>
+              </div>
+              <CardContent className="p-3">
+                <div className="space-y-3">
+                  {chainData.map((chain) => (
+                    <div key={chain.chain} className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center border border-neutral-200 dark:border-neutral-700">
+                            <Image
+                              src={chain.logo}
+                              alt={`${chain.chain} logo`}
+                              width={20}
+                              height={20}
+                              className="h-5 w-5"
+                            />
                           </div>
-                          <Badge variant="secondary" className="font-mono text-xs bg-neutral-100 dark:bg-neutral-800 text-black dark:text-white">
-                            {chain.percentage.toFixed(2)}%
-                          </Badge>
+                          <div>
+                            <p className="font-medium text-sm text-black dark:text-white">
+                              {chain.chain}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {chain.burned} AVAX
+                            </p>
+                          </div>
                         </div>
-
-                        <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                          <div
-                            className={`h-full ${chain.color} rounded-full transition-all duration-500`}
-                            style={{ width: `${chain.percentage}%` }}
-                          />
-                        </div>
+                        <Badge variant="secondary" className="font-mono text-xs bg-neutral-100 dark:bg-neutral-800 text-black dark:text-white">
+                          {chain.percentage.toFixed(2)}%
+                        </Badge>
                       </div>
-                    ))}
 
-                    <div className="pt-3 mt-3 border-t border-gray-200 dark:border-gray-700">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="font-medium text-black dark:text-white">Total Burned</span>
-                        <span className="font-bold font-mono text-black dark:text-white">
-                          {data && formatFullNumber(parseFloat(data.totalPBurned) + parseFloat(data.totalCBurned) + parseFloat(data.totalXBurned))}{" "}AVAX
-                        </span>
+                      <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full ${chain.color} rounded-full transition-all duration-500`}
+                          style={{ width: `${chain.percentage}%` }}
+                        />
                       </div>
+                    </div>
+                  ))}
+
+                  <div className="pt-3 mt-3 border-t border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-medium text-black dark:text-white">Total Burned</span>
+                      <span className="font-bold font-mono text-black dark:text-white">
+                        {data && formatFullNumber(parseFloat(data.totalPBurned) + parseFloat(data.totalCBurned) + parseFloat(data.totalXBurned))}{" "}AVAX
+                      </span>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </CardContent>
+            </Card>
 
-              {data && (
-                <Card className="border-gray-200 dark:border-gray-700 rounded-md">
-                  <CardContent className="p-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: "#8B5CF620" }}>
-                          <Server className="w-5 h-5" style={{ color: "#8B5CF6" }}/>
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-black dark:text-white">L1 Validator Fees</p>
-                          <p className="text-xs text-muted-foreground">
-                            All-time fees paid by L1 validators
-                          </p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-lg font-mono font-semibold text-black dark:text-white">
-                          {formatNumber(data.l1ValidatorFees)} AVAX
-                        </p>
-                        {data.price > 0 && (
-                          <p className="text-xs text-neutral-600 dark:text-neutral-400 font-medium mt-0.5">
-                            {formatUSD(data.l1ValidatorFees)}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              <Card className="border-gray-200 dark:border-gray-700 rounded-md">
-                <CardContent className="p-3">
-                  <div className="flex items-center justify-between">
+            {/* Combined Fee Metrics card */}
+            <Card className="border-gray-200 dark:border-gray-700 rounded-md">
+              <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+                <h2 className="text-lg font-medium text-black dark:text-white">Ecosystem Fees</h2>
+              </div>
+              <CardContent className="p-4 space-y-4">
+                {/* L1 Validator Fees row */}
+                {data && (
+                  <div className="flex items-center justify-between p-4 rounded-lg bg-gray-50 dark:bg-neutral-800/50">
                     <div className="flex items-center gap-3">
-                      <div
-                        className="w-10 h-10 rounded-lg flex items-center justify-center"
-                        style={{ backgroundColor: "#8B5CF620" }}
-                      >
-                        <MessageSquareIcon className="w-5 h-5" style={{ color: "#8B5CF6" }}/>
+                      <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-purple-100 dark:bg-purple-500/10">
+                        <Server className="w-6 h-6 text-purple-500" />
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-black dark:text-white">Total ICM Fees</p>
-                        <p className="text-xs text-muted-foreground">
-                          All-time fees from Interchain Messages
-                        </p>
+                        <p className="font-medium text-sm text-black dark:text-white">L1 Validator Fees</p>
+                        <p className="text-xs text-muted-foreground">All-time fees paid by L1 validators</p>
                       </div>
                     </div>
                     <div className="text-right">
                       <p className="text-lg font-mono font-semibold text-black dark:text-white">
-                        {formatNumber(totalICMFees)} AVAX
+                        {formatNumber(data.l1ValidatorFees)} AVAX
                       </p>
-                      {data && data.price > 0 && (
-                        <p className="text-xs text-neutral-600 dark:text-neutral-400 font-medium mt-0.5">
-                          {formatUSD(totalICMFees)}
-                        </p>
+                      {data.price > 0 && (
+                        <p className="text-xs text-muted-foreground">{formatUSD(data.l1ValidatorFees)}</p>
                       )}
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            </div>
+                )}
+
+                {/* Total ICM Fees row */}
+                <div className="flex items-center justify-between p-4 rounded-lg bg-gray-50 dark:bg-neutral-800/50">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-purple-100 dark:bg-purple-500/10">
+                      <MessageSquareIcon className="w-6 h-6 text-purple-500" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-sm text-black dark:text-white">Total ICM Fees</p>
+                      <p className="text-xs text-muted-foreground">All-time fees from Interchain Messages</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-lg font-mono font-semibold text-black dark:text-white">
+                      {formatNumber(totalICMFees)} AVAX
+                    </p>
+                    {data && data.price > 0 && (
+                      <p className="text-xs text-muted-foreground">{formatUSD(totalICMFees)}</p>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>
 
-      <StatsBubbleNav />
+      <L1BubbleNav chainSlug="c-chain" rpcUrl="https://api.avax.network/ext/bc/C/rpc" />
     </div>
   );
 }

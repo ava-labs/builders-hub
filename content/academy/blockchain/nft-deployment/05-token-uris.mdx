@@ -40,6 +40,8 @@ https://gateway.pinata.cloud/ipfs/QmYdWxbiwsfsYcW1CYQPgYujAc9FMLPG3fgFcxFskbSsFa
 
 This URL points to your metadata file on IPFS.
 
+<Quiz quizId="2048"/>
+
 ## The Metadata Standard
 
 The JSON file at the Token URI follows the [OpenSea Metadata Standard](https://docs.opensea.io/docs/metadata-standards):
@@ -72,6 +74,8 @@ The JSON file at the Token URI follows the [OpenSea Metadata Standard](https://d
 
 **attributes**: An array of traits that define the NFT's characteristics
 
+<Quiz quizId="2049"/>
+
 ## Why Use IPFS?
 
 IPFS (InterPlanetary File System) is preferred for NFT storage because:
@@ -89,6 +93,8 @@ https://gateway.pinata.cloud/ipfs/[CONTENT_HASH]/[FILE_NAME]
 ```
 
 The content hash (e.g., `QmYdWxbiwsfsYcW1CYQPgYujAc9FMLPG3fgFcxFskbSsFa`) uniquely identifies your folder on IPFS.
+
+<Quiz quizId="2050"/>
 
 ## URI Storage in Your Contract
 
@@ -122,6 +128,8 @@ contract Photography is ERC721, Ownable {
 2. The function checks if the token exists
 3. It concatenates the base URI with the token ID
 4. Returns the complete URL to the metadata
+
+<Quiz quizId="2051"/>
 
 ## Advanced URI Features
 
@@ -164,6 +172,8 @@ function setBaseURI(string memory newBaseURI) public onlyOwner {
 Be cautious when updating URIs. Changing metadata after minting can be controversial and may affect trust in your collection.
 </Callout>
 
+<Quiz quizId="2052"/>
+
 ## Best Practices
 
 ### 1. Consistent File Naming
@@ -199,6 +209,8 @@ While Pinata's gateway works well, consider:
 - Using multiple gateways for redundancy
 - Setting up your own IPFS node for large collections
 - Using a CDN for faster loading
+
+<Quiz quizId="2053"/>
 
 ## Viewing Token URIs
 
@@ -244,6 +256,8 @@ If marketplaces can't read your metadata:
 - Ensure all required fields are present
 - Check that the file has no extension
 
+<Quiz quizId="2054"/>
+
 ## Next Steps
 
 Now that you understand how token URIs work, you're ready to:
@@ -254,4 +268,6 @@ Now that you understand how token URIs work, you're ready to:
 - Integrate your NFTs with marketplaces and dApps
 
 Congratulations on completing the NFT Deployment course! You now have the knowledge to create, deploy, and manage your own NFT collections on Avalanche.
+
+<Quiz quizId="2055"/>
 
