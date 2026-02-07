@@ -5,7 +5,7 @@ import { Shield, AlertCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/toolbox/components/Button";
 import { RPCURLInput } from "@/components/toolbox/components/RPCURLInput";
 
-type Status = "ok" | "warning" | "error";
+type Status = "ok" | "info" | "warning" | "error";
 
 interface CheckResult {
     method: string;
@@ -114,55 +114,55 @@ async function runEVMTests(evmRpcUrl: string): Promise<CheckResult[]> {
         });
     }
 
-    // debug_traceBlockByNumber - should be restricted
+    // debug_traceBlockByNumber - check if enabled
     try {
         const data = await rpcCall(evmRpcUrl, "debug_traceBlockByNumber", ["latest"]);
         if (data.error) {
             results.push({
                 method: "debug_traceBlockByNumber",
-                expectedValue: "Error (method restricted)",
-                actualValue: data.error.message,
+                expectedValue: "Enabled or disabled",
+                actualValue: "Disabled (restricted)",
                 status: "ok",
             });
         } else {
             results.push({
                 method: "debug_traceBlockByNumber",
-                expectedValue: "Error (method restricted)",
-                actualValue: "Method is accessible",
-                status: "warning",
+                expectedValue: "Enabled or disabled",
+                actualValue: "Enabled",
+                status: "info",
             });
         }
     } catch (err) {
         results.push({
             method: "debug_traceBlockByNumber",
-            expectedValue: "Error (method restricted)",
+            expectedValue: "Enabled or disabled",
             actualValue: err instanceof Error ? err.message : "Request failed",
             status: "ok",
         });
     }
 
-    // trace_block - should be restricted
+    // trace_block - check if enabled
     try {
         const data = await rpcCall(evmRpcUrl, "trace_block", ["latest"]);
         if (data.error) {
             results.push({
                 method: "trace_block",
-                expectedValue: "Error (method restricted)",
-                actualValue: data.error.message,
+                expectedValue: "Enabled or disabled",
+                actualValue: "Disabled (restricted)",
                 status: "ok",
             });
         } else {
             results.push({
                 method: "trace_block",
-                expectedValue: "Error (method restricted)",
-                actualValue: "Method is accessible",
-                status: "warning",
+                expectedValue: "Enabled or disabled",
+                actualValue: "Enabled",
+                status: "info",
             });
         }
     } catch (err) {
         results.push({
             method: "trace_block",
-            expectedValue: "Error (method restricted)",
+            expectedValue: "Enabled or disabled",
             actualValue: err instanceof Error ? err.message : "Request failed",
             status: "ok",
         });
@@ -255,6 +255,152 @@ async function runMetricsTest(baseUrl: string): Promise<CheckResult[]> {
     }
 }
 
+async function runPChainTests(baseUrl: string): Promise<CheckResult[]> {
+    const results: CheckResult[] = [];
+    const pchainUrl = `${baseUrl}/ext/bc/P`;
+
+    // platform.getHeight
+    try {
+        const data = await rpcCall(pchainUrl, "platform.getHeight");
+        if (data.result && typeof data.result === "object" && "height" in data.result) {
+            results.push({
+                method: "platform.getHeight",
+                expectedValue: "Returns current P-Chain height",
+                actualValue: `Height: ${(data.result as { height: string }).height}`,
+                status: "ok",
+            });
+        } else if (data.error) {
+            results.push({
+                method: "platform.getHeight",
+                expectedValue: "Returns current P-Chain height",
+                actualValue: data.error.message || "P-Chain not accessible",
+                status: "error",
+            });
+        } else {
+            results.push({
+                method: "platform.getHeight",
+                expectedValue: "Returns current P-Chain height",
+                actualValue: "No result returned",
+                status: "error",
+            });
+        }
+    } catch (err) {
+        results.push({
+            method: "platform.getHeight",
+            expectedValue: "Returns current P-Chain height",
+            actualValue: err instanceof Error ? err.message : "Request failed",
+            status: "error",
+        });
+    }
+
+    // platform.getBlockchains
+    try {
+        const data = await rpcCall(pchainUrl, "platform.getBlockchains");
+        if (data.result && typeof data.result === "object" && "blockchains" in data.result) {
+            const blockchains = (data.result as { blockchains: unknown[] }).blockchains;
+            results.push({
+                method: "platform.getBlockchains",
+                expectedValue: "Returns list of blockchains",
+                actualValue: `${blockchains.length} blockchain(s) found`,
+                status: "ok",
+            });
+        } else if (data.error) {
+            results.push({
+                method: "platform.getBlockchains",
+                expectedValue: "Returns list of blockchains",
+                actualValue: data.error.message || "Failed to get blockchains",
+                status: "error",
+            });
+        } else {
+            results.push({
+                method: "platform.getBlockchains",
+                expectedValue: "Returns list of blockchains",
+                actualValue: "No result returned",
+                status: "error",
+            });
+        }
+    } catch (err) {
+        results.push({
+            method: "platform.getBlockchains",
+            expectedValue: "Returns list of blockchains",
+            actualValue: err instanceof Error ? err.message : "Request failed",
+            status: "error",
+        });
+    }
+
+    // platform.getSubnets (now L1s)
+    try {
+        const data = await rpcCall(pchainUrl, "platform.getSubnets", {});
+        if (data.result && typeof data.result === "object" && "subnets" in data.result) {
+            const subnets = (data.result as { subnets: unknown[] }).subnets;
+            results.push({
+                method: "platform.getSubnets",
+                expectedValue: "Returns list of L1s/Subnets",
+                actualValue: `${subnets.length} L1(s) found`,
+                status: "ok",
+            });
+        } else if (data.error) {
+            results.push({
+                method: "platform.getSubnets",
+                expectedValue: "Returns list of L1s/Subnets",
+                actualValue: data.error.message || "Failed to get subnets",
+                status: "error",
+            });
+        } else {
+            results.push({
+                method: "platform.getSubnets",
+                expectedValue: "Returns list of L1s/Subnets",
+                actualValue: "No result returned",
+                status: "error",
+            });
+        }
+    } catch (err) {
+        results.push({
+            method: "platform.getSubnets",
+            expectedValue: "Returns list of L1s/Subnets",
+            actualValue: err instanceof Error ? err.message : "Request failed",
+            status: "error",
+        });
+    }
+
+    // platform.getCurrentValidators (Primary Network)
+    try {
+        const data = await rpcCall(pchainUrl, "platform.getCurrentValidators", { subnetID: null });
+        if (data.result && typeof data.result === "object" && "validators" in data.result) {
+            const validators = (data.result as { validators: unknown[] }).validators;
+            results.push({
+                method: "platform.getCurrentValidators",
+                expectedValue: "Returns Primary Network validators",
+                actualValue: `${validators.length} validator(s) active`,
+                status: "ok",
+            });
+        } else if (data.error) {
+            results.push({
+                method: "platform.getCurrentValidators",
+                expectedValue: "Returns Primary Network validators",
+                actualValue: data.error.message || "Failed to get validators",
+                status: "error",
+            });
+        } else {
+            results.push({
+                method: "platform.getCurrentValidators",
+                expectedValue: "Returns Primary Network validators",
+                actualValue: "No result returned",
+                status: "error",
+            });
+        }
+    } catch (err) {
+        results.push({
+            method: "platform.getCurrentValidators",
+            expectedValue: "Returns Primary Network validators",
+            actualValue: err instanceof Error ? err.message : "Request failed",
+            status: "error",
+        });
+    }
+
+    return results;
+}
+
 function deriveBaseUrl(evmRpcUrl: string): string {
     const parts = evmRpcUrl.split("/ext/bc/");
     return parts[0] || evmRpcUrl.replace(/\/+$/, "");
@@ -264,6 +410,10 @@ const STATUS_CONFIG: Record<Status, { label: string; className: string }> = {
     ok: {
         label: "OK",
         className: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+    },
+    info: {
+        label: "Enabled",
+        className: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
     },
     warning: {
         label: "Warning",
@@ -331,8 +481,9 @@ export default function RPCMethodsChecker() {
         const resolvedBaseUrl = baseUrl || deriveBaseUrl(evmRpcUrl);
 
         try {
-            const [evmResults, adminResults, metricsResults] = await Promise.all([
+            const [evmResults, pchainResults, adminResults, metricsResults] = await Promise.all([
                 runEVMTests(evmRpcUrl),
+                runPChainTests(resolvedBaseUrl),
                 runAdminTests(resolvedBaseUrl),
                 runMetricsTest(resolvedBaseUrl),
             ]);
@@ -340,8 +491,13 @@ export default function RPCMethodsChecker() {
             setGroups([
                 {
                     title: "EVM API Tests",
-                    description: "Checks EVM endpoints and debug/trace method restrictions.",
+                    description: "Checks EVM endpoints and debug/trace method availability.",
                     results: evmResults,
+                },
+                {
+                    title: "P-Chain API Tests",
+                    description: "Verifies P-Chain endpoints are accessible for network operations.",
+                    results: pchainResults,
                 },
                 {
                     title: "Admin API Security",
@@ -363,6 +519,7 @@ export default function RPCMethodsChecker() {
 
     const totalChecks = groups.reduce((sum, g) => sum + g.results.length, 0);
     const okCount = groups.reduce((sum, g) => sum + g.results.filter(r => r.status === "ok").length, 0);
+    const infoCount = groups.reduce((sum, g) => sum + g.results.filter(r => r.status === "info").length, 0);
     const warningCount = groups.reduce((sum, g) => sum + g.results.filter(r => r.status === "warning").length, 0);
     const errorCount = groups.reduce((sum, g) => sum + g.results.filter(r => r.status === "error").length, 0);
 
@@ -415,9 +572,10 @@ export default function RPCMethodsChecker() {
                 <h3 className="font-semibold text-blue-800 dark:text-blue-400">Understanding Results</h3>
                 <ul className="mt-1 space-y-1 text-blue-700 dark:text-blue-300 ml-4 list-disc">
                     <li><strong>OK</strong> means the endpoint behaved as expected</li>
+                    <li><strong>Enabled</strong> indicates a debug/trace endpoint is accessible (useful for development)</li>
                     <li><strong>Warning</strong> means the result is unexpected but may not be critical</li>
                     <li><strong>Error</strong> indicates a security concern or failed check</li>
-                    <li>For Admin and Debug endpoints, errors from the RPC are expected and indicate proper security</li>
+                    <li>For Admin endpoints, errors from the RPC are expected and indicate proper security</li>
                 </ul>
             </div>
 
@@ -443,7 +601,7 @@ export default function RPCMethodsChecker() {
 
             {/* Summary */}
             {groups.length > 0 && (
-                <div className="grid grid-cols-4 gap-4">
+                <div className="grid grid-cols-5 gap-4">
                     <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 text-center">
                         <div className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{totalChecks}</div>
                         <div className="text-xs text-zinc-500 dark:text-zinc-400">Total Checks</div>
@@ -451,6 +609,10 @@ export default function RPCMethodsChecker() {
                     <div className="bg-white dark:bg-zinc-950 border border-green-200 dark:border-green-800/50 rounded-lg p-4 text-center">
                         <div className="text-2xl font-bold text-green-600 dark:text-green-400">{okCount}</div>
                         <div className="text-xs text-zinc-500 dark:text-zinc-400">OK</div>
+                    </div>
+                    <div className="bg-white dark:bg-zinc-950 border border-blue-200 dark:border-blue-800/50 rounded-lg p-4 text-center">
+                        <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{infoCount}</div>
+                        <div className="text-xs text-zinc-500 dark:text-zinc-400">Enabled</div>
                     </div>
                     <div className="bg-white dark:bg-zinc-950 border border-yellow-200 dark:border-yellow-800/50 rounded-lg p-4 text-center">
                         <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{warningCount}</div>
