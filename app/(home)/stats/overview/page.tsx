@@ -19,7 +19,6 @@ import {
   ChevronRight,
   BarChart3,
   Network,
-  Info,
   Users,
   Compass,
   ChartArea,
@@ -49,6 +48,7 @@ import {
   VersionBarChart,
   VersionLabels,
 } from "@/components/stats/VersionBreakdown";
+import { formatMarketCap } from "@/lib/utils/format-market-cap";
 
 type TableView = "summary" | "validators";
 
@@ -236,6 +236,7 @@ interface ChainOverviewMetrics {
   tps: number;
   activeAddresses: number;
   icmMessages: number;
+  marketCap: number | null;
   validatorCount: number | string;
 }
 
@@ -246,6 +247,7 @@ interface OverviewMetrics {
     totalTps: number;
     totalActiveAddresses: number;
     totalICMMessages: number;
+    totalMarketCap: number;
     totalValidators: number;
     activeChains: number;
   };
@@ -647,9 +649,9 @@ export default function AvalancheMetrics() {
         aValue = a.activeAddresses || 0;
         bValue = b.activeAddresses || 0;
         break;
-      case "icmMessages":
-        aValue = a.icmMessages || 0;
-        bValue = b.icmMessages || 0;
+      case "marketCap":
+        aValue = a.marketCap ?? 0;
+        bValue = b.marketCap ?? 0;
         break;
       case "validatorCount":
         aValue = typeof a.validatorCount === "number" ? a.validatorCount : 0;
@@ -1059,6 +1061,19 @@ export default function AvalancheMetrics() {
           <div className="flex flex-wrap items-center gap-4 sm:gap-6 md:gap-8 mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-zinc-200 dark:border-zinc-800">
             <div className="flex items-center gap-2">
               <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
+                Market Cap:
+              </span>
+              {tableLoading ? (
+                <div className="h-4 sm:h-5 w-12 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+              ) : (
+                <span className="text-xs sm:text-sm font-medium text-zinc-900 dark:text-white">
+                  {formatMarketCap(overviewMetrics.aggregated.totalMarketCap)}
+                </span>
+              )}
+            </div>
+            <div className="hidden sm:block w-px h-4 bg-zinc-300 dark:bg-zinc-700" />
+            <div className="flex items-center gap-2">
+              <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
                 {timeRangeLabel} ICM:
               </span>
               {tableLoading ? (
@@ -1358,9 +1373,9 @@ export default function AvalancheMetrics() {
                         </SortButton>
                       </th>
                       <th className="px-4 sm:px-6 py-4 text-right whitespace-nowrap">
-                        <SortButton field="icmMessages" align="right">
+                        <SortButton field="marketCap" align="right">
                           <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
-                            {timeRangeLabel} ICM
+                            Market Cap
                           </span>
                         </SortButton>
                       </th>
@@ -1450,22 +1465,7 @@ export default function AvalancheMetrics() {
                                 : "N/A"}
                             </td>
                             <td className="px-4 sm:px-6 py-4 text-right font-mono text-sm tabular-nums text-zinc-900 dark:text-zinc-100">
-                              {icmFailedChainIds.includes(chain.chainId) ? (
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <span className="text-amber-500 cursor-pointer inline-flex justify-end">
-                                      <Info className="w-4 h-4" />
-                                    </span>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Data unavailable</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              ) : typeof chain.icmMessages === "number" ? (
-                                formatFullNumber(Math.round(chain.icmMessages))
-                              ) : (
-                                "N/A"
-                              )}
+                              {chain.marketCap ? formatMarketCap(chain.marketCap) : "-"}
                             </td>
                             <td className="px-4 sm:px-6 py-4 text-right font-mono text-sm tabular-nums text-zinc-900 dark:text-zinc-100">
                               {typeof chain.validatorCount === "number"
