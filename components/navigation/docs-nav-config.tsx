@@ -18,7 +18,15 @@ import {
   AppWindow
 } from 'lucide-react';
 
-export const documentationOptions = [
+export type NavOption = {
+  title: string;
+  description: string;
+  badge?: string;
+  icon: React.ReactNode;
+  url: string;
+};
+
+export const documentationOptions: NavOption[] = [
   {
     title: 'Primary Network',
     description: 'C-Chain, P-Chain, and X-Chain',
@@ -39,7 +47,7 @@ export const documentationOptions = [
   },
 ];
 
-export const nodesOptions = [
+export const nodesOptions: NavOption[] = [
   {
     title: 'AvalancheGo Node',
     description: 'Run nodes and validators',
@@ -78,7 +86,7 @@ export const nodesOptions = [
   },
 ];
 
-export const apiReferenceOptions = [
+export const apiReferenceOptions: NavOption[] = [
   {
     title: 'Data API',
     description: 'Access blockchain data',
@@ -99,7 +107,7 @@ export const apiReferenceOptions = [
   },
 ];
 
-export const toolingOptions: { title: string; description: string; badge?: string; icon: React.ReactNode; url: string }[] = [
+export const toolingOptions: NavOption[] = [
   {
     title: 'AI & LLM',
     description: 'Integrate docs with AI apps and LLMs',
@@ -149,7 +157,7 @@ export const toolingOptions: { title: string; description: string; badge?: strin
 ];
 
 
-export const acpsOptions = [
+export const acpsOptions: NavOption[] = [
   {
     title: 'Streaming Asynchronous Execution',
     description: 'ACP-194',
