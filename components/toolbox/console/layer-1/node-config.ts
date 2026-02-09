@@ -16,7 +16,8 @@ const SUBNET_EVM_DEFAULTS = {
     "rpc-gas-cap": 50000000,
     "rpc-tx-fee-cap": 100,
     "log-level": "info",
-    // Note: AvalancheGo default is true, but we default to false to avoid performance impact
+    // Note: Subnet-EVM Go default is true (see default_config.go). We track this as a
+    // UI default of false so the generated config explicitly disables it for new nodes.
     "metrics-expensive-enabled": false,
     "accepted-cache-size": 32,
     "batch-request-limit": 1000,  // AvalancheGo default is 1000
@@ -108,16 +109,16 @@ export const generateChainConfig = (
         config["log-level"] = logLevel;
     }
 
-    // Expensive metrics - only add if explicitly enabled
-    // Note: There is no "metrics-enabled" chain config option - metrics are controlled
-    // at the node level via --api-metrics-enabled flag.
-    // metrics-expensive-enabled controls debug-level metrics (Firewood, etc.) that can impact performance.
-    // AvalancheGo default is true, but we default to false to avoid performance impact.
-    if (metricsExpensiveEnabled) {
-        config["metrics-expensive-enabled"] = true;
-    }
+    // Expensive metrics - always include explicitly.
+    // Subnet-EVM Go default is true (MetricsExpensiveEnabled: true in default_config.go),
+    // so omitting the key means expensive metrics stay enabled. We must explicitly set
+    // false when the user wants them disabled, otherwise the Go default wins.
+    config["metrics-expensive-enabled"] = metricsExpensiveEnabled;
 
-    // Min delay target - only include if different from default (2000ms)
+    // Min delay target (ACP-226) - controls minimum block delay for validators.
+    // In Go source this is *uint64 with omitempty (nil = node decides, no vote).
+    // The UI defaults the slider to 2000ms; when at that position we omit the key
+    // so the node uses its own default behavior. Any other value is explicit.
     if (minDelayTarget !== 2000) {
         config["min-delay-target"] = minDelayTarget;
     }
@@ -157,7 +158,10 @@ export const generateChainConfig = (
     // The node automatically enables default APIs: ["eth", "eth-filter", "net", "web3", "internal-eth", "internal-blockchain", "internal-transaction"]
     // We only need to specify eth-apis when adding debug or admin APIs
     if (enableDebugTrace) {
-        // Debug trace requires additional debug APIs
+        // Debug trace requires additional debug APIs.
+        // Note: internal-personal is intentionally excluded -- it exposes wallet
+        // management RPCs (personal_newAccount, personal_unlockAccount, etc.) which
+        // are dangerous on public RPC nodes. Operators who need it can add it manually.
         config["eth-apis"] = [
             "eth",
             "eth-filter",
@@ -168,7 +172,6 @@ export const generateChainConfig = (
             "internal-transaction",
             "internal-debug",
             "internal-account",
-            "internal-personal",
             "debug",
             "debug-tracer",
             "debug-file-tracer",
@@ -217,6 +220,11 @@ export const generateChainConfig = (
             config["push-gossip-percent-stake"] = pushGossipPercentStake;
         }
     }
+
+    // Warp API - required for L1s using ICM/Teleporter cross-chain messaging.
+    // Subnet-EVM default is false (WarpAPIEnabled bool, zero-value),
+    // so we must explicitly enable it for L1 chain configs.
+    config["warp-api-enabled"] = true;
 
     // Continuous profiling - only add if enabled
     if (continuousProfilerDir) {
