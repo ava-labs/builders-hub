@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
-import { Copy, Check, AlertTriangle, Droplets, ExternalLink } from "lucide-react";
+import { Copy, Check, AlertTriangle, Droplets, ExternalLink, RefreshCw, Wallet } from "lucide-react";
 import {
   BaseConsoleToolProps,
   ConsoleToolMetadata,
@@ -52,8 +52,34 @@ function DevnetFaucet({ onSuccess }: BaseConsoleToolProps) {
   const [isDripping, setIsDripping] = useState(false);
   const [result, setResult] = useState<{ success: boolean; message: string; txHash?: string } | null>(null);
 
+  const [faucetBalance, setFaucetBalance] = useState<string | null>(null);
+  const [faucetAddress, setFaucetAddress] = useState<string | null>(null);
+  const [isLoadingBalance, setIsLoadingBalance] = useState(false);
+
   const userEmail = session?.user?.email || "";
   const isAvaLabs = userEmail.endsWith("@avalabs.org");
+
+  const fetchBalance = useCallback(async () => {
+    setIsLoadingBalance(true);
+    try {
+      const res = await fetch("/api/devnet-faucet/balance");
+      const data = await res.json();
+      if (data.success) {
+        setFaucetBalance(data.balance);
+        setFaucetAddress(data.address);
+      }
+    } catch {
+      // silently fail
+    } finally {
+      setIsLoadingBalance(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isAvaLabs) {
+      fetchBalance();
+    }
+  }, [isAvaLabs, fetchBalance]);
 
   const handleAddNetwork = async () => {
     if (!window.ethereum) return;
@@ -113,6 +139,8 @@ function DevnetFaucet({ onSuccess }: BaseConsoleToolProps) {
         message: `Sent ${data.amount} AVAX`,
         txHash: data.txHash,
       });
+      // Refresh balance after drip
+      setTimeout(() => fetchBalance(), 2000);
     } catch (err) {
       setResult({ success: false, message: "Network error. Please try again." });
     } finally {
@@ -176,6 +204,42 @@ function DevnetFaucet({ onSuccess }: BaseConsoleToolProps) {
             <span className="text-sm text-zinc-600 dark:text-zinc-400">Network</span>
             <span className="text-sm font-medium text-zinc-900 dark:text-white">Avalanche Devnet C-Chain</span>
           </div>
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-zinc-600 dark:text-zinc-400 flex items-center gap-1.5">
+              <Wallet className="w-3.5 h-3.5" />
+              Faucet Balance
+            </span>
+            <div className="flex items-center gap-2">
+              {isLoadingBalance ? (
+                <span className="text-sm text-zinc-400 animate-pulse">Loading...</span>
+              ) : faucetBalance !== null ? (
+                <span className="text-sm font-mono font-semibold text-zinc-900 dark:text-white">
+                  {parseFloat(faucetBalance).toLocaleString(undefined, { maximumFractionDigits: 4 })} AVAX
+                </span>
+              ) : (
+                <span className="text-sm text-zinc-400">Unavailable</span>
+              )}
+              <button
+                onClick={fetchBalance}
+                disabled={isLoadingBalance}
+                className="text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors disabled:opacity-50"
+                title="Refresh balance"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isLoadingBalance ? "animate-spin" : ""}`} />
+              </button>
+            </div>
+          </div>
+          {faucetAddress && (
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-zinc-600 dark:text-zinc-400">Faucet Address</span>
+              <div className="flex items-center gap-2">
+                <code className="text-xs font-mono text-zinc-500 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded truncate max-w-[200px]">
+                  {faucetAddress}
+                </code>
+                <CopyButton text={faucetAddress} label="Address" />
+              </div>
+            </div>
+          )}
 
           <div className="pt-2 border-t border-zinc-200 dark:border-zinc-800">
             <button
