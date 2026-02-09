@@ -262,7 +262,7 @@ function DevnetFaucet({ onSuccess }: BaseConsoleToolProps) {
         <div className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 px-4 py-8">
           <div className="flex items-center gap-3 mb-8">
             <img
-              src="https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/3e4b8ff10b69bfa31e70080a4b142caa/cchain-square.svg"
+              src="https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/3e4b8ff10b69bfa31e70080a4b142cd0/avalanche-avax-logo.svg"
               alt="C-Chain"
               className="w-10 h-10 shrink-0"
             />

@@ -90,11 +90,6 @@ const data = {
           icon: Droplets,
         },
         {
-          title: "Devnet Faucet",
-          url: "/console/primary-network/devnet-faucet",
-          icon: Droplets,
-        },
-        {
           title: "C/P-Chain Bridge",
           url: "/console/primary-network/c-p-bridge",
           icon: ArrowLeftRight,
