@@ -13,7 +13,8 @@ import {
   Milestone,
   Book,
   Eye,
-  Bot
+  Bot,
+  AppWindow
 } from 'lucide-react';
 
 export const documentationOptions = [
@@ -99,16 +100,31 @@ export const apiReferenceOptions = [
 
 export const toolingOptions = [
   {
-    title: 'Avalanche-SDK',
-    description: 'Software development kit for Avalanche',
-    icon: <Package className="w-5 h-5" />,
-    url: '/docs/tooling/avalanche-sdk',
+    title: 'AI & LLM',
+    description: 'Integrate docs with AI apps and LLMs',
+    badge: 'New',
+    icon: <Bot className="w-5 h-5" />,
+    url: '/docs/tooling/ai-llm',
   },
   {
-    title: 'Avalanche-CLI',
-    description: 'Command-line interface for Avalanche',
+    title: 'Builder Console',
+    description: 'Interactive tools with Core wallet in browser',
+    badge: 'New',
+    icon: <AppWindow className="w-5 h-5" />,
+    url: '/console',
+  },
+  {
+    title: 'Platform CLI',
+    description: 'P-Chain operations: staking, subnets, transfers',
+    badge: 'New',
     icon: <Terminal className="w-5 h-5" />,
-    url: '/docs/tooling/avalanche-cli',
+    url: '/docs/tooling/platform-cli',
+  },
+  {
+    title: 'Avalanche-SDK',
+    description: 'TypeScript SDK for Avalanche',
+    icon: <Package className="w-5 h-5" />,
+    url: '/docs/tooling/avalanche-sdk',
   },
   {
     title: 'tmpnet',
@@ -123,10 +139,11 @@ export const toolingOptions = [
     url: '/docs/tooling/avalanche-postman',
   },
   {
-    title: 'AI & LLM',
-    description: 'Integrate docs with AI apps and LLMs',
-    icon: <Bot className="w-5 h-5" />,
-    url: '/docs/tooling/ai-llm',
+    title: 'Avalanche-CLI',
+    description: 'Command-line interface for Avalanche',
+    badge: 'Deprecated',
+    icon: <Terminal className="w-5 h-5" />,
+    url: '/docs/tooling/avalanche-cli',
   },
 ];
 

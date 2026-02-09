@@ -5,10 +5,15 @@
   "pages": [
     "index",
     "installation",
+    "---Keys & Wallet---",
     "key-management",
     "transfers",
+    "---Network Operations---",
     "staking",
-    "subnets-and-l1s",
+    "subnets",
+    "l1-validators",
+    "chains",
+    "---Reference---",
     "command-reference"
   ]
 }
