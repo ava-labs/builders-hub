@@ -25,6 +25,7 @@ import {
   AlertTriangle,
   LayoutGrid,
   Shield,
+  Info,
 } from "lucide-react";
 import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
 import l1ChainsData from "@/constants/l1-chains.json";
@@ -1060,8 +1061,16 @@ export default function AvalancheMetrics() {
           {/* Secondary stats row - responsive */}
           <div className="flex flex-wrap items-center gap-4 sm:gap-6 md:gap-8 mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-zinc-200 dark:border-zinc-800">
             <div className="flex items-center gap-2">
-              <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
+              <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 inline-flex items-center gap-1">
                 Market Cap:
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="w-3 h-3 text-zinc-400 cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Data from CoinGecko</p>
+                  </TooltipContent>
+                </Tooltip>
               </span>
               {tableLoading ? (
                 <div className="h-4 sm:h-5 w-12 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
@@ -1374,8 +1383,16 @@ export default function AvalancheMetrics() {
                       </th>
                       <th className="px-4 sm:px-6 py-4 text-right whitespace-nowrap">
                         <SortButton field="marketCap" align="right">
-                          <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
+                          <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400 inline-flex items-center gap-1">
                             Market Cap
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Info className="w-3 h-3 text-zinc-400 cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Data from CoinGecko</p>
+                              </TooltipContent>
+                            </Tooltip>
                           </span>
                         </SortButton>
                       </th>
