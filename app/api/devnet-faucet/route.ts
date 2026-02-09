@@ -21,19 +21,6 @@ const devnetCChain = defineChain({
 
 const account = SERVER_PRIVATE_KEY ? privateKeyToAccount(SERVER_PRIVATE_KEY as `0x${string}`) : null;
 
-// Simple in-memory rate limit: 1 claim per address per 10 minutes
-const recentClaims = new Map<string, number>();
-const RATE_LIMIT_MS = 10 * 60 * 1000;
-
-function cleanupClaims() {
-  const now = Date.now();
-  for (const [key, timestamp] of recentClaims) {
-    if (now - timestamp > RATE_LIMIT_MS) {
-      recentClaims.delete(key);
-    }
-  }
-}
-
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     const session = await getAuthSession();
@@ -75,18 +62,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // Rate limit check
-    cleanupClaims();
-    const claimKey = `${session.user.id}:${destinationAddress.toLowerCase()}`;
-    const lastClaim = recentClaims.get(claimKey);
-    if (lastClaim && Date.now() - lastClaim < RATE_LIMIT_MS) {
-      const remaining = Math.ceil((RATE_LIMIT_MS - (Date.now() - lastClaim)) / 60000);
-      return NextResponse.json(
-        { success: false, message: `Rate limited. Try again in ${remaining} minutes.` },
-        { status: 429 }
-      );
-    }
-
     const walletClient = createWalletClient({
       account,
       chain: devnetCChain,
@@ -113,9 +88,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       to: destinationAddress as `0x${string}`,
       value: amountToSend,
     });
-
-    // Record the claim
-    recentClaims.set(claimKey, Date.now());
 
     return NextResponse.json({
       success: true,
