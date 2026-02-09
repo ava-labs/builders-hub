@@ -12,6 +12,7 @@ import {
   formatResetTime,
 } from '@/lib/chat/rateLimit';
 import { searchTools, getToolsContextForPrompt, formatToolsForContext } from '@/lib/chat/tools-search';
+import { walletTools } from './tools';
 
 // Helper to extract text from v6 UIMessage
 function getTextFromMessage(message: any): string {
@@ -31,8 +32,8 @@ function getTextFromMessage(message: any): string {
 
 // Changed from 'edge' to 'nodejs' to support code search (zlib operations)
 export const runtime = 'nodejs';
-// Extend timeout for AI streaming + tool calls (default 10s is too short)
-export const maxDuration = 60;
+// Extend timeout for AI streaming + tool calls (wallet investigation tools can take 55s)
+export const maxDuration = 90;
 
 const anthropic = createAnthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -1632,6 +1633,9 @@ export async function POST(req: Request) {
           }
         },
       }),
+
+      // Wallet investigation tools (deep fund tracing, entity clustering, genesis lookups)
+      ...walletTools,
     },
     stopWhen: stepCountIs(10), // Allow multiple tool calls for complex queries
     system: `You are an expert AI assistant for Avalanche Builders Hub, specializing in helping developers build on Avalanche.
@@ -1745,6 +1749,46 @@ You can look up on-chain data when users paste transaction hashes or addresses:
 - If the user mentions "testnet", "fuji", or "test", use network "fuji"
 - If the user mentions "mainnet" or no network specified, try mainnet first
 - The tools auto-fallback to other network if not found
+
+## WALLET INVESTIGATION CAPABILITIES (Advanced On-Chain Analysis)
+
+You have powerful wallet investigation tools for deep on-chain analysis on X-Chain and P-Chain. These go far beyond basic lookups.
+
+**Address formats accepted by all wallet tools:**
+- avax1... (bech32, no chain prefix)
+- X-avax1... or P-avax1... (chain-prefixed bech32)
+- 0x... (EVM/C-Chain format, for genesis lookups only)
+
+**Available tools and when to use them:**
+
+1. **\`wallet_lookup_genesis\`** - Check if an address has a genesis allocation
+   - Use when: user asks "is this a genesis address?", "check genesis for...", "initial allocation"
+   - Fast (~2-5s), good starting point for investigations
+
+2. **\`wallet_trace_funds\`** - Trace fund sources backward toward genesis, or forward to destinations
+   - Use when: user asks "where did funds come from?", "trace to genesis", "fund sources"
+   - Can be slow (30-60s for deep traces), warn the user it may take a moment
+   - Use \`direction: backward\` to find fund origins, \`forward\` to find where funds went
+
+3. **\`wallet_cluster_entity\`** - Find all addresses controlled by the same entity
+   - Use when: user asks "who controls this address?", "related addresses", "entity clustering"
+   - Uses co-spent input heuristics (BFS) to discover linked addresses
+
+4. **\`wallet_analyze_validator\`** - Deep validator profile with fund source tracing
+   - Use when: user asks "who funds this validator?", "analyze validator", "validator deep dive"
+   - More thorough than \`blockchain_lookup_validator\` (which only shows basic info)
+   - Can be slow (30-60s) as it traces fund sources for staking addresses
+
+**Investigation workflow recipes:**
+- "Is this address connected to genesis?" → \`wallet_lookup_genesis\`, then \`wallet_trace_funds\` backward
+- "Who controls this validator?" → \`wallet_analyze_validator\`, then \`wallet_cluster_entity\` on staking addresses
+- "Find all related addresses" → \`wallet_cluster_entity\`, optionally \`wallet_lookup_genesis\` on discovered addresses
+- "Deep dive on this address" → \`wallet_lookup_genesis\` + \`wallet_trace_funds\` backward + \`wallet_cluster_entity\`
+
+**Important notes:**
+- Tracing and validator analysis can take 30-60 seconds. Let the user know results are loading.
+- These tools work on mainnet only (X-Chain and P-Chain).
+- The basic \`blockchain_lookup_validator\` is faster for simple status checks. Use \`wallet_analyze_validator\` when deep analysis is needed.
 
 CRITICAL URL RULES - MUST FOLLOW TO PREVENT 404 ERRORS:
 - **USE EXACT URLS ONLY** - NEVER shorten, truncate, or modify URLs from the context

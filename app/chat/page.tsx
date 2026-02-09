@@ -695,7 +695,7 @@ const SUGGESTED_QUESTIONS = [
   "How do I deploy a smart contract on Avalanche?",
   "What's the difference between C-Chain and an L1?",
   "How do I create my own Avalanche L1?",
-  "Explain Avalanche consensus mechanism",
+  "Trace fund sources for a P-Chain address to genesis",
 ];
 
 // Typewriter hook for cycling through messages
