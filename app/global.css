@@ -530,22 +530,22 @@ html {
 }
 
 .dark {
-  --background: oklch(0 0 0);
+  --background: oklch(0.145 0 0);
   --foreground: oklch(0.98 0 0);
-  --card: oklch(0 0 0);
+  --card: oklch(0.205 0 0);
   --card-foreground: oklch(0.98 0 0);
-  --popover: oklch(0 0 0);
+  --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.98 0 0);
   --primary: oklch(0.98 0 0); /* near-white text/icons */
   --primary-foreground: oklch(0.2 0 0);
   --secondary: oklch(0.12 0 0);
   --secondary-foreground: oklch(0.9 0 0);
-  --muted: oklch(0.16 0 0);
+  --muted: oklch(0.269 0 0);
   --muted-foreground: oklch(0.7 0 0);
   --accent: oklch(0.14 0 0);
   --accent-foreground: oklch(0.92 0 0);
   --destructive: oklch(0.6 0.02 30);
-  --border: oklch(0.2 0 0);
+  --border: oklch(1 0 0 / 10%);
   --input: oklch(0.2 0 0);
   --ring: oklch(0.7 0 0);
   --chart-1: oklch(0.6 0 0);
@@ -1035,13 +1035,11 @@ nav button[aria-current="page"]:hover {
     z-index: 44 !important; /* Below PopoverContent (z-10000) */
   }
   
-  /* Allow clicks through to PopoverContent ONLY when mobile sidebar is NOT open */
-  /* When sidebar IS open, backdrop must block all page content interactions */
-  /* Popovers inside sidebar still work because they're at z-10000 with pointer-events: auto */
-  body:not(:has(#nd-sidebar-mobile[data-state="open"])):has([data-radix-popover-content][data-state="open"]) div.fixed.inset-0.backdrop-blur-xs[data-state="open"]:not(#nd-sidebar-mobile):not(aside):not([id]),
-  body:not(:has(#nd-sidebar-mobile[data-state="open"])):has([data-radix-popover-content][data-state="open"]) div.fixed.z-40.inset-0[data-state="open"]:not(#nd-sidebar-mobile):not(aside):not([id]) {
-    pointer-events: none !important;
-    z-index: 44 !important;
+  /* CRITICAL: Prevent backdrop from blocking PopoverContent - backdrop must NOT block PopoverContent */
+  body:has([data-radix-popover-content][data-state="open"]) div.fixed.inset-0.backdrop-blur-xs[data-state="open"]:not(#nd-sidebar-mobile):not(aside):not([id]),
+  body:has([data-radix-popover-content][data-state="open"]) div.fixed.z-40.inset-0[data-state="open"]:not(#nd-sidebar-mobile):not(aside):not([id]) {
+    pointer-events: none !important; /* CRITICAL: Allow clicks through to PopoverContent when it's open */
+    z-index: 44 !important; /* Below PopoverContent (z-9999) */
   }
   
   /* Ensure mobile sidebar is above the backdrop and navbar */
@@ -1426,4 +1424,3 @@ html.embed-mode #nd-toc {
   background-color: #2f2f3353;
   border-radius: 5px;
 }
-
