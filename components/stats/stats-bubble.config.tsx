@@ -2,7 +2,7 @@
 
 import BubbleNavigation from "@/components/navigation/BubbleNavigation";
 import type { BubbleNavigationConfig } from "@/components/navigation/bubble-navigation.types";
-import { Globe, List, ChartArea, Command, MessageCircleMore } from "lucide-react";
+import { Globe, List, ChartArea, Command, MessageCircleMore, Landmark } from "lucide-react";
 
 export const statsBubbleConfig: BubbleNavigationConfig = {
   items: [
@@ -11,6 +11,7 @@ export const statsBubbleConfig: BubbleNavigationConfig = {
     { id: "stats", label: "Stats", href: "/stats/network-metrics", icon: ChartArea },
     { id: "playground", label: "Playground", href: "/stats/playground", icon: Command },
     { id: "icm", label: "ICM", href: "/stats/interchain-messaging", icon: MessageCircleMore },
+    { id: "rwa", label: "RWA", href: "/stats/rwa", icon: Landmark },
   ],
   activeColor: "bg-red-100 dark:bg-red-500/20",
   darkActiveColor: "",
@@ -35,6 +36,8 @@ const getActiveItem = (
     return "icm";
   } else if (pathname.startsWith("/stats/playground")) {
     return "playground";
+  } else if (pathname.startsWith("/stats/rwa")) {
+    return "rwa";
   }
   return "overview";
 };
