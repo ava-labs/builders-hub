@@ -221,11 +221,6 @@ export const generateChainConfig = (
         }
     }
 
-    // Warp API - required for L1s using ICM/Teleporter cross-chain messaging.
-    // Subnet-EVM default is false (WarpAPIEnabled bool, zero-value),
-    // so we must explicitly enable it for L1 chain configs.
-    config["warp-api-enabled"] = true;
-
     // Continuous profiling - only add if enabled
     if (continuousProfilerDir) {
         config["continuous-profiler-dir"] = continuousProfilerDir;
