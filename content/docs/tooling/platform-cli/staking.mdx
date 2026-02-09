@@ -1,0 +1,121 @@
+---
+title: Staking
+description: Add validators and delegate stake to the Avalanche primary network
+---
+
+Platform CLI provides commands to add validators and delegate stake on the Avalanche primary network.
+
+## Requirements
+
+| Network | Validator Min | Delegator Min | Min Duration |
+|---------|---------------|---------------|--------------|
+| **Local** | 1 AVAX | 1 AVAX | 24 hours |
+| **Fuji** | 1 AVAX | 1 AVAX | 14 days |
+| **Mainnet** | 2,000 AVAX | 25 AVAX | 14 days |
+
+## Adding a Validator
+
+All validators require a BLS proof of possession. You can provide this manually (recommended) or auto-fetch from a node endpoint.
+
+### Manual BLS Mode (Recommended)
+
+```bash
+platform validator add \
+  --node-id NodeID-BFa1paAAAA... \
+  --stake 2000 \
+  --duration 336h \
+  --delegation-fee 0.02 \
+  --bls-public-key 0x1234... \
+  --bls-pop 0x5678... \
+  --key-name mykey \
+  --network mainnet
+```
+
+### Auto-Fetch BLS from Node
+
+```bash
+platform validator add \
+  --node-id NodeID-BFa1paAAAA... \
+  --stake 2000 \
+  --duration 336h \
+  --delegation-fee 0.02 \
+  --node-endpoint http://validator.example.com:9650 \
+  --key-name mykey \
+  --network mainnet
+```
+
+### Get BLS Credentials
+
+Use `node info` to retrieve BLS credentials from a running node:
+
+```bash
+platform node info --ip validator.example.com:9650
+```
+
+```
+Node ID:        NodeID-BFa1paAAAA...
+BLS Public Key: 0x1234567890abcdef...
+BLS PoP:        0xfedcba0987654321...
+```
+
+## Delegating Stake
+
+Delegate AVAX to an existing validator:
+
+```bash
+platform validator delegate \
+  --node-id NodeID-BFa1paAAAA... \
+  --stake 100 \
+  --duration 336h \
+  --key-name mykey \
+  --network mainnet
+```
+
+## Delegation Fees
+
+Validators charge a fee as a percentage of delegator rewards:
+
+| `--delegation-fee` value | Percentage | Meaning |
+|--------------------------|------------|---------|
+| `0.02` | 2% | Validator keeps 2% of delegation rewards |
+| `0.05` | 5% | Validator keeps 5% of delegation rewards |
+| `0.10` | 10% | Validator keeps 10% of delegation rewards |
+
+## Timing
+
+### Start Time
+
+```bash
+--start now          # Default: 30 seconds from submission
+--start 2026-02-01T00:00:00Z   # RFC3339 format
+```
+
+### Duration
+
+Duration uses Go format (hours):
+
+| Value | Period |
+|-------|--------|
+| `336h` | 14 days (minimum on mainnet) |
+| `720h` | 30 days |
+| `2160h` | 90 days |
+| `8760h` | 365 days |
+
+## Reward Address
+
+By default, rewards go to your P-Chain address. Specify a different address with:
+
+```bash
+--reward-address P-avax1xyz789...
+```
+
+## Next Steps
+
+<Cards>
+  <Card title="Subnets & L1s" href="/docs/tooling/platform-cli/subnets-and-l1s">
+    Create subnets and manage L1 validators
+  </Card>
+  <Card title="Command Reference" href="/docs/tooling/platform-cli/command-reference">
+    Complete staking command reference
+  </Card>
+</Cards>

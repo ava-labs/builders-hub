@@ -1,0 +1,61 @@
+---
+title: Platform CLI Overview
+description: Manage Avalanche P-Chain operations from the command line
+---
+
+Platform CLI is a lightweight command-line tool for Avalanche P-Chain operations. It handles key management, AVAX transfers, cross-chain transfers, primary network staking, subnet creation, and L1 validator management.
+
+## Key Features
+
+| Feature | Description |
+|---------|-------------|
+| **Key Management** | Generate, import, export, and encrypt private keys with AES-256-GCM |
+| **P-Chain Transfers** | Send AVAX on P-Chain and transfer between P-Chain and C-Chain |
+| **Staking** | Add validators and delegators to the primary network |
+| **Subnets** | Create subnets, transfer ownership, and convert to L1 blockchains |
+| **L1 Validators** | Register, configure, and manage L1 blockchain validators |
+| **Chain Creation** | Deploy new blockchains on existing subnets |
+| **Ledger Support** | Optional hardware wallet integration for signing transactions |
+
+## Supported Networks
+
+| Network | Usage | Min Validator Stake | Min Delegator Stake |
+|---------|-------|---------------------|---------------------|
+| **Local** | `--rpc-url http://127.0.0.1:9650` | 1 AVAX | 1 AVAX |
+| **Fuji** | `--network fuji` (default) | 1 AVAX | 1 AVAX |
+| **Mainnet** | `--network mainnet` | 2,000 AVAX | 25 AVAX |
+| **Custom** | `--rpc-url <endpoint>` | Varies | Varies |
+
+## Getting Started
+
+1. [Install Platform CLI](/docs/tooling/platform-cli/installation) and build from source
+2. [Create or import a key](/docs/tooling/platform-cli/key-management) to sign transactions
+3. Follow the guides for your use case: transfers, staking, or subnet operations
+
+## Quick Links
+
+<Cards>
+  <Card title="Installation" href="/docs/tooling/platform-cli/installation">
+    Build from source and configure global options
+  </Card>
+  <Card title="Key Management" href="/docs/tooling/platform-cli/key-management">
+    Generate, import, and encrypt private keys
+  </Card>
+  <Card title="Transfers" href="/docs/tooling/platform-cli/transfers">
+    Send AVAX and perform cross-chain transfers
+  </Card>
+  <Card title="Staking" href="/docs/tooling/platform-cli/staking">
+    Add validators and delegate to the primary network
+  </Card>
+  <Card title="Subnets & L1s" href="/docs/tooling/platform-cli/subnets-and-l1s">
+    Create subnets and manage L1 validators
+  </Card>
+  <Card title="Command Reference" href="/docs/tooling/platform-cli/command-reference">
+    Complete reference for all commands and flags
+  </Card>
+</Cards>
+
+## Support
+
+- [GitHub Repository](https://github.com/ava-labs/platform-cli)
+- [Discord Community](https://chat.avalabs.org/)

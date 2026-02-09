@@ -1,0 +1,14 @@
+{
+  "title": "Platform CLI",
+  "description": "CLI for Avalanche P-Chain operations",
+  "root": true,
+  "pages": [
+    "index",
+    "installation",
+    "key-management",
+    "transfers",
+    "staking",
+    "subnets-and-l1s",
+    "command-reference"
+  ]
+}

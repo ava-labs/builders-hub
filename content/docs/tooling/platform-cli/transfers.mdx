@@ -1,0 +1,105 @@
+---
+title: Transfers
+description: Send AVAX on P-Chain and perform cross-chain transfers with Platform CLI
+---
+
+Platform CLI supports P-Chain AVAX transfers and cross-chain transfers between P-Chain and C-Chain.
+
+## Amount Formats
+
+| Format | Description | Example |
+|--------|-------------|---------|
+| `--amount` | Human-readable AVAX | `--amount 10.5` |
+| `--amount-navax` | Exact nAVAX (1 AVAX = 1,000,000,000 nAVAX) | `--amount-navax 10500000000` |
+
+These flags are mutually exclusive. Use `--amount-navax` when exact precision matters for large transfers.
+
+## P-Chain Send
+
+Send AVAX to another P-Chain address:
+
+```bash
+platform transfer send --to P-fuji1abc123... --amount 10 --key-name mykey
+
+# With exact nAVAX amount
+platform transfer send --to P-fuji1abc123... --amount-navax 10000000000 --key-name mykey
+
+# On mainnet
+platform transfer send --to P-avax1abc123... --amount 100 --network mainnet --key-name mykey
+```
+
+## Cross-Chain: P-Chain to C-Chain
+
+Transfer AVAX from P-Chain to C-Chain in one step (handles export + import automatically):
+
+```bash
+platform transfer p-to-c --amount 10 --key-name mykey
+```
+
+Output:
+
+```
+Transferring 10000000000 nAVAX (10.000000000 AVAX) from P-Chain to C-Chain...
+P-Chain Address: P-fuji1abc123...
+C-Chain Address: 0xdef456...
+Step 1/2: Exporting from P-Chain...
+Export TX ID: 2QYfFcfZ9...
+Step 2/2: Importing to C-Chain...
+Import TX ID: 3RZgGdaH1...
+Transfer complete!
+```
+
+## Cross-Chain: C-Chain to P-Chain
+
+```bash
+platform transfer c-to-p --amount 5 --key-name mykey
+```
+
+## Manual Two-Step Transfers
+
+For advanced use cases, perform export and import separately:
+
+```bash
+# Step 1: Export
+platform transfer export --from p --to c --amount 10 --key-name mykey
+
+# Step 2: Import (after network confirmation)
+platform transfer import --from p --to c --key-name mykey
+```
+
+The `--from` and `--to` flags accept `p` or `c`.
+
+## Checking Balances
+
+```bash
+platform wallet balance --key-name mykey --network fuji
+```
+
+```
+P-Chain Address: P-fuji1abc123...
+Balance: 100.000000000 AVAX
+```
+
+## Viewing Addresses
+
+The same private key derives different addresses on each chain:
+
+```bash
+platform wallet address --key-name mykey
+```
+
+```
+P-Chain Address: P-fuji1abc123...
+EVM Address:     0xdef456...
+```
+
+## Next Steps
+
+<Cards>
+  <Card title="Staking" href="/docs/tooling/platform-cli/staking">
+    Use P-Chain AVAX for staking
+  </Card>
+  <Card title="Subnets & L1s" href="/docs/tooling/platform-cli/subnets-and-l1s">
+    Create subnets with P-Chain AVAX
+  </Card>
+</Cards>
