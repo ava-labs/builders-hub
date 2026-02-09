@@ -57,6 +57,7 @@ import { AnnotationOverlay } from "./AnnotationOverlay";
 import type { ChartExportData, PresetType, Period, ChartType, DateRangePreset, BrushRange, ExportMode, CollageMetricConfig, CollageSettings, CustomAspectRatio } from "./types";
 import { DATE_RANGE_PRESETS } from "./constants";
 import { cn } from "@/lib/utils";
+import { parseDateString } from "@/components/stats/chart-axis-utils";
 import { ChartWatermark } from "@/components/stats/ChartWatermark";
 
 // Chart data point interface
@@ -987,7 +988,7 @@ export function ImageExportStudio({
   // Format X axis labels based on period
   const formatXAxis = (value: string) => {
     if (!value) return "";
-    const date = new Date(value);
+    const date = parseDateString(value);
     if (isNaN(date.getTime())) return value;
 
     // Format based on current period
