@@ -1,3 +1,4 @@
+import React from 'react';
 import {
   Network,
   Layers,
@@ -98,7 +99,7 @@ export const apiReferenceOptions = [
   },
 ];
 
-export const toolingOptions: { title: string; description: string; badge?: string; icon: JSX.Element; url: string }[] = [
+export const toolingOptions: { title: string; description: string; badge?: string; icon: React.ReactNode; url: string }[] = [
   {
     title: 'AI & LLM',
     description: 'Integrate docs with AI apps and LLMs',
