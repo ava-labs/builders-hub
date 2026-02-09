@@ -67,6 +67,8 @@ X-PAYMENT: eyJ4NDAyVmVyc2lvbiI6MSwic2NoZW1lIjoiZXhhY3QiLCJuZXR3b3JrIjoiYXZhbGFuY
 
 The client does NOT submit a blockchain transaction. The authorization is gasless—the server or facilitator will submit it. For details on the `X-PAYMENT` header structure, see [X-PAYMENT Header](./03-x-payment-header).
 
+<Quiz quizId="2065"/>
+
 ### Step 4: Server Verifies, Settles, and Returns Resource
 
 The server (potentially with a facilitator's help):
@@ -97,6 +99,8 @@ The `X-PAYMENT-RESPONSE` header (decoded) contains:
 ```
 
 The client now has access to the resource, and the entire cycle completed in approximately 1.5-2 seconds.
+
+<Quiz quizId="2066"/>
 
 ## Detailed 12-Step Technical Flow
 

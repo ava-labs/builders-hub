@@ -17,3 +17,5 @@ Interface that defines the events token transfer contract implementations must e
 ### `IERC20TokenTransferrer` and `INativeTokenTransferrer`
 
 Interfaces that define the external functions for interacting with token transfer contract implementations of each type. ERC20 and native token transferrer interfaces vary from each other in that the native token transferrer functions are `payable` and do not take an explicit amount parameter (it is implied by `msg.value`), while the ERC20 token transferrer functions are not `payable` and require the explicit amount parameter. Otherwise, they include the same functions.
+
+<Quiz quizId="4004"/>
