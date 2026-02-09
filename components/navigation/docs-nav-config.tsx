@@ -98,7 +98,7 @@ export const apiReferenceOptions = [
   },
 ];
 
-export const toolingOptions = [
+export const toolingOptions: { title: string; description: string; badge?: string; icon: JSX.Element; url: string }[] = [
   {
     title: 'AI & LLM',
     description: 'Integrate docs with AI apps and LLMs',
