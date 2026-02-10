@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PDFDocument } from 'pdf-lib';
 import { getServerSession } from 'next-auth';
 import { AuthOptions } from '@/lib/auth/authOptions';
-import { triggerCertificateWebhook } from '@/server/services/hubspotCodebaseCertificateWebhook';
+import { triggerCertificateWebhook } from '@/server/services/hubspotCertificateWebhook';
 import { getCourseConfig } from '@/content/courses';
 
 export async function POST(req: NextRequest) {

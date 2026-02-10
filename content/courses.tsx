@@ -350,13 +350,13 @@ export const getCourseConfig = () => {
 // Helper function to create course name mappings for HubSpot
 export const getCourseNameMapping = () => {
     const mapping: Record<string, string> = {};
-    
-    entrepreneurCourses.forEach(course => {
+
+    officialCourses.forEach(course => {
         if (course.certificateTemplate) {
             mapping[course.slug] = course.name;
         }
     });
-    
+
     return mapping;
 };
 
