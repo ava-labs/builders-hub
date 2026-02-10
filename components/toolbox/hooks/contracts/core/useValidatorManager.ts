@@ -41,8 +41,12 @@ export interface ValidatorSetParams {
 }
 
 export interface InitParams {
-  settings: any;
-  owner: string;
+  settings: {
+    admin: string;
+    subnetID: string;
+    churnPeriodSeconds: bigint;
+    maximumChurnPercentage: number;
+  };
 }
 
 export interface MigrationParams {
@@ -402,7 +406,7 @@ export function useValidatorManager(
       address: contractAddress as `0x${string}`,
       abi: contractAbi,
       functionName: 'initialize',
-      args: [params.settings, params.owner],
+      args: [params.settings],
       chain: viemChain,
       account: walletEVMAddress as `0x${string}`
     });

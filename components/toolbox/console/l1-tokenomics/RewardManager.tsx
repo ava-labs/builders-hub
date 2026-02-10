@@ -81,7 +81,7 @@ function RewardManager({ onSuccess }: BaseConsoleToolProps) {
     setActiveTransaction("allow-fee-recipients");
 
     try {
-      const hash = await precompiles.rewardManager.allowFeeRecipients([]);
+      const hash = await precompiles.rewardManager.allowFeeRecipients();
 
       const receipt = await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
 

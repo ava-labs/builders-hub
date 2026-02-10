@@ -137,6 +137,7 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
         const formattedAdmin = adminAddress as `0x${string}`;
 
         const settings = {
+            admin: formattedAdmin,
             subnetID: formattedSubnetId,
             churnPeriodSeconds: BigInt(churnPeriodSeconds),
             maximumChurnPercentage: Number(maximumChurnPercentage)
@@ -144,8 +145,7 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
 
         try {
             const hash = await validatorManager.initialize({
-                settings,
-                owner: formattedAdmin
+                settings
             });
             await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
             await checkIfInitialized();

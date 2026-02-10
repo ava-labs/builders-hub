@@ -33,8 +33,8 @@ export interface PrecompilesHook {
 
   // Reward Manager (0x0200000000000000000000000000000000000004)
   rewardManager: {
-    allowFeeRecipients: (addresses: string[]) => Promise<string>;
-    areFeeRecipientsAllowed: (addresses: string[]) => Promise<boolean[]>;
+    allowFeeRecipients: () => Promise<string>;
+    areFeeRecipientsAllowed: () => Promise<boolean>;
     disableRewards: () => Promise<string>;
     currentRewardAddress: () => Promise<string>;
     setRewardAddress: (address: string) => Promise<string>;
@@ -76,7 +76,16 @@ export function usePrecompiles(): PrecompilesHook {
         address: FEE_MANAGER_ADDRESS,
         abi: FeeManagerAbi.abi,
         functionName: 'setFeeConfig',
-        args: [config],
+        args: [
+          config.gasLimit,
+          config.targetBlockRate,
+          config.minBaseFee,
+          config.targetGas,
+          config.baseFeeChangeDenominator,
+          config.minBlockGasCost,
+          config.maxBlockGasCost,
+          config.blockGasCostStep
+        ],
         chain: viemChain,
         account: walletEVMAddress as `0x${string}`
       });
@@ -116,7 +125,7 @@ export function usePrecompiles(): PrecompilesHook {
 
   // Reward Manager functions
   const rewardManager = {
-    allowFeeRecipients: async (addresses: string[]): Promise<string> => {
+    allowFeeRecipients: async (): Promise<string> => {
       if (!coreWalletClient || !walletEVMAddress || !viemChain) {
         throw new Error('Wallet not connected');
       }
@@ -125,7 +134,7 @@ export function usePrecompiles(): PrecompilesHook {
         address: REWARD_MANAGER_ADDRESS,
         abi: RewardManagerAbi.abi,
         functionName: 'allowFeeRecipients',
-        args: [addresses],
+        args: [],
         chain: viemChain,
         account: walletEVMAddress as `0x${string}`
       });
@@ -138,17 +147,17 @@ export function usePrecompiles(): PrecompilesHook {
       return await writePromise;
     },
 
-    areFeeRecipientsAllowed: async (addresses: string[]): Promise<boolean[]> => {
+    areFeeRecipientsAllowed: async (): Promise<boolean> => {
       if (!avalancheWalletClient) throw new Error('Client not ready');
 
       const result = await readContract(avalancheWalletClient as any, {
         address: REWARD_MANAGER_ADDRESS,
         abi: RewardManagerAbi.abi,
         functionName: 'areFeeRecipientsAllowed',
-        args: [addresses]
+        args: []
       });
 
-      return result as boolean[];
+      return result as boolean;
     },
 
     disableRewards: async (): Promise<string> => {
