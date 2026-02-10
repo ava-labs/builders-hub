@@ -13,7 +13,7 @@ import { useTestnetFaucet } from "@/hooks/useTestnetFaucet";
 import { AccountRequirementsConfigKey } from "../../hooks/useAccountRequirements";
 import { useFaucetRateLimit } from "@/hooks/useFaucetRateLimit";
 import { useFaucetBalance } from "@/hooks/useFaucetBalance";
-import { Check, Droplets, ExternalLink, Clock, Wallet, RefreshCw } from "lucide-react";
+import { Check, Droplets, ExternalLink, Clock, Wallet, RefreshCw, Loader2 } from "lucide-react";
 
 function FaucetBalanceDisplay({
   balance,
@@ -30,7 +30,7 @@ function FaucetBalanceDisplay({
     return (
       <div className="flex items-center gap-1.5 text-xs text-zinc-400 dark:text-zinc-500">
         <Wallet className="w-3 h-3" />
-        <div className="w-3 h-3 border border-zinc-300 dark:border-zinc-600 border-t-transparent rounded-full animate-spin" />
+        <Loader2 className="w-3 h-3 animate-spin" />
         <span>Loading faucet balance...</span>
       </div>
     );
@@ -174,7 +174,7 @@ function Faucet({ onSuccess }: BaseConsoleToolProps) {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* C-Chain Card */}
-        <div className="rounded-xl border-2 border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 overflow-hidden">
+        <div className="rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
           <div className="p-5">
             <div className="flex items-start gap-4">
               <div className="relative">
@@ -193,7 +193,7 @@ function Faucet({ onSuccess }: BaseConsoleToolProps) {
 
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2">
-                  <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">
+                  <h3 className="font-medium text-zinc-900 dark:text-zinc-100">
                     C-Chain
                   </h3>
                   {!cChainLoading && (
@@ -244,7 +244,7 @@ function Faucet({ onSuccess }: BaseConsoleToolProps) {
         </div>
 
         {/* P-Chain Card */}
-        <div className="rounded-xl border-2 border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 overflow-hidden">
+        <div className="rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
           <div className="p-5">
             <div className="flex items-start gap-4">
               <div className="relative">
@@ -260,7 +260,7 @@ function Faucet({ onSuccess }: BaseConsoleToolProps) {
 
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2">
-                  <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">
+                  <h3 className="font-medium text-zinc-900 dark:text-zinc-100">
                     P-Chain
                   </h3>
                   {!pChainLoading && (
@@ -315,7 +315,7 @@ function Faucet({ onSuccess }: BaseConsoleToolProps) {
             Avalanche L1s
           </label>
 
-          <div className="rounded-xl border-2 border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 overflow-hidden">
+          <div className="rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
             {otherEVMChains.map((chain: L1ListItem) => (
               <EVMFaucetCard key={chain.id} chain={chain} />
             ))}
