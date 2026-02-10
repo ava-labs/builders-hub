@@ -28,11 +28,12 @@ import { ChartWatermark } from "@/components/stats/ChartWatermark";
 import { calculateDateRangeDays, formatXAxisLabel, generateXAxisTicks } from "@/components/stats/chart-axis-utils";
 import { StatsBreadcrumb } from "@/components/navigation/StatsBreadcrumb";
 import { ChainCategoryFilter, allChains } from "@/components/stats/ChainCategoryFilter";
+import { BaasProviderList } from "@/components/stats/BaasProviderBadge";
 import { useSectionNavigation } from "@/hooks/use-section-navigation";
 import { useTheme } from "next-themes";
 import { toPng } from "html-to-image";
 import l1ChainsData from "@/constants/l1-chains.json";
-import { L1Chain } from "@/types/stats";
+import { L1Chain, BaasProvider } from "@/types/stats";
 
 interface TimeSeriesDataPoint {
   date: string;
@@ -102,6 +103,7 @@ interface ChainMetricsPageProps {
   }>;
   blockchainId?: string;
   subnetId?: string;
+  baasProviders?: BaasProvider[];
 }
 
 export default function ChainMetricsPage({
@@ -118,6 +120,7 @@ export default function ChainMetricsPage({
   explorers: explorersProp,
   blockchainId: blockchainIdProp,
   subnetId: subnetIdProp,
+  baasProviders,
 }: ChainMetricsPageProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -1355,17 +1358,20 @@ export default function ChainMetricsPage({
                   socials={socials}
                   explorers={explorers}
                 />
-                {category && (
-                  <div className="mt-3">
-                    <span
-                      className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium"
-                      style={{
-                        backgroundColor: `${themeColor}15`,
-                        color: themeColor,
-                      }}
-                    >
-                      {category}
-                    </span>
+                {(baasProviders?.length || category) && (
+                  <div className="flex items-center gap-2 mt-3 flex-wrap">
+                    <BaasProviderList providers={baasProviders} />
+                    {category && (
+                      <span
+                        className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium"
+                        style={{
+                          backgroundColor: `${themeColor}15`,
+                          color: themeColor,
+                        }}
+                      >
+                        {category}
+                      </span>
+                    )}
                   </div>
                 )}
 
@@ -1453,6 +1459,7 @@ export default function ChainMetricsPage({
                     />
                   </div>
                 )}
+
               </div>
             </div>
           </div>
