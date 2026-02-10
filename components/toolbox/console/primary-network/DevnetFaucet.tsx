@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
+import { createPublicClient, http, formatEther, defineChain } from "viem";
 import { Copy, Check, AlertTriangle, Droplets, ExternalLink, RefreshCw, Wallet } from "lucide-react";
 import {
   BaseConsoleToolProps,
@@ -15,6 +16,20 @@ import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 const DEVNET_RPC_URL = "https://api.avax-dev.network/ext/bc/C/rpc";
 const DEVNET_CHAIN_ID = 43117;
 const DEVNET_CHAIN_ID_HEX = "0xa86d";
+
+const devnetCChain = defineChain({
+  id: DEVNET_CHAIN_ID,
+  name: "Avalanche Devnet C-Chain",
+  nativeCurrency: { decimals: 18, name: "AVAX", symbol: "AVAX" },
+  rpcUrls: {
+    default: { http: [DEVNET_RPC_URL] },
+  },
+});
+
+const devnetPublicClient = createPublicClient({
+  chain: devnetCChain,
+  transport: http(DEVNET_RPC_URL),
+});
 
 const metadata: ConsoleToolMetadata = {
   title: "Devnet Faucet",
@@ -56,6 +71,9 @@ function DevnetFaucet({ onSuccess }: BaseConsoleToolProps) {
   const [faucetAddress, setFaucetAddress] = useState<string | null>(null);
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
 
+  const [userBalance, setUserBalance] = useState<string | null>(null);
+  const [isLoadingUserBalance, setIsLoadingUserBalance] = useState(false);
+
   const userEmail = session?.user?.email || "";
   const isAvaLabs = userEmail.endsWith("@avalabs.org");
 
@@ -75,11 +93,32 @@ function DevnetFaucet({ onSuccess }: BaseConsoleToolProps) {
     }
   }, []);
 
+  const fetchUserBalance = useCallback(async () => {
+    if (!walletEVMAddress) return;
+    setIsLoadingUserBalance(true);
+    try {
+      const balanceWei = await devnetPublicClient.getBalance({
+        address: walletEVMAddress as `0x${string}`,
+      });
+      setUserBalance(formatEther(balanceWei));
+    } catch {
+      setUserBalance(null);
+    } finally {
+      setIsLoadingUserBalance(false);
+    }
+  }, [walletEVMAddress]);
+
   useEffect(() => {
     if (isAvaLabs) {
       fetchBalance();
     }
   }, [isAvaLabs, fetchBalance]);
+
+  useEffect(() => {
+    if (isAvaLabs && walletEVMAddress) {
+      fetchUserBalance();
+    }
+  }, [isAvaLabs, walletEVMAddress, fetchUserBalance]);
 
   const handleAddNetwork = async () => {
     if (!window.ethereum) return;
@@ -139,8 +178,11 @@ function DevnetFaucet({ onSuccess }: BaseConsoleToolProps) {
         message: `Sent ${data.amount} AVAX`,
         txHash: data.txHash,
       });
-      // Refresh balance after drip
-      setTimeout(() => fetchBalance(), 2000);
+      // Refresh balances after drip
+      setTimeout(() => {
+        fetchBalance();
+        fetchUserBalance();
+      }, 2000);
     } catch (err) {
       setResult({ success: false, message: "Network error. Please try again." });
     } finally {
@@ -289,14 +331,44 @@ function DevnetFaucet({ onSuccess }: BaseConsoleToolProps) {
               Connect your wallet to drip devnet AVAX
             </p>
           ) : (
-            <button
-              onClick={handleDrip}
-              disabled={isDripping}
-              className="w-full px-4 py-2 text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:bg-zinc-400 disabled:cursor-not-allowed rounded flex items-center justify-center gap-2"
-            >
-              <Droplets className="w-4 h-4" />
-              {isDripping ? "Dripping..." : "Drip 2 AVAX"}
-            </button>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between bg-zinc-100 dark:bg-zinc-800 rounded px-3 py-2">
+                <div className="flex items-center gap-1.5 text-sm text-zinc-600 dark:text-zinc-400">
+                  <Wallet className="w-3.5 h-3.5" />
+                  Your Balance
+                </div>
+                <div className="flex items-center gap-2">
+                  {isLoadingUserBalance ? (
+                    <span className="text-sm text-zinc-400 animate-pulse">Loading...</span>
+                  ) : userBalance !== null ? (
+                    <span className="text-sm font-mono font-semibold text-zinc-900 dark:text-white">
+                      {parseFloat(userBalance).toLocaleString(undefined, { maximumFractionDigits: 4 })} AVAX
+                    </span>
+                  ) : (
+                    <span className="text-sm text-zinc-400">Unavailable</span>
+                  )}
+                  <button
+                    onClick={fetchUserBalance}
+                    disabled={isLoadingUserBalance}
+                    className="text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors disabled:opacity-50"
+                    title="Refresh balance"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${isLoadingUserBalance ? "animate-spin" : ""}`} />
+                  </button>
+                </div>
+              </div>
+              <p className="text-xs text-zinc-500 font-mono truncate">
+                {walletEVMAddress}
+              </p>
+              <button
+                onClick={handleDrip}
+                disabled={isDripping}
+                className="w-full px-4 py-2 text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:bg-zinc-400 disabled:cursor-not-allowed rounded flex items-center justify-center gap-2"
+              >
+                <Droplets className="w-4 h-4" />
+                {isDripping ? "Dripping..." : "Drip 2 AVAX"}
+              </button>
+            </div>
           )}
 
           {result && (

@@ -84,9 +84,18 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       );
     }
 
+    // Get the current nonce to avoid stale nonce issues
+    const nonce = await publicClient.getTransactionCount({
+      address: FAUCET_ADDRESS as `0x${string}`,
+    });
+
+    // Simple native transfer is always 21000 gas.
+    // We hardcode it to skip eth_estimateGas which fails on the devnet RPC.
     const txHash = await walletClient.sendTransaction({
       to: destinationAddress as `0x${string}`,
       value: amountToSend,
+      gas: 21000n,
+      nonce,
     });
 
     return NextResponse.json({
