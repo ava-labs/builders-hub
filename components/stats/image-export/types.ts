@@ -69,6 +69,7 @@ export interface ChartDisplaySettings {
   showSummaryStats: boolean;
   showTrendIndicator: boolean;
   showAvgLine: boolean;
+  showTotalLine: boolean;
 }
 
 export interface ExportQualitySettings {

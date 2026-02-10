@@ -15,6 +15,8 @@ To understand why we need ERC-721, let's first understand fungibility:
 - **Fungible tokens** (ERC-20): Each token is identical and interchangeable. 1 USDC is always equal to 1 USDC.
 - **Non-fungible tokens** (ERC-721): Each token is unique and has its own distinct value. One piece of digital art is not equal to another.
 
+<Quiz quizId="2031"/>
+
 ## Why ERC-721?
 
 Imagine you wanted to represent an art collection within a smart contract. The smart contract would need:
@@ -88,6 +90,8 @@ mapping(uint => address) holders;        // Owner of each specific token ID
 
 The key difference is the addition of the `holders` mapping, which tracks which address owns each individual token by its unique ID. This allows each token to be distinct and non-fungible.
 
+<Quiz quizId="2032"/>
+
 ### Transfer Functions
 
 ERC-721 introduces `safeTransferFrom`, which includes a safety check to ensure the receiving address can handle NFTs. This prevents tokens from being permanently lost if sent to a contract that doesn't support them.
@@ -97,6 +101,8 @@ ERC-721 introduces `safeTransferFrom`, which includes a safety check to ensure t
 Like ERC-20, ERC-721 supports approvals, but with two levels:
 - **Single token approval**: Approve someone to transfer a specific NFT
 - **Operator approval**: Approve someone to manage all your NFTs
+
+<Quiz quizId="2033"/>
 
 ## Common Use Cases
 
@@ -108,6 +114,8 @@ ERC-721 tokens are used for:
 - **Real Estate**: Tokenized property ownership
 - **Identity**: Unique credentials and certificates
 - **Domain Names**: Blockchain-based domain systems
+
+<Quiz quizId="2034"/>
 
 ## Next Steps
 
