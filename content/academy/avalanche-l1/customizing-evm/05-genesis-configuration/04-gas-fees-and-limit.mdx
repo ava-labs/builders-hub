@@ -31,3 +31,5 @@ Each transaction specifies the gas price and gas limit:
 **`Gas Limit`:** The gas limit is the maximum amount of gas the sender is willing to use for the transaction. It was introduced to prevent infinite loops in contract execution. In a Turing-complete language like Solidity (the main programming language in the EVM), it is possible to write a contract with an infinite loop, either accidentally or intentionally. While an infinite loop might be a nuisance in traditional computing, it could cause significant issues in a decentralized blockchain by causing the network to hang as it attempts to process a never-ending transaction. The gas limit prevents this by halting execution once the gas consumed reaches the limit.
 
 If a transaction exceeds the gas limit, it fails, but the fee amounting to the gas limit is still paid by the sender.
+
+<Quiz quizId="3047"/>

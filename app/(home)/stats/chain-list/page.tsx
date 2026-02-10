@@ -31,6 +31,7 @@ import { convertL1ListItemToL1Chain } from "@/components/explorer/utils/chainCon
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { toast } from "@/lib/toast";
 import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
+import { BaasProviderList } from "@/components/stats/BaasProviderBadge";
 
 interface ChainListItem extends L1Chain {
   isCustom?: boolean;
@@ -517,6 +518,8 @@ export default function ChainListPage() {
                             {chain.chainName}
                           </h3>
                           <div className="flex items-center gap-2 mt-1">
+                            {/* BaaS Providers */}
+                            <BaasProviderList providers={chain.baasProviders} />
                             {/* Testnet chip */}
                             {(chain.isTestnet || chain.chainId === "43113") && (
                               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400">

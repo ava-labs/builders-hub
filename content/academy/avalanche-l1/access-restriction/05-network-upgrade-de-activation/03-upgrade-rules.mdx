@@ -81,7 +81,9 @@ After editing `upgrade.json`, you **restart the node**. On startup, the node pri
 ## Summary
 
 Key points:
-- `upgrade.json` lives in the same folder as the chain’s `config.json`.
+- `upgrade.json` lives in the same folder as the chain's `config.json`.
 - Each `precompileUpgrades` entry targets one precompile and has a future `blockTimestamp`.
 - Disabling uses `"disable": true`.
 - After activation, keep the upgrade list **append-only** to avoid startup failure.
+
+<Quiz quizId="3016"/>
