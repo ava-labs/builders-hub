@@ -124,7 +124,7 @@ export const ProjectOptions = ({
                   Set Winner
                 </DropdownMenuItem>
               ) : 
-              <DropdownMenuItem
+              (<DropdownMenuItem
                   onClick={(e) => {
                     e.stopPropagation();
                   }}
@@ -135,7 +135,7 @@ export const ProjectOptions = ({
                   }}
                 >
                   Assign Badge
-                </DropdownMenuItem>
+                </DropdownMenuItem>)
               }
             </>
           )}

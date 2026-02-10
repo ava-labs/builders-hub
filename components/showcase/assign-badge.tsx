@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Modal from "../ui/Modal";
 import { Project } from "@/types/showcase";
 import { MultiSelect } from "../ui/multi-select";
@@ -24,15 +24,19 @@ export const AssignBadge = ({
   const { toast } = useToast();
   const [selectedBadges, setSelectedBadges] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Memoize badge IDs to prevent unnecessary re-fetches
+  const assignedBadgeIds = useMemo(
+    () => project.badges?.map(b => b.badge_id) || [],
+    [project.badges]
+  );
+
   useEffect(() => {
     const fetchBadges = async () => {
       const response = await axios.get("/api/badge/get-all");
       const filteredBadges = response.data.filter(
         (badge: Badge) => badge.category == "hackathon"
       );
-
-      // Get already assigned badge IDs for this project
-      const assignedBadgeIds = project.badges?.map(b => b.badge_id) || [];
 
       // Filter out badges that are already assigned
       const availableBadges = filteredBadges.filter(
@@ -47,7 +51,7 @@ export const AssignBadge = ({
       );
     };
     fetchBadges();
-  }, [project.badges]);
+  }, [project.id, assignedBadgeIds]);
 
   const handleClose = () => {
     setSelectedBadges([]);
