@@ -73,7 +73,7 @@ export default function ShowCaseCard({
   );
   const [isExporting, setIsExporting] = useState(false);
   const router = useRouter();
-  const { exportToExcel, error } = useExports();
+  const { exportToExcel } = useExports();
   const selectedHackathon = events.find(event => event.id === filters.event);
   const availableTracks = selectedHackathon?.content?.tracks?.map(track => track.name) ?? [];
   const [hasExportAccess, setHasExportAccess] = useState(false);
@@ -82,22 +82,41 @@ export default function ShowCaseCard({
   // Listen for login complete - refresh session and check permissions
   useLoginCompleteListener(useCallback(async () => {
     try {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      const freshSession = await getSession();
+      // Try to get session immediately first
+      let freshSession = await getSession();
 
+      // If not available, retry with progressive delays
+      if (!freshSession?.user) {
+        const maxRetries = 3;
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+          await new Promise(resolve => setTimeout(resolve, 200 * attempt));
+          freshSession = await getSession();
+          if (freshSession?.user) break;
+        }
+      }
+
+      // Update permissions if we got a session
       if (freshSession?.user) {
         const { hasShowcaseAccess, hasExportAccess } = checkUserPermissions(
           freshSession.user.custom_attributes
         );
         setIsLoggedIn(hasShowcaseAccess);
         setHasExportAccess(hasExportAccess);
+        await update();
+      } else {
+        // Session still not available after retries
+        throw new Error('Session not available after multiple retries');
       }
-
-      await update();
     } catch (error) {
       console.error('Error refreshing session after login:', error);
+      toast({
+        title: "Session refresh failed",
+        description: "Please refresh the page to continue.",
+        variant: "destructive",
+        duration: 5000,
+      });
     }
-  }, [update]));
+  }, [update, toast]));
 
   const handleExport = async () => {
     const exportFilters: Record<string, unknown> = {
@@ -113,11 +132,12 @@ export default function ShowCaseCard({
       setIsExporting(true);
       await exportToExcel(exportFilters);
     } catch (err) {
-      console.error('Error exporting:', error);
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred while exporting';
+      console.error('Error exporting:', err);
       toast({
         title: "Error exporting projects",
-        description: error,
-        variant: "default",
+        description: errorMessage,
+        variant: "destructive",
         duration: 3000,
       });
     } finally {
