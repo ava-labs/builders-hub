@@ -21,6 +21,7 @@ import InvalidInvitationComponent from './InvalidInvitationDialog';
 import { useToast } from '@/hooks/use-toast';
 import { Toaster } from '@/components/ui/toaster';
 import { useRouter } from 'next/navigation';
+import { sendNotifications } from '@/utils/send-notification';
 export default function GeneralComponent({
   searchParams,
 }: {
@@ -50,7 +51,7 @@ export default function GeneralComponent({
   } = useSubmissionForm(hackathonId as string);
 
   const { hackathon, project, timeLeft, getProject } =
-    useHackathonProject(hackathonId as string,invitationLink as string);
+    useHackathonProject(hackathonId as string, invitationLink as string);
 
   const getAllFields = () => {
     return [
@@ -144,7 +145,7 @@ export default function GeneralComponent({
 
   async function checkInvitation() {
     try {
-  
+
       const response = await axios.get(
         `/api/project/check-invitation?invitation=${invitationLink}&user_id=${currentUser?.id}`
       );
@@ -154,7 +155,7 @@ export default function GeneralComponent({
       }
 
       setProjectId(response.data?.project?.project_id ?? '');
-      
+
       setOpenJoinTeam(response.data?.invitation.isConfirming ?? false);
 
       setTeamName(response.data?.project?.project_name ?? '');
@@ -180,7 +181,7 @@ export default function GeneralComponent({
   }, [invitationLink, currentUser]);
 
   useEffect(() => {
-    if (project ) {
+    if (project) {
       setFormData(project);
     }
   }, [project]);
@@ -204,35 +205,31 @@ export default function GeneralComponent({
         {/* Sidebar for mobile */}
         <div className='flex sm:hidden justify-center items-center gap-4 py-4 border-b border-zinc-200 dark:border-zinc-800'>
           <Tag
-            className={`cursor-pointer ${
-              step === 1
-                ? 'text-zinc-900 dark:text-[#F5F5F9]'
-                : 'text-zinc-500 dark:text-[#4F4F55]'
-            }`}
+            className={`cursor-pointer ${step === 1
+              ? 'text-zinc-900 dark:text-[#F5F5F9]'
+              : 'text-zinc-500 dark:text-[#4F4F55]'
+              }`}
             onClick={() => handleStepChange(1)}
           />
           <Users
-            className={`cursor-pointer ${
-              step === 1
-                ? 'text-zinc-900 dark:text-[#F5F5F9]'
-                : 'text-zinc-500 dark:text-[#4F4F55]'
-            }`}
+            className={`cursor-pointer ${step === 1
+              ? 'text-zinc-900 dark:text-[#F5F5F9]'
+              : 'text-zinc-500 dark:text-[#4F4F55]'
+              }`}
             onClick={() => handleStepChange(1)}
           />
           <Pickaxe
-            className={`cursor-pointer ${
-              step === 2
-                ? 'text-zinc-900 dark:text-[#F5F5F9]'
-                : 'text-zinc-500 dark:text-[#4F4F55]'
-            }`}
+            className={`cursor-pointer ${step === 2
+              ? 'text-zinc-900 dark:text-[#F5F5F9]'
+              : 'text-zinc-500 dark:text-[#4F4F55]'
+              }`}
             onClick={() => handleStepChange(2)}
           />
           <Image
-            className={`cursor-pointer ${
-              step === 3
-                ? 'text-zinc-900 dark:text-[#F5F5F9]'
-                : 'text-zinc-500 dark:text-[#4F4F55]'
-            }`}
+            className={`cursor-pointer ${step === 3
+              ? 'text-zinc-900 dark:text-[#F5F5F9]'
+              : 'text-zinc-500 dark:text-[#4F4F55]'
+              }`}
             onClick={() => handleStepChange(3)}
           />
         </div>
@@ -241,35 +238,31 @@ export default function GeneralComponent({
         <aside className='w-16 flex-col items-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 px-2 py-2 gap-2 hidden sm:flex'>
           <div className='p-2 space-y-4'>
             <Tag
-              className={`cursor-pointer ${
-                step === 1
-                  ? 'text-zinc-900 dark:text-[#F5F5F9]'
-                  : 'text-zinc-500 dark:text-[#4F4F55]'
-              }`}
+              className={`cursor-pointer ${step === 1
+                ? 'text-zinc-900 dark:text-[#F5F5F9]'
+                : 'text-zinc-500 dark:text-[#4F4F55]'
+                }`}
               onClick={() => handleStepChange(1)}
             />
             <Users
-              className={`cursor-pointer ${
-                step === 1
-                  ? 'text-zinc-900 dark:text-[#F5F5F9]'
-                  : 'text-zinc-500 dark:text-[#4F4F55]'
-              }`}
+              className={`cursor-pointer ${step === 1
+                ? 'text-zinc-900 dark:text-[#F5F5F9]'
+                : 'text-zinc-500 dark:text-[#4F4F55]'
+                }`}
               onClick={() => handleStepChange(1)}
             />
             <Pickaxe
-              className={`cursor-pointer ${
-                step === 2
-                  ? 'text-zinc-900 dark:text-[#F5F5F9]'
-                  : 'text-zinc-500 dark:text-[#4F4F55]'
-              }`}
+              className={`cursor-pointer ${step === 2
+                ? 'text-zinc-900 dark:text-[#F5F5F9]'
+                : 'text-zinc-500 dark:text-[#4F4F55]'
+                }`}
               onClick={() => handleStepChange(2)}
             />
             <Image
-              className={`cursor-pointer ${
-                step === 3
-                  ? 'text-zinc-900 dark:text-[#F5F5F9]'
-                  : 'text-zinc-500 dark:text-[#4F4F55]'
-              }`}
+              className={`cursor-pointer ${step === 3
+                ? 'text-zinc-900 dark:text-[#F5F5F9]'
+                : 'text-zinc-500 dark:text-[#4F4F55]'
+                }`}
               onClick={() => handleStepChange(3)}
             />
           </div>
@@ -295,7 +288,7 @@ export default function GeneralComponent({
                     setOpenCurrentProject={setOpenCurrentProject}
                     onOpenChange={setOpenJoinTeam}
                     currentEmail={currentUser?.email}
-                      teamName={teamName}
+                    teamName={teamName}
                   />
                 )}
                 {step === 2 && <SubmitStep2 />}

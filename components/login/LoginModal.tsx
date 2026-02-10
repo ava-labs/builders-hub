@@ -13,6 +13,7 @@ import { LoadingButton } from "../ui/loading-button";
 import SocialLogin from "./social-login/SocialLogin";
 import { VerifyEmail } from "./verify/VerifyEmail";
 import { useLoginModalState } from '@/hooks/useLoginModal';
+import { EmbeddedBrowserWarning } from './EmbeddedBrowserWarning';
 
 const formSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -103,6 +104,9 @@ export function LoginModal() {
                     Enter your email to receive a sign-in code
                   </p>
                 </div>
+
+                {/* Embedded Browser Warning */}
+                <EmbeddedBrowserWarning />
 
                 {/* Form */}
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">

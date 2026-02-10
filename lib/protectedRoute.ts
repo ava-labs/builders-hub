@@ -27,7 +27,10 @@ export function withAuthRole(role: string, handler: (request: NextRequest, conte
     }
     
     // Check if user has the required role
-    const hasRole = session?.user.custom_attributes?.includes(role) ?? false;
+    let hasRole = session?.user.custom_attributes?.includes(role) ?? false;
+    if ((role === "badge_admin" || role === "showcase") && !hasRole) {
+      hasRole = session?.user.custom_attributes?.includes("devrel") ?? false;
+    }
     if (!hasRole) {
       return NextResponse.json({ 
         error: 'Forbidden', 
@@ -36,6 +39,6 @@ export function withAuthRole(role: string, handler: (request: NextRequest, conte
       }, { status: 403 });
     }
 
-    return handler(request, context, session); 
+    return handler(request, context, session);
   };
 }

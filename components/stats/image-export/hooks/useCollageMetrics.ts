@@ -14,28 +14,32 @@ const aggregateByPeriod = (
 
   data.forEach((point) => {
     const dateStr = point.date || point.day || "";
-    const date = new Date(dateStr);
-    if (isNaN(date.getTime())) return;
+    const parts = dateStr.split("-").map(Number);
+    if (parts.length < 3 || parts.some(isNaN)) return;
+    const [year, month, day] = parts;
 
     let key: string;
     switch (period) {
       case "W": {
         // Sunday-based week calculation (matching ChainMetricsPage.tsx)
-        const weekStart = new Date(date);
-        weekStart.setDate(date.getDate() - date.getDay());
-        key = weekStart.toISOString().split("T")[0];
+        const weekStart = new Date(year, month - 1, day);
+        weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+        const wy = weekStart.getFullYear();
+        const wm = String(weekStart.getMonth() + 1).padStart(2, "0");
+        const wd = String(weekStart.getDate()).padStart(2, "0");
+        key = `${wy}-${wm}-${wd}`;
         break;
       }
       case "M":
-        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+        key = `${year}-${String(month).padStart(2, "0")}`;
         break;
       case "Q": {
-        const quarter = Math.floor(date.getMonth() / 3) + 1;
-        key = `${date.getFullYear()}-Q${quarter}`;
+        const quarter = Math.floor((month - 1) / 3) + 1;
+        key = `${year}-Q${quarter}`;
         break;
       }
       case "Y":
-        key = `${date.getFullYear()}`;
+        key = `${year}`;
         break;
       default:
         key = dateStr;
@@ -163,18 +167,22 @@ export function useCollageMetrics(
             // API returns dates like "2025-11-01", we need "2025-11" for monthly
             aggregatedData = chartData.map((point) => {
               const dateStr = point.date || "";
-              const date = new Date(dateStr);
-              if (isNaN(date.getTime())) return point;
+              const dateParts = dateStr.split("-").map(Number);
+              if (dateParts.length < 3 || dateParts.some(isNaN)) return point;
+              const [yr, mo, dy] = dateParts;
 
               let normalizedDate: string;
               if (period === "W") {
                 // Sunday-based week start (matching other metrics)
-                const weekStart = new Date(date);
-                weekStart.setDate(date.getDate() - date.getDay());
-                normalizedDate = weekStart.toISOString().split("T")[0];
+                const weekStart = new Date(yr, mo - 1, dy);
+                weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+                const wy = weekStart.getFullYear();
+                const wm = String(weekStart.getMonth() + 1).padStart(2, "0");
+                const wd = String(weekStart.getDate()).padStart(2, "0");
+                normalizedDate = `${wy}-${wm}-${wd}`;
               } else {
                 // Monthly format: "YYYY-MM"
-                normalizedDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+                normalizedDate = `${yr}-${String(mo).padStart(2, "0")}`;
               }
 
               return { ...point, date: normalizedDate };

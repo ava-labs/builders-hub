@@ -65,12 +65,23 @@ export async function assignBadgeProject(
   if (!userProject) {
     return badgeToReturn;
   }
+  // Validate that the project is a winner before assigning badges
+  if (!userProject.is_winner) {
+    return {
+      success: false,
+      message: "Badges can only be assigned to winning projects",
+      badge_id: "",
+      user_id: "",
+      badges: [],
+    };
+  }
 
   const userProjectMembers = userProject.members;
 
   try {
     const result = await prisma.$transaction(async (tx) => {
       const awardedBadges: BadgeData[] = [];
+      const errors: string[] = [];
 
       for (const badge of badgesHackathon) {
         for (const member of userProjectMembers) {
@@ -89,6 +100,8 @@ export async function assignBadgeProject(
 
           if (userBadgeResult.success && userBadgeResult.badges) {
             awardedBadges.push(...userBadgeResult.badges);
+          } else if (!userBadgeResult.success) {
+            errors.push(userBadgeResult.message);
           }
         }
 
@@ -101,7 +114,20 @@ export async function assignBadgeProject(
 
         if (projectBadgeResult.success && projectBadgeResult.badges) {
           awardedBadges.push(...projectBadgeResult.badges);
+        } else if (!projectBadgeResult.success) {
+          errors.push(projectBadgeResult.message);
         }
+      }
+
+      // If no badges were awarded and there are errors, return failure
+      if (awardedBadges.length === 0 && errors.length > 0) {
+        return {
+          success: false,
+          message: errors[0], // Return the first error message
+          badge_id: badgesHackathon[0]?.id || "",
+          user_id: body.userId,
+          badges: [],
+        };
       }
 
       return {
@@ -264,6 +290,17 @@ async function awardBadgeProjectWithTransaction(
         },
       },
     });
+
+    // Check if badge is already approved/assigned
+    if (existingProjectBadge && existingProjectBadge.status === BadgeAwardStatus.approved) {
+      return {
+        success: false,
+        message: `Badge "${badge.name}" has already been assigned to this project`,
+        badge_id: badge.id,
+        user_id: body.userId,
+        badges: [],
+      };
+    }
 
     const completedRequirements =
       (existingProjectBadge?.evidence as Requirement[]) || [];

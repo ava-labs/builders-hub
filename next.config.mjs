@@ -1850,6 +1850,27 @@ const config = {
       }
     ];
   },
+  async rewrites() {
+    return [
+      // Rewrite .md requests to serve raw markdown content
+      {
+        source: '/docs/:path*.md',
+        destination: '/api/raw/docs/:path*',
+      },
+      {
+        source: '/academy/:path*.md',
+        destination: '/api/raw/academy/:path*',
+      },
+      {
+        source: '/blog/:path*.md',
+        destination: '/api/raw/blog/:path*',
+      },
+      {
+        source: '/integrations/:path*.md',
+        destination: '/api/raw/integrations/:path*',
+      },
+    ];
+  },
 };
 
 export default withMDX(config);
