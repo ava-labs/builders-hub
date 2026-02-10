@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@radix-ui/react-dropdown-menu';
 import { Search } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import {
   Select,
   SelectContent,
@@ -23,23 +23,36 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '../ui/pagination';
-import React from 'react';
 import { ProjectCard } from './ProjectCard';
 import { ProjectFilters } from '@/types/project';
 import { useRouter } from 'next/navigation';
 import { HackathonHeader } from '@/types/hackathons';
 import { useExports } from './hooks/useExports';
 import { LoadingButton } from '../ui/loading-button';
-import { useSession } from 'next-auth/react';
-const tracks = ['AI', 'DeFi', 'RWA', 'Gaming', 'SocialFi', 'Tooling'];
+import { useSession, getSession } from 'next-auth/react';
 import { useToast } from "@/hooks/use-toast";
 import { Toaster } from "../ui/toaster";
+import NotFound from '@/app/not-found';
+import { useLoginCompleteListener } from '@/hooks/useLoginModal';
+
 type Props = {
   projects: Project[];
   events: HackathonHeader[];
   initialFilters: ProjectFilters;
   totalProjects: number;
 };
+
+// Helper function to check user permissions
+function checkUserPermissions(customAttributes: string[] = []) {
+  const hasShowcaseRole = customAttributes.includes('showcase');
+  const isDevrel = customAttributes.includes('devrel');
+  const hasHackathonCreator = customAttributes.includes('hackathonCreator');
+
+  return {
+    hasShowcaseAccess: hasShowcaseRole || isDevrel,
+    hasExportAccess: hasHackathonCreator || isDevrel,
+  };
+}
 
 export default function ShowCaseCard({
   projects,
@@ -48,9 +61,10 @@ export default function ShowCaseCard({
   totalProjects,
 }: Props) {
   const [searchValue, setSearchValue] = useState('');
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
   const [filters, setFilters] = useState<ProjectFilters>(initialFilters);
   const [currentPage, setCurrentPage] = useState(initialFilters.page ?? 1);
-  const { data: session } = useSession();
+  const { data: session, status, update } = useSession();
   const [recordsByPage, setRecordsByPage] = useState(
     initialFilters.recordsByPage ?? 12
   );
@@ -59,29 +73,41 @@ export default function ShowCaseCard({
   );
   const [isExporting, setIsExporting] = useState(false);
   const router = useRouter();
-  const { exportToExcel, isLoading, error } = useExports();
+  const { exportToExcel, error } = useExports();
   const selectedHackathon = events.find(event => event.id === filters.event);
   const availableTracks = selectedHackathon?.content?.tracks?.map(track => track.name) ?? [];
-  const [hasRole, setHasRole] = useState(false);
+  const [hasExportAccess, setHasExportAccess] = useState(false);
   const { toast } = useToast();
+
+  // Listen for login complete - refresh session and check permissions
+  useLoginCompleteListener(useCallback(async () => {
+    try {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      const freshSession = await getSession();
+
+      if (freshSession?.user) {
+        const { hasShowcaseAccess, hasExportAccess } = checkUserPermissions(
+          freshSession.user.custom_attributes
+        );
+        setIsLoggedIn(hasShowcaseAccess);
+        setHasExportAccess(hasExportAccess);
+      }
+
+      await update();
+    } catch (error) {
+      console.error('Error refreshing session after login:', error);
+    }
+  }, [update]));
+
   const handleExport = async () => {
-    const exportFilters: Record<string, unknown> = {};
-
-    if (filters.event) {
-      exportFilters.event = filters.event;
-    }
-
-    if (filters.track) {
-      exportFilters.track = filters.track;
-    }
-
-    if (filters.search) {
-      exportFilters.search = filters.search;
-    }
-
-    if (typeof filters.winningProjecs === 'boolean') {
-      exportFilters.winningProjects = filters.winningProjecs;
-    }
+    const exportFilters: Record<string, unknown> = {
+      ...(filters.event && { event: filters.event }),
+      ...(filters.track && { track: filters.track }),
+      ...(filters.search && { search: filters.search }),
+      ...(typeof filters.winningProjecs === 'boolean' && {
+        winningProjects: filters.winningProjecs
+      }),
+    };
 
     try {
       setIsExporting(true);
@@ -99,16 +125,24 @@ export default function ShowCaseCard({
     }
   };
 
+  // Check permissions when session changes
   useEffect(() => {
-    if (session?.user) {
-      if (session?.user?.custom_attributes?.includes('hackathonCreator')) {
-        setHasRole(true);
-      }
+    if (status === "loading") {
+      setIsLoggedIn(null);
+      return;
     }
-    else {
-      setHasRole(false);
+
+    if (status === "authenticated" && session?.user) {
+      const { hasShowcaseAccess, hasExportAccess } = checkUserPermissions(
+        session.user.custom_attributes
+      );
+      setIsLoggedIn(hasShowcaseAccess);
+      setHasExportAccess(hasExportAccess);
+    } else {
+      setIsLoggedIn(false);
+      setHasExportAccess(false);
     }
-  }, [session]);
+  }, [session, status]);
 
 
   const handleFilterChange = (type: keyof ProjectFilters, value: string) => {
@@ -152,6 +186,20 @@ export default function ShowCaseCard({
     }
   };
 
+  // Show loading while checking authentication
+  if (isLoggedIn === null) {
+    return (
+      <div className="flex items-center justify-center h-[60vh]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-zinc-900 dark:border-zinc-50"></div>
+      </div>
+    );
+  }
+
+  // Show NotFound if not logged in or doesn't have required role
+  if (isLoggedIn === false) {
+    return <NotFound isAComponent={true} />;
+  }
+
   return (
     
     <Card className='bg-zinc-50 dark:bg-zinc-950 relative border border-zinc-300 dark:border-zinc-800 p-8'>
@@ -167,12 +215,16 @@ export default function ShowCaseCard({
       </CardHeader>
       <Separator className='mt-6 bg-zinc-300 dark:bg-zinc-800 h-[2px]' />
       <div className='flex justify-end'>
-        {hasRole && <LoadingButton variant={'outline'}
-          isLoading={isExporting}
-          onClick={handleExport}
-          className='bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50'>
-          Export Projects
-        </LoadingButton>}
+        {hasExportAccess && (
+          <LoadingButton
+            variant='outline'
+            isLoading={isExporting}
+            onClick={handleExport}
+            className='bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50'
+          >
+            Export Projects
+          </LoadingButton>
+        )}
       </div>
       <div className='grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mt-6'>
         <div className='w-full'>
@@ -260,13 +312,9 @@ export default function ShowCaseCard({
       </div>
       <div className='mt-12'>
         <h1 className='text-2xl text-zinc-900 dark:text-zinc-50'>
-          {totalProjects}{' '}
-          {totalProjects > 1
-            ? 'Projects'
-            : totalProjects == 0
-              ? 'No projects found'
-              : 'Project'}{' '}
-          found
+          {totalProjects === 0
+            ? 'No projects found'
+            : `${totalProjects} ${totalProjects === 1 ? 'Project' : 'Projects'} found`}
         </h1>
         <Separator className='my-8 bg-zinc-300 dark:bg-zinc-800 h-[2px]' />
         <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6'>
