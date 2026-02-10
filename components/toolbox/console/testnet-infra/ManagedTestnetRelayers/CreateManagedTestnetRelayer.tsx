@@ -80,9 +80,6 @@ function CreateManagedTestnetRelayerBase() {
     // We find the most recently created relayer since relayers are already filtered by user
     useEffect(() => {
         if (createdRelayerResponse && relayers.length > 0) {
-            console.log('Looking for relayer. Response relayerId:', createdRelayerResponse.relayerId);
-            console.log('Available relayers:', relayers.map(r => ({ id: r.relayerId, created: r.createdAt })));
-            
             // Sort by createdAt descending (most recent first) and take the first one
             const sortedRelayers = [...relayers].sort((a, b) => {
                 const timeA = typeof a.createdAt === 'number' ? a.createdAt : new Date(a.createdAt).getTime();
@@ -91,8 +88,6 @@ function CreateManagedTestnetRelayerBase() {
             });
             
             const mostRecentRelayer = sortedRelayers[0];
-            console.log('Most recent relayer:', mostRecentRelayer);
-            
             if (mostRecentRelayer) {
                 setCreatedRelayer(mostRecentRelayer);
             }
@@ -261,11 +256,9 @@ function CreateManagedTestnetRelayerBase() {
             }, createRelayerPromise);
             
             const response = await createRelayerPromise;
-            console.log('Relayer creation response:', response);
             setCreatedRelayerResponse(response);
         } finally {
             setIsCreatingRelayer(false);
-            console.log('Fetching relayers list...');
             await fetchRelayers();
         }
     };
@@ -273,8 +266,8 @@ function CreateManagedTestnetRelayerBase() {
     return (
         <Steps>
             <Step>
-                <h2 className="text-lg font-semibold">Step 1: Select Networks</h2>
-                <p className="text-sm text-gray-500 mb-8">
+                <h2 className="text-lg font-medium">Step 1: Select Networks</h2>
+                <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-8">
                     Select the source networks to monitor and destination networks to deliver messages to.
                 </p>
 
@@ -285,7 +278,7 @@ function CreateManagedTestnetRelayerBase() {
                 )}
 
                 {l1List.length === 0 ? (
-                    <div className="text-center py-8 text-gray-500 dark:text-gray-400 border rounded-md p-4 bg-gray-50 dark:bg-gray-900/20">
+                    <div className="text-center py-8 text-zinc-500 dark:text-zinc-400 border border-zinc-200/80 dark:border-zinc-800 rounded-xl p-4 bg-zinc-50 dark:bg-zinc-800/50">
                         <p className="mb-2">No L1s available in your list.</p>
                         <p className="text-sm">Please create an L1 first before setting up a relayer.</p>
                     </div>
@@ -293,20 +286,20 @@ function CreateManagedTestnetRelayerBase() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {/* Source Networks Column */}
                         <div className="space-y-4">
-                            <div className="text-base font-semibold">Source Networks</div>
-                            <div className="space-y-2 border rounded-md p-4 bg-gray-50 dark:bg-gray-900/20">
+                            <div className="text-base font-medium">Source Networks</div>
+                            <div className="space-y-2 border border-zinc-200/80 dark:border-zinc-800 rounded-xl p-4 bg-zinc-50 dark:bg-zinc-800/50">
                                 {l1List.map((l1: L1ListItem) => (
-                                    <div key={`source-${l1.id}`} className="flex items-center gap-3 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded">
+                                    <div key={`source-${l1.id}`} className="flex items-center gap-3 p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg">
                                         <input
                                             type="checkbox"
                                             id={`source-${l1.id}`}
                                             checked={selectedSources.includes(l1.id)}
                                             onChange={() => handleToggleSource(l1.id)}
-                                            className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                            className="h-4 w-4 rounded border-zinc-300 dark:border-zinc-600 text-zinc-600 focus:ring-zinc-500"
                                         />
                                         <label htmlFor={`source-${l1.id}`} className="flex-1 cursor-pointer">
                                             <div className="font-medium">{l1.name}</div>
-                                            <div className="text-xs text-gray-500">Chain ID: {l1.evmChainId}</div>
+                                            <div className="text-xs text-zinc-500 dark:text-zinc-400">Chain ID: {l1.evmChainId}</div>
                                         </label>
                                     </div>
                                 ))}
@@ -315,20 +308,20 @@ function CreateManagedTestnetRelayerBase() {
 
                         {/* Destination Networks Column */}
                         <div className="space-y-4">
-                            <div className="text-base font-semibold">Destination Networks</div>
-                            <div className="space-y-2 border rounded-md p-4 bg-gray-50 dark:bg-gray-900/20">
+                            <div className="text-base font-medium">Destination Networks</div>
+                            <div className="space-y-2 border border-zinc-200/80 dark:border-zinc-800 rounded-xl p-4 bg-zinc-50 dark:bg-zinc-800/50">
                                 {l1List.map((l1: L1ListItem) => (
-                                    <div key={`dest-${l1.id}`} className="flex items-center gap-3 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded">
+                                    <div key={`dest-${l1.id}`} className="flex items-center gap-3 p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg">
                                         <input
                                             type="checkbox"
                                             id={`dest-${l1.id}`}
                                             checked={selectedDestinations.includes(l1.id)}
                                             onChange={() => handleToggleDestination(l1.id)}
-                                            className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                            className="h-4 w-4 rounded border-zinc-300 dark:border-zinc-600 text-zinc-600 focus:ring-zinc-500"
                                         />
                                         <label htmlFor={`dest-${l1.id}`} className="flex-1 cursor-pointer">
                                             <div className="font-medium">{l1.name}</div>
-                                            <div className="text-xs text-gray-500">Chain ID: {l1.evmChainId}</div>
+                                            <div className="text-xs text-zinc-500 dark:text-zinc-400">Chain ID: {l1.evmChainId}</div>
                                         </label>
                                     </div>
                                 ))}
@@ -339,8 +332,8 @@ function CreateManagedTestnetRelayerBase() {
             </Step>
 
             <Step>
-                <h2 className="text-lg font-semibold">Step 2: Create Relayer</h2>
-                <p className="text-sm text-gray-500 mb-8">
+                <h2 className="text-lg font-medium">Step 2: Create Relayer</h2>
+                <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-8">
                     Review your network selection and create the managed testnet relayer.
                 </p>
                 <Button
@@ -353,8 +346,8 @@ function CreateManagedTestnetRelayerBase() {
             </Step>
 
             <Step>
-                <h2 className="text-lg font-semibold">Step 3: Fund Relayer</h2>
-                <p className="text-sm text-gray-500 mb-8">
+                <h2 className="text-lg font-medium">Step 3: Fund Relayer</h2>
+                <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-8">
                     Your relayer has been created. Fund the relayer address on all configured chains to cover transaction fees.
                 </p>
                 {createdRelayerResponse && !createdRelayer && (
@@ -373,18 +366,18 @@ function CreateManagedTestnetRelayerBase() {
                         {/* Relayer Balances */}
                         <div className="space-y-2">
                             <div className="flex items-center justify-between">
-                                <div className="text-sm font-semibold text-gray-700 dark:text-gray-300">Relayer Balances</div>
+                                <div className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Relayer Balances</div>
                                 <button
                                     onClick={fetchBalances}
                                     disabled={isLoadingBalances}
-                                    className="p-1 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 disabled:opacity-50"
+                                    className="p-1 text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 disabled:opacity-50"
                                     style={{ lineHeight: 0 }}
                                     title="Refresh balances"
                                 >
                                     <RefreshCw className={`h-4 w-4 ${isLoadingBalances ? 'animate-spin' : ''}`} />
                                 </button>
                             </div>
-                            <div className="text-xs text-gray-600 dark:text-gray-400 mb-2">
+                            <div className="text-xs text-zinc-600 dark:text-zinc-400 mb-2">
                                 Ensure the relayer address maintains a positive balance on all configured chains to cover transaction fees.
                             </div>
                             <div className="space-y-2">
@@ -392,10 +385,10 @@ function CreateManagedTestnetRelayerBase() {
                                     const chainInfo = getChainInfo(config);
                                     
                                     return (
-                                        <div key={config.blockchainId} className="flex items-center justify-between p-3 border rounded-md bg-gray-50 dark:bg-gray-900/20">
+                                        <div key={config.blockchainId} className="flex items-center justify-between p-3 border border-zinc-200/80 dark:border-zinc-800 rounded-xl bg-zinc-50 dark:bg-zinc-800/50">
                                             <div>
-                                                <div className="text-xs font-medium text-gray-700 dark:text-gray-300">{chainInfo.name}</div>
-                                                <div className="flex items-center gap-1 text-sm text-gray-500">
+                                                <div className="text-xs font-medium text-zinc-700 dark:text-zinc-300">{chainInfo.name}</div>
+                                                <div className="flex items-center gap-1 text-sm text-zinc-500 dark:text-zinc-400">
                                                     {balances[config.blockchainId] !== undefined 
                                                         ? `${parseFloat(balances[config.blockchainId]).toFixed(4)} ${chainInfo.coinName}`
                                                         : 'Loading...'}
@@ -431,8 +424,8 @@ function CreateManagedTestnetRelayerBase() {
             </Step>
 
             <Step>
-                <h2 className="text-lg font-semibold">Step 4: Manage Relayer</h2>
-                <p className="text-sm text-gray-500 mb-8">
+                <h2 className="text-lg font-medium">Step 4: Manage Relayer</h2>
+                <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-8">
                     Open the Testnet Relayer Manager to view, fund, and manage all your relayers.
                 </p>
                 <Link href="/console/testnet-infra/icm-relayer" target="_blank">
