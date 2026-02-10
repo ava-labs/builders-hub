@@ -186,7 +186,8 @@ export function useValidatorManager(
         params.weight
       ],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     });
 
     notify({
@@ -208,7 +209,8 @@ export function useValidatorManager(
       functionName: 'completeValidatorRegistration',
       args: [index],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     };
 
     if (accessList) {
@@ -236,7 +238,8 @@ export function useValidatorManager(
       functionName: 'resendRegisterValidatorMessage',
       args: [validationID],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     });
 
     notify({
@@ -258,7 +261,8 @@ export function useValidatorManager(
       functionName: 'initiateValidatorRemoval',
       args: [validationID],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     });
 
     notify({
@@ -280,7 +284,8 @@ export function useValidatorManager(
       functionName: 'completeValidatorRemoval',
       args: [index],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     };
 
     if (accessList) {
@@ -308,7 +313,8 @@ export function useValidatorManager(
       functionName: 'resendValidatorRemovalMessage',
       args: [validationID],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     });
 
     notify({
@@ -330,7 +336,8 @@ export function useValidatorManager(
       functionName: 'initiateValidatorWeightUpdate',
       args: [validationID, weight],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     });
 
     notify({
@@ -352,7 +359,8 @@ export function useValidatorManager(
       functionName: 'completeValidatorWeightUpdate',
       args: [index],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     };
 
     if (accessList) {
@@ -380,7 +388,8 @@ export function useValidatorManager(
       functionName: 'initializeValidatorSet',
       args: [params, messageIndex],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     };
 
     if (accessList) {
@@ -408,7 +417,8 @@ export function useValidatorManager(
       functionName: 'initialize',
       args: [params.settings],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     });
 
     notify({
@@ -430,7 +440,8 @@ export function useValidatorManager(
       functionName: 'transferOwnership',
       args: [newOwner],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     });
 
     notify({
@@ -452,7 +463,8 @@ export function useValidatorManager(
       functionName: 'migrateFromV1',
       args: [params.validationID as `0x${string}`, params.receivedNonce],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     });
 
     notify({

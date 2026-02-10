@@ -175,7 +175,8 @@ export function useTokenHome(
       functionName: 'send',
       args: [input, amount],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     };
 
     if (tokenType === 'native') {
@@ -203,7 +204,8 @@ export function useTokenHome(
       functionName: 'sendAndCall',
       args: [input, amount],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     };
 
     if (tokenType === 'native') {
@@ -230,7 +232,8 @@ export function useTokenHome(
       abi: abi,
       functionName: 'addCollateral',
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     };
 
     // For native tokens, amount is sent as value; for ERC20, as an argument
@@ -267,7 +270,8 @@ export function useTokenHome(
       functionName: 'initialize',
       args: [teleporterRegistryAddress, teleporterManager, tokenContractAddress, decimals],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     });
 
     notify({
@@ -289,7 +293,8 @@ export function useTokenHome(
       functionName: 'transferOwnership',
       args: [newOwner],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     });
 
     notify({
@@ -311,7 +316,8 @@ export function useTokenHome(
       functionName: 'updateMinTeleporterVersion',
       args: [minTeleporterVersion],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     });
 
     notify({
@@ -333,7 +339,8 @@ export function useTokenHome(
       functionName: 'pauseTeleporterAddress',
       args: [address],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     });
 
     notify({
@@ -355,7 +362,8 @@ export function useTokenHome(
       functionName: 'unpauseTeleporterAddress',
       args: [address],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     });
 
     notify({

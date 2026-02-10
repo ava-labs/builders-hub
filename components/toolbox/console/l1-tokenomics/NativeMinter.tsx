@@ -13,6 +13,7 @@ import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } fr
 import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 import { usePrecompiles } from "@/components/toolbox/hooks/contracts";
+import { parseEther } from "viem";
 
 // Default Native Minter address
 const DEFAULT_NATIVE_MINTER_ADDRESS =
@@ -40,10 +41,8 @@ function NativeMinter({ onSuccess }: BaseConsoleToolProps) {
     setIsMinting(true);
 
     try {
-      // Convert amount to Wei
-      const amountInWei = BigInt(amount) * BigInt(10 ** 18);
+      const amountInWei = parseEther(amount);
 
-      // Call the mintNativeCoin function using the hook
       const hash = await precompiles.nativeMinter.mintNativeCoin(recipient, amountInWei);
 
       // Wait for transaction confirmation
@@ -60,8 +59,10 @@ function NativeMinter({ onSuccess }: BaseConsoleToolProps) {
     }
   };
 
-  const isValidAmount = amount && Number(amount) > 0;
-  const canMint = Boolean(recipient && isValidAmount && walletEVMAddress && coreWalletClient && !isMinting);
+  const numAmount = Number(amount);
+  const isValidAmount = amount !== "" && !isNaN(numAmount) && numAmount > 0;
+  const hasTooManyDecimals = amount.includes(".") && (amount.split(".")[1]?.length ?? 0) > 18;
+  const canMint = Boolean(recipient && isValidAmount && !hasTooManyDecimals && walletEVMAddress && coreWalletClient && !isMinting);
 
   return (
     <CheckPrecompile
@@ -78,14 +79,17 @@ function NativeMinter({ onSuccess }: BaseConsoleToolProps) {
               disabled={isMinting}
             />
             <Input
-              label="Amount"
+              label="Amount (supports decimals, e.g. 3.5)"
               value={amount}
               onChange={(value) => setAmount(value)}
               type="number"
               min="0"
-              step="0.000000000000000001"
+              step="any"
               disabled={isMinting}
             />
+            {hasTooManyDecimals && (
+              <p className="text-sm text-red-500">Maximum 18 decimal places allowed</p>
+            )}
           </div>
 
           {txHash && (

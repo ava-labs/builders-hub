@@ -282,7 +282,8 @@ export function useTokenRemote(
       functionName: 'transfer',
       args: [to, amount],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     });
 
     notify({
@@ -304,7 +305,8 @@ export function useTokenRemote(
       functionName: 'approve',
       args: [spender, amount],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     });
 
     notify({
@@ -326,7 +328,8 @@ export function useTokenRemote(
       functionName: 'transferFrom',
       args: [from, to, amount],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     });
 
     notify({
@@ -349,7 +352,8 @@ export function useTokenRemote(
       functionName: 'send',
       args: [input, amount],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     });
 
     notify({
@@ -371,7 +375,8 @@ export function useTokenRemote(
       functionName: 'sendAndCall',
       args: [input, amount],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     });
 
     notify({
@@ -395,7 +400,8 @@ export function useTokenRemote(
       functionName: 'registerWithHome',
       args: [feeInfo],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     };
 
     const writePromise = coreWalletClient.writeContract(config);
@@ -437,7 +443,8 @@ export function useTokenRemote(
         tokenDecimals
       ],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     });
 
     notify({
@@ -459,7 +466,8 @@ export function useTokenRemote(
       functionName: 'transferOwnership',
       args: [newOwner],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     });
 
     notify({
@@ -481,7 +489,8 @@ export function useTokenRemote(
       functionName: 'updateMinTeleporterVersion',
       args: [minTeleporterVersion],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     });
 
     notify({
@@ -503,7 +512,8 @@ export function useTokenRemote(
       functionName: 'pauseTeleporterAddress',
       args: [address],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     });
 
     notify({
@@ -525,7 +535,8 @@ export function useTokenRemote(
       functionName: 'unpauseTeleporterAddress',
       args: [address],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     });
 
     notify({

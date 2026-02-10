@@ -86,7 +86,8 @@ export function usePoAManager(
       functionName: 'completeValidatorRegistration',
       args: [messageIndex],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     };
 
     if (accessList) {
@@ -114,7 +115,8 @@ export function usePoAManager(
       functionName: 'completeValidatorRemoval',
       args: [messageIndex],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     };
 
     if (accessList) {
@@ -142,7 +144,8 @@ export function usePoAManager(
       functionName: 'completeValidatorWeightUpdate',
       args: [messageIndex],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     };
 
     if (accessList) {
@@ -176,7 +179,8 @@ export function usePoAManager(
       functionName: 'initiateValidatorRegistration',
       args: [nodeID, blsPublicKey, remainingBalanceOwner, disableOwner, weight],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     });
 
     notify({
@@ -198,7 +202,8 @@ export function usePoAManager(
       functionName: 'initiateValidatorRemoval',
       args: [validationID],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     });
 
     notify({
@@ -220,7 +225,8 @@ export function usePoAManager(
       functionName: 'initiateValidatorWeightUpdate',
       args: [validationID, weight],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     });
 
     notify({
@@ -242,7 +248,8 @@ export function usePoAManager(
       functionName: 'transferOwnership',
       args: [newOwner],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     });
 
     notify({
@@ -264,7 +271,8 @@ export function usePoAManager(
       functionName: 'transferValidatorManagerOwnership',
       args: [newOwner],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     });
 
     notify({

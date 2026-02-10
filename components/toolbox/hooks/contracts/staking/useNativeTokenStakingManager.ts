@@ -160,7 +160,8 @@ export function useNativeTokenStakingManager(
       args: [nodeID, blsPublicKey, remainingBalanceOwner, disableOwner, delegationFeeBips, minStakeDuration, rewardRecipient],
       value: stakeAmount,
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     });
 
     notify({
@@ -182,7 +183,8 @@ export function useNativeTokenStakingManager(
       functionName: 'completeValidatorRegistration',
       args: [messageIndex],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     };
 
     if (accessList) {
@@ -210,7 +212,8 @@ export function useNativeTokenStakingManager(
       functionName: 'initiateValidatorRemoval',
       args: [validationID],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     });
 
     notify({
@@ -232,7 +235,8 @@ export function useNativeTokenStakingManager(
       functionName: 'completeValidatorRemoval',
       args: [messageIndex],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     };
 
     if (accessList) {
@@ -260,7 +264,8 @@ export function useNativeTokenStakingManager(
       functionName: 'forceInitiateValidatorRemoval',
       args: [validationID, includeUptime, messageIndex],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     });
 
     notify({
@@ -284,7 +289,8 @@ export function useNativeTokenStakingManager(
       args: [validationID, rewardRecipient],
       value: delegationAmount,
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     });
 
     notify({
@@ -306,7 +312,8 @@ export function useNativeTokenStakingManager(
       functionName: 'completeDelegatorRegistration',
       args: [messageIndex, delegationID],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     };
 
     if (accessList) {
@@ -334,7 +341,8 @@ export function useNativeTokenStakingManager(
       functionName: 'initiateDelegatorRemoval',
       args: [delegationID],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     });
 
     notify({
@@ -356,7 +364,8 @@ export function useNativeTokenStakingManager(
       functionName: 'completeDelegatorRemoval',
       args: [delegationID as `0x${string}`, messageIndex],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     };
 
     if (accessList) {
@@ -384,7 +393,8 @@ export function useNativeTokenStakingManager(
       functionName: 'forceInitiateDelegatorRemoval',
       args: [delegationID, includeUptime, messageIndex],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     });
 
     notify({
@@ -406,7 +416,8 @@ export function useNativeTokenStakingManager(
       functionName: 'resendUpdateDelegator',
       args: [delegationID],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     });
 
     notify({
@@ -429,7 +440,8 @@ export function useNativeTokenStakingManager(
       functionName: 'changeValidatorRewardRecipient',
       args: [validationID, rewardRecipient],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     });
 
     notify({
@@ -451,7 +463,8 @@ export function useNativeTokenStakingManager(
       functionName: 'changeDelegatorRewardRecipient',
       args: [delegationID, rewardRecipient],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     });
 
     notify({
@@ -473,7 +486,8 @@ export function useNativeTokenStakingManager(
       functionName: 'claimDelegationFees',
       args: [validationID],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     });
 
     notify({
@@ -495,7 +509,8 @@ export function useNativeTokenStakingManager(
       functionName: 'submitUptimeProof',
       args: [validationID, messageIndex],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     });
 
     notify({
@@ -518,7 +533,8 @@ export function useNativeTokenStakingManager(
       functionName: 'initialize',
       args: [settings],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     });
 
     notify({

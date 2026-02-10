@@ -68,7 +68,8 @@ export function useICMDemo(
         destinationBlockchainID as `0x${string}`
       ],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     });
 
     notify({

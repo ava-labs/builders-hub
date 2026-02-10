@@ -44,7 +44,8 @@ export function useExampleERC20(tokenAddress: string | null): ExampleERC20Hook {
       functionName: 'mint',
       args: [to, parseEther(amount)],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     });
 
     notify({
@@ -66,7 +67,8 @@ export function useExampleERC20(tokenAddress: string | null): ExampleERC20Hook {
       functionName: 'burn',
       args: [parseEther(amount)],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     });
 
     notify({
@@ -88,7 +90,8 @@ export function useExampleERC20(tokenAddress: string | null): ExampleERC20Hook {
       functionName: 'burnFrom',
       args: [from, parseEther(amount)],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     });
 
     notify({
@@ -110,7 +113,8 @@ export function useExampleERC20(tokenAddress: string | null): ExampleERC20Hook {
       functionName: 'grantRole',
       args: [role as `0x${string}`, account as `0x${string}`],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     });
 
     notify({

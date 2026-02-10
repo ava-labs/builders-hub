@@ -85,7 +85,8 @@ export function useProxyAdmin(
       functionName: 'transferOwnership',
       args: [newOwner],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     });
 
     notify({
@@ -107,7 +108,8 @@ export function useProxyAdmin(
       functionName: 'upgrade',
       args: [proxy, implementation],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     });
 
     notify({
@@ -129,7 +131,8 @@ export function useProxyAdmin(
       functionName: 'upgradeAndCall',
       args: [proxy, implementation, data],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     });
 
     notify({
@@ -151,7 +154,8 @@ export function useProxyAdmin(
       functionName: 'changeProxyAdmin',
       args: [proxy, newAdmin],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     });
 
     notify({
