@@ -10,7 +10,7 @@ import NativeMinterAbi from '@/contracts/precompiles/NativeMinter.json';
 // Fixed precompile addresses
 const FEE_MANAGER_ADDRESS = '0x0200000000000000000000000000000000000003' as const;
 const REWARD_MANAGER_ADDRESS = '0x0200000000000000000000000000000000000004' as const;
-const NATIVE_MINTER_ADDRESS = '0x0200000000000000000000000000000000000002' as const;
+const NATIVE_MINTER_ADDRESS = '0x0200000000000000000000000000000000000001' as const;
 
 export interface FeeConfig {
   gasLimit: bigint;
@@ -40,7 +40,7 @@ export interface PrecompilesHook {
     setRewardAddress: (address: string) => Promise<string>;
   };
 
-  // Native Minter (0x0200000000000000000000000000000000000002)
+  // Native Minter (0x0200000000000000000000000000000000000001)
   nativeMinter: {
     mintNativeCoin: (to: string, amount: bigint) => Promise<string>;
     readAllowList: (address: string) => Promise<number>;
@@ -87,7 +87,8 @@ export function usePrecompiles(): PrecompilesHook {
           config.blockGasCostStep
         ],
         chain: viemChain,
-        account: walletEVMAddress as `0x${string}`
+        account: walletEVMAddress as `0x${string}`,
+        gas: BigInt(1_000_000),
       });
 
       notify({
@@ -136,7 +137,8 @@ export function usePrecompiles(): PrecompilesHook {
         functionName: 'allowFeeRecipients',
         args: [],
         chain: viemChain,
-        account: walletEVMAddress as `0x${string}`
+        account: walletEVMAddress as `0x${string}`,
+        gas: BigInt(1_000_000),
       });
 
       notify({
@@ -171,7 +173,8 @@ export function usePrecompiles(): PrecompilesHook {
         functionName: 'disableRewards',
         args: [],
         chain: viemChain,
-        account: walletEVMAddress as `0x${string}`
+        account: walletEVMAddress as `0x${string}`,
+        gas: BigInt(1_000_000),
       });
 
       notify({
@@ -204,7 +207,8 @@ export function usePrecompiles(): PrecompilesHook {
         functionName: 'setRewardAddress',
         args: [address],
         chain: viemChain,
-        account: walletEVMAddress as `0x${string}`
+        account: walletEVMAddress as `0x${string}`,
+        gas: BigInt(1_000_000),
       });
 
       notify({
@@ -229,7 +233,8 @@ export function usePrecompiles(): PrecompilesHook {
         functionName: 'mintNativeCoin',
         args: [to, amount],
         chain: viemChain,
-        account: walletEVMAddress as `0x${string}`
+        account: walletEVMAddress as `0x${string}`,
+        gas: BigInt(1_000_000),
       });
 
       notify({
@@ -262,7 +267,8 @@ export function usePrecompiles(): PrecompilesHook {
         functionName: 'setAdmin',
         args: [address],
         chain: viemChain,
-        account: walletEVMAddress as `0x${string}`
+        account: walletEVMAddress as `0x${string}`,
+        gas: BigInt(1_000_000),
       });
 
       notify({
@@ -284,7 +290,8 @@ export function usePrecompiles(): PrecompilesHook {
         functionName: 'setEnabled',
         args: [address],
         chain: viemChain,
-        account: walletEVMAddress as `0x${string}`
+        account: walletEVMAddress as `0x${string}`,
+        gas: BigInt(1_000_000),
       });
 
       notify({
@@ -306,7 +313,8 @@ export function usePrecompiles(): PrecompilesHook {
         functionName: 'setManager',
         args: [address],
         chain: viemChain,
-        account: walletEVMAddress as `0x${string}`
+        account: walletEVMAddress as `0x${string}`,
+        gas: BigInt(1_000_000),
       });
 
       notify({
@@ -328,7 +336,8 @@ export function usePrecompiles(): PrecompilesHook {
         functionName: 'setNone',
         args: [address],
         chain: viemChain,
-        account: walletEVMAddress as `0x${string}`
+        account: walletEVMAddress as `0x${string}`,
+        gas: BigInt(1_000_000),
       });
 
       notify({
