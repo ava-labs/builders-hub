@@ -13,6 +13,7 @@ import { useTestnetFaucet } from "@/hooks/useTestnetFaucet";
 import { AccountRequirementsConfigKey } from "../../hooks/useAccountRequirements";
 import { useFaucetRateLimit } from "@/hooks/useFaucetRateLimit";
 import { Check } from "lucide-react";
+import Link from "next/link";
 
 function EVMFaucetCard({ chain }: { chain: L1ListItem }) {
   const dripAmount = chain.faucetThresholds?.dripAmount || 3;
@@ -217,6 +218,13 @@ function Faucet({ onSuccess }: BaseConsoleToolProps) {
         >
           Core Faucet ↗
         </a>
+        <span>•</span>
+        <Link
+          href="/console/primary-network/devnet-faucet"
+          className="hover:text-zinc-900 dark:hover:text-white transition-colors underline"
+        >
+          Devnet Faucet
+        </Link>
       </div>
     </div>
   );
