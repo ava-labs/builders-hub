@@ -551,7 +551,7 @@ function AddCollateral() {
             )}
 
             {tokenAddress && tokenSymbol && tokenDecimals !== null && (
-                <div className="p-3 border rounded-md text-sm space-y-1 bg-gray-100 dark:bg-gray-800">
+                <div className="p-3 border border-zinc-200/80 dark:border-zinc-800 rounded-xl text-sm space-y-1 bg-zinc-100 dark:bg-zinc-800">
                     <div>Collateral Token: <code className="font-mono">{tokenSymbol}</code></div>
                     <div>Token Address: <code className="font-mono">{tokenAddress}</code></div>
                     <div>Token Decimals: <code className="font-mono">{tokenDecimals}</code></div>
@@ -612,7 +612,7 @@ function AddCollateral() {
                 }
             />
 
-            {localError && <div className="text-red-500 mt-2 p-2 border border-red-300 rounded">{localError}</div>}
+            {localError && <div className="text-red-500 mt-2 p-2 border border-red-300 rounded-lg">{localError}</div>}
 
             <div className="flex gap-2 pt-2 border-t mt-4 flex-wrap">
                 {tokenType === 'erc20' && (

@@ -109,7 +109,6 @@ function RegisterWithHome() {
         multiplyOnRemote: boolean;
       };
 
-      console.log({ remoteSettings });
       setIsRegistered(remoteSettings.registered);
     } catch (error: any) {
       console.error("Error fetching token home address:", error);
@@ -162,11 +161,6 @@ function RegisterWithHome() {
       });
 
       const feeInfo: readonly [`0x${string}`, bigint] = [zeroAddress, 0n]; // feeTokenAddress, amount
-
-      console.log(
-        `Calling registerWithHome on ${remoteAddress} with feeInfo:`,
-        feeInfo
-      );
 
       // Simulate the transaction first
       const { request } = await publicClient.simulateContract({
@@ -255,7 +249,7 @@ function RegisterWithHome() {
       />
 
       {localError && (
-        <div className="text-red-500 mt-2 p-2 border border-red-300 rounded">
+        <div className="text-red-500 mt-2 p-2 border border-red-300 rounded-lg">
           {localError}
         </div>
       )}
@@ -283,7 +277,7 @@ function RegisterWithHome() {
       )}
 
       {isCheckingRegistration && (
-        <div className="text-gray-500">⏳ Checking registration status...</div>
+        <div className="text-zinc-500 dark:text-zinc-400">⏳ Checking registration status...</div>
       )}
 
       {!isCheckingRegistration && isRegistered && (
@@ -308,7 +302,7 @@ function RegisterWithHome() {
         )}
 
       {homeContractAddress && homeContractClient && (
-        <div className="mt-8 pt-4 border-t border-gray-200">
+        <div className="mt-8 pt-4 border-t border-zinc-200 dark:border-zinc-800">
           <ListContractEvents
             contractAddress={homeContractAddress}
             contractABI={ERC20TokenHomeABI.abi as Abi}
