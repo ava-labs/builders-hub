@@ -168,8 +168,8 @@ function TransferProxyAdmin({ onSuccess }: BaseConsoleToolProps) {
         <>
             <Steps>
                 <Step>
-                    <h2 className="text-lg font-semibold">Select Proxy</h2>
-                    <p className="text-sm text-gray-500">
+                    <h2 className="text-lg font-medium">Select Proxy</h2>
+                    <p className="text-sm text-zinc-500 dark:text-zinc-400">
                         Select the proxy contract to read the ProxyAdmin address from.
                     </p>
 
@@ -195,8 +195,8 @@ function TransferProxyAdmin({ onSuccess }: BaseConsoleToolProps) {
                     />
                 </Step>
                 <Step>
-                    <h2 className="text-lg font-semibold">Transfer Ownership</h2>
-                    <p className="text-sm text-gray-500">
+                    <h2 className="text-lg font-medium">Transfer Ownership</h2>
+                    <p className="text-sm text-zinc-500 dark:text-zinc-400">
                         Enter the new owner address for the ProxyAdmin contract.
                     </p>
 
