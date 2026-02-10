@@ -3,10 +3,21 @@
 import { useState, useEffect } from "react";
 import { Copy, Check } from "lucide-react";
 import { Button } from "@/components/toolbox/components/Button";
-import { Container } from "@/components/toolbox/components/Container";
+import {
+  BaseConsoleToolProps,
+  ConsoleToolMetadata,
+  withConsoleToolMetadata,
+} from "../../components/WithConsoleToolMetadata";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 
-export default function UnitConverter() {
+const metadata: ConsoleToolMetadata = {
+  title: "AVAX Unit Converter",
+  description: "Convert between AVAX, P-Chain nAVAX, and C-Chain wei",
+  toolRequirements: [],
+  githubUrl: generateConsoleToolGitHubUrl(import.meta.url),
+};
+
+function UnitConverterInner({ onSuccess }: BaseConsoleToolProps) {
   const [amount, setAmount] = useState<string>("1.00");
   const [selectedUnit, setSelectedUnit] = useState<string>("AVAX");
   const [results, setResults] = useState<Record<string, string>>({});
@@ -130,108 +141,104 @@ export default function UnitConverter() {
   }, [amount, selectedUnit]);
 
   return (
-    <Container
-      title="AVAX Unit Converter"
-      description="Convert between AVAX, P-Chain nAVAX, and C-Chain wei"
-      githubUrl={generateConsoleToolGitHubUrl(import.meta.url)}
-    >
-      <div className="space-y-4">
-        <div className="p-4 bg-gray-50 dark:bg-zinc-800 rounded-lg space-y-2 border border-gray-100 dark:border-zinc-700">
-          <p className="text-sm text-gray-700 dark:text-zinc-300">
-            Avalanche has different chains that use different base units for
-            AVAX:
-          </p>
-          <ul className="text-sm text-gray-700 dark:text-zinc-300 list-disc pl-5 space-y-1">
-            <li>
-              <span className="text-blue-600 dark:text-blue-400 font-medium">
-                <strong>C-Chain</strong>
-              </span>
-              : Uses wei (10⁻¹⁸) as the base unit, similar to Ethereum
-            </li>
-            <li>
-              <span className="text-red-600 dark:text-red-400 font-medium">
-                <strong>P-Chain</strong>
-              </span>
-              : Uses nAVAX (10⁻⁹) as the base unit
-            </li>
-          </ul>
-          <p className="text-sm text-gray-700 dark:text-zinc-300 mt-2">
-            This converter helps you translate between these different
-            denominations when working across chains.
-          </p>
-        </div>
-
-        <div className="space-y-4">
-          {units.map((unit) => (
-            <div key={unit.id} className="flex items-center">
-              <div className="w-44 flex-shrink-0 mr-3">
-                <span
-                  className={`text-sm font-medium ${
-                    unit.id === "nAVAX"
-                      ? "text-red-600 dark:text-red-400"
-                      : unit.id === "wei"
-                      ? "text-blue-600 dark:text-blue-400"
-                      : ""
-                  }`}
-                >
-                  {unit.label}
-                </span>
-              </div>
-              <div className="relative flex-grow flex">
-                <input
-                  type="number"
-                  value={
-                    unit.id === selectedUnit ? amount : results[unit.id] || ""
-                  }
-                  onChange={(e) => handleInputChange(e.target.value, unit.id)}
-                  placeholder="0"
-                  step={unit.exponent < 0 ? 0.000000001 : 0.01}
-                  className={`w-full rounded-md px-3 py-2.5 bg-white dark:bg-zinc-900 border 
-                                        ${
-                                          unit.id === "nAVAX"
-                                            ? "border-red-300 dark:border-red-700"
-                                            : unit.id === "wei"
-                                            ? "border-blue-300 dark:border-blue-700"
-                                            : "border-zinc-300 dark:border-zinc-700"
-                                        } 
-                                        text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 
-                                        focus:ring-primary/30 focus:border-primary shadow-sm transition-colors 
-                                        duration-200 rounded-r-none border-r-0`}
-                />
-                <button
-                  onClick={() =>
-                    handleCopy(
-                      unit.id === selectedUnit
-                        ? amount
-                        : results[unit.id] || "",
-                      unit.id
-                    )
-                  }
-                  className={`flex items-center justify-center px-2 bg-white dark:bg-zinc-900 border 
-                                        ${
-                                          unit.id === "nAVAX"
-                                            ? "border-red-300 dark:border-red-700"
-                                            : unit.id === "wei"
-                                            ? "border-blue-300 dark:border-blue-700"
-                                            : "border-zinc-300 dark:border-zinc-700"
-                                        } 
-                                        rounded-r-md hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors`}
-                >
-                  {copied === unit.id ? (
-                    <Check className="h-4 w-4 text-green-500" />
-                  ) : (
-                    <Copy className="h-4 w-4 text-zinc-500" />
-                  )}
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <Button onClick={handleReset} variant="secondary" className="mt-4">
-          Reset
-        </Button>
+    <div className="space-y-4">
+      <div className="p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl space-y-2 border border-zinc-200/80 dark:border-zinc-800">
+        <p className="text-sm text-zinc-700 dark:text-zinc-300">
+          Avalanche has different chains that use different base units for
+          AVAX:
+        </p>
+        <ul className="text-sm text-zinc-700 dark:text-zinc-300 list-disc pl-5 space-y-1">
+          <li>
+            <span className="text-blue-600 dark:text-blue-400 font-medium">
+              <strong>C-Chain</strong>
+            </span>
+            : Uses wei (10⁻¹⁸) as the base unit, similar to Ethereum
+          </li>
+          <li>
+            <span className="text-red-600 dark:text-red-400 font-medium">
+              <strong>P-Chain</strong>
+            </span>
+            : Uses nAVAX (10⁻⁹) as the base unit
+          </li>
+        </ul>
+        <p className="text-sm text-zinc-700 dark:text-zinc-300 mt-2">
+          This converter helps you translate between these different
+          denominations when working across chains.
+        </p>
       </div>
-    </Container>
+
+      <div className="space-y-4">
+        {units.map((unit) => (
+          <div key={unit.id} className="flex items-center">
+            <div className="w-44 flex-shrink-0 mr-3">
+              <span
+                className={`text-sm font-medium ${
+                  unit.id === "nAVAX"
+                    ? "text-red-600 dark:text-red-400"
+                    : unit.id === "wei"
+                    ? "text-blue-600 dark:text-blue-400"
+                    : ""
+                }`}
+              >
+                {unit.label}
+              </span>
+            </div>
+            <div className="relative flex-grow flex">
+              <input
+                type="number"
+                value={
+                  unit.id === selectedUnit ? amount : results[unit.id] || ""
+                }
+                onChange={(e) => handleInputChange(e.target.value, unit.id)}
+                placeholder="0"
+                step={unit.exponent < 0 ? 0.000000001 : 0.01}
+                className={`w-full rounded-lg px-3 py-2.5 bg-white dark:bg-zinc-900 border
+                  ${
+                    unit.id === "nAVAX"
+                      ? "border-red-300 dark:border-red-700"
+                      : unit.id === "wei"
+                      ? "border-blue-300 dark:border-blue-700"
+                      : "border-zinc-200/80 dark:border-zinc-800"
+                  }
+                  text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2
+                  focus:ring-zinc-400 dark:focus:ring-zinc-500 focus:border-transparent shadow-sm transition-colors
+                  duration-200 rounded-r-none border-r-0`}
+              />
+              <button
+                onClick={() =>
+                  handleCopy(
+                    unit.id === selectedUnit
+                      ? amount
+                      : results[unit.id] || "",
+                    unit.id
+                  )
+                }
+                className={`flex items-center justify-center px-2 bg-white dark:bg-zinc-900 border
+                  ${
+                    unit.id === "nAVAX"
+                      ? "border-red-300 dark:border-red-700"
+                      : unit.id === "wei"
+                      ? "border-blue-300 dark:border-blue-700"
+                      : "border-zinc-200/80 dark:border-zinc-800"
+                  }
+                  rounded-r-lg hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors`}
+              >
+                {copied === unit.id ? (
+                  <Check className="h-4 w-4 text-green-500" />
+                ) : (
+                  <Copy className="h-4 w-4 text-zinc-500" />
+                )}
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <Button onClick={handleReset} variant="secondary" className="mt-4">
+        Reset
+      </Button>
+    </div>
   );
 }
+
+export default withConsoleToolMetadata(UnitConverterInner, metadata);
