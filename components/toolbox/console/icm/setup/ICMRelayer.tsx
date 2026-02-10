@@ -238,12 +238,12 @@ function ICMRelayerInner({ onSuccess }: BaseConsoleToolProps) {
                 </Step>
 
                 <Step>
-                    <h3 className="text-xl font-bold mb-4">Configure Relayer</h3>
+                    <h3 className="text-lg font-medium mb-4">Configure Relayer</h3>
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <div className="space-y-6">
                             {error && (
-                                <div className="text-red-500 p-2 bg-red-50 dark:bg-red-900/20 rounded-md text-sm">
+                                <div className="text-red-500 p-2 bg-red-50 dark:bg-red-900/20 rounded-xl text-sm">
                                     {error}
                                 </div>
                             )}
@@ -306,8 +306,8 @@ function ICMRelayerInner({ onSuccess }: BaseConsoleToolProps) {
                 </Step>
 
                 <Step>
-                    <h3 className="text-xl font-bold mb-4">Save Configuration to Machine</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                    <h3 className="text-lg font-medium mb-4">Save Configuration to Machine</h3>
+                    <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
                         Run this command to save your relayer configuration to your local machine:
                     </p>
                     <DynamicCodeBlock
@@ -322,19 +322,19 @@ function ICMRelayerInner({ onSuccess }: BaseConsoleToolProps) {
                         )}
                         lang="bash"
                     />
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-                        This creates the configuration file at <code className="px-1 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-xs">~/.icm-relayer/config.json</code>
+                    <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-2">
+                        This creates the configuration file at <code className="px-1 py-0.5 bg-zinc-100 dark:bg-zinc-800 rounded-lg text-xs">~/.icm-relayer/config.json</code>
                     </p>
                 </Step>
 
                 <Step>
-                    <h3 className="text-xl font-bold mb-4">Run the Relayer</h3>
+                    <h3 className="text-lg font-medium mb-4">Run the Relayer</h3>
                     <p>Start the ICM Relayer using the following Docker command:</p>
                     <DynamicCodeBlock
                         code={relayerDockerCommand(isTestnet ?? false)}
                         lang="sh"
                     />
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                    <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-2">
                         The relayer will monitor the source blockchains for cross-chain messages and deliver them to the destination blockchains.
                     </p>
                 </Step>
