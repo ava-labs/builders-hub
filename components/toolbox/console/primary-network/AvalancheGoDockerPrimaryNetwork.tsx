@@ -2,7 +2,6 @@
 
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 import { useState, useEffect } from "react";
-import { Container } from "@/components/toolbox/components/Container";
 import { Steps, Step } from "fumadocs-ui/components/steps";
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
@@ -17,8 +16,22 @@ import { useNodeConfigHighlighting } from "@/components/toolbox/console/layer-1/
 import { C_CHAIN_ID } from "@/components/toolbox/console/layer-1/create/config";
 import { getContainerVersions } from "@/components/toolbox/utils/containerVersions";
 import { NetworkingGuide } from "@/components/console/networking-guide";
+import { CheckCircle } from "lucide-react";
+import {
+  BaseConsoleToolProps,
+  ConsoleToolMetadata,
+  withConsoleToolMetadata,
+} from "../../components/WithConsoleToolMetadata";
+import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 
-function AvalancheGoDockerPrimaryNetworkInner() {
+const metadata: ConsoleToolMetadata = {
+    title: "Primary Network Node Setup with Docker",
+    description: "Configure your node settings, preview the chain config, and run Docker to start your Primary Network node.",
+    toolRequirements: [],
+    githubUrl: generateConsoleToolGitHubUrl(import.meta.url),
+};
+
+function AvalancheGoDockerPrimaryNetworkContent() {
     const { setHighlightPath, clearHighlight, highlightPath } = useGenesisHighlight();
     const [nodeType, setNodeType] = useState<"validator" | "public-rpc">("validator");
     const [domain, setDomain] = useState("");
@@ -254,14 +267,10 @@ function AvalancheGoDockerPrimaryNetworkInner() {
     };
 
     return (
-            <Container
-                title="Primary Network Node Setup with Docker"
-            description="Configure your node settings, preview the chain config, and run Docker to start your Primary Network node."
-                githubUrl="https://github.com/ava-labs/builders-hub/edit/master/components/toolbox/console/primary-network/AvalancheGoDockerPrimaryNetwork.tsx"
-            >
+            <>
                 <Steps>
                     <Step>
-                        <h3 className="text-xl font-bold mb-4">Set up Instance</h3>
+                        <h3 className="text-lg font-medium mb-4">Set up Instance</h3>
                         <p>Set up a linux server with any cloud provider, like AWS, GCP, Azure, or Digital Ocean. Requirements scale with stake weight:</p>
                         <ul className="list-disc pl-5 mt-2 mb-4">
                             <li><strong>Low stake:</strong> 4 cores, 16GB RAM, 1TB NVMe SSD</li>
@@ -274,7 +283,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                     </Step>
 
                     <Step>
-                    <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Configure Node Settings</h3>
+                    <h3 className="text-lg font-medium text-zinc-900 dark:text-zinc-100 mb-1">Configure Node Settings</h3>
                     <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
                         Choose your network, node type, and configure settings. The configuration preview updates in real-time.
                     </p>
@@ -496,7 +505,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                                                         onChange={(e) => setTrieCleanCache(Math.max(0, parseInt(e.target.value) || 0))}
                                                         onFocus={() => setHighlightPath('trieCleanCache')}
                                                         onBlur={clearHighlight}
-                                                        className="w-full px-2 py-1.5 text-sm border border-zinc-300 dark:border-zinc-600 rounded-md dark:bg-zinc-700 dark:text-white"
+                                                        className="w-full px-2 py-1.5 text-sm border border-zinc-200/80 dark:border-zinc-800 rounded-lg dark:bg-zinc-800 dark:text-white"
                                                     />
                                                 </div>
 
@@ -510,7 +519,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                                                         onChange={(e) => setTrieDirtyCache(Math.max(0, parseInt(e.target.value) || 0))}
                                                         onFocus={() => setHighlightPath('trieDirtyCache')}
                                                         onBlur={clearHighlight}
-                                                        className="w-full px-2 py-1.5 text-sm border border-zinc-300 dark:border-zinc-600 rounded-md dark:bg-zinc-700 dark:text-white"
+                                                        className="w-full px-2 py-1.5 text-sm border border-zinc-200/80 dark:border-zinc-800 rounded-lg dark:bg-zinc-800 dark:text-white"
                                                     />
                                                 </div>
 
@@ -524,7 +533,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                                                         onChange={(e) => setSnapshotCache(Math.max(0, parseInt(e.target.value) || 0))}
                                                         onFocus={() => setHighlightPath('snapshotCache')}
                                                         onBlur={clearHighlight}
-                                                        className="w-full px-2 py-1.5 text-sm border border-zinc-300 dark:border-zinc-600 rounded-md dark:bg-zinc-700 dark:text-white"
+                                                        className="w-full px-2 py-1.5 text-sm border border-zinc-200/80 dark:border-zinc-800 rounded-lg dark:bg-zinc-800 dark:text-white"
                                                     />
                                                 </div>
 
@@ -538,7 +547,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                                                         onChange={(e) => setAcceptedCacheSize(Math.max(1, parseInt(e.target.value) || 1))}
                                                         onFocus={() => setHighlightPath('acceptedCacheSize')}
                                                         onBlur={clearHighlight}
-                                                        className="w-full px-2 py-1.5 text-sm border border-zinc-300 dark:border-zinc-600 rounded-md dark:bg-zinc-700 dark:text-white"
+                                                        className="w-full px-2 py-1.5 text-sm border border-zinc-200/80 dark:border-zinc-800 rounded-lg dark:bg-zinc-800 dark:text-white"
                                                     />
                                                     <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
                                                         Depth of accepted headers and logs cache
@@ -555,7 +564,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                                                         onChange={(e) => setTrieDirtyCommitTarget(Math.max(1, parseInt(e.target.value) || 1))}
                                                         onFocus={() => setHighlightPath('trieDirtyCommitTarget')}
                                                         onBlur={clearHighlight}
-                                                        className="w-full px-2 py-1.5 text-sm border border-zinc-300 dark:border-zinc-600 rounded-md dark:bg-zinc-700 dark:text-white"
+                                                        className="w-full px-2 py-1.5 text-sm border border-zinc-200/80 dark:border-zinc-800 rounded-lg dark:bg-zinc-800 dark:text-white"
                                                     />
                                                     <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
                                                         Memory limit before commit
@@ -572,7 +581,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                                                         onChange={(e) => setTriePrefetcherParallelism(Math.max(1, parseInt(e.target.value) || 1))}
                                                         onFocus={() => setHighlightPath('triePrefetcherParallelism')}
                                                         onBlur={clearHighlight}
-                                                        className="w-full px-2 py-1.5 text-sm border border-zinc-300 dark:border-zinc-600 rounded-md dark:bg-zinc-700 dark:text-white"
+                                                        className="w-full px-2 py-1.5 text-sm border border-zinc-200/80 dark:border-zinc-800 rounded-lg dark:bg-zinc-800 dark:text-white"
                                                     />
                                                     <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
                                                         Max concurrent disk reads
@@ -589,7 +598,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                                                         onChange={(e) => setStateSyncServerTrieCache(Math.max(0, parseInt(e.target.value) || 0))}
                                                         onFocus={() => setHighlightPath('stateSyncServerTrieCache')}
                                                         onBlur={clearHighlight}
-                                                        className="w-full px-2 py-1.5 text-sm border border-zinc-300 dark:border-zinc-600 rounded-md dark:bg-zinc-700 dark:text-white"
+                                                        className="w-full px-2 py-1.5 text-sm border border-zinc-200/80 dark:border-zinc-800 rounded-lg dark:bg-zinc-800 dark:text-white"
                                                     />
                                                     <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
                                                         Trie cache for state sync server
@@ -612,7 +621,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                                                         onChange={(e) => setCommitInterval(Math.max(1, parseInt(e.target.value) || 1))}
                                                         onFocus={() => setHighlightPath('commitInterval')}
                                                         onBlur={clearHighlight}
-                                                        className="w-full px-2 py-1.5 text-sm border border-zinc-300 dark:border-zinc-600 rounded-md dark:bg-zinc-700 dark:text-white"
+                                                        className="w-full px-2 py-1.5 text-sm border border-zinc-200/80 dark:border-zinc-800 rounded-lg dark:bg-zinc-800 dark:text-white"
                                                     />
                                                     <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
                                                         Interval to persist EVM and atomic tries
@@ -629,7 +638,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                                                         onChange={(e) => setRpcGasCap(Math.max(0, parseInt(e.target.value) || 0))}
                                                         onFocus={() => setHighlightPath('rpcGasCap')}
                                                         onBlur={clearHighlight}
-                                                        className="w-full px-2 py-1.5 text-sm border border-zinc-300 dark:border-zinc-600 rounded-md dark:bg-zinc-700 dark:text-white"
+                                                        className="w-full px-2 py-1.5 text-sm border border-zinc-200/80 dark:border-zinc-800 rounded-lg dark:bg-zinc-800 dark:text-white"
                                                     />
                                                     <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
                                                         Maximum gas limit for RPC calls
@@ -646,7 +655,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                                                         onChange={(e) => setRpcTxFeeCap(Math.max(0, parseInt(e.target.value) || 0))}
                                                         onFocus={() => setHighlightPath('rpcTxFeeCap')}
                                                         onBlur={clearHighlight}
-                                                        className="w-full px-2 py-1.5 text-sm border border-zinc-300 dark:border-zinc-600 rounded-md dark:bg-zinc-700 dark:text-white"
+                                                        className="w-full px-2 py-1.5 text-sm border border-zinc-200/80 dark:border-zinc-800 rounded-lg dark:bg-zinc-800 dark:text-white"
                                                     />
                                                     <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
                                                         Maximum transaction fee cap
@@ -669,7 +678,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                                                         onChange={(e) => setBatchRequestLimit(Math.max(0, parseInt(e.target.value) || 0))}
                                                         onFocus={() => setHighlightPath('batchRequestLimit')}
                                                         onBlur={clearHighlight}
-                                                        className="w-full px-2 py-1.5 text-sm border border-zinc-300 dark:border-zinc-600 rounded-md dark:bg-zinc-700 dark:text-white"
+                                                        className="w-full px-2 py-1.5 text-sm border border-zinc-200/80 dark:border-zinc-800 rounded-lg dark:bg-zinc-800 dark:text-white"
                                                     />
                                                     <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
                                                         Max batched requests (0 = no limit)
@@ -686,7 +695,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                                                         onChange={(e) => setBatchResponseMaxSize(Math.max(0, parseInt(e.target.value) || 0))}
                                                         onFocus={() => setHighlightPath('batchResponseMaxSize')}
                                                         onBlur={clearHighlight}
-                                                        className="w-full px-2 py-1.5 text-sm border border-zinc-300 dark:border-zinc-600 rounded-md dark:bg-zinc-700 dark:text-white"
+                                                        className="w-full px-2 py-1.5 text-sm border border-zinc-200/80 dark:border-zinc-800 rounded-lg dark:bg-zinc-800 dark:text-white"
                                                     />
                                                     <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
                                                         Max batch response size (default: 25MB)
@@ -709,7 +718,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                                                         onChange={(e) => setTransactionHistory(Math.max(0, parseInt(e.target.value) || 0))}
                                                         onFocus={() => setHighlightPath('transactionHistory')}
                                                         onBlur={clearHighlight}
-                                                        className="w-full px-2 py-1.5 text-sm border border-zinc-300 dark:border-zinc-600 rounded-md dark:bg-zinc-700 dark:text-white"
+                                                        className="w-full px-2 py-1.5 text-sm border border-zinc-200/80 dark:border-zinc-800 rounded-lg dark:bg-zinc-800 dark:text-white"
                                                     />
                                                     <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
                                                         Max blocks to keep tx indices. 0 = archive mode (all history)
@@ -809,7 +818,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                                                             onChange={(e) => setPushGossipNumValidators(Math.max(0, parseInt(e.target.value) || 0))}
                                                             onFocus={() => setHighlightPath('pushGossipNumValidators')}
                                                             onBlur={clearHighlight}
-                                                            className="w-full px-2 py-1.5 text-sm border border-zinc-300 dark:border-zinc-600 rounded-md dark:bg-zinc-700 dark:text-white"
+                                                            className="w-full px-2 py-1.5 text-sm border border-zinc-200/80 dark:border-zinc-800 rounded-lg dark:bg-zinc-800 dark:text-white"
                                                         />
                                                         <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
                                                             Number of validators to push gossip to
@@ -829,7 +838,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                                                             onChange={(e) => setPushGossipPercentStake(Math.min(1, Math.max(0, parseFloat(e.target.value) || 0)))}
                                                             onFocus={() => setHighlightPath('pushGossipPercentStake')}
                                                             onBlur={clearHighlight}
-                                                            className="w-full px-2 py-1.5 text-sm border border-zinc-300 dark:border-zinc-600 rounded-md dark:bg-zinc-700 dark:text-white"
+                                                            className="w-full px-2 py-1.5 text-sm border border-zinc-200/80 dark:border-zinc-800 rounded-lg dark:bg-zinc-800 dark:text-white"
                                                         />
                                                         <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
                                                             Percentage of total stake to gossip to (0-1)
@@ -854,7 +863,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                                                             onChange={(e) => setApiMaxBlocksPerRequest(Math.max(0, parseInt(e.target.value) || 0))}
                                                             onFocus={() => setHighlightPath('apiMaxBlocksPerRequest')}
                                                             onBlur={clearHighlight}
-                                                            className="w-full px-2 py-1.5 text-sm border border-zinc-300 dark:border-zinc-600 rounded-md dark:bg-zinc-700 dark:text-white"
+                                                            className="w-full px-2 py-1.5 text-sm border border-zinc-200/80 dark:border-zinc-800 rounded-lg dark:bg-zinc-800 dark:text-white"
                                                         />
                                                         <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
                                                             0 = no limit. Limits blocks per getLogs request
@@ -898,7 +907,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                                                         onFocus={() => setHighlightPath('continuousProfilerDir')}
                                                         onBlur={clearHighlight}
                                                         placeholder="./profiles (leave empty to disable)"
-                                                        className="w-full px-2 py-1.5 text-sm border border-zinc-300 dark:border-zinc-600 rounded-md dark:bg-zinc-700 dark:text-white"
+                                                        className="w-full px-2 py-1.5 text-sm border border-zinc-200/80 dark:border-zinc-800 rounded-lg dark:bg-zinc-800 dark:text-white"
                                                     />
                                                     <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
                                                         Directory for continuous profiler output
@@ -917,7 +926,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                                                             onFocus={() => setHighlightPath('continuousProfilerFrequency')}
                                                             onBlur={clearHighlight}
                                                             placeholder="15m"
-                                                            className="w-full px-2 py-1.5 text-sm border border-zinc-300 dark:border-zinc-600 rounded-md dark:bg-zinc-700 dark:text-white"
+                                                            className="w-full px-2 py-1.5 text-sm border border-zinc-200/80 dark:border-zinc-800 rounded-lg dark:bg-zinc-800 dark:text-white"
                                                         />
                                                         <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
                                                             How often to create profiles (e.g., 15m, 1h)
@@ -933,11 +942,11 @@ function AvalancheGoDockerPrimaryNetworkInner() {
 
                         {/* Configuration Preview */}
                         <div className="lg:sticky lg:top-4 h-fit">
-                            <div className="border rounded-lg bg-white dark:bg-zinc-950 overflow-hidden">
-                                <div className="border-b p-3 bg-zinc-50 dark:bg-zinc-900">
-                                    <h4 className="text-sm font-semibold">Configuration Preview</h4>
+                            <div className="border border-zinc-200/80 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 overflow-hidden">
+                                <div className="border-b border-zinc-200/80 dark:border-zinc-800 p-3 bg-zinc-50/80 dark:bg-zinc-800/50">
+                                    <h4 className="text-sm font-medium">Configuration Preview</h4>
                                 </div>
-                                <div className="max-h-[600px] overflow-auto p-3 bg-zinc-50 dark:bg-zinc-950">
+                                <div className="max-h-[600px] overflow-auto p-3 bg-zinc-50 dark:bg-zinc-900">
                                     {configJson && !configJson.startsWith("Error:") ? (
                                         <SyntaxHighlightedJSON
                                             code={configJson}
@@ -978,7 +987,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                     </Step>
 
                     <Step>
-                        <h3 className="text-xl font-bold mb-4">Create Configuration File</h3>
+                        <h3 className="text-lg font-medium mb-4">Create Configuration File</h3>
                         <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
                             Run this command on your server to create the C-Chain configuration file:
                         </p>
@@ -1011,7 +1020,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                     </Step>
 
                     <Step>
-                        <h3 className="text-xl font-bold mb-4">Run Docker Command</h3>
+                        <h3 className="text-lg font-medium mb-4">Run Docker Command</h3>
                         <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
                             Start the node using Docker:
                         </p>
@@ -1051,7 +1060,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
 
                     {nodeType === "validator" && (
                         <Step>
-                        <h3 className="text-xl font-bold mb-4">Wait for the Node to Bootstrap</h3>
+                        <h3 className="text-lg font-medium mb-4">Wait for the Node to Bootstrap</h3>
                             <p>Your node will now bootstrap and sync the Primary Network (P-Chain, X-Chain, and C-Chain). This process can take <strong>several hours to days</strong> depending on your hardware and network connection.</p>
 
                             <p className="mt-4">You can follow the process by checking the logs with the following command:</p>
@@ -1090,15 +1099,13 @@ function AvalancheGoDockerPrimaryNetworkInner() {
 
                     {nodeIsReady && nodeType === "validator" && (
                         <Step>
-                            <h3 className="text-xl font-bold mb-4">Node Setup Complete</h3>
+                            <h3 className="text-lg font-medium mb-4">Node Setup Complete</h3>
                             <p>Your AvalancheGo Primary Network node is now fully bootstrapped and ready to be used as a validator node.</p>
 
-                            <div className="mt-4 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                            <div className="mt-4 p-4 bg-green-50 dark:bg-green-900/20 rounded-xl border border-green-200/80 dark:border-green-800">
                                 <div className="flex items-center">
                                     <div className="flex-shrink-0">
-                                        <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                        </svg>
+                                        <CheckCircle className="h-5 w-5 text-green-500" />
                                     </div>
                                     <div className="ml-3">
                                         <p className="text-sm font-medium text-green-800 dark:text-green-200">
@@ -1121,14 +1128,16 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                     </Button>
                 </div>
             )}
-            </Container>
+            </>
     );
 }
 
-export default function AvalancheGoDockerPrimaryNetwork() {
+function AvalancheGoDockerPrimaryNetworkInner({ onSuccess }: BaseConsoleToolProps) {
     return (
         <GenesisHighlightProvider>
-            <AvalancheGoDockerPrimaryNetworkInner />
+            <AvalancheGoDockerPrimaryNetworkContent />
         </GenesisHighlightProvider>
     );
 }
+
+export default withConsoleToolMetadata(AvalancheGoDockerPrimaryNetworkInner, metadata);
