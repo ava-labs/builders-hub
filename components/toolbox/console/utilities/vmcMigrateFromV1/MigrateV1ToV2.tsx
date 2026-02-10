@@ -158,7 +158,7 @@ function MigrateV1ToV2({ onSuccess }: BaseConsoleToolProps) {
   return (
     <>
       <div className="space-y-6">
-        <div className="bg-gray-100 dark:bg-gray-800 p-4 rounded-md text-sm mb-4">
+        <div className="bg-zinc-100 dark:bg-zinc-800 p-4 rounded-xl text-sm mb-4">
           <p className="mb-2">
             <strong>Note:</strong> This tool is only required if your L1 has the
             Validator Manager contract version 1 deployed. If you have deployed
@@ -241,7 +241,7 @@ function MigrateV1ToV2({ onSuccess }: BaseConsoleToolProps) {
           </Button>
 
           {error && (
-            <div className="text-red-500 text-sm p-3 bg-red-50 dark:bg-red-900/30 rounded-lg">
+            <div className="text-red-500 text-sm p-3 bg-red-50 dark:bg-red-900/30 rounded-xl">
               {error}
             </div>
           )}
