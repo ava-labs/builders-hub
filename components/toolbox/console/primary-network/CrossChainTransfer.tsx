@@ -1,6 +1,6 @@
 "use client"
 import { useEffect, useState, useCallback, useRef, useMemo } from "react"
-import { Loader2, ArrowDownUp, Clock } from "lucide-react"
+import { ArrowDownUp, Clock } from "lucide-react"
 import { Button } from "@/components/toolbox/components/Button"
 import { useWalletStore } from "@/components/toolbox/stores/walletStore"
 import { pvm, Utxo, TransferOutput, evm } from '@avalabs/avalanchejs'
@@ -12,6 +12,7 @@ import { StepCard, StepIndicator } from "@/components/toolbox/components/StepCar
 import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext"
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../components/WithConsoleToolMetadata"
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
+import { SDKCodeViewer, type SDKCodeSource } from "@/components/console/sdk-code-viewer";
 
 // Extended props for this specific tool
 interface CrossChainTransferProps extends BaseConsoleToolProps {
@@ -235,7 +236,6 @@ function CrossChainTransfer({
                 const txnResponse = await coreWalletClient.sendXPTransaction(txnRequest);
                 await coreWalletClient.waitForTxn(txnResponse);
 
-                console.log("P-Chain Export transaction sent:", txnResponse);
                 // Store the export transaction ID to trigger import
                 const txId = txnResponse.txHash;
                 setExportTxId(txId);
@@ -243,7 +243,6 @@ function CrossChainTransfer({
                 setCompletedExportXPChain("C");
             } else {
                 // P-Chain to C-Chain export using the pvmExport function
-                console.log("Preparing P-Chain Export transaction", pChainAddress, amount);
                 const txnRequest = await coreWalletClient.pChain.prepareExportTxn({
                     exportedOutputs: [{
                         addresses: [coreEthAddress],
@@ -254,7 +253,6 @@ function CrossChainTransfer({
                 const txnResponse = await coreWalletClient.sendXPTransaction(txnRequest);
                 await coreWalletClient.waitForTxn(txnResponse);
 
-                console.log("P-Chain Export transaction sent:", txnResponse,);
                 const txId = txnResponse.txHash;
                 setExportTxId(txId);
                 setCompletedExportTxId(txId);
@@ -290,7 +288,6 @@ function CrossChainTransfer({
                 });
                 const txnResponse = await coreWalletClient.sendXPTransaction(txnRequest);
                 await coreWalletClient.waitForTxn(txnResponse);
-                console.log("P-Chain Import transaction sent:", txnResponse.txHash);
                 setImportTxId(String(txnResponse.txHash));
                 setCompletedImportXPChain("P");
             } else {
@@ -301,7 +298,6 @@ function CrossChainTransfer({
                 });
                 const txnResponse = await coreWalletClient.sendXPTransaction(txnRequest);
                 await coreWalletClient.waitForTxn(txnResponse);
-                console.log("C-Chain Import transaction sent:", txnResponse.txHash);
                 setImportTxId(String(txnResponse.txHash));
                 setCompletedImportXPChain("C");
             }
@@ -400,10 +396,86 @@ function CrossChainTransfer({
         }
     }, [cToP_UTXOs.length, pToC_UTXOs.length, exportTxId, completedExportTxId, importTxId]);
 
+    const sdkSources: SDKCodeSource[] = useMemo(() => {
+        const isCtoP = sourceChain === "c-chain";
+        return [
+            {
+                name: "Export",
+                filename: isCtoP ? "exportCtoP.ts" : "exportPtoC.ts",
+                code: isCtoP
+                    ? `import { CoreWalletClient } from "@core-wallet/sdk";
+
+// Export AVAX from C-Chain to P-Chain
+const txnRequest = await coreWalletClient.cChain.prepareExportTxn({
+  destinationChain: "P",
+  exportedOutput: {
+    addresses: ["${pChainAddress || "<your-p-chain-address>"}"],
+    amount: ${amount || "0"},
+  },
+  fromAddress: "${walletEVMAddress || "<your-evm-address>"}",
+});
+
+const txnResponse = await coreWalletClient.sendXPTransaction(txnRequest);
+await coreWalletClient.waitForTxn(txnResponse);
+console.log("Export tx:", txnResponse.txHash);`
+                    : `import { CoreWalletClient } from "@core-wallet/sdk";
+
+// Export AVAX from P-Chain to C-Chain
+const txnRequest = await coreWalletClient.pChain.prepareExportTxn({
+  exportedOutputs: [{
+    addresses: ["${coreEthAddress || "<your-core-eth-address>"}"],
+    amount: ${amount || "0"},
+  }],
+  destinationChain: "C",
+});
+
+const txnResponse = await coreWalletClient.sendXPTransaction(txnRequest);
+await coreWalletClient.waitForTxn(txnResponse);
+console.log("Export tx:", txnResponse.txHash);`,
+                description: isCtoP
+                    ? "Export AVAX from C-Chain to P-Chain using Core Wallet SDK"
+                    : "Export AVAX from P-Chain to C-Chain using Core Wallet SDK",
+            },
+            {
+                name: "Import",
+                filename: isCtoP ? "importToP.ts" : "importToC.ts",
+                code: isCtoP
+                    ? `import { CoreWalletClient } from "@core-wallet/sdk";
+
+// Import AVAX to P-Chain from C-Chain
+const txnRequest = await coreWalletClient.pChain.prepareImportTxn({
+  sourceChain: "C",
+  importedOutput: {
+    addresses: ["${pChainAddress || "<your-p-chain-address>"}"],
+  },
+});
+
+const txnResponse = await coreWalletClient.sendXPTransaction(txnRequest);
+await coreWalletClient.waitForTxn(txnResponse);
+console.log("Import tx:", txnResponse.txHash);`
+                    : `import { CoreWalletClient } from "@core-wallet/sdk";
+
+// Import AVAX to C-Chain from P-Chain
+const txnRequest = await coreWalletClient.cChain.prepareImportTxn({
+  sourceChain: "P",
+  toAddress: "${walletEVMAddress || "<your-evm-address>"}",
+});
+
+const txnResponse = await coreWalletClient.sendXPTransaction(txnRequest);
+await coreWalletClient.waitForTxn(txnResponse);
+console.log("Import tx:", txnResponse.txHash);`,
+                description: isCtoP
+                    ? "Import the exported AVAX to P-Chain"
+                    : "Import the exported AVAX to C-Chain",
+            },
+        ];
+    }, [sourceChain, amount, pChainAddress, walletEVMAddress, coreEthAddress]);
+
     return (
+        <SDKCodeViewer sources={sdkSources} height="auto">
         <div className="flex flex-col gap-6 w-full max-w-3xl mx-auto">
                 {/* Progress Overview */}
-                <div className="bg-zinc-100 dark:bg-zinc-800 p-4 rounded-lg border border-zinc-200 dark:border-zinc-700">
+                <div className="bg-zinc-50 dark:bg-zinc-800/50 p-4 rounded-xl border border-zinc-200/80 dark:border-zinc-800">
                     <div className="flex items-center justify-center gap-4 mb-3">
                         <StepIndicator stepNumber={1} title="Export" status={getStep1Status()} />
                         <StepIndicator stepNumber={2} title="Import" status={getStep2Status()} isLast />
@@ -431,9 +503,9 @@ function CrossChainTransfer({
                             Source Chain
                         </label>
                         <div className="relative">
-                            <div className="w-full flex items-center justify-between px-4 py-3 bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 rounded-lg text-zinc-900 dark:text-zinc-100">
+                            <div className="w-full flex items-center justify-between px-4 py-3 bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-xl text-zinc-900 dark:text-zinc-100">
                                 <div className="flex items-center gap-3">
-                                    <div className="rounded-full w-8 h-8 flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700">
+                                    <div className="rounded-full w-8 h-8 flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-800">
                                         {sourceChain === "c-chain" ? (
                                             <img
                                                 src="https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/3e4b8ff10b69bfa31e70080a4b142cd0/avalanche-avax-logo.svg"
@@ -460,7 +532,7 @@ function CrossChainTransfer({
                                 <button
                                     type="button"
                                     onClick={handleSwapChains}
-                                    className="flex h-8 w-8 items-center justify-center rounded-md bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 hover:bg-zinc-200 dark:hover:bg-zinc-700 cursor-pointer"
+                                    className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-800 transition-colors focus:outline-none focus:ring-2 focus:ring-zinc-400 dark:focus:ring-zinc-500 focus:ring-offset-2 hover:bg-zinc-200 dark:hover:bg-zinc-700 cursor-pointer"
                                     aria-label="Switch source and destination chains"
                                 >
                                     <ArrowDownUp className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
@@ -498,9 +570,9 @@ function CrossChainTransfer({
                             Destination Chain
                         </label>
                         <div className="relative">
-                            <div className="w-full flex items-center justify-between px-4 py-3 bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 rounded-lg text-zinc-600 dark:text-zinc-400 cursor-not-allowed opacity-75">
+                            <div className="w-full flex items-center justify-between px-4 py-3 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/80 dark:border-zinc-800 rounded-xl text-zinc-600 dark:text-zinc-400 cursor-not-allowed opacity-75">
                                 <div className="flex items-center gap-3">
-                                    <div className="rounded-full w-8 h-8 flex items-center justify-center bg-zinc-200 dark:bg-zinc-700 border border-zinc-300 dark:border-zinc-600">
+                                    <div className="rounded-full w-8 h-8 flex items-center justify-center bg-zinc-200 dark:bg-zinc-700 border border-zinc-200/80 dark:border-zinc-800">
                                         {destinationChain === "c-chain" ? (
                                             <img
                                                 src="https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/3e4b8ff10b69bfa31e70080a4b142cd0/avalanche-avax-logo.svg"
@@ -533,14 +605,11 @@ function CrossChainTransfer({
                             variant="primary"
                             onClick={handleExport}
                             disabled={exportLoading || importLoading || Number(amount) <= 0 || !!error}
-                            className="w-full py-3 px-4 text-base font-medium text-white rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                            loading={exportLoading}
+                            loadingText={`Exporting from ${sourceChain === "c-chain" ? "C-Chain" : "P-Chain"}...`}
+                            className="w-full"
                         >
-                            {exportLoading ? (
-                                <span className="flex items-center justify-center">
-                                    <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                                    Exporting from {sourceChain === "c-chain" ? "C-Chain" : "P-Chain"}...
-                                </span>
-                            ) : `Export ${amount} AVAX`}
+                            {`Export ${amount} AVAX`}
                         </Button>
                     )}
 
@@ -576,7 +645,7 @@ function CrossChainTransfer({
 
                             <div className="space-y-2 mb-4">
                                 {availableUTXOs.map((utxo, index) => (
-                                    <div key={index} className="text-sm font-mono text-zinc-700 dark:text-zinc-200 bg-zinc-100 dark:bg-zinc-800 p-3 rounded border border-zinc-200 dark:border-zinc-700">
+                                    <div key={index} className="text-sm font-mono text-zinc-700 dark:text-zinc-200 bg-zinc-50 dark:bg-zinc-800/50 p-3 rounded-lg border border-zinc-200/80 dark:border-zinc-800">
                                         {(Number(utxo.output.amt.value()) / 1_000_000_000).toFixed(6)} AVAX
                                     </div>
                                 ))}
@@ -586,14 +655,11 @@ function CrossChainTransfer({
                                 variant="primary"
                                 onClick={handleImport}
                                 disabled={importLoading}
+                                loading={importLoading}
+                                loadingText="Importing..."
                                 className="w-full"
                             >
-                                {importLoading ? (
-                                    <span className="flex items-center justify-center">
-                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                        Importing...
-                                    </span>
-                                ) : `Import to ${destinationChain === "p-chain" ? "P-Chain" : "C-Chain"}`}
+                                {`Import to ${destinationChain === "p-chain" ? "P-Chain" : "C-Chain"}`}
                             </Button>
                         </>
                     )}
@@ -622,7 +688,7 @@ function CrossChainTransfer({
                 </StepCard>
 
                 {/* Estimated Fees */}
-                <div className="flex justify-between items-center px-4 py-3 bg-zinc-100 dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700">
+                <div className="flex justify-between items-center px-4 py-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-200/80 dark:border-zinc-800">
                     <div className="font-medium text-zinc-900 dark:text-white">Estimated total fees</div>
                     <div className="font-medium text-zinc-900 dark:text-white">~0.001 AVAX</div>
                 </div>
@@ -648,12 +714,13 @@ function CrossChainTransfer({
                                 }
                             }, 100);
                         }}
-                        className="w-full py-3 px-4 text-base font-medium rounded-lg transition-all duration-200"
+                        className="w-full"
                     >
                         Start New Transfer
                     </Button>
                 )}
         </div>
+        </SDKCodeViewer>
     );
 }
 
