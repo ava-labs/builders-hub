@@ -173,7 +173,7 @@ function EnableERC20StakingManagerMinting() {
   return (
     <div className="space-y-4">
       <Callout type="info">
-        <p className="font-semibold mb-2">Why is this needed?</p>
+        <p className="font-medium mb-2">Why is this needed?</p>
         <p>The ERC20 Token Staking Manager needs permission to mint reward tokens for validators and delegators.
           The ERC20 token must implement the <code>IERC20Mintable</code> interface and grant minting permissions to the staking manager.</p>
         {erc20StakingManagerAddress && (
@@ -199,7 +199,7 @@ function EnableERC20StakingManagerMinting() {
         />
 
         {tokenName && tokenSymbol && (
-          <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-md">
+          <div className="p-3 bg-zinc-50 dark:bg-zinc-800 rounded-xl">
             <p className="text-sm">
               <strong>Token:</strong> {tokenName} ({tokenSymbol})
             </p>
@@ -227,7 +227,7 @@ function EnableERC20StakingManagerMinting() {
 
             {accessControlType === 'ownable' && (
               <Callout type="warn">
-                <p className="font-semibold mb-2">Ownable Pattern Detected</p>
+                <p className="font-medium mb-2">Ownable Pattern Detected</p>
                 <p>This token uses the Ownable pattern. You'll need to:</p>
                 <ol className="list-decimal list-inside mt-2 space-y-1">
                   <li>Ensure the connected wallet is the owner of the token contract</li>
@@ -242,7 +242,7 @@ function EnableERC20StakingManagerMinting() {
 
             {accessControlType === 'unknown' && (
               <Callout type="warn">
-                <p className="font-semibold mb-2">Custom Access Control</p>
+                <p className="font-medium mb-2">Custom Access Control</p>
                 <p>This token uses a custom access control pattern. Please ensure you:</p>
                 <ol className="list-decimal list-inside mt-2 space-y-1">
                   <li>Implement the <code>IERC20Mintable</code> interface with a <code>mint(address account, uint256 amount)</code> function</li>
@@ -275,7 +275,7 @@ function EnableERC20StakingManagerMinting() {
       )}
 
       <Callout>
-        <p className="font-semibold mb-2">Verification Steps</p>
+        <p className="font-medium mb-2">Verification Steps</p>
         <p>After granting minting permissions, verify that:</p>
         <ol className="list-decimal list-inside mt-2 space-y-1">
           <li>The staking manager address has minting permissions on the token contract</li>
