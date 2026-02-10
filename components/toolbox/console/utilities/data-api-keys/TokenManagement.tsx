@@ -259,6 +259,7 @@ function TokenManagementInner({ onSuccess }: BaseConsoleToolProps) {
             }}
             variant="primary"
             size="sm"
+            className="w-auto"
           >
             <Plus className="w-4 h-4 mr-2" />
             Create API Key
