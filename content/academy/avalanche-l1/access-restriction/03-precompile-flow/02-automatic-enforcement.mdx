@@ -123,6 +123,8 @@ sequenceDiagram
 State can change between checks. An admin could revoke your permission after your transaction enters the mempool but before it executes.
 </Callout>
 
+<Quiz quizId="3010"/>
+
 ## Contract Deployer AllowList Enforcement
 
 For contract deployments, there's an **additional** enforcement point via the `CanCreateContract` hook:
@@ -278,4 +280,6 @@ The allowlist system is enforced through **hardcoded checkpoints** in the EVM:
 3. **Contract creation hook**: Additional check for deployments
 
 This multi-layered approach ensures that permission restrictions are enforced consistently throughout the transaction lifecycle—**even when you're not directly calling the precompile**.
+
+<Quiz quizId="3011"/>
 

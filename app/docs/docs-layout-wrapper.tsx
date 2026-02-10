@@ -56,7 +56,7 @@ export function DocsLayoutWrapper({
     } else if (pathname.startsWith('/docs')) {
       document.body.setAttribute('data-docs-section', 'documentation');
     }
-    
+
     return () => {
       document.body.removeAttribute('data-docs-section');
       document.body.removeAttribute('data-layout');
