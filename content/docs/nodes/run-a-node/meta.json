@@ -1,15 +1,16 @@
 {
   "title": "Set up a Node",
   "pages": [
+    "overview",
+    "---Primary Network---",
     "[With Docker](/console/primary-network/node-setup)",
-    "using-binary",
-    "from-source",
     "using-docker",
     "using-install-script",
+    "using-binary",
+    "from-source",
     "on-third-party-services",
     "---Avalanche L1s---",
     "[With Docker](/console/layer-1/l1-node-setup)",
     "avalanche-l1-nodes"
   ]
 }
-
