@@ -15,6 +15,13 @@ const P_CHAIN_THRESHOLDS = {
   dripAmount: 0.5
 };
 
+interface ChainRateLimitStatus {
+  chainId: string | null;
+  faucetType: 'pchain' | 'evm';
+  allowed: boolean;
+  resetTime?: string;
+}
+
 export const useAutomatedFaucet = () => {
   const sessionResult = useSession();
   const session = sessionResult?.data;
@@ -44,9 +51,62 @@ export const useAutomatedFaucet = () => {
   const { triggerFireworks } = useConfetti(); 
   const processedSessionRef = useRef<string | null>(null);
   const lastAttemptRef = useRef<number>(0);
-  const rateLimitedChainsRef = useRef<Set<number | string>>(new Set());
+  const rateLimitedChainsRef = useRef<Map<string, Date>>(new Map());
   const allTokensReceivedRef = useRef<boolean>(false);
   const COOLDOWN_PERIOD = 5 * 60 * 1000;
+  
+  // Fetch rate limits from DB
+  const fetchRateLimits = useCallback(async (
+    chains: Array<{ faucetType: 'pchain' | 'evm'; chainId?: string }>
+  ): Promise<ChainRateLimitStatus[]> => {
+    try {
+      const response = await fetch('/api/faucet-rate-limit/batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chains })
+      });
+      
+      if (!response.ok) return [];
+      
+      const data = await response.json();
+      return data.success ? data.limits : [];
+    } catch (error) {
+      console.error('Failed to fetch rate limits:', error);
+      return [];
+    }
+  }, []);
+
+  // Check if a chain is rate limited (using DB-backed data)
+  const isChainRateLimited = useCallback((
+    faucetType: 'pchain' | 'evm', 
+    chainId?: string
+  ): boolean => {
+    const key = `${faucetType}:${chainId || 'null'}`;
+    const resetTime = rateLimitedChainsRef.current.get(key);
+    
+    if (!resetTime) return false;
+    
+    // Check if rate limit has expired
+    if (resetTime.getTime() <= Date.now()) {
+      rateLimitedChainsRef.current.delete(key);
+      return false;
+    }
+    
+    return true;
+  }, []);
+
+  // Update rate limited chains from API response
+  const updateRateLimits = useCallback((limits: ChainRateLimitStatus[]) => {
+    for (const limit of limits) {
+      const key = `${limit.faucetType}:${limit.chainId || 'null'}`;
+      
+      if (!limit.allowed && limit.resetTime) {
+        rateLimitedChainsRef.current.set(key, new Date(limit.resetTime));
+      } else {
+        rateLimitedChainsRef.current.delete(key);
+      }
+    }
+  }, []);
   
   // check if user has sufficient balance for a given chain
   const checkSufficientBalance = useCallback((chainId: number): boolean => {
@@ -96,7 +156,7 @@ export const useAutomatedFaucet = () => {
         }
       );
     }
-  }, [l1List]);
+  }, [l1List, triggerFireworks]);
   
   const processAutomatedClaims = useCallback(async () => {
     if (!session?.user?.id || !isTestnet || !bootstrapped) return;
@@ -154,15 +214,27 @@ export const useAutomatedFaucet = () => {
     lastAttemptRef.current = now;
     
     try {
-      const results: FaucetClaimResult[] = [];
+      // Fetch rate limits from DB before attempting claims
       const chainsWithFaucet = getChainsWithFaucet();
-      const neededChainIds = walletEVMAddress ? getNeededChains(walletEVMAddress) : [];    
+      const neededChainIds = walletEVMAddress ? getNeededChains(walletEVMAddress) : [];
+      
+      const chainsToCheck: Array<{ faucetType: 'pchain' | 'evm'; chainId?: string }> = [
+        { faucetType: 'pchain' },
+        ...chainsWithFaucet
+          .filter(chain => neededChainIds.includes(chain.evmChainId))
+          .map(chain => ({ faucetType: 'evm' as const, chainId: chain.evmChainId.toString() }))
+      ];
+      
+      const rateLimits = await fetchRateLimits(chainsToCheck);
+      updateRateLimits(rateLimits);
+
+      const results: FaucetClaimResult[] = [];
       const evmClaimPromises = chainsWithFaucet
         .filter(chain => 
           walletEVMAddress && 
-          neededChainIds.includes(chain.evmChainId) && // we only need to process chains marked as needed in local storage
+          neededChainIds.includes(chain.evmChainId) &&
           !checkSufficientBalance(chain.evmChainId) &&
-          !rateLimitedChainsRef.current.has(chain.evmChainId)
+          !isChainRateLimited('evm', chain.evmChainId.toString())
         )
         .map(async (chain) => {
           try {
@@ -172,9 +244,11 @@ export const useAutomatedFaucet = () => {
             );
             return { ...result, chainId: chain.evmChainId };
           } catch (error) {
-            // check for rate limit errors
+            // check for rate limit errors and update the cache
             if (error instanceof Error && error.message.toLowerCase().includes('rate limit')) {
-              rateLimitedChainsRef.current.add(chain.evmChainId);
+              const key = `evm:${chain.evmChainId}`;
+              // Set a conservative 24h rate limit
+              rateLimitedChainsRef.current.set(key, new Date(Date.now() + 24 * 60 * 60 * 1000));
             }
             return null;
           }
@@ -192,7 +266,7 @@ export const useAutomatedFaucet = () => {
         });
       }
       
-      if (pChainAddress && !checkSufficientPChainBalance() && !rateLimitedChainsRef.current.has('pchain')) {
+      if (pChainAddress && !checkSufficientPChainBalance() && !isChainRateLimited('pchain')) {
         try {
           const result = await retryOperation(
             () => claimPChainAVAX(true),
@@ -206,7 +280,7 @@ export const useAutomatedFaucet = () => {
           }
         } catch (error) { 
           if (error instanceof Error && error.message.toLowerCase().includes('rate limit')) {
-            rateLimitedChainsRef.current.add('pchain');
+            rateLimitedChainsRef.current.set('pchain:null', new Date(Date.now() + 24 * 60 * 60 * 1000));
           }
           return null;
         }
@@ -254,7 +328,10 @@ export const useAutomatedFaucet = () => {
     claimEVMTokens,
     claimPChainAVAX,
     checkSufficientPChainBalance,
-    showAutomatedDripSuccess
+    showAutomatedDripSuccess,
+    fetchRateLimits,
+    updateRateLimits,
+    isChainRateLimited
   ]);
   
   const retryOperation = async <T>(

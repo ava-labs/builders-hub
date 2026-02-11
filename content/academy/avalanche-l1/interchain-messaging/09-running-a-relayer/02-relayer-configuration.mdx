@@ -48,7 +48,6 @@ Next is the configuration for our source blockchain. This is the configuration o
 	{
       "subnet-id": "11111111111111111111111111111111LpoYY",
       "blockchain-id": "epm5fG6Pn1Y5rBHdTe36aZYeLqpXugreyHLZB5dV81rVTs7Ku",
-      "vm": "evm",
       "rpc-endpoint": {
         "base-url": "http://127.0.0.1:9650/ext/bc/epm5fG6Pn1Y5rBHdTe36aZYeLqpXugreyHLZB5dV81rVTs7Ku/rpc",
         "query-parameters": null,
@@ -82,7 +81,6 @@ Next is the configuration for our source blockchain. This is the configuration o
 
 - **subnet-id:** The Blockchain ID of the L1 that the source blockchain is part of. In this example this is the Blockchain ID of the Primary Network.
 - **blockchain-id:** The blockchain ID of the source. In this example this is the blockchain ID of Fuji's C-Chain.
-- **vm:** A string specifying the virtual machine of the destination L1's blockchain. Currently, only the EVM is supported, but this field has been added in anticipation of communication between blockchains powered by different virtual machines in the future.
 - **rpc-endpoint:** An API Config containing:
 <div class="pl-6">
 - **base-url:** RPC endpoint of the source L1's API node.
@@ -110,7 +108,6 @@ Next is the configuration for our destination blockchain. This is the configurat
     {
       "subnet-id": "11111111111111111111111111111111LpoYY",
       "blockchain-id": "epm5fG6Pn1Y5rBHdTe36aZYeLqpXugreyHLZB5dV81rVTs7Ku",
-      "vm": "evm",
       "rpc-endpoint": {
         "base-url": "http://127.0.0.1:9650/ext/bc/epm5fG6Pn1Y5rBHdTe36aZYeLqpXugreyHLZB5dV81rVTs7Ku/rpc",
         "query-parameters": null,
@@ -128,7 +125,6 @@ For each destination L1, the relayer has the following config parameter:
 
 - **subnet-id:** The ID of the L1 that the destination blockchain is part of. 
 - **blockchain-id:** The blockchain ID of the destination blockchain. This is the Blockchain ID of Fuji's Dispatch L1.
-- **vm:** A string specifying the virtual machine of the destination L1's blockchain. Currently, only the EVM is supported, but this field has been added in anticipation of communication between blockchains powered by different virtual machines in the future.
 - **rpc-endpoint:** The RPC endpoint of the destination L1's API node. Used in favor of api-node-host, api-node-port, and encrypt-connection when constructing the endpoint.
 - **kms-key-id:** The ID of the KMS key to use for signing transactions on the destination blockchain. Only one of account-private-key or kms-key-id should be provided. If kms-key-id is provided, then kms-aws-region is required. Please note that the private key in KMS should be exclusive to the relayer. 
 - **kms-aws-region:** The AWS region in which the KMS key is located. Required if kms-key-id is provided. 

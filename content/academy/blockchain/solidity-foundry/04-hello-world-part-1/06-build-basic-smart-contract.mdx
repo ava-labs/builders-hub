@@ -11,7 +11,7 @@ Let's create and interact with the basic smart contract. Create a new solidity f
 ```solidity
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
-​
+
 contract NumberStorage {
  
     uint256 num;
@@ -30,7 +30,7 @@ contract NumberStorage {
 Now let's deploy it:
 
 ```bash
-forge create --rpc-url local-c --private-key $PK src/my-contracts/NumberStorage.sol:NumberStorage --broadcast
+forge create --rpc-url local-c --private-key $PK contracts/my-contracts/NumberStorage.sol:NumberStorage --broadcast
 ```
 
 The result should look something like this:

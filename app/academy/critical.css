@@ -1,0 +1,182 @@
+/* Critical CSS for Academy - Scoped to academy layout only */
+[data-route-layout="academy"] {
+  --fd-sidebar-width: 16rem;
+}
+
+/* Desktop: Apply sidebar positioning immediately */
+@media (min-width: 1024px) {
+  /* Academy sidebar positioning - no subnav, just navbar */
+  [data-route-layout="academy"] #nd-sidebar,
+  [data-route-layout="academy"] [data-sidebar="sidebar"] {
+    position: fixed !important;
+    left: 3rem !important;
+    right: auto !important;
+    inset-inline-start: 3rem !important;
+    inset-inline-end: auto !important;
+    top: 4.5rem !important;
+    height: calc(100vh - 3.5rem) !important;
+    width: var(--fd-sidebar-width) !important;
+    padding-left: 0.5rem !important;
+    padding-right: 2rem !important;
+    background: transparent !important;
+    border-right: none !important;
+  }
+
+  /* Main content layout and padding */
+  [data-route-layout="academy"] main#nd-docs-layout.fd-notebook-layout,
+  [data-route-layout="academy"] main#nd-docs-layout.fd-default-layout {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding-left: calc(3rem + var(--fd-sidebar-width) + 0.5rem) !important;
+    padding-right: 5rem !important;
+  }
+
+  /* Page content centering */
+  [data-route-layout="academy"] #nd-page {
+    margin-left: auto !important;
+    margin-right: auto !important;
+    max-width: var(--fd-page-width) !important;
+  }
+
+  /* Notebook layout padding */
+  [data-route-layout="academy"] .nd-layout-notebook {
+    padding-right: 2rem !important;
+  }
+}
+
+/* Mobile: reset sidebar width and force left side */
+@media (max-width: 1023px) {
+  [data-route-layout="academy"] {
+    --fd-sidebar-width: 0px;
+  }
+
+  [data-route-layout="academy"] #nd-docs-layout {
+    --fd-sidebar-width: 0px !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding-inline-start: 0 !important;
+  }
+
+  /* Mobile sidebar should appear from left, not right */
+  [data-route-layout="academy"] #nd-sidebar-mobile {
+    left: 0 !important;
+    right: auto !important;
+    inset-inline-start: 0 !important;
+    inset-inline-end: auto !important;
+  }
+
+  /* Mobile content padding */
+  [data-route-layout="academy"] main#nd-docs-layout.fd-notebook-layout,
+  [data-route-layout="academy"] main#nd-docs-layout.fd-default-layout {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+
+  /* Reset page content on mobile */
+  [data-route-layout="academy"] #nd-page {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    max-width: 100% !important;
+  }
+
+  /* Reset notebook layout padding on mobile */
+  [data-route-layout="academy"] .nd-layout-notebook {
+    padding-left: 0 !important;
+    padding-right: 1rem !important;
+  }
+}
+
+/* Article styling - remove background/borders */
+[data-route-layout="academy"] .nd-layout-notebook article {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+/* Layout padding */
+[data-route-layout="academy"] #nd-docs-layout {
+  padding-top: 0px !important;
+  background: hsl(var(--background)) !important;
+}
+
+/* Sidebar icon sizing - apply immediately to prevent resize */
+[data-route-layout="academy"] #nd-sidebar button:has(> div > p.text-sm.font-medium),
+[data-route-layout="academy"] #nd-sidebar-mobile button:has(> div > p.text-sm.font-medium) {
+  align-items: center !important;
+  gap: 0.5rem !important;
+  padding: 0.5rem !important;
+}
+
+/* Left icon container: force consistent 20px size */
+[data-route-layout="academy"] #nd-sidebar button:has(> div > p.text-sm.font-medium) > div:first-child,
+[data-route-layout="academy"] #nd-sidebar-mobile button:has(> div > p.text-sm.font-medium) > div:first-child {
+  width: 1.25rem !important;
+  height: 1.25rem !important;
+  min-width: 1.25rem !important;
+  min-height: 1.25rem !important;
+  margin-top: 0 !important;
+  margin-right: 0 !important;
+  align-self: center !important;
+}
+
+/* Neutralize fumadocs mobile padding/border on inner icon wrapper */
+[data-route-layout="academy"] #nd-sidebar button:has(> div > p.text-sm.font-medium) > div:first-child > div,
+[data-route-layout="academy"] #nd-sidebar-mobile button:has(> div > p.text-sm.font-medium) > div:first-child > div {
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Ensure nested svg/img inside icon container render at 20px */
+[data-route-layout="academy"] #nd-sidebar button:has(> div > p.text-sm.font-medium) > div:first-child > svg,
+[data-route-layout="academy"] #nd-sidebar button:has(> div > p.text-sm.font-medium) > div:first-child > img,
+[data-route-layout="academy"] #nd-sidebar-mobile button:has(> div > p.text-sm.font-medium) > div:first-child > svg,
+[data-route-layout="academy"] #nd-sidebar-mobile button:has(> div > p.text-sm.font-medium) > div:first-child > img {
+  width: 1.25rem !important;
+  height: 1.25rem !important;
+}
+
+/* Chevron on the right: center-align */
+[data-route-layout="academy"] #nd-sidebar button:has(> div > p.text-sm.font-medium) > svg.lucide,
+[data-route-layout="academy"] #nd-sidebar-mobile button:has(> div > p.text-sm.font-medium) > svg.lucide {
+  margin-top: 0 !important;
+  align-self: center !important;
+}
+
+/* Text block spacing */
+[data-route-layout="academy"] #nd-sidebar button:has(> div > p.text-sm.font-medium) > div:nth-child(2),
+[data-route-layout="academy"] #nd-sidebar-mobile button:has(> div > p.text-sm.font-medium) > div:nth-child(2) {
+  margin-top: 0 !important;
+  gap: 0.125rem !important;
+}
+
+[data-route-layout="academy"] #nd-sidebar button:has(> div > p.text-sm.font-medium) > div > p.text-sm.font-medium,
+[data-route-layout="academy"] #nd-sidebar-mobile button:has(> div > p.text-sm.font-medium) > div > p.text-sm.font-medium {
+  line-height: 1.25 !important;
+}
+
+[data-route-layout="academy"] #nd-sidebar button:has(> div > p.text-sm.font-medium) > div > p.text-fd-muted-foreground,
+[data-route-layout="academy"] #nd-sidebar-mobile button:has(> div > p.text-sm.font-medium) > div > p.text-fd-muted-foreground {
+  line-height: 1.3 !important;
+}
+
+/* Enforce 20px for icons directly as first child */
+[data-route-layout="academy"] #nd-sidebar a > svg:first-child:not([data-icon]),
+[data-route-layout="academy"] #nd-sidebar a > img:first-child,
+[data-route-layout="academy"] #nd-sidebar button > svg:first-child:not([data-icon]),
+[data-route-layout="academy"] #nd-sidebar button > img:first-child,
+[data-route-layout="academy"] #nd-sidebar-mobile a > svg:first-child:not([data-icon]),
+[data-route-layout="academy"] #nd-sidebar-mobile a > img:first-child,
+[data-route-layout="academy"] #nd-sidebar-mobile button > svg:first-child:not([data-icon]),
+[data-route-layout="academy"] #nd-sidebar-mobile button > img:first-child {
+  width: 1.25rem !important;
+  height: 1.25rem !important;
+  flex-shrink: 0 !important;
+}

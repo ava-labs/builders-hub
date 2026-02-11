@@ -18,6 +18,7 @@ export interface ProjectState {
   openJoinTeam: boolean;
   openCurrentProject: boolean;
   openInvalidInvitation: boolean;
+  projectData: any | null; // Store project data when loaded by ID
 }
 
 export interface ProjectContextType {
@@ -45,7 +46,8 @@ type ProjectAction =
   | { type: 'SET_TEAM_NAME'; payload: string }
   | { type: 'SET_OPEN_JOIN_TEAM'; payload: boolean }
   | { type: 'SET_OPEN_CURRENT_PROJECT'; payload: boolean }
-  | { type: 'SET_OPEN_INVALID_INVITATION'; payload: boolean };
+  | { type: 'SET_OPEN_INVALID_INVITATION'; payload: boolean }
+  | { type: 'SET_PROJECT_DATA'; payload: any };
 
 const initialState: ProjectState = {
   id: null,
@@ -58,6 +60,7 @@ const initialState: ProjectState = {
   openJoinTeam: false,
   openCurrentProject: false,
   openInvalidInvitation: false,
+  projectData: null,
 };
 
 
@@ -83,6 +86,8 @@ function projectReducer(state: ProjectState, action: ProjectAction): ProjectStat
       return { ...state, openCurrentProject: action.payload };
     case 'SET_OPEN_INVALID_INVITATION':
       return { ...state, openInvalidInvitation: action.payload };
+    case 'SET_PROJECT_DATA':
+      return { ...state, projectData: action.payload };
     case 'RESET_STATE':
       return initialState;
     default:
@@ -99,15 +104,54 @@ export function ProjectSubmissionProvider({ children }: { children: ReactNode })
   const searchParams = useSearchParams();
   const { toast } = useToast();
   const hasInitialized = useRef(false);
+  const loadProjectById = useCallback(async (projectId: string) => {
+    try {
+      dispatch({ type: 'SET_STATUS', payload: 'loading' });
+      const response = await axios.get(`/api/projects/${projectId}`);
+      const projectData = response.data;
+      
+      if (projectData) {
+        dispatch({ type: 'SET_PROJECT_ID', payload: projectData.id });
+        dispatch({ type: 'SET_PROJECT_DATA', payload: projectData });
+        if (projectData.hackaton_id) {
+          dispatch({ type: 'SET_HACKATHON_ID', payload: projectData.hackaton_id });
+        }
+        dispatch({ type: 'SET_EDITING', payload: true });
+        dispatch({ type: 'SET_STATUS', payload: 'editing' });
+      } else {
+        dispatch({ type: 'SET_ERROR', payload: 'Project not found' });
+        dispatch({ type: 'SET_STATUS', payload: 'error' });
+      }
+    } catch (error: any) {
+      dispatch({ type: 'SET_ERROR', payload: error.message || 'Failed to load project' });
+      dispatch({ type: 'SET_STATUS', payload: 'error' });
+      toast({
+        title: 'Error loading project',
+        description: error.message || 'Failed to load project',
+        variant: 'destructive',
+      });
+    }
+  }, [session?.user?.id, toast]);
+
   useEffect(() => {
     const hackathonId = searchParams.get('hackathon');
     const invitationId = searchParams.get('invitation');
+    const projectId = searchParams.get('project');
     
-    if (hackathonId && !state.hackathonId && session?.user?.id && !hasInitialized.current) {
+    // Priority: project ID > hackathon ID > new project
+    if (projectId && !state.id && session?.user?.id && !hasInitialized.current) {
+      hasInitialized.current = true;
+      loadProjectById(projectId);
+    } else if (hackathonId && !state.hackathonId && session?.user?.id && !hasInitialized.current) {
       hasInitialized.current = true; 
       initializeProject(hackathonId, invitationId || undefined);
+    } else if (!hackathonId && !projectId && !state.hackathonId && session?.user?.id && !hasInitialized.current) {
+      // Allow creating projects without hackathon - set status to editing
+      hasInitialized.current = true;
+      dispatch({ type: 'SET_STATUS', payload: 'editing' });
+      dispatch({ type: 'SET_EDITING', payload: true });
     }
-  }, [searchParams, state.hackathonId, session?.user?.id]); 
+  }, [searchParams, state.hackathonId, state.id, session?.user?.id, loadProjectById]); 
 
   const initializeProject = useCallback(async (hackathonId: string, invitationId?: string) => {
     try {
@@ -153,15 +197,9 @@ export function ProjectSubmissionProvider({ children }: { children: ReactNode })
     try {
       dispatch({ type: 'SET_STATUS', payload: 'saving' });
       
-  
-      if (!state.hackathonId) {
-        throw new Error('No hackathon selected');
-      }
-      
-     
       const projectData = {
         ...data,
-        hackaton_id: state.hackathonId, 
+        ...(state.hackathonId && { hackaton_id: state.hackathonId }),
         user_id: session?.user?.id,
         id: state.id || undefined,
       };

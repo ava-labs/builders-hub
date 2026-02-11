@@ -3,7 +3,7 @@ title: Interacting with ERC20 Tokens
 description: Fungible Token Standard
 updated: 2024-06-28
 authors: [Andrea Vargas, Ash, martineckardt]
-icon: Book
+icon: BookOpen
 ---
 
 In this section, we will go through an example of how to interact with an ERC-20 from another contract.
@@ -108,3 +108,5 @@ contract Test {
 ```
 
 In line 13, we are passing in both the address of the spender and the address of our own smart contract to the allowance function, which returns the amount of allocated tokens which we compare to our amt variable. If we are have not been allocated enough tokens, we return false and therefore, we do not spend any additional computation resources calling transferFrom, which we know would have been unsuccessful.
+
+<Quiz quizId="522"/>

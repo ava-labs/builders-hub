@@ -3,10 +3,14 @@ title: Create a new Smart Contract
 description: Learn what a Smart Contract is
 updated: 2024-06-28
 authors: [Andrea Vargas, Ash]
-icon: Book
+icon: Terminal
 ---
 
-Alright, let's create our first contract. Head to the Avalanche Starter Kit Codespace and create a new folder called my-contracts in the _src_ folder.
+Alright, let's create our first contract. Head to the Avalanche Starter Kit Codespace and create a new folder called _my-contracts_ in the _contracts_ folder.
+
+<Callout type="info">
+**Remember, when restarting your Avalanche Starter Kit Codespace, you should restart your Avalanche network running the command `avalanche network start` in the terminal**
+</Callout> 
 
 Now in there create a new file called HelloWorld.sol and paste the following contents:
 
@@ -21,7 +25,7 @@ contract HelloWorld {
 Now let's deploy the contract:
 
 ```bash
-forge create --rpc-url local-c --private-key $PK src/my-contracts/HelloWorld.sol:HelloWorld --broadcast
+forge create --rpc-url local-c --private-key $PK contracts/my-contracts/HelloWorld.sol:HelloWorld --broadcast
 ```
 
 If deployed successfully we should see something like this:

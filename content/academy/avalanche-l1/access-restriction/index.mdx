@@ -1,0 +1,53 @@
+---
+title: Welcome to the Course
+description: Master access control patterns using transaction and contract deployer allowlists with hands-on precompile implementation
+updated: 2025-12-10
+authors: [nicolasarnedo]
+icon: Smile
+---
+
+## Access Restriction
+
+Access restriction is a core requirement for many real-world networks: you may need to control **who can submit transactions** and **who can deploy contracts** to meet operational, institutional, and compliance needs.
+
+In Avalanche L1s, these controls are implemented as **precompiles** (go code wrapped in a solidity interface) that follow a shared, audited permission model: the **AllowList interface**.
+
+## Course Structure
+
+This course is divided into two parts:
+
+### Part 1: Fundamentals
+
+The first section covers the basics of access restriction precompiles:
+
+- **Introduction** — What precompiles are, the AllowList permission model (Admin/Manager/Enabled), and real-world use cases
+- **Genesis Activation** — Create an L1 with **Transaction AllowList** and **Contract Deployer AllowList** enabled from genesis, then test that permissions work as expected
+
+### Part 2: Advanced Topics
+
+The second section dives deeper into precompile internals and recovery patterns:
+
+- **Precompile Flow (Optional)** — Understand how Solidity calls route to Go code, and how the blockchain automatically enforces permissions even when you're not directly calling the precompile
+- **User Error** — Intentionally lock yourself out by removing your admin privileges, then observe the resulting failures
+- **Network Upgrades** — Learn how to **deactivate** and **reactivate** precompiles via `upgrade.json` to recover from misconfigurations (requires a self-hosted Docker validator)
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+<Callout type="info">
+Part 1 uses a **BuilderHub hosted node** for quick setup. Part 2 (Advanced) requires running your own **Docker validator** to access configuration files for network upgrades.
+</Callout>
+
+## Prerequisites
+
+Before starting this course, we recommend completing:
+
+- [Customizing the EVM](/academy/avalanche-l1/customizing-evm) — especially the **Precompiles** section
+- Comfort using **Core Wallet**, **Docker**, and reading a **genesis JSON**
+
+## Learning Outcomes
+
+By the end of this course, you will be able to:
+
+- Understand what precompiles are and leverage them to implement privileged network features
+- Enable **Transaction AllowList** and **Contract Deployer AllowList** in genesis
+- **Activate** and **Deactivate** precompiles via **Network Upgrades** 

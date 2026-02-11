@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Box, Clock, Fuel, Hash, ArrowLeft, ArrowRight, ChevronUp, ChevronDown, Layers, FileText, ArrowRightLeft } from "lucide-react";
+import { Box, Clock, Fuel, Hash, ArrowLeft, ArrowRight, ChevronUp, ChevronDown, Layers, FileText, ArrowRightLeft, Info, Activity, ArrowUpRight } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { DetailRow, CopyButton } from "@/components/explorer/DetailRow";
 import Link from "next/link";
@@ -11,11 +12,21 @@ import { decodeFunctionInput } from "@/abi/event-signatures.generated";
 import { formatTokenValue, formatUsdValue } from "@/utils/formatTokenValue";
 import { formatPrice } from "@/utils/formatPrice";
 
+interface ACP176FeeState {
+  gasCapacity: string;
+  gasExcess: string;
+  targetExcess: string;
+  targetGasPerSecond: string;
+  maxCapacity: string;
+  gasPrice: string;
+}
+
 interface BlockDetail {
   number: string;
   hash: string;
   parentHash: string;
   timestamp: string;
+  timestampMilliseconds?: number; // Avalanche-specific: block timestamp in milliseconds
   miner: string;
   transactionCount: number;
   transactions: string[];
@@ -23,6 +34,7 @@ interface BlockDetail {
   gasLimit: string;
   baseFeePerGas?: string;
   gasFee?: string; // Gas fee in native token
+  feeState?: ACP176FeeState; // ACP-176 dynamic fee state
   size?: string;
   nonce?: string;
   difficulty?: string;
@@ -63,16 +75,19 @@ interface BlockDetailPageProps {
   rpcUrl?: string;
 }
 
-function formatTimestamp(timestamp: string): string {
-  const date = new Date(timestamp);
+function formatTimeAgo(date: Date): string {
   const now = new Date();
   const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
-  let timeAgo = "";
-  if (diffInSeconds < 60) timeAgo = `${diffInSeconds} secs ago`;
-  else if (diffInSeconds < 3600) timeAgo = `${Math.floor(diffInSeconds / 60)} mins ago`;
-  else if (diffInSeconds < 86400) timeAgo = `${Math.floor(diffInSeconds / 3600)} hrs ago`;
-  else timeAgo = `${Math.floor(diffInSeconds / 86400)} days ago`;
+  if (diffInSeconds < 60) return `${diffInSeconds} secs ago`;
+  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} mins ago`;
+  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hrs ago`;
+  return `${Math.floor(diffInSeconds / 86400)} days ago`;
+}
+
+function formatTimestamp(timestamp: string): string {
+  const date = new Date(timestamp);
+  const timeAgo = formatTimeAgo(date);
 
   const formatted = date.toLocaleString('en-US', {
     month: 'short',
@@ -86,6 +101,29 @@ function formatTimestamp(timestamp: string): string {
   });
 
   return `${timeAgo} (${formatted})`;
+}
+
+// Format timestamp with millisecond precision (for Avalanche timestampMilliseconds per ACP-226)
+function formatTimestampWithMs(timestampMs: number): string {
+  const date = new Date(timestampMs);
+  const timeAgo = formatTimeAgo(date);
+  const ms = date.getMilliseconds().toString().padStart(3, '0');
+
+  const formatted = date.toLocaleString('en-US', {
+    month: 'short',
+    day: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true,
+    timeZoneName: 'short'
+  });
+
+  // Insert milliseconds after seconds (e.g., "09:44:04" -> "09:44:04.227")
+  const formattedWithMs = formatted.replace(/(\d{2}:\d{2}:\d{2})/, `$1.${ms}`);
+
+  return `${timeAgo} (${formattedWithMs})`;
 }
 
 function formatGasUsedPercentage(gasUsed: string, gasLimit: string): string {
@@ -336,13 +374,45 @@ export default function BlockDetailPage({
                 }
               />
 
-              {/* Timestamp */}
+              {/* Timestamp (milliseconds - Avalanche per ACP-226) */}
+              {block?.timestampMilliseconds && (
+                <DetailRow
+                  icon={<Clock className="w-4 h-4" />}
+                  label={
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <a
+                          href="https://build.avax.network/docs/acps/226-dynamic-minimum-block-times#timestampmilliseconds"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-0.5 underline decoration-dashed underline-offset-2 decoration-zinc-400 dark:decoration-zinc-500 hover:decoration-zinc-600 dark:hover:decoration-zinc-300 transition-colors"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          Timestamp
+                          <ArrowUpRight className="w-3.5 h-3.5" />
+                        </a>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="text-xs">Millisecond precision timestamp per ACP-226</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  }
+                  themeColor={themeColor}
+                  value={
+                    <span className="text-sm text-zinc-900 dark:text-white">
+                      {formatTimestampWithMs(block.timestampMilliseconds)}
+                    </span>
+                  }
+                />
+              )}
+
+              {/* Legacy Timestamp (seconds precision) */}
               <DetailRow
                 icon={<Clock className="w-4 h-4" />}
-                label="Timestamp"
+                label={block?.timestampMilliseconds ? "Timestamp (legacy)" : "Timestamp"}
                 themeColor={themeColor}
                 value={
-                  <span className="text-sm text-zinc-900 dark:text-white">
+                  <span className={`text-sm ${block?.timestampMilliseconds ? 'line-through text-zinc-400 dark:text-zinc-500' : 'text-zinc-900 dark:text-white'}`}>
                     {block?.timestamp ? formatTimestamp(block.timestamp) : '-'}
                   </span>
                 }
@@ -401,7 +471,23 @@ export default function BlockDetailPage({
               {/* Gas Limit */}
               <DetailRow
                 icon={<Layers className="w-4 h-4" />}
-                label="Gas Limit"
+                label={
+                  <>
+                    Gas Limit
+                    {block?.feeState && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="inline-flex ml-1 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors">
+                            <Info className="w-3.5 h-3.5" />
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          <p className="text-xs">Max gas capacity for this block. On C-Chain this is dynamic (Target x 10) and represents how much gas can be consumed if the chain runs at 2x target rate for 5 seconds.</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+                  </>
+                }
                 themeColor={themeColor}
                 value={
                   <span className="text-sm text-zinc-900 dark:text-white">
@@ -409,6 +495,73 @@ export default function BlockDetailPage({
                   </span>
                 }
               />
+
+              {/* ACP-176 Fee State */}
+              {block?.feeState && (
+                <DetailRow
+                  icon={<Activity className="w-4 h-4" />}
+                  label={
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <a
+                          href="https://build.avax.network/docs/acps/176-dynamic-evm-gas-limit-and-price-discovery-updates"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-0.5 underline decoration-dashed underline-offset-2 decoration-zinc-400 dark:decoration-zinc-500 hover:decoration-zinc-600 dark:hover:decoration-zinc-300 transition-colors"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          Fee State
+                          <ArrowUpRight className="w-3.5 h-3.5" />
+                        </a>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="text-xs">Dynamic fee state per ACP-176</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  }
+                  themeColor={themeColor}
+                  value={
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="inline-flex items-center gap-1.5 text-zinc-900 dark:text-white">
+                            <span className="text-zinc-500 dark:text-zinc-400">Target: </span>
+                            {(parseInt(block.feeState.targetGasPerSecond) / 1_000_000).toFixed(2)}M gas/s
+                            <Info className="w-3.5 h-3.5 text-zinc-400 dark:text-zinc-500" />
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          <p className="text-xs">How much gas the network aims to process per second. When actual usage goes above this, fees go up. When below, fees go down.</p>
+                        </TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="inline-flex items-center gap-1.5 text-zinc-900 dark:text-white">
+                            <span className="text-zinc-500 dark:text-zinc-400">Capacity: </span>
+                            {parseInt(block.feeState.gasCapacity).toLocaleString()}
+                            <Info className="w-3.5 h-3.5 text-zinc-400 dark:text-zinc-500" />
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          <p className="text-xs">How much gas is available right now. This refills gradually over time and gets used up as transactions are processed.</p>
+                        </TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="inline-flex items-center gap-1.5 text-zinc-900 dark:text-white">
+                            <span className="text-zinc-500 dark:text-zinc-400">Gas Price: </span>
+                            {(parseInt(block.feeState.gasPrice) / 1e9).toFixed(4)} Gwei
+                            <Info className="w-3.5 h-3.5 text-zinc-400 dark:text-zinc-500" />
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          <p className="text-xs">The minimum fee per unit of gas. Automatically increases during high demand and decreases when the network is quiet.</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                  }
+                />
+              )}
 
               {/* Base Fee Per Gas */}
               {block?.baseFeePerGas && (

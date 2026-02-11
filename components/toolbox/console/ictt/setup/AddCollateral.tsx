@@ -9,8 +9,9 @@ import { createPublicClient, http, formatUnits, parseUnits, Address, Chain } fro
 import { Input, Suggestion } from "@/components/toolbox/components/Input";
 import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput";
 import { AmountInput } from "@/components/toolbox/components/AmountInput";
-import { utils } from "@avalabs/avalanchejs";
 import SelectBlockchainId from "@/components/toolbox/components/SelectBlockchainId";
+import { cb58ToHex } from '@/components/toolbox/console/utilities/format-converter/FormatConverter';
+import { utils } from "@avalabs/avalanchejs";
 import ERC20TokenRemoteABI from "@/contracts/icm-contracts/compiled/ERC20TokenRemote.json";
 import NativeTokenRemoteABI from "@/contracts/icm-contracts/compiled/NativeTokenRemote.json";
 import ERC20TokenHomeABI from "@/contracts/icm-contracts/compiled/ERC20TokenHome.json";
@@ -273,7 +274,7 @@ function AddCollateral() {
             }
 
             // 3. Get Collateral Info - get remote blockchain ID hex from current chain
-            const remoteBlockchainIDHex = utils.bufferToHex(utils.base58check.decode(selectedL1.id));
+            const remoteBlockchainIDHex = cb58ToHex(selectedL1.id);
             const settings = await homePublicClient.readContract({
                 address: tokenHomeAddress as Address,
                 abi: ERC20TokenHomeABI.abi,
@@ -395,8 +396,8 @@ function AddCollateral() {
                 return;
             }
 
-            const remoteBlockchainIDHex = utils.bufferToHex(utils.base58check.decode(selectedL1.id));
-            
+            const remoteBlockchainIDHex = cb58ToHex(selectedL1.id);
+
             // Use appropriate ABI and parameters based on token type
             const tokenHomeABI = tokenType === 'native' ? NativeTokenHomeABI.abi : ERC20TokenHomeABI.abi;
             

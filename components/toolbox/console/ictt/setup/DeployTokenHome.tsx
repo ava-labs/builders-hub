@@ -6,12 +6,12 @@ import {
   useToolboxStore,
   useViemChainStore,
 } from "@/components/toolbox/stores/toolboxStore";
-import { useWrappedNativeToken } from "@/components/toolbox/stores/l1ListStore";
+import { useWrappedNativeToken, WellKnownERC20 } from "@/components/toolbox/stores/l1ListStore";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/toolbox/components/Button";
 import { Success } from "@/components/toolbox/components/Success";
-import { Input } from "@/components/toolbox/components/Input";
+import { Input, Suggestion } from "@/components/toolbox/components/Input";
 import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput";
 import ExampleERC20 from "@/contracts/icm-contracts/compiled/ExampleERC20.json";
 import { createPublicClient, http } from "viem";
@@ -61,6 +61,45 @@ function DeployTokenHome() {
   if (criticalError) {
     throw criticalError;
   }
+
+  // Build token suggestions based on current chain
+  const tokenSuggestions: Suggestion[] = useMemo(() => {
+    const suggestions: Suggestion[] = [];
+    
+    // Add deployed example ERC20 if available
+    if (exampleErc20Address && tokenType === "erc20") {
+      suggestions.push({
+        title: exampleErc20Address,
+        value: exampleErc20Address,
+        description: "Your deployed Example ERC20 token",
+      });
+    }
+    
+    // Add well-known tokens from the current L1 (only for ERC20 type)
+    if (tokenType === "erc20" && selectedL1?.wellKnownERC20s) {
+      selectedL1.wellKnownERC20s.forEach((token: WellKnownERC20) => {
+        suggestions.push({
+          title: `${token.symbol} - ${token.name}`,
+          value: token.address,
+          description: token.faucetInfo || `${token.symbol} on this network`,
+        });
+      });
+    }
+    
+    // Add wrapped native token for native type
+    if (tokenType === "native" && (wrappedNativeTokenAddress || selectedL1?.wrappedTokenAddress)) {
+      const wrappedAddr = wrappedNativeTokenAddress || selectedL1?.wrappedTokenAddress;
+      if (wrappedAddr) {
+        suggestions.push({
+          title: wrappedAddr,
+          value: wrappedAddr,
+          description: `Wrapped ${selectedL1?.coinName || "Native"} Token`,
+        });
+      }
+    }
+    
+    return suggestions;
+  }, [exampleErc20Address, tokenType, walletChainId, wrappedNativeTokenAddress, selectedL1]);
 
   useEffect(() => {
     const tokenAddress =
@@ -267,14 +306,21 @@ function DeployTokenHome() {
         value={tokenAddress}
         onChange={setTokenAddress}
         disabled={isDeploying}
+        suggestions={tokenSuggestions}
         helperText={
           tokenType === "erc20" ? (
             <>
-              Please{" "}
-              <a href="#deployExampleERC20" className="underline">
-                deploy an ERC20 token first
-              </a>
-              .
+              Deploy an ERC20 token or use a well-known token like USDC.{" "}
+              {walletChainId === 43113 && (
+                <a 
+                  href="https://faucet.circle.com/" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="underline text-blue-500"
+                >
+                  Get USDC from Circle Faucet
+                </a>
+              )}
             </>
           ) : (
             "Enter the wrapped token address of your native token."

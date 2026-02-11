@@ -5,13 +5,10 @@ import Image from "next/image";
 import { useTheme } from "next-themes";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
-  Search,
   Copy,
   Check,
   ExternalLink,
-  X,
   ChevronDown,
   Globe,
   ChevronRight,
@@ -27,11 +24,14 @@ import l1ChainsData from "@/constants/l1-chains.json";
 import { L1Chain } from "@/types/stats";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import { CategoryChip } from "@/components/stats/CategoryChip";
+import { SearchInputWithClear } from "@/components/stats/SearchInputWithClear";
 import { AddToWalletButton } from "@/components/ui/add-to-wallet-button";
 import { getL1ListStore, L1ListItem } from "@/components/toolbox/stores/l1ListStore";
 import { convertL1ListItemToL1Chain } from "@/components/explorer/utils/chainConverter";
+import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { toast } from "@/lib/toast";
 import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
+import { BaasProviderList } from "@/components/stats/BaasProviderBadge";
 
 interface ChainListItem extends L1Chain {
   isCustom?: boolean;
@@ -44,8 +44,12 @@ export default function ChainListPage() {
   const [selectedNetwork, setSelectedNetwork] = useState<"mainnet" | "testnet" | "console">("mainnet");
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
-  const [copiedId, setCopiedId] = useState<string | null>(null);
   const [expandedDescriptions, setExpandedDescriptions] = useState<Set<string>>(new Set());
+  const { copiedId, copyToClipboard } = useCopyToClipboard({
+    resetDelay: 2000,
+    onSuccess: () => toast.success("Copied!", "Chain ID copied to clipboard"),
+    onError: () => toast.error("Failed to copy", "Could not copy to clipboard"),
+  });
   const [hideWithoutRpc, setHideWithoutRpc] = useState(true);
   const categoryDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -231,17 +235,6 @@ export default function ChainListPage() {
       return logoUrl.replace(/Light/g, "Dark");
     } else {
       return logoUrl.replace(/Dark/g, "Light");
-    }
-  };
-
-  const copyToClipboard = async (text: string, id: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopiedId(id);
-      toast.success("Copied!", "Chain ID copied to clipboard");
-      setTimeout(() => setCopiedId(null), 2000);
-    } catch (err) {
-      toast.error("Failed to copy", "Could not copy to clipboard");
     }
   };
 
@@ -467,25 +460,11 @@ export default function ChainListPage() {
             </div>
             
             {/* Search bar */}
-            <div className="relative w-full sm:w-auto sm:flex-shrink-0 sm:max-w-sm">
-              <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400 dark:text-neutral-500 pointer-events-none z-10" />
-              <Input
-                placeholder="Search chains..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-10 rounded-lg border-[#e1e2ea] dark:border-neutral-700 bg-[#fcfcfd] dark:bg-neutral-800 transition-colors focus-visible:border-black dark:focus-visible:border-white focus-visible:ring-0 text-sm sm:text-base text-black dark:text-white placeholder:text-neutral-500 dark:placeholder:text-neutral-400"
-              />
-              {searchTerm && (
-                <button
-                  type="button"
-                  onClick={() => setSearchTerm("")}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6 flex items-center justify-center text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-200 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-full z-20 transition-colors"
-                  aria-label="Clear search"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              )}
-            </div>
+            <SearchInputWithClear
+              value={searchTerm}
+              onChange={setSearchTerm}
+              placeholder="Search chains..."
+            />
           </div>
         </div>
 
@@ -539,6 +518,8 @@ export default function ChainListPage() {
                             {chain.chainName}
                           </h3>
                           <div className="flex items-center gap-2 mt-1">
+                            {/* BaaS Providers */}
+                            <BaasProviderList providers={chain.baasProviders} />
                             {/* Testnet chip */}
                             {(chain.isTestnet || chain.chainId === "43113") && (
                               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400">

@@ -3,7 +3,7 @@ title: Inheritance
 description: Learn how to reuse standard code
 updated: 2024-06-28
 authors: [Andrea Vargas, Ash, martineckardt]
-icon: Book
+icon: BookOpen
 ---
 In the previous section, we foreshadowed inheritance, a concept that Solidity shares with other object-oriented programming languages. In this section, we will go over how to inherit other smart contracts and introduce inheritance in the concept of contract constructors.
 
@@ -90,4 +90,6 @@ contract B is A {
 }   
 ```
 
-For contract A, we are setting num1 equal to 5 at the time of initialization. For contract B, we first call the constructor of A (which sets num1 in B to 5) and then sets num2 to 7. 
+For contract A, we are setting num1 equal to 5 at the time of initialization. For contract B, we first call the constructor of A (which sets num1 in B to 5) and then sets num2 to 7.
+
+<Quiz quizId="512"/> 

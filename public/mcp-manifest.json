@@ -1,0 +1,70 @@
+{
+  "name": "avalanche-docs",
+  "version": "1.0.0",
+  "description": "MCP server for Avalanche documentation - search and retrieve docs, academy courses, integrations, and blog posts",
+  "endpoint": "https://build.avax.network/api/mcp",
+  "protocol": "mcp/http",
+  "categories": ["documentation", "blockchain", "developer-tools"],
+  "tools": [
+    {
+      "name": "avalanche_docs_search",
+      "description": "Search across Avalanche documentation, academy courses, integrations, and blog posts",
+      "parameters": {
+        "query": {
+          "type": "string",
+          "description": "The search query",
+          "required": true
+        },
+        "source": {
+          "type": "string",
+          "enum": ["docs", "academy", "integrations", "blog"],
+          "description": "Filter by documentation source (optional)"
+        },
+        "limit": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 50,
+          "description": "Maximum number of results (default: 10)"
+        }
+      }
+    },
+    {
+      "name": "avalanche_docs_fetch",
+      "description": "Fetch a specific documentation page as markdown",
+      "parameters": {
+        "url": {
+          "type": "string",
+          "description": "The page URL path (e.g., /docs/primary-network/overview)",
+          "required": true
+        }
+      }
+    },
+    {
+      "name": "avalanche_docs_list_sections",
+      "description": "List available documentation sections and their page counts",
+      "parameters": {}
+    }
+  ],
+  "resources": [
+    {
+      "uri": "docs://index",
+      "name": "Documentation Index",
+      "description": "Index of all Avalanche documentation pages",
+      "mimeType": "text/markdown"
+    },
+    {
+      "uri": "academy://index",
+      "name": "Academy Index",
+      "description": "Index of all Avalanche Academy courses",
+      "mimeType": "text/markdown"
+    },
+    {
+      "uri": "integrations://index",
+      "name": "Integrations Index",
+      "description": "Index of all Avalanche integrations",
+      "mimeType": "text/markdown"
+    }
+  ],
+  "homepage": "https://build.avax.network/docs/tooling/ai-llm",
+  "repository": "https://github.com/ava-labs/builders-hub"
+}

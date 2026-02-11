@@ -28,7 +28,7 @@ import {
   Podcast,
   Wallet,
 } from "lucide-react";
-import { RootToggle } from "fumadocs-ui/components/layout/root-toggle";
+import { RootToggle } from "./root-toggle";
 
 interface Option {
   title: string;

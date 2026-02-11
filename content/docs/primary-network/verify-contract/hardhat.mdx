@@ -3,6 +3,18 @@ title: Using HardHat
 description: Learn how to verify a smart contract using Hardhat.
 ---
 
+{/*
+  EVM Version Warning - TEMPORARY
+  Remove this section when Avalanche adds Pectra support (after SAE implementation)
+  Last reviewed: December 2025
+*/}
+
+<Callout type="warn" title="Solidity Compiler EVM Version">
+Avalanche C-Chain and Subnet-EVM currently support the **Cancun** EVM version and do not yet support newer hardforks like **Pectra**. Since Solidity v0.8.30 changed its default target to Pectra, you must explicitly set `evmVersion` to `cancun` in your Hardhat config.
+
+See the [sample configuration](#verifying-with-hardhat-verify) below which includes the required `evmVersion: "cancun"` setting.
+</Callout>
+
 This tutorial assumes that the contract was deployed using Hardhat and that all Hardhat dependencies are properly installed.
 
 After deploying a smart contract one can verify the smart contract on Snowtrace in three steps:
@@ -127,14 +139,14 @@ export default {
   },
 
   solidity: {
-    compilers: [
-      {
-        version: "0.8.0",
+    version: "0.8.30",
+    settings: {
+      evmVersion: "cancun", // Required for Avalanche
+      optimizer: {
+        enabled: true,
+        runs: 200,
       },
-      {
-        version: "0.8.10",
-      },
-    ],
+    },
   },
   networks: {
     hardhat: {

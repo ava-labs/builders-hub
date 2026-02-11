@@ -21,8 +21,13 @@ import { cn } from "@/utils/cn";
 import { BadgeCheck } from "lucide-react";
 import dynamic from "next/dynamic";
 import { DataAPIPage, MetricsAPIPage } from "@/components/api/api-pages";
+import Quiz from "@/components/quizzes/quiz";
 
 const Mermaid = dynamic(() => import("@/components/content-design/mermaid"), {
+  ssr: false,
+});
+
+const StateGrowthChart = dynamic(() => import("@/components/content-design/state-growth-chart"), {
   ssr: false,
 });
 
@@ -73,6 +78,8 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
     YouTube,
     Gallery,
     Mermaid,
+    StateGrowthChart,
+    Quiz,
     InstallTabs: ({
       items,
       children,

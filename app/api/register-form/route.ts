@@ -28,7 +28,7 @@ export const POST = withAuth(async (req: NextRequest) => {
   }
 });
 
-export const GET = withAuth(async (req: NextRequest) => {
+export const GET = withAuth(async (req: NextRequest, context: any, session: any) => {
   try {
     const id = req.nextUrl.searchParams.get("hackathonId");
     const email = req.nextUrl.searchParams.get("email");
@@ -39,6 +39,14 @@ export const GET = withAuth(async (req: NextRequest) => {
 
     if (!email) {
       return NextResponse.json({ error: "Email required" }, { status: 400 });
+    }
+
+    // Verify that email matches the authenticated session user's email
+    if (email !== session.user.email) {
+      return NextResponse.json(
+        { error: "Forbidden: You can only access your own registration forms" },
+        { status: 403 }
+      );
     }
 
     const registerFormLoaded = await getRegisterForm(email, id);

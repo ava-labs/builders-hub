@@ -1,0 +1,50 @@
+---
+title: dRPC NodeCloud
+category: RPC Endpoints
+available: ["C-Chain"]
+description: Fast multichain endpoints across 180+ networks, powered by 40+ global providers with smart routing, analytics, and advanced key control.
+logo: /images/dRPC_fullcollor_black.png
+developer: dRPC
+website: https://www.drpc.org/
+documentation: https://drpc.org/docs
+---
+
+## Overview
+
+NodeCloud provides fast and reliable multichain endpoints across 180+ networks, powered by 40+ global providers distributed in 9 geoclusters. It includes smart routing, real-time analytics dashboards, advanced key controls, front-end protection, and flat-rate pricing. Start free or go unlimited starting from $10.
+
+## Features
+
+- **Distributed Endpoints**: NodeCloud provides fast and reliable multichain endpoints across 180+ networks, backed by a globally distributed provider network.
+- **Smart Routing**: Requests are automatically routed using intelligent traffic management to ensure stability and optimal performance.
+- **Developer Controls**: Advanced key management, access controls, and usage visibility help teams operate securely at scale.
+- **High Availability**: Built on 40+ providers across 9 geoclusters to minimize outages and ensure consistent uptime.
+- **Analytics Dashboard**: Real-time analytics and monitoring tools provide insight into traffic, performance, and infrastructure health.
+
+## Getting Started
+
+To start using Alchemy, follow these steps:
+
+1. **Sign Up**: Create an account on [dRPC NodeCloud](https://drpc.org/nodecloud-multichain-rpc-management).
+2. **Add Funds or Stay Free**: Continue on the free tier or add funds starting from $10 to unlock unlimited usage with no request limits.
+3. **Create your 1st Key**: use the search bar and when found, click on Add
+4. **Adjust Key Settings**: Configure rate limits, permissions, and usage rules to match your application needs.
+5. **Set-Up Team Access**: Invite team members and assign roles to manage infrastructure collaboratively.
+6. **Configure set-up Notifications**: Enable security settings and set up alerts for usage, balance, and system events.
+7. **Integrate with your project**: Use the API key to connect your application via HTTP requests or supported SDKs.
+
+## Documentation
+
+For detailed guides and API references, visit the [dRPC Documentation](https://drpc.org/docs).
+
+## Use Cases
+
+NodeCloud can be used in various blockchain development scenarios:
+
+- **Decentralized Applications (DApps)**: Power your DApps with reliable and scalable blockchain infrastructure.
+- **Analytics and Monitoring**: Use NodeCloud's observability dashboard to monitor blockchain events and transactions in real-time.
+- **Smart Contracts**: Deploy and interact with smart contracts on multiple blockchain networks.
+
+## Conclusion
+
+dRPC NodeCloud is a powerful infrastructure platform for blockchain developers, offering reliable endpoints, smart routing, and analytics tools to build, scale, and monitor applications with confidence. Whether you’re launching a simple dApp or running production infrastructure, NodeCloud provides the control and resilience teams need. Start free or go unlimited starting at $10.

@@ -4,12 +4,14 @@ type OGProps = {
   title: string;
   description: string;
   path: string;
+  icon?: React.ReactElement;
 };
 
 export function generateOGImage({
   title,
   description,
-  path
+  path,
+  icon
 }: OGProps): React.ReactElement {
   const truncateText: React.CSSProperties = {
     overflow: 'hidden',
@@ -37,11 +39,11 @@ export function generateOGImage({
     >
       <div
         style={{
-          maxWidth: '56rem',
+          maxWidth: icon ? '48rem' : '56rem',
           display: 'flex',
           flexDirection: 'column',
           padding: '0 70px',
-          width: '100%',
+          flex: 1,
         }}
       >
         <h1
@@ -114,6 +116,18 @@ export function generateOGImage({
           </div>
         </div>
       </div>
+      {icon && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            paddingRight: '80px',
+          }}
+        >
+          {icon}
+        </div>
+      )}
     </div>
   );
 }
@@ -144,13 +158,15 @@ export async function createOGResponse({
   title,
   description,
   path,
+  icon,
   fonts
 }: OGProps & { fonts: { medium: ArrayBuffer, light: ArrayBuffer, regular: ArrayBuffer } }): Promise<ImageResponse> {
   return new ImageResponse(
     generateOGImage({
       title,
       description,
-      path
+      path,
+      icon
     }),
     {
       width: 1280,

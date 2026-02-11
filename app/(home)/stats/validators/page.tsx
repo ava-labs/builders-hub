@@ -9,9 +9,6 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  ArrowUpDown,
-  ArrowUp,
-  ArrowDown,
   Activity,
   BarChart3,
   Search,
@@ -22,6 +19,7 @@ import {
   Users,
 } from "lucide-react";
 import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
+import { SortIcon } from "@/components/stats/SortIcon";
 import { type SubnetStats } from "@/types/validator-stats";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import l1ChainsData from "@/constants/l1-chains.json";
@@ -33,6 +31,11 @@ import {
   VersionBreakdownInline,
   type VersionBreakdownData,
 } from "@/components/stats/VersionBreakdown";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 type SortColumn =
   | "name"
@@ -322,15 +325,13 @@ export default function ValidatorStatsPage() {
       onClick={() => handleSort(column)}
     >
       {children}
-      {sortColumn === column ? (
-        sortDirection === "asc" ? (
-          <ArrowUp className="h-3.5 w-3.5" />
-        ) : (
-          <ArrowDown className="h-3.5 w-3.5" />
-        )
-      ) : (
-        <ArrowUpDown className="h-3.5 w-3.5" />
-      )}
+      <SortIcon
+        column={column}
+        sortColumn={sortColumn}
+        sortDirection={sortDirection}
+        iconVariant="arrow"
+        className="h-3.5 w-3.5"
+      />
     </button>
   );
 
@@ -551,10 +552,17 @@ export default function ValidatorStatsPage() {
                     chains
                   </span>
                 </div>
-                <div>
-                  <span className="text-2xl sm:text-3xl md:text-4xl font-semibold tabular-nums text-zinc-900 dark:text-white">
-                    {formatNumber(aggregatedStats.totalNodes)}
-                  </span>
+                <div className="flex items-baseline">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="text-2xl sm:text-3xl md:text-4xl font-semibold tabular-nums text-zinc-900 dark:text-white cursor-default">
+                        {formatNumber(aggregatedStats.totalNodes)}
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {aggregatedStats.totalNodes.toLocaleString()} validators
+                    </TooltipContent>
+                  </Tooltip>
                   <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 ml-1 sm:ml-2">
                     validators
                   </span>

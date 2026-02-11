@@ -3,6 +3,7 @@
 import { SessionProvider } from "next-auth/react";
 import { UserButton } from "./UserButton";
 import { useEffect, useState } from "react";
+import NotificationBell from "@/components/notification/notification-bell";
 
 export function UserButtonWrapper() {
   const [isMounted, setIsMounted] = useState(false);
@@ -17,6 +18,9 @@ export function UserButtonWrapper() {
   }
 
   return <SessionProvider>
-    <UserButton />
+    <div className="flex items-center">
+      <NotificationBell />
+      <UserButton />
+    </div>
   </SessionProvider>;
 }

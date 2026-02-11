@@ -52,6 +52,8 @@ The USDC contract enforces these timing constraints:
 - For delayed/scheduled payments, set appropriate `validAfter`
 - Never set `validBefore` too far in the future (increases replay risk if nonce tracking fails)
 
+<Quiz quizId="2068"/>
+
 ### 3. Transaction Hash Uniqueness
 
 Each blockchain transaction has a unique hash. Merchants should track received transaction hashes to ensure they don't fulfill the same payment twice. Even though blockchain nonces prevent double-spending, tracking fulfilled payments prevents edge cases like duplicate facilitator notifications or network issues causing duplicate webhook deliveries.

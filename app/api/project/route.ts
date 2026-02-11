@@ -29,10 +29,21 @@ export const GET = withAuth(async (request: Request, context, session) => {
   try {
     const { searchParams } = new URL(request.url);
     const hackaton_id = searchParams.get("hackathon_id") ?? "";
-    const user_id = searchParams.get("user_id") ?? "";
+    const user_id = searchParams.get("user_id");
     const invitation_id = searchParams.get("invitation_id") ?? "";
 
-    const project = await GetProjectByHackathonAndUser(hackaton_id, user_id,invitation_id);
+    // Check if user_id matches the authenticated session user
+    if (user_id !== null && user_id !== undefined && user_id !== "" && user_id !== session.user.id) {
+      return NextResponse.json(
+        { error: "Forbidden: You can only access your own projects" },
+        { status: 403 }
+      );
+    }
+
+    // Always use session user ID for security
+    const sessionUserId = session.user.id;
+
+    const project = await GetProjectByHackathonAndUser(hackaton_id, sessionUserId, invitation_id);
     return NextResponse.json({ project });
   } catch (error: any) {
     console.error("Error GET /api/project:", error);

@@ -48,7 +48,7 @@ The validator management system follows a layered architecture, with each level 
 
 ### ACP99Manager (Abstract Foundation)
 
-The `ACP99Manager` is the foundational abstract contract that standardizes validator management for EVM-based L1s, as defined in ACP-99. This standard emerged after ACP-77 introduced the protocol-level capability for L1s to manage their own validators. ACP99Manager provides four essential functions that all validator managers must implement:
+The `ACP99Manager` is the foundational abstract contract that standardizes validator management for EVM-based L1s, as defined in [ACP-99](/docs/acps/99-validatorsetmanager-contract). This standard emerged after [ACP-77](/docs/acps/77-reinventing-subnets) introduced the protocol-level capability for L1s to manage their own validators. ACP99Manager provides four essential functions that all validator managers must implement:
 
 - **`initializeValidatorSet()`**: Establishes the initial validator set when converting an existing Subnet to an L1
 - **`completeValidatorRegistration()`**: Finalizes validator addition after P-Chain confirmation

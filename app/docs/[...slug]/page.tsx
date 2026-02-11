@@ -1,6 +1,4 @@
-import Mermaid from "@/components/content-design/mermaid";
-import { AutoTypeTable } from "@/components/content-design/type-table";
-import YouTube from "@/components/content-design/youtube";
+import StateGrowthChart from "@/components/content-design/state-growth-chart";
 import { BackToTop } from "@/components/ui/back-to-top";
 import { Feedback } from "@/components/ui/feedback";
 import { SidebarActions } from "@/components/ui/sidebar-actions";
@@ -8,14 +6,10 @@ import { CChainAPIPage, DataAPIPage, MetricsAPIPage, PChainAPIPage, XChainAPIPag
 import AddNetworkButtonInline from "@/components/client/AddNetworkButtonInline";
 import { documentation } from "@/lib/source";
 import { createMetadata } from "@/utils/metadata";
-import { Popup, PopupContent, PopupTrigger } from "fumadocs-twoslash/ui";
-import { Accordion, Accordions } from "fumadocs-ui/components/accordion";
+import { sharedMDXComponents } from "@/components/mdx/shared-components";
 import { Callout } from "fumadocs-ui/components/callout";
 import { File, Files, Folder } from "fumadocs-ui/components/files";
-import { Heading } from "fumadocs-ui/components/heading";
-import { Step, Steps } from "fumadocs-ui/components/steps";
-import { Tab, Tabs } from "fumadocs-ui/components/tabs";
-import { TypeTable } from "fumadocs-ui/components/type-table";
+import { Tabs } from "fumadocs-ui/components/tabs";
 import defaultComponents from "fumadocs-ui/mdx";
 import {
   DocsBody,
@@ -41,7 +35,10 @@ export default async function Page(props: {
   if (!page) notFound();
 
   const { body: MDX, toc } = await page.data.load();
-  const path = `content/docs${page.url.replace('/docs/', '/')}.mdx`;
+  // Use page.path which contains the actual file path relative to collection root
+  // (e.g., "tooling/avalanche-sdk/index.mdx" for an index file)
+  // This correctly handles both regular .mdx files and index.mdx files
+  const path = `content/docs/${page.path}`;
 
   // Use custom edit URL if provided in frontmatter, otherwise use default path
   const editUrl =
@@ -67,12 +64,12 @@ export default async function Page(props: {
           </>
         ),
       }}
-      article={{
-        className: "max-sm:pb-16",
-      }}
+      className="max-sm:pb-16"
     >
       <DocsTitle>{page.data.title || "Untitled"}</DocsTitle>
-      <DocsDescription>{page.data.description}</DocsDescription>
+      {page.data.description && (
+        <DocsDescription>{page.data.description}</DocsDescription>
+      )}
       <DocsBody className="text-fd-foreground/80">
         <MDX
           components={{
@@ -81,24 +78,13 @@ export default async function Page(props: {
               return restComponents;
             })(),
             ...((await import("lucide-react")) as unknown as MDXComponents),
-
-            h1: (props) => <Heading as="h1" {...props} />,
-            h2: (props) => <Heading as="h2" {...props} />,
-            h3: (props) => <Heading as="h3" {...props} />,
-            h4: (props) => <Heading as="h4" {...props} />,
-            h5: (props) => <Heading as="h5" {...props} />,
-            h6: (props) => <Heading as="h6" {...props} />,
+            ...sharedMDXComponents,
             // Fix srcset -> srcSet for React 19 compatibility
             img: (props: any) => {
               const { srcset, ...imgProps } = props;
               // eslint-disable-next-line jsx-a11y/alt-text, @next/next/no-img-element
               return <img {...imgProps} {...(srcset && { srcSet: srcset })} />;
             },
-            Popup,
-            PopupContent,
-            PopupTrigger,
-            Tabs,
-            Tab,
             InstallTabs: ({
               items,
               children,
@@ -110,15 +96,8 @@ export default async function Page(props: {
                 {children}
               </Tabs>
             ),
-            Step,
-            Steps,
-            YouTube,
-            Mermaid,
+            StateGrowthChart,
             AddNetworkButtonInline,
-            TypeTable,
-            AutoTypeTable,
-            Accordion,
-            Accordions,
             File,
             Folder,
             Files,
@@ -129,7 +108,7 @@ export default async function Page(props: {
               const isPChainApi = document.includes('platformvm.yaml');
               const isCChainApi = document.includes('coreth.yaml');
               const isXChainApi = document.includes('xchain.yaml');
-              
+
               if (isPChainApi) {
                 return <PChainAPIPage {...props} />;
               } else if (isCChainApi) {
@@ -142,7 +121,9 @@ export default async function Page(props: {
                 return <DataAPIPage {...props} />;
               }
             },
-            blockquote: Callout as unknown as FC<ComponentProps<"blockquote">>,
+            blockquote: (props: ComponentProps<"blockquote">) => (
+              <Callout>{props.children}</Callout>
+            ),
           }}
         />
       </DocsBody>

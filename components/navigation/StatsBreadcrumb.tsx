@@ -469,14 +469,11 @@ export function StatsBreadcrumb({
         {showValidators && chainSlug && chainName && (
           <>
             <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-zinc-300 dark:text-zinc-600 flex-shrink-0" />
-            {/* Validators - clickable link back to validators list */}
-            <Link 
-              href="/stats/validators" 
-              className="inline-flex items-center gap-1 sm:gap-1.5 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer whitespace-nowrap flex-shrink-0"
-            >
+            {/* Validators - not clickable */}
+            <span className="inline-flex items-center gap-1 sm:gap-1.5 text-zinc-500 dark:text-zinc-400 whitespace-nowrap flex-shrink-0">
               <Users className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
               <span>Validators</span>
-            </Link>
+            </span>
             
             {/* Chain dropdown - current page */}
             <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-zinc-300 dark:text-zinc-600 flex-shrink-0" />
