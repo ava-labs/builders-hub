@@ -1,12 +1,15 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { saveQuizResponse, getQuizResponse, resetQuizResponse } from '@/utils/quizzes/indexedDB';
+import { saveQuizResponse, getQuizResponse } from '@/utils/quizzes/indexedDB';
 import { parseTextWithLinks } from '../../utils/safeHtml';
 import Image from 'next/image';
 import { cn } from '@/utils/cn';
 import { buttonVariants } from '@/components/ui/button';
 import quizData from './quizData.json';
+
+const MAX_ATTEMPTS = 3;
+const COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
 
 interface QuizProps {
   quizId: string;
@@ -27,6 +30,27 @@ const Quiz: React.FC<QuizProps> = ({ quizId, onQuizCompleted }) => {
   const [isAnswerChecked, setIsAnswerChecked] = useState<boolean>(false);
   const [isCorrect, setIsCorrect] = useState<boolean>(false);
   const [isClient, setIsClient] = useState(false);
+  const [attemptCount, setAttemptCount] = useState<number>(0);
+  const [lastAttemptAt, setLastAttemptAt] = useState<number>(0);
+  const [cooldownRemaining, setCooldownRemaining] = useState<number>(0);
+
+  const isLocked = attemptCount >= MAX_ATTEMPTS && !isCorrect;
+  const isCoolingDown = cooldownRemaining > 0;
+
+  // Cooldown countdown timer
+  useEffect(() => {
+    if (!lastAttemptAt || isCorrect || !isAnswerChecked) return;
+
+    const updateCooldown = () => {
+      const elapsed = Date.now() - lastAttemptAt;
+      const remaining = Math.max(0, COOLDOWN_MS - elapsed);
+      setCooldownRemaining(remaining);
+    };
+
+    updateCooldown();
+    const interval = setInterval(updateCooldown, 1000);
+    return () => clearInterval(interval);
+  }, [lastAttemptAt, isCorrect, isAnswerChecked]);
 
   useEffect(() => {
     setIsClient(true);
@@ -46,6 +70,8 @@ const Quiz: React.FC<QuizProps> = ({ quizId, onQuizCompleted }) => {
       setSelectedAnswers(savedResponse.selectedAnswers || []);
       setIsAnswerChecked(savedResponse.isAnswerChecked || false);
       setIsCorrect(savedResponse.isCorrect || false);
+      setAttemptCount(savedResponse.attemptCount ?? 0);
+      setLastAttemptAt(savedResponse.lastAttemptAt ?? 0);
     } else {
       resetQuizState();
     }
@@ -58,13 +84,13 @@ const Quiz: React.FC<QuizProps> = ({ quizId, onQuizCompleted }) => {
   };
 
   const handleAnswerSelect = (index: number) => {
-    if (!isAnswerChecked) {
+    if (!isAnswerChecked && !isLocked) {
       if (quizInfo && quizInfo.correctAnswers.length === 1) {
         setSelectedAnswers([index]);
       } else {
-        setSelectedAnswers(prev => 
-          prev.includes(index) 
-            ? prev.filter(a => a !== index) 
+        setSelectedAnswers(prev =>
+          prev.includes(index)
+            ? prev.filter(a => a !== index)
             : [...prev, index]
         );
       }
@@ -75,18 +101,25 @@ const Quiz: React.FC<QuizProps> = ({ quizId, onQuizCompleted }) => {
     if (quizInfo && selectedAnswers.length > 0 && quizInfo.correctAnswers.length > 0) {
       const correct = quizInfo.correctAnswers.length === 1
         ? selectedAnswers[0] === quizInfo.correctAnswers[0]
-        : selectedAnswers.length === quizInfo.correctAnswers.length && 
+        : selectedAnswers.length === quizInfo.correctAnswers.length &&
           selectedAnswers.every(answer => quizInfo.correctAnswers.includes(answer));
+
+      const newAttemptCount = correct ? attemptCount : attemptCount + 1;
+      const newLastAttemptAt = correct ? lastAttemptAt : Date.now();
+
       setIsCorrect(correct);
       setIsAnswerChecked(true);
+      setAttemptCount(newAttemptCount);
+      setLastAttemptAt(newLastAttemptAt);
 
       await saveQuizResponse(quizId, {
         selectedAnswers,
         isAnswerChecked: true,
         isCorrect: correct,
+        attemptCount: newAttemptCount,
+        lastAttemptAt: newLastAttemptAt,
       });
 
-      // Llamar a onQuizCompleted si la respuesta es correcta
       if (correct && onQuizCompleted) {
         onQuizCompleted(quizId);
       }
@@ -94,8 +127,24 @@ const Quiz: React.FC<QuizProps> = ({ quizId, onQuizCompleted }) => {
   };
 
   const handleTryAgain = async () => {
-    await resetQuizResponse(quizId);
+    if (isLocked || isCoolingDown) return;
+
+    // Reset answer state but preserve attempt tracking
     resetQuizState();
+    await saveQuizResponse(quizId, {
+      selectedAnswers: [],
+      isAnswerChecked: false,
+      isCorrect: false,
+      attemptCount,
+      lastAttemptAt,
+    });
+  };
+
+  const formatCooldown = (ms: number): string => {
+    const totalSeconds = Math.ceil(ms / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
   const renderAnswerFeedback = () => {
@@ -161,10 +210,15 @@ const Quiz: React.FC<QuizProps> = ({ quizId, onQuizCompleted }) => {
           <h2 className="text-lg font-medium text-gray-800 dark:text-white" style={{marginTop: '0'}}>
             {parseTextWithLinks(quizInfo.question)}
           </h2>
+          {attemptCount > 0 && !isCorrect && (
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+              Attempt {Math.min(attemptCount + (isAnswerChecked ? 0 : 1), MAX_ATTEMPTS)}/{MAX_ATTEMPTS}
+            </p>
+          )}
         </div>
         <div className="space-y-3">
           {quizInfo.options.map((option, index) => (
-            <div 
+            <div
               key={uuidv4()}
               className={`flex items-center p-3 rounded-lg border transition-colors cursor-pointer ${
                 isAnswerChecked
@@ -176,7 +230,7 @@ const Quiz: React.FC<QuizProps> = ({ quizId, onQuizCompleted }) => {
                   : selectedAnswers.includes(index)
                     ? 'border-[#3752ac] bg-[#3752ac] bg-opacity-10 dark:bg-opacity-30'
                     : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900'
-              }`}
+              } ${isLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
               onClick={() => handleAnswerSelect(index)}
             >
               <span className={`w-6 h-6 shrink-0 flex items-center justify-center ${quizInfo.correctAnswers.length === 1 ? 'rounded-full' : 'rounded-md'} mr-3 text-sm ${
@@ -190,7 +244,7 @@ const Quiz: React.FC<QuizProps> = ({ quizId, onQuizCompleted }) => {
                     ? 'bg-[#3752ac] text-white'
                     : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
               }`}>
-                {quizInfo.correctAnswers.length === 1 
+                {quizInfo.correctAnswers.length === 1
                   ? String.fromCharCode(65 + index)
                   : (selectedAnswers.includes(index) ? '✓' : '')}
               </span>
@@ -202,9 +256,13 @@ const Quiz: React.FC<QuizProps> = ({ quizId, onQuizCompleted }) => {
         </div>
         {renderAnswerFeedback()}
       </div>
-      <div className="px-6 py-4 flex justify-center">
-        {!isAnswerChecked ? (
-          <button 
+      <div className="px-6 py-4 flex flex-col items-center gap-2">
+        {isLocked ? (
+          <p className="text-sm text-red-600 dark:text-red-400 text-center">
+            Maximum attempts reached. Please review the course material and try again later.
+          </p>
+        ) : !isAnswerChecked ? (
+          <button
             className={cn(
               buttonVariants({ variant: 'default' }),
             )}
@@ -220,8 +278,9 @@ const Quiz: React.FC<QuizProps> = ({ quizId, onQuizCompleted }) => {
                 buttonVariants({ variant: 'secondary' }),
               )}
               onClick={handleTryAgain}
+              disabled={isCoolingDown}
             >
-              Try Again!
+              {isCoolingDown ? `Retry in ${formatCooldown(cooldownRemaining)}` : 'Try Again!'}
             </button>
           )
         )}
