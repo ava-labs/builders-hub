@@ -26,7 +26,10 @@ export function useCourseCompletion(courses: CourseCompletionEntry[]) {
       await Promise.all(
         courses.map(async ({ nodeId, courseSlug }) => {
           const courseQuizzes = quizCourses[courseSlug]?.quizzes;
-          if (!courseQuizzes || courseQuizzes.length === 0) return;
+          if (!courseQuizzes || courseQuizzes.length === 0) {
+            map.set(nodeId, false);
+            return;
+          }
 
           const results = await Promise.all(
             courseQuizzes.map(quizId => getQuizResponse(quizId))
