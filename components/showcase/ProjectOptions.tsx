@@ -110,30 +110,33 @@ export const ProjectOptions = ({
             </DropdownMenuItem>
           ) : (
             <>
-              <DropdownMenuItem
-                onClick={(e) => {
-                  e.stopPropagation();
-                }}
-                onSelect={(e) => {
-                  e.stopPropagation();
-                  setIsDropdownOpen(false);
-                  setConfirmOpen(true);
-                }}
-              >
-                Set Winner
-              </DropdownMenuItem>
-
-              <DropdownMenuItem
-                onClick={(e) => {
-                  e.stopPropagation();
-                }}
-                onSelect={(e) => {
-                  setIsDropdownOpen(false);
-                  handleAssignBadge(e as any);
-                }}
-              >
-                Assign Badge
-              </DropdownMenuItem>
+              {!project.is_winner ? (
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                  }}
+                  onSelect={(e) => {
+                    e.stopPropagation();
+                    setIsDropdownOpen(false);
+                    setConfirmOpen(true);
+                  }}
+                >
+                  Set Winner
+                </DropdownMenuItem>
+              ) : 
+              (<DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                  }}
+                  onSelect={(e) => {
+                    e.stopPropagation();
+                    setIsDropdownOpen(false);
+                    handleAssignBadge(e as any);
+                  }}
+                >
+                  Assign Badge
+                </DropdownMenuItem>)
+              }
             </>
           )}
         </DropdownMenuContent>

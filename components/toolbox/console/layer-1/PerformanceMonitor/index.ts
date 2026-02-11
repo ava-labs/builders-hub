@@ -1,4 +1,5 @@
 export { default as PerformanceMonitor } from './PerformanceMonitor';
+export { default as RPCMethodsChecker } from './RPCMethodsChecker';
 export { BlockWatcher } from './BlockWatcher';
 export { ChainInfo } from './ChainInfo';
 export type { BlockInfo } from './BlockWatcher';

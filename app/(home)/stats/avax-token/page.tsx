@@ -12,6 +12,7 @@ import { L1BubbleNav } from "@/components/stats/l1-bubble.config";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import { ChartWatermark } from "@/components/stats/ChartWatermark";
 import { LiveBlockBurns } from "@/components/stats/LiveBlockBurns";
+import { parseDateString } from "@/components/stats/chart-axis-utils";
 
 interface AvaxSupplyData {
   totalSupply: string;
@@ -188,18 +189,18 @@ export default function AvaxTokenPage() {
     >();
 
     mergedData.forEach((point) => {
-      const date = new Date(point.date);
+      const [year, month, day] = point.date.split("-").map(Number);
       let key: string;
 
       if (period === "W") {
-        const weekStart = new Date(date);
-        weekStart.setDate(date.getDate() - date.getDay());
-        key = weekStart.toISOString().split("T")[0];
+        const weekStart = new Date(year, month - 1, day);
+        weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+        const wy = weekStart.getFullYear();
+        const wm = String(weekStart.getMonth() + 1).padStart(2, "0");
+        const wd = String(weekStart.getDate()).padStart(2, "0");
+        key = `${wy}-${wm}-${wd}`;
       } else {
-        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
-          2,
-          "0"
-        )}`;
+        key = `${year}-${String(month).padStart(2, "0")}`;
       }
 
       if (!grouped.has(key)) {
@@ -240,7 +241,7 @@ export default function AvaxTokenPage() {
   const displayData = brushIndexes ? aggregatedFeeData.slice(brushIndexes.startIndex, brushIndexes.endIndex + 1) : aggregatedFeeData;
 
   const formatXAxis = (value: string) => {
-    const date = new Date(value);
+    const date = parseDateString(value);
     if (period === "M") {
       return date.toLocaleDateString("en-US", {
         month: "short",
@@ -251,7 +252,7 @@ export default function AvaxTokenPage() {
   };
 
   const formatTooltipDate = (value: string) => {
-    const date = new Date(value);
+    const date = parseDateString(value);
 
     if (period === "M") {
       return date.toLocaleDateString("en-US", {
@@ -261,7 +262,7 @@ export default function AvaxTokenPage() {
     }
 
     if (period === "W") {
-      const endDate = new Date(date);
+      const endDate = new Date(date.getTime());
       endDate.setDate(date.getDate() + 6);
 
       const startMonth = date.toLocaleDateString("en-US", { month: "long" });
