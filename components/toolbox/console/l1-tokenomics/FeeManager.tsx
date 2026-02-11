@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
-import { useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
 import { Button } from "@/components/toolbox/components/Button";
 import { Input } from "@/components/toolbox/components/Input";
 import { ResultField } from "@/components/toolbox/components/ResultField";
@@ -13,6 +12,7 @@ import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalle
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../components/WithConsoleToolMetadata";
 import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
+import { usePrecompiles } from "@/components/toolbox/hooks/contracts";
 
 // Default Fee Manager address
 const DEFAULT_FEE_MANAGER_ADDRESS =
@@ -30,7 +30,7 @@ const metadata: ConsoleToolMetadata = {
 function FeeManager({ onSuccess }: BaseConsoleToolProps) {
   const { publicClient, walletEVMAddress } = useWalletStore();
   const { coreWalletClient } = useConnectedWallet();
-  const viemChain = useViemChainStore();
+  const precompiles = usePrecompiles();
   const [gasLimit, setGasLimit] = useState<string>("20000000");
   const [targetBlockRate, setTargetBlockRate] = useState<string>("2");
   const [minBaseFee, setMinBaseFee] = useState<string>("25000000000");
@@ -51,26 +51,18 @@ function FeeManager({ onSuccess }: BaseConsoleToolProps) {
     setIsSettingConfig(true);
 
     try {
-      const hash = await coreWalletClient.writeContract({
-        address: DEFAULT_FEE_MANAGER_ADDRESS as `0x${string}`,
-        abi: feeManagerAbi.abi,
-        functionName: "setFeeConfig",
-        args: [
-          BigInt(gasLimit),
-          BigInt(targetBlockRate),
-          BigInt(minBaseFee),
-          BigInt(targetGas),
-          BigInt(baseFeeChangeDenominator),
-          BigInt(minBlockGasCost),
-          BigInt(maxBlockGasCost),
-          BigInt(blockGasCostStep),
-        ],
-        account: walletEVMAddress as `0x${string}`,
-        chain: viemChain,
-        gas: BigInt(1_000_000),
+      const hash = await precompiles.feeManager.setFeeConfig({
+        gasLimit: BigInt(gasLimit),
+        targetBlockRate: BigInt(targetBlockRate),
+        minBaseFee: BigInt(minBaseFee),
+        targetGas: BigInt(targetGas),
+        baseFeeChangeDenominator: BigInt(baseFeeChangeDenominator),
+        minBlockGasCost: BigInt(minBlockGasCost),
+        maxBlockGasCost: BigInt(maxBlockGasCost),
+        blockGasCostStep: BigInt(blockGasCostStep),
       });
 
-      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      const receipt = await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
 
       if (receipt.status === "success") {
         setTxHash(hash);
@@ -86,43 +78,23 @@ function FeeManager({ onSuccess }: BaseConsoleToolProps) {
   const handleGetFeeConfig = async () => {
     setIsReadingConfig(true);
 
-    const result = (await publicClient.readContract({
-      address: DEFAULT_FEE_MANAGER_ADDRESS as `0x${string}`,
-      abi: feeManagerAbi.abi,
-      functionName: "getFeeConfig",
-    })) as [bigint, bigint, bigint, bigint, bigint, bigint, bigint, bigint];
-
-    const [
-      gasLimit,
-      targetBlockRate,
-      minBaseFee,
-      targetGas,
-      baseFeeChangeDenominator,
-      minBlockGasCost,
-      maxBlockGasCost,
-      blockGasCostStep,
-    ] = result;
+    const config = await precompiles.feeManager.getFeeConfig();
 
     setCurrentConfig({
-      gasLimit: gasLimit.toString(),
-      targetBlockRate: targetBlockRate.toString(),
-      minBaseFee: minBaseFee.toString(),
-      targetGas: targetGas.toString(),
-      baseFeeChangeDenominator: baseFeeChangeDenominator.toString(),
-      minBlockGasCost: minBlockGasCost.toString(),
-      maxBlockGasCost: maxBlockGasCost.toString(),
-      blockGasCostStep: blockGasCostStep.toString(),
+      gasLimit: config.gasLimit.toString(),
+      targetBlockRate: config.targetBlockRate.toString(),
+      minBaseFee: config.minBaseFee.toString(),
+      targetGas: config.targetGas.toString(),
+      baseFeeChangeDenominator: config.baseFeeChangeDenominator.toString(),
+      minBlockGasCost: config.minBlockGasCost.toString(),
+      maxBlockGasCost: config.maxBlockGasCost.toString(),
+      blockGasCostStep: config.blockGasCostStep.toString(),
     });
     setIsReadingConfig(false);
   };
 
   const handleGetLastChangedAt = async () => {
-    const result = await publicClient.readContract({
-      address: DEFAULT_FEE_MANAGER_ADDRESS as `0x${string}`,
-      abi: feeManagerAbi.abi,
-      functionName: "getFeeConfigLastChangedAt",
-    });
-
+    const result = await precompiles.feeManager.getFeeConfigLastChangedAt();
     setLastChangedAt(Number(result));
   };
 

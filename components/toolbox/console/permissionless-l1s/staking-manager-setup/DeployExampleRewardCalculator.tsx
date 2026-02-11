@@ -9,9 +9,10 @@ import { Input } from "@/components/toolbox/components/Input";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import ExampleRewardCalculator from "@/contracts/icm-contracts/compiled/ExampleRewardCalculator.json";
 import versions from '@/scripts/versions.json';
-import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { ConsoleToolMetadata, withConsoleToolMetadata } from '../../../components/WithConsoleToolMetadata';
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
+import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
+import { useContractDeployer } from "@/components/toolbox/hooks/contracts";
 
 const ICM_COMMIT = versions["ava-labs/icm-contracts"];
 const EXAMPLE_REWARD_CALCULATOR_SOURCE_URL = `https://github.com/ava-labs/icm-contracts/blob/${ICM_COMMIT}/contracts/validator-manager/ExampleRewardCalculator.sol`;
@@ -27,13 +28,12 @@ const metadata: ConsoleToolMetadata = {
 
 function DeployExampleRewardCalculator() {
     const [criticalError, setCriticalError] = useState<Error | null>(null);
-    const [isDeploying, setIsDeploying] = useState(false);
     const [rewardBasisPoints, setRewardBasisPoints] = useState<string>("500"); // Default 5% APR (500 basis points)
 
-    const { coreWalletClient, publicClient, walletEVMAddress } = useWalletStore();
+    const { coreWalletClient } = useConnectedWallet();
     const viemChain = useViemChainStore();
     const { rewardCalculatorAddress, setRewardCalculatorAddress } = useToolboxStore();
-    const { notify } = useConsoleNotifications();
+    const { deploy, isDeploying } = useContractDeployer();
 
     // Throw critical errors during render
     if (criticalError) {
@@ -41,43 +41,24 @@ function DeployExampleRewardCalculator() {
     }
 
     async function deployExampleRewardCalculator() {
-        setIsDeploying(true);
         setRewardCalculatorAddress("");
         try {
             if (!coreWalletClient) throw new Error("Wallet not connected");
-            if (!walletEVMAddress) throw new Error("Wallet address not available");
             if (!viemChain) throw new Error("Chain not selected");
 
             await coreWalletClient.addChain({ chain: viemChain });
             await coreWalletClient.switchChain({ id: viemChain!.id });
 
-            // Let viem handle gas estimation automatically
-            // ExampleRewardCalculator is a simple contract, so auto-estimation should work
-            const deployPromise = coreWalletClient.deployContract({
+            const result = await deploy({
                 abi: ExampleRewardCalculator.abi as any,
-                bytecode: ExampleRewardCalculator.bytecode.object as `0x${string}`,
-                args: [BigInt(rewardBasisPoints)], // Constructor takes uint64 rewardBasisPoints
-                chain: viemChain,
-                account: walletEVMAddress as `0x${string}`,
+                bytecode: ExampleRewardCalculator.bytecode.object,
+                args: [BigInt(rewardBasisPoints)],
+                name: 'Example Reward Calculator'
             });
 
-            notify({
-                type: 'deploy',
-                name: 'Example Reward Calculator'
-            }, deployPromise, viemChain ?? undefined);
-
-            const hash = await deployPromise;
-            const receipt = await publicClient.waitForTransactionReceipt({ hash });
-
-            if (!receipt.contractAddress) {
-                throw new Error('No contract address in receipt');
-            }
-
-            setRewardCalculatorAddress(receipt.contractAddress);
+            setRewardCalculatorAddress(result.contractAddress);
         } catch (error) {
             setCriticalError(error instanceof Error ? error : new Error(String(error)));
-        } finally {
-            setIsDeploying(false);
         }
     }
 

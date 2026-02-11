@@ -10,10 +10,10 @@ import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import NativeTokenStakingManager from "@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json";
 import versions from '@/scripts/versions.json';
-import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { getLinkedBytecode } from "@/components/toolbox/utils/contract-deployment";
 import { useCriticalError } from "@/components/toolbox/hooks/useCriticalError";
 import { LibraryRequirementStatus } from "@/components/toolbox/components/LibraryRequirementStatus";
+import { useContractDeployer } from "@/components/toolbox/hooks/contracts";
 
 const ICM_COMMIT = versions["ava-labs/icm-contracts"];
 
@@ -27,7 +27,6 @@ const metadata: ConsoleToolMetadata = {
 };
 
 function DeployNativeStakingManager(_props: BaseConsoleToolProps) {
-    const [isDeploying, setIsDeploying] = useState(false);
     const { setCriticalError } = useCriticalError();
 
     const { coreWalletClient, publicClient, walletEVMAddress } = useWalletStore();
@@ -37,12 +36,11 @@ function DeployNativeStakingManager(_props: BaseConsoleToolProps) {
         setNativeStakingManagerAddress,
         validatorMessagesLibAddress
     } = useToolboxStore();
-    const { notify } = useConsoleNotifications();
+    const { deploy, isDeploying } = useContractDeployer();
 
     const sourceUrl = `https://github.com/ava-labs/icm-contracts/blob/${ICM_COMMIT}/contracts/validator-manager/NativeTokenStakingManager.sol`;
 
     async function deployStakingManager() {
-        setIsDeploying(true);
         setNativeStakingManagerAddress("");
         try {
             if (!viemChain) throw new Error("Viem chain not found");
@@ -57,31 +55,16 @@ function DeployNativeStakingManager(_props: BaseConsoleToolProps) {
             await coreWalletClient.addChain({ chain: viemChain });
             await coreWalletClient.switchChain({ id: viemChain!.id });
 
-            const deployPromise = coreWalletClient.deployContract({
+            const result = await deploy({
                 abi: NativeTokenStakingManager.abi as any,
                 bytecode: getLinkedBytecode(NativeTokenStakingManager.bytecode, validatorMessagesLibAddress),
                 args: [0], // ICMInitializable.Allowed
-                chain: viemChain,
-                account: walletEVMAddress as `0x${string}`,
+                name: 'Native Token Staking Manager'
             });
 
-            notify({
-                type: 'deploy',
-                name: 'Native Token Staking Manager'
-            }, deployPromise, viemChain ?? undefined);
-
-            const hash = await deployPromise;
-            const receipt = await publicClient.waitForTransactionReceipt({ hash });
-
-            if (!receipt.contractAddress) {
-                throw new Error('No contract address in receipt');
-            }
-
-            setNativeStakingManagerAddress(receipt.contractAddress);
+            setNativeStakingManagerAddress(result.contractAddress);
         } catch (error) {
             setCriticalError(error instanceof Error ? error : new Error(String(error)));
-        } finally {
-            setIsDeploying(false);
         }
     }
 

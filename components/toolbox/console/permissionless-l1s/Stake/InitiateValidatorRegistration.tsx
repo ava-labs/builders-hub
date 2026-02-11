@@ -10,7 +10,8 @@ import NativeTokenStakingManager from '@/contracts/icm-contracts/compiled/Native
 import ERC20TokenStakingManager from '@/contracts/icm-contracts/compiled/ERC20TokenStakingManager.json';
 import ExampleERC20 from '@/contracts/icm-contracts/compiled/ExampleERC20.json';
 import { parseEther, formatEther } from 'viem';
-import useConsoleNotifications from '@/hooks/useConsoleNotifications';
+import { useNativeTokenStakingManager, useERC20TokenStakingManager } from '@/components/toolbox/hooks/contracts';
+import { useERC20Token } from '@/components/toolbox/hooks/useERC20Token';
 
 interface ContractSettings {
     minimumStakeAmount: string;
@@ -42,7 +43,11 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
 }) => {
     const { coreWalletClient, publicClient, walletEVMAddress, pChainAddress } = useWalletStore();
     const viemChain = useViemChainStore();
-    const { notify } = useConsoleNotifications();
+
+    // Initialize hooks
+    const nativeStakingManager = useNativeTokenStakingManager(stakingManagerAddress || null);
+    const erc20StakingManager = useERC20TokenStakingManager(stakingManagerAddress || null);
+    const erc20Token = useERC20Token(erc20TokenAddress || null, ExampleERC20.abi);
 
     const [stakeAmount, setStakeAmount] = useState<string>('');
     const [delegationFeeBips, setDelegationFeeBips] = useState<string>('100'); // 1% default
@@ -114,22 +119,8 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
         try {
             const amountWei = parseEther(stakeAmount);
 
-            const approvePromise = coreWalletClient.writeContract({
-                address: erc20TokenAddress as `0x${string}`,
-                abi: ExampleERC20.abi,
-                functionName: 'approve',
-                args: [stakingManagerAddress as `0x${string}`, amountWei],
-                account: walletEVMAddress as `0x${string}`,
-                chain: viemChain,
-            });
-
-            notify({
-                type: 'call',
-                name: 'Approve ERC20 Tokens'
-            }, approvePromise, viemChain ?? undefined);
-
-            const hash = await approvePromise;
-            await publicClient.waitForTransactionReceipt({ hash });
+            const hash = await erc20Token.approve(stakingManagerAddress as `0x${string}`, amountWei.toString());
+            await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
 
             setErrorState(null);
         } catch (err: any) {
@@ -276,49 +267,35 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
                     erc20TokenAddress as `0x${string}`,
                 ];
 
-            // For native token, send value. For ERC20, no value but tokens must be approved
-            const txConfig: any = {
-                address: stakingManagerAddress as `0x${string}`,
-                abi: contractAbi,
-                functionName: "initiateValidatorRegistration",
-                args,
-                account: walletEVMAddress as `0x${string}`,
-                chain: viemChain,
-            };
-
+            // Call the appropriate hook based on token type
+            let hash: string;
             if (isNative) {
-                txConfig.value = amountWei;
+                hash = await nativeStakingManager.initiateValidatorRegistration(
+                    nodeIDBytes as `0x${string}`,
+                    blsPublicKey as `0x${string}`,
+                    remainingBalanceOwnerStruct,
+                    disableOwnerStruct,
+                    feeBips,
+                    BigInt(duration),
+                    rewardRecipient,
+                    amountWei
+                );
+            } else {
+                hash = await erc20StakingManager.initiateValidatorRegistration(
+                    nodeIDBytes as `0x${string}`,
+                    blsPublicKey as `0x${string}`,
+                    remainingBalanceOwnerStruct,
+                    disableOwnerStruct,
+                    feeBips,
+                    BigInt(duration),
+                    amountWei,
+                    rewardRecipient
+                );
             }
-
-            // Estimate gas first to catch revert reasons early
-            try {
-                const gasEstimate = await publicClient.estimateContractGas(txConfig);
-                txConfig.gas = gasEstimate + (gasEstimate * 20n / 100n); // Add 20% buffer
-            } catch (gasError: any) {
-                console.error('Gas estimation failed:', gasError);
-                const gasMessage = gasError instanceof Error ? gasError.message : String(gasError);
-                
-                // Try to extract the actual revert reason
-                if (gasMessage.includes('execution reverted')) {
-                    throw new Error(`Contract reverted: ${gasMessage}. Check that the staking manager is initialized and you have sufficient balance.`);
-                } else if (gasMessage.includes('insufficient funds')) {
-                    throw new Error(`Insufficient balance: You need at least ${stakeAmount} ${isNative ? 'native tokens' : 'ERC20 tokens'} plus gas fees.`);
-                }
-                throw new Error(`Gas estimation failed: ${gasMessage}`);
-            }
-
-            const writePromise = coreWalletClient.writeContract(txConfig);
-
-            notify({
-                type: 'call',
-                name: 'Initiate Validator Registration'
-            }, writePromise, viemChain ?? undefined);
-
-            const hash = await writePromise;
             setTxHash(hash);
 
             // Wait for confirmation
-            const receipt = await publicClient.waitForTransactionReceipt({ hash });
+            const receipt = await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
             if (receipt.status !== 'success') {
                 throw new Error(`Transaction failed with status: ${receipt.status}`);
             }

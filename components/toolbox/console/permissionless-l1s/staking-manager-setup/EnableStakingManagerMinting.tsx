@@ -14,9 +14,9 @@ import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalle
 import { Callout } from "fumadocs-ui/components/callout";
 import { Alert } from "@/components/toolbox/components/Alert";
 import ExampleERC20 from "@/contracts/icm-contracts/compiled/ExampleERC20.json";
-import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { keccak256, toHex } from 'viem';
 import { useCriticalError } from "@/components/toolbox/hooks/useCriticalError";
+import { useExampleERC20 } from "@/components/toolbox/hooks/contracts";
 
 // Default Native Minter address
 const DEFAULT_NATIVE_MINTER_ADDRESS = "0x0200000000000000000000000000000000000001";
@@ -42,9 +42,7 @@ interface EnableStakingManagerMintingProps extends BaseConsoleToolProps {
 
 function EnableStakingManagerMinting({ initialTokenType }: EnableStakingManagerMintingProps) {
   const { nativeStakingManagerAddress, erc20StakingManagerAddress } = useToolboxStore();
-  const { publicClient, coreWalletClient, walletEVMAddress } = useWalletStore();
-  const viemChain = useViemChainStore();
-  const { notify } = useConsoleNotifications();
+  const { publicClient, walletEVMAddress } = useWalletStore();
   const { setCriticalError } = useCriticalError();
 
   // Auto-detect token type based on which staking manager address is stored from step 1
@@ -62,6 +60,9 @@ function EnableStakingManagerMinting({ initialTokenType }: EnableStakingManagerM
 
   const isNative = tokenType === 'native';
   const stakingManagerAddress = isNative ? nativeStakingManagerAddress : erc20StakingManagerAddress;
+
+  // Initialize ExampleERC20 hook for grantRole
+  const exampleERC20 = useExampleERC20(stakingTokenAddress || null);
 
   // Check the token's access control pattern (ERC20 only)
   async function checkTokenAccessControl() {
@@ -151,35 +152,12 @@ function EnableStakingManagerMinting({ initialTokenType }: EnableStakingManagerM
   }, [stakingTokenAddress, isNative]);
 
   async function handleGrantMinterRole() {
-    if (!stakingTokenAddress || !erc20StakingManagerAddress || !coreWalletClient) return;
+    if (!stakingTokenAddress || !erc20StakingManagerAddress) return;
 
     setIsGranting(true);
     try {
-      const grantPromise = coreWalletClient.writeContract({
-        address: stakingTokenAddress as `0x${string}`,
-        abi: [{
-          type: 'function',
-          name: 'grantRole',
-          inputs: [
-            { name: 'role', type: 'bytes32' },
-            { name: 'account', type: 'address' }
-          ],
-          outputs: [],
-          stateMutability: 'nonpayable'
-        }],
-        functionName: 'grantRole',
-        args: [MINTER_ROLE, erc20StakingManagerAddress as `0x${string}`],
-        chain: viemChain,
-        account: walletEVMAddress as `0x${string}`,
-      });
-
-      notify({
-        type: 'call',
-        name: 'Grant Minter Role'
-      }, grantPromise, viemChain ?? undefined);
-
-      const hash = await grantPromise;
-      await publicClient.waitForTransactionReceipt({ hash });
+      const hash = await exampleERC20.grantRole(MINTER_ROLE, erc20StakingManagerAddress);
+      await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
       setGrantTxHash(hash);
     } catch (error) {
       setCriticalError(error instanceof Error ? error : new Error(String(error)));

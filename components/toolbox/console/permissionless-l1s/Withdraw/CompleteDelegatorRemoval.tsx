@@ -10,6 +10,7 @@ import ERC20TokenStakingManager from '@/contracts/icm-contracts/compiled/ERC20To
 import { hexToBytes, bytesToHex } from 'viem';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { packWarpIntoAccessList } from '@/components/toolbox/console/permissioned-l1s/ValidatorManager/packWarp';
+import { useNativeTokenStakingManager, useERC20TokenStakingManager } from '@/components/toolbox/hooks/contracts';
 import { packL1ValidatorWeightMessage } from '@/components/toolbox/coreViem/utils/convertWarp';
 import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
 
@@ -40,6 +41,9 @@ const CompleteDelegatorRemoval: React.FC<CompleteDelegatorRemovalProps> = ({
     const { aggregateSignature } = useAvalancheSDKChainkit();
     const viemChain = useViemChainStore();
     const { notify } = useConsoleNotifications();
+
+    const nativeStakingManager = useNativeTokenStakingManager(tokenType === 'native' ? stakingManagerAddress : null);
+    const erc20StakingManager = useERC20TokenStakingManager(tokenType === 'erc20' ? stakingManagerAddress : null);
 
     const [pChainTxId, setPChainTxId] = useState<string>(initialPChainTxId || '');
     const [messageIndex, setMessageIndex] = useState<string>('0');
@@ -170,27 +174,23 @@ const CompleteDelegatorRemoval: React.FC<CompleteDelegatorRemovalProps> = ({
             const signedPChainWarpMsgBytes = hexToBytes(`0x${signature.signedMessage}`);
             const accessList = packWarpIntoAccessList(signedPChainWarpMsgBytes);
 
-            // Step 5: Call completeDelegatorRemoval with proper warp message
-            const writePromise = coreWalletClient.writeContract({
-                address: stakingManagerAddress as `0x${string}`,
-                abi: contractAbi,
-                functionName: "completeDelegatorRemoval",
-                args: [delegationID as `0x${string}`, msgIndex],
-                accessList,
-                account: walletEVMAddress as `0x${string}`,
-                chain: viemChain,
-            });
+            // Step 5: Call completeDelegatorRemoval via hook with warp message
+            const hash = tokenType === 'native'
+                ? await nativeStakingManager.completeDelegatorRemoval(
+                    delegationID as `0x${string}`,
+                    msgIndex,
+                    accessList
+                )
+                : await erc20StakingManager.completeDelegatorRemoval(
+                    delegationID as `0x${string}`,
+                    msgIndex,
+                    accessList
+                );
 
-            notify({
-                type: 'call',
-                name: 'Complete Delegator Removal'
-            }, writePromise, viemChain ?? undefined);
-
-            const hash = await writePromise;
             setTxHash(hash);
 
             // Wait for confirmation
-            const receipt = await publicClient.waitForTransactionReceipt({ hash });
+            const receipt = await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
             if (receipt.status !== 'success') {
                 throw new Error(`Transaction failed with status: ${receipt.status}`);
             }

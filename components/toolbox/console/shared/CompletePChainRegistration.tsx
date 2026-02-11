@@ -8,14 +8,13 @@ import { Alert } from '@/components/toolbox/components/Alert';
 import { GetRegistrationJustification } from '@/components/toolbox/console/permissioned-l1s/ValidatorManager/justification';
 import { packWarpIntoAccessList } from '@/components/toolbox/console/permissioned-l1s/ValidatorManager/packWarp';
 import { hexToBytes, bytesToHex } from 'viem';
-import validatorManagerAbi from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
-import poaManagerAbi from '@/contracts/icm-contracts/compiled/PoAManager.json';
 import NativeTokenStakingManager from '@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json';
 import ERC20TokenStakingManager from '@/contracts/icm-contracts/compiled/ERC20TokenStakingManager.json';
 import { packL1ValidatorRegistration } from '@/components/toolbox/coreViem/utils/convertWarp';
 import { getValidationIdHex } from '@/components/toolbox/coreViem/hooks/getValidationID';
 import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
+import { useValidatorManager, usePoAManager, useNativeTokenStakingManager, useERC20TokenStakingManager } from '@/components/toolbox/hooks/contracts';
 
 export type ManagerType = 'PoA' | 'PoS-Native' | 'PoS-ERC20';
 export type OwnerType = 'PoAManager' | 'StakingManager' | 'EOA' | null;
@@ -84,30 +83,21 @@ const CompletePChainRegistration: React.FC<CompletePChainRegistrationProps> = ({
     const isPoS = managerType === 'PoS-Native' || managerType === 'PoS-ERC20';
     const useMultisig = ownerType === 'PoAManager';
     const useStakingManager = ownerType === 'StakingManager';
-    
-    // Select ABI based on manager type and owner type
-    const getContractAbi = () => {
-        if (isPoA) {
-            if (useMultisig) return poaManagerAbi.abi;
-            if (useStakingManager) return NativeTokenStakingManager.abi;
-            return validatorManagerAbi.abi;
-        }
-        // PoS
-        return managerType === 'PoS-Native' 
-            ? NativeTokenStakingManager.abi 
-            : ERC20TokenStakingManager.abi;
-    };
-    
-    // Determine target contract address
-    const getTargetAddress = (): string => {
-        if (isPoA && (useMultisig || useStakingManager) && contractOwner) {
-            return contractOwner;
-        }
-        return managerAddress;
-    };
 
-    const contractAbi = getContractAbi();
-    const targetAddress = getTargetAddress();
+    // Initialize hooks for all possible manager types
+    const validatorManager = useValidatorManager(
+        (isPoA && !useMultisig && !useStakingManager) ? managerAddress : null
+    );
+    const poaManager = usePoAManager(
+        (isPoA && useMultisig && contractOwner) ? contractOwner : null
+    );
+    const nativeStakingManager = useNativeTokenStakingManager(
+        (managerType === 'PoS-Native' || (isPoA && useStakingManager && contractOwner)) ? (isPoS ? managerAddress : contractOwner || null) : null
+    );
+    const erc20StakingManager = useERC20TokenStakingManager(
+        managerType === 'PoS-ERC20' ? managerAddress : null
+    );
+
     const tokenLabel = managerType === 'PoS-Native' ? 'Native Token' : managerType === 'PoS-ERC20' ? 'ERC20 Token' : 'PoA';
 
     // Initialize state with prop value when it becomes available
@@ -256,25 +246,26 @@ const CompletePChainRegistration: React.FC<CompletePChainRegistrationProps> = ({
             const signedPChainWarpMsgBytes = hexToBytes(`0x${signature.signedMessage}`);
             const accessList = packWarpIntoAccessList(signedPChainWarpMsgBytes);
 
-            const writePromise = coreWalletClient!.writeContract({
-                address: targetAddress as `0x${string}`,
-                abi: contractAbi,
-                functionName: "completeValidatorRegistration",
-                args: [0],
-                accessList,
-                account: coreWalletClient!.account!,
-                chain: viemChain
-            });
+            // Call appropriate hook based on manager type
+            let hash: string;
+            if (isPoA) {
+                if (useMultisig) {
+                    hash = await poaManager.completeValidatorRegistration(0, accessList);
+                } else if (useStakingManager) {
+                    hash = await nativeStakingManager.completeValidatorRegistration(0, accessList);
+                } else {
+                    hash = await validatorManager.completeValidatorRegistration(0, accessList);
+                }
+            } else {
+                // PoS
+                hash = managerType === 'PoS-Native'
+                    ? await nativeStakingManager.completeValidatorRegistration(0, accessList)
+                    : await erc20StakingManager.completeValidatorRegistration(0, accessList);
+            }
 
-            notify({
-                type: 'call',
-                name: 'Complete Validator Registration'
-            }, writePromise, viemChain ?? undefined);
-
-            const hash = await writePromise;
             setTxHash(hash);
 
-            const receipt = await publicClient!.waitForTransactionReceipt({ hash });
+            const receipt = await publicClient!.waitForTransactionReceipt({ hash: hash as `0x${string}` });
             if (receipt.status !== 'success') {
                 throw new Error(`Transaction failed with status: ${receipt.status}`);
             }

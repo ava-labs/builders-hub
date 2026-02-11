@@ -20,10 +20,10 @@ import { ListContractEvents } from "@/components/toolbox/components/ListContract
 import { cb58ToHex } from '@/components/toolbox/console/utilities/format-converter/FormatConverter';
 import SelectBlockchainId from "@/components/toolbox/components/SelectBlockchainId";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
-import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 import { ConsoleToolMetadata, withConsoleToolMetadata } from "@/components/toolbox/components/WithConsoleToolMetadata";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
+import { useTokenRemote } from "@/components/toolbox/hooks/contracts";
 
 const metadata: ConsoleToolMetadata = {
   title: "Register Remote Contract with Home",
@@ -38,8 +38,10 @@ function RegisterWithHome() {
     useToolboxStore();
   const [remoteAddress, setRemoteAddress] = useState("");
   const { coreWalletClient } = useWalletStore();
-  const { notify } = useConsoleNotifications();
   const viemChain = useViemChainStore();
+
+  // Initialize token remote hook - defaulting to 'erc20' type as both types share the same ABI for registerWithHome
+  const tokenRemote = useTokenRemote(remoteAddress || null, 'erc20');
   const selectedL1 = useSelectedL1()();
   const [sourceChainId, setSourceChainId] = useState<string>("");
   const [isRegistering, setIsRegistering] = useState(false);
@@ -168,31 +170,12 @@ function RegisterWithHome() {
         feeInfo
       );
 
-      // Simulate the transaction first
-      const { request } = await publicClient.simulateContract({
-        address: remoteAddress as `0x${string}`,
-        abi: ERC20TokenRemoteABI.abi,
-        functionName: "registerWithHome",
-        args: [feeInfo],
-        chain: viemChain,
-        account: coreWalletClient.account,
-      });
-
-      // Send the transaction
-      const writePromise = coreWalletClient.writeContract(request);
-      notify(
-        {
-          type: "call",
-          name: "Register With Home",
-        },
-        writePromise,
-        viemChain ?? undefined
-      );
-      const hash = await writePromise;
+      // Call registerWithHome using the hook
+      const hash = await tokenRemote.registerWithHome(feeInfo);
       setLastTxId(hash);
 
       // Wait for confirmation
-      await publicClient.waitForTransactionReceipt({ hash });
+      await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
       setLocalError("");
     } catch (error: any) {
       console.error("Registration failed:", error);

@@ -24,10 +24,10 @@ import ExampleERC20 from "@/contracts/icm-contracts/compiled/ExampleERC20.json";
 import SelectBlockchainId from "@/components/toolbox/components/SelectBlockchainId";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 import TeleporterRegistryAddressInput from "@/components/toolbox/components/TeleporterRegistryAddressInput";
-import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { AcknowledgementCallout } from "@/components/toolbox/components/AcknowledgementCallout";
 import { LockedContent } from "@/components/toolbox/components/LockedContent";
 import { ConsoleToolMetadata, withConsoleToolMetadata } from "@/components/toolbox/components/WithConsoleToolMetadata";
+import { useContractDeployer } from "@/components/toolbox/hooks/contracts";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 
 const metadata: ConsoleToolMetadata = {
@@ -42,10 +42,9 @@ function DeployERC20TokenRemote() {
   const { erc20TokenRemoteAddress, setErc20TokenRemoteAddress } =
     useToolboxStore();
   const { coreWalletClient, walletEVMAddress } = useWalletStore();
-  const { notify } = useConsoleNotifications();
   const viemChain = useViemChainStore();
   const selectedL1 = useSelectedL1()();
-  const [isDeploying, setIsDeploying] = useState(false);
+  const { deploy, isDeploying } = useContractDeployer();
   const [sourceChainId, setSourceChainId] = useState<string>("");
   const [teleporterManager, setTeleporterManager] = useState(walletEVMAddress);
   const [localError, setLocalError] = useState("");
@@ -169,7 +168,6 @@ function DeployERC20TokenRemote() {
     }
 
     setLocalError("");
-    setIsDeploying(true);
 
     try {
       if (!viemChain || !selectedL1) {
@@ -189,11 +187,6 @@ function DeployERC20TokenRemote() {
         throw new Error("Critical deployment parameters missing or invalid.");
       }
 
-      const publicClient = createPublicClient({
-        chain: viemChain,
-        transport: http(viemChain.rpcUrls.default.http[0]),
-      });
-
       const constructorArgs = [
         {
           teleporterRegistryAddress: teleporterRegistryAddress as `0x${string}`,
@@ -211,31 +204,14 @@ function DeployERC20TokenRemote() {
 
       console.log("Deploying ERC20TokenRemote with args:", constructorArgs);
 
-      const deployPromise = coreWalletClient.deployContract({
+      const result = await deploy({
         abi: ERC20TokenRemote.abi as any,
-        bytecode: ERC20TokenRemote.bytecode.object as `0x${string}`,
+        bytecode: ERC20TokenRemote.bytecode.object,
         args: constructorArgs,
-        account: walletEVMAddress as `0x${string}`,
-        chain: viemChain,
-      });
-      notify(
-        {
-          type: "deploy",
-          name: "ERC20TokenRemote",
-        },
-        deployPromise,
-        viemChain ?? undefined
-      );
-
-      const receipt = await publicClient.waitForTransactionReceipt({
-        hash: await deployPromise,
+        name: 'ERC20TokenRemote'
       });
 
-      if (!receipt.contractAddress) {
-        throw new Error("No contract address in receipt");
-      }
-
-      setErc20TokenRemoteAddress(receipt.contractAddress);
+      setErc20TokenRemoteAddress(result.contractAddress);
     } catch (error: any) {
       console.error("Deployment failed:", error);
       setLocalError(
@@ -244,8 +220,6 @@ function DeployERC20TokenRemote() {
       setCriticalError(
         error instanceof Error ? error : new Error(String(error))
       );
-    } finally {
-      setIsDeploying(false);
     }
   }
 

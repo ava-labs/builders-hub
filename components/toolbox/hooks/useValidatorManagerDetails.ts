@@ -1,11 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { networkIDs } from "@avalabs/avalanchejs";
-import { getTotalStake } from "../coreViem/hooks/getTotalStake";
 import { getSubnetInfoForNetwork, getBlockchainInfoForNetwork } from "../coreViem/utils/glacier";
 import { useWalletStore } from "../stores/walletStore";
 import { useViemChainStore } from "../stores/toolboxStore";
-import validatorManagerAbi from '../../../contracts/icm-contracts/compiled/ValidatorManager.json';
-import poaManagerAbi from '../../../contracts/icm-contracts/compiled/PoAManager.json';
+import { useValidatorManager } from "./contracts/core/useValidatorManager";
+import { usePoAManager } from "./contracts/governance/usePoAManager";
 
 interface ValidatorManagerDetails {
     validatorManagerAddress: string;
@@ -45,6 +44,11 @@ export function useValidatorManagerDetails({ subnetId }: UseValidatorManagerDeta
 
     // Contract owner states (no ownership verification, just the address)
     const [contractOwner, setContractOwner] = useState<string | null>(null);
+
+    // Initialize hooks for contract interactions (after state declarations)
+    const validatorManager = useValidatorManager(validatorManagerAddress || null);
+    // Initialize PoA Manager hook with owner address (will be null initially)
+    const poaManager = usePoAManager(contractOwner);
     const [ownershipError, setOwnershipError] = useState<string | null>(null);
     const [isLoadingOwnership, setIsLoadingOwnership] = useState(false);
     const [isOwnerContract, setIsOwnerContract] = useState(false);
@@ -187,11 +191,11 @@ export function useValidatorManagerDetails({ subnetId }: UseValidatorManagerDeta
             setL1WeightError(null); // Clear previous errors before fetching
 
             try {
-                const formattedAddress = validatorManagerAddress.startsWith('0x')
-                    ? validatorManagerAddress as `0x${string}`
-                    : `0x${validatorManagerAddress}` as `0x${string}`;
+                if (!validatorManager.isReady) {
+                    throw new Error('Validator manager not ready');
+                }
 
-                const totalWeight = await getTotalStake(publicClient, formattedAddress);
+                const totalWeight = await validatorManager.l1TotalWeight();
                 setContractTotalWeight(totalWeight);
 
                 if (totalWeight === 0n) {
@@ -235,18 +239,14 @@ export function useValidatorManagerDetails({ subnetId }: UseValidatorManagerDeta
             setOwnershipError(null);
             setIsOwnerContract(false);
             setOwnerType(null);
-            
-            try {
-                const formattedAddress = validatorManagerAddress.startsWith('0x')
-                    ? validatorManagerAddress as `0x${string}`
-                    : `0x${validatorManagerAddress}` as `0x${string}`;
 
-                // Fetch contract owner address only
-                const owner = await publicClient.readContract({
-                    address: formattedAddress,
-                    abi: validatorManagerAbi.abi,
-                    functionName: "owner",
-                }) as `0x${string}`;
+            try {
+                if (!validatorManager.isReady) {
+                    throw new Error('Validator manager not ready');
+                }
+
+                // Fetch contract owner address using the hook
+                const owner = await validatorManager.owner() as `0x${string}`;
 
                 setContractOwner(owner);
 
@@ -290,12 +290,14 @@ export function useValidatorManagerDetails({ subnetId }: UseValidatorManagerDeta
 
             setIsDetectingOwnerType(true);
             try {
-                // Try to call owner() function using PoAManager ABI to detect if it's a PoAManager
-                const ownerAddress = await publicClient.readContract({
-                    address: contractOwner as `0x${string}`,
-                    abi: poaManagerAbi.abi,
-                    functionName: "owner",
-                });
+                if (!poaManager.isReady) {
+                    // If PoA Manager hook is not ready, can't detect
+                    setOwnerType('StakingManager');
+                    return;
+                }
+
+                // Try to call owner() function using PoAManager hook to detect if it's a PoAManager
+                const ownerAddress = await poaManager.owner();
 
                 // If we can successfully call owner() with PoAManager ABI, it's a PoAManager
                 if (ownerAddress) {
