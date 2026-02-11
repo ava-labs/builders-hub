@@ -3,6 +3,7 @@
 import React, { useState, useEffect, memo, useCallback } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Trash, ChevronDown, ChevronRight, ExternalLink } from 'lucide-react';
 import { t } from './translations';
@@ -11,6 +12,7 @@ import axios from 'axios';
 import { initialData, IDataMain, IDataContent, IDataLatest, ITrack, ISchedule, ISpeaker, IResource, IPartner } from './initials';
 import { LanguageButton } from './language-button';
 import HackathonPreview from '@/components/hackathons/HackathonPreview';
+import { EmailListInput } from '@/components/common/EmailListInput';
 
 function toLocalDatetimeString(isoString: string) {
   if (!isoString) return '';
@@ -44,7 +46,7 @@ const MyHackathonsList = ({ myHackathons, language, onSelect, selectedId, isDevr
     return (
       <div className="mb-6">
         <h2 className="text-xl font-semibold mb-2">
-          {isDevrel ? (language === 'en' ? 'All Active Hackathons' : 'Todos los Hackathons Activos') : t[language].myHackathons}
+          {isDevrel ? (language === 'en' ? 'All Hackathons' : 'Todos los Hackathons') : t[language].myHackathons}
         </h2>
         <div className="flex justify-center items-center py-8">
           <svg className="animate-spin h-8 w-8 text-red-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -59,7 +61,7 @@ const MyHackathonsList = ({ myHackathons, language, onSelect, selectedId, isDevr
   return (
     <div className="mb-6">
       <h2 className="text-xl font-semibold mb-2">
-        {isDevrel ? (language === 'en' ? 'All Active Hackathons' : 'Todos los Hackathons Activos') : t[language].myHackathons}
+        {isDevrel ? (language === 'en' ? 'All Hackathons' : 'Todos los Hackathons') : t[language].myHackathons}
       </h2>
       <ul className="flex flex-wrap gap-2">
         {myHackathons.map((hackathon) => (
@@ -762,6 +764,7 @@ const HackathonsEdit = () => {
     partners: [{ name: '', logo: '' }],
   });
   const [formDataLatest, setFormDataLatest] = useState<IDataLatest>(initialData.latest);
+  const [cohostsEmails, setCohostsEmails] = useState<string[]>([]);
 
   const getMyHackathons = async () => {
     setLoadingHackathons(true);
@@ -775,14 +778,9 @@ const HackathonsEdit = () => {
         }
       );
       if (response.data?.hackathons?.length > 0) {
-        const currentDate = new Date();
-        const unfinishedHackathons = response.data.hackathons.filter((hackathon: any) => {
-          if (!hackathon.end_date) return true; 
-          const endDate = new Date(hackathon.end_date);
-          return endDate > currentDate;
-        });
-        console.log({response: response.data.hackathons, unfinishedHackathons});
-        setMyHackathons(unfinishedHackathons);
+        const hackathons = response.data.hackathons;
+        console.log({response: hackathons });
+        setMyHackathons(hackathons);
       }
     } catch (error) {
       console.error('Error loading hackathons:', error);
@@ -792,11 +790,7 @@ const HackathonsEdit = () => {
   }
   useEffect(() => {
     if (status === "authenticated" && session?.user) {
-      if (session.user.custom_attributes?.includes("hackathonCreator") || 
-          session.user.custom_attributes?.includes("team1-admin") ||
-          session.user.custom_attributes?.includes("devrel")) {
-        getMyHackathons()
-      }
+      getMyHackathons();
     }
   }, [session, status]);
 
@@ -856,7 +850,11 @@ const HackathonsEdit = () => {
       banner: hackathon.banner ?? '',
       icon: hackathon.icon ?? '',
       small_banner: hackathon.small_banner ?? '',
+      custom_link: hackathon.custom_link ?? null,
+      top_most: hackathon.top_most ?? false,
+      event: hackathon.event ?? 'hackathon',
     });
+    setCohostsEmails(hackathon.cohosts ?? []);
     setShowForm(true);
   };
 
@@ -883,11 +881,38 @@ const HackathonsEdit = () => {
   const [scrollTarget, setScrollTarget] = useState<string | undefined>();
   const [rawTrackText, setRawTrackText] = useState<string>('');
   const [rawTrackDescriptions, setRawTrackDescriptions] = useState<{ [key: number]: string }>({});
+  const [hasEditPermission, setHasEditPermission] = useState<boolean>(false);
 
   const scrollToSection = (section: string) => {
     setScrollTarget(section);
     setTimeout(() => setScrollTarget(undefined), 1000);
   };
+
+  useEffect(() => {
+    if (!session?.user) {
+      setHasEditPermission(false);
+      return;
+    }
+    const customAttributes: string[] = session.user.custom_attributes || [];
+    const isSpecialRole =
+      customAttributes.includes("hackathonCreator") ||
+      customAttributes.includes("team1-admin") ||
+      customAttributes.includes("devrel");
+    
+    // If no hackathon is selected, allow editing only for special roles (for creating new hackathons)
+    if (!selectedHackathon) {
+      setHasEditPermission(isSpecialRole);
+      return;
+    }
+    
+    // If hackathon is selected, check if user is creator/updater, special role, or cohost
+    const userEmail = session.user.email || "";
+    const isCohost =
+      !!userEmail && Array.isArray(selectedHackathon.cohosts)
+        ? selectedHackathon.cohosts.includes(userEmail)
+        : false;
+    setHasEditPermission(isSpecialRole || isCohost);
+  }, [selectedHackathon, session]);
 
   const convertToMarkdown = (text: string) => {
     if (!text) return '';
@@ -895,23 +920,10 @@ const HackathonsEdit = () => {
     return paragraphs
       .map(paragraph => {
         const trimmed = paragraph.trim();
-        if (!trimmed) return '';
-        if (trimmed.startsWith('#')) {
-          return trimmed;
-        }
-        if (trimmed.startsWith('-') || trimmed.startsWith('*')) {
-          return trimmed;
-        }
-        if (trimmed.startsWith('---')) {
-          return trimmed;
-        }
-        if (trimmed.includes('**') || trimmed.includes('*') || trimmed.includes('`')) {
-          return trimmed;
-        }
-        return trimmed.replace(/\n/g, '\\n');
+        return trimmed;
       })
       .filter(p => p.length > 0)
-      .join('\\n\\n');
+      .join('\n\n');
   };
 
   const convertToHTML = (text: string) => {
@@ -1147,9 +1159,8 @@ const HackathonsEdit = () => {
       ...formDataMain,
       content,
       ...latest,
-      top_most: true,
-      organizers: null,
-      custom_link: null,
+      cohosts: cohostsEmails,
+      custom_link: formDataLatest.custom_link ? formDataLatest.custom_link : null,
       status: selectedHackathon?.status ?? "UPCOMING"
     };
   };
@@ -1459,9 +1470,12 @@ const HackathonsEdit = () => {
       start_date: "2025-10-15T09:00",
       end_date: "2025-10-17T18:00",
       timezone: "America/New_York",
-      banner: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/hackathon-images/Avalanche%20Chile/bannerchilehor.png",
-      icon: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/hackathon-images/Avalanche%20Chile/bannerchilehor.png",
-      small_banner: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/hackathon-images/Avalanche%20Chile/bannerchile.png"
+      banner: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Hackathon_assets/Template/main_banner_template.png",
+      icon: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Hackathon_assets/Template/icon_template.png",
+      small_banner: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Hackathon_assets/Template/small_banner_template.png",
+      event: "hackathon",
+      custom_link: null,
+      top_most: false
     });
 
     setFormDataContent({
@@ -1731,8 +1745,24 @@ const HackathonsEdit = () => {
           </Button> */}
         </div>
       )}
-      {showForm && (
+      {showForm && hasEditPermission && (
         <>
+          {/* Cohosts Section - Always Visible */}
+          <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-6 mb-6">
+            <h2 className="text-xl font-semibold mb-2 text-blue-300">{t[language].cohostsTitle}</h2>
+            <p className="text-sm text-blue-200 mb-4">
+              {t[language].cohostsDescription}
+            </p>
+            <EmailListInput
+              value={cohostsEmails}
+              onChange={(emails) => {
+                setCohostsEmails(emails);
+              }}
+              placeholder={t[language].cohostsPlaceholder}
+              label={t[language].cohostsLabel}
+              description={t[language].cohostsHelp}
+            />
+          </div>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
               <div className="flex items-center justify-between mb-4">
@@ -1790,6 +1820,25 @@ const HackathonsEdit = () => {
                     className="w-full mb-4"
                     required
                   />
+                  
+                  <div className="mb-2 text-zinc-400 text-sm">Event Type</div>
+                  <Select
+                    value={formDataLatest.event}
+                    onValueChange={(value) => {
+                      setFormDataLatest(prev => ({ ...prev, event: value }));
+                      console.log(value);
+                    }}
+                  >
+                    <SelectTrigger className="w-full mb-4">
+                      <SelectValue placeholder="Select event type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="hackathon">Hackathon</SelectItem>
+                      <SelectItem value="workshop">Workshop</SelectItem>
+                      <SelectItem value="bootcamp">Bootcamp</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  
                   <div className="flex flex-col space-y-2 bg-zinc-900/60 border border-zinc-700 rounded-lg p-4 my-4">
                     <label className="font-medium">Tags (Optional)</label>
                     <div className="mb-2 text-zinc-400 text-sm">Add relevant tags to help participants find your hackathon</div>
@@ -1908,7 +1957,7 @@ const HackathonsEdit = () => {
                   </div>
                   
                   
-                  {/* Icon Image 
+                  {/* Icon Image */}
                   <div className="mb-6">
                     <label className="font-medium text-xl mb-2 block">Icon:</label>
                     <div className="mb-2 text-zinc-400 text-sm">The small icon displayed next to your hackathon title</div>
@@ -1966,7 +2015,6 @@ const HackathonsEdit = () => {
                       )}
                     </div>
                   </div>
-                  */}
 
                   <div className="mb-6">
                     <label className="font-medium text-xl mb-2 block">Small Banner:</label>
@@ -2072,7 +2120,6 @@ const HackathonsEdit = () => {
                     className="w-full mb-4"
                     required
                   />
-                  {/*
                   <div className="mb-2 text-zinc-400 text-sm">Organizer Name/Organization</div>
                   <Input
                     type="text"
@@ -2086,7 +2133,6 @@ const HackathonsEdit = () => {
                     className="w-full mb-4"
                     required
                   />
-                  */}
                   <div className="mb-2 text-zinc-400 text-sm">Total Prize Pool (USD)</div>
                   <Input
                     type="number"
@@ -2117,7 +2163,8 @@ const HackathonsEdit = () => {
               )}
             </div>
             
-            {/* Step 4: Track Text */}
+            {/* Step 4: Track Text - Only for Hackathons */}
+            {formDataLatest.event === 'hackathon' && (
             <div className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-2xl font-bold">Step 4: Track Text</h2>
@@ -2354,6 +2401,7 @@ const HackathonsEdit = () => {
                 <div className="text-zinc-400 italic">✓ Track text completed</div>
               )}
             </div>
+            )}
             
             {/* Step 5: Content - Tracks, Schedule, etc. */}
             <div className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
@@ -2367,6 +2415,8 @@ const HackathonsEdit = () => {
               </div>
               {!collapsed.content && (
                 <>
+                  {/* Tracks Section - Only for Hackathons */}
+                  {formDataLatest.event === 'hackathon' && (
                   <div className="space-y-4">
                     <label className="font-medium text-xl">{t[language].tracks}:</label>
                     {formDataContent.tracks.map((track, index) => (
@@ -2395,6 +2445,7 @@ const HackathonsEdit = () => {
                       </Button>
                     </div>
                   </div>
+                  )}
                   <div className="space-y-4">
                     <label className="font-medium text-xl mb-2 block">{t[language].address}:</label>
                     <div className="mb-2 text-zinc-400 text-sm">{t[language].addressHelp}</div>
@@ -2407,7 +2458,8 @@ const HackathonsEdit = () => {
                       required
                     />
                   </div>
-                  <div className="space-y-4">
+                  {formDataLatest.event === "hackathon" && (
+                    <div className="space-y-4">
                     <label className="font-medium text-xl mb-2 block">{t[language].schedule}:</label>
                     <div className="mb-2 text-zinc-400 text-sm">{t[language].scheduleHelp}</div>
                     {formDataContent.schedule.map((event, index) => (
@@ -2433,6 +2485,7 @@ const HackathonsEdit = () => {
                       </Button>
                     </div>
                   </div>
+                  )}
                   <div className="space-y-4">
                     <label className="font-medium text-xl mb-2 block">{t[language].speakers}:</label>
                     {formDataContent.speakers.map((speaker, index) => (
@@ -2458,6 +2511,8 @@ const HackathonsEdit = () => {
                       </Button>
                     </div>
                   </div>
+                  {/* Submission Section - Only for Hackathons */}
+                  {formDataLatest.event === 'hackathon' && (
                   <div className="space-y-4">
                     <div>
                       <label className="font-medium text-xl mb-2 block">{t[language].submissionDeadline}:</label>
@@ -2472,6 +2527,7 @@ const HackathonsEdit = () => {
                       />
                     </div>
                   </div>
+                  )}
                   <div className="flex justify-end mt-4">
                     <button 
                       type="button"
@@ -2499,6 +2555,57 @@ const HackathonsEdit = () => {
               {!collapsed.last && (
                 <>
                   <div className="space-y-4">
+                    {/* Top Most checkbox
+                    <div className="flex items-center gap-2 mb-4">
+                      <Checkbox
+                        id="top_most"
+                        name="top_most"
+                        checked={formDataLatest.top_most}
+                        onCheckedChange={(checked) => {
+                          setFormDataLatest(prev => ({ ...prev, top_most: checked }));
+                        }}
+                      />
+                      <label htmlFor="top_most" className="text-zinc-400 text-sm cursor-pointer">
+                        Top most
+                      </label>
+                    </div>
+                    */}
+                    <label className="font-medium text-xl mb-2 block">{t[language].customLink}:</label>
+                    <div className="mb-2 text-zinc-400 text-sm">{t[language].customLinkHelp}</div>
+                    <Input
+                      type="text"
+                      name="custom_link"
+                      placeholder="e.g., https://hackathon.custom..."
+                      value={formDataLatest.custom_link ?? ''}
+                      onChange={(e) => {
+                        setFormDataLatest(prev => ({ ...prev, custom_link: e.target.value }));
+                      }}
+                      className="w-full mb-4"
+                    />
+                    <label className="font-medium text-xl mb-2 block">{t[language].joinCustomLink}:</label>
+                    <div className="mb-2 text-zinc-400 text-sm">{t[language].joinCustomLinkHelp}</div>
+                    <Input
+                      type="text"
+                      name="join_custom_link"
+                      placeholder="e.g., https://hackathon.custom..."
+                      value={formDataContent.join_custom_link}
+                      onChange={(e) => {
+                        setFormDataContent(prev => ({ ...prev, join_custom_link: e.target.value }));
+                      }}
+                      className="w-full mb-4"
+                    />
+                    <label className="font-medium text-xl mb-2 block">{t[language].submissionCustomLink}:</label>
+                    <div className="mb-2 text-zinc-400 text-sm">{t[language].submissionCustomLinkHelp}</div>
+                    <Input
+                      type="text"
+                      name="submission_custom_link"
+                      placeholder="e.g., https://hackathon.custom..."
+                      value={formDataContent.submission_custom_link ?? ''}
+                      onChange={(e) => {
+                        setFormDataContent(prev => ({ ...prev, submission_custom_link: e.target.value }));
+                      }}
+                      className="w-full mb-4"
+                    />
                     <div>
                       <label className="font-medium text-xl mb-2 block">{t[language].startDate}:</label>
                       <div className="mb-2 text-zinc-400 text-sm">{t[language].startDateHelp}</div>
@@ -2598,6 +2705,14 @@ const HackathonsEdit = () => {
             )}
           </form>
         </>
+      )}
+      {showForm && !hasEditPermission && (
+        <div className="mt-8 p-6 rounded-lg border border-red-500/40 bg-red-900/10 text-red-100 max-w-2xl mx-auto text-center">
+          <h2 className="text-xl font-semibold mb-2">You don&apos;t have permission to edit this hackathon</h2>
+          <p className="text-sm text-red-200">
+            Only the creator, authorized roles, or configured cohosts can edit this hackathon. Please contact the hackathon owner if you believe this is a mistake.
+          </p>
+        </div>
       )}
       {loading && (
               <div className="flex justify-center items-center my-4">
