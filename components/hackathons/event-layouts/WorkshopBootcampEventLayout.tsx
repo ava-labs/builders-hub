@@ -18,12 +18,6 @@ interface WorkshopBootcampEventLayoutProps {
   utm: string;
 }
 
-const simplifiedMenuItems = [
-  { name: "About", ref: "about" },
-  { name: "Resources", ref: "resources" },
-  { name: "Partners", ref: "sponsors" },
-];
-
 export default function WorkshopBootcampEventLayout({
   hackathon,
   id,
@@ -64,6 +58,23 @@ export default function WorkshopBootcampEventLayout({
     hackathon.banner?.trim().length > 0
       ? hackathon.banner
       : "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/hackathon-images/main_banner_img-crBsoLT7R07pdstPKvRQkH65yAbpFX.png";
+
+  const hasAbout = Boolean(hackathon.content.tracks_text);
+  const hasResources =
+    Array.isArray(hackathon.content.resources) &&
+    hackathon.content.resources.length > 0;
+  const hasSpeakers =
+    Array.isArray(hackathon.content.speakers) &&
+    hackathon.content.speakers.length > 0;
+  const hasPartners =
+    Array.isArray(hackathon.content.partners) &&
+    hackathon.content.partners.length > 0;
+
+  const simplifiedMenuItems = [
+    ...(hasAbout ? [{ name: "About", ref: "about" }] : []),
+    ...(hasResources ? [{ name: "Resources", ref: "resources" }] : []),
+    ...(hasPartners ? [{ name: "Partners", ref: "sponsors" }] : []),
+  ];
 
   return (
     <main className="container sm:px-2 py-4 lg:py-16">
@@ -156,15 +167,10 @@ export default function WorkshopBootcampEventLayout({
 
           {/* Content Sections */}
           <div className="py-8 sm:p-8 flex flex-col gap-20">
-            {hackathon.content.tracks_text && <About hackathon={hackathon} />}
-            <Resources hackathon={hackathon} />
-            {hackathon.content.speakers &&
-              hackathon.content.speakers.length > 0 && (
-                <MentorsJudges hackathon={hackathon} />
-              )}
-            {hackathon.content.partners?.length > 0 && (
-              <Sponsors hackathon={hackathon} />
-            )}
+            {hasAbout && <About hackathon={hackathon} />}
+            {hasResources && <Resources hackathon={hackathon} />}
+            {hasSpeakers && <MentorsJudges hackathon={hackathon} />}
+            {hasPartners && <Sponsors hackathon={hackathon} />}
           </div>
         </div>
       </div>

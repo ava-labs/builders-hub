@@ -21,22 +21,40 @@ interface HackathonEventLayoutProps {
   utm: string;
 }
 
-const menuItems = [
-  { name: "About", ref: "about" },
-  { name: "Prizes & Tracks", ref: "tracks" },
-  { name: "Resources", ref: "resources" },
-  { name: "Schedule", ref: "schedule" },
-  { name: "Submission", ref: "submission" },
-  { name: "Mentors & Judges", ref: "speakers" },
-  { name: "Partners", ref: "sponsors" },
-];
-
 export default function HackathonEventLayout({
   hackathon,
   id,
   isRegistered,
   utm,
 }: HackathonEventLayoutProps) {
+  const hasAbout = Boolean(hackathon.content.tracks_text);
+  const hasTracks =
+    Array.isArray(hackathon.content.tracks) &&
+    hackathon.content.tracks.length > 0;
+  const hasResources =
+    Array.isArray(hackathon.content.resources) &&
+    hackathon.content.resources.length > 0;
+  const hasSchedule =
+    Array.isArray(hackathon.content.schedule) &&
+    hackathon.content.schedule.length > 0;
+  const hasSpeakers =
+    Array.isArray(hackathon.content.speakers) &&
+    hackathon.content.speakers.length > 0;
+  const hasPartners =
+    Array.isArray(hackathon.content.partners) &&
+    hackathon.content.partners.length > 0;
+
+  const menuItems = [
+    ...(hasAbout ? [{ name: "About", ref: "about" }] : []),
+    ...(hasTracks ? [{ name: "Prizes & Tracks", ref: "tracks" }] : []),
+    ...(hasResources ? [{ name: "Resources", ref: "resources" }] : []),
+    ...(hasSchedule ? [{ name: "Schedule", ref: "schedule" }] : []),
+    // Submission is always present since it has built‑in copy and logic
+    { name: "Submission", ref: "submission" },
+    ...(hasSpeakers ? [{ name: "Mentors & Judges", ref: "speakers" }] : []),
+    ...(hasPartners ? [{ name: "Partners", ref: "sponsors" }] : []),
+  ];
+
   return (
     <main className="container sm:px-2 py-4 lg:py-16">
       <div className="pl-4 flex gap-4 items-center">
@@ -89,19 +107,14 @@ export default function HackathonEventLayout({
             />
           </div>
           <div className="py-8 sm:p-8 flex flex-col gap-20">
-            {hackathon.content.tracks_text && <About hackathon={hackathon} />}
-            {hackathon.content.tracks && <Tracks hackathon={hackathon} />}
-            <Resources hackathon={hackathon} />
-            {hackathon.content.schedule && <Schedule hackathon={hackathon} />}
+            {hasAbout && <About hackathon={hackathon} />}
+            {hasTracks && <Tracks hackathon={hackathon} />}
+            {hasResources && <Resources hackathon={hackathon} />}
+            {hasSchedule && <Schedule hackathon={hackathon} />}
             <Submission hackathon={hackathon} />
-            {hackathon.content.speakers &&
-              hackathon.content.speakers.length > 0 && (
-                <MentorsJudges hackathon={hackathon} />
-              )}
+            {hasSpeakers && <MentorsJudges hackathon={hackathon} />}
             <Community hackathon={hackathon} />
-            {hackathon.content.partners?.length > 0 && (
-              <Sponsors hackathon={hackathon} />
-            )}
+            {hasPartners && <Sponsors hackathon={hackathon} />}
           </div>
         </div>
       </div>
