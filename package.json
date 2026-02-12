@@ -88,7 +88,7 @@
     "ai": "^6.0.33",
     "algoliasearch": "^5.39.0",
     "autocannon": "^8.0.0",
-    "axios": "^1.12.2",
+    "axios": "^1.13.5",
     "boring-name-generator": "^1.0.3",
     "canvas-confetti": "^1.9.4",
     "class-variance-authority": "^0.7.1",
