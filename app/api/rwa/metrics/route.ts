@@ -16,6 +16,7 @@ interface SerializedAllMetrics {
     capitalTurnover: number
     lifeSinceInception: number
     avgCapitalRecycling: number
+    averageCapitalUtilization: number
   }
   oatfi: {
     capitalOutstanding: string

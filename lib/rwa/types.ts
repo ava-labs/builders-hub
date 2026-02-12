@@ -7,6 +7,7 @@ export interface GeneralMetrics {
   capitalTurnover: number
   lifeSinceInception: number
   avgCapitalRecycling: number
+  averageCapitalUtilization: number
 }
 
 export interface OatFiMetrics {

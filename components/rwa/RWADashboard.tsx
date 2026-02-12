@@ -11,6 +11,7 @@ import { CapitalFlowSankey } from './CapitalFlowSankey'
 import { TimeSeriesCharts } from './TimeSeriesCharts'
 import { DateRangeSelector } from './DateRangeSelector'
 import { ExportMenu } from './ExportMenu'
+import { PartnerLogos } from './PartnerLogos'
 import type { TimeInterval, DateRange } from '@/lib/rwa/types'
 
 const DASHBOARD_ELEMENT_ID = 'rwa-dashboard-content'
@@ -70,6 +71,8 @@ export function RWADashboard() {
             Last updated: {new Date(metrics.lastUpdated).toLocaleString()}
           </p>
         )}
+
+        <PartnerLogos />
       </div>
 
       {/* Error state */}

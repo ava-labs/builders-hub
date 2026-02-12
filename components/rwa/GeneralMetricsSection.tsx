@@ -13,6 +13,7 @@ import {
   RotateCcw,
   Calendar,
   Timer,
+  Gauge,
 } from 'lucide-react'
 import type { GeneralMetrics } from '@/lib/rwa/types'
 import { bigintToNumber } from '@/lib/rwa/utils'
@@ -43,20 +44,20 @@ function KeyMetricCard({
   value: number | bigint | null | undefined
   icon: React.ComponentType<{ className?: string }>
   isLoading?: boolean
-  accentColor: 'emerald' | 'cyan' | 'orange'
+  accentColor: 'indigo-600' | 'indigo-500' | 'indigo-400'
 }) {
   const colorClasses = {
-    emerald: {
-      border: 'border-l-emerald-500',
-      icon: 'text-emerald-600 dark:text-emerald-400',
+    'indigo-600': {
+      border: 'border-l-indigo-600',
+      icon: 'text-indigo-600 dark:text-indigo-400',
     },
-    cyan: {
-      border: 'border-l-cyan-500',
-      icon: 'text-cyan-600 dark:text-cyan-400',
+    'indigo-500': {
+      border: 'border-l-indigo-500',
+      icon: 'text-indigo-500 dark:text-indigo-300',
     },
-    orange: {
-      border: 'border-l-orange-500',
-      icon: 'text-orange-600 dark:text-orange-400',
+    'indigo-400': {
+      border: 'border-l-indigo-400',
+      icon: 'text-indigo-400 dark:text-indigo-300',
     },
   }
 
@@ -93,19 +94,19 @@ const PRIMARY_METRICS = [
     key: 'transactedVolume' as const,
     label: 'Transacted Volume',
     icon: DollarSign,
-    accentColor: 'cyan' as const,
+    accentColor: 'indigo-600' as const,
   },
   {
     key: 'committedCapital' as const,
-    label: 'Committed Capital',
+    label: 'Lender Invested Capital',
     icon: Wallet,
-    accentColor: 'emerald' as const,
+    accentColor: 'indigo-500' as const,
   },
   {
     key: 'assetsFinanced' as const,
     label: 'Assets Financed',
     icon: TrendingUp,
-    accentColor: 'orange' as const,
+    accentColor: 'indigo-400' as const,
   },
 ]
 
@@ -128,7 +129,7 @@ const SECONDARY_METRICS = [
     key: 'capitalTurnover' as const,
     label: 'Capital Turnover',
     format: 'ratio' as const,
-    tooltip: 'Assets Financed / Committed Capital',
+    tooltip: 'Assets Financed / Lender Invested Capital',
     icon: RotateCcw,
   },
   {
@@ -144,6 +145,13 @@ const SECONDARY_METRICS = [
     format: 'days' as const,
     tooltip: 'Life Since Inception / Capital Turnover',
     icon: Timer,
+  },
+  {
+    key: 'averageCapitalUtilization' as const,
+    label: 'Avg Capital Utilization',
+    format: 'percentage' as const,
+    tooltip: 'Average daily capital utilization rate over facility lifetime',
+    icon: Gauge,
   },
 ]
 
@@ -168,7 +176,7 @@ export function GeneralMetricsSection({
         ))}
       </div>
 
-      <MetricGrid columns={4}>
+      <MetricGrid columns={3}>
         {SECONDARY_METRICS.map((config) =>
           isLoading ? (
             <MetricCardLoading key={config.key} />

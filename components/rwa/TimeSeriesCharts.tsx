@@ -26,6 +26,8 @@ import {
   Combine,
 } from 'lucide-react'
 import { useChartZoom } from '@/lib/rwa/hooks/useChartZoom'
+import { toCumulative } from '@/lib/rwa/calculations/aggregations'
+import { RWA_COLORS } from '@/lib/rwa/constants/colors'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -34,6 +36,7 @@ import { cn } from '@/lib/utils'
 import type { HistoricalData, TimeInterval } from '@/lib/rwa/types'
 
 type ChartType = 'area' | 'bar' | 'line'
+type ViewMode = 'periodic' | 'cumulative'
 
 interface TimeSeriesChartsProps {
   historical: HistoricalData | null
@@ -43,12 +46,7 @@ interface TimeSeriesChartsProps {
   hideHeader?: boolean
 }
 
-const COLORS = {
-  transactedVolume: '#6366f1',
-  assetsFinanced: '#10b981',
-  lenderRepayments: '#f59e0b',
-  capitalUtilization: '#f97316',
-}
+const COLORS = RWA_COLORS.chart
 
 function formatCurrency(value: number): string {
   if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(1)}M`
@@ -139,6 +137,41 @@ function ChartTypeSelector({
   )
 }
 
+function ViewModeToggle({
+  value,
+  onChange,
+}: {
+  value: ViewMode
+  onChange: (mode: ViewMode) => void
+}) {
+  return (
+    <div className="flex items-center gap-1 bg-muted rounded-md p-0.5">
+      <Button
+        variant="ghost"
+        size="sm"
+        className={cn(
+          'h-7 px-2 text-xs',
+          value === 'periodic' && 'bg-background shadow-sm'
+        )}
+        onClick={() => onChange('periodic')}
+      >
+        Periodic
+      </Button>
+      <Button
+        variant="ghost"
+        size="sm"
+        className={cn(
+          'h-7 px-2 text-xs',
+          value === 'cumulative' && 'bg-background shadow-sm'
+        )}
+        onClick={() => onChange('cumulative')}
+      >
+        Cumulative
+      </Button>
+    </div>
+  )
+}
+
 function ChartControls({
   isZoomed,
   onResetZoom,
@@ -170,6 +203,7 @@ interface SingleChartProps {
   defaultType?: ChartType
   isLoading?: boolean
   formatFn?: (value: number) => string
+  showViewModeToggle?: boolean
 }
 
 function SingleChart({
@@ -179,8 +213,18 @@ function SingleChart({
   defaultType = 'bar',
   isLoading = false,
   formatFn = formatCurrency,
+  showViewModeToggle = false,
 }: SingleChartProps) {
   const [chartType, setChartType] = useState<ChartType>(defaultType)
+  const [viewMode, setViewMode] = useState<ViewMode>('periodic')
+
+  const displayData = useMemo(() => {
+    if (viewMode === 'cumulative' && showViewModeToggle) {
+      return toCumulative(data)
+    }
+    return data
+  }, [data, viewMode, showViewModeToggle])
+
   const {
     zoomState,
     zoomedData,
@@ -189,12 +233,12 @@ function SingleChart({
     handleMouseMove,
     handleMouseUp,
     resetZoom,
-  } = useChartZoom(data)
+  } = useChartZoom(displayData)
 
   if (isLoading) {
     return (
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0">
+        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <CardTitle className="text-lg">{title}</CardTitle>
           <Skeleton className="h-8 w-24" />
         </CardHeader>
@@ -208,7 +252,7 @@ function SingleChart({
   if (!data || data.length === 0) {
     return (
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0">
+        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <CardTitle className="text-lg">{title}</CardTitle>
           <ChartTypeSelector value={chartType} onChange={setChartType} />
         </CardHeader>
@@ -242,9 +286,14 @@ function SingleChart({
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0">
+      <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <CardTitle className="text-lg">{title}</CardTitle>
-        <ChartTypeSelector value={chartType} onChange={setChartType} />
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {showViewModeToggle && (
+            <ViewModeToggle value={viewMode} onChange={setViewMode} />
+          )}
+          <ChartTypeSelector value={chartType} onChange={setChartType} />
+        </div>
       </CardHeader>
       <CardContent className="relative">
         <ChartControls isZoomed={isZoomed} onResetZoom={resetZoom} />
@@ -312,18 +361,29 @@ function StackedComparisonChart({
 }) {
   const [viewMode, setViewMode] = useState<'combined' | 'separated'>('combined')
   const [combinedChartType, setCombinedChartType] = useState<ChartType>('bar')
+  const [dataViewMode, setDataViewMode] = useState<ViewMode>('periodic')
+
+  const displayAssetsFinanced = useMemo(
+    () => dataViewMode === 'cumulative' ? toCumulative(assetsFinanced) : assetsFinanced,
+    [assetsFinanced, dataViewMode]
+  )
+
+  const displayLenderRepayments = useMemo(
+    () => dataViewMode === 'cumulative' ? toCumulative(lenderRepayments) : lenderRepayments,
+    [lenderRepayments, dataViewMode]
+  )
 
   const combinedData = useMemo(() => {
     const dateMap = new Map<string, { assetsFinanced: number; lenderRepayments: number }>()
 
-    assetsFinanced?.forEach((item) => {
+    displayAssetsFinanced?.forEach((item) => {
       dateMap.set(item.date, {
         assetsFinanced: item.value,
         lenderRepayments: 0,
       })
     })
 
-    lenderRepayments?.forEach((item) => {
+    displayLenderRepayments?.forEach((item) => {
       const existing = dateMap.get(item.date)
       if (existing) {
         dateMap.set(item.date, { ...existing, lenderRepayments: item.value })
@@ -338,7 +398,7 @@ function StackedComparisonChart({
     return Array.from(dateMap.entries())
       .sort((a, b) => a[0].localeCompare(b[0]))
       .map(([date, values]) => ({ date, ...values }))
-  }, [assetsFinanced, lenderRepayments])
+  }, [displayAssetsFinanced, displayLenderRepayments])
 
   const toggleButton = (
     <Button
@@ -359,9 +419,9 @@ function StackedComparisonChart({
   if (isLoading) {
     return (
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0">
+        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <CardTitle className="text-lg">Assets Financed vs Repayments</CardTitle>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-shrink-0">
             <Skeleton className="h-8 w-24" />
             {toggleButton}
           </div>
@@ -376,9 +436,10 @@ function StackedComparisonChart({
   if (combinedData.length === 0) {
     return (
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0">
+        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <CardTitle className="text-lg">Assets Financed vs Repayments</CardTitle>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <ViewModeToggle value={dataViewMode} onChange={setDataViewMode} />
             <ChartTypeSelector value={combinedChartType} onChange={setCombinedChartType} />
             {toggleButton}
           </div>
@@ -397,18 +458,21 @@ function StackedComparisonChart({
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold">Assets Financed vs Repayments</h3>
-          {toggleButton}
+          <div className="flex items-center gap-2">
+            <ViewModeToggle value={dataViewMode} onChange={setDataViewMode} />
+            {toggleButton}
+          </div>
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <SingleChart
             title="Assets Financed"
-            data={assetsFinanced}
+            data={displayAssetsFinanced}
             color={COLORS.assetsFinanced}
             defaultType="bar"
           />
           <SingleChart
             title="Lender Repayments"
-            data={lenderRepayments}
+            data={displayLenderRepayments}
             color={COLORS.lenderRepayments}
             defaultType="bar"
           />
@@ -419,9 +483,10 @@ function StackedComparisonChart({
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0">
+      <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <CardTitle className="text-lg">Assets Financed vs Repayments</CardTitle>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <ViewModeToggle value={dataViewMode} onChange={setDataViewMode} />
           <ChartTypeSelector value={combinedChartType} onChange={setCombinedChartType} />
           {toggleButton}
         </div>
@@ -435,7 +500,7 @@ function StackedComparisonChart({
               <YAxis tickFormatter={formatCurrency} tick={{ fontSize: 12 }} />
               <Tooltip content={<CustomTooltip isCurrency={true} />} />
               <Legend />
-              <Brush dataKey="date" height={30} stroke="#8884d8" />
+              <Brush dataKey="date" height={30} stroke="#6366f1" />
               <Bar
                 dataKey="assetsFinanced"
                 fill={COLORS.assetsFinanced}
@@ -454,7 +519,7 @@ function StackedComparisonChart({
               <YAxis tickFormatter={formatCurrency} tick={{ fontSize: 12 }} />
               <Tooltip content={<CustomTooltip isCurrency={true} />} />
               <Legend />
-              <Brush dataKey="date" height={30} stroke="#8884d8" />
+              <Brush dataKey="date" height={30} stroke="#6366f1" />
               <Line
                 type="monotone"
                 dataKey="assetsFinanced"
@@ -479,7 +544,7 @@ function StackedComparisonChart({
               <YAxis tickFormatter={formatCurrency} tick={{ fontSize: 12 }} />
               <Tooltip content={<CustomTooltip isCurrency={true} />} />
               <Legend />
-              <Brush dataKey="date" height={30} stroke="#8884d8" />
+              <Brush dataKey="date" height={30} stroke="#6366f1" />
               <Area
                 type="monotone"
                 dataKey="assetsFinanced"
@@ -588,6 +653,7 @@ export function TimeSeriesCharts({
           color={COLORS.transactedVolume}
           defaultType="bar"
           isLoading={isLoading}
+          showViewModeToggle
         />
 
         <SingleChart

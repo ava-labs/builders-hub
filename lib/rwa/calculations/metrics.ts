@@ -4,19 +4,17 @@ import {
   getLenderTransfers,
 } from '../glacier/transactions'
 import { ADDRESSES, normalizeAddress } from '../constants/addresses'
+import { aggregateByPeriod, calculateUtilizationSeries } from './aggregations'
 import type { GeneralMetrics, OatFiMetrics, AllMetrics, ParsedTransfer } from '../types'
 
 function calculateTransactedVolume(
   transfersByAddress: Map<string, ParsedTransfer[]>
 ): bigint {
   let total = BigInt(0)
-  const seenTxHashes = new Set<string>()
 
   for (const [, transfers] of transfersByAddress) {
     for (const transfer of transfers) {
       if (transfer.isInternal) continue
-      if (seenTxHashes.has(transfer.txHash)) continue
-      seenTxHashes.add(transfer.txHash)
       total += transfer.amount
     }
   }
@@ -100,6 +98,21 @@ export async function calculateAllMetrics(forceRefresh = false): Promise<AllMetr
 
   const avgCapitalRecycling = capitalTurnover > 0 ? lifeSinceInception / capitalTurnover : 0
 
+  const assetsFinancedTransfers = tranchePoolTransfers.filter(
+    (t) => t.to === borrowerAddress
+  )
+  const repaymentTransfers = borrowerTransfers.filter(
+    (t) => t.to === tranchePoolAddress
+  )
+  const utilizationSeries = calculateUtilizationSeries(
+    aggregateByPeriod(lenderTransfers, 'daily'),
+    aggregateByPeriod(repaymentTransfers, 'daily'),
+    aggregateByPeriod(assetsFinancedTransfers, 'daily')
+  )
+  const averageCapitalUtilization = utilizationSeries.length > 0
+    ? utilizationSeries.reduce((sum, p) => sum + p.value, 0) / utilizationSeries.length
+    : 0
+
   const general: GeneralMetrics = {
     transactedVolume,
     assetsFinanced,
@@ -109,6 +122,7 @@ export async function calculateAllMetrics(forceRefresh = false): Promise<AllMetr
     capitalTurnover,
     lifeSinceInception,
     avgCapitalRecycling,
+    averageCapitalUtilization,
   }
 
   const capitalOutstanding =

@@ -43,7 +43,7 @@ function formatDate(date: Date, interval: TimeInterval): string {
   }
 }
 
-function aggregateByPeriod(
+export function aggregateByPeriod(
   transfers: ParsedTransfer[],
   interval: TimeInterval
 ): TimeSeriesDataPoint[] {
@@ -61,7 +61,7 @@ function aggregateByPeriod(
     .map(([date, value]) => ({ date, value: bigintToNumber(value) }))
 }
 
-function calculateUtilizationSeries(
+export function calculateUtilizationSeries(
   committedSeries: TimeSeriesDataPoint[],
   repaymentsSeries: TimeSeriesDataPoint[],
   financedSeries: TimeSeriesDataPoint[]
@@ -123,6 +123,14 @@ function filterByDateRange(
   })
 }
 
+export function toCumulative(series: TimeSeriesDataPoint[]): TimeSeriesDataPoint[] {
+  let runningTotal = 0
+  return series.map((point) => ({
+    date: point.date,
+    value: (runningTotal += point.value),
+  }))
+}
+
 export async function calculateHistoricalData(
   interval: TimeInterval = 'daily',
   forceRefresh = false,
@@ -149,14 +157,9 @@ export async function calculateHistoricalData(
   const borrowerTransfers = transfersByAddress.get(borrowerAddress) ?? []
 
   const allTransfers = [...tranchePoolTransfers, ...borrowerTransfers]
-  const seenTxHashes = new Set<string>()
-  const uniqueExternalTransfers = allTransfers.filter((t) => {
-    if (t.isInternal || seenTxHashes.has(t.txHash)) return false
-    seenTxHashes.add(t.txHash)
-    return true
-  })
+  const externalTransfers = allTransfers.filter((t) => !t.isInternal)
 
-  const transactedVolume = aggregateByPeriod(uniqueExternalTransfers, interval)
+  const transactedVolume = aggregateByPeriod(externalTransfers, interval)
 
   const assetsFinancedTransfers = tranchePoolTransfers.filter(
     (t) => t.to === borrowerAddress
