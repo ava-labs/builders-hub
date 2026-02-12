@@ -67,7 +67,10 @@ function TrendIndicator({
         : 'text-gray-400'
 
   return (
-    <span className={`flex items-center gap-0.5 sm:gap-1 text-xs sm:text-sm shrink-0 ${colorClass}`}>
+    <span
+      aria-label={`Trend: ${trend.direction} ${trend.value > 0 ? '+' : ''}${trend.value.toFixed(1)}%`}
+      className={`flex items-center gap-0.5 sm:gap-1 text-xs sm:text-sm shrink-0 ${colorClass}`}
+    >
       <Icon className="h-3 w-3 sm:h-4 sm:w-4" />
       {trend.value > 0 ? '+' : ''}
       {trend.value.toFixed(1)}%

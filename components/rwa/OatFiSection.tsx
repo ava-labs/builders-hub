@@ -8,6 +8,7 @@ import type { OatFiMetrics } from '@/lib/rwa/types'
 interface OatFiSectionProps {
   metrics: OatFiMetrics | null
   isLoading?: boolean
+  error?: string | null
 }
 
 const METRIC_CONFIG = [
@@ -37,7 +38,19 @@ const METRIC_CONFIG = [
 export function OatFiSection({
   metrics,
   isLoading = false,
+  error,
 }: OatFiSectionProps) {
+  if (error && !isLoading) {
+    return (
+      <section>
+        <h2 className="text-lg font-medium text-muted-foreground mb-4">OatFi Breakdown</h2>
+        <div className="rounded-lg border border-destructive/50 bg-destructive/5 p-4 text-sm text-destructive">
+          {error}
+        </div>
+      </section>
+    )
+  }
+
   return (
     <section>
       <h2 className="text-lg font-medium text-muted-foreground mb-4">OatFi Breakdown</h2>

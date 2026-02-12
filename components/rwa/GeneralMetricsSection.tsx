@@ -21,6 +21,7 @@ import { bigintToNumber } from '@/lib/rwa/utils'
 interface GeneralMetricsSectionProps {
   metrics: GeneralMetrics | null
   isLoading?: boolean
+  error?: string | null
 }
 
 function formatCurrencyDisplay(value: number | bigint): string {
@@ -158,7 +159,19 @@ const SECONDARY_METRICS = [
 export function GeneralMetricsSection({
   metrics,
   isLoading = false,
+  error,
 }: GeneralMetricsSectionProps) {
+  if (error && !isLoading) {
+    return (
+      <section className="space-y-6">
+        <h2 className="text-xl font-semibold">Key Metrics</h2>
+        <div className="rounded-lg border border-destructive/50 bg-destructive/5 p-4 text-sm text-destructive">
+          {error}
+        </div>
+      </section>
+    )
+  }
+
   return (
     <section className="space-y-6">
       <h2 className="text-xl font-semibold">Key Metrics</h2>

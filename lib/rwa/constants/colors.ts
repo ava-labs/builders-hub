@@ -1,3 +1,5 @@
+// Accent colors use Tailwind class names (for className-based styling).
+// Chart colors use hex values (required by Recharts SVG rendering).
 export const RWA_COLORS = {
   accent: {
     primary: 'indigo-600',

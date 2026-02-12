@@ -11,6 +11,17 @@ import {
 import type { GeneralMetrics } from '@/lib/rwa/types'
 import { bigintToNumber, formatCurrency } from '@/lib/rwa/utils'
 
+const FLOW_LABELS = {
+  lenders: { name: 'Lenders', subtitle: 'Capital source' },
+  tranchePool: { name: 'Tranche Pool', subtitle: 'SPV vehicle' },
+  borrower: { name: 'Borrower', subtitle: 'Asset originator' },
+  pool: { name: 'Pool', subtitle: 'Redistribution' },
+  borrowerReturn: { name: 'Borrower', subtitle: 'Repayments' },
+  invested: 'Invested',
+  deployed: 'Deployed',
+  repaid: 'Repaid',
+} as const
+
 interface CapitalFlowSankeyProps {
   metrics: GeneralMetrics | null
   isLoading?: boolean
@@ -163,20 +174,20 @@ export function CapitalFlowSankey({ metrics, isLoading = false }: CapitalFlowSan
           {/* Lenders → Tranche Pool → Borrower */}
           <div className="flex items-center gap-3">
             <EntityNode
-              name="Lenders"
-              subtitle="Capital source"
+              name={FLOW_LABELS.lenders.name}
+              subtitle={FLOW_LABELS.lenders.subtitle}
               colorClasses="bg-indigo-500/10 border-indigo-500/20"
             />
-            <FlowConnector value={flowData.committed} label="Invested" />
+            <FlowConnector value={flowData.committed} label={FLOW_LABELS.invested} />
             <EntityNode
-              name="Tranche Pool"
-              subtitle="SPV vehicle"
+              name={FLOW_LABELS.tranchePool.name}
+              subtitle={FLOW_LABELS.tranchePool.subtitle}
               colorClasses="bg-indigo-400/10 border-indigo-400/20"
             />
-            <FlowConnector value={flowData.financed} label="Deployed" />
+            <FlowConnector value={flowData.financed} label={FLOW_LABELS.deployed} />
             <EntityNode
-              name="Borrower"
-              subtitle="Asset originator"
+              name={FLOW_LABELS.borrower.name}
+              subtitle={FLOW_LABELS.borrower.subtitle}
               colorClasses="bg-indigo-600/10 border-indigo-600/20"
             />
           </div>
@@ -188,14 +199,14 @@ export function CapitalFlowSankey({ metrics, isLoading = false }: CapitalFlowSan
 
           <div className="flex items-center gap-3">
             <EntityNode
-              name="Borrower"
-              subtitle="Repayments"
+              name={FLOW_LABELS.borrowerReturn.name}
+              subtitle={FLOW_LABELS.borrowerReturn.subtitle}
               colorClasses="bg-indigo-600/10 border-indigo-600/20"
             />
-            <FlowConnector value={flowData.repayments} label="Repaid" />
+            <FlowConnector value={flowData.repayments} label={FLOW_LABELS.repaid} />
             <EntityNode
-              name="Pool"
-              subtitle="Redistribution"
+              name={FLOW_LABELS.pool.name}
+              subtitle={FLOW_LABELS.pool.subtitle}
               colorClasses="bg-indigo-400/10 border-indigo-400/20"
             />
           </div>
@@ -209,20 +220,20 @@ export function CapitalFlowSankey({ metrics, isLoading = false }: CapitalFlowSan
 
           <div className="flex flex-col items-center">
             <EntityNode
-              name="Lenders"
-              subtitle="Capital source"
+              name={FLOW_LABELS.lenders.name}
+              subtitle={FLOW_LABELS.lenders.subtitle}
               colorClasses="bg-indigo-500/10 border-indigo-500/20"
             />
-            <VerticalFlowConnector value={flowData.committed} label="Invested" />
+            <VerticalFlowConnector value={flowData.committed} label={FLOW_LABELS.invested} />
             <EntityNode
-              name="Tranche Pool"
-              subtitle="SPV vehicle"
+              name={FLOW_LABELS.tranchePool.name}
+              subtitle={FLOW_LABELS.tranchePool.subtitle}
               colorClasses="bg-indigo-400/10 border-indigo-400/20"
             />
-            <VerticalFlowConnector value={flowData.financed} label="Deployed" />
+            <VerticalFlowConnector value={flowData.financed} label={FLOW_LABELS.deployed} />
             <EntityNode
-              name="Borrower"
-              subtitle="Asset originator"
+              name={FLOW_LABELS.borrower.name}
+              subtitle={FLOW_LABELS.borrower.subtitle}
               colorClasses="bg-indigo-600/10 border-indigo-600/20"
             />
           </div>
@@ -233,14 +244,14 @@ export function CapitalFlowSankey({ metrics, isLoading = false }: CapitalFlowSan
 
           <div className="flex flex-col items-center">
             <EntityNode
-              name="Borrower"
-              subtitle="Repayments"
+              name={FLOW_LABELS.borrowerReturn.name}
+              subtitle={FLOW_LABELS.borrowerReturn.subtitle}
               colorClasses="bg-indigo-600/10 border-indigo-600/20"
             />
-            <VerticalFlowConnector value={flowData.repayments} label="Repaid" />
+            <VerticalFlowConnector value={flowData.repayments} label={FLOW_LABELS.repaid} />
             <EntityNode
-              name="Pool"
-              subtitle="Redistribution"
+              name={FLOW_LABELS.pool.name}
+              subtitle={FLOW_LABELS.pool.subtitle}
               colorClasses="bg-indigo-400/10 border-indigo-400/20"
             />
           </div>

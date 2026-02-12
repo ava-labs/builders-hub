@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { calculateAllMetrics } from '@/lib/rwa/calculations/metrics'
 import { cache, CacheKeys } from '@/lib/rwa/glacier/cache'
 import { serializeBigints } from '@/lib/rwa/utils'
+import { checkRateLimit } from '@/lib/rwa/middleware/rate-limit'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 300
@@ -24,28 +25,6 @@ interface SerializedAllMetrics {
     convertedUsdc: string
   }
   lastUpdated: string
-}
-
-const rateLimitStore = new Map<string, { count: number; resetAt: number }>()
-
-function checkRateLimit(request: Request): { allowed: boolean; remaining: number; retryAfter?: number } {
-  const forwarded = request.headers.get('x-forwarded-for')
-  const clientId = forwarded ? forwarded.split(',')[0].trim() : 'anonymous'
-
-  const now = Date.now()
-  const entry = rateLimitStore.get(clientId)
-
-  if (!entry || entry.resetAt <= now) {
-    rateLimitStore.set(clientId, { count: 1, resetAt: now + 60_000 })
-    return { allowed: true, remaining: 59 }
-  }
-
-  if (entry.count >= 60) {
-    return { allowed: false, remaining: 0, retryAfter: Math.ceil((entry.resetAt - now) / 1000) }
-  }
-
-  entry.count++
-  return { allowed: true, remaining: 60 - entry.count }
 }
 
 export async function GET(request: Request) {

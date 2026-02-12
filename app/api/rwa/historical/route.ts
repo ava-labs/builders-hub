@@ -4,6 +4,7 @@ import {
   calculateHistoricalData,
   getMetricTimeSeries,
 } from '@/lib/rwa/calculations/aggregations'
+import { checkRateLimit } from '@/lib/rwa/middleware/rate-limit'
 import type { TimeInterval, HistoricalData } from '@/lib/rwa/types'
 
 export const dynamic = 'force-dynamic'
@@ -24,28 +25,6 @@ const querySchema = z.object({
   startDate: z.string().optional(),
   endDate: z.string().optional(),
 })
-
-const rateLimitStore = new Map<string, { count: number; resetAt: number }>()
-
-function checkRateLimit(request: Request): { allowed: boolean; retryAfter?: number } {
-  const forwarded = request.headers.get('x-forwarded-for')
-  const clientId = forwarded ? forwarded.split(',')[0].trim() : 'anonymous'
-
-  const now = Date.now()
-  const entry = rateLimitStore.get(clientId)
-
-  if (!entry || entry.resetAt <= now) {
-    rateLimitStore.set(clientId, { count: 1, resetAt: now + 60_000 })
-    return { allowed: true }
-  }
-
-  if (entry.count >= 60) {
-    return { allowed: false, retryAfter: Math.ceil((entry.resetAt - now) / 1000) }
-  }
-
-  entry.count++
-  return { allowed: true }
-}
 
 export async function GET(request: Request) {
   const rateLimit = checkRateLimit(request)
