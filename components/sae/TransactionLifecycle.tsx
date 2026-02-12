@@ -47,7 +47,7 @@ export function TransactionLifecycle() {
   const isDark = !mounted || domTheme === 'dark' || (domTheme === undefined && (resolvedTheme === "dark" || resolvedTheme === undefined))
 
   const colors: Colors = {
-    bg: isDark ? "bg-[#0a0a0a]" : "bg-[#fafafa]",
+    bg: "bg-transparent",
     text: isDark ? "text-white" : "text-black",
     textMuted: isDark ? "text-white/50" : "text-black/50",
     textFaint: isDark ? "text-white/20" : "text-black/20",
@@ -62,7 +62,7 @@ export function TransactionLifecycle() {
 
   return (
     <div
-      className={`relative w-full min-h-screen ${colors.bg} flex flex-col items-center justify-center p-4 md:p-12 overflow-x-hidden`}
+      className={`relative w-full ${colors.bg} flex flex-col items-center justify-center p-4 md:p-12 overflow-x-hidden`}
     >
       {/* Header */}
       <div className="text-center mb-4 md:mb-16 max-w-5xl w-full mx-auto px-2">
