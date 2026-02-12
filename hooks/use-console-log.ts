@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { ConsoleLog } from '@/types/console-log';
+import { useConsoleBadgeNotificationStore } from '@/stores/consoleBadgeNotificationStore';
 
 /**
  * Hook for managing console log/history
@@ -71,6 +72,9 @@ export const useConsoleLog = (autoFetch: boolean = false) => {
 
       if (response.ok) {
         const savedItem = await response.json();
+        if (savedItem.awardedBadges?.length > 0) {
+          useConsoleBadgeNotificationStore.getState().addBadges(savedItem.awardedBadges);
+        }
         const logItem: ConsoleLog = {
           id: savedItem.id,
           timestamp: new Date(savedItem.created_at),

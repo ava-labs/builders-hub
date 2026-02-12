@@ -6,6 +6,7 @@ import { CreateNodeRequest, SubnetStatusResponse } from './types';
 import { prisma } from '@/prisma/prisma';
 import { SUBNET_EVM_VM_ID } from '@/constants/console';
 import { checkAndAwardConsoleBadges } from '@/server/services/consoleBadge/consoleBadgeService';
+import type { AwardedConsoleBadge } from '@/server/services/consoleBadge/types';
 
 // Types moved to ./types
 
@@ -81,7 +82,9 @@ async function handleCreateNode(request: NextRequest): Promise<NextResponse> {
       const createdNode = await createDbNode({ userId: userId!, subnetId, blockchainId, newestNode, chainName });
       if (!createdNode) return jsonError(409, 'Node already exists for this user (active)');
 
-      checkAndAwardConsoleBadges(userId!, 'node_registration').catch(console.error);
+      let awardedBadges: AwardedConsoleBadge[] = [];
+      try { awardedBadges = await checkAndAwardConsoleBadges(userId!, 'node_registration'); }
+      catch (e) { console.error('Badge check failed:', e); }
 
       return jsonOk({
         node: createdNode,
@@ -89,7 +92,8 @@ async function handleCreateNode(request: NextRequest): Promise<NextResponse> {
           nodeID: newestNode.nodeInfo.result.nodeID,
           nodePOP: newestNode.nodeInfo.result.nodePOP,
           nodeIndex: newestNode.nodeIndex
-        }
+        },
+        awardedBadges,
       }, 201);
     } else {
       return jsonError(502, 'No nodes returned from Builder Hub');

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthSession } from '@/lib/auth/authSession';
 import { prisma } from '@/prisma/prisma';
 import { checkAndAwardConsoleBadges } from '@/server/services/consoleBadge/consoleBadgeService';
+import type { AwardedConsoleBadge } from '@/server/services/consoleBadge/types';
 
 // GET /api/console-log - Get user's console logs
 export async function GET(req: NextRequest) {
@@ -49,9 +50,11 @@ export async function POST(req: NextRequest) {
       }
     });
 
-    checkAndAwardConsoleBadges(session.user.id, 'console_log').catch(console.error);
+    let awardedBadges: AwardedConsoleBadge[] = [];
+    try { awardedBadges = await checkAndAwardConsoleBadges(session.user.id, 'console_log'); }
+    catch (e) { console.error('Badge check failed:', e); }
 
-    return NextResponse.json(logEntry);
+    return NextResponse.json({ ...logEntry, awardedBadges });
   } catch (error) {
     console.error('Error adding console log:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

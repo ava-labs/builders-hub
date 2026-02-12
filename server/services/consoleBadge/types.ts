@@ -10,6 +10,14 @@ export interface ConsoleBadgeDefinition {
   requirementDescription: string;
 }
 
+export interface AwardedConsoleBadge {
+  name: string;
+  tier: string;
+  description: string;
+  imagePath: string;
+  requirementDescription: string;
+}
+
 export const CONSOLE_BADGE_NAMES = {
   FIRST_BLOOD: 'First Blood',
   RECRUIT: 'Recruit',

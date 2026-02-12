@@ -1,6 +1,6 @@
 import { prisma } from "@/prisma/prisma";
 import { BadgeAwardStatus } from "@/types/badge";
-import { ConsoleOperationType, ConsoleBadgeDefinition, CONSOLE_BADGE_NAMES } from "./types";
+import { ConsoleOperationType, ConsoleBadgeDefinition, CONSOLE_BADGE_NAMES, AwardedConsoleBadge } from "./types";
 import {
   evaluateFirstBlood,
   evaluateRecruit,
@@ -168,7 +168,9 @@ const CONSOLE_BADGES: ConsoleBadgeDefinition[] = [
 export async function checkAndAwardConsoleBadges(
   userId: string,
   operationType: ConsoleOperationType
-): Promise<void> {
+): Promise<AwardedConsoleBadge[]> {
+  const newlyAwarded: AwardedConsoleBadge[] = [];
+
   const relevantBadges = CONSOLE_BADGES.filter((badge) =>
     badge.triggeredBy.includes(operationType)
   );
@@ -222,11 +224,20 @@ export async function checkAndAwardConsoleBadges(
             evidence: [{ id: '1', description: badgeDef.requirementDescription, unlocked: true }],
           },
         });
+        newlyAwarded.push({
+          name: badgeDef.name,
+          tier: badgeDef.tier,
+          description: badgeDef.description,
+          imagePath: badgeDef.imagePath,
+          requirementDescription: badgeDef.requirementDescription,
+        });
       }
     } catch (error) {
       console.error(`Error evaluating console badge "${badgeDef.name}" for user ${userId}:`, error);
     }
   }
+
+  return newlyAwarded;
 }
 
 /**

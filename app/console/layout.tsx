@@ -10,6 +10,7 @@ import { WalletProvider } from "@/components/toolbox/providers/WalletProvider";
 import { useAutomatedFaucet } from "@/hooks/useAutomatedFaucet";
 import { TrackNewUser } from "@/components/analytics/TrackNewUser";
 import { LoginModalWrapper } from "@/components/login/LoginModalWrapper";
+import { ConsoleBadgeNotification } from "@/components/console/ConsoleBadgeNotification";
 
 function ConsoleContent({ children }: { children: ReactNode }) {
   useAutomatedFaucet();
@@ -34,6 +35,7 @@ function ConsoleContent({ children }: { children: ReactNode }) {
         </SidebarInset>
       </SidebarProvider>
       <Toaster position="bottom-right" richColors expand={true} visibleToasts={5}/>
+      <ConsoleBadgeNotification />
     </WalletProvider>
   );
 }
