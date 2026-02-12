@@ -241,10 +241,12 @@ export async function checkAndAwardConsoleBadges(
 }
 
 /**
- * Evaluate all 15 console badges for a user (used for retroactive migration).
- * Returns the number of badges awarded.
+ * Evaluate all 15 console badges for a user (used for retroactive migration and first-load check).
+ * Returns the array of newly awarded badges.
  */
-export async function evaluateAllConsoleBadges(userId: string): Promise<number> {
+export async function evaluateAllConsoleBadges(userId: string): Promise<AwardedConsoleBadge[]> {
+  const newlyAwarded: AwardedConsoleBadge[] = [];
+
   const dbBadges = await prisma.badge.findMany({
     where: { category: 'console' },
   });
@@ -260,7 +262,6 @@ export async function evaluateAllConsoleBadges(userId: string): Promise<number> 
   });
 
   const awardedBadgeIds = new Set(awardedBadges.map((b) => b.badge_id));
-  let awarded = 0;
 
   for (const badgeDef of CONSOLE_BADGES) {
     const dbBadge = dbBadgeMap.get(badgeDef.name);
@@ -293,12 +294,18 @@ export async function evaluateAllConsoleBadges(userId: string): Promise<number> 
             evidence: [{ id: '1', description: badgeDef.requirementDescription, unlocked: true }],
           },
         });
-        awarded++;
+        newlyAwarded.push({
+          name: badgeDef.name,
+          tier: badgeDef.tier,
+          description: badgeDef.description,
+          imagePath: badgeDef.imagePath,
+          requirementDescription: badgeDef.requirementDescription,
+        });
       }
     } catch (error) {
       console.error(`Error evaluating console badge "${badgeDef.name}" for user ${userId}:`, error);
     }
   }
 
-  return awarded;
+  return newlyAwarded;
 }

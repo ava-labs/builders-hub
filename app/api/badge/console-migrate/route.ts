@@ -33,9 +33,9 @@ export async function POST() {
 
     for (const userId of uniqueUserIds) {
       const awarded = await evaluateAllConsoleBadges(userId);
-      if (awarded > 0) {
-        results.push({ userId, badgesAwarded: awarded });
-        totalBadgesAwarded += awarded;
+      if (awarded.length > 0) {
+        results.push({ userId, badgesAwarded: awarded.length });
+        totalBadgesAwarded += awarded.length;
       }
     }
 

@@ -8,12 +8,14 @@ import { SessionProvider } from "next-auth/react";
 import { Toaster } from "sonner";
 import { WalletProvider } from "@/components/toolbox/providers/WalletProvider";
 import { useAutomatedFaucet } from "@/hooks/useAutomatedFaucet";
+import { useRetroactiveConsoleBadges } from "@/hooks/useRetroactiveConsoleBadges";
 import { TrackNewUser } from "@/components/analytics/TrackNewUser";
 import { LoginModalWrapper } from "@/components/login/LoginModalWrapper";
 import { ConsoleBadgeNotification } from "@/components/console/ConsoleBadgeNotification";
 
 function ConsoleContent({ children }: { children: ReactNode }) {
   useAutomatedFaucet();
+  useRetroactiveConsoleBadges();
 
   return (
     <WalletProvider>
