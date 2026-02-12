@@ -1,0 +1,298 @@
+/* Custom styles for hackathon page with build-games theme */
+
+/* Override CSS variables for Cards */
+.build-games-container {
+  --card: rgba(15, 40, 71, 0.6);
+  --card-foreground: white;
+}
+
+/* Override Card component backgrounds */
+.gradient-border-card [data-slot="card"] {
+  background: rgba(15, 40, 71, 0.6) !important;
+  border: 1px solid rgba(102, 172, 214, 0.3) !important;
+  color: white !important;
+}
+
+.gradient-border-card [data-slot="card"]:hover {
+  border-color: rgba(102, 172, 214, 0.6) !important;
+}
+
+/* Ensure all text in sections inherits proper colors */
+.gradient-border-card h2,
+.gradient-border-card h3,
+.gradient-border-card h4,
+.gradient-border-card p,
+.gradient-border-card span,
+.gradient-border-card div {
+  color: white !important;
+}
+
+/* Style links to use cyan accent color */
+.gradient-border-card a {
+  color: #66acd6;
+  transition: color 0.2s;
+}
+
+.gradient-border-card a:hover {
+  color: #7fc0e5;
+}
+
+/* Override default section styling */
+.gradient-border-card section {
+  background: transparent;
+}
+
+/* Card background similar to build-games */
+.gradient-border-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(15, 40, 71, 0.8) 0%, rgba(10, 22, 40, 0.9) 100%);
+  border-radius: 16px;
+  z-index: -1;
+}
+
+/* Ensure proper stacking context */
+.gradient-border-card {
+  position: relative;
+  z-index: 1;
+}
+
+/* Style for section titles */
+.gradient-border-card h2,
+.gradient-border-card section h2 {
+  font-family: 'Aeonik:Medium', sans-serif !important;
+  font-weight: 500 !important;
+  color: #66acd6 !important;
+  margin-bottom: 1.5rem !important;
+}
+
+/* Style for section content */
+.gradient-border-card h3 {
+  font-family: 'Aeonik:Medium', sans-serif;
+  font-weight: 500;
+  color: white;
+  margin-bottom: 1rem;
+}
+
+/* Buttons in sections */
+.gradient-border-card button,
+.gradient-border-card [data-slot="button"],
+.build-games-container [data-slot="button"] {
+  background: #66acd6 !important;
+  color: #152d44 !important;
+  border: none !important;
+  border-radius: 999px !important;
+  padding: 8px 36px !important;
+  font-family: 'Aeonik:Medium', sans-serif !important;
+  font-weight: 500 !important;
+  transition: all 0.2s !important;
+  box-shadow: 0px 0px 15px 0px rgba(102, 172, 214, 0.4) !important;
+}
+
+.gradient-border-card button:hover,
+.gradient-border-card [data-slot="button"]:hover,
+.build-games-container [data-slot="button"]:hover {
+  background: #7fc0e5 !important;
+  box-shadow: 0px 0px 25px 0px rgba(46, 177, 255, 0.65) !important;
+  transform: translateY(-1px);
+}
+
+/* Override red button variants specifically */
+.gradient-border-card [data-slot="button"].bg-red-500,
+.build-games-container .bg-red-500[data-slot="button"],
+.gradient-border-card .bg-red-500 {
+  background: #66acd6 !important;
+}
+
+.gradient-border-card [data-slot="button"].bg-red-500:hover,
+.build-games-container .bg-red-500[data-slot="button"]:hover {
+  background: #7fc0e5 !important;
+}
+
+/* Lists in sections */
+.gradient-border-card ul,
+.gradient-border-card ol {
+  color: white;
+  margin-left: 1.5rem;
+}
+
+.gradient-border-card li {
+  margin-bottom: 0.5rem;
+}
+
+/* Tables in sections */
+.gradient-border-card table {
+  color: white;
+  width: 100%;
+}
+
+.gradient-border-card th {
+  color: #66acd6;
+  font-family: 'Aeonik:Medium', sans-serif;
+  font-weight: 500;
+}
+
+.gradient-border-card td {
+  padding: 0.75rem;
+}
+
+/* Code blocks */
+.gradient-border-card code,
+.gradient-border-card pre {
+  background: rgba(102, 172, 214, 0.1);
+  border: 1px solid rgba(102, 172, 214, 0.3);
+  border-radius: 4px;
+  padding: 2px 6px;
+  color: #66acd6;
+  font-size: 0.9em;
+}
+
+/* Images in sections */
+.gradient-border-card img {
+  border-radius: 8px;
+}
+
+/* Input fields */
+.gradient-border-card input,
+.gradient-border-card textarea,
+.gradient-border-card select {
+  background: rgba(40, 106, 142, 0.1);
+  border: 1px solid rgba(102, 172, 214, 0.5);
+  color: white;
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+
+.gradient-border-card input:focus,
+.gradient-border-card textarea:focus,
+.gradient-border-card select:focus {
+  outline: none;
+  border-color: #66acd6;
+  box-shadow: 0 0 0 2px rgba(102, 172, 214, 0.2);
+}
+
+/* Badges and tags */
+.gradient-border-card .badge,
+.gradient-border-card .tag {
+  background: rgba(102, 172, 214, 0.2);
+  color: #66acd6;
+  border: 1px solid rgba(102, 172, 214, 0.4);
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 0.875rem;
+}
+
+/* Section-specific overrides */
+.gradient-border-card section {
+  background: transparent !important;
+  color: white !important;
+}
+
+.gradient-border-card section p,
+.gradient-border-card section h2,
+.gradient-border-card section h3,
+.gradient-border-card section h4 {
+  color: white !important;
+}
+
+/* Card grid items */
+.gradient-border-card .grid > * {
+  background: rgba(15, 40, 71, 0.6) !important;
+  border: 1px solid rgba(102, 172, 214, 0.3) !important;
+  color: white !important;
+}
+
+/* Card content */
+.gradient-border-card [data-slot="card-content"] {
+  color: white !important;
+}
+
+.gradient-border-card [data-slot="card-content"] p,
+.gradient-border-card [data-slot="card-content"] h3,
+.gradient-border-card [data-slot="card-content"] div {
+  color: white !important;
+}
+
+/* Resource cards specific styling */
+.gradient-border-card [data-slot="card-content"] h3,
+.gradient-border-card [data-slot="card-content"] a h3 {
+  color: #66acd6 !important;
+}
+
+/* Override gray text colors */
+.gradient-border-card .text-gray-600,
+.gradient-border-card .text-gray-400,
+.gradient-border-card .dark\:text-gray-300,
+.gradient-border-card .dark\:text-gray-400 {
+  color: rgba(255, 255, 255, 0.8) !important;
+}
+
+/* Separators */
+.gradient-border-card hr,
+.gradient-border-card [class*="Separator"] {
+  background: rgba(102, 172, 214, 0.3) !important;
+  border-color: rgba(102, 172, 214, 0.3) !important;
+}
+
+/* Tracks section specific styling */
+.gradient-border-card .bg-zinc-200 {
+  background: rgba(15, 40, 71, 0.4) !important;
+}
+
+.gradient-border-card .text-black {
+  color: white !important;
+}
+
+.gradient-border-card .bg-red-300 {
+  background: linear-gradient(180deg, rgba(255, 57, 74, 0.3) 0%, rgba(255, 57, 74, 0.2) 100%) !important;
+  border-color: #FF394A !important;
+}
+
+.gradient-border-card .text-zinc-900 {
+  color: white !important;
+}
+
+/* Community section styling */
+.gradient-border-card .bg-red-500 {
+  background: #FF394A !important;
+}
+
+/* Dialog content */
+.gradient-border-card [role="dialog"] {
+  background: rgba(15, 40, 71, 0.95) !important;
+  border: 1px solid rgba(102, 172, 214, 0.3) !important;
+  color: white !important;
+}
+
+/* Icon backgrounds in cards */
+.gradient-border-card [data-slot="card-content"] svg {
+  color: white !important;
+}
+
+/* Header card button styling */
+.build-games-container .gradient-border-card a[href*="registration"],
+.build-games-container .gradient-border-card a[href*="t.me"] {
+  text-decoration: none !important;
+}
+
+/* Secondary button style (for outlined buttons) */
+.gradient-border-card [data-slot="button"][class*="secondary"],
+.gradient-border-card [data-slot="button"][class*="outline"] {
+  background: rgba(40, 106, 142, 0.1) !important;
+  border: 1px solid rgba(102, 172, 214, 0.5) !important;
+  color: #66acd6 !important;
+  box-shadow: 0px 1px 2px 0px rgba(0, 0, 0, 0.05) !important;
+}
+
+.gradient-border-card [data-slot="button"][class*="secondary"]:hover,
+.gradient-border-card [data-slot="button"][class*="outline"]:hover {
+  background: rgba(102, 172, 214, 0.2) !important;
+  border-color: #66acd6 !important;
+  color: #7fc0e5 !important;
+}
+
+/* Button text color override */
+.gradient-border-card [data-slot="button"] * {
+  color: inherit !important;
+}
