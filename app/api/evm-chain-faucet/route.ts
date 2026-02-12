@@ -6,6 +6,7 @@ import { getAuthSession } from '@/lib/auth/authSession';
 import { checkAndReserveFaucetClaim, completeFaucetClaim, cancelFaucetClaim } from '@/lib/faucet/rateLimit';
 import { withChainLock, getNextNonce, withNonceRetry } from '@/lib/faucet/nonceManager';
 import { getL1ListStore, type L1ListItem } from '@/components/toolbox/stores/l1ListStore';
+import { checkAndAwardConsoleBadges } from '@/server/services/consoleBadge/consoleBadgeService';
 
 const SERVER_PRIVATE_KEY = process.env.FAUCET_C_CHAIN_PRIVATE_KEY;
 const FAUCET_ADDRESS = process.env.FAUCET_C_CHAIN_ADDRESS;
@@ -190,6 +191,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     );
 
     await completeFaucetClaim(claimId, tx.txHash);
+
+    checkAndAwardConsoleBadges(session.user.id, 'faucet_claim').catch(console.error);
 
     return NextResponse.json({
       success: true,

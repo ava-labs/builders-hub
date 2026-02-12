@@ -5,6 +5,7 @@ import { getBlockchainInfo } from '../../../components/toolbox/coreViem/utils/gl
 import { CreateNodeRequest, SubnetStatusResponse } from './types';
 import { prisma } from '@/prisma/prisma';
 import { SUBNET_EVM_VM_ID } from '@/constants/console';
+import { checkAndAwardConsoleBadges } from '@/server/services/consoleBadge/consoleBadgeService';
 
 // Types moved to ./types
 
@@ -79,6 +80,9 @@ async function handleCreateNode(request: NextRequest): Promise<NextResponse> {
       const newestNode = selectNewestNode(data.nodes);
       const createdNode = await createDbNode({ userId: userId!, subnetId, blockchainId, newestNode, chainName });
       if (!createdNode) return jsonError(409, 'Node already exists for this user (active)');
+
+      checkAndAwardConsoleBadges(userId!, 'node_registration').catch(console.error);
+
       return jsonOk({
         node: createdNode,
         builder_hub_response: {

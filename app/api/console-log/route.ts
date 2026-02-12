@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthSession } from '@/lib/auth/authSession';
 import { prisma } from '@/prisma/prisma';
+import { checkAndAwardConsoleBadges } from '@/server/services/consoleBadge/consoleBadgeService';
 
 // GET /api/console-log - Get user's console logs
 export async function GET(req: NextRequest) {
@@ -47,6 +48,9 @@ export async function POST(req: NextRequest) {
         data
       }
     });
+
+    checkAndAwardConsoleBadges(session.user.id, 'console_log').catch(console.error);
+
     return NextResponse.json(logEntry);
   } catch (error) {
     console.error('Error adding console log:', error);

@@ -18,6 +18,7 @@ export default async function RewardBoardTab() {
   
   const academyBadges = badges.filter((badge) => badge.category == "academy")?.sort((a, b) => a.id.localeCompare(b.id));
   const hackathonBadges: Badge[] = badges.filter((badge) => badge.category == "hackathon")?.sort((a, b) => a.id.localeCompare(b.id));
+  const consoleBadges = badges.filter((badge) => badge.category == "console")?.sort((a, b) => a.id.localeCompare(b.id));
 
   const academyBadgesUnlocked = academyBadges.map((badge) => {
     const userBadge = userBadges.find((userBadge) => userBadge.badge_id == badge.id);
@@ -54,6 +55,48 @@ export default async function RewardBoardTab() {
     return a.name.localeCompare(b.name);
   });
 
+  const consoleBadgesUnlocked = consoleBadges.map((badge) => {
+    const userBadge = userBadges.find((userBadge) => userBadge.badge_id == badge.id);
+
+    if (!userBadge) {
+      const hasRequirements = badge.requirements && badge.requirements.length > 0;
+      return {
+        ...badge,
+        is_unlocked: !hasRequirements,
+        requirements: badge.requirements || [],
+      };
+    }
+
+    const allRequirementsCompleted = userBadge.requirements && userBadge.requirements.length > 0 &&
+      userBadge.requirements.every((requirement) => requirement.unlocked === true);
+    const hasNoRequirements = !userBadge.requirements || userBadge.requirements.length === 0;
+
+    return {
+      ...badge,
+      is_unlocked: hasNoRequirements || !!allRequirementsCompleted,
+      requirements: userBadge.requirements || badge.requirements || [],
+    };
+  }).sort((a, b) => {
+    if (a.is_unlocked !== b.is_unlocked) {
+      return a.is_unlocked ? -1 : 1;
+    }
+    return a.name.localeCompare(b.name);
+  });
+
+  const consoleRewards = consoleBadgesUnlocked.map((reward) => (
+    <RewardCard
+      key={reward.name}
+      icon={reward.image_path}
+      name={reward.name}
+      description={reward.description}
+      category={reward.category}
+      image={reward.image_path}
+      requirements={reward.requirements}
+      id={reward.id}
+      is_unlocked={reward.is_unlocked}
+    />
+  ));
+
   const academyRewards = academyBadgesUnlocked.map((reward) => (
     <RewardCard
       key={reward.name}
@@ -71,6 +114,26 @@ export default async function RewardBoardTab() {
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
       <div className="flex flex-col gap-4 sm:gap-6 mb-2 mt-3">
+        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white">
+          Console Badges
+        </h1>
+      </div>
+      <Separator className="mb-6 mt-6 bg-zinc-700" />
+      {consoleRewards.length === 0 ? (
+        <div className="text-center py-12">
+          <div className="text-gray-500 dark:text-gray-400 text-lg">
+            <Link href="/tools" className="text-blue-500 hover:text-blue-700">
+              Start building on the console to earn badges
+            </Link>
+          </div>
+        </div>
+      ) : (
+        <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {consoleRewards}
+        </div>
+      )}
+
+      <div className="flex flex-col gap-4 sm:gap-6 mb-2 mt-8">
         <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white">
           Academy Badges
         </h1>

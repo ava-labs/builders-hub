@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { TransferableOutput, addTxSignatures, pvm, utils, Context } from "@avalabs/avalanchejs";
 import { getAuthSession } from '@/lib/auth/authSession';
 import { checkAndReserveFaucetClaim, completeFaucetClaim, cancelFaucetClaim } from '@/lib/faucet/rateLimit';
+import { checkAndAwardConsoleBadges } from '@/server/services/consoleBadge/consoleBadgeService';
 
 const SERVER_PRIVATE_KEY = process.env.SERVER_PRIVATE_KEY;
 const FAUCET_P_CHAIN_ADDRESS = process.env.FAUCET_P_CHAIN_ADDRESS;
@@ -117,6 +118,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     );
 
     await completeFaucetClaim(claimId, tx.txID);
+
+    checkAndAwardConsoleBadges(session.user.id, 'faucet_claim').catch(console.error);
 
     return NextResponse.json({
       success: true,
