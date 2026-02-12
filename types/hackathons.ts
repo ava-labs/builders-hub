@@ -25,6 +25,8 @@ export type HackathonHeader = {
   updated_by_name?: string
   is_public: boolean
   event?: string
+  /** Google Calendar ID for schedule integration - if set, uses Google Calendar API instead of DB */
+  google_calendar_id?: string | null
 }
 
 export type HackathonsFilters = {
@@ -66,6 +68,8 @@ export type ScheduleActivity = {
   location: string
   category: string
   url: string
+  /** Video call URL (Google Meet, Zoom, etc.) - separate from physical location */
+  video_call_url?: string
 }
 
 export type Track = {
