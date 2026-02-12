@@ -296,3 +296,58 @@
 .gradient-border-card [data-slot="button"] * {
   color: inherit !important;
 }
+
+/* Navigation styling */
+nav {
+  position: relative;
+}
+
+/* Navigation buttons */
+nav button {
+  position: relative;
+  backdrop-filter: blur(10px);
+}
+
+nav button::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(102, 172, 214, 0.15) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  border-radius: inherit;
+}
+
+nav button:hover::before {
+  opacity: 1;
+}
+
+/* Active navigation item glow */
+nav button[class*="bg-[#66acd6]/10"] {
+  box-shadow: 0 0 20px rgba(102, 172, 214, 0.15);
+}
+
+/* Smooth scroll behavior */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Scroll margin for sections */
+.scroll-mt-24 {
+  scroll-margin-top: 9rem;
+}
+
+/* Hide scrollbar but keep functionality */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Header card border gradient */
+.gradient-border-card .border-b {
+  border-image: linear-gradient(90deg, transparent, rgba(102, 172, 214, 0.3), transparent) 1;
+}
