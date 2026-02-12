@@ -8,8 +8,8 @@ import { cn } from '@/utils/cn';
 import { buttonVariants } from '@/components/ui/button';
 import quizData from './quizData.json';
 
-const MAX_ATTEMPTS = 3;
-const COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
+const MAX_ATTEMPTS = 2;
+const COOLDOWN_MS = 2 * 60 * 1000; // 2 minutes
 
 interface QuizProps {
   quizId: string;
