@@ -15,7 +15,7 @@ const METRIC_CONFIG = [
     key: 'capitalOutstanding' as const,
     label: 'Capital Outstanding',
     format: 'currency' as const,
-    tooltip: 'Committed Capital - Idle Capital',
+    tooltip: 'Lender Invested Capital - Idle Capital',
     icon: Landmark,
   },
   {

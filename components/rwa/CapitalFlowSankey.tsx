@@ -165,19 +165,19 @@ export function CapitalFlowSankey({ metrics, isLoading = false }: CapitalFlowSan
             <EntityNode
               name="Lenders"
               subtitle="Capital source"
-              colorClasses="bg-emerald-500/10 border-emerald-500/20"
+              colorClasses="bg-indigo-500/10 border-indigo-500/20"
             />
-            <FlowConnector value={flowData.committed} label="Committed" />
+            <FlowConnector value={flowData.committed} label="Invested" />
             <EntityNode
               name="Tranche Pool"
               subtitle="SPV vehicle"
-              colorClasses="bg-cyan-500/10 border-cyan-500/20"
+              colorClasses="bg-indigo-400/10 border-indigo-400/20"
             />
             <FlowConnector value={flowData.financed} label="Deployed" />
             <EntityNode
               name="Borrower"
               subtitle="Asset originator"
-              colorClasses="bg-orange-500/10 border-orange-500/20"
+              colorClasses="bg-indigo-600/10 border-indigo-600/20"
             />
           </div>
 
@@ -190,13 +190,13 @@ export function CapitalFlowSankey({ metrics, isLoading = false }: CapitalFlowSan
             <EntityNode
               name="Borrower"
               subtitle="Repayments"
-              colorClasses="bg-orange-500/10 border-orange-500/20"
+              colorClasses="bg-indigo-600/10 border-indigo-600/20"
             />
             <FlowConnector value={flowData.repayments} label="Repaid" />
             <EntityNode
               name="Pool"
               subtitle="Redistribution"
-              colorClasses="bg-cyan-500/10 border-cyan-500/20"
+              colorClasses="bg-indigo-400/10 border-indigo-400/20"
             />
           </div>
         </div>
@@ -211,19 +211,19 @@ export function CapitalFlowSankey({ metrics, isLoading = false }: CapitalFlowSan
             <EntityNode
               name="Lenders"
               subtitle="Capital source"
-              colorClasses="bg-emerald-500/10 border-emerald-500/20"
+              colorClasses="bg-indigo-500/10 border-indigo-500/20"
             />
-            <VerticalFlowConnector value={flowData.committed} label="Committed" />
+            <VerticalFlowConnector value={flowData.committed} label="Invested" />
             <EntityNode
               name="Tranche Pool"
               subtitle="SPV vehicle"
-              colorClasses="bg-cyan-500/10 border-cyan-500/20"
+              colorClasses="bg-indigo-400/10 border-indigo-400/20"
             />
             <VerticalFlowConnector value={flowData.financed} label="Deployed" />
             <EntityNode
               name="Borrower"
               subtitle="Asset originator"
-              colorClasses="bg-orange-500/10 border-orange-500/20"
+              colorClasses="bg-indigo-600/10 border-indigo-600/20"
             />
           </div>
 
@@ -235,13 +235,13 @@ export function CapitalFlowSankey({ metrics, isLoading = false }: CapitalFlowSan
             <EntityNode
               name="Borrower"
               subtitle="Repayments"
-              colorClasses="bg-orange-500/10 border-orange-500/20"
+              colorClasses="bg-indigo-600/10 border-indigo-600/20"
             />
             <VerticalFlowConnector value={flowData.repayments} label="Repaid" />
             <EntityNode
               name="Pool"
               subtitle="Redistribution"
-              colorClasses="bg-cyan-500/10 border-cyan-500/20"
+              colorClasses="bg-indigo-400/10 border-indigo-400/20"
             />
           </div>
         </div>
@@ -268,7 +268,7 @@ export function CapitalFlowSankey({ metrics, isLoading = false }: CapitalFlowSan
           </div>
           <div className="h-2 rounded-full bg-muted overflow-hidden">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-orange-500 transition-all duration-500"
+              className="h-full rounded-full bg-gradient-to-r from-indigo-400 to-indigo-600 transition-all duration-500"
               style={{
                 width: `${Math.min(flowData.utilization, 100)}%`,
               }}
