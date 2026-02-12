@@ -98,12 +98,14 @@ export function RWADashboard() {
         <GeneralMetricsSection
           metrics={metrics?.general ?? null}
           isLoading={metricsLoading}
+          error={metricsError?.message}
         />
 
         {/* OatFi Breakdown */}
         <OatFiSection
           metrics={metrics?.oatfi ?? null}
           isLoading={metricsLoading}
+          error={metricsError?.message}
         />
 
         {/* Capital Flow */}
@@ -115,10 +117,12 @@ export function RWADashboard() {
         {/* Historical Trends Header */}
         <div className="flex flex-wrap items-center justify-between gap-4">
           <h2 className="text-xl font-semibold">Historical Trends</h2>
-          <DateRangeSelector
-            dateRange={dateRange}
-            onDateRangeChange={setDateRange}
-          />
+          <div data-export-hidden>
+            <DateRangeSelector
+              dateRange={dateRange}
+              onDateRangeChange={setDateRange}
+            />
+          </div>
         </div>
 
         {/* Historical Charts */}

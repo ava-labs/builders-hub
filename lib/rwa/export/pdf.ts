@@ -1,6 +1,6 @@
 'use client'
 
-import { toPng } from 'html-to-image'
+import { captureInLightMode } from './capture'
 
 interface PDFOptions {
   filename?: string
@@ -23,16 +23,7 @@ export async function exportDashboardToPDF(
     throw new Error(`Element with id "${elementId}" not found`)
   }
 
-  const dataUrl = await toPng(element, {
-    pixelRatio: scale,
-    backgroundColor: '#ffffff',
-    filter: (node: HTMLElement) => {
-      if (node.tagName === 'BUTTON') return false
-      if (node.classList?.contains('recharts-brush')) return false
-      if (node.hasAttribute?.('data-export-hidden')) return false
-      return true
-    },
-  })
+  const dataUrl = await captureInLightMode(element, { pixelRatio: scale })
 
   const img = new Image()
   await new Promise<void>((resolve, reject) => {
@@ -55,18 +46,26 @@ export async function exportDashboardToPDF(
   const pdf = new jsPDF({
     orientation: orientation as 'portrait' | 'landscape',
     unit: 'mm',
-    format: [imgWidthMm, imgHeightMm],
+    format: 'a4',
   })
 
   const pageWidth = pdf.internal.pageSize.getWidth()
   const pageHeight = pdf.internal.pageSize.getHeight()
+  const margin = 10
 
-  pdf.addImage(dataUrl, 'PNG', 0, 0, pageWidth, pageHeight)
+  const availableWidth = pageWidth - 2 * margin
+  const availableHeight = pageHeight - 2 * margin - 5 // 5mm for footer
+  const fitScale = Math.min(availableWidth / imgWidthMm, availableHeight / imgHeightMm)
+  const scaledWidth = imgWidthMm * fitScale
+  const scaledHeight = imgHeightMm * fitScale
+  const xOffset = margin + (availableWidth - scaledWidth) / 2
+
+  pdf.addImage(dataUrl, 'PNG', xOffset, margin, scaledWidth, scaledHeight)
 
   const timestamp = new Date().toLocaleString()
   pdf.setFontSize(6)
   pdf.setTextColor(115, 115, 115)
-  pdf.text(`${title} - Generated: ${timestamp}`, 5, pageHeight - 3)
+  pdf.text(`${title} - Generated: ${timestamp}`, margin, pageHeight - 3)
 
   const finalFilename = filename.endsWith('.pdf') ? filename : `${filename}.pdf`
   pdf.save(finalFilename)

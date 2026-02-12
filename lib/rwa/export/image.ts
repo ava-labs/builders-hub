@@ -1,6 +1,6 @@
 'use client'
 
-import { toPng, toJpeg } from 'html-to-image'
+import { captureInLightMode } from './capture'
 
 export type ImageFormat = 'png' | 'jpeg'
 
@@ -27,21 +27,11 @@ export async function exportDashboardToImage(
     throw new Error(`Element with id "${elementId}" not found`)
   }
 
-  const imageOptions = {
+  const dataUrl = await captureInLightMode(element, {
     pixelRatio: scale,
-    backgroundColor: '#ffffff',
-    filter: (node: HTMLElement) => {
-      if (node.tagName === 'BUTTON') return false
-      if (node.classList?.contains('recharts-brush')) return false
-      if (node.hasAttribute?.('data-export-hidden')) return false
-      return true
-    },
-  }
-
-  const dataUrl =
-    format === 'jpeg'
-      ? await toJpeg(element, { ...imageOptions, quality })
-      : await toPng(element, imageOptions)
+    quality,
+    format,
+  })
 
   const link = document.createElement('a')
   link.href = dataUrl

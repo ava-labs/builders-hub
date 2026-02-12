@@ -9,6 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { toast } from 'sonner'
 import type { AllMetrics, HistoricalData } from '@/lib/rwa/types'
 
 interface ExportMenuProps {
@@ -19,7 +20,6 @@ interface ExportMenuProps {
 
 export function ExportMenu({ metrics, historical, dashboardElementId }: ExportMenuProps) {
   const [isExporting, setIsExporting] = useState(false)
-
   const handleCSVExport = async () => {
     if (!metrics && !historical) return
     setIsExporting(true)
@@ -28,6 +28,11 @@ export function ExportMenu({ metrics, historical, dashboardElementId }: ExportMe
       const { exportMetricsToCSV, exportHistoricalToCSV } = await import('@/lib/rwa/export/csv')
       if (metrics) exportMetricsToCSV(metrics)
       if (historical) exportHistoricalToCSV(historical)
+      toast.success('CSV data downloaded')
+    } catch (err) {
+      toast.error('Export failed', {
+        description: err instanceof Error ? err.message : 'Unknown error',
+      })
     } finally {
       setIsExporting(false)
     }
@@ -38,6 +43,11 @@ export function ExportMenu({ metrics, historical, dashboardElementId }: ExportMe
     try {
       const { exportDashboardToPDF } = await import('@/lib/rwa/export/pdf')
       await exportDashboardToPDF(dashboardElementId)
+      toast.success('PDF report downloaded')
+    } catch (err) {
+      toast.error('Export failed', {
+        description: err instanceof Error ? err.message : 'Unknown error',
+      })
     } finally {
       setIsExporting(false)
     }
@@ -48,6 +58,11 @@ export function ExportMenu({ metrics, historical, dashboardElementId }: ExportMe
     try {
       const { exportDashboardToImage } = await import('@/lib/rwa/export/image')
       await exportDashboardToImage(dashboardElementId)
+      toast.success('PNG image downloaded')
+    } catch (err) {
+      toast.error('Export failed', {
+        description: err instanceof Error ? err.message : 'Unknown error',
+      })
     } finally {
       setIsExporting(false)
     }

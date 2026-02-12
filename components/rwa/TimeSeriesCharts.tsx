@@ -96,7 +96,7 @@ function ChartTypeSelector({
   onChange: (type: ChartType) => void
 }) {
   return (
-    <div className="flex items-center gap-1 bg-muted rounded-md p-0.5">
+    <div className="flex items-center gap-1 bg-muted rounded-md p-0.5" data-export-hidden>
       <Button
         variant="ghost"
         size="sm"
@@ -106,6 +106,7 @@ function ChartTypeSelector({
         )}
         onClick={() => onChange('line')}
         title="Line chart"
+        aria-label="Line chart"
       >
         <LineChartIcon className="h-4 w-4" />
       </Button>
@@ -118,6 +119,7 @@ function ChartTypeSelector({
         )}
         onClick={() => onChange('bar')}
         title="Bar chart"
+        aria-label="Bar chart"
       >
         <BarChart3 className="h-4 w-4" />
       </Button>
@@ -130,6 +132,7 @@ function ChartTypeSelector({
         )}
         onClick={() => onChange('area')}
         title="Area chart"
+        aria-label="Area chart"
       >
         <AreaChartIcon className="h-4 w-4" />
       </Button>
@@ -145,7 +148,7 @@ function ViewModeToggle({
   onChange: (mode: ViewMode) => void
 }) {
   return (
-    <div className="flex items-center gap-1 bg-muted rounded-md p-0.5">
+    <div className="flex items-center gap-1 bg-muted rounded-md p-0.5" data-export-hidden>
       <Button
         variant="ghost"
         size="sm"
@@ -154,6 +157,7 @@ function ViewModeToggle({
           value === 'periodic' && 'bg-background shadow-sm'
         )}
         onClick={() => onChange('periodic')}
+        aria-label="Show periodic data"
       >
         Periodic
       </Button>
@@ -165,6 +169,7 @@ function ViewModeToggle({
           value === 'cumulative' && 'bg-background shadow-sm'
         )}
         onClick={() => onChange('cumulative')}
+        aria-label="Show cumulative data"
       >
         Cumulative
       </Button>
@@ -188,6 +193,7 @@ function ChartControls({
         size="sm"
         onClick={onResetZoom}
         className="h-7 px-2 text-xs"
+        aria-label="Reset zoom"
       >
         <ZoomOut className="h-3 w-3 mr-1" />
         Reset Zoom
@@ -301,8 +307,8 @@ function SingleChart({
           {chartType === 'area' ? (
             <AreaChart {...chartProps}>
               <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-              <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-              <YAxis tickFormatter={formatFn} tick={{ fontSize: 12 }} />
+              <XAxis dataKey="date" tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }} />
+              <YAxis tickFormatter={formatFn} tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }} />
               <Tooltip content={<CustomTooltip isCurrency={isCurrency} />} />
               {!isZoomed && <Brush dataKey="date" height={30} stroke={color} />}
               <Area
@@ -318,9 +324,9 @@ function SingleChart({
             </AreaChart>
           ) : chartType === 'bar' ? (
             <BarChart {...chartProps}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-              <YAxis tickFormatter={formatFn} tick={{ fontSize: 12 }} />
+              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+              <XAxis dataKey="date" tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }} />
+              <YAxis tickFormatter={formatFn} tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }} />
               <Tooltip content={<CustomTooltip isCurrency={isCurrency} />} />
               {!isZoomed && <Brush dataKey="date" height={30} stroke={color} />}
               <Bar dataKey="value" fill={color} name={title} />
@@ -328,9 +334,9 @@ function SingleChart({
             </BarChart>
           ) : (
             <LineChart {...chartProps}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-              <YAxis tickFormatter={formatFn} tick={{ fontSize: 12 }} />
+              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+              <XAxis dataKey="date" tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }} />
+              <YAxis tickFormatter={formatFn} tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }} />
               <Tooltip content={<CustomTooltip isCurrency={isCurrency} />} />
               {!isZoomed && <Brush dataKey="date" height={30} stroke={color} />}
               <Line
@@ -405,8 +411,10 @@ function StackedComparisonChart({
       variant="ghost"
       size="sm"
       className="h-7 w-7 p-0"
+      data-export-hidden
       onClick={() => setViewMode(viewMode === 'combined' ? 'separated' : 'combined')}
       title={viewMode === 'combined' ? 'Split into separate charts' : 'Combine into one chart'}
+      aria-label="Toggle combined/separated view"
     >
       {viewMode === 'combined' ? (
         <Columns2 className="h-4 w-4" />
@@ -495,9 +503,9 @@ function StackedComparisonChart({
         <ResponsiveContainer width="100%" height={300}>
           {combinedChartType === 'bar' ? (
             <BarChart data={combinedData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-              <YAxis tickFormatter={formatCurrency} tick={{ fontSize: 12 }} />
+              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+              <XAxis dataKey="date" tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }} />
+              <YAxis tickFormatter={formatCurrency} tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }} />
               <Tooltip content={<CustomTooltip isCurrency={true} />} />
               <Legend />
               <Brush dataKey="date" height={30} stroke="#6366f1" />
@@ -514,9 +522,9 @@ function StackedComparisonChart({
             </BarChart>
           ) : combinedChartType === 'line' ? (
             <LineChart data={combinedData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-              <YAxis tickFormatter={formatCurrency} tick={{ fontSize: 12 }} />
+              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+              <XAxis dataKey="date" tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }} />
+              <YAxis tickFormatter={formatCurrency} tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }} />
               <Tooltip content={<CustomTooltip isCurrency={true} />} />
               <Legend />
               <Brush dataKey="date" height={30} stroke="#6366f1" />
@@ -539,9 +547,9 @@ function StackedComparisonChart({
             </LineChart>
           ) : (
             <AreaChart data={combinedData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-              <YAxis tickFormatter={formatCurrency} tick={{ fontSize: 12 }} />
+              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+              <XAxis dataKey="date" tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }} />
+              <YAxis tickFormatter={formatCurrency} tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }} />
               <Tooltip content={<CustomTooltip isCurrency={true} />} />
               <Legend />
               <Brush dataKey="date" height={30} stroke="#6366f1" />
@@ -625,24 +633,28 @@ export function TimeSeriesCharts({
       {!hideHeader && (
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold">Historical Trends</h2>
-          <Tabs value={interval} onValueChange={handleIntervalChange}>
-            <TabsList>
-              <TabsTrigger value="daily">Daily</TabsTrigger>
-              <TabsTrigger value="weekly">Weekly</TabsTrigger>
-              <TabsTrigger value="monthly">Monthly</TabsTrigger>
-            </TabsList>
-          </Tabs>
+          <div data-export-hidden>
+            <Tabs value={interval} onValueChange={handleIntervalChange}>
+              <TabsList>
+                <TabsTrigger value="daily">Daily</TabsTrigger>
+                <TabsTrigger value="weekly">Weekly</TabsTrigger>
+                <TabsTrigger value="monthly">Monthly</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
         </div>
       )}
       {hideHeader && (
         <div className="flex justify-end">
-          <Tabs value={interval} onValueChange={handleIntervalChange}>
-            <TabsList>
-              <TabsTrigger value="daily">Daily</TabsTrigger>
-              <TabsTrigger value="weekly">Weekly</TabsTrigger>
-              <TabsTrigger value="monthly">Monthly</TabsTrigger>
-            </TabsList>
-          </Tabs>
+          <div data-export-hidden>
+            <Tabs value={interval} onValueChange={handleIntervalChange}>
+              <TabsList>
+                <TabsTrigger value="daily">Daily</TabsTrigger>
+                <TabsTrigger value="weekly">Weekly</TabsTrigger>
+                <TabsTrigger value="monthly">Monthly</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
         </div>
       )}
 
