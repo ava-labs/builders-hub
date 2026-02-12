@@ -1668,7 +1668,7 @@ const HackathonsEdit = () => {
       <div className="bg-zinc-900 border-b border-zinc-700 p-4">
         <div className="container mx-auto flex justify-between items-center">
           <div className="flex items-center gap-4">
-            <h1 className="text-2xl font-bold text-white">{t[language].editHackathons}</h1>
+            <h1 className="text-2xl font-bold text-white">{t[language].editEvents}</h1>
             <div className="flex items-center gap-2 px-3 py-1 bg-green-600 rounded-full text-sm">
               <div className="w-2 h-2 bg-green-300 rounded-full animate-pulse"></div>
               <span className="text-white">Live Preview</span>
@@ -1687,7 +1687,7 @@ const HackathonsEdit = () => {
               Load Mock Data
             </button>
             <Button onClick={() => { setShowForm(true); setSelectedHackathon(null); setIsSelectedHackathon(false); }} disabled={isSelectedHackathon}>
-              {t[language].addNewHackathon}
+              {t[language].addNewEvent}
             </Button>
           </div>
         </div>
@@ -1763,6 +1763,26 @@ const HackathonsEdit = () => {
               description={t[language].cohostsHelp}
             />
           </div>
+          {/* Event Type option */}
+          <div className="rounded-lg p-6 mb-6">
+            <h2 className='font-medium text-xl mb-2 block'>Event Type</h2>
+            <Select
+              value={formDataLatest.event}
+              onValueChange={(value) => {
+                setFormDataLatest(prev => ({ ...prev, event: value }));
+                console.log(value);
+              }}
+            >
+              <SelectTrigger className="w-full mb-4">
+                <SelectValue placeholder="Select event type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="hackathon">Hackathon</SelectItem>
+                <SelectItem value="workshop">Workshop</SelectItem>
+                <SelectItem value="bootcamp">Bootcamp</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
               <div className="flex items-center justify-between mb-4">
@@ -1820,24 +1840,6 @@ const HackathonsEdit = () => {
                     className="w-full mb-4"
                     required
                   />
-                  
-                  <div className="mb-2 text-zinc-400 text-sm">Event Type</div>
-                  <Select
-                    value={formDataLatest.event}
-                    onValueChange={(value) => {
-                      setFormDataLatest(prev => ({ ...prev, event: value }));
-                      console.log(value);
-                    }}
-                  >
-                    <SelectTrigger className="w-full mb-4">
-                      <SelectValue placeholder="Select event type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="hackathon">Hackathon</SelectItem>
-                      <SelectItem value="workshop">Workshop</SelectItem>
-                      <SelectItem value="bootcamp">Bootcamp</SelectItem>
-                    </SelectContent>
-                  </Select>
                   
                   <div className="flex flex-col space-y-2 bg-zinc-900/60 border border-zinc-700 rounded-lg p-4 my-4">
                     <label className="font-medium">Tags (Optional)</label>
@@ -2090,10 +2092,12 @@ const HackathonsEdit = () => {
               )}
             </div>
             
-            {/* Step 3: Participants & Prizes */}
+            {/* Step 3: Participants & Prizes (hackathon) or Organizer only (other events) */}
             <div className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-2xl font-bold">Step 3: Participants & Prizes</h2>
+                <h2 className="text-2xl font-bold">
+                  {formDataLatest.event === 'hackathon' ? 'Step 3: Participants & Prizes' : 'Step 3: Organizer'}
+                </h2>
                 {collapsed.about && (
                   <button onClick={() => setCollapsed({ ...collapsed, about: false })} className="flex items-center gap-1 text-zinc-400 hover:text-red-500 cursor-pointer">
                     <ChevronRight className="w-5 h-5" /> {t[language].expand}
@@ -2102,24 +2106,27 @@ const HackathonsEdit = () => {
               </div>
               {!collapsed.about && (
                 <>
-                  <div className="mb-4 p-4 bg-orange-900/20 border border-orange-500/30 rounded-lg">
-                    <h3 className="text-lg font-semibold text-orange-300 mb-2">Participants & Prize Information</h3>
-                    <p className="text-sm text-orange-200">Now let's add details about participants and the prize pool.</p>
-                  </div>
-                  
-                  <div className="mb-2 text-zinc-400 text-sm">Expected Number of Participants</div>
-                  <Input
-                    type="number"
-                    name="participants"
-                    placeholder="e.g., 100, 500, 1000"
-                    value={formDataMain.participants?.toString() || ''}
-                    onChange={(e) => {
-                      setFormDataMain(prev => ({ ...prev, participants: Number(e.target.value) || 0 }));
-                      scrollToSection('about');
-                    }}
-                    className="w-full mb-4"
-                    required
-                  />
+                  {formDataLatest.event === 'hackathon' && (
+                    <>
+                      <div className="mb-4 p-4 bg-orange-900/20 border border-orange-500/30 rounded-lg">
+                        <h3 className="text-lg font-semibold text-orange-300 mb-2">Participants & Prize Information</h3>
+                        <p className="text-sm text-orange-200">Now let's add details about participants and the prize pool.</p>
+                      </div>
+                      <div className="mb-2 text-zinc-400 text-sm">Expected Number of Participants</div>
+                      <Input
+                        type="number"
+                        name="participants"
+                        placeholder="e.g., 100, 500, 1000"
+                        value={formDataMain.participants?.toString() || ''}
+                        onChange={(e) => {
+                          setFormDataMain(prev => ({ ...prev, participants: Number(e.target.value) || 0 }));
+                          scrollToSection('about');
+                        }}
+                        className="w-full mb-4"
+                        required
+                      />
+                    </>
+                  )}
                   <div className="mb-2 text-zinc-400 text-sm">Organizer Name/Organization</div>
                   <Input
                     type="text"
@@ -2133,20 +2140,23 @@ const HackathonsEdit = () => {
                     className="w-full mb-4"
                     required
                   />
-                  <div className="mb-2 text-zinc-400 text-sm">Total Prize Pool (USD)</div>
-                  <Input
-                    type="number"
-                    name="total_prizes"
-                    placeholder="e.g., 50000, 100000"
-                    value={formDataMain.total_prizes?.toString() || ''}
-                    onChange={(e) => {
-                      setFormDataMain(prev => ({ ...prev, total_prizes: Number(e.target.value) || 0 }));
-                      scrollToSection('tracks');
-                    }}
-                    className="w-full mb-4"
-                    required
-                  />
-                  
+                  {formDataLatest.event === 'hackathon' && (
+                    <>
+                      <div className="mb-2 text-zinc-400 text-sm">Total Prize Pool (USD)</div>
+                      <Input
+                        type="number"
+                        name="total_prizes"
+                        placeholder="e.g., 50000, 100000"
+                        value={formDataMain.total_prizes?.toString() || ''}
+                        onChange={(e) => {
+                          setFormDataMain(prev => ({ ...prev, total_prizes: Number(e.target.value) || 0 }));
+                          scrollToSection('tracks');
+                        }}
+                        className="w-full mb-4"
+                        required
+                      />
+                    </>
+                  )}
                   <div className="flex justify-end mt-4">
                     <button 
                       type="button"
@@ -2159,7 +2169,9 @@ const HackathonsEdit = () => {
                 </>
               )}
               {collapsed.about && (
-                <div className="text-zinc-400 italic">✓ Participants & prizes completed</div>
+                <div className="text-zinc-400 italic">
+                  {formDataLatest.event === 'hackathon' ? '✓ Participants & prizes completed' : '✓ Organizer completed'}
+                </div>
               )}
             </div>
             
@@ -2486,6 +2498,31 @@ const HackathonsEdit = () => {
                     </div>
                   </div>
                   )}
+                  {/* Resources Section - For all event types */}
+                  <div className="space-y-4">
+                    <label className="font-medium text-xl mb-2 block">{t[language].resources}:</label>
+                    {formDataContent.resources.map((resource, index) => (
+                      <ResourceItem
+                        key={index}
+                        resource={resource}
+                        index={index}
+                        collapsed={collapsedResources[index]}
+                        onChange={handleResourceFieldChange}
+                        onDone={handleResourceDone}
+                        onExpand={handleResourceExpand}
+                        onRemove={animateRemove.bind(null, 'resource', index, removeResource)}
+                        t={t}
+                        language={language}
+                        removing={removing}
+                        resourcesLength={formDataContent.resources.length}
+                      />
+                    ))}
+                    <div className="flex justify-end">
+                      <Button type="button" onClick={addResource} className="mt-2 bg-red-500 hover:bg-red-600 text-white flex items-center gap-2">
+                        <Plus className="w-4 h-4" /> {t[language].addResource}
+                      </Button>
+                    </div>
+                  </div>
                   <div className="space-y-4">
                     <label className="font-medium text-xl mb-2 block">{t[language].speakers}:</label>
                     {formDataContent.speakers.map((speaker, index) => (
