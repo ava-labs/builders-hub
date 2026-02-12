@@ -1,36 +1,84 @@
 ---
-title: VMC Deployment Options
-description: Decide whether to deploy the Validator Manager on your L1 or on Avalanche C-Chain
+title: VMC Options
+description: Decide where to deploy the Validator Manager Contract and understand the trade-offs
 updated: 2026-01-08
 authors: [nicolasarnedo]
 icon: BookOpen
 ---
 
-With Avalanche’s validator-management upgrades, validator set management is handled by smart contracts called **Validator Manager contracts** and this contract can be deployed and manage your validator set from any chain in the Avalanche Ecosystem.
+import { Callout } from 'fumadocs-ui/components/callout';
+import Quiz from '/components/quizzes/quiz.tsx';
 
-This is posible via the p-chain, which keeps a registry of all of the validators in the Avalanche network. Despite being able to deploy in any L1 on Avalanche, the 2 most common options will be:
+With Avalanche's validator-management upgrades, validator set management is handled by smart contracts called **Validator Manager contracts** and this contract can be deployed and manage your validator set from any chain in the Avalanche Ecosystem.
 
-### Deploying on your L1
+This is possible via the P-Chain, which keeps a registry of all of the validators in the Avalanche network. The Validator Manager Contract can be deployed on three different chains:
 
-- **Pros**: Self-contained validator management; no dependency on C-Chain; no AVAX-on-C-Chain requirement for management actions.
-- **Cons**: Management is only available when your L1 is running.
-### Deploying on C-Chain
+## 1. On Your L1 (Default)
 
-- **Pros**: A failsafe if your L1 is down; better aligned with **permissionless/PoS** trajectories; often simpler if assets/tooling are already anchored to C‑Chain.
-- **Cons**: Relies on C‑Chain availability; requires AVAX on C‑Chain for management actions; more cross-chain operational dependency.
+This is the simplest option. The VMC is deployed directly on the L1 it manages.
+
+- **Pros**: Self-contained validator management; no dependency on C-Chain; no AVAX-on-C-Chain requirement for management actions
+- **Cons**: Management is only available when your L1 is running; if the L1 goes down, you can't manage validators through the contract
+
+## 2. On the C-Chain
+
+The VMC can be deployed on Avalanche's C-Chain while managing validators for a different L1.
+
+- **Pros**: A failsafe if your L1 is down; C-Chain's high availability and proven stability; better integration with existing DeFi and tooling; easier multi-sig support through existing Safe/Ash wallet infrastructure
+- **Cons**: Relies on C-Chain availability; requires AVAX on C-Chain for management actions; more cross-chain operational dependency
+
+## 3. On Another L1
+
+You can also deploy the VMC on a completely separate L1.
+
+- **Pros**: Separation of concerns between management chain and operational chain; can have different security properties for the management chain
+- **Cons**: Most complex setup; cross-chain dependencies
+
+## Deployment Architecture
+
+<Mermaid
+  chart="
+graph TB
+    subgraph Option1 [Option 1: VMC on L1]
+        L1A[Your L1] --> VMCA[VMC]
+        VMCA --> PCA[P-Chain]
+    end
+    
+    subgraph Option2 [Option 2: VMC on C-Chain]
+        CChain[C-Chain] --> VMCB[VMC]
+        VMCB --> PCB[P-Chain]
+        L1B[Your L1] -.-> VMCB
+    end
+    
+    subgraph Option3 [Option 3: VMC on Another L1]
+        MgmtL1[Management L1] --> VMCC[VMC]
+        VMCC --> PCC[P-Chain]
+        L1C[Your L1] -.-> VMCC
+    end
+"
+/>
+
+## Which Option Should You Choose?
+
+| Factor | On L1 | On C-Chain | On Another L1 |
+|--------|-------|------------|---------------|
+| **Simplicity** | Simple | Moderate | Complex |
+| **Multi-sig Support** | Limited | Excellent | Depends |
+| **Resilience** | Tied to L1 | Independent | Independent |
+| **Tooling** | Growing | Mature | Varies |
 
 <Callout type="warning">
 Once you deploy your Validator Manager contract, you can upgrade its logic (via proxy patterns), but **you cannot move its location** from your L1 to C-Chain (or vice versa) without redeploying.
 </Callout>
 
-## Why this matters more for PoS
+## Why This Matters More for PoS
 
 PoA is usually managed by a small set of known operators (often one owner/multisig), so keeping the VMC on the L1 can be clean and contained.
 
-If you plan to move to PoS, you’ll generally care more about **robustness**, **permissionless onboarding**, and **long-term flexibility**—which is why deploying the VMC on **C‑Chain** is often the better default.
+If you plan to move to PoS, you'll generally care more about **robustness**, **permissionless onboarding**, and **long-term flexibility** — which is why deploying the VMC on **C-Chain** is often the better default.
 
-## For This Course’s Demo
+## For This Course
 
-In this permissioned L1 course, the **demo deploys the Validator Manager on the L1** (PoA context) so you can manage the validator set directly as part of the end‑to‑end walkthrough.
+In the permissioned L1 chapters, we'll **deploy the VMC on the L1** (PoA context) so you can manage the validator set directly. Later in the multi-sig chapter, you'll see how the **C-Chain deployment** option enables easier multi-sig governance.
 
-
+<Quiz quizId="427"/>
