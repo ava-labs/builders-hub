@@ -727,7 +727,7 @@ function HowItWorksSection() {
           </BodyText>
         </SectionHeader>
         <TimelineRow className="bg-[rgba(255,255,255,0.2)]">
-          <WeekLabel text="Jan 20 - Feb 13" />
+          <WeekLabel text="Jan 20 - Feb 18" />
           <ThreeColumnGrid>
             <GridLabel text="Focus" />
             <GridValue>Application Process</GridValue>
@@ -943,7 +943,7 @@ There are no tracks, no themes, and no restrictions on what you can build.
     },
     {
       question: "When do applications close?",
-      answer: "Applications close February 13th (tentative)."
+      answer: "Applications close February 18th (tentative)."
     },
     {
       question: "How are projects evaluated?",
@@ -964,9 +964,9 @@ There are no predefined tracks or categories, and strong projects may look very 
     {
       question: "What is the competition timeline?",
       answer: `Applications Open: January 20th
-Applications Close: February 13th
+Applications Close: February 18th
 Acceptance Letters: Rolling
-Competition Begins: February TBA
+Competition Begins: February 20th
 Finals & Awards: March TBA`
     },
     {
