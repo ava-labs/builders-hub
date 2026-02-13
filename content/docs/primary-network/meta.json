@@ -10,6 +10,7 @@
     "virtual-machines",
     "---C-Chain---",
     "coreth-architecture",
+    "streaming-async-execution",
     "verify-contract",
     "---P-Chain---",
     "platformvm-architecture",
