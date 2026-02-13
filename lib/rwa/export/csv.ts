@@ -1,5 +1,6 @@
-import type { AllMetrics, HistoricalData, TimeSeriesDataPoint } from '../types'
+import type { AllMetrics, HistoricalData, TimeSeriesDataPoint, TransactionRecord } from '../types'
 import { bigintToNumber } from '../utils'
+import { ADDRESSES, normalizeAddress } from '../constants/addresses'
 
 function escapeCsvValue(value: string | number | bigint | null | undefined): string {
   if (value === null || value === undefined) return ''
@@ -85,6 +86,36 @@ export function exportHistoricalToCSV(historical: HistoricalData): void {
       values.capitalUtilization ?? '',
     ]
   })
+
+  const csv = arrayToCSV(headers, rows as (string | number)[][])
+  downloadCSV(csv, filename)
+}
+
+const TX_ADDRESS_LABELS: Record<string, string> = {
+  [normalizeAddress(ADDRESSES.TRANCHE_POOL)]: 'Tranche Pool',
+  [normalizeAddress(ADDRESSES.BORROWER_OPERATING)]: 'Borrower (OatFi)',
+  [normalizeAddress(ADDRESSES.LENDER_VALINOR)]: 'Lender (Valinor)',
+  [normalizeAddress(ADDRESSES.LENDER_AVALANCHE)]: 'Lender (Avalanche)',
+}
+
+function labelForAddress(address: string): string {
+  return TX_ADDRESS_LABELS[normalizeAddress(address)] ?? address
+}
+
+export function exportTransactionsToCSV(transactions: TransactionRecord[]): void {
+  const filename = `rwa-transactions-${new Date().toISOString().split('T')[0]}.csv`
+
+  const headers = ['Date', 'From Address', 'From Label', 'To Address', 'To Label', 'Amount (USD)', 'Direction', 'Tx Hash']
+  const rows = transactions.map((tx) => [
+    tx.timestamp,
+    tx.from,
+    labelForAddress(tx.from),
+    tx.to,
+    labelForAddress(tx.to),
+    bigintToNumber(typeof tx.amount === 'bigint' ? tx.amount : BigInt(tx.amount)),
+    tx.direction,
+    tx.txHash,
+  ])
 
   const csv = arrayToCSV(headers, rows as (string | number)[][])
   downloadCSV(csv, filename)
