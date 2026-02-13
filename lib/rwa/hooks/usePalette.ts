@@ -17,11 +17,11 @@ function buildChartColors(palette: RWAPalette) {
     transactedVolume: palette.shades[700],
     committedCapital: palette.shades[600],
     assetsFinanced: palette.shades[700],
-    lenderRepayments: palette.shades[300],
-    capitalUtilization: palette.shades[300],
+    lenderRepayments: palette.shades[400],
+    capitalUtilization: palette.shades[400],
     netCapitalPosition: palette.shades[900],
     lenderValinor: palette.shades[700],
-    lenderAvalanche: palette.shades[300],
+    lenderAvalanche: palette.shades[400],
   }
 }
 
