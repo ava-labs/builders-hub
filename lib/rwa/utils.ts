@@ -27,7 +27,12 @@ export function serializeBigints<T extends object>(obj: T): T {
   for (const [key, value] of Object.entries(obj)) {
     if (typeof value === 'bigint') {
       result[key] = value.toString()
-    } else if (value && typeof value === 'object' && !Array.isArray(value)) {
+    } else if (Array.isArray(value)) {
+      result[key] = value.map((item) =>
+        item && typeof item === 'object' ? serializeBigints(item as object) :
+        typeof item === 'bigint' ? item.toString() : item
+      )
+    } else if (value && typeof value === 'object') {
       result[key] = serializeBigints(value as object)
     } else {
       result[key] = value
@@ -41,7 +46,11 @@ export function parseBigints<T extends object>(obj: T, bigintKeys: string[]): T 
   for (const [key, value] of Object.entries(obj)) {
     if (bigintKeys.includes(key) && typeof value === 'string') {
       result[key] = BigInt(value)
-    } else if (value && typeof value === 'object' && !Array.isArray(value)) {
+    } else if (Array.isArray(value)) {
+      result[key] = value.map((item) =>
+        item && typeof item === 'object' ? parseBigints(item as object, bigintKeys) : item
+      )
+    } else if (value && typeof value === 'object') {
       result[key] = parseBigints(value as object, bigintKeys)
     } else {
       result[key] = value
@@ -59,4 +68,5 @@ export const BIGINT_METRIC_KEYS = [
   'capitalOutstanding',
   'principalRepayments',
   'convertedUsdc',
+  'amount',
 ]

@@ -11,5 +11,9 @@ export const RWA_COLORS = {
     assetsFinanced: '#6366f1',     // indigo-500
     lenderRepayments: '#818cf8',   // indigo-400
     capitalUtilization: '#a5b4fc', // indigo-300
+    committedCapital: '#4f46e5',   // indigo-600
+    netCapitalPosition: '#312e81', // indigo-900
+    lenderValinor: '#6366f1',      // indigo-500
+    lenderAvalanche: '#818cf8',    // indigo-400
   },
 } as const

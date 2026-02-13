@@ -16,9 +16,29 @@ export interface OatFiMetrics {
   convertedUsdc: bigint
 }
 
+export interface MetricTrend {
+  value: number
+  direction: 'up' | 'down' | 'neutral'
+}
+
+export interface MultiPeriodTrend {
+  '7d': MetricTrend
+  '30d': MetricTrend
+  '90d': MetricTrend
+}
+
+export interface LenderBreakdown {
+  lender: string
+  address: string
+  amount: bigint
+  percentage: number
+}
+
 export interface AllMetrics {
   general: GeneralMetrics
   oatfi: OatFiMetrics
+  trends?: Record<string, MultiPeriodTrend>
+  lenderBreakdown: LenderBreakdown[]
   lastUpdated: string
 }
 
@@ -32,7 +52,11 @@ export interface HistoricalData {
   assetsFinanced: TimeSeriesDataPoint[]
   lenderRepayments: TimeSeriesDataPoint[]
   capitalUtilization: TimeSeriesDataPoint[]
+  committedCapital: TimeSeriesDataPoint[]
+  netCapitalPosition: TimeSeriesDataPoint[]
 }
+
+export type TrendPeriod = '7d' | '30d' | '90d'
 
 export type TimeInterval = 'daily' | 'weekly' | 'monthly'
 
@@ -51,4 +75,15 @@ export interface ParsedTransfer {
   to: string
   amount: bigint
   isInternal: boolean
+}
+
+export interface TransactionRecord {
+  txHash: string
+  timestamp: string
+  from: string
+  fromLabel: string
+  to: string
+  toLabel: string
+  amount: bigint
+  direction: 'inbound' | 'outbound' | 'internal'
 }
