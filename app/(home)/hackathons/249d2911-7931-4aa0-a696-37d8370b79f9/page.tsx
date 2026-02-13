@@ -7,7 +7,6 @@ import Image from "next/image";
 import Schedule from "@/components/hackathons/hackathon/sections/Schedule";
 import Tracks from "@/components/hackathons/hackathon/sections/Tracks";
 import About from "@/components/hackathons/hackathon/sections/About";
-import Submission from "@/components/hackathons/hackathon/sections/Submission";
 import Resources from "@/components/hackathons/hackathon/sections/Resources";
 import JoinButton from "@/components/hackathons/hackathon/JoinButton";
 import { createMetadata } from "@/utils/metadata";
@@ -17,6 +16,7 @@ import "./styles.css";
 import CustomNavigation from "./CustomNavigation";
 import CustomPartners from "./CustomPartners";
 import CustomMentorsJudges from "./CustomMentorsJudges";
+import CustomSubmission from "./CustomSubmission";
 
 export const revalidate = 60;
 
@@ -170,7 +170,7 @@ export default async function HackathonPage({
             )}
 
             <div id="submission" className="gradient-border-card rounded-[16px] p-6 md:p-10 scroll-mt-24">
-              <Submission hackathon={hackathon} />
+              <CustomSubmission hackathon={hackathon} />
             </div>
 
             {hackathon.content.speakers && hackathon.content.speakers.length > 0 && (
