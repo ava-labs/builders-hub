@@ -1,8 +1,13 @@
 'use client'
 
 import { MetricCard, MetricCardLoading } from './MetricCard'
-import { MetricGrid } from './MetricGrid'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card } from '@/components/ui/card'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   DollarSign,
@@ -14,14 +19,20 @@ import {
   Calendar,
   Timer,
   Gauge,
+  InfoIcon,
 } from 'lucide-react'
-import type { GeneralMetrics } from '@/lib/rwa/types'
+import type { GeneralMetrics, MultiPeriodTrend, LenderBreakdown } from '@/lib/rwa/types'
+import { TrendPillBadge } from './MetricCard'
 import { bigintToNumber } from '@/lib/rwa/utils'
+import { useCountUp } from '@/lib/rwa/hooks/useCountUp'
+import { usePalette } from '@/lib/rwa/hooks/usePalette'
 
 interface GeneralMetricsSectionProps {
   metrics: GeneralMetrics | null
   isLoading?: boolean
   error?: string | null
+  trends?: Record<string, MultiPeriodTrend> | null
+  lenderBreakdown?: LenderBreakdown[] | null
 }
 
 function formatCurrencyDisplay(value: number | bigint): string {
@@ -34,59 +45,62 @@ function formatCurrencyDisplay(value: number | bigint): string {
   }).format(numValue)
 }
 
-function KeyMetricCard({
-  label,
-  value,
-  icon: Icon,
-  isLoading,
-  accentColor,
-}: {
+function AnimatedCurrencyValue({ value }: { value: number | bigint }) {
+  const numValue = typeof value === 'bigint' ? bigintToNumber(value) : value
+  const animated = useCountUp(numValue)
+  return <>{formatCurrencyDisplay(animated)}</>
+}
+
+function useLenderChartColors(): Record<string, string> {
+  const { chartColors } = usePalette()
+  return {
+    Valinor: chartColors.lenderValinor,
+    Avalanche: chartColors.lenderAvalanche,
+  }
+}
+
+interface BreakdownItem {
   label: string
-  value: number | bigint | null | undefined
-  icon: React.ComponentType<{ className?: string }>
-  isLoading?: boolean
-  accentColor: 'indigo-600' | 'indigo-500' | 'indigo-400'
-}) {
-  const colorClasses = {
-    'indigo-600': {
-      border: 'border-l-indigo-600',
-      icon: 'text-indigo-600 dark:text-indigo-400',
-    },
-    'indigo-500': {
-      border: 'border-l-indigo-500',
-      icon: 'text-indigo-500 dark:text-indigo-300',
-    },
-    'indigo-400': {
-      border: 'border-l-indigo-400',
-      icon: 'text-indigo-400 dark:text-indigo-300',
-    },
-  }
+  percentage: number
+  color: string
+}
 
-  const colors = colorClasses[accentColor]
-
-  if (isLoading) {
-    return (
-      <Card className={`border-l-4 ${colors.border}`}>
-        <CardContent className="p-4 sm:p-6">
-          <Skeleton className="h-4 w-24 mb-3" />
-          <Skeleton className="h-10 w-32" />
-        </CardContent>
-      </Card>
-    )
-  }
+function MiniPieChart({ items }: { items: BreakdownItem[] }) {
+  if (items.length < 2) return null
+  const r = 8
+  const circumference = 2 * Math.PI * r
+  const firstPct = items[0].percentage / 100
+  const firstDash = circumference * firstPct
+  const secondDash = circumference - firstDash
+  const tooltipText = items.map((i) => `${i.label} ${i.percentage.toFixed(0)}%`).join(' · ')
 
   return (
-    <Card className={`border-l-4 ${colors.border} min-w-0 overflow-hidden`}>
-      <CardContent className="p-4 sm:p-6">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
-          <Icon className={`h-4 w-4 shrink-0 ${colors.icon}`} />
-          <span className="truncate">{label}</span>
-        </div>
-        <div className="text-2xl sm:text-3xl font-bold text-foreground truncate">
-          {value !== null && value !== undefined ? formatCurrencyDisplay(value) : '-'}
-        </div>
-      </CardContent>
-    </Card>
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <svg width="20" height="20" viewBox="0 0 20 20" className="cursor-default shrink-0">
+            <circle
+              cx="10" cy="10" r={r}
+              fill="none"
+              stroke={items[1].color}
+              strokeWidth="4"
+            />
+            <circle
+              cx="10" cy="10" r={r}
+              fill="none"
+              stroke={items[0].color}
+              strokeWidth="4"
+              strokeDasharray={`${firstDash} ${secondDash}`}
+              strokeDashoffset={circumference * 0.25}
+              transform="rotate(-90 10 10)"
+            />
+          </svg>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p className="text-xs">{tooltipText}</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   )
 }
 
@@ -95,21 +109,81 @@ const PRIMARY_METRICS = [
     key: 'transactedVolume' as const,
     label: 'Transacted Volume',
     icon: DollarSign,
-    accentColor: 'indigo-600' as const,
+    tooltip: 'Total USDC volume across all tracked addresses',
   },
   {
     key: 'committedCapital' as const,
     label: 'Lender Invested Capital',
     icon: Wallet,
-    accentColor: 'indigo-500' as const,
+    tooltip: 'Total capital deposited by lenders into the tranche pool',
   },
   {
     key: 'assetsFinanced' as const,
     label: 'Assets Financed',
     icon: TrendingUp,
-    accentColor: 'indigo-400' as const,
+    tooltip: 'Total capital deployed from tranche pool to borrower',
   },
 ]
+
+function KeyMetricCard({
+  label,
+  value,
+  icon: Icon,
+  tooltip,
+  isLoading,
+  trend,
+  breakdown,
+}: {
+  label: string
+  value: number | bigint | null | undefined
+  icon: React.ComponentType<{ className?: string }>
+  tooltip: string
+  isLoading?: boolean
+  trend?: MultiPeriodTrend | null
+  breakdown?: BreakdownItem[]
+}) {
+  if (isLoading) {
+    return (
+      <Card className="text-center p-4 sm:p-6 rounded-md bg-card border border-gray-200 dark:border-gray-700">
+        <Skeleton className="h-4 w-24 mx-auto mb-3" />
+        <Skeleton className="h-10 w-32 mx-auto" />
+      </Card>
+    )
+  }
+
+  return (
+    <Card
+      className="text-center p-4 sm:p-6 rounded-md bg-card border border-gray-200 dark:border-gray-700"
+      aria-label={`${label}: ${value !== null && value !== undefined ? formatCurrencyDisplay(value) : '-'}`}
+    >
+      <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground mb-3">
+        <span style={{ color: 'var(--rwa-accent-600)' }}><Icon className="h-4 w-4 shrink-0" /></span>
+        <span>{label}</span>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <InfoIcon className="h-3 w-3 cursor-help shrink-0 text-muted-foreground/60" />
+            </TooltipTrigger>
+            <TooltipContent className="max-w-[200px]">
+              <p className="text-sm">{tooltip}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
+      <div className="text-xl sm:text-3xl font-mono font-semibold text-foreground">
+        {value !== null && value !== undefined
+          ? <AnimatedCurrencyValue value={value} />
+          : '-'}
+      </div>
+      {(trend || (breakdown && breakdown.length > 0)) && (
+        <div className="mt-2 flex items-center justify-center gap-4">
+          {trend && <TrendPillBadge trend={trend} />}
+          {breakdown && breakdown.length > 0 && <MiniPieChart items={breakdown} />}
+        </div>
+      )}
+    </Card>
+  )
+}
 
 const SECONDARY_METRICS = [
   {
@@ -160,11 +234,20 @@ export function GeneralMetricsSection({
   metrics,
   isLoading = false,
   error,
+  trends,
+  lenderBreakdown,
 }: GeneralMetricsSectionProps) {
+  const lenderColors = useLenderChartColors()
+
+  const breakdownItems: BreakdownItem[] | undefined = lenderBreakdown?.map((entry) => ({
+    label: entry.lender,
+    percentage: entry.percentage,
+    color: lenderColors[entry.lender] ?? '#a5b4fc',
+  }))
+
   if (error && !isLoading) {
     return (
       <section className="space-y-6">
-        <h2 className="text-xl font-semibold">Key Metrics</h2>
         <div className="rounded-lg border border-destructive/50 bg-destructive/5 p-4 text-sm text-destructive">
           {error}
         </div>
@@ -174,22 +257,40 @@ export function GeneralMetricsSection({
 
   return (
     <section className="space-y-6">
-      <h2 className="text-xl font-semibold">Key Metrics</h2>
+      {/* Mobile: horizontal scroll snap carousel */}
+      <div className="sm:hidden flex gap-4 overflow-x-auto snap-x snap-mandatory pb-2 -mx-4 px-4 scrollbar-none">
+        {PRIMARY_METRICS.map((config) => (
+          <div key={config.key} className="snap-center min-w-[280px] flex-shrink-0">
+            <KeyMetricCard
+              label={config.label}
+              value={metrics?.[config.key]}
+              icon={config.icon}
+              tooltip={config.tooltip}
+              isLoading={isLoading}
+              trend={trends?.[config.key]}
+              breakdown={config.key === 'committedCapital' ? breakdownItems : undefined}
+            />
+          </div>
+        ))}
+      </div>
 
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
+      {/* Desktop: grid */}
+      <div className="hidden sm:grid gap-4 grid-cols-3">
         {PRIMARY_METRICS.map((config) => (
           <KeyMetricCard
             key={config.key}
             label={config.label}
             value={metrics?.[config.key]}
             icon={config.icon}
+            tooltip={config.tooltip}
             isLoading={isLoading}
-            accentColor={config.accentColor}
+            trend={trends?.[config.key]}
+            breakdown={config.key === 'committedCapital' ? breakdownItems : undefined}
           />
         ))}
       </div>
 
-      <MetricGrid columns={3}>
+      <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
         {SECONDARY_METRICS.map((config) =>
           isLoading ? (
             <MetricCardLoading key={config.key} />
@@ -201,10 +302,11 @@ export function GeneralMetricsSection({
               format={config.format}
               tooltip={config.tooltip}
               icon={config.icon}
+              trend={trends?.[config.key]}
             />
           )
         )}
-      </MetricGrid>
+      </div>
     </section>
   )
 }
