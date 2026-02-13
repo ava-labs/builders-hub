@@ -240,7 +240,7 @@ export default function CustomSubmission({ hackathon }: { hackathon: HackathonHe
       },
     },
     {
-      label: "Idea Pitch",
+      label: "Stage 1: Idea",
       status: statuses[1],
       date: "Feb 25",
       details: {
@@ -251,7 +251,7 @@ export default function CustomSubmission({ hackathon }: { hackathon: HackathonHe
       },
     },
     {
-      label: "Prototype / MVP",
+      label: "Stage 2: MVP",
       status: statuses[2],
       date: "March 9",
       details: {
@@ -262,7 +262,7 @@ export default function CustomSubmission({ hackathon }: { hackathon: HackathonHe
       },
     },
     {
-      label: "GTM Plan & Vision",
+      label: "Stage 3: GTM & Vision",
       status: statuses[3],
       date: "March 19",
       details: {

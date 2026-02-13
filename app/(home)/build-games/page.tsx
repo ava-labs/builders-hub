@@ -5,6 +5,7 @@ import ReferralButton from "@/components/build-games/ReferralButton";
 import ReferralLink from "@/components/build-games/ReferralLink";
 import { ApplyButton } from "@/components/build-games/ApplyButton";
 import ApplicationStatusTracker from "@/components/build-games/ApplicationStatusTracker";
+import ProgramTimeline from "@/components/build-games/ProgramTimeline";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import type { Metadata } from "next";
 
@@ -1082,7 +1083,7 @@ function MainContent() {
           <div className="content-stretch flex flex-col gap-[16px] items-start justify-center px-[186px] py-0 relative w-full">
             <WhatIsBuildGamesSection />
             <WhoShouldApplySection />
-            <HowItWorksSection />
+            <ProgramTimeline />
             <PrizesSection />
             <div className="h-[24px] shrink-0 w-[197px]" data-name="Spacer" />
             <WhatWereLookingForSection />
