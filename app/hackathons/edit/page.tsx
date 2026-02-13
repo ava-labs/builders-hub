@@ -448,16 +448,14 @@ type ScheduleItemProps = {
 const ScheduleItem = memo(function ScheduleItem({ event, index, collapsed, onChange, onDone, onExpand, onRemove, t, language, removing, scheduleLength, toLocalDatetimeString }: ScheduleItemProps) {
   return (
     <div className={`border border-zinc-700 rounded-lg p-4 mb-6 bg-zinc-900/40 relative transition-all duration-300 ease-in-out ${removing[`schedule-${index}`] ? 'opacity-0 scale-95 blur-sm' : 'opacity-100 scale-100'}`}>
-      {scheduleLength > 1 && (
-        <button
-          type="button"
-          onClick={() => onRemove(index)}
-          className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg p-2 transition-transform duration-200 hover:scale-110 flex items-center justify-center cursor-pointer"
-          title={t[language].removeSchedule}
-        >
-          <Trash className="w-5 h-5" />
-        </button>
-      )}
+      <button
+        type="button"
+        onClick={() => onRemove(index)}
+        className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg p-2 transition-transform duration-200 hover:scale-110 flex items-center justify-center cursor-pointer"
+        title={t[language].removeSchedule}
+      >
+        <Trash className="w-5 h-5" />
+      </button>
       <h3 className="text-lg font-semibold mb-2">Schedule {index + 1}</h3>
       {collapsed ? (
         <div className="flex justify-end">
@@ -853,6 +851,7 @@ const HackathonsEdit = () => {
       custom_link: hackathon.custom_link ?? null,
       top_most: hackathon.top_most ?? false,
       event: hackathon.event ?? 'hackathon',
+      google_calendar_id: hackathon.google_calendar_id ?? null,
     });
     setCohostsEmails(hackathon.cohosts ?? []);
     setShowForm(true);
@@ -882,6 +881,15 @@ const HackathonsEdit = () => {
   const [rawTrackText, setRawTrackText] = useState<string>('');
   const [rawTrackDescriptions, setRawTrackDescriptions] = useState<{ [key: number]: string }>({});
   const [hasEditPermission, setHasEditPermission] = useState<boolean>(false);
+  const [dateRangeError, setDateRangeError] = useState<string | null>(null);
+
+  const getDateRangeError = (start: string, end: string): string | null => {
+    if (!start?.trim() || !end?.trim()) return null;
+    const startTime = new Date(start).getTime();
+    const endTime = new Date(end).getTime();
+    if (isNaN(startTime) || isNaN(endTime)) return null;
+    return endTime > startTime ? null : t[language].endDateBeforeStartDateError;
+  };
 
   const scrollToSection = (section: string) => {
     setScrollTarget(section);
@@ -1127,10 +1135,8 @@ const HackathonsEdit = () => {
   };
 
   const removeSchedule = (index: number) => {
-    if (formDataContent.schedule.length > 1) {
-      const newSchedule = formDataContent.schedule.filter((_, i) => i !== index);
-      setFormDataContent({ ...formDataContent, schedule: newSchedule });
-    }
+    const newSchedule = formDataContent.schedule.filter((_, i) => i !== index);
+    setFormDataContent({ ...formDataContent, schedule: newSchedule });
   };
 
   const removeSpeaker = (index: number) => {
@@ -1155,6 +1161,7 @@ const HackathonsEdit = () => {
     const latest = { ...formDataLatest };
     latest.start_date = toIso8601(latest.start_date);
     latest.end_date = toIso8601(latest.end_date);
+    latest.google_calendar_id = formDataLatest.google_calendar_id?.trim() || null;
     return {
       ...formDataMain,
       content,
@@ -1263,6 +1270,13 @@ const HackathonsEdit = () => {
 
   const doSubmit = async () => {
     setLoading(true);
+    const dateErr = getDateRangeError(formDataLatest.start_date, formDataLatest.end_date);
+    if (dateErr) {
+      setDateRangeError(dateErr);
+      setLoading(false);
+      return;
+    }
+    setDateRangeError(null);
     let dataToSend 
     if (isSelectedHackathon)
       dataToSend= {...getDataToSend(), updated_by: session?.user?.id};
@@ -1396,6 +1410,12 @@ const HackathonsEdit = () => {
   }
 
   const handleUpdateClick = () => {
+    const dateErr = getDateRangeError(formDataLatest.start_date, formDataLatest.end_date);
+    if (dateErr) {
+      setDateRangeError(dateErr);
+      return;
+    }
+    setDateRangeError(null);
     const dataToSend = getDataToSend();
     const changedFields: { key: string, oldValue: any, newValue: any }[] = [];
     if (selectedHackathon) {
@@ -1475,7 +1495,8 @@ const HackathonsEdit = () => {
       small_banner: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Hackathon_assets/Template/small_banner_template.png",
       event: "hackathon",
       custom_link: null,
-      top_most: false
+      top_most: false,
+      google_calendar_id: null
     });
 
     setFormDataContent({
@@ -2470,34 +2491,43 @@ const HackathonsEdit = () => {
                       required
                     />
                   </div>
-                  {formDataLatest.event === "hackathon" && (
-                    <div className="space-y-4">
-                    <label className="font-medium text-xl mb-2 block">{t[language].schedule}:</label>
-                    <div className="mb-2 text-zinc-400 text-sm">{t[language].scheduleHelp}</div>
-                    {formDataContent.schedule.map((event, index) => (
-                      <ScheduleItem
-                        key={index}
-                        event={event}
-                        index={index}
-                        collapsed={collapsedSchedules[index]}
-                        onChange={handleScheduleFieldChange}
-                        onDone={handleScheduleDone}
-                        onExpand={handleScheduleExpand}
-                        onRemove={animateRemove.bind(null, 'schedule', index, removeSchedule)}
-                        t={t}
-                        language={language}
-                        removing={removing}
-                        scheduleLength={formDataContent.schedule.length}
-                        toLocalDatetimeString={toLocalDatetimeString}
-                      />
-                    ))}
-                    <div className="flex justify-end">
-                      <Button type="button" onClick={addSchedule} className="mt-2 bg-red-500 hover:bg-red-600 text-white flex items-center gap-2">
-                        <Plus className="w-4 h-4" /> {t[language].addSchedule}
-                      </Button>
-                    </div>
+                  <div className="space-y-4">
+                    <label className="font-medium text-xl mb-2 block">{t[language].googleCalendarId}:</label>
+                    <div className="mb-2 text-zinc-400 text-sm">{t[language].googleCalendarIdHelp}</div>
+                    <Input
+                      type="text"
+                      placeholder="e.g. primary or abc123@group.calendar.google.com"
+                      value={formDataLatest.google_calendar_id ?? ''}
+                      onChange={(e) => setFormDataLatest({ ...formDataLatest, google_calendar_id: e.target.value || null })}
+                      className="w-full mb-4"
+                    />
                   </div>
-                  )}
+                  <div className="space-y-4">
+                  <label className="font-medium text-xl mb-2 block">{t[language].schedule}:</label>
+                  <div className="mb-2 text-zinc-400 text-sm">{t[language].scheduleHelp}</div>
+                  {formDataContent.schedule.map((event, index) => (
+                    <ScheduleItem
+                      key={index}
+                      event={event}
+                      index={index}
+                      collapsed={collapsedSchedules[index]}
+                      onChange={handleScheduleFieldChange}
+                      onDone={handleScheduleDone}
+                      onExpand={handleScheduleExpand}
+                      onRemove={animateRemove.bind(null, 'schedule', index, removeSchedule)}
+                      t={t}
+                      language={language}
+                      removing={removing}
+                      scheduleLength={formDataContent.schedule.length}
+                      toLocalDatetimeString={toLocalDatetimeString}
+                    />
+                  ))}
+                  <div className="flex justify-end">
+                    <Button type="button" onClick={addSchedule} className="mt-2 bg-red-500 hover:bg-red-600 text-white flex items-center gap-2">
+                      <Plus className="w-4 h-4" /> {t[language].addSchedule}
+                    </Button>
+                  </div>
+                </div>
                   {/* Resources Section - For all event types */}
                   <div className="space-y-4">
                     <label className="font-medium text-xl mb-2 block">{t[language].resources}:</label>
@@ -2650,7 +2680,11 @@ const HackathonsEdit = () => {
                         type="datetime-local"
                         placeholder="Start Date"
                         value={formDataLatest.start_date}
-                        onChange={(e) => setFormDataLatest({ ...formDataLatest, start_date: e.target.value })}
+                        onChange={(e) => {
+                          const start = e.target.value;
+                          setFormDataLatest({ ...formDataLatest, start_date: start });
+                          setDateRangeError(getDateRangeError(start, formDataLatest.end_date));
+                        }}
                         className="w-full mb-4"
                         required
                       />
@@ -2662,10 +2696,17 @@ const HackathonsEdit = () => {
                         type="datetime-local"
                         placeholder="End Date"
                         value={formDataLatest.end_date}
-                        onChange={(e) => setFormDataLatest({ ...formDataLatest, end_date: e.target.value })}
+                        onChange={(e) => {
+                          const end = e.target.value;
+                          setFormDataLatest({ ...formDataLatest, end_date: end });
+                          setDateRangeError(getDateRangeError(formDataLatest.start_date, end));
+                        }}
                         className="w-full mb-4"
                         required
                       />
+                      {dateRangeError && (
+                        <p className="text-red-500 text-sm mt-1 mb-4">{dateRangeError}</p>
+                      )}
                     </div>
                     <div>
                       <label className="font-medium text-xl mb-2 block">{t[language].timezone}:</label>
