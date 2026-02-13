@@ -44,10 +44,12 @@ function PhaseIcon({ status }: { status: TimelinePhase["status"] }) {
 
 function DesktopTimeline({
   phases,
-  onPhaseClick
+  onPhaseClick,
+  selectedIndex
 }: {
   phases: TimelinePhase[];
   onPhaseClick: (index: number) => void;
+  selectedIndex: number;
 }) {
   return (
     <div className="hidden md:flex items-start justify-between w-full py-12 px-8 relative">
@@ -56,7 +58,9 @@ function DesktopTimeline({
           {/* Circle */}
           <button
             onClick={() => onPhaseClick(index)}
-            className="rounded-full p-1 transition-all duration-300 active:scale-95 mb-4"
+            className={`rounded-full p-1 transition-all duration-300 active:scale-95 mb-4 ${
+              index === selectedIndex ? 'bg-[#66acd6]/20 px-6 py-3 rounded-full' : ''
+            }`}
           >
             <PhaseIcon status={phase.status} />
           </button>
@@ -91,10 +95,12 @@ function DesktopTimeline({
 
 function MobileTimeline({
   phases,
-  onPhaseClick
+  onPhaseClick,
+  selectedIndex
 }: {
   phases: TimelinePhase[];
   onPhaseClick: (index: number) => void;
+  selectedIndex: number;
 }) {
   return (
     <div className="flex md:hidden flex-col items-start w-full gap-4 px-4 py-8">
@@ -103,7 +109,9 @@ function MobileTimeline({
           <div className="flex flex-col items-center">
             <button
               onClick={() => onPhaseClick(index)}
-              className="rounded-full p-1 transition-all duration-300 active:scale-95"
+              className={`rounded-full p-1 transition-all duration-300 active:scale-95 ${
+                index === selectedIndex ? 'bg-[#66acd6]/20 px-3 py-2 rounded-full' : ''
+              }`}
             >
               <PhaseIcon status={phase.status} />
             </button>
@@ -182,7 +190,6 @@ function PhaseDetailsCards({ phase }: { phase: TimelinePhase }) {
 export default function CustomSubmission({ hackathon }: { hackathon: HackathonHeader }) {
   // Define phase deadlines
   const phaseDeadlines = [
-    new Date("2026-02-18"), // Application Process
     new Date("2026-02-20"), // Kick Off
     new Date("2026-02-25"), // Idea Pitch
     new Date("2026-03-09"), // Prototype / MVP
@@ -222,19 +229,8 @@ export default function CustomSubmission({ hackathon }: { hackathon: HackathonHe
 
   const competitionPhases: TimelinePhase[] = [
     {
-      label: "Application Process",
-      status: statuses[0],
-      date: "Jan 20 - Feb 18",
-      details: {
-        deadline: "February 18, 2026 at 11:59 PM PST",
-        requirements: "Complete application form with team information, project concept, and why you want to participate in BuildGames.",
-        criteria: "Team composition, project idea clarity, motivation, and alignment with Avalanche ecosystem goals.",
-        support: "Application review assistance and feedback on your submission before the deadline.",
-      },
-    },
-    {
       label: "Kick Off",
-      status: statuses[1],
+      status: statuses[0],
       date: "Feb 20",
       details: {
         deadline: "February 20, 2026 - Event Day",
@@ -245,7 +241,7 @@ export default function CustomSubmission({ hackathon }: { hackathon: HackathonHe
     },
     {
       label: "Idea Pitch",
-      status: statuses[2],
+      status: statuses[1],
       date: "Feb 25",
       details: {
         deadline: "February 25, 2026 at 11:59 PM PST",
@@ -256,7 +252,7 @@ export default function CustomSubmission({ hackathon }: { hackathon: HackathonHe
     },
     {
       label: "Prototype / MVP",
-      status: statuses[3],
+      status: statuses[2],
       date: "March 9",
       details: {
         deadline: "March 9, 2026 at 11:59 PM PST",
@@ -267,7 +263,7 @@ export default function CustomSubmission({ hackathon }: { hackathon: HackathonHe
     },
     {
       label: "GTM Plan & Vision",
-      status: statuses[4],
+      status: statuses[3],
       date: "March 19",
       details: {
         deadline: "March 19, 2026 at 11:59 PM PST",
@@ -278,7 +274,7 @@ export default function CustomSubmission({ hackathon }: { hackathon: HackathonHe
     },
     {
       label: "Final Pitch",
-      status: statuses[5],
+      status: statuses[4],
       date: "March 27",
       details: {
         deadline: "March 27, 2026 - Live presentation",
@@ -310,10 +306,12 @@ export default function CustomSubmission({ hackathon }: { hackathon: HackathonHe
         <DesktopTimeline
           phases={competitionPhases}
           onPhaseClick={setSelectedPhaseIndex}
+          selectedIndex={selectedPhaseIndex}
         />
         <MobileTimeline
           phases={competitionPhases}
           onPhaseClick={setSelectedPhaseIndex}
+          selectedIndex={selectedPhaseIndex}
         />
 
         {/* Helper text */}
@@ -351,26 +349,26 @@ export default function CustomSubmission({ hackathon }: { hackathon: HackathonHe
 
       {/* CTA Button */}
       <div className="flex justify-center">
-        <a
-          href={hackathon.content.submission_custom_link || `/hackathons/${hackathon.id}/submit`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="group relative"
-        >
-          <div className="absolute -inset-0.5 bg-gradient-to-r from-[#66acd6] to-[#38bdf8] rounded-lg blur opacity-30 group-hover:opacity-60 transition duration-300" />
-          <div className="relative flex items-center gap-3 px-8 py-4 bg-[#66acd6] rounded-lg font-['Aeonik:Medium',sans-serif] font-medium text-[#152d44] group-hover:bg-[#7fc0e5] transition-all duration-200 shadow-lg shadow-cyan-500/20 group-hover:shadow-cyan-500/40">
-            <span className="text-base">Submit Deliverables</span>
-            <svg
-              className="w-4 h-4 transition-transform group-hover:translate-x-1"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </div>
-        </a>
-      </div>
+          <a
+            href={hackathon.content.submission_custom_link || `/hackathons/${hackathon.id}/submit`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group relative"
+          >
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-[#66acd6] to-[#38bdf8] rounded-lg blur opacity-30 group-hover:opacity-60 transition duration-300" />
+            <div className="relative flex items-center gap-3 px-8 py-4 bg-[#66acd6] rounded-lg font-['Aeonik:Medium',sans-serif] font-medium text-[#152d44] group-hover:bg-[#7fc0e5] transition-all duration-200 shadow-lg shadow-cyan-500/20 group-hover:shadow-cyan-500/40">
+              <span className="text-base">Submit Deliverables</span>
+              <svg
+                className="w-4 h-4 transition-transform group-hover:translate-x-1"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </div>
+          </a>
+        </div>
     </section>
   );
 }
