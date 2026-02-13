@@ -5,7 +5,7 @@ import { RewardCard } from "./reward-card";
 import { getAuthSession } from "@/lib/auth/authSession";
 import { getRewardBoard } from "@/server/services/rewardBoard";
 import { Separator } from "@/components/ui/separator";
-import { Badge, UserBadge, BadgeAwardStatus } from "@/types/badge";
+import { Badge, UserBadge } from "@/types/badge";
 import { getAllBadges } from "@/server/services/badge";
 import Link from "next/link";
 
@@ -24,23 +24,50 @@ export default async function RewardBoard() {
 
   const academyBadgesUnlocked = academyBadges.map((badge) => {
     const userBadge = userBadges.find((userBadge) => userBadge.badge_id == badge.id);
-    const allRequirementsCompleted = userBadge?.requirements && userBadge.requirements.length > 0 &&
+
+    if (!userBadge) {
+      const hasRequirements = badge.requirements && badge.requirements.length > 0;
+      return {
+        ...badge,
+        is_unlocked: !hasRequirements,
+        requirements: badge.requirements || [],
+      };
+    }
+
+    const allRequirementsCompleted = userBadge.requirements && userBadge.requirements.length > 0 &&
       userBadge.requirements.every((requirement) => requirement.unlocked === true);
+    const hasNoRequirements = !userBadge.requirements || userBadge.requirements.length === 0;
+
     return {
       ...badge,
-      is_unlocked: !!allRequirementsCompleted,
-      requirements: userBadge?.requirements || badge.requirements,
+      is_unlocked: hasNoRequirements || !!allRequirementsCompleted,
+      requirements: userBadge.requirements || badge.requirements || [],
     };
-  }).sort(element => element.is_unlocked ? -1 : 1);
+  }).sort((a, b) => {
+    if (a.is_unlocked !== b.is_unlocked) return a.is_unlocked ? -1 : 1;
+    return a.name.localeCompare(b.name);
+  });
 
   const consoleBadgesUnlocked = consoleBadges.map((badge) => {
     const userBadge = userBadges.find((userBadge) => userBadge.badge_id == badge.id);
-    const allRequirementsCompleted = userBadge?.requirements && userBadge.requirements.length > 0 &&
+
+    if (!userBadge) {
+      const hasRequirements = badge.requirements && badge.requirements.length > 0;
+      return {
+        ...badge,
+        is_unlocked: !hasRequirements,
+        requirements: badge.requirements || [],
+      };
+    }
+
+    const allRequirementsCompleted = userBadge.requirements && userBadge.requirements.length > 0 &&
       userBadge.requirements.every((requirement) => requirement.unlocked === true);
+    const hasNoRequirements = !userBadge.requirements || userBadge.requirements.length === 0;
+
     return {
       ...badge,
-      is_unlocked: !!allRequirementsCompleted,
-      requirements: userBadge?.requirements || badge.requirements,
+      is_unlocked: hasNoRequirements || !!allRequirementsCompleted,
+      requirements: userBadge.requirements || badge.requirements || [],
     };
   }).sort((a, b) => {
     if (a.is_unlocked !== b.is_unlocked) return a.is_unlocked ? -1 : 1;
