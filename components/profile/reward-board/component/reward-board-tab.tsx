@@ -155,4 +155,3 @@ export default async function RewardBoardTab() {
     </div>
   );
 }
-

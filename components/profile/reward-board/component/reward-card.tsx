@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { StaticMedal } from "./static-metal";
 import { AutoRotateMedal } from "./auto-rotate-badge";
+import { Lock, CheckCircle2 } from "lucide-react";
 
 const DISC = { radius: 1.3, segments: 200 };
 
@@ -53,6 +54,18 @@ export const RewardCard = ({
             <directionalLight position={[-3, -2, -4]} intensity={0.45} />
             <StaticMedal image={image} is_unlocked={is_unlocked} Disc={DISC} />
           </Canvas>
+        </div>
+        <div className="text-center mt-1 px-2">
+          <div className="flex items-center justify-center gap-1.5">
+            {is_unlocked ? (
+              <CheckCircle2 className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
+            ) : (
+              <Lock className="w-3.5 h-3.5 text-zinc-400 flex-shrink-0" />
+            )}
+            <span className={`text-sm font-medium truncate ${is_unlocked ? "text-gray-900 dark:text-white" : "text-zinc-400 dark:text-zinc-500"}`}>
+              {name}
+            </span>
+          </div>
         </div>
       </div>
 
