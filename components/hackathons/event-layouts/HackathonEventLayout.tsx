@@ -35,8 +35,9 @@ export default function HackathonEventLayout({
     Array.isArray(hackathon.content.resources) &&
     hackathon.content.resources.length > 0;
   const hasSchedule =
-    Array.isArray(hackathon.content.schedule) &&
-    hackathon.content.schedule.length > 0;
+    (Array.isArray(hackathon.content.schedule) &&
+      hackathon.content.schedule.length > 0) ||
+    Boolean(hackathon.google_calendar_id);
   const hasSpeakers =
     Array.isArray(hackathon.content.speakers) &&
     hackathon.content.speakers.length > 0;
@@ -110,7 +111,19 @@ export default function HackathonEventLayout({
             {hasAbout && <About hackathon={hackathon} />}
             {hasTracks && <Tracks hackathon={hackathon} />}
             {hasResources && <Resources hackathon={hackathon} />}
-            {hasSchedule && <Schedule hackathon={hackathon} />}
+            {hasSchedule && (
+              <Schedule
+                hackathon={hackathon}
+                scheduleSource={
+                  hackathon.google_calendar_id ? "google-calendar" : "database"
+                }
+                googleCalendarConfig={
+                  hackathon.google_calendar_id
+                    ? { calendarId: hackathon.google_calendar_id }
+                    : undefined
+                }
+              />
+            )}
             <Submission hackathon={hackathon} />
             {hasSpeakers && <MentorsJudges hackathon={hackathon} />}
             <Community hackathon={hackathon} />

@@ -2,6 +2,7 @@ import React from "react";
 import Image from "next/image";
 import { NavigationMenu } from "@/components/hackathons/NavigationMenu";
 import About from "@/components/hackathons/hackathon/sections/About";
+import Schedule from "@/components/hackathons/hackathon/sections/Schedule";
 import Sponsors from "@/components/hackathons/hackathon/sections/Sponsors";
 import Resources from "@/components/hackathons/hackathon/sections/Resources";
 import Community from "@/components/hackathons/hackathon/sections/Community";
@@ -63,6 +64,10 @@ export default function WorkshopBootcampEventLayout({
   const hasResources =
     Array.isArray(hackathon.content.resources) &&
     hackathon.content.resources.length > 0;
+  const hasSchedule =
+    (Array.isArray(hackathon.content.schedule) &&
+      hackathon.content.schedule.length > 0) ||
+    Boolean(hackathon.google_calendar_id);
   const hasSpeakers =
     Array.isArray(hackathon.content.speakers) &&
     hackathon.content.speakers.length > 0;
@@ -73,6 +78,7 @@ export default function WorkshopBootcampEventLayout({
   const simplifiedMenuItems = [
     ...(hasAbout ? [{ name: "About", ref: "about" }] : []),
     ...(hasResources ? [{ name: "Resources", ref: "resources" }] : []),
+    ...(hasSchedule ? [{ name: "Schedule", ref: "schedule" }] : []),
     ...(hasPartners ? [{ name: "Partners", ref: "sponsors" }] : []),
   ];
 
@@ -169,6 +175,19 @@ export default function WorkshopBootcampEventLayout({
           <div className="py-8 sm:p-8 flex flex-col gap-20">
             {hasAbout && <About hackathon={hackathon} />}
             {hasResources && <Resources hackathon={hackathon} />}
+            {hasSchedule && (
+              <Schedule
+                hackathon={hackathon}
+                scheduleSource={
+                  hackathon.google_calendar_id ? "google-calendar" : "database"
+                }
+                googleCalendarConfig={
+                  hackathon.google_calendar_id
+                    ? { calendarId: hackathon.google_calendar_id }
+                    : undefined
+                }
+              />
+            )}
             {hasSpeakers && <MentorsJudges hackathon={hackathon} />}
             {hasPartners && <Sponsors hackathon={hackathon} />}
           </div>
