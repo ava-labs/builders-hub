@@ -88,6 +88,14 @@ export const getFilteredProjects = async (options: GetProjectOptions) => {
       members: true,
       hackathon: true,
       prizes: true,
+      badges: {
+        where: {
+          status: 1, // BadgeAwardStatus.approved
+        },
+        include: {
+          badge: true,
+        },
+      },
     },
     where: filters,
     skip: offset,
@@ -106,6 +114,11 @@ export const getFilteredProjects = async (options: GetProjectOptions) => {
         ...project.hackathon,
         content: project.hackathon.content as any,
       } : null,
+      badges: project.badges?.map((projectBadge: any) => ({
+        ...projectBadge,
+        name: projectBadge.badge.name,
+        image_path: projectBadge.badge.image_path,
+      })),
     })),
     total: totalProjects,
     page,
