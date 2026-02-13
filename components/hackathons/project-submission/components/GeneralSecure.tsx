@@ -282,7 +282,7 @@ export default function GeneralSecureComponent({
         </p>
       </div>
 
-      <ProgressBar progress={debouncedProgress} timeLeft={timeLeft} />
+      <ProgressBar progress={debouncedProgress} />
 
       <div className="flex flex-col sm:flex-row mt-6 gap-4 sm:gap-4 sm:space-x-12">
         {/* Sidebar para móvil */}
