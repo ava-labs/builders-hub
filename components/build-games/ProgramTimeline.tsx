@@ -498,7 +498,7 @@ export default function ProgramTimeline() {
         {selectedPhaseIndex >= 1 && (
           <div className="flex justify-center w-full pt-4">
             <a
-              href="/hackathons/249d2911-7931-4aa0-a696-37d8370b79f9/submit"
+              href="/hackathons/project-submission?hackathon=249d2911-7931-4aa0-a696-37d8370b79f9/submit"
               target="_blank"
               rel="noopener noreferrer"
               className="group relative inline-flex"
