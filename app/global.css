@@ -670,6 +670,15 @@ html {
     animation: stroke 5s linear infinite;
   }
 
+  @keyframes flow {
+    from {
+      background-position: 0 0;
+    }
+    to {
+      background-position: 24px 0;
+    }
+  }
+
   .container {
     max-width: 1400px;
     margin-left: auto;

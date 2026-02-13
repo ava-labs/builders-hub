@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/tooltip'
 import type { GeneralMetrics } from '@/lib/rwa/types'
 import { bigintToNumber, formatCurrency } from '@/lib/rwa/utils'
+import { usePalette } from '@/lib/rwa/hooks/usePalette'
 
 const FLOW_LABELS = {
   lenders: { name: 'Lenders', subtitle: 'Capital source' },
@@ -56,15 +57,19 @@ function AmountWithTooltip({
 function EntityNode({
   name,
   subtitle,
-  colorClasses,
+  accentColor,
 }: {
   name: string
   subtitle: string
-  colorClasses: string
+  accentColor: string
 }) {
   return (
     <div
-      className={`rounded-lg border px-4 py-3 text-center min-w-[100px] ${colorClasses}`}
+      className="rounded-lg border px-4 py-3 text-center min-w-[100px]"
+      style={{
+        backgroundColor: `${accentColor}1a`,
+        borderColor: `${accentColor}33`,
+      }}
     >
       <div className="text-sm font-semibold">{name}</div>
       <div className="text-xs text-muted-foreground">{subtitle}</div>
@@ -86,7 +91,15 @@ function FlowConnector({
         className="text-sm font-semibold cursor-default"
       />
       <div className="w-full flex items-center">
-        <div className="flex-1 border-t-2 border-dashed border-muted-foreground/30" />
+        <div
+          className="flex-1 h-[2px] motion-safe:animate-[flow_1.5s_linear_infinite]"
+          style={{
+            backgroundImage: 'repeating-linear-gradient(90deg, currentColor 0px, currentColor 6px, transparent 6px, transparent 12px)',
+            backgroundSize: '24px 2px',
+            color: 'var(--muted-foreground)',
+            opacity: 0.3,
+          }}
+        />
         <svg
           width="12"
           height="12"
@@ -115,7 +128,15 @@ function VerticalFlowConnector({
         className="text-sm font-semibold cursor-default"
       />
       <div className="h-6 flex flex-col items-center">
-        <div className="flex-1 border-l-2 border-dashed border-muted-foreground/30" />
+        <div
+          className="flex-1 w-[2px] motion-safe:animate-[flowVertical_1.5s_linear_infinite]"
+          style={{
+            backgroundImage: 'repeating-linear-gradient(180deg, currentColor 0px, currentColor 6px, transparent 6px, transparent 12px)',
+            backgroundSize: '2px 24px',
+            color: 'var(--muted-foreground)',
+            opacity: 0.3,
+          }}
+        />
         <svg
           width="12"
           height="12"
@@ -131,6 +152,7 @@ function VerticalFlowConnector({
 }
 
 export function CapitalFlowSankey({ metrics, isLoading = false }: CapitalFlowSankeyProps) {
+  const { palette } = usePalette()
   const flowData = useMemo(() => {
     if (!metrics) return null
 
@@ -176,19 +198,19 @@ export function CapitalFlowSankey({ metrics, isLoading = false }: CapitalFlowSan
             <EntityNode
               name={FLOW_LABELS.lenders.name}
               subtitle={FLOW_LABELS.lenders.subtitle}
-              colorClasses="bg-indigo-500/10 border-indigo-500/20"
+              accentColor={palette.shades[500]}
             />
             <FlowConnector value={flowData.committed} label={FLOW_LABELS.invested} />
             <EntityNode
               name={FLOW_LABELS.tranchePool.name}
               subtitle={FLOW_LABELS.tranchePool.subtitle}
-              colorClasses="bg-indigo-400/10 border-indigo-400/20"
+              accentColor={palette.shades[400]}
             />
             <FlowConnector value={flowData.financed} label={FLOW_LABELS.deployed} />
             <EntityNode
               name={FLOW_LABELS.borrower.name}
               subtitle={FLOW_LABELS.borrower.subtitle}
-              colorClasses="bg-indigo-600/10 border-indigo-600/20"
+              accentColor={palette.shades[600]}
             />
           </div>
 
@@ -201,13 +223,13 @@ export function CapitalFlowSankey({ metrics, isLoading = false }: CapitalFlowSan
             <EntityNode
               name={FLOW_LABELS.borrowerReturn.name}
               subtitle={FLOW_LABELS.borrowerReturn.subtitle}
-              colorClasses="bg-indigo-600/10 border-indigo-600/20"
+              accentColor={palette.shades[600]}
             />
             <FlowConnector value={flowData.repayments} label={FLOW_LABELS.repaid} />
             <EntityNode
               name={FLOW_LABELS.pool.name}
               subtitle={FLOW_LABELS.pool.subtitle}
-              colorClasses="bg-indigo-400/10 border-indigo-400/20"
+              accentColor={palette.shades[400]}
             />
           </div>
         </div>
@@ -222,19 +244,19 @@ export function CapitalFlowSankey({ metrics, isLoading = false }: CapitalFlowSan
             <EntityNode
               name={FLOW_LABELS.lenders.name}
               subtitle={FLOW_LABELS.lenders.subtitle}
-              colorClasses="bg-indigo-500/10 border-indigo-500/20"
+              accentColor={palette.shades[500]}
             />
             <VerticalFlowConnector value={flowData.committed} label={FLOW_LABELS.invested} />
             <EntityNode
               name={FLOW_LABELS.tranchePool.name}
               subtitle={FLOW_LABELS.tranchePool.subtitle}
-              colorClasses="bg-indigo-400/10 border-indigo-400/20"
+              accentColor={palette.shades[400]}
             />
             <VerticalFlowConnector value={flowData.financed} label={FLOW_LABELS.deployed} />
             <EntityNode
               name={FLOW_LABELS.borrower.name}
               subtitle={FLOW_LABELS.borrower.subtitle}
-              colorClasses="bg-indigo-600/10 border-indigo-600/20"
+              accentColor={palette.shades[600]}
             />
           </div>
 
@@ -246,13 +268,13 @@ export function CapitalFlowSankey({ metrics, isLoading = false }: CapitalFlowSan
             <EntityNode
               name={FLOW_LABELS.borrowerReturn.name}
               subtitle={FLOW_LABELS.borrowerReturn.subtitle}
-              colorClasses="bg-indigo-600/10 border-indigo-600/20"
+              accentColor={palette.shades[600]}
             />
             <VerticalFlowConnector value={flowData.repayments} label={FLOW_LABELS.repaid} />
             <EntityNode
               name={FLOW_LABELS.pool.name}
               subtitle={FLOW_LABELS.pool.subtitle}
-              colorClasses="bg-indigo-400/10 border-indigo-400/20"
+              accentColor={palette.shades[400]}
             />
           </div>
         </div>
@@ -279,9 +301,10 @@ export function CapitalFlowSankey({ metrics, isLoading = false }: CapitalFlowSan
           </div>
           <div className="h-2 rounded-full bg-muted overflow-hidden">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-indigo-400 to-indigo-600 transition-all duration-500"
+              className="h-full rounded-full transition-all duration-500"
               style={{
                 width: `${Math.min(flowData.utilization, 100)}%`,
+                background: `linear-gradient(to right, ${palette.shades[400]}, ${palette.shades[600]})`,
               }}
             />
           </div>

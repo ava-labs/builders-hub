@@ -2,6 +2,7 @@
 
 import { MetricCard, MetricCardLoading } from './MetricCard'
 import { MetricGrid } from './MetricGrid'
+import { SectionHeader } from './SectionHeader'
 import { Landmark, ArrowLeftRight, Coins } from 'lucide-react'
 import type { OatFiMetrics } from '@/lib/rwa/types'
 
@@ -43,7 +44,7 @@ export function OatFiSection({
   if (error && !isLoading) {
     return (
       <section>
-        <h2 className="text-lg font-medium text-muted-foreground mb-4">OatFi Breakdown</h2>
+        <SectionHeader title="OatFi Breakdown" className="mb-4" />
         <div className="rounded-lg border border-destructive/50 bg-destructive/5 p-4 text-sm text-destructive">
           {error}
         </div>
@@ -53,7 +54,7 @@ export function OatFiSection({
 
   return (
     <section>
-      <h2 className="text-lg font-medium text-muted-foreground mb-4">OatFi Breakdown</h2>
+      <SectionHeader title="OatFi Breakdown" className="mb-4" />
       <MetricGrid columns={3}>
         {METRIC_CONFIG.map((config) =>
           isLoading ? (

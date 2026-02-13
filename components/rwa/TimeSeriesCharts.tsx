@@ -16,6 +16,7 @@ import {
   Brush,
   Legend,
   ReferenceArea,
+  ReferenceLine,
 } from 'recharts'
 import {
   BarChart3,
@@ -27,7 +28,7 @@ import {
 } from 'lucide-react'
 import { useChartZoom } from '@/lib/rwa/hooks/useChartZoom'
 import { toCumulative } from '@/lib/rwa/calculations/aggregations'
-import { RWA_COLORS } from '@/lib/rwa/constants/colors'
+import { usePalette } from '@/lib/rwa/hooks/usePalette'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -46,7 +47,10 @@ interface TimeSeriesChartsProps {
   hideHeader?: boolean
 }
 
-const COLORS = RWA_COLORS.chart
+function useChartColors() {
+  const { chartColors } = usePalette()
+  return chartColors
+}
 
 function formatCurrency(value: number): string {
   if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(1)}M`
@@ -62,12 +66,12 @@ function CustomTooltip({
   active,
   payload,
   label,
-  isCurrency = true,
+  formatter = formatCurrency,
 }: {
   active?: boolean
   payload?: Array<{ name: string; value: number; color: string }>
   label?: string
-  isCurrency?: boolean
+  formatter?: (value: number) => string
 }) {
   if (!active || !payload || payload.length === 0) return null
 
@@ -81,7 +85,7 @@ function CustomTooltip({
           style={{ color: entry.color }}
         >
           <span className="hidden sm:inline">{entry.name}: </span>
-          {isCurrency ? formatCurrency(entry.value) : formatPercentage(entry.value)}
+          {formatter(entry.value)}
         </p>
       ))}
     </div>
@@ -210,6 +214,8 @@ interface SingleChartProps {
   isLoading?: boolean
   formatFn?: (value: number) => string
   showViewModeToggle?: boolean
+  chartId?: string
+  referenceLineY?: number
 }
 
 function SingleChart({
@@ -220,6 +226,8 @@ function SingleChart({
   isLoading = false,
   formatFn = formatCurrency,
   showViewModeToggle = false,
+  chartId,
+  referenceLineY,
 }: SingleChartProps) {
   const [chartType, setChartType] = useState<ChartType>(defaultType)
   const [viewMode, setViewMode] = useState<ViewMode>('periodic')
@@ -243,7 +251,7 @@ function SingleChart({
 
   if (isLoading) {
     return (
-      <Card>
+      <Card id={chartId}>
         <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <CardTitle className="text-lg">{title}</CardTitle>
           <Skeleton className="h-8 w-24" />
@@ -257,7 +265,7 @@ function SingleChart({
 
   if (!data || data.length === 0) {
     return (
-      <Card>
+      <Card id={chartId}>
         <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <CardTitle className="text-lg">{title}</CardTitle>
           <ChartTypeSelector value={chartType} onChange={setChartType} />
@@ -288,10 +296,17 @@ function SingleChart({
     />
   )
 
-  const isCurrency = formatFn === formatCurrency
+  const refLine = referenceLineY !== undefined && (
+    <ReferenceLine
+      y={referenceLineY}
+      stroke="var(--muted-foreground)"
+      strokeDasharray="4 4"
+      strokeOpacity={0.6}
+    />
+  )
 
   return (
-    <Card>
+    <Card id={chartId}>
       <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <CardTitle className="text-lg">{title}</CardTitle>
         <div className="flex items-center gap-2 flex-shrink-0">
@@ -305,11 +320,11 @@ function SingleChart({
         <ChartControls isZoomed={isZoomed} onResetZoom={resetZoom} />
         <ResponsiveContainer width="100%" height={300}>
           {chartType === 'area' ? (
-            <AreaChart {...chartProps}>
+            <AreaChart {...chartProps} syncId="rwa-dashboard">
               <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
               <XAxis dataKey="date" tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }} />
               <YAxis tickFormatter={formatFn} tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }} />
-              <Tooltip content={<CustomTooltip isCurrency={isCurrency} />} />
+              <Tooltip content={<CustomTooltip formatter={formatFn} />} />
               {!isZoomed && <Brush dataKey="date" height={30} stroke={color} />}
               <Area
                 type="monotone"
@@ -320,24 +335,26 @@ function SingleChart({
                 fillOpacity={0.3}
                 name={title}
               />
+              {refLine}
               {referenceArea}
             </AreaChart>
           ) : chartType === 'bar' ? (
-            <BarChart {...chartProps}>
+            <BarChart {...chartProps} syncId="rwa-dashboard">
               <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
               <XAxis dataKey="date" tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }} />
               <YAxis tickFormatter={formatFn} tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }} />
-              <Tooltip content={<CustomTooltip isCurrency={isCurrency} />} />
+              <Tooltip content={<CustomTooltip formatter={formatFn} />} />
               {!isZoomed && <Brush dataKey="date" height={30} stroke={color} />}
               <Bar dataKey="value" fill={color} name={title} />
+              {refLine}
               {referenceArea}
             </BarChart>
           ) : (
-            <LineChart {...chartProps}>
+            <LineChart {...chartProps} syncId="rwa-dashboard">
               <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
               <XAxis dataKey="date" tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }} />
               <YAxis tickFormatter={formatFn} tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }} />
-              <Tooltip content={<CustomTooltip isCurrency={isCurrency} />} />
+              <Tooltip content={<CustomTooltip formatter={formatFn} />} />
               {!isZoomed && <Brush dataKey="date" height={30} stroke={color} />}
               <Line
                 type="monotone"
@@ -347,6 +364,7 @@ function SingleChart({
                 dot={false}
                 name={title}
               />
+              {refLine}
               {referenceArea}
             </LineChart>
           )}
@@ -360,10 +378,12 @@ function StackedComparisonChart({
   assetsFinanced,
   lenderRepayments,
   isLoading = false,
+  colors,
 }: {
   assetsFinanced: Array<{ date: string; value: number }>
   lenderRepayments: Array<{ date: string; value: number }>
   isLoading?: boolean
+  colors: ReturnType<typeof useChartColors>
 }) {
   const [viewMode, setViewMode] = useState<'combined' | 'separated'>('combined')
   const [combinedChartType, setCombinedChartType] = useState<ChartType>('bar')
@@ -475,13 +495,13 @@ function StackedComparisonChart({
           <SingleChart
             title="Assets Financed"
             data={displayAssetsFinanced}
-            color={COLORS.assetsFinanced}
+            color={colors.assetsFinanced}
             defaultType="bar"
           />
           <SingleChart
             title="Lender Repayments"
             data={displayLenderRepayments}
-            color={COLORS.lenderRepayments}
+            color={colors.lenderRepayments}
             defaultType="bar"
           />
         </div>
@@ -502,36 +522,36 @@ function StackedComparisonChart({
       <CardContent>
         <ResponsiveContainer width="100%" height={300}>
           {combinedChartType === 'bar' ? (
-            <BarChart data={combinedData}>
+            <BarChart data={combinedData} syncId="rwa-dashboard">
               <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
               <XAxis dataKey="date" tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }} />
               <YAxis tickFormatter={formatCurrency} tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }} />
-              <Tooltip content={<CustomTooltip isCurrency={true} />} />
+              <Tooltip content={<CustomTooltip />} />
               <Legend />
-              <Brush dataKey="date" height={30} stroke="#6366f1" />
+              <Brush dataKey="date" height={30} stroke={colors.assetsFinanced} />
               <Bar
                 dataKey="assetsFinanced"
-                fill={COLORS.assetsFinanced}
+                fill={colors.assetsFinanced}
                 name="Assets Financed"
               />
               <Bar
                 dataKey="lenderRepayments"
-                fill={COLORS.lenderRepayments}
+                fill={colors.lenderRepayments}
                 name="Lender Repayments"
               />
             </BarChart>
           ) : combinedChartType === 'line' ? (
-            <LineChart data={combinedData}>
+            <LineChart data={combinedData} syncId="rwa-dashboard">
               <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
               <XAxis dataKey="date" tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }} />
               <YAxis tickFormatter={formatCurrency} tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }} />
-              <Tooltip content={<CustomTooltip isCurrency={true} />} />
+              <Tooltip content={<CustomTooltip />} />
               <Legend />
-              <Brush dataKey="date" height={30} stroke="#6366f1" />
+              <Brush dataKey="date" height={30} stroke={colors.assetsFinanced} />
               <Line
                 type="monotone"
                 dataKey="assetsFinanced"
-                stroke={COLORS.assetsFinanced}
+                stroke={colors.assetsFinanced}
                 strokeWidth={2}
                 dot={false}
                 name="Assets Financed"
@@ -539,25 +559,25 @@ function StackedComparisonChart({
               <Line
                 type="monotone"
                 dataKey="lenderRepayments"
-                stroke={COLORS.lenderRepayments}
+                stroke={colors.lenderRepayments}
                 strokeWidth={2}
                 dot={false}
                 name="Lender Repayments"
               />
             </LineChart>
           ) : (
-            <AreaChart data={combinedData}>
+            <AreaChart data={combinedData} syncId="rwa-dashboard">
               <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
               <XAxis dataKey="date" tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }} />
               <YAxis tickFormatter={formatCurrency} tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }} />
-              <Tooltip content={<CustomTooltip isCurrency={true} />} />
+              <Tooltip content={<CustomTooltip />} />
               <Legend />
-              <Brush dataKey="date" height={30} stroke="#6366f1" />
+              <Brush dataKey="date" height={30} stroke={colors.assetsFinanced} />
               <Area
                 type="monotone"
                 dataKey="assetsFinanced"
-                stroke={COLORS.assetsFinanced}
-                fill={COLORS.assetsFinanced}
+                stroke={colors.assetsFinanced}
+                fill={colors.assetsFinanced}
                 fillOpacity={0.3}
                 strokeWidth={2}
                 name="Assets Financed"
@@ -565,8 +585,8 @@ function StackedComparisonChart({
               <Area
                 type="monotone"
                 dataKey="lenderRepayments"
-                stroke={COLORS.lenderRepayments}
-                fill={COLORS.lenderRepayments}
+                stroke={colors.lenderRepayments}
+                fill={colors.lenderRepayments}
                 fillOpacity={0.3}
                 strokeWidth={2}
                 name="Lender Repayments"
@@ -586,6 +606,7 @@ export function TimeSeriesCharts({
   isLoading = false,
   hideHeader = false,
 }: TimeSeriesChartsProps) {
+  const COLORS = useChartColors()
   const handleIntervalChange = (value: string) => {
     onIntervalChange(value as TimeInterval)
   }
@@ -605,7 +626,7 @@ export function TimeSeriesCharts({
           </div>
         )}
         <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
-          {[1, 2].map((i) => (
+          {[1, 2, 3, 4].map((i) => (
             <Card key={i}>
               <CardHeader>
                 <Skeleton className="h-5 w-32" />
@@ -666,6 +687,7 @@ export function TimeSeriesCharts({
           defaultType="bar"
           isLoading={isLoading}
           showViewModeToggle
+          chartId="chart-transactedVolume"
         />
 
         <SingleChart
@@ -675,15 +697,35 @@ export function TimeSeriesCharts({
           defaultType="line"
           isLoading={isLoading}
           formatFn={formatPercentage}
+          chartId="chart-capitalUtilization"
         />
 
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2" id="chart-assetsVsRepayments">
           <StackedComparisonChart
             assetsFinanced={historical?.assetsFinanced ?? []}
             lenderRepayments={historical?.lenderRepayments ?? []}
             isLoading={isLoading}
+            colors={COLORS}
           />
         </div>
+
+        <SingleChart
+          title="Lender Invested Capital Over Time"
+          data={historical?.committedCapital ?? []}
+          color={COLORS.committedCapital}
+          defaultType="area"
+          isLoading={isLoading}
+          chartId="chart-committedCapital"
+        />
+
+        <SingleChart
+          title="Outstanding Principal"
+          data={historical?.netCapitalPosition ?? []}
+          color={COLORS.netCapitalPosition}
+          defaultType="line"
+          isLoading={isLoading}
+          chartId="chart-netCapitalPosition"
+        />
       </div>
     </section>
   )

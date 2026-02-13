@@ -1,8 +1,19 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import { RefreshCw } from 'lucide-react'
+import { RefreshCw, ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Separator } from '@/components/ui/separator'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import {
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent,
+} from '@/components/ui/collapsible'
 import { useMetrics } from '@/lib/rwa/hooks/useMetrics'
 import { useHistorical } from '@/lib/rwa/hooks/useHistorical'
 import { GeneralMetricsSection } from './GeneralMetricsSection'
@@ -11,12 +22,38 @@ import { CapitalFlowSankey } from './CapitalFlowSankey'
 import { TimeSeriesCharts } from './TimeSeriesCharts'
 import { DateRangeSelector } from './DateRangeSelector'
 import { ExportMenu } from './ExportMenu'
+import { PalettePicker } from './PalettePicker'
 import { PartnerLogos } from './PartnerLogos'
+import { TransactionTable } from './TransactionTable'
+import { PaletteContext, usePaletteProvider } from '@/lib/rwa/hooks/usePalette'
 import type { TimeInterval, DateRange } from '@/lib/rwa/types'
 
 const DASHBOARD_ELEMENT_ID = 'rwa-dashboard-content'
 
+function MobileCollapsible({
+  title,
+  defaultOpen = true,
+  children,
+}: {
+  title: string
+  defaultOpen?: boolean
+  children: React.ReactNode
+}) {
+  return (
+    <Collapsible defaultOpen={defaultOpen}>
+      <CollapsibleTrigger className="flex w-full items-center justify-between py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors md:hidden [&[data-state=open]>svg]:rotate-180">
+        {title}
+        <ChevronDown className="h-4 w-4 transition-transform duration-200" />
+      </CollapsibleTrigger>
+      <CollapsibleContent className="md:!block md:!h-auto md:!overflow-visible">
+        {children}
+      </CollapsibleContent>
+    </Collapsible>
+  )
+}
+
 export function RWADashboard() {
+  const paletteCtx = usePaletteProvider()
   const [interval, setInterval] = useState<TimeInterval>('daily')
   const [dateRange, setDateRange] = useState<DateRange | null>(null)
 
@@ -35,19 +72,55 @@ export function RWADashboard() {
   const error = metricsError || historicalError
 
   return (
-    <div className="space-y-8">
+    <PaletteContext.Provider value={paletteCtx}>
+    <div className="space-y-8" style={paletteCtx.cssVars}>
       {/* Header */}
       <div className="space-y-4">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">
-              Valinor / OatFi
+              Real World Assets
             </h1>
             <p className="text-muted-foreground mt-1">
-              Real World Assets SPV capital flow dashboard on Avalanche C-Chain
+              SPV capital flow dashboard on Avalanche C-Chain
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  aria-label="Change trend period"
+                >
+                  <span className="text-[10px] font-semibold">{paletteCtx.trendPeriod}</span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-3" align="end">
+                <p className="text-xs font-medium text-muted-foreground mb-2">
+                  Trend period
+                </p>
+                <div className="flex gap-2">
+                  {(['7d', '30d', '90d'] as const).map((p) => (
+                    <button
+                      key={p}
+                      onClick={() => paletteCtx.setTrendPeriod(p)}
+                      className="relative h-7 w-7 rounded-md text-[10px] font-medium border transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      aria-label={p}
+                    >
+                      {p}
+                      {paletteCtx.trendPeriod === p && (
+                        <span className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                          <span className="absolute inset-0 rounded-md ring-2 ring-primary" />
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+            <PalettePicker />
             <ExportMenu
               metrics={metrics}
               historical={historical}
@@ -66,13 +139,20 @@ export function RWADashboard() {
           </div>
         </div>
 
-        {metrics?.lastUpdated && (
-          <p className="text-xs text-muted-foreground">
-            Last updated: {new Date(metrics.lastUpdated).toLocaleString()}
-          </p>
-        )}
-
-        <PartnerLogos />
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <PartnerLogos />
+          {/* Live refresh indicator */}
+          {metrics?.lastUpdated && (
+            <p className="text-xs text-muted-foreground flex items-center gap-2 shrink-0" aria-live="polite">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
+              </span>
+              Last updated: {new Date(metrics.lastUpdated).toLocaleString()}
+              <span className="text-muted-foreground/60">· 5 min</span>
+            </p>
+          )}
+        </div>
       </div>
 
       {/* Error state */}
@@ -93,47 +173,77 @@ export function RWADashboard() {
       )}
 
       {/* Dashboard content */}
-      <div id={DASHBOARD_ELEMENT_ID} className="space-y-8">
+      <div
+        id={DASHBOARD_ELEMENT_ID}
+        className="space-y-8"
+        aria-busy={metricsLoading || historicalLoading}
+      >
         {/* Key Metrics */}
-        <GeneralMetricsSection
-          metrics={metrics?.general ?? null}
-          isLoading={metricsLoading}
-          error={metricsError?.message}
-        />
+        <MobileCollapsible title="Key Metrics" defaultOpen>
+          <GeneralMetricsSection
+            metrics={metrics?.general ?? null}
+            isLoading={metricsLoading}
+            error={metricsError?.message}
+            trends={metrics?.trends}
+            lenderBreakdown={metrics?.lenderBreakdown}
+          />
+        </MobileCollapsible>
+
+        <Separator />
 
         {/* OatFi Breakdown */}
-        <OatFiSection
-          metrics={metrics?.oatfi ?? null}
-          isLoading={metricsLoading}
-          error={metricsError?.message}
-        />
+        <MobileCollapsible title="OatFi Breakdown" defaultOpen>
+          <OatFiSection
+            metrics={metrics?.oatfi ?? null}
+            isLoading={metricsLoading}
+            error={metricsError?.message}
+          />
+        </MobileCollapsible>
+
+        <Separator />
 
         {/* Capital Flow */}
-        <CapitalFlowSankey
-          metrics={metrics?.general ?? null}
-          isLoading={metricsLoading}
-        />
+        <MobileCollapsible title="Capital Flow" defaultOpen>
+          <CapitalFlowSankey
+            metrics={metrics?.general ?? null}
+            isLoading={metricsLoading}
+          />
+        </MobileCollapsible>
 
-        {/* Historical Trends Header */}
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <h2 className="text-xl font-semibold">Historical Trends</h2>
-          <div data-export-hidden>
-            <DateRangeSelector
-              dateRange={dateRange}
-              onDateRangeChange={setDateRange}
+        <Separator />
+
+        {/* Historical Trends - wrapped in muted background */}
+        <MobileCollapsible title="Historical Trends" defaultOpen>
+          <div className="bg-muted/30 rounded-xl p-6">
+            <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+              <h2 className="text-xl font-semibold">Historical Trends</h2>
+              <div data-export-hidden>
+                <DateRangeSelector
+                  dateRange={dateRange}
+                  onDateRangeChange={setDateRange}
+                />
+              </div>
+            </div>
+
+            {/* Historical Charts */}
+            <TimeSeriesCharts
+              historical={historical}
+              interval={interval}
+              onIntervalChange={setInterval}
+              isLoading={historicalLoading}
+              hideHeader
             />
           </div>
-        </div>
+        </MobileCollapsible>
 
-        {/* Historical Charts */}
-        <TimeSeriesCharts
-          historical={historical}
-          interval={interval}
-          onIntervalChange={setInterval}
-          isLoading={historicalLoading}
-          hideHeader
-        />
+        <Separator />
+
+        {/* Transactions — last section, compact */}
+        <MobileCollapsible title="Transactions" defaultOpen>
+          <TransactionTable />
+        </MobileCollapsible>
       </div>
     </div>
+    </PaletteContext.Provider>
   )
 }
