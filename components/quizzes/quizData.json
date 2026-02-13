@@ -375,7 +375,29 @@
     },
     "permissioned-l1s": {
       "title": "Permissioned L1s",
-      "quizzes": []
+      "quizzes": [
+        "411",
+        "412",
+        "413",
+        "414",
+        "415",
+        "416",
+        "417",
+        "418",
+        "419",
+        "420",
+        "421",
+        "422",
+        "423",
+        "424",
+        "425",
+        "426",
+        "427",
+        "428",
+        "429",
+        "430",
+        "431"
+      ]
     },
     "foundations-web3-venture": {
       "title": "Foundations of a Web3 Venture",
@@ -2308,6 +2330,240 @@
       "hint": "Think about the inheritance pattern shown in the class diagram.",
       "explanation": "ValidatorManager extends ACP99Manager through inheritance, implementing the abstract base contract. This design pattern allows ValidatorManager to inherit the standardized validator management functions defined in ACP99Manager while adding its own concrete implementation of the initiate functions. The inheritance relationship ensures that all validator managers follow the same interface defined by ACP99Manager, providing consistency across different implementations.",
       "chapter": "Validator Manager Contract"
+    },
+    "414": {
+      "question": "What is the primary role of the P-Chain in the Avalanche network?",
+      "options": [
+        "Executing smart contracts and DeFi applications",
+        "Processing cross-chain token transfers",
+        "Acting as the validator registry that tracks all validators across L1s and the Primary Network",
+        "Storing user transaction data for all Avalanche blockchains"
+      ],
+      "correctAnswers": [2],
+      "hint": "Think about what makes the P-Chain unique compared to the C-Chain and X-Chain.",
+      "explanation": "The P-Chain serves as Avalanche's validator registry. It stores and manages validators for the Primary Network, L1s, and legacy Subnets. Builders interact with the P-Chain to create Subnets and chains via transactions like CreateSubnetTx and CreateChainTx.",
+      "chapter": "P-Chain Review"
+    },
+    "415": {
+      "question": "What is the key difference between a Subnet and an L1 in Avalanche's architecture?",
+      "options": [
+        "Subnets can run smart contracts but L1s cannot",
+        "L1s have sovereign validator sets with independent management, while Subnets are validated by Primary Network validators",
+        "Subnets support more programming languages than L1s",
+        "L1s are cheaper to run but have fewer features than Subnets"
+      ],
+      "correctAnswers": [1],
+      "hint": "Consider who validates each type and how their validator sets are managed.",
+      "explanation": "The key distinction is validator sovereignty. L1s have their own independent validator sets with sovereign management, while Subnets are validated by Primary Network validators. Both are validator sets, and chains are the individual blockchains that run on them.",
+      "chapter": "Multi-Chain Architecture"
+    },
+    "416": {
+      "question": "How does the Validator Manager Contract communicate with the P-Chain to manage validators?",
+      "options": [
+        "Through direct API calls to P-Chain RPC endpoints",
+        "Via Interchain Messaging (ICM) using Warp messages and BLS signatures",
+        "By submitting transactions directly to the P-Chain from the L1",
+        "Through a centralized relay service operated by Ava Labs"
+      ],
+      "correctAnswers": [1],
+      "hint": "Think about the cross-chain messaging protocol that Avalanche uses.",
+      "explanation": "The Validator Manager Contract communicates with the P-Chain through Interchain Messaging (ICM), which uses Warp messages signed with BLS signatures. This allows validator operations to be initiated on the L1 and confirmed across chains in a decentralized manner.",
+      "chapter": "ICM for Validator Management"
+    },
+    "417": {
+      "question": "Why are proxy patterns used for the Validator Manager Contract?",
+      "options": [
+        "To make the contract run faster on the EVM",
+        "To allow the contract logic to be upgraded while keeping the same address and storage",
+        "To reduce gas costs for all contract function calls",
+        "To enable multiple contracts to share the same bytecode"
+      ],
+      "correctAnswers": [1],
+      "hint": "Consider what happens when you need to fix a bug or add features to a deployed contract.",
+      "explanation": "Proxy patterns split logic from storage so the contract stays at the same address while the implementation can be upgraded. This is critical for the Validator Manager because the P-Chain references the contract address during L1 conversion, and that reference cannot be changed.",
+      "chapter": "Proxy Patterns"
+    },
+    "418": {
+      "question": "Why does the genesis file pre-deploy a TransparentUpgradeableProxy at a fixed address?",
+      "options": [
+        "To save gas during contract deployment",
+        "Because the EVM requires all contracts to use proxies",
+        "So the convertSubnetToL1 transaction can reference a known VMC address before the implementation is deployed",
+        "To allow multiple chains to share the same Validator Manager"
+      ],
+      "correctAnswers": [2],
+      "hint": "Think about the chicken-and-egg problem: the P-Chain needs to know the VMC address, but the VMC needs to be deployed on the chain.",
+      "explanation": "The genesis pre-deploys a proxy at a fixed address so that the convertSubnetToL1 transaction can reference this known address. This solves the ordering problem: the P-Chain needs to know the VMC address during conversion, but the full implementation can be deployed and linked to the proxy afterward.",
+      "chapter": "Genesis Breakdown"
+    },
+    "419": {
+      "question": "What happens when a Subnet is converted to an L1?",
+      "options": [
+        "The Subnet gets a faster consensus mechanism",
+        "The L1 becomes linked to a Validator Manager address and gains its own sovereign validator set",
+        "All existing Subnet validators automatically become L1 validators with no changes",
+        "The conversion creates a new chain on the Primary Network"
+      ],
+      "correctAnswers": [1],
+      "hint": "Think about what makes an L1 different from a Subnet in terms of validator management.",
+      "explanation": "Converting a Subnet to an L1 links it to a Validator Manager Contract address, giving the L1 its own sovereign validator set managed by that contract. This process is irreversible — once converted, the Subnet permanently becomes an L1.",
+      "chapter": "Convert Subnet to L1"
+    },
+    "420": {
+      "question": "When deploying the Validator Manager, why is the ValidatorMessages library deployed separately?",
+      "options": [
+        "To reduce the main contract's deployment gas cost",
+        "Because Solidity doesn't support libraries inside contracts",
+        "It handles P-Chain message encoding/decoding and is linked to the main contract",
+        "The library runs on a different chain than the main contract"
+      ],
+      "correctAnswers": [2],
+      "hint": "Think about what role message encoding plays in cross-chain validator management.",
+      "explanation": "The ValidatorMessages library is deployed separately because it handles encoding and decoding of P-Chain messages (Warp messages). It is linked to the main Validator Manager contract during deployment, keeping the architecture modular while enabling cross-chain communication.",
+      "chapter": "Deploy Validator Manager"
+    },
+    "421": {
+      "question": "What does the proxy upgrade step accomplish in the VMC deployment flow?",
+      "options": [
+        "It creates a new proxy contract from scratch",
+        "It points the pre-deployed proxy to the Validator Manager implementation via upgradeToAndCall() on the ProxyAdmin",
+        "It transfers ownership of the proxy to the P-Chain",
+        "It deploys a second proxy for redundancy"
+      ],
+      "correctAnswers": [1],
+      "hint": "Think about the relationship between the pre-deployed proxy and the newly deployed implementation.",
+      "explanation": "The upgrade step uses upgradeToAndCall() on the ProxyAdmin to point the pre-deployed proxy (at the known fixed address) to the newly deployed Validator Manager implementation. After this step, calls to the proxy address are delegated to the real VMC logic.",
+      "chapter": "Upgrade Proxy"
+    },
+    "422": {
+      "question": "What does the churnPeriodSeconds parameter control in the Validator Manager initialization?",
+      "options": [
+        "How long validators must wait before they can claim rewards",
+        "The time window during which validator set changes are measured against the maximum churn percentage",
+        "The interval between block production rounds",
+        "How frequently the contract syncs with the P-Chain"
+      ],
+      "correctAnswers": [1],
+      "hint": "Consider how the contract limits how quickly the validator set can change.",
+      "explanation": "The churnPeriodSeconds defines the rolling time window during which validator set changes (adds, removes, weight changes) are tracked. Combined with maximumChurnPercentage, it prevents the validator set from changing too rapidly, protecting network stability.",
+      "chapter": "Initial Configuration"
+    },
+    "423": {
+      "question": "Why can initializeValidatorSet only be called once?",
+      "options": [
+        "The function is deleted from the contract after the first call",
+        "It uses an initializer guard that prevents re-initialization, ensuring the initial validator set matches the P-Chain conversion data exactly",
+        "The P-Chain blocks any subsequent calls automatically",
+        "It's a Solidity limitation with public functions"
+      ],
+      "correctAnswers": [1],
+      "hint": "Think about what would happen if someone could reinitialize the validator set after the chain is already running.",
+      "explanation": "initializeValidatorSet uses an initializer guard to prevent re-initialization. This is critical because the initial validator set must exactly match the data from the P-Chain's convertSubnetToL1 transaction. Allowing re-initialization could break the connection between the L1's contract state and the P-Chain's records.",
+      "chapter": "Initialize Validator Set"
+    },
+    "424": {
+      "question": "What happens if a validator registration is not completed on the L1 within 24 hours of initiation?",
+      "options": [
+        "The registration automatically completes with default settings",
+        "The registration expires and must be cleaned up from the pending registrations list",
+        "The P-Chain retries the registration indefinitely",
+        "The validator is added but with reduced weight"
+      ],
+      "correctAnswers": [1],
+      "hint": "Think about the time-sensitive nature of the three-step registration flow.",
+      "explanation": "Validator registrations have a 24-hour window to be completed on the L1 after the P-Chain step. If not completed within this window, the registration expires and becomes invalid, remaining in the pending list until explicitly cleaned up using the expired registration removal tool.",
+      "chapter": "Add Validator"
+    },
+    "425": {
+      "question": "How is validator removal encoded in the Validator Manager system?",
+      "options": [
+        "As a special 'delete' transaction on the P-Chain",
+        "As a weight update to zero — the same mechanism used for changing validator weight",
+        "By burning the validator's registration NFT",
+        "By calling a dedicated removal function on the P-Chain directly"
+      ],
+      "correctAnswers": [1],
+      "hint": "Think about how the contract reuses existing mechanisms for different operations.",
+      "explanation": "Validator removal is encoded as a weight update to zero using the SetL1ValidatorWeightTx on the P-Chain. The same three-step flow applies: initiateValidatorRemoval on the L1, P-Chain processing, then completeValidatorRemoval on the L1.",
+      "chapter": "Remove Validator"
+    },
+    "426": {
+      "question": "When would you use DisableL1ValidatorTx directly on the P-Chain instead of going through the Validator Manager?",
+      "options": [
+        "When you want to permanently remove the validator and reclaim all fees",
+        "When the L1 or the Validator Manager Contract is down and you need an emergency stop",
+        "When you want to change the validator's weight temporarily",
+        "When migrating validators between different L1s"
+      ],
+      "correctAnswers": [1],
+      "hint": "Consider what happens when the normal VMC-based flow isn't available.",
+      "explanation": "DisableL1ValidatorTx is used directly on the P-Chain when the L1 or the VMC is down, serving as an emergency mechanism. The validator becomes inactive but its weight is preserved — it can be re-enabled later with IncreaseBalanceTx once the L1 is operational again.",
+      "chapter": "P-Chain Disable Validator"
+    },
+    "427": {
+      "question": "What is a key trade-off of deploying the Validator Manager Contract on the C-Chain instead of your L1?",
+      "options": [
+        "C-Chain deployment is always cheaper than L1 deployment",
+        "Validator management remains operational even if your L1 goes down, but requires AVAX on C-Chain for management actions",
+        "C-Chain deployment makes the VMC run faster",
+        "Deploying on C-Chain removes the need for Warp messages"
+      ],
+      "correctAnswers": [1],
+      "hint": "Think about availability and what resources each chain requires.",
+      "explanation": "Deploying the VMC on the C-Chain provides resilience — you can still manage validators even if your L1 is down. However, this comes with the trade-off of requiring AVAX on C-Chain for management transactions and adding cross-chain operational dependency.",
+      "chapter": "VMC Options"
+    },
+    "428": {
+      "question": "What was the main cost barrier that the Etna upgrade (ACP-77) eliminated for launching an L1?",
+      "options": [
+        "High gas fees for smart contract deployment",
+        "The requirement to stake 2,000 AVAX per validator and validate the entire Primary Network",
+        "The cost of running hardware for block production",
+        "Licensing fees for using the Avalanche consensus protocol"
+      ],
+      "correctAnswers": [1],
+      "hint": "Think about the per-validator cost before Etna and what validators were required to do.",
+      "explanation": "Before Etna, each validator needed to stake 2,000 AVAX (approximately $70,000) and sync the entire Primary Network. The Etna upgrade replaced this with a continuous fee model (~1.33 AVAX/month) and removed the Primary Network validation requirement, drastically reducing the barrier to launching an L1.",
+      "chapter": "Etna Upgrade"
+    },
+    "429": {
+      "question": "In the Transparent Proxy pattern, who is allowed to call the upgrade functions?",
+      "options": [
+        "Any user who sends enough gas",
+        "Only the implementation contract itself",
+        "Only the ProxyAdmin contract, which has ownership-based access control",
+        "All validators on the L1"
+      ],
+      "correctAnswers": [2],
+      "hint": "Think about the separation between admin flows and user flows in the proxy pattern.",
+      "explanation": "In the Transparent Proxy pattern, only the ProxyAdmin contract can call upgrade functions. Regular users interact with the proxy and their calls are delegated to the implementation. This separation ensures that upgrade authority is controlled and that normal function calls can't accidentally trigger upgrades.",
+      "chapter": "Transparent Proxy"
+    },
+    "430": {
+      "question": "What is the correct three-phase flow for changing a validator's weight?",
+      "options": [
+        "Remove the old validator, create a new one with different weight, register on P-Chain",
+        "Call changeWeight() which automatically handles everything in one transaction",
+        "Initiate weight update on L1, process SetL1ValidatorWeightTx on P-Chain, complete weight update on L1",
+        "Submit a governance proposal, wait for voting, execute the weight change"
+      ],
+      "correctAnswers": [2],
+      "hint": "Think about the standard three-phase pattern used across all validator operations.",
+      "explanation": "Changing a validator's weight follows the same three-phase pattern as other validator operations: initiate on the L1 (which enforces churn limits), process via SetL1ValidatorWeightTx on the P-Chain, then complete on the L1 with the signed response. Anyone can call the completion step.",
+      "chapter": "Changing Weight"
+    },
+    "431": {
+      "question": "Why might you use a PoA Manager contract instead of transferring Validator Manager ownership directly to a multi-sig?",
+      "options": [
+        "The PoA Manager is required by the Avalanche protocol",
+        "It simplifies multi-sig operations by exposing simpler function signatures and reducing complex calldata building",
+        "The PoA Manager makes validator operations free of gas costs",
+        "Direct multi-sig ownership is not supported by the Validator Manager"
+      ],
+      "correctAnswers": [1],
+      "hint": "Think about the complexity of building transactions through a multi-sig wallet UI.",
+      "explanation": "The PoA Manager is an optional convenience layer that simplifies multi-sig governance. Building complex calldata with Node IDs, BLS public keys, and owner structs through a multi-sig UI is error-prone. The PoA Manager wraps these into simpler function calls, reducing coordination overhead and parameter complexity.",
+      "chapter": "PoA Manager Contract"
     },
     "701": {
       "question": "What is more valuable for an early-stage Web3 project?",
