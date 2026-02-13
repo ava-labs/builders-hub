@@ -17,6 +17,8 @@ const querySchema = z.object({
       'assetsFinanced',
       'lenderRepayments',
       'capitalUtilization',
+      'committedCapital',
+      'netCapitalPosition',
       'all',
     ])
     .default('all'),

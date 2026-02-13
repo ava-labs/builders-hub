@@ -131,6 +131,32 @@ export function toCumulative(series: TimeSeriesDataPoint[]): TimeSeriesDataPoint
   }))
 }
 
+function buildNetCapitalPosition(
+  cumulativeRepayments: TimeSeriesDataPoint[],
+  cumulativeFinanced: TimeSeriesDataPoint[]
+): TimeSeriesDataPoint[] {
+  const allDates = new Set<string>()
+  cumulativeRepayments.forEach((p) => allDates.add(p.date))
+  cumulativeFinanced.forEach((p) => allDates.add(p.date))
+
+  const repaymentsByDate = new Map(
+    cumulativeRepayments.map((p) => [p.date, p.value])
+  )
+  const financedByDate = new Map(
+    cumulativeFinanced.map((p) => [p.date, p.value])
+  )
+
+  const sortedDates = Array.from(allDates).sort()
+  let lastRepayment = 0
+  let lastFinanced = 0
+
+  return sortedDates.map((date) => {
+    lastRepayment = repaymentsByDate.get(date) ?? lastRepayment
+    lastFinanced = financedByDate.get(date) ?? lastFinanced
+    return { date, value: lastFinanced - lastRepayment }
+  })
+}
+
 export async function calculateHistoricalData(
   interval: TimeInterval = 'daily',
   forceRefresh = false,
@@ -157,9 +183,16 @@ export async function calculateHistoricalData(
   const borrowerTransfers = transfersByAddress.get(borrowerAddress) ?? []
 
   const allTransfers = [...tranchePoolTransfers, ...borrowerTransfers]
-  const externalTransfers = allTransfers.filter((t) => !t.isInternal)
+  const seen = new Set<string>()
+  const dedupedTransfers = allTransfers.filter((t) => {
+    if (t.isInternal) return false
+    const key = `${t.txHash}-${t.from}-${t.to}`
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
 
-  const transactedVolume = aggregateByPeriod(externalTransfers, interval)
+  const transactedVolume = aggregateByPeriod(dedupedTransfers, interval)
 
   const assetsFinancedTransfers = tranchePoolTransfers.filter(
     (t) => t.to === borrowerAddress
@@ -179,11 +212,22 @@ export async function calculateHistoricalData(
     assetsFinanced
   )
 
+  const committedCapital = toCumulative(committedSeries)
+
+  const cumulativeRepayments = toCumulative(lenderRepayments)
+  const cumulativeFinanced = toCumulative(assetsFinanced)
+  const netCapitalPosition = buildNetCapitalPosition(
+    cumulativeRepayments,
+    cumulativeFinanced
+  )
+
   const data: HistoricalData = {
     transactedVolume: filterByDateRange(transactedVolume, dateRange),
     assetsFinanced: filterByDateRange(assetsFinanced, dateRange),
     lenderRepayments: filterByDateRange(lenderRepayments, dateRange),
     capitalUtilization: filterByDateRange(capitalUtilization, dateRange),
+    committedCapital: filterByDateRange(committedCapital, dateRange),
+    netCapitalPosition: filterByDateRange(netCapitalPosition, dateRange),
   }
 
   cache.set(cacheKey, data)
