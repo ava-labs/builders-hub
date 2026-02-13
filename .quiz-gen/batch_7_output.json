@@ -1,0 +1,1562 @@
+{
+  "411": [
+    {
+      "question": "A company wants to build a blockchain where anyone can read transaction data but only approved entities can submit transactions. Which type best fits?",
+      "options": [
+        "A permissioned blockchain",
+        "A private blockchain with restricted read access",
+        "A fully public blockchain with no restrictions",
+        "A sidechain with open validation"
+      ],
+      "correctAnswers": [0],
+      "hint": "Consider the difference between controlling who can write versus who can read.",
+      "explanation": "A permissioned blockchain fits this use case because it allows public viewing of transaction data while restricting write access to authorized participants. Private blockchains restrict both read and write access, making them unsuitable when public data visibility is desired."
+    },
+    {
+      "question": "What can external users typically do on a permissioned blockchain that they cannot do on a private blockchain?",
+      "options": [
+        "Submit new transactions freely",
+        "Run validator nodes without approval",
+        "View transaction data publicly",
+        "Modify smart contract logic"
+      ],
+      "correctAnswers": [2],
+      "hint": "Focus on the visibility aspect of the data, not who writes it.",
+      "explanation": "On a permissioned blockchain, transaction data is generally publicly readable even though write access is controlled. On a private blockchain, read access is also restricted to network participants. This distinction in data visibility is the core architectural difference between the two models."
+    }
+  ],
+  "412": [
+    {
+      "question": "A blockchain operator wants to remove a misbehaving validator immediately. In which consensus model does a single entity have this authority?",
+      "options": [
+        "Proof of Work where miners vote to eject",
+        "Proof of Stake where the community votes",
+        "Delegated Proof of Stake where delegators revoke",
+        "Proof of Authority where the admin manages validators"
+      ],
+      "correctAnswers": [3],
+      "hint": "Think about which model centralizes validator control to one account.",
+      "explanation": "In Proof of Authority, a single admin account has full control over the validator set, including the ability to immediately add or remove validators. This centralized control enables fast responses to misbehaving validators, unlike PoS models that typically require governance processes or economic penalties."
+    },
+    {
+      "question": "What forms can the PoA admin account take when managing validator participation? (Select all that apply)",
+      "options": [
+        "An externally owned account (EOA)",
+        "A smart contract-based multi-sig wallet",
+        "Any token holder with enough stake",
+        "The consensus algorithm itself"
+      ],
+      "correctAnswers": [0, 1],
+      "hint": "Consider the types of accounts that can serve as a centralized admin.",
+      "explanation": "The PoA admin can be either an EOA controlled by a single private key or a multi-sig smart contract requiring multiple signatures. Both provide centralized validator management, with multi-sig adding a layer of shared control. Staking-based participation and algorithm-driven selection belong to PoS models, not PoA."
+    }
+  ],
+  "413": [
+    {
+      "question": "If you look at the class diagram for the validator management system, what pattern does ValidatorManager use to relate to ACP99Manager?",
+      "options": [
+        "ValidatorManager wraps ACP99Manager using the adapter pattern",
+        "ValidatorManager inherits from ACP99Manager, implementing its abstract methods",
+        "ValidatorManager and ACP99Manager both inherit from a shared parent",
+        "ValidatorManager references ACP99Manager through dependency injection"
+      ],
+      "correctAnswers": [1],
+      "hint": "Consider object-oriented patterns where one contract builds on another's interface.",
+      "explanation": "ValidatorManager extends ACP99Manager through inheritance, implementing the abstract functions defined in the base contract. This ensures all validator manager implementations follow the same interface defined by ACP99Manager while providing their own concrete logic for initiation functions."
+    },
+    {
+      "question": "Why does ACP99Manager define abstract functions rather than implementing them directly?",
+      "options": [
+        "Abstract functions are cheaper to deploy on-chain",
+        "Solidity requires at least one abstract function per contract",
+        "Abstract functions execute faster in the EVM",
+        "It allows different implementations like ValidatorManager to provide their own logic while ensuring interface consistency"
+      ],
+      "correctAnswers": [3],
+      "hint": "Think about why base contracts leave some functions unimplemented.",
+      "explanation": "ACP99Manager uses abstract functions to define a standardized interface that all validator managers must follow, while allowing each implementation (like ValidatorManager) to provide its own concrete logic. This inheritance-based design pattern ensures consistency across different validator manager implementations while maintaining flexibility in how specific operations are handled."
+    }
+  ],
+  "414": [
+    {
+      "question": "When a builder wants to create a new L1 or register validators, which Avalanche chain do they interact with?",
+      "options": [
+        "The C-Chain, where all smart contracts live",
+        "The X-Chain, which handles asset creation",
+        "The P-Chain, Avalanche's validator registry",
+        "A dedicated governance chain"
+      ],
+      "correctAnswers": [2],
+      "hint": "Think about which chain tracks validators and manages network structure.",
+      "explanation": "The P-Chain is Avalanche's platform chain that serves as the validator registry and manages network structure. Builders use it to create Subnets, create chains, and convert Subnets to L1s. It tracks all validators across the Primary Network and L1s, making it the essential chain for infrastructure operations."
+    },
+    {
+      "question": "Which transactions are submitted to the P-Chain when setting up L1 infrastructure? (Select all that apply)",
+      "options": [
+        "CreateSubnetTx to create a new Subnet",
+        "DeployContractTx to deploy smart contracts",
+        "CreateChainTx to create a new chain",
+        "TransferAssetTx to move tokens between wallets"
+      ],
+      "correctAnswers": [0, 2],
+      "hint": "Consider what the P-Chain is responsible for in Avalanche's architecture.",
+      "explanation": "The P-Chain handles infrastructure transactions like CreateSubnetTx (creating validator sets) and CreateChainTx (creating new blockchains). Smart contract deployment happens on the C-Chain or L1s, not the P-Chain. The P-Chain's role is specifically to manage validators, Subnets, and chains at the platform level."
+    }
+  ],
+  "415": [
+    {
+      "question": "After the Etna upgrade, what is the fundamental difference between how L1s and legacy Subnets manage their validators?",
+      "options": [
+        "L1s manage their own validator sets independently, while Subnets rely on Primary Network validators",
+        "L1s can only run one blockchain while Subnets support many",
+        "Subnets use custom virtual machines while L1s cannot",
+        "L1s require more AVAX to operate than Subnets"
+      ],
+      "correctAnswers": [0],
+      "hint": "Focus on who is responsible for validation in each model.",
+      "explanation": "The key distinction is validator sovereignty. L1s have independent validator sets with their own management contracts, giving them full control over who validates their chain. Legacy Subnets depend on Primary Network validators, meaning their validators must also validate the Primary Network. This independence is what makes L1s truly sovereign."
+    },
+    {
+      "question": "A project wants full control over who validates their blockchain without depending on the Primary Network. Should they deploy as an L1 or a legacy Subnet?",
+      "options": [
+        "A legacy Subnet, which offers more flexibility",
+        "An L1, since it provides sovereign validator management",
+        "Either option works identically",
+        "Neither option supports this use case"
+      ],
+      "correctAnswers": [1],
+      "hint": "Think about which option gives you independent validator control.",
+      "explanation": "An L1 is the right choice because it provides sovereign validator sets managed independently through a Validator Manager Contract. Legacy Subnets require validators to also validate the Primary Network, creating a dependency. L1s were introduced to give projects full control over their validator economics and participation requirements."
+    }
+  ],
+  "416": [
+    {
+      "question": "What technology enables the Validator Manager Contract on an L1 to send validator updates to the P-Chain?",
+      "options": [
+        "Direct RPC calls between chains",
+        "A centralized bridge operated by Ava Labs",
+        "Shared database access between chains",
+        "Interchain Messaging (ICM) with Warp messages and BLS signatures"
+      ],
+      "correctAnswers": [3],
+      "hint": "Think about Avalanche's native cross-chain communication protocol.",
+      "explanation": "The Validator Manager Contract uses Interchain Messaging (ICM), which relies on Warp messages signed with BLS aggregate signatures. This decentralized protocol allows validator operations to be initiated on the L1 and confirmed on the P-Chain without any centralized intermediary, maintaining the trustless nature of the system."
+    },
+    {
+      "question": "Why are BLS signatures used in the communication between the Validator Manager and the P-Chain?",
+      "options": [
+        "They provide cryptographic proof that a threshold of validators attested to the message",
+        "They encrypt the transaction data for privacy",
+        "They compress messages to reduce bandwidth costs",
+        "They speed up block finalization on the P-Chain"
+      ],
+      "correctAnswers": [0],
+      "hint": "Consider what guarantees cross-chain messages need to provide.",
+      "explanation": "BLS signatures are used because they can be aggregated efficiently, allowing a threshold of validators to collectively sign Warp messages. This provides cryptographic proof that the validator set attested to the cross-chain message, ensuring the P-Chain can trust the information from the L1's Validator Manager Contract without relying on any centralized authority."
+    }
+  ],
+  "417": [
+    {
+      "question": "A critical bug is found in a deployed Validator Manager Contract. What architectural pattern allows fixing it without changing the contract address?",
+      "options": [
+        "Deploying a new contract and migrating all data manually",
+        "Using a proxy pattern that separates logic from storage",
+        "Asking the P-Chain to update its reference",
+        "Rolling back the entire blockchain state"
+      ],
+      "correctAnswers": [1],
+      "hint": "Think about how to update code while keeping the same address and state.",
+      "explanation": "Proxy patterns separate the contract logic (implementation) from the storage and address (proxy). When a bug is found, only the implementation contract needs to be replaced while the proxy address and all stored data remain unchanged. This is critical because the P-Chain references the Validator Manager's address and cannot update that reference."
+    },
+    {
+      "question": "What would happen if the Validator Manager Contract did NOT use a proxy pattern and a bug was discovered?",
+      "options": [
+        "The contract could self-destruct and redeploy at the same address",
+        "The bug could be patched via a simple configuration change",
+        "The P-Chain reference to the contract address would become outdated, requiring a new L1 conversion",
+        "Validators would automatically migrate to a new contract"
+      ],
+      "correctAnswers": [2],
+      "hint": "Consider what the P-Chain stores about the Validator Manager.",
+      "explanation": "Without a proxy pattern, fixing a bug would require deploying a new contract at a different address. Since the P-Chain references the Validator Manager's address during L1 conversion and this reference cannot be changed, the old address would be permanently linked. A proxy pattern avoids this by keeping the address constant while allowing the underlying logic to be swapped."
+    }
+  ],
+  "418": [
+    {
+      "question": "What ordering problem does pre-deploying a proxy in the genesis file solve?",
+      "options": [
+        "It ensures validators boot in the correct sequence",
+        "It prevents race conditions in block production",
+        "It provides a known contract address that convertSubnetToL1 can reference before the implementation exists",
+        "It guarantees deterministic transaction ordering"
+      ],
+      "correctAnswers": [2],
+      "hint": "Consider the dependency: the P-Chain needs an address, but the chain needs to exist first.",
+      "explanation": "The genesis pre-deploys a proxy at a fixed address to solve a chicken-and-egg problem. The convertSubnetToL1 transaction on the P-Chain needs to reference the Validator Manager Contract address, but the chain where the contract will live is not yet running. By embedding a proxy in the genesis state, the address is known before the chain launches, allowing the P-Chain conversion to proceed."
+    },
+    {
+      "question": "During the L1 bootstrapping process, why is a TransparentUpgradeableProxy placed in the genesis rather than the full Validator Manager implementation?",
+      "options": [
+        "The full implementation is too large for the genesis block",
+        "A proxy allows deploying the actual implementation later while providing a stable address for P-Chain registration",
+        "Genesis only supports proxy bytecode, not regular contracts",
+        "The proxy is faster to execute during chain initialization"
+      ],
+      "correctAnswers": [1],
+      "hint": "Think about what needs to be ready at genesis versus what can come later.",
+      "explanation": "A proxy is used in the genesis because it establishes a stable address that the P-Chain references, while the actual implementation can be deployed and linked afterward. The full implementation may require libraries, configuration, and initialization that are better handled after the chain is running. The proxy serves as a placeholder that the implementation can be plugged into via upgradeToAndCall."
+    }
+  ],
+  "419": [
+    {
+      "question": "After executing convertSubnetToL1, can the L1 be converted back to a Subnet?",
+      "options": [
+        "Yes, by calling a revert function on the P-Chain",
+        "Yes, but only within 24 hours",
+        "Yes, if all validators agree",
+        "No, the conversion is permanent and irreversible"
+      ],
+      "correctAnswers": [3],
+      "hint": "Consider whether this is a one-way or two-way operation.",
+      "explanation": "The conversion from Subnet to L1 is permanent and irreversible. Once executed, the L1 gains its own sovereign validator set managed by the Validator Manager Contract, and it can never revert to the legacy Subnet model. This is an important consideration for any project planning this transition."
+    },
+    {
+      "question": "What two things does a Subnet gain when it is converted to an L1? (Select all that apply)",
+      "options": [
+        "A link to a Validator Manager Contract address",
+        "Automatic AVAX staking for all validators",
+        "Its own sovereign validator set",
+        "A dedicated block explorer"
+      ],
+      "correctAnswers": [0, 2],
+      "hint": "Think about what makes L1s different from Subnets in terms of validator management.",
+      "explanation": "When a Subnet converts to an L1, it becomes linked to a Validator Manager Contract address and gains a sovereign validator set managed by that contract. The L1 no longer depends on Primary Network validators and can independently manage who validates its chain. AVAX staking and block explorers are not automatic results of the conversion."
+    }
+  ],
+  "420": [
+    {
+      "question": "What is the primary function of the ValidatorMessages library in the Validator Manager deployment?",
+      "options": [
+        "It stores validator private keys securely",
+        "It manages validator rewards distribution",
+        "It handles encoding and decoding of P-Chain Warp messages",
+        "It validates BLS signatures on-chain"
+      ],
+      "correctAnswers": [2],
+      "hint": "Think about how structured data is communicated between chains.",
+      "explanation": "The ValidatorMessages library handles encoding and decoding of Warp messages exchanged between the Validator Manager Contract and the P-Chain. It is deployed as a separate contract and linked to the main Validator Manager, keeping the architecture modular. This separation allows the message formatting logic to be reused across different Validator Manager implementations."
+    },
+    {
+      "question": "Why is the ValidatorMessages library linked to the Validator Manager rather than included inline?",
+      "options": [
+        "Solidity does not allow inline library code",
+        "Linked libraries run faster than inline code",
+        "The P-Chain requires libraries to be at separate addresses",
+        "It enables modular architecture and reduces deployment gas for the main contract"
+      ],
+      "correctAnswers": [3],
+      "hint": "Consider the benefits of separating reusable logic from the main contract.",
+      "explanation": "Deploying ValidatorMessages as a linked library keeps the Validator Manager modular and reduces its deployment size and gas cost. The library's message encoding and decoding logic can be shared across multiple Validator Manager implementations. Solidity does support inline library code, but external linking is preferred here for architectural and gas efficiency reasons."
+    }
+  ],
+  "421": [
+    {
+      "question": "After the Validator Manager implementation is deployed, what connects it to the pre-deployed proxy?",
+      "options": [
+        "A call to upgradeToAndCall() on the ProxyAdmin contract",
+        "The P-Chain automatically links them during consensus",
+        "The implementation registers itself with the proxy",
+        "A manual bytecode copy from implementation to proxy address"
+      ],
+      "correctAnswers": [0],
+      "hint": "Think about how transparent proxy upgrades work in the OpenZeppelin pattern.",
+      "explanation": "The ProxyAdmin's upgradeToAndCall() function is called to point the pre-deployed proxy at the newly deployed Validator Manager implementation. After this call, any function invocations on the proxy address are delegated to the implementation contract. This is the standard OpenZeppelin transparent proxy upgrade pattern."
+    },
+    {
+      "question": "What happens to function calls sent to the proxy address after the upgrade step completes?",
+      "options": [
+        "They are rejected until a restart occurs",
+        "They are queued for batch processing",
+        "They execute on the proxy's own logic",
+        "They are delegated to the Validator Manager implementation"
+      ],
+      "correctAnswers": [3],
+      "hint": "Consider how delegate calls work in the proxy pattern.",
+      "explanation": "After upgradeToAndCall() links the proxy to the implementation, all function calls to the proxy address are delegated to the Validator Manager implementation using Solidity's delegatecall. The proxy preserves its own address and storage while executing the implementation's logic, making the upgrade transparent to callers."
+    }
+  ],
+  "422": [
+    {
+      "question": "An L1 operator sets churnPeriodSeconds to 3600 and maximumChurnPercentage to 20. What does this mean?",
+      "options": [
+        "Validators must wait 3600 seconds between blocks",
+        "No more than 20% of the validator set can change within any rolling 1-hour window",
+        "The chain processes 20% fewer transactions every hour",
+        "Validators earn 20% more rewards per hour"
+      ],
+      "correctAnswers": [1],
+      "hint": "Think about how these two parameters work together to limit change rate.",
+      "explanation": "The churnPeriodSeconds (3600 = 1 hour) defines the rolling time window, and maximumChurnPercentage (20%) caps how much the validator set can change within that window. Together, they prevent rapid destabilization of the network by limiting additions, removals, and weight changes to 20% of the total validator set weight per hour."
+    },
+    {
+      "question": "Why does the Validator Manager limit the rate of validator set changes?",
+      "options": [
+        "To reduce gas consumption on the L1",
+        "To ensure all validators earn equal rewards",
+        "To comply with regulatory requirements",
+        "To prevent rapid validator set turnover that could destabilize network security"
+      ],
+      "correctAnswers": [3],
+      "hint": "Consider what happens if too many validators leave or join at once.",
+      "explanation": "The churn limit parameters (churnPeriodSeconds and maximumChurnPercentage) protect network stability by preventing the validator set from changing too rapidly. If a large portion of validators could leave simultaneously, the network could lose its security guarantees. Similarly, a flood of new validators could disrupt consensus. The churn mechanism ensures gradual, controlled transitions."
+    }
+  ],
+  "423": [
+    {
+      "question": "What security risk would exist if initializeValidatorSet could be called multiple times?",
+      "options": [
+        "An attacker could overwrite the validator set, breaking consistency with P-Chain records",
+        "Gas costs would increase with each call",
+        "The contract would run out of storage space",
+        "Validators would receive duplicate rewards"
+      ],
+      "correctAnswers": [0],
+      "hint": "Think about the link between on-chain state and P-Chain records.",
+      "explanation": "If initializeValidatorSet could be called again, an attacker could overwrite the validator set with arbitrary validators, breaking the critical consistency between the Validator Manager's state and the P-Chain's records from convertSubnetToL1. The initializer guard ensures the initial validator set is set exactly once and matches the P-Chain conversion data."
+    },
+    {
+      "question": "The initializeValidatorSet function must match data from which P-Chain transaction?",
+      "options": [
+        "CreateSubnetTx",
+        "The convertSubnetToL1 transaction",
+        "CreateChainTx",
+        "RegisterValidatorTx"
+      ],
+      "correctAnswers": [1],
+      "hint": "Think about what P-Chain operation establishes the initial L1 validator set.",
+      "explanation": "The initializeValidatorSet function must exactly match the validator data from the convertSubnetToL1 transaction on the P-Chain. This ensures consistency between the L1's Validator Manager state and the P-Chain's records. The one-time initializer guard prevents any future call from breaking this critical alignment."
+    }
+  ],
+  "424": [
+    {
+      "question": "A validator registration was initiated on the L1 but the P-Chain step was completed 26 hours later. What is the status of this registration?",
+      "options": [
+        "It completes normally since the P-Chain processed it",
+        "It automatically extends for another 24 hours",
+        "It expired and remains as a stale entry in the pending registrations list",
+        "The P-Chain rejects it but it stays active on the L1"
+      ],
+      "correctAnswers": [2],
+      "hint": "Consider the strict time limit in the three-step registration flow.",
+      "explanation": "Validator registrations have a strict 24-hour window for completion. Since 26 hours exceeded this limit, the registration expired and cannot be completed. It remains as a stale entry in the pending registrations list and must be explicitly cleaned up using the expired registration removal mechanism."
+    },
+    {
+      "question": "What must be done with expired validator registrations that were not completed within the 24-hour window?",
+      "options": [
+        "They automatically disappear after 48 hours",
+        "The P-Chain removes them during the next epoch",
+        "They can be extended by paying additional fees",
+        "They must be explicitly cleaned up from the pending registrations list"
+      ],
+      "correctAnswers": [3],
+      "hint": "Think about what happens to invalid entries in the contract state.",
+      "explanation": "Expired registrations do not clean themselves up automatically. They remain in the pending registrations list as invalid entries until someone explicitly removes them using the expired registration removal tool. This manual cleanup is necessary to keep the contract state clean and prevent stale entries from accumulating."
+    }
+  ],
+  "425": [
+    {
+      "question": "On the P-Chain, what transaction type is used to remove a validator from an L1?",
+      "options": [
+        "RemoveValidatorTx",
+        "DeleteL1ValidatorTx",
+        "SetL1ValidatorWeightTx with weight set to zero",
+        "DeregisterNodeTx"
+      ],
+      "correctAnswers": [2],
+      "hint": "Think about how removal reuses an existing mechanism.",
+      "explanation": "Validator removal uses SetL1ValidatorWeightTx with the weight set to zero, rather than a dedicated removal transaction. This elegant design reuses the weight change mechanism for removal, following the same three-step flow: initiate on L1, process on P-Chain, then complete on L1."
+    },
+    {
+      "question": "How many steps are involved in the validator removal process, and where does each step occur? (Select all that apply)",
+      "options": [
+        "Initiate removal on the L1",
+        "Submit a governance proposal to the P-Chain",
+        "Process SetL1ValidatorWeightTx on the P-Chain",
+        "Complete removal on the L1 with the signed response"
+      ],
+      "correctAnswers": [0, 2],
+      "hint": "Consider the standard pattern for validator operations across chains.",
+      "explanation": "Validator removal follows the standard three-step cross-chain flow: (1) initiateValidatorRemoval on the L1, (2) the P-Chain processes the SetL1ValidatorWeightTx with zero weight, and (3) completeValidatorRemoval on the L1 to finalize the state. These steps ensure both chains stay synchronized."
+    }
+  ],
+  "426": [
+    {
+      "question": "Your L1 has crashed and a validator needs to be stopped urgently on the P-Chain. Which transaction do you use?",
+      "options": [
+        "SetL1ValidatorWeightTx with zero weight",
+        "RemoveSubnetValidatorTx on the P-Chain",
+        "ForceStopValidatorTx through the C-Chain",
+        "DisableL1ValidatorTx directly on the P-Chain"
+      ],
+      "correctAnswers": [3],
+      "hint": "Think about which P-Chain mechanism works when the L1 is unavailable.",
+      "explanation": "DisableL1ValidatorTx is the emergency mechanism used directly on the P-Chain when the L1 or its Validator Manager Contract is down. Unlike the normal VMC-based removal flow, this transaction can be submitted without the L1 being operational. The validator becomes inactive but its weight is preserved for potential re-enabling later."
+    },
+    {
+      "question": "What happens to a validator's weight when DisableL1ValidatorTx is used?",
+      "options": [
+        "The weight is permanently set to zero",
+        "The weight is preserved and the validator can be re-enabled later with IncreaseBalanceTx",
+        "The weight is redistributed to other validators",
+        "The weight is burned and cannot be recovered"
+      ],
+      "correctAnswers": [1],
+      "hint": "Consider whether this is a permanent or temporary action.",
+      "explanation": "DisableL1ValidatorTx makes a validator inactive but preserves its weight. This is a temporary measure for emergencies when the L1 is down. Once the L1 is operational again, the validator can be re-enabled by using IncreaseBalanceTx to restore its operational status. This design prevents permanent loss during temporary outages."
+    }
+  ],
+  "427": [
+    {
+      "question": "If your L1 goes completely offline, what advantage does a C-Chain-deployed Validator Manager provide?",
+      "options": [
+        "It automatically restarts your L1",
+        "It allows continued validator management since the C-Chain remains operational",
+        "It migrates validators to the C-Chain automatically",
+        "It has no advantage in this scenario"
+      ],
+      "correctAnswers": [1],
+      "hint": "Consider what happens to contract accessibility when your L1 is down.",
+      "explanation": "Deploying the VMC on the C-Chain provides resilience because the C-Chain is part of the Primary Network and remains operational even if your L1 goes down. You can still add, remove, or modify validators through the C-Chain contract, maintaining management capability during L1 outages. However, this requires AVAX for C-Chain gas fees."
+    },
+    {
+      "question": "What is a trade-off of deploying the Validator Manager on the C-Chain instead of your own L1? (Select all that apply)",
+      "options": [
+        "Management transactions require AVAX for C-Chain gas fees",
+        "The VMC becomes slower to execute",
+        "You gain resilience since management works even if your L1 is down",
+        "You lose the ability to use custom gas tokens for management"
+      ],
+      "correctAnswers": [0, 2],
+      "hint": "Think about both the benefits and costs of C-Chain deployment.",
+      "explanation": "C-Chain deployment provides resilience by keeping validator management available even during L1 outages, since the C-Chain is always running. However, all management transactions must be paid in AVAX (C-Chain gas), which is a cost consideration compared to using your L1's native gas token. This creates a dependency on AVAX for administrative operations."
+    }
+  ],
+  "428": [
+    {
+      "question": "Before the Etna upgrade, how much AVAX did each validator need to stake to validate an L1?",
+      "options": [
+        "100 AVAX",
+        "500 AVAX",
+        "10,000 AVAX",
+        "2,000 AVAX"
+      ],
+      "correctAnswers": [3],
+      "hint": "Recall the specific staking amount that was a barrier to entry.",
+      "explanation": "Before the Etna upgrade (ACP-77), each validator needed to stake 2,000 AVAX (approximately $70,000) and additionally validate the entire Primary Network. This high per-validator cost was a significant barrier that prevented many projects from launching their own L1. The Etna upgrade replaced this with a continuous fee of approximately 1.33 AVAX per month."
+    },
+    {
+      "question": "What did the Etna upgrade change about the validator requirements for L1s? (Select all that apply)",
+      "options": [
+        "Replaced the 2,000 AVAX stake with a continuous fee model",
+        "Required validators to run more powerful hardware",
+        "Removed the requirement to validate the entire Primary Network",
+        "Made AVAX optional for L1 validation"
+      ],
+      "correctAnswers": [0, 2],
+      "hint": "Think about both the financial and operational barriers that were removed.",
+      "explanation": "The Etna upgrade made two major changes: it replaced the 2,000 AVAX per-validator stake requirement with a low continuous fee (~1.33 AVAX/month), and it removed the obligation for L1 validators to also validate the entire Primary Network. Together, these changes drastically reduced both the financial and operational barriers to launching an L1."
+    }
+  ],
+  "429": [
+    {
+      "question": "In the Transparent Proxy pattern, what happens when a regular user sends a transaction to the proxy address?",
+      "options": [
+        "The proxy checks if the user is an admin first",
+        "The transaction is rejected unless approved by ProxyAdmin",
+        "The call is delegated to the implementation contract",
+        "The proxy executes its own fallback logic"
+      ],
+      "correctAnswers": [2],
+      "hint": "Think about the separation between admin and user flows in this pattern.",
+      "explanation": "In the Transparent Proxy pattern, regular user calls are delegated to the implementation contract via delegatecall. Only the ProxyAdmin can call upgrade functions on the proxy. This separation ensures normal function calls from users are always routed to the implementation, preventing accidental upgrade triggers."
+    },
+    {
+      "question": "Why does the Transparent Proxy pattern use a separate ProxyAdmin contract for upgrades?",
+      "options": [
+        "To prevent function selector clashes between proxy admin functions and implementation functions",
+        "To save gas on upgrade transactions",
+        "Because Solidity requires a separate contract for admin functions",
+        "To allow multiple proxies to share one admin"
+      ],
+      "correctAnswers": [0],
+      "hint": "Consider what could go wrong if the proxy handled both admin and user calls.",
+      "explanation": "The ProxyAdmin exists to prevent function selector clashes. If the proxy contract itself had upgrade functions, a user calling a function with the same selector on the implementation could accidentally trigger an upgrade. By routing admin calls exclusively through ProxyAdmin, the pattern guarantees clean separation between administrative and operational flows."
+    }
+  ],
+  "430": [
+    {
+      "question": "A validator's weight needs to be updated from 100 to 200. What P-Chain transaction type is used?",
+      "options": [
+        "UpdateValidatorTx",
+        "ModifyStakeTx",
+        "RebalanceValidatorTx",
+        "SetL1ValidatorWeightTx"
+      ],
+      "correctAnswers": [3],
+      "hint": "Recall the specific P-Chain transaction for weight modifications.",
+      "explanation": "SetL1ValidatorWeightTx is the P-Chain transaction used for all validator weight changes, including both increases and decreases. It follows the standard three-phase pattern: initiate weight update on the L1, process SetL1ValidatorWeightTx on the P-Chain, and complete the weight update on the L1. This same mechanism with weight zero is used for removal."
+    },
+    {
+      "question": "Who is allowed to call the final completion step when a validator's weight change is confirmed by the P-Chain?",
+      "options": [
+        "Anyone can call the completion step",
+        "Only the validator whose weight changed",
+        "Only the L1 owner or admin",
+        "Only the account that initiated the change"
+      ],
+      "correctAnswers": [0],
+      "hint": "Think about whether the completion step needs special permissions.",
+      "explanation": "The completion step for weight changes (and other validator operations) can be called by anyone. This is by design, as the security comes from the P-Chain's signed Warp message response, not from who submits the completion transaction. This permissionless completion ensures operations don't get stuck waiting for a specific account."
+    }
+  ],
+  "431": [
+    {
+      "question": "A multi-sig wallet needs to add a new validator, which requires encoding a Node ID, BLS public key, and owner struct into calldata. What simplifies this?",
+      "options": [
+        "The P-Chain handles the encoding automatically",
+        "Multi-sig wallets can natively parse these data types",
+        "The Validator Manager accepts simplified parameter formats",
+        "A PoA Manager contract that wraps complex parameters into simpler function signatures"
+      ],
+      "correctAnswers": [3],
+      "hint": "Think about what layer sits between the multi-sig and the Validator Manager.",
+      "explanation": "The PoA Manager contract acts as a convenience layer that wraps the complex calldata construction (Node IDs, BLS keys, owner structs) into simpler function calls. Building these complex parameters through a multi-sig wallet UI is error-prone, so the PoA Manager simplifies multi-sig governance of validator operations."
+    },
+    {
+      "question": "Is the PoA Manager contract required by the Avalanche protocol for managing validators?",
+      "options": [
+        "Yes, it is mandatory for all PoA L1s",
+        "No, it is an optional convenience layer",
+        "Yes, but only for mainnet deployments",
+        "No, but the P-Chain rejects transactions without it"
+      ],
+      "correctAnswers": [1],
+      "hint": "Consider whether you could manage validators directly through the Validator Manager.",
+      "explanation": "The PoA Manager is entirely optional. You can transfer Validator Manager ownership directly to a multi-sig or EOA and interact with the Validator Manager's functions directly. The PoA Manager simply makes this easier by exposing simpler function signatures, reducing the complexity of building calldata for multi-sig transactions."
+    }
+  ],
+  "4037": [
+    {
+      "question": "A developer wants users on their L1 to pay gas fees using a token that exists as an ERC-20 on C-Chain. Which ICTT bridge pattern achieves this?",
+      "options": [
+        "Native to Native bridging between two L1s",
+        "ERC-20 to Native bridging using the Native Minter precompile",
+        "ERC-20 to ERC-20 bridging with a wrapper",
+        "Direct token migration without any bridge"
+      ],
+      "correctAnswers": [1],
+      "hint": "Think about converting an ERC-20 into a gas token on another chain.",
+      "explanation": "The ERC-20 to Native bridge pattern locks an ERC-20 token on the source chain (like C-Chain) and mints it as the native gas token on the destination L1 using the Native Minter precompile. This allows any ERC-20, such as USDC, to become the gas token on a custom L1."
+    },
+    {
+      "question": "In ERC-20 to Native bridging, what happens to the ERC-20 tokens on the source chain when a user bridges them?",
+      "options": [
+        "They are burned permanently",
+        "They are transferred to the user's wallet on the destination",
+        "They are converted to AVAX automatically",
+        "They are locked in the ERC20TokenHome contract as collateral"
+      ],
+      "correctAnswers": [3],
+      "hint": "Think about how the 1:1 peg is maintained between chains.",
+      "explanation": "When a user bridges ERC-20 tokens to become native tokens, the source tokens are locked (not burned) in the ERC20TokenHome contract as collateral. This ensures a 1:1 backing between locked source tokens and minted native tokens on the destination. The tokens can be unlocked later when someone bridges native tokens back."
+    }
+  ],
+  "4038": [
+    {
+      "question": "Without the Native Minter precompile enabled on the destination L1, what would happen when the NativeTokenRemote contract tries to process a bridge message?",
+      "options": [
+        "It would mint ERC-20 tokens as a fallback",
+        "The transaction would fail because the contract cannot mint native tokens",
+        "The relayer would retry until it succeeds",
+        "Tokens would be created but with no value"
+      ],
+      "correctAnswers": [1],
+      "hint": "Consider what permission the contract needs to create native tokens.",
+      "explanation": "Without the Native Minter precompile, the NativeTokenRemote contract has no mechanism to create native tokens on the destination L1. The bridge transaction would fail because minting native tokens requires explicit precompile permissions. This is why enabling the Native Minter and granting permissions to the remote contract is a prerequisite for ERC-20 to Native bridging."
+    },
+    {
+      "question": "During L1 creation for ERC-20 to Native bridging, which address must be granted Native Minter permissions?",
+      "options": [
+        "The relayer's address",
+        "The ERC20TokenHome contract address",
+        "The NativeTokenRemote contract address",
+        "The L1 owner's address"
+      ],
+      "correctAnswers": [2],
+      "hint": "Think about which contract actually needs to mint native tokens.",
+      "explanation": "The NativeTokenRemote contract is the one that receives bridge messages and mints native tokens on the destination L1. Therefore, it must be granted Native Minter permissions during L1 configuration. Without these permissions, the remote contract cannot create the native tokens users expect to receive when bridging."
+    }
+  ],
+  "4039": [
+    {
+      "question": "If no relayer is running between the source and destination chains, what happens when a user locks tokens in the ERC20TokenHome contract?",
+      "options": [
+        "The tokens are automatically unlocked after a timeout",
+        "The P-Chain forwards the message instead",
+        "The destination chain polls the source for messages",
+        "The ICM message is created but never delivered, so no native tokens are minted"
+      ],
+      "correctAnswers": [3],
+      "hint": "Think about who physically moves messages between chains.",
+      "explanation": "Without a relayer, the ICM message created when tokens are locked on the source chain is never delivered to the destination. The bridge effectively stalls because no entity is watching for messages and submitting them to the other chain. Relayers provide the essential transport layer that makes cross-chain communication work."
+    },
+    {
+      "question": "What does a relayer do when it detects an ICM message on the source chain?",
+      "options": [
+        "It locks additional tokens as insurance",
+        "It validates the message against the P-Chain",
+        "It delivers the message to the destination chain, triggering token minting",
+        "It broadcasts the message to all Avalanche chains"
+      ],
+      "correctAnswers": [2],
+      "hint": "Consider the relayer's role in the message delivery pipeline.",
+      "explanation": "When a relayer detects an ICM message on the source chain, it picks up that message and submits it as a transaction on the destination chain. This delivery triggers the remote contract to process the message and mint tokens for the user. The relayer acts as a bridge between chains, ensuring messages reach their intended destination."
+    }
+  ],
+  "4040": [
+    {
+      "question": "What two responsibilities does the ERC20TokenHome contract handle? (Select all that apply)",
+      "options": [
+        "Minting new ERC-20 tokens from scratch",
+        "Locking ERC-20 tokens as collateral when users bridge",
+        "Running consensus on the source chain",
+        "Coordinating with the remote contract via ICM messages"
+      ],
+      "correctAnswers": [1, 3],
+      "hint": "Think about what the home contract does with tokens and how it communicates.",
+      "explanation": "ERC20TokenHome has two main responsibilities: locking ERC-20 tokens as collateral when users initiate a bridge transaction, and coordinating with the NativeTokenRemote contract on the destination through ICM messages. It tracks how many tokens are locked for each remote and handles unlocking when tokens are bridged back. It does not mint new ERC-20 tokens."
+    },
+    {
+      "question": "How does ERC20TokenHome track tokens across multiple destination chains?",
+      "options": [
+        "It maintains records of how many tokens are locked for each registered remote",
+        "It deploys a separate contract for each destination",
+        "It relies on the P-Chain for accounting",
+        "It uses a single global counter for all destinations"
+      ],
+      "correctAnswers": [0],
+      "hint": "Consider what happens when one home contract serves multiple remote chains.",
+      "explanation": "ERC20TokenHome tracks the amount of locked tokens for each registered remote contract separately. This per-remote accounting ensures accurate bookkeeping when the home contract serves multiple destination chains. When tokens are bridged back from a specific remote, the home contract knows exactly how many tokens to unlock for that particular route."
+    }
+  ],
+  "4041": [
+    {
+      "question": "Why does NativeTokenRemote always use 18 decimals?",
+      "options": [
+        "18 decimals is an arbitrary choice with no technical reason",
+        "The ERC-20 standard requires exactly 18 decimals",
+        "Native EVM tokens always use 18 decimals, which is the standard for wei-based accounting",
+        "The Native Minter precompile only supports 18 decimals"
+      ],
+      "correctAnswers": [2],
+      "hint": "Think about how native token units work in EVM chains.",
+      "explanation": "NativeTokenRemote uses 18 decimals because native EVM tokens follow the wei standard, where 1 token equals 10^18 wei. This is a fundamental property of EVM-compatible chains, not a choice made by the contract. Since NativeTokenRemote mints the chain's native gas token, it must conform to this standard."
+    },
+    {
+      "question": "What interface does NativeTokenRemote implement to handle wrapping and unwrapping of native tokens?",
+      "options": [
+        "IWrappedNativeToken",
+        "IERC721Receiver",
+        "IERC20Metadata",
+        "ITokenBridge"
+      ],
+      "correctAnswers": [0],
+      "hint": "Think about the interface needed to wrap native tokens into a contract-compatible form.",
+      "explanation": "NativeTokenRemote implements the IWrappedNativeToken interface, which provides functionality for wrapping and unwrapping native tokens. This allows the contract to receive native tokens and provide an ERC-20 compatible interface when needed, similar to how WETH works on Ethereum. This dual capability distinguishes it from ERC20TokenRemote."
+    }
+  ],
+  "4042": [
+    {
+      "question": "What would happen if someone tries to bridge tokens through ERC20TokenHome without sufficient collateral?",
+      "options": [
+        "The bridge would mint unbacked tokens on the destination",
+        "The bridge operation would fail",
+        "The relayer would add collateral automatically",
+        "The bridge would succeed with a reduced amount"
+      ],
+      "correctAnswers": [1],
+      "hint": "Think about the requirement for 1:1 backing.",
+      "explanation": "Without sufficient collateral, the bridge operation fails because the ERC20TokenHome contract cannot lock the required tokens. The 1:1 backing model is fundamental to bridge security, ensuring every minted native token on the destination has a corresponding locked ERC-20 token on the source. The contract enforces this requirement at the transaction level."
+    },
+    {
+      "question": "Before adding collateral to ERC20TokenHome, what ERC-20 operation must the user perform first?",
+      "options": [
+        "Transfer tokens to the P-Chain",
+        "Burn a portion of tokens as a fee",
+        "Register their wallet with the bridge",
+        "Approve the ERC20TokenHome contract to spend their tokens"
+      ],
+      "correctAnswers": [3],
+      "hint": "Think about standard ERC-20 token transfer mechanics.",
+      "explanation": "Before adding collateral, the user must approve the ERC20TokenHome contract to spend their ERC-20 tokens. This is the standard ERC-20 approve/transferFrom pattern. The home contract then calls transferFrom to move the approved tokens into itself as collateral, ensuring the 1:1 backing model is maintained for bridge operations."
+    }
+  ],
+  "4043": [
+    {
+      "question": "Place the following steps of the ERC-20 to Native bridge process in order: (1) NativeTokenRemote mints native tokens (2) User approves and locks ERC-20s (3) Relayer delivers ICM message. What is the correct sequence?",
+      "options": [
+        "3, 2, 1",
+        "2, 3, 1",
+        "1, 3, 2",
+        "2, 1, 3"
+      ],
+      "correctAnswers": [1],
+      "hint": "Think about what must happen before each subsequent step can occur.",
+      "explanation": "The correct sequence is: (2) User approves and locks ERC-20 tokens in ERC20TokenHome, which creates an ICM message, (3) Relayer picks up the ICM message and delivers it to the destination chain, (1) NativeTokenRemote receives the message and mints native tokens to the user's address. Each step depends on the previous one completing."
+    },
+    {
+      "question": "How does a user bridge native tokens BACK from the destination L1 to recover their original ERC-20 tokens?",
+      "options": [
+        "They must deploy a new bridge contract in the reverse direction",
+        "They send native tokens to the relayer's address",
+        "They burn native tokens on the destination, which triggers the home contract to unlock ERC-20s",
+        "Reverse bridging is not supported"
+      ],
+      "correctAnswers": [2],
+      "hint": "Think about the reverse of lock-and-mint.",
+      "explanation": "To bridge back, the user burns native tokens on the destination L1 through the NativeTokenRemote contract. This creates an ICM message that the relayer delivers to the source chain. The ERC20TokenHome contract then unlocks the corresponding ERC-20 tokens, returning them to the user. This burn-and-unlock process is the reverse of the lock-and-mint flow."
+    }
+  ],
+  "4044": [
+    {
+      "question": "An L1 has a custom native gas token and the team wants it tradeable on C-Chain DEXes. Which bridge pattern should they use?",
+      "options": [
+        "ERC-20 to Native bridging",
+        "Native to Native bridging",
+        "No bridge is needed for DEX trading",
+        "Native to ERC-20 bridging"
+      ],
+      "correctAnswers": [3],
+      "hint": "Think about which direction converts a native token into a tradeable ERC-20.",
+      "explanation": "Native to ERC-20 bridging locks native tokens on the source L1 and mints wrapped ERC-20 tokens on the destination chain (such as C-Chain). This makes the L1's native token compatible with the ERC-20 ecosystem, enabling trading on DEXes, use in DeFi protocols, and integration with wallets that expect ERC-20 tokens."
+    },
+    {
+      "question": "Which contracts are deployed on which chains in the Native to ERC-20 pattern?",
+      "options": [
+        "NativeTokenHome on the destination, ERC20TokenRemote on the source",
+        "Both contracts are deployed on the source L1",
+        "NativeTokenHome on the source L1, ERC20TokenRemote on the destination chain",
+        "Both contracts are deployed on the destination chain"
+      ],
+      "correctAnswers": [2],
+      "hint": "Think about where native tokens are locked and where ERC-20s are minted.",
+      "explanation": "In the Native to ERC-20 pattern, NativeTokenHome is deployed on the source L1 where native tokens are locked, and ERC20TokenRemote is deployed on the destination chain where wrapped ERC-20 tokens are minted. This separation ensures each contract operates on the chain where its token type exists."
+    }
+  ],
+  "4045": [
+    {
+      "question": "What would users receive on the destination chain without a wrapped ERC-20 token contract deployed?",
+      "options": [
+        "Nothing, because there is no contract to mint the token representation",
+        "Native tokens of the destination chain",
+        "AVAX tokens as a default fallback",
+        "Unwrapped raw token data"
+      ],
+      "correctAnswers": [0],
+      "hint": "Think about what creates the token on the destination side.",
+      "explanation": "Without a wrapped ERC-20 token contract (ERC20TokenRemote) deployed on the destination, there would be no mechanism to create a token representation when native tokens are locked on the source L1. The bridge requires both the home contract for locking and the remote contract for minting to function."
+    },
+    {
+      "question": "What can users do with wrapped ERC-20 tokens received from a Native to ERC-20 bridge? (Select all that apply)",
+      "options": [
+        "Trade them on DEXes on the destination chain",
+        "Use them to pay gas on the destination chain",
+        "Convert them back to native tokens on the source L1",
+        "Use them as the staking token for the source L1"
+      ],
+      "correctAnswers": [0, 2],
+      "hint": "Think about what ERC-20 tokens enable and how the bridge works bidirectionally.",
+      "explanation": "Wrapped ERC-20 tokens from the bridge can be traded on DEXes and used in any application that supports ERC-20 tokens on the destination chain. Users can also burn these wrapped tokens to redeem their original native tokens on the source L1 through the reverse bridge flow. However, they cannot be used for gas on the destination chain since they are ERC-20 tokens, not native tokens."
+    }
+  ],
+  "4046": [
+    {
+      "question": "On the source L1 for Native to ERC-20 bridging, why might the NativeTokenHome contract need Native Minter precompile permissions?",
+      "options": [
+        "To mint additional native tokens as bridge fees",
+        "To properly interact with the native token system for certain locking and unlocking operations",
+        "To create new ERC-20 tokens on the source chain",
+        "Native Minter is not needed on the source chain at all"
+      ],
+      "correctAnswers": [1],
+      "hint": "Think about what operations the home contract performs with native tokens.",
+      "explanation": "While the NativeTokenHome primarily locks native tokens received from users, having Native Minter precompile permissions may be necessary for certain operations related to managing native token interactions. The L1's VM must be configured to allow the TokenHome contract to properly handle all native token operations, which may include precompile interactions."
+    },
+    {
+      "question": "What is a key difference in precompile requirements between ERC-20 to Native and Native to ERC-20 bridging?",
+      "options": [
+        "Both patterns require Native Minter on the same chain",
+        "Neither pattern requires any precompiles",
+        "Only Native to Native requires precompiles",
+        "ERC-20 to Native needs Native Minter on the destination; Native to ERC-20 needs it on the source"
+      ],
+      "correctAnswers": [3],
+      "hint": "Think about where native token minting happens in each pattern.",
+      "explanation": "In ERC-20 to Native bridging, the Native Minter precompile is needed on the destination L1 where native tokens are minted. In Native to ERC-20 bridging, the Native Minter precompile is needed on the source L1 where the NativeTokenHome manages native token operations. The precompile follows wherever native token manipulation occurs."
+    }
+  ],
+  "4047": [
+    {
+      "question": "A relayer for a Native to ERC-20 bridge needs to deliver messages in which direction(s)?",
+      "options": [
+        "Only from source L1 to destination chain",
+        "Only from destination chain to source L1",
+        "Both directions, enabling bridging and reverse bridging",
+        "No specific direction is required"
+      ],
+      "correctAnswers": [2],
+      "hint": "Think about what happens when users bridge tokens and when they bridge back.",
+      "explanation": "The relayer must deliver ICM messages in both directions. When bridging native tokens to ERC-20, messages flow from source to destination. When users bridge their ERC-20 tokens back to native tokens, messages flow from destination to source. Bidirectional message delivery is essential for the complete bridge lifecycle."
+    },
+    {
+      "question": "What must the relayer have on both chains to deliver ICM messages?",
+      "options": [
+        "Gas tokens on both chains to pay for delivery transactions",
+        "Validator credentials for both chains",
+        "Admin access to both bridge contracts",
+        "A special license key from Ava Labs"
+      ],
+      "correctAnswers": [0],
+      "hint": "Think about what a relayer needs to submit transactions on a chain.",
+      "explanation": "The relayer must be funded with gas tokens on both the source and destination chains because it submits transactions to deliver ICM messages. On each chain, submitting a message delivery transaction costs gas. Without sufficient gas tokens on either chain, the relayer cannot deliver messages in that direction, effectively breaking the bridge."
+    }
+  ],
+  "4048": [
+    {
+      "question": "When a user calls the NativeTokenHome contract to bridge tokens, why must the function be payable?",
+      "options": [
+        "All bridge functions must be payable by convention",
+        "Payable functions are cheaper to execute",
+        "The payable modifier allows the contract to receive the user's native tokens, which it then locks as collateral",
+        "The modifier enables the contract to pay relayer fees"
+      ],
+      "correctAnswers": [2],
+      "hint": "Think about how native tokens are transferred to a smart contract.",
+      "explanation": "The function must be payable because the user is sending native tokens (not ERC-20s) to the contract. In Solidity, contracts can only receive native tokens through payable functions. The NativeTokenHome locks these received native tokens as collateral and emits an ICM message to trigger ERC-20 minting on the destination chain."
+    },
+    {
+      "question": "How does NativeTokenHome handle the reverse bridge flow when ERC-20 tokens are burned on the destination?",
+      "options": [
+        "It releases previously locked native tokens back to the user",
+        "It mints new native tokens for the user",
+        "It sends AVAX to the user as a substitute",
+        "The reverse flow is handled by a separate contract"
+      ],
+      "correctAnswers": [0],
+      "hint": "Think about what happens to collateral when bridged tokens are returned.",
+      "explanation": "When ERC-20 tokens are burned on the destination and a reverse bridge message arrives, NativeTokenHome releases the corresponding locked native tokens back to the user. The contract tracks how many native tokens are locked for each remote, ensuring exact accounting. This lock-and-release mechanism maintains the 1:1 backing between chains."
+    }
+  ],
+  "4049": [
+    {
+      "question": "If ERC20TokenRemote only inherited the cross-chain messaging functionality without ERC-20, what would be the limitation?",
+      "options": [
+        "It could still work normally with all wallets",
+        "Wallets and DeFi protocols could not interact with the token using standard ERC-20 calls",
+        "It would consume less gas per transaction",
+        "The bridge would be more secure"
+      ],
+      "correctAnswers": [1],
+      "hint": "Think about what wallets and DeFi protocols expect from a token contract.",
+      "explanation": "Without ERC-20 functionality, wallets could not display balances, DEXes could not trade the token, and DeFi protocols could not integrate with it. The ERC-20 standard (transfer, approve, balanceOf, etc.) is what makes tokens universally compatible with the Ethereum ecosystem. The dual inheritance ensures the contract can both receive cross-chain messages and function as a standard token."
+    },
+    {
+      "question": "What standard ERC-20 functions does ERC20TokenRemote provide for interoperability? (Select all that apply)",
+      "options": [
+        "transfer and transferFrom for moving tokens",
+        "registerWithHome for bridge setup",
+        "approve and allowance for delegated spending",
+        "mintNativeToken for gas token creation"
+      ],
+      "correctAnswers": [0, 2],
+      "hint": "Think about the core ERC-20 interface that wallets and dApps expect.",
+      "explanation": "ERC20TokenRemote implements the standard ERC-20 interface including transfer, transferFrom, approve, allowance, and balanceOf. These functions enable compatibility with wallets, DEXes, and DeFi protocols. The registerWithHome function is part of the bridge logic, not the ERC-20 standard. MintNativeToken is a NativeTokenRemote function, not ERC20TokenRemote."
+    }
+  ],
+  "4050": [
+    {
+      "question": "What would happen if a user tries to bridge tokens to an unregistered ERC20TokenRemote?",
+      "options": [
+        "The tokens would be bridged but with a delay",
+        "The tokens would arrive but be unclaimable",
+        "The NativeTokenHome would reject the transfer since the remote is not in its list of valid destinations",
+        "The relayer would register the remote automatically"
+      ],
+      "correctAnswers": [2],
+      "hint": "Think about how the home contract validates destination addresses.",
+      "explanation": "The NativeTokenHome contract maintains a list of registered remotes and only accepts bridge operations to valid destinations. An unregistered remote would be rejected, protecting users from sending tokens to invalid or malicious addresses. Registration via registerWithHome must be completed before any bridge operations can proceed."
+    },
+    {
+      "question": "What does the registerWithHome function on ERC20TokenRemote actually do behind the scenes?",
+      "options": [
+        "It sends an ICM message to the home contract containing the remote's information for authorization",
+        "It deploys a new contract on the source chain",
+        "It transfers ownership of the remote to the home contract",
+        "It creates a DNS record for the bridge route"
+      ],
+      "correctAnswers": [0],
+      "hint": "Think about how cross-chain registration works without shared state.",
+      "explanation": "The registerWithHome function sends an ICM message from the ERC20TokenRemote on the destination chain to the NativeTokenHome on the source chain. This message contains the remote's identifying information, which the home contract uses to add it to the list of valid destinations. This cross-chain handshake establishes the authorized bridge route."
+    }
+  ],
+  "4051": [
+    {
+      "question": "In a Native to ERC-20 bridge, how do native tokens effectively 'disappear' from the source chain?",
+      "options": [
+        "They are burned by the NativeTokenHome contract",
+        "They are sent to a zero address",
+        "They are transferred to the P-Chain",
+        "They are locked inside the NativeTokenHome contract, making them inaccessible"
+      ],
+      "correctAnswers": [3],
+      "hint": "Think about the lock mechanism rather than a burn mechanism.",
+      "explanation": "Native tokens 'disappear' from circulation because they are locked inside the NativeTokenHome contract, making them inaccessible to anyone until a reverse bridge occurs. The tokens are not burned or sent to a zero address; they are held as collateral. This lock-based mechanism ensures the tokens can be released when someone bridges ERC-20 tokens back."
+    },
+    {
+      "question": "After a successful Native to ERC-20 bridge transaction, where do the ERC-20 tokens appear?",
+      "options": [
+        "In the relayer's wallet",
+        "In the ERC20TokenRemote contract's balance",
+        "In the user's wallet on the destination chain",
+        "In the NativeTokenHome contract's balance"
+      ],
+      "correctAnswers": [2],
+      "hint": "Think about who the intended recipient of the bridged tokens is.",
+      "explanation": "After the bridge completes, the ERC20TokenRemote contract mints ERC-20 tokens directly to the user's address on the destination chain. The user specified their destination address when initiating the bridge on the source L1. The relayer and contracts act as intermediaries but do not retain the tokens."
+    }
+  ],
+  "4052": [
+    {
+      "question": "What combination of contracts is needed for a Native to Native bridge?",
+      "options": [
+        "NativeTokenHome on source and NativeTokenRemote on destination",
+        "ERC20TokenHome on source and ERC20TokenRemote on destination",
+        "NativeTokenRemote on both chains",
+        "ERC20TokenHome on source and NativeTokenRemote on destination"
+      ],
+      "correctAnswers": [0],
+      "hint": "Think about which contract type handles native tokens on each side.",
+      "explanation": "A Native to Native bridge uses NativeTokenHome on the source L1 to lock native tokens and NativeTokenRemote on the destination L1 to mint native tokens. Both sides deal with native tokens, so both use the native-specific contracts. The destination L1 must have the Native Minter precompile enabled for the remote contract to mint."
+    },
+    {
+      "question": "What makes Native to Native bridging more complex than other patterns to set up?",
+      "options": [
+        "It requires three separate relayers",
+        "Both the source and destination L1s need proper native token precompile configurations",
+        "It only works on mainnet",
+        "It requires approval from Ava Labs"
+      ],
+      "correctAnswers": [1],
+      "hint": "Consider what both chains need to have configured for native token operations.",
+      "explanation": "Native to Native bridging requires native token precompile configurations on both L1s. The source needs the Native Minter precompile for NativeTokenHome operations, and the destination needs it for NativeTokenRemote to mint native tokens. This dual configuration requirement makes it more complex than patterns where one side uses standard ERC-20 contracts."
+    }
+  ],
+  "4053": [
+    {
+      "question": "During L1 creation with Avalanche CLI, a developer forgets to add the NativeTokenRemote address to the Native Minter allow list. What happens when a bridge message arrives?",
+      "options": [
+        "The minting succeeds but with reduced amounts",
+        "The relayer mints tokens on behalf of the contract",
+        "The NativeTokenRemote contract cannot mint tokens and the bridge transaction fails",
+        "The precompile auto-approves contracts from registered bridges"
+      ],
+      "correctAnswers": [2],
+      "hint": "Think about what happens when an unauthorized address tries to use the Native Minter.",
+      "explanation": "Without explicit Native Minter permissions, the NativeTokenRemote contract's call to mint native tokens will be rejected by the precompile. The bridge transaction fails and no tokens are minted on the destination. The Native Minter precompile has strict access control, only allowing specifically authorized addresses to mint native tokens."
+    },
+    {
+      "question": "Which two configurations are both required on the destination L1 for Native to Native bridging? (Select all that apply)",
+      "options": [
+        "Fee Config precompile must be disabled",
+        "Native Minter precompile must be enabled",
+        "NativeTokenRemote must have minting permissions",
+        "The L1 must use AVAX as its gas token"
+      ],
+      "correctAnswers": [1, 2],
+      "hint": "Think about the precompile and the permissions needed together.",
+      "explanation": "Both conditions are required: the Native Minter precompile must be enabled at the chain level, and the specific NativeTokenRemote contract address must be granted minting permissions within that precompile. Just enabling the precompile without granting permissions, or trying to grant permissions on a disabled precompile, will prevent the bridge from functioning."
+    }
+  ],
+  "4054": [
+    {
+      "question": "In a Native to Native bridge setup, what happens if the relayer runs out of gas on the destination chain?",
+      "options": [
+        "ICM messages cannot be delivered to the destination, halting the bridge in that direction",
+        "Messages queue up and are delivered when the relayer is refunded",
+        "The P-Chain delivers messages as a fallback",
+        "The source chain automatically pauses new bridge requests"
+      ],
+      "correctAnswers": [0],
+      "hint": "Think about what a relayer needs to submit transactions on a chain.",
+      "explanation": "If the relayer runs out of gas on the destination chain, it cannot submit delivery transactions for ICM messages. Messages accumulate on the source side but are never delivered, effectively halting the bridge in that direction. Relayers must be monitored and funded with gas tokens on both chains to maintain continuous bridge operation."
+    },
+    {
+      "question": "Can validators serve as relayers for the Native to Native bridge?",
+      "options": [
+        "Only validators can serve as relayers",
+        "Validators are prohibited from being relayers",
+        "Only Ava Labs can operate relayers",
+        "Anyone can run a relayer, including validators, since relayers are not restricted to specific roles"
+      ],
+      "correctAnswers": [3],
+      "hint": "Think about whether relayer operation has any role-based restrictions.",
+      "explanation": "Relayers are not restricted to any particular role. Anyone can run a relayer, including validators, third-party service providers, or the L1 operators themselves. The relayer simply needs to observe both chains, have gas tokens on both sides, and submit delivery transactions. There are no protocol-level restrictions on who can perform this function."
+    }
+  ],
+  "4055": [
+    {
+      "question": "When a user sends native tokens to NativeTokenHome, what two things happen immediately?",
+      "options": [
+        "Tokens are burned and a receipt is generated",
+        "Tokens are converted to AVAX and forwarded to P-Chain",
+        "Tokens are locked as collateral and an ICM message is emitted",
+        "Tokens are split between the contract and the relayer"
+      ],
+      "correctAnswers": [2],
+      "hint": "Think about the first two steps of the bridge flow that happen on the source chain.",
+      "explanation": "When NativeTokenHome receives native tokens, it immediately locks them as collateral within the contract and emits an ICM message containing the bridge details. The tokens remain locked until a reverse bridge occurs. The ICM message is then picked up by the relayer for delivery to the destination L1."
+    },
+    {
+      "question": "How does NativeTokenHome handle collateral tracking when multiple destination L1s are registered?",
+      "options": [
+        "It uses a single pool for all destinations",
+        "It tracks collateral separately for each registered remote contract",
+        "It requires a separate home contract per destination",
+        "It delegates tracking to the P-Chain"
+      ],
+      "correctAnswers": [1],
+      "hint": "Consider how the contract knows which remote's tokens to release during reverse bridges.",
+      "explanation": "NativeTokenHome maintains separate collateral records for each registered remote. This per-remote accounting is essential because when tokens are bridged back from a specific destination, the home contract needs to know exactly how many tokens are associated with that remote. Without per-remote tracking, cross-destination accounting errors could compromise the bridge's integrity."
+    }
+  ],
+  "4056": [
+    {
+      "question": "What is the difference between how NativeTokenRemote and ERC20TokenRemote create tokens on the destination?",
+      "options": [
+        "There is no difference between the two",
+        "ERC20TokenRemote is faster at minting",
+        "NativeTokenRemote can only mint whole token amounts",
+        "NativeTokenRemote uses the Native Minter precompile to mint gas tokens; ERC20TokenRemote mints standard ERC-20 tokens via contract logic"
+      ],
+      "correctAnswers": [3],
+      "hint": "Think about the type of token each contract produces and the mechanism used.",
+      "explanation": "NativeTokenRemote uses the Native Minter precompile, a chain-level capability, to create actual native gas tokens that users pay for transactions. ERC20TokenRemote mints standard ERC-20 tokens using contract-level logic (the standard mint function). The distinction is protocol-level vs contract-level token creation, reflecting the different token types produced."
+    },
+    {
+      "question": "When NativeTokenRemote receives an ICM message to mint tokens, what role does the Native Minter precompile play?",
+      "options": [
+        "It validates the ICM message signature",
+        "It authorizes the minting and creates new native tokens at the protocol level",
+        "It routes the message to the correct recipient",
+        "It calculates the bridge fees"
+      ],
+      "correctAnswers": [1],
+      "hint": "Think about what capability the precompile provides that contracts alone cannot.",
+      "explanation": "The Native Minter precompile provides the protocol-level ability to create new native tokens. Regular smart contracts cannot create native tokens on their own because native token supply is managed at the chain level. The precompile checks that the calling contract (NativeTokenRemote) has minting permissions and then creates the requested amount of native tokens, which are sent to the user's address."
+    }
+  ],
+  "4057": [
+    {
+      "question": "What happens if you try to bridge tokens through a Native to Native bridge without registering the remote first?",
+      "options": [
+        "The bridge works but charges a higher fee",
+        "The tokens are sent but arrive as ERC-20 instead of native",
+        "The NativeTokenHome rejects the transaction because the destination is not authorized",
+        "Registration can be done retroactively after the first bridge"
+      ],
+      "correctAnswers": [2],
+      "hint": "Think about the security check the home contract performs.",
+      "explanation": "The NativeTokenHome contract only accepts bridge operations to registered remotes. Without registration, the home contract has no record of the destination as a valid bridge route and rejects the transaction. This prevents tokens from being sent to unauthorized or malicious addresses, protecting the security of the bridge system."
+    },
+    {
+      "question": "Why is collateral necessary even in Native to Native bridging where both sides use native tokens?",
+      "options": [
+        "Collateral is only needed for ERC-20 bridges, not native",
+        "Collateral pays for relayer gas costs",
+        "Collateral prevents double-spending on the P-Chain",
+        "Collateral ensures the home contract has tokens to lock, maintaining 1:1 backing for minted destination tokens"
+      ],
+      "correctAnswers": [3],
+      "hint": "Think about the fundamental backing guarantee all bridge patterns need.",
+      "explanation": "Regardless of the bridge pattern, the 1:1 backing model is fundamental. Collateral in the home contract ensures that for every native token minted on the destination L1, there is an equivalent native token locked on the source L1. Without this backing, the destination tokens would be unbacked, creating tokens out of thin air and breaking the bridge's economic security model."
+    }
+  ],
+  "4058": [
+    {
+      "question": "In a Native to Native bridge from L1-A to L1-B, what happens to the total supply of native tokens across both chains?",
+      "options": [
+        "Total supply doubles because both chains create tokens",
+        "The combined circulating supply stays constant since L1-A tokens are locked while L1-B tokens are minted",
+        "Total supply decreases due to bridge fees",
+        "Supply changes are unpredictable"
+      ],
+      "correctAnswers": [1],
+      "hint": "Think about the relationship between locked and minted tokens.",
+      "explanation": "The combined circulating supply across both chains remains constant because every token minted on L1-B corresponds to a token locked (removed from circulation) on L1-A. While the total minted supply on L1-B increases, the available supply on L1-A decreases by the same amount. This conservation is what the 1:1 backing model guarantees."
+    },
+    {
+      "question": "What three entities participate in each Native to Native bridge transaction?",
+      "options": [
+        "User, P-Chain, and validator",
+        "Source chain, bridge oracle, and destination chain",
+        "Deployer, admin, and governance contract",
+        "NativeTokenHome, relayer, and NativeTokenRemote"
+      ],
+      "correctAnswers": [3],
+      "hint": "Think about the three components in the lock, relay, mint sequence.",
+      "explanation": "Each Native to Native bridge transaction involves three entities: (1) NativeTokenHome on the source L1 locks the native tokens and creates the ICM message, (2) the relayer detects and delivers the message cross-chain, and (3) NativeTokenRemote on the destination L1 receives the message and mints native tokens. These three form the complete bridge pipeline."
+    }
+  ],
+  "4059": [
+    {
+      "question": "A consortium of banks wants to run a blockchain where only their approved nodes can validate. Which model should they use?",
+      "options": [
+        "A permissioned L1 using Proof of Authority",
+        "A permissionless PoS chain where anyone can stake",
+        "A Proof of Work chain with mining pools",
+        "A sidechain with rotating validators"
+      ],
+      "correctAnswers": [0],
+      "hint": "Think about which model allows explicit control over who can validate.",
+      "explanation": "A permissioned L1 using Proof of Authority is ideal for consortium use cases where only approved entities should validate. The L1 owner explicitly controls which validators participate using the Validator Manager contract. This differs from permissionless models where anyone with enough stake can become a validator."
+    },
+    {
+      "question": "How does a permissioned L1 differ from a permissionless L1 in terms of becoming a validator?",
+      "options": [
+        "Permissioned L1s require more hardware resources",
+        "In permissioned L1s, the owner must explicitly authorize each validator; in permissionless L1s, anyone can join by staking tokens",
+        "Permissionless L1s have fewer validators",
+        "There is no practical difference"
+      ],
+      "correctAnswers": [1],
+      "hint": "Focus on the participation mechanism for validators.",
+      "explanation": "The fundamental difference is the validator onboarding mechanism. Permissioned L1s use Proof of Authority where the chain owner explicitly adds or removes validators through the Validator Manager contract. Permissionless L1s use Proof of Stake where anyone meeting the minimum stake requirement can register as a validator without requiring authorization."
+    }
+  ],
+  "4060": [
+    {
+      "question": "Why is understanding the difference between native tokens and ERC-20 tokens important before building a permissionless L1?",
+      "options": [
+        "It is not important for L1 development",
+        "They are the same thing with different names",
+        "Native tokens operate at the protocol level for gas while ERC-20 tokens are contract-level, and L1 design decisions depend on this distinction",
+        "Only ERC-20 tokens matter for L1s"
+      ],
+      "correctAnswers": [2],
+      "hint": "Think about how gas fees, staking, and rewards relate to token types.",
+      "explanation": "Understanding the native vs ERC-20 distinction is critical because it affects fundamental L1 design decisions. Native tokens are protocol-level and used for gas fees, while ERC-20 tokens are smart contract-level. For a permissionless L1, you need to decide whether staking uses the native token or a separate ERC-20, how rewards are distributed, and whether custom gas tokens are needed via precompiles like Native Minter."
+    },
+    {
+      "question": "Which concepts should a builder understand before adding PoS to their L1? (Select all that apply)",
+      "options": [
+        "Custom gas tokens and how they can be configured",
+        "Precompiles like Native Minter for custom tokenomics",
+        "Bitcoin mining algorithms",
+        "Layer 2 rollup architectures"
+      ],
+      "correctAnswers": [0, 1],
+      "hint": "Think about what token-related features affect staking and rewards.",
+      "explanation": "Builders need to understand custom gas tokens (how they work and are configured) and precompiles like Native Minter (which enables minting tokens for staking rewards). These directly impact permissionless L1 design because PoS requires a staking token, reward distribution, and potentially custom gas token economics. Bitcoin mining and L2 rollups are unrelated to Avalanche L1 PoS setup."
+    }
+  ],
+  "4061": [
+    {
+      "question": "After deploying a Validator Manager Contract, what P-Chain operation uses its address?",
+      "options": [
+        "CreateChainTx to create a new blockchain",
+        "The conversion of a subnet to an L1, which links the L1 to the VMC address",
+        "RegisterNodeTx to add validators",
+        "TransferSubnetOwnershipTx"
+      ],
+      "correctAnswers": [1],
+      "hint": "Think about how the P-Chain learns about the Validator Manager.",
+      "explanation": "After deploying the Validator Manager Contract, its address is used when converting a subnet to an L1 on the P-Chain. This conversion links the L1 to the VMC address, telling the P-Chain where to look for validator set management. From that point on, the P-Chain reads validator information from this contract."
+    },
+    {
+      "question": "Where are Validator Manager Contracts deployed for testnet L1s?",
+      "options": [
+        "On the Fuji P-Chain",
+        "On the Fuji C-Chain",
+        "On the mainnet C-Chain",
+        "On a dedicated testnet management chain"
+      ],
+      "correctAnswers": [1],
+      "hint": "Think about the EVM-compatible chain on the testnet.",
+      "explanation": "For testnet L1s, the Validator Manager Contract is deployed on the Fuji C-Chain. For mainnet L1s, it would be deployed on the mainnet C-Chain. The C-Chain provides the EVM environment needed for smart contract deployment, and the P-Chain references this contract address when converting the subnet to an L1."
+    }
+  ],
+  "4062": [
+    {
+      "question": "In Proof of Stake, what prevents validators from acting maliciously?",
+      "options": [
+        "They would lose their reputation score",
+        "The protocol automatically fixes malicious blocks",
+        "Other validators can vote to reduce their rewards",
+        "Their staked tokens can be slashed as punishment"
+      ],
+      "correctAnswers": [3],
+      "hint": "Think about the economic penalty for dishonest behavior.",
+      "explanation": "In Proof of Stake, validators stake tokens as economic collateral. If they act maliciously (like double-signing or proposing invalid blocks), their stake can be slashed, meaning a portion or all of their staked tokens are confiscated. This economic punishment creates a strong deterrent against dishonest behavior, as the cost of misbehavior exceeds the potential gain."
+    },
+    {
+      "question": "Which statement best describes the trade-off between PoS and PoA?",
+      "options": [
+        "PoS enables decentralization through open participation; PoA provides control with known validators but is more centralized",
+        "PoS is always more secure than PoA",
+        "PoA enables open participation while PoS restricts it",
+        "PoA is more expensive to operate than PoS"
+      ],
+      "correctAnswers": [0],
+      "hint": "Think about decentralization versus control.",
+      "explanation": "PoS enables decentralization by allowing anyone to participate as a validator through staking, creating an open and permissionless system. PoA provides control by restricting validation to known, authorized entities, which is useful for enterprise or consortium use cases but is inherently more centralized. The choice depends on whether the use case prioritizes openness or control."
+    }
+  ],
+  "4063": [
+    {
+      "question": "What would happen to a PoS network if validators had no economic stake at risk?",
+      "options": [
+        "The network would be more efficient without stake overhead",
+        "Consensus would be faster without stake verification",
+        "The network would function identically to a PoA chain",
+        "Validators could act maliciously without financial penalty, undermining network security"
+      ],
+      "correctAnswers": [3],
+      "hint": "Think about what economic collateral prevents.",
+      "explanation": "Without economic stake at risk, validators would face no financial consequences for malicious behavior like double-signing or proposing invalid blocks. The staking requirement creates skin-in-the-game that aligns validator incentives with network security. Removing it would eliminate the economic deterrent that makes PoS networks trustworthy."
+    },
+    {
+      "question": "Can the staking token and gas token be different tokens on a PoS L1?",
+      "options": [
+        "No, they must always be the same token",
+        "Yes, the L1 can be designed with separate tokens for staking and gas",
+        "Only if the tokens are both ERC-20",
+        "Only on testnet deployments"
+      ],
+      "correctAnswers": [1],
+      "hint": "Think about the flexibility in L1 token design.",
+      "explanation": "A PoS L1 can be designed with separate tokens for staking and gas. The staking token serves as validator collateral and incentive, while the gas token pays for transaction fees. This flexibility allows L1 designers to create more nuanced tokenomics. For example, a stablecoin could be the gas token while a governance token is used for staking."
+    }
+  ],
+  "4064": [
+    {
+      "question": "A validator has 100,000 tokens staked but wants to use that capital in DeFi. What solution addresses this?",
+      "options": [
+        "Unstaking the tokens and restaking later",
+        "Running multiple validator nodes with split stakes",
+        "Using a liquid staking protocol to receive representative tokens while keeping the original tokens staked",
+        "Borrowing against the validator node hardware"
+      ],
+      "correctAnswers": [2],
+      "hint": "Think about getting a usable token while your original tokens remain staked.",
+      "explanation": "Liquid staking solves this exact problem. The validator deposits tokens into a liquid staking protocol and receives representative tokens (like stAVAX). These representative tokens can be used in DeFi, traded, or used as collateral, while the original tokens remain staked and earning rewards. This eliminates the opportunity cost of locking capital."
+    },
+    {
+      "question": "How does liquid staking benefit overall network security?",
+      "options": [
+        "It reduces the number of validators needed",
+        "It eliminates the need for slashing",
+        "It centralizes stake into fewer validators",
+        "It makes staking more attractive by reducing opportunity cost, encouraging more token holders to stake"
+      ],
+      "correctAnswers": [3],
+      "hint": "Think about what prevents people from staking and how liquid staking addresses that.",
+      "explanation": "Liquid staking enhances network security by making staking more attractive. Many token holders avoid staking because locking tokens means missing out on DeFi opportunities. Liquid staking eliminates this trade-off by providing usable representative tokens while the originals remain staked. More participation in staking means more economic security for the network."
+    }
+  ],
+  "4065": [
+    {
+      "question": "A permissioned PoA L1 wants to transition to permissionless PoS. Which component enables the creation of staking rewards?",
+      "options": [
+        "The Validator Manager contract alone",
+        "The Native Minter precompile",
+        "The P-Chain reward mechanism",
+        "The fee distribution module"
+      ],
+      "correctAnswers": [1],
+      "hint": "Think about what enables creating new tokens as rewards.",
+      "explanation": "The Native Minter precompile enables minting new native tokens, which is essential for creating staking rewards. Without it, there would be no mechanism to generate reward tokens at the protocol level. The Staking Manager contract calls the Native Minter to mint reward tokens when validators and delegators claim their earnings."
+    },
+    {
+      "question": "What components must be deployed or configured to transform a PoA L1 into a PoS L1? (Select all that apply)",
+      "options": [
+        "A Staking Manager (PoS Validator Manager) contract",
+        "A new P-Chain instance",
+        "A Reward Manager or Reward Calculator contract",
+        "Native Minter precompile with proper permissions"
+      ],
+      "correctAnswers": [0, 2],
+      "hint": "Think about what handles staking mechanics and reward distribution.",
+      "explanation": "Transforming to PoS requires a Staking Manager contract to handle stake deposits and validator registration, and a Reward Manager/Calculator for computing and distributing rewards. The Native Minter precompile must also be configured (though it is a precompile configuration, not a deployed contract). Together these create the infrastructure for permissionless staking participation."
+    }
+  ],
+  "4066": [
+    {
+      "question": "Without the Native Minter precompile, how would an L1 need to fund staking rewards?",
+      "options": [
+        "Rewards would be impossible to distribute",
+        "Validators would earn transaction fees only",
+        "The P-Chain would provide rewards automatically",
+        "The L1 would need a pre-minted reward pool that eventually depletes"
+      ],
+      "correctAnswers": [3],
+      "hint": "Think about alternative sources for reward tokens if minting is unavailable.",
+      "explanation": "Without the Native Minter precompile, the L1 could not create new tokens for rewards. It would need to rely on a pre-minted pool of tokens set aside for rewards, which would eventually deplete. The Native Minter precompile solves this by allowing authorized contracts to mint new tokens as needed, enabling sustainable long-term reward distribution."
+    },
+    {
+      "question": "What specific permission must the Staking Manager contract have with the Native Minter precompile?",
+      "options": [
+        "Read-only access to check token supply",
+        "Authorization to mint new native tokens for reward distribution",
+        "Permission to burn tokens from any address",
+        "Admin access to modify precompile parameters"
+      ],
+      "correctAnswers": [1],
+      "hint": "Think about what the Staking Manager needs to do when distributing rewards.",
+      "explanation": "The Staking Manager must be authorized to mint new native tokens through the Native Minter precompile. This permission is specifically needed to create reward tokens when validators and delegators claim their staking rewards. The precompile's access control ensures only authorized contracts (like the Staking Manager) can mint, preventing unauthorized token creation."
+    }
+  ],
+  "4067": [
+    {
+      "question": "How does the Reward Manager determine how much each validator receives?",
+      "options": [
+        "Based on factors like stake amount, staking duration, and validator performance metrics like uptime",
+        "All validators receive equal rewards regardless of performance",
+        "Rewards are randomly distributed using on-chain randomness",
+        "The P-Chain determines all reward amounts"
+      ],
+      "correctAnswers": [0],
+      "hint": "Think about what factors should influence fair reward distribution.",
+      "explanation": "The Reward Manager calculates rewards based on multiple factors including stake amount (larger stakes earn more), staking duration, and validator performance metrics like uptime. This ensures rewards are distributed proportionally and fairly, incentivizing both larger stakes and reliable validator operation. The exact formula depends on the implementation chosen by the L1 operator."
+    },
+    {
+      "question": "Can the Reward Manager be a separate contract from the Staking Manager?",
+      "options": [
+        "No, reward logic must be inside the Staking Manager",
+        "Only if using a proxy pattern",
+        "Yes, separating them enables modular and upgradeable reward logic",
+        "Separate contracts are only allowed on testnet"
+      ],
+      "correctAnswers": [2],
+      "hint": "Think about the benefits of modular smart contract design.",
+      "explanation": "The Reward Manager can be a separate contract, and this is often preferred for modularity. Separating reward logic allows it to be upgraded or customized independently of the core Staking Manager. Different L1s might want different reward models (linear, curve-based, uptime-weighted), and a separate contract makes it easy to implement custom economics while reusing the standard Staking Manager."
+    }
+  ],
+  "4068": [
+    {
+      "question": "Why does the permissionless L1s course include a basic L1 creation exercise before introducing PoS concepts?",
+      "options": [
+        "PoS cannot be added to an existing L1",
+        "The basic exercise is unrelated to PoS",
+        "The exercise is optional and can be skipped",
+        "Students need hands-on familiarity with L1 creation fundamentals before tackling the complexity of staking and rewards"
+      ],
+      "correctAnswers": [3],
+      "hint": "Think about pedagogical scaffolding, building on simpler concepts first.",
+      "explanation": "The L1 creation speedrun ensures students are comfortable with foundational concepts like using Avalanche CLI, configuring VMs, and deploying chains before adding PoS complexity. This scaffolded approach prevents cognitive overload and ensures students have a solid understanding of the basics before layering on staking, reward calculators, and permissionless validator management."
+    },
+    {
+      "question": "What skills does the L1 creation speedrun reinforce?",
+      "options": [
+        "Using Avalanche CLI, configuring VMs, and deploying to testnet",
+        "Writing Solidity smart contracts for DeFi",
+        "Building frontend applications for L1s",
+        "Setting up cross-chain bridges"
+      ],
+      "correctAnswers": [0],
+      "hint": "Think about the core tools and processes for creating an L1.",
+      "explanation": "The speedrun reinforces practical skills with Avalanche CLI for chain creation, VM configuration for customizing chain behavior, and testnet deployment processes. These are the foundational tools and workflows that every L1 builder needs to master before adding advanced features like PoS validator management and staking reward systems."
+    }
+  ],
+  "4069": [
+    {
+      "question": "What is the pedagogical purpose of mastering PoA validator management before learning PoS?",
+      "options": [
+        "PoA is more important than PoS in production",
+        "PoA is required before PoS can be enabled",
+        "Understanding PoA's baseline validator management provides context for how PoS builds upon and extends those concepts",
+        "PoA exercises are simpler and serve as a warmup"
+      ],
+      "correctAnswers": [2],
+      "hint": "Think about how PoS extends the PoA model.",
+      "explanation": "Understanding PoA validator management provides the baseline knowledge needed to appreciate how PoS builds upon it. PoA covers deploying the Validator Manager, adding authorized validators, and managing the validator set. PoS extends these same concepts with staking, rewards, and permissionless participation. Without understanding the PoA foundation, the additional PoS complexity would be harder to grasp."
+    },
+    {
+      "question": "What does the permissioned L1 speedrun exercise cover? (Select all that apply)",
+      "options": [
+        "Deploying a PoA Validator Manager contract",
+        "Configuring staking rewards and delegation",
+        "Adding and managing authorized validators",
+        "Setting up liquid staking protocols"
+      ],
+      "correctAnswers": [0, 2],
+      "hint": "Think about what PoA-specific operations are practiced.",
+      "explanation": "The permissioned L1 speedrun focuses on PoA-specific operations: deploying the Validator Manager contract for PoA and adding/managing authorized validators. Staking rewards, delegation, and liquid staking are PoS concepts covered later in the course. The speedrun establishes the validator management baseline before the transition to permissionless PoS."
+    }
+  ],
+  "4070": [
+    {
+      "question": "Which three components work together to create a complete PoS staking system?",
+      "options": [
+        "P-Chain, C-Chain, and X-Chain",
+        "Validator Manager, Proxy Admin, and implementation contract",
+        "Staking Manager, Reward Calculator, and Native Minter precompile",
+        "Token Home, relayer, and Token Remote"
+      ],
+      "correctAnswers": [2],
+      "hint": "Think about the three pieces needed for staking, rewards, and token minting.",
+      "explanation": "A complete PoS system requires: the Staking Manager contract for handling stake deposits and validator registration, the Reward Calculator for computing reward amounts, and the Native Minter precompile for minting new tokens as rewards. These three components coordinate to provide staking mechanics, fair reward distribution, and sustainable token economics."
+    },
+    {
+      "question": "Why is a Reward Calculator contract deployed separately from the Staking Manager?",
+      "options": [
+        "Solidity does not support reward logic in staking contracts",
+        "It allows different reward models to be swapped without redeploying the Staking Manager",
+        "Reward calculations are too expensive to run on-chain otherwise",
+        "The P-Chain requires a separate reward address"
+      ],
+      "correctAnswers": [1],
+      "hint": "Think about modularity and the ability to change reward parameters.",
+      "explanation": "A separate Reward Calculator enables reward model flexibility. L1 operators might want to change reward rates, add uptime requirements, or switch from linear to curve-based rewards. With a separate contract, this can be done by deploying a new Reward Calculator and updating the reference, without touching the battle-tested Staking Manager contract."
+    }
+  ],
+  "4071": [
+    {
+      "question": "Which operations does the Staking Manager handle in the validator lifecycle?",
+      "options": [
+        "Only initial validator registration",
+        "Only stake deposits and withdrawals",
+        "Only reward distribution to validators",
+        "Registration, stake deposits and withdrawals, delegation, P-Chain coordination, and reward distribution"
+      ],
+      "correctAnswers": [3],
+      "hint": "Think about the complete lifecycle from joining to leaving and everything in between.",
+      "explanation": "The Staking Manager handles the entire validator lifecycle: onboarding new validators, managing stake deposits and withdrawals, enabling delegation from non-validator stakers, coordinating with the P-Chain for validator set updates, and distributing rewards through the Reward Calculator and Native Minter. It is the central hub for all PoS operations."
+    },
+    {
+      "question": "How does the Staking Manager differ from the PoA Validator Manager in terms of who can register validators?",
+      "options": [
+        "The Staking Manager allows anyone who meets the minimum stake to register, while PoA requires explicit admin authorization",
+        "Both require admin approval for all validators",
+        "The PoA Manager allows more validators than the Staking Manager",
+        "There is no difference in registration requirements"
+      ],
+      "correctAnswers": [0],
+      "hint": "Think about the core difference between permissioned and permissionless models.",
+      "explanation": "The Staking Manager enables permissionless validator registration, where anyone meeting the minimum stake requirement can become a validator without needing admin approval. The PoA Validator Manager restricts registration to validators explicitly authorized by the admin. This fundamental difference is what makes PoS permissionless and PoA permissioned."
+    }
+  ],
+  "4072": [
+    {
+      "question": "An L1 operator wants to change their reward model from a flat rate to a curve-based formula. With a separate Reward Calculator, how is this achieved?",
+      "options": [
+        "Redeploy the entire Staking Manager with new logic",
+        "Modify the reward parameters directly on the P-Chain",
+        "Deploy a new Reward Calculator and update the Staking Manager's reference to point to it",
+        "This change is impossible after initial deployment"
+      ],
+      "correctAnswers": [2],
+      "hint": "Think about how modularity enables upgrades.",
+      "explanation": "With a separate Reward Calculator, changing the reward model is straightforward: deploy a new calculator contract with the curve-based formula and update the Staking Manager's reference to point to it. The core Staking Manager remains unchanged and battle-tested. This is the key advantage of the modular separation of concerns design pattern."
+    },
+    {
+      "question": "What design principle does separating the Reward Calculator from the Staking Manager follow?",
+      "options": [
+        "Don't Repeat Yourself (DRY)",
+        "Single point of failure",
+        "Tight coupling for performance",
+        "Separation of concerns"
+      ],
+      "correctAnswers": [3],
+      "hint": "Think about keeping different responsibilities in different modules.",
+      "explanation": "Separating the Reward Calculator follows the separation of concerns principle, where each component handles one well-defined responsibility. The Staking Manager handles staking mechanics and validator management, while the Reward Calculator focuses solely on reward logic. This makes each component easier to understand, test, upgrade, and replace independently."
+    }
+  ],
+  "4073": [
+    {
+      "question": "What would happen if the Staking Manager were used without being initialized first?",
+      "options": [
+        "It would operate with sensible default values",
+        "It would lack critical configuration like minimum stake, reward calculator, and L1 details, making it non-functional",
+        "The P-Chain would provide configuration automatically",
+        "Only reward distribution would be affected"
+      ],
+      "correctAnswers": [1],
+      "hint": "Think about what parameters the contract needs to operate correctly.",
+      "explanation": "Without initialization, the Staking Manager would have no minimum stake requirements, no reward calculator reference, no L1 identification, and no churn parameters. It could not properly validate stake amounts, calculate rewards, or coordinate with the P-Chain. Initialization sets all these essential parameters, making the contract operational and secure."
+    },
+    {
+      "question": "Which parameters are configured during Staking Manager initialization? (Select all that apply)",
+      "options": [
+        "Minimum and maximum stake requirements for validators and delegators",
+        "The block size limit for the L1",
+        "The Reward Calculator contract address",
+        "The gas price for the L1"
+      ],
+      "correctAnswers": [0, 2],
+      "hint": "Think about what the staking system needs to know to function.",
+      "explanation": "During initialization, the Staking Manager is configured with stake requirements (minimum and maximum for both validators and delegators) and the Reward Calculator contract address. It also receives L1 identification information and churn parameters. Block size and gas price are VM-level configurations, not Staking Manager parameters."
+    }
+  ],
+  "4074": [
+    {
+      "question": "If the Staking Manager is NOT granted Native Minter permissions, what specifically breaks?",
+      "options": [
+        "Validators cannot register or stake tokens",
+        "Delegation is disabled but staking still works",
+        "The P-Chain rejects validator set updates",
+        "The contract cannot mint new tokens for staking rewards, making the reward system non-functional"
+      ],
+      "correctAnswers": [3],
+      "hint": "Think about what specific operation requires minting permissions.",
+      "explanation": "Without Native Minter permissions, the Staking Manager cannot mint new native tokens when distributing staking rewards. Validators can still register and stake, but they will never receive rewards. Since rewards are the primary economic incentive for honest validation, a broken reward system undermines the entire PoS security model."
+    },
+    {
+      "question": "When must Native Minter permissions be granted to the Staking Manager?",
+      "options": [
+        "Only after the first validator registers",
+        "Before or during L1 setup, or via a contract upgrade that adds the Staking Manager address to the precompile's allow list",
+        "Permissions are granted automatically at contract deployment",
+        "Only after the reward period begins"
+      ],
+      "correctAnswers": [1],
+      "hint": "Think about when the precompile access list can be modified.",
+      "explanation": "Native Minter permissions can be granted during initial L1 setup (in the genesis configuration) or later via a transaction that updates the precompile's allow list. The important thing is that permissions must be in place before the first reward claim. If added during setup, the Staking Manager address is included in the genesis allow list. If added later, an authorized admin calls the precompile to add the address."
+    }
+  ],
+  "4075": [
+    {
+      "question": "Why would a deployer keep ownership of the Staking Manager after launch?",
+      "options": [
+        "It is the recommended permanent configuration",
+        "Ownership cannot be transferred once set",
+        "They might retain ownership temporarily during a testing phase before transferring to governance",
+        "The protocol requires single-owner control"
+      ],
+      "correctAnswers": [2],
+      "hint": "Think about the lifecycle from deployment to production.",
+      "explanation": "A deployer might temporarily retain ownership during testing and initial operations to quickly fix issues or adjust parameters. However, for production, transferring ownership to a governance system or multisig is essential for decentralization. The temporary period allows the deployer to ensure everything works correctly before relinquishing control."
+    },
+    {
+      "question": "What type of entity is ownership typically transferred to in the final setup step?",
+      "options": [
+        "An individual developer's wallet",
+        "The P-Chain validator set",
+        "Ava Labs operational team",
+        "A governance contract, DAO, or multisig wallet for decentralized control"
+      ],
+      "correctAnswers": [3],
+      "hint": "Think about what aligns with the permissionless ethos of PoS.",
+      "explanation": "Ownership is typically transferred to a governance contract, DAO, or multisig wallet. This decentralizes control of the Staking Manager, allowing the community to collectively manage staking parameters, approve upgrades, and make decisions about the network's economics. This final step transitions from centralized deployment to decentralized governance, consistent with the permissionless nature of PoS."
+    }
+  ]
+}

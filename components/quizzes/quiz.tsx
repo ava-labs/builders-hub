@@ -8,8 +8,8 @@ import { cn } from '@/utils/cn';
 import { buttonVariants } from '@/components/ui/button';
 import quizData from './quizData.json';
 
-const MAX_ATTEMPTS = 2;
-const COOLDOWN_MS = 2 * 60 * 1000; // 2 minutes
+const MAX_ATTEMPTS = 3;
+const COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 interface QuizProps {
   quizId: string;
@@ -22,6 +22,21 @@ interface QuizData {
   correctAnswers: number[];
   hint: string;
   explanation: string;
+}
+
+interface FullQuizData extends QuizData {
+  alternates?: QuizData[];
+  chapter?: string;
+}
+
+function getVariant(quizId: string, variantIndex: number): QuizData | null {
+  const baseQuiz = (quizData.quizzes as Record<string, FullQuizData>)[quizId];
+  if (!baseQuiz) return null;
+  if (variantIndex === 0 || !baseQuiz.alternates) return baseQuiz;
+  if (variantIndex - 1 < baseQuiz.alternates.length) {
+    return baseQuiz.alternates[variantIndex - 1];
+  }
+  return baseQuiz;
 }
 
 const Quiz: React.FC<QuizProps> = ({ quizId, onQuizCompleted }) => {
@@ -54,26 +69,48 @@ const Quiz: React.FC<QuizProps> = ({ quizId, onQuizCompleted }) => {
 
   useEffect(() => {
     setIsClient(true);
-    const all = {
-      ...quizData.quizzes,
-    };
-    const fetchedQuizInfo = all[quizId as keyof typeof quizData.quizzes];
-    if (fetchedQuizInfo) {
-      setQuizInfo(fetchedQuizInfo);
-    }
+    setQuizInfo(getVariant(quizId, 0));
     loadSavedResponse();
   }, [quizId]);
 
   const loadSavedResponse = async () => {
     const savedResponse = await getQuizResponse(quizId);
     if (savedResponse) {
+      const ac = savedResponse.attemptCount ?? 0;
+      const lat = savedResponse.lastAttemptAt ?? 0;
+
+      // Auto-reset if 24hr cooldown has expired
+      if (ac >= MAX_ATTEMPTS && lat && Date.now() - lat >= COOLDOWN_MS) {
+        await saveQuizResponse(quizId, {
+          selectedAnswers: [],
+          isAnswerChecked: false,
+          isCorrect: false,
+          attemptCount: 0,
+          lastAttemptAt: 0,
+        });
+        resetQuizState();
+        setAttemptCount(0);
+        setLastAttemptAt(0);
+        setQuizInfo(getVariant(quizId, 0));
+        return;
+      }
+
       setSelectedAnswers(savedResponse.selectedAnswers || []);
       setIsAnswerChecked(savedResponse.isAnswerChecked || false);
       setIsCorrect(savedResponse.isCorrect || false);
-      setAttemptCount(savedResponse.attemptCount ?? 0);
-      setLastAttemptAt(savedResponse.lastAttemptAt ?? 0);
+      setAttemptCount(ac);
+      setLastAttemptAt(lat);
+
+      // Load the correct question variant
+      if (savedResponse.isAnswerChecked && !savedResponse.isCorrect) {
+        // Showing feedback for the variant that was just answered
+        setQuizInfo(getVariant(quizId, Math.max(0, ac - 1)));
+      } else {
+        setQuizInfo(getVariant(quizId, ac));
+      }
     } else {
       resetQuizState();
+      setQuizInfo(getVariant(quizId, 0));
     }
   };
 
@@ -131,6 +168,8 @@ const Quiz: React.FC<QuizProps> = ({ quizId, onQuizCompleted }) => {
 
     // Reset answer state but preserve attempt tracking
     resetQuizState();
+    // Load the next question variant based on attemptCount
+    setQuizInfo(getVariant(quizId, attemptCount));
     await saveQuizResponse(quizId, {
       selectedAnswers: [],
       isAnswerChecked: false,
@@ -142,7 +181,9 @@ const Quiz: React.FC<QuizProps> = ({ quizId, onQuizCompleted }) => {
 
   const formatCooldown = (ms: number): string => {
     const totalSeconds = Math.ceil(ms / 1000);
-    const minutes = Math.floor(totalSeconds / 60);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    if (hours > 0) return `${hours}h ${minutes}m`;
     const seconds = totalSeconds % 60;
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
@@ -210,9 +251,9 @@ const Quiz: React.FC<QuizProps> = ({ quizId, onQuizCompleted }) => {
           <h2 className="text-lg font-medium text-gray-800 dark:text-white" style={{marginTop: '0'}}>
             {parseTextWithLinks(quizInfo.question)}
           </h2>
-          {attemptCount > 0 && !isCorrect && (
+          {attemptCount > 0 && !isCorrect && !isLocked && (
             <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-              Attempt {Math.min(attemptCount + (isAnswerChecked ? 0 : 1), MAX_ATTEMPTS)}/{MAX_ATTEMPTS}
+              Attempt {isAnswerChecked ? attemptCount : attemptCount + 1} of {MAX_ATTEMPTS}
             </p>
           )}
         </div>
@@ -258,9 +299,14 @@ const Quiz: React.FC<QuizProps> = ({ quizId, onQuizCompleted }) => {
       </div>
       <div className="px-6 py-4 flex flex-col items-center gap-2">
         {isLocked ? (
-          <p className="text-sm text-red-600 dark:text-red-400 text-center">
-            Maximum attempts reached. Please review the course material and try again later.
-          </p>
+          <div className="text-center space-y-2">
+            <p className="text-sm text-red-600 dark:text-red-400">
+              This quiz is locked{isCoolingDown ? ` for ${formatCooldown(cooldownRemaining)}` : ''}.
+            </p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              In the meantime, you can continue working on other courses and quizzes across the Academy. Review the course material for this topic before trying again.
+            </p>
+          </div>
         ) : !isAnswerChecked ? (
           <button
             className={cn(
@@ -273,15 +319,24 @@ const Quiz: React.FC<QuizProps> = ({ quizId, onQuizCompleted }) => {
           </button>
         ) : (
           !isCorrect && (
-            <button
-              className={cn(
-                buttonVariants({ variant: 'secondary' }),
+            <div className="flex flex-col items-center gap-2">
+              {attemptCount === MAX_ATTEMPTS - 1 && (
+                <div className="p-3 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg mb-1">
+                  <p className="text-xs text-orange-700 dark:text-orange-300 text-center">
+                    <b>Warning:</b> This is your last attempt. If you answer incorrectly, this quiz will be locked for 24 hours.
+                  </p>
+                </div>
               )}
-              onClick={handleTryAgain}
-              disabled={isCoolingDown}
-            >
-              {isCoolingDown ? `Retry in ${formatCooldown(cooldownRemaining)}` : 'Try Again!'}
-            </button>
+              <button
+                className={cn(
+                  buttonVariants({ variant: 'secondary' }),
+                )}
+                onClick={handleTryAgain}
+                disabled={isCoolingDown}
+              >
+                {isCoolingDown ? `Retry in ${formatCooldown(cooldownRemaining)}` : 'Try Again'}
+              </button>
+            </div>
           )
         )}
       </div>
