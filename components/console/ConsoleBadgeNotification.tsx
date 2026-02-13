@@ -41,8 +41,11 @@ export function ConsoleBadgeNotification() {
         content={
           <div className="flex flex-col items-center justify-center">
             <h3 className="text-lg font-bold text-center">
-              Congratulations!
+              Console Badges have dropped!
             </h3>
+            <p className="text-sm dark:text-zinc-400 text-gray-500 text-center mt-1 mb-2">
+              We just launched console badges and your past activity has already earned you {pendingBadges.length === 1 ? "one" : "some"}!
+            </p>
 
             {pendingBadges.length === 1 ? (
               <div className="flex flex-col items-center px-2 py-2 w-[250px]">
@@ -52,9 +55,6 @@ export function ConsoleBadgeNotification() {
                   width={100}
                   height={100}
                 />
-                <p className="text-base dark:text-zinc-400 text-gray-500 text-center mt-2">
-                  You earned a new console badge!
-                </p>
                 <h3 className="text-base font-bold text-center mt-2">
                   {pendingBadges[0].name}
                 </h3>
@@ -64,9 +64,6 @@ export function ConsoleBadgeNotification() {
               </div>
             ) : (
               <div className="flex flex-col items-center">
-                <p className="text-base text-gray-500 text-center mb-4">
-                  {`You earned ${pendingBadges.length} new console badges!`}
-                </p>
                 <div className={`grid ${pendingBadges.length > 2 ? "grid-cols-3" : "grid-cols-2"} gap-4`}>
                   {pendingBadges.map((badge, index) => (
                     <div key={index} className="flex flex-col items-center px-2 py-2 gap-2 w-[200px]">
