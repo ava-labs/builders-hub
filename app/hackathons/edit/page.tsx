@@ -13,6 +13,8 @@ import { initialData, IDataMain, IDataContent, IDataLatest, ITrack, ISchedule, I
 import { LanguageButton } from './language-button';
 import HackathonPreview from '@/components/hackathons/HackathonPreview';
 import { EmailListInput } from '@/components/common/EmailListInput';
+import { useToast } from '@/hooks/use-toast';
+import { Toaster } from '@/components/ui/toaster';
 
 function toLocalDatetimeString(isoString: string) {
   if (!isoString) return '';
@@ -763,6 +765,7 @@ const HackathonsEdit = () => {
   });
   const [formDataLatest, setFormDataLatest] = useState<IDataLatest>(initialData.latest);
   const [cohostsEmails, setCohostsEmails] = useState<string[]>([]);
+  const { toast } = useToast();
 
   const getMyHackathons = async () => {
     setLoadingHackathons(true);
@@ -1303,6 +1306,11 @@ const HackathonsEdit = () => {
         });
         
         if (response.status === 200) {
+          toast({
+            title: 'Event created',
+            description: 'Your event has been created successfully.',
+            variant: 'success',
+          });
           setShowUpdateModal(true);
           setFieldsToUpdate([{
             key: 'success',
@@ -1316,9 +1324,21 @@ const HackathonsEdit = () => {
           setIsSelectedHackathon(false);
           setSelectedHackathon(null);
           await getMyHackathons();
+        } else {
+          const data = await response.json().catch(() => ({}));
+          toast({
+            title: 'Error creating event',
+            description: data?.error ?? 'Failed to create event. Please try again.',
+            variant: 'destructive',
+          });
         }
       } catch (error) {
         console.error('Error creating hackathon:', error);
+        toast({
+          title: 'Error creating event',
+          description: error instanceof Error ? error.message : 'An error occurred. Please try again.',
+          variant: 'destructive',
+        });
       } finally {
         setLoading(false);
       }
@@ -1337,6 +1357,12 @@ const HackathonsEdit = () => {
         });
         
        if (response.status === 200) {
+          toast({
+            title: 'Event updated',
+            description: 'Your event has been updated successfully.',
+            variant: 'success',
+          });
+          setShowUpdateModal(false);
           setFormDataMain(initialData.main);
           setFormDataContent(initialData.content);
           setFormDataLatest(initialData.latest);
@@ -1344,9 +1370,21 @@ const HackathonsEdit = () => {
           setIsSelectedHackathon(false);
           setSelectedHackathon(null);
           await getMyHackathons();
+        } else {
+          const data = await response.json().catch(() => ({}));
+          toast({
+            title: 'Error updating event',
+            description: data?.error ?? 'Failed to update event. Please try again.',
+            variant: 'destructive',
+          });
         }
       } catch (error) {
         console.error('Error updating hackathon:', error);
+        toast({
+          title: 'Error updating event',
+          description: error instanceof Error ? error.message : 'An error occurred. Please try again.',
+          variant: 'destructive',
+        });
       } finally {
         setLoading(false);
       }
@@ -1685,6 +1723,7 @@ const HackathonsEdit = () => {
 
   return (
     <div className="h-screen flex flex-col">
+      <Toaster />
       {/* Header */}
       <div className="bg-zinc-900 border-b border-zinc-700 p-4">
         <div className="container mx-auto flex justify-between items-center">
