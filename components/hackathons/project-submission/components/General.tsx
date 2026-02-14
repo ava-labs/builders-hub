@@ -199,7 +199,7 @@ export default function GeneralComponent({
         </p>
       </div>
 
-      <ProgressBar progress={progress} timeLeft={timeLeft} />
+      <ProgressBar progress={progress} />
 
       <div className='flex flex-col sm:flex-row mt-6 gap-4 sm:gap-4 sm:space-x-12'>
         {/* Sidebar for mobile */}
