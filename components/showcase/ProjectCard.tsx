@@ -78,8 +78,13 @@ export function ProjectCard({ project, isFromProfile = false }: Props) {
     );
     if (isInteractive) return;
 
-    router.push(`/showcase/${project.id}`);
-  }, [confirmOpen, isAssignBadgeOpen, router, project.id]);
+    // When clicked from profile, go to edit page; otherwise go to showcase view
+    if (isFromProfile) {
+      router.push(`/hackathons/project-submission?project=${project.id}`);
+    } else {
+      router.push(`/showcase/${project.id}`);
+    }
+  }, [confirmOpen, isAssignBadgeOpen, router, project.id, isFromProfile]);
   return (
     <Card
       className="h-[450px] w-full py-6 flex flex-col gap-4 rounded-xl bg-zinc-50 hover:bg-zinc-100 dark:bg-zinc-900 dark:hover:bg-zinc-800 border border-zinc-300 dark:border-none cursor-pointer"

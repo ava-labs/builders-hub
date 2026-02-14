@@ -36,6 +36,7 @@ export const getFilteredProjects = async (options: GetProjectOptions) => {
   const offset = (page - 1) * pageSize;
 
   let filters: any = {};
+
   if (options.event) {
     filters.hackaton_id = options.event;
   }

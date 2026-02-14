@@ -462,7 +462,7 @@ export const useSubmissionFormSecure = () => {
     }
   }, [state.hackathonId, session?.user?.id, toast]);
 
-  const saveProject = useCallback(async (data: SubmissionForm): Promise<boolean> => {
+  const saveProject = useCallback(async (data: SubmissionForm): Promise<{ success: boolean; projectId?: string }> => {
     try {
 
       if (!canSubmit) {
@@ -551,8 +551,8 @@ export const useSubmissionFormSecure = () => {
         ...(state.hackathonId && { hackaton_id: state.hackathonId }),
         user_id: session?.user?.id,
       };
-      const success = await actions.saveProject(finalData);
-      return success;
+      const result = await actions.saveProject(finalData);
+      return result;
     } catch (error: any) {
       console.error('Error in saveProject:', error);
       toast({
@@ -560,7 +560,7 @@ export const useSubmissionFormSecure = () => {
         description: error.message,
         variant: 'destructive',
       });
-      return false;
+      return { success: false };
     }
   }, [
     canSubmit,
@@ -577,47 +577,42 @@ export const useSubmissionFormSecure = () => {
   ]);
 
 
-  const handleSaveWithoutRoute = useCallback(async (): Promise<boolean> => {
+  const handleSaveWithoutRoute = useCallback(async (): Promise<{ success: boolean; projectId?: string }> => {
     try {
       const currentValues = form.getValues();
       const saveData = { ...currentValues, isDraft: true };
-      const success = await saveProject(saveData);
+      const result = await saveProject(saveData);
 
-      if (success) {
+      if (result.success) {
         toast({
           title: 'Project saved',
           description: 'Your project has been saved successfully.',
         });
       }
 
-      return success;
+      return result;
     } catch (error) {
       console.error('Error in handleSaveWithoutRoute:', error);
-      return false;
+      return { success: false };
     }
   }, [form, saveProject, toast]);
 
 
   const handleSave = useCallback(async (): Promise<void> => {
+    console.log('💾 handleSave called for Save & Continue Later');
     try {
-      const success = await handleSaveWithoutRoute();
+      const result = await handleSaveWithoutRoute();
+      console.log('💾 handleSave result:', result);
 
-      if (success) {
-        if (state.hackathonId) {
-          toast({
-            title: 'Redirecting...',
-            description: 'You will be redirected to the hackathon page.',
-          });
-          await new Promise((resolve) => setTimeout(resolve, 2000));
-          router.push(`/hackathons/${state.hackathonId}`);
-        } else {
-          toast({
-            title: 'Redirecting...',
-            description: 'You will be redirected to your profile.',
-          });
-          await new Promise((resolve) => setTimeout(resolve, 2000));
-          router.push('/profile#projects');
-        }
+      if (result.success && result.projectId) {
+        console.log('💾 handleSave redirecting to profile');
+        toast({
+          title: 'Project saved',
+          description: 'Your project has been saved. Redirecting to your profile...',
+        });
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        console.log('💾 handleSave executing redirect to: /profile#projects');
+        router.push('/profile#projects');
       }
       // If not successful, error message already shown by handleSaveWithoutRoute
     } catch (error) {
@@ -628,7 +623,7 @@ export const useSubmissionFormSecure = () => {
         variant: 'destructive',
       });
     }
-  }, [handleSaveWithoutRoute, toast, router, state.hackathonId]);
+  }, [handleSaveWithoutRoute, toast, router]);
 
 
   const setFormData = useCallback((project: any) => {

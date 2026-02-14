@@ -207,32 +207,36 @@ export default function GeneralSecureComponent({
     }
   };
 
-  const onSubmit = async (data: any) => {
+  const onSubmit = async (data: any, event?: React.BaseSyntheticEvent) => {
+    console.log('🚀 onSubmit called with data:', data);
+
+    // Explicitly prevent default form submission
+    if (event) {
+      event.preventDefault();
+      console.log('🛑 Prevented default form submission');
+    }
+
     try {
-      const success = await saveProject(data);
-      if (success) {
-        if (hackathonId) {
-          toast({
-            title: "Project submitted",
-            description:
-              "Your project has been successfully submitted. You will be redirected to the project showcase page.",
-          });
-          setTimeout(() => {
-            router.push(`/showcase/${projectId}`);
-          }, 3000);
-        } else {
-          toast({
-            title: "Project submitted",
-            description:
-              "Your project has been successfully submitted. You will be redirected to your profile.",
-          });
-          setTimeout(() => {
-            router.push('/profile#projects');
-          }, 3000);
-        }
+      console.log('📤 Calling saveProject...');
+      const result = await saveProject(data);
+      console.log('✅ Submit result:', result);
+      console.log('📍 hackathonId:', hackathonId);
+      console.log('📍 result.projectId:', result.projectId);
+
+      if (result.success) {
+        console.log('✅ Save was successful - redirecting to profile');
+        toast({
+          title: "Project submitted",
+          description:
+            "Your project has been successfully submitted. Redirecting to your profile...",
+        });
+        console.log('🎯 Executing redirect to: /profile#projects');
+        router.push('/profile#projects');
+      } else {
+        console.error('❌ Save failed, result.success is false');
       }
     } catch (error) {
-      console.error("Error submitting project:", error);
+      console.error("❌ Error submitting project:", error);
       toast({
         title: "Error",
         description:
@@ -363,7 +367,11 @@ export default function GeneralSecureComponent({
           <section className="w-full">
             <Form {...form}>
               <form
-                onSubmit={form.handleSubmit(onSubmit)}
+                onSubmit={(e) => {
+                  console.log('📝 Form onSubmit event triggered');
+                  e.preventDefault();
+                  form.handleSubmit(onSubmit)(e);
+                }}
                 className="space-y-4 sm:space-y-6"
               >
                 {step === 1 && (
@@ -372,7 +380,9 @@ export default function GeneralSecureComponent({
                     hackaton_id={hackathonId as string}
                     user_id={currentUser?.id}
                     onProjectCreated={getProject}
-                    onHandleSave={handleSaveWithoutRoute}
+                    onHandleSave={async () => {
+                      await handleSaveWithoutRoute();
+                    }}
                     availableTracks={hackathon?.content?.tracks ?? []}
                     openjoinTeamDialog={openJoinTeam}
                     openCurrentProject={openCurrentProject}
