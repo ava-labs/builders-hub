@@ -115,7 +115,7 @@ function CountdownTimer({ targetDate, onComplete }: { targetDate: string; onComp
 }
 
 export function CustomCountdownBanner() {
-  const deadlineDate = "2026-02-13T23:59:59-05:00";
+  const deadlineDate = "2026-02-19T23:59:59-05:00";
   const [deadlinePassed, setDeadlinePassed] = useState(false);
   useEffect(() => {
     const bannerKey = "nd-banner-build-games-banner";
