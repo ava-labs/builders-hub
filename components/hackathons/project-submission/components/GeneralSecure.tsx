@@ -386,6 +386,7 @@ export default function GeneralSecureComponent({
                       dispatch({ type: "SET_OPEN_JOIN_TEAM", payload: open })
                     }
                     currentEmail={currentUser?.email}
+                    currentUserName={currentUser?.name || undefined}
                     teamName={teamName}
                   />
                 )}

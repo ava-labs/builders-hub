@@ -315,6 +315,7 @@ export async function CheckInvitation(invitationId: string, user_id: string) {
       project_name:
         existingConfirmedProject?.project_name ?? member?.project?.project_name,
       confirmed_project_name: existingConfirmedProject?.project_name ?? "",
+      hackathon_id: member?.project?.hackaton_id ?? "",
     },
   };
 }
@@ -368,8 +369,9 @@ export async function GetProjectByHackathonAndUser(
   });
 
   if (!project) {
-    throw new ValidationError("project not found", []);
+    console.log(`No project found for hackathon ${hackaton_id} and user ${user_id} - valid for new project creation`);
   }
+
   return project;
 }
 

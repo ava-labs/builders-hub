@@ -47,6 +47,7 @@ export default function MembersComponent({
   onOpenChange,
   teamName,
   currentEmail,
+  currentUserName,
   openCurrentProject,
   setOpenCurrentProject,
 }: projectProps) {
@@ -224,7 +225,22 @@ export default function MembersComponent({
   };
 
   useEffect(() => {
-    if (!project_id) return;
+    if (!project_id) {
+      // For new projects, initialize with current user from session
+      if (currentEmail && members.length === 0) {
+        setMembers([
+          {
+            email: currentEmail,
+            user_id: user_id,
+            name: currentUserName || currentEmail,
+            role: "Member",
+            status: "Confirmed",
+          },
+        ]);
+      }
+      return;
+    }
+
     const fetchMembers = async () => {
       try {
         const response = await axios.get(`/api/project/${project_id}/members`);
@@ -235,7 +251,7 @@ export default function MembersComponent({
     };
 
     fetchMembers();
-  }, [project_id]);
+  }, [project_id, currentEmail, currentUserName, user_id]);
 
   return (
     <>
