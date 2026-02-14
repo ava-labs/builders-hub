@@ -131,7 +131,7 @@ export default function GeneralSecureComponent({
           const hasOtherSelected = categories.includes("Other (Specify)");
           if (hasOtherSelected) {
             const otherCategory = formValues.other_category as string || "";
-            if (otherCategory.trim().length >= 2) {
+            if (otherCategory.trim().length >= 1) {
               // Todo está completo: categories + other_category
               completedFields++;
             }
