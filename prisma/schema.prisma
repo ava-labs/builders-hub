@@ -29,6 +29,7 @@ model Hackathon {
   is_public       Boolean?
   updated_by      String?
   event           String?        @default("hackathon")
+  new_layout      Boolean?       @default(false)
   google_calendar_id String?  
   created_by_user User?          @relation(fields: [created_by], references: [id])
   updated_by_user User?          @relation("HackathonUpdatedBy", fields: [updated_by], references: [id])

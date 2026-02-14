@@ -14,19 +14,19 @@ import JoinButton from "@/components/hackathons/hackathon/JoinButton";
 import JoinBannerLink from "@/components/hackathons/hackathon/JoinBannerLink";
 import type { HackathonHeader } from "@/types/hackathons";
 
-interface HackathonEventLayoutProps {
+interface LegacyEventLayoutProps {
   hackathon: HackathonHeader;
   id: string;
   isRegistered: boolean;
   utm: string;
 }
 
-export default function HackathonEventLayout({
+export default function LegacyEventLayout({
   hackathon,
   id,
   isRegistered,
   utm,
-}: HackathonEventLayoutProps) {
+}: LegacyEventLayoutProps) {
   const hasAbout = Boolean(hackathon.content.tracks_text);
   const hasTracks =
     Array.isArray(hackathon.content.tracks) &&
@@ -45,13 +45,14 @@ export default function HackathonEventLayout({
     Array.isArray(hackathon.content.partners) &&
     hackathon.content.partners.length > 0;
 
+  const isHackathon = (hackathon.event || "hackathon") === "hackathon";
+
   const menuItems = [
     ...(hasAbout ? [{ name: "About", ref: "about" }] : []),
-    ...(hasTracks ? [{ name: "Prizes & Tracks", ref: "tracks" }] : []),
+    ...(isHackathon && hasTracks ? [{ name: "Prizes & Tracks", ref: "tracks" }] : []),
     ...(hasResources ? [{ name: "Resources", ref: "resources" }] : []),
     ...(hasSchedule ? [{ name: "Schedule", ref: "schedule" }] : []),
-    // Submission is always present since it has built‑in copy and logic
-    { name: "Submission", ref: "submission" },
+    ...(isHackathon ? [{ name: "Submission", ref: "submission" }] : []),
     ...(hasSpeakers ? [{ name: "Mentors & Judges", ref: "speakers" }] : []),
     ...(hasPartners ? [{ name: "Partners", ref: "sponsors" }] : []),
   ];
@@ -109,7 +110,7 @@ export default function HackathonEventLayout({
           </div>
           <div className="py-8 sm:p-8 flex flex-col gap-20">
             {hasAbout && <About hackathon={hackathon} />}
-            {hasTracks && <Tracks hackathon={hackathon} />}
+            {isHackathon && hasTracks && <Tracks hackathon={hackathon} />}
             {hasResources && <Resources hackathon={hackathon} />}
             {hasSchedule && (
               <Schedule
@@ -124,7 +125,7 @@ export default function HackathonEventLayout({
                 }
               />
             )}
-            <Submission hackathon={hackathon} />
+            {isHackathon && <Submission hackathon={hackathon} />}
             {hasSpeakers && <MentorsJudges hackathon={hackathon} />}
             <Community hackathon={hackathon} />
             {hasPartners && <Sponsors hackathon={hackathon} />}

@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { Plus, Trash, ChevronDown, ChevronRight, ExternalLink } from 'lucide-react';
 import { t } from './translations';
 import { useSession, SessionProvider } from "next-auth/react";
@@ -854,6 +855,7 @@ const HackathonsEdit = () => {
       custom_link: hackathon.custom_link ?? null,
       top_most: hackathon.top_most ?? false,
       event: hackathon.event ?? 'hackathon',
+      new_layout: hackathon.new_layout ?? false,
       google_calendar_id: hackathon.google_calendar_id ?? null,
     });
     setCohostsEmails(hackathon.cohosts ?? []);
@@ -1534,7 +1536,8 @@ const HackathonsEdit = () => {
       event: "hackathon",
       custom_link: null,
       top_most: false,
-      google_calendar_id: null
+      google_calendar_id: null,
+      new_layout: false,
     });
 
     setFormDataContent({
@@ -1842,6 +1845,22 @@ const HackathonsEdit = () => {
                 <SelectItem value="bootcamp">Bootcamp</SelectItem>
               </SelectContent>
             </Select>
+            <div className="flex items-center gap-3 mt-4">
+              <Switch
+                id="new-layout"
+                checked={formDataLatest.new_layout}
+                onCheckedChange={(checked) => {
+                  setFormDataLatest(prev => ({ ...prev, new_layout: checked }));
+                }}
+                className="cursor-pointer"
+              />
+              <label htmlFor="new-layout" className="text-sm font-medium cursor-pointer">
+                Use new layout (modern event page)
+              </label>
+            </div>
+            <p className="text-zinc-400 text-sm mt-2">
+              Toggle on for the modern layout (workshop-style), off for the legacy hackathon layout.
+            </p>
           </div>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">

@@ -76,6 +76,7 @@ export interface IDataMain {
     custom_link: string | null;
     top_most: boolean;
     event: string;
+    new_layout: boolean;
     google_calendar_id: string | null;
   }
   
@@ -144,6 +145,7 @@ export interface IDataMain {
           custom_link: null,
           top_most: false,
           event: 'hackathon',
+          new_layout: false,
           google_calendar_id: null,
       }
   }

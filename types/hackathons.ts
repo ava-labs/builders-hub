@@ -25,6 +25,8 @@ export type HackathonHeader = {
   updated_by_name?: string
   is_public: boolean
   event?: string
+  /** When true, use modern event layout; when false, use legacy layout. Null/undefined falls back to event type. */
+  new_layout?: boolean | null
   /** Google Calendar ID for schedule integration - if set, uses Google Calendar API instead of DB */
   google_calendar_id?: string | null
 }
