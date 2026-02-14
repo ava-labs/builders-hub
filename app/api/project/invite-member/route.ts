@@ -30,7 +30,8 @@ export const POST = withAuth(async (request, context, session) => {
       body.hackathon_id,
       session.user.id, // Use session user ID
       session.user.name,
-      body.emails
+      body.emails,
+      body.project_id // Pass project_id if it exists
     );
     return NextResponse.json(
       { message: "invitation sent", result },
