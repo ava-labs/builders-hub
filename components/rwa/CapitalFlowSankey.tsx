@@ -65,10 +65,18 @@ function EntityNode({
 }) {
   return (
     <div
-      className="rounded-lg border px-4 py-3 text-center min-w-[100px]"
+      className="rounded-lg border px-4 py-3 text-center min-w-[100px] transition-all duration-200 hover:scale-[1.03] hover:shadow-sm"
       style={{
         backgroundColor: `${accentColor}1a`,
         borderColor: `${accentColor}33`,
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.backgroundColor = `${accentColor}30`
+        e.currentTarget.style.borderColor = `${accentColor}55`
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.backgroundColor = `${accentColor}1a`
+        e.currentTarget.style.borderColor = `${accentColor}33`
       }}
     >
       <div className="text-sm font-semibold">{name}</div>
@@ -85,26 +93,27 @@ function FlowConnector({
   label: string
 }) {
   return (
-    <div className="flex-1 flex flex-col items-center gap-1 min-w-[80px]">
+    <div
+      className="group/flow flex-1 flex flex-col items-center gap-1 min-w-[80px]"
+    >
       <AmountWithTooltip
         value={value}
         className="text-sm font-semibold cursor-default"
       />
       <div className="w-full flex items-center">
         <div
-          className="flex-1 h-[2px] motion-safe:animate-[flow_1.5s_linear_infinite]"
+          className="flex-1 h-[2px] motion-safe:animate-[flow_1.5s_linear_infinite] transition-opacity duration-200 opacity-30 group-hover/flow:opacity-70"
           style={{
             backgroundImage: 'repeating-linear-gradient(90deg, currentColor 0px, currentColor 6px, transparent 6px, transparent 12px)',
             backgroundSize: '24px 2px',
             color: 'var(--muted-foreground)',
-            opacity: 0.3,
           }}
         />
         <svg
           width="12"
           height="12"
           viewBox="0 0 12 12"
-          className="text-muted-foreground/50 flex-shrink-0"
+          className="text-muted-foreground/50 flex-shrink-0 transition-opacity duration-200 group-hover/flow:text-muted-foreground"
         >
           <path d="M0 6 L8 6 M5 3 L8 6 L5 9" stroke="currentColor" strokeWidth="1.5" fill="none" />
         </svg>
@@ -122,26 +131,25 @@ function VerticalFlowConnector({
   label: string
 }) {
   return (
-    <div className="flex flex-col items-center gap-1 py-2">
+    <div className="group/vflow flex flex-col items-center gap-1 py-2">
       <AmountWithTooltip
         value={value}
         className="text-sm font-semibold cursor-default"
       />
       <div className="h-6 flex flex-col items-center">
         <div
-          className="flex-1 w-[2px] motion-safe:animate-[flowVertical_1.5s_linear_infinite]"
+          className="flex-1 w-[2px] motion-safe:animate-[flowVertical_1.5s_linear_infinite] transition-opacity duration-200 opacity-30 group-hover/vflow:opacity-70"
           style={{
             backgroundImage: 'repeating-linear-gradient(180deg, currentColor 0px, currentColor 6px, transparent 6px, transparent 12px)',
             backgroundSize: '2px 24px',
             color: 'var(--muted-foreground)',
-            opacity: 0.3,
           }}
         />
         <svg
           width="12"
           height="12"
           viewBox="0 0 12 12"
-          className="text-muted-foreground/50 flex-shrink-0"
+          className="text-muted-foreground/50 flex-shrink-0 transition-opacity duration-200 group-hover/vflow:text-muted-foreground"
         >
           <path d="M6 0 L6 8 M3 5 L6 8 L9 5" stroke="currentColor" strokeWidth="1.5" fill="none" />
         </svg>

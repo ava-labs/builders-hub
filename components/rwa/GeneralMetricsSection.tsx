@@ -267,7 +267,7 @@ export function GeneralMetricsSection({
               icon={config.icon}
               tooltip={config.tooltip}
               isLoading={isLoading}
-              trend={trends?.[config.key]}
+              trend={config.key === 'committedCapital' ? undefined : trends?.[config.key]}
               breakdown={config.key === 'committedCapital' ? breakdownItems : undefined}
             />
           </div>
@@ -284,7 +284,7 @@ export function GeneralMetricsSection({
             icon={config.icon}
             tooltip={config.tooltip}
             isLoading={isLoading}
-            trend={trends?.[config.key]}
+            trend={config.key === 'committedCapital' ? undefined : trends?.[config.key]}
             breakdown={config.key === 'committedCapital' ? breakdownItems : undefined}
           />
         ))}
