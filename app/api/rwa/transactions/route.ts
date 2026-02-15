@@ -13,6 +13,8 @@ const querySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(20),
   direction: z.enum(['inbound', 'outbound', 'internal', 'all']).default('all'),
+  sortField: z.enum(['date', 'amount']).default('date'),
+  sortDirection: z.enum(['asc', 'desc']).default('desc'),
 })
 
 const ADDRESS_LABELS: Record<string, string> = {
@@ -71,6 +73,8 @@ export async function GET(request: Request) {
       page: searchParams.get('page') ?? '1',
       pageSize: searchParams.get('pageSize') ?? '20',
       direction: searchParams.get('direction') ?? 'all',
+      sortField: searchParams.get('sortField') ?? 'date',
+      sortDirection: searchParams.get('sortDirection') ?? 'desc',
     }
 
     const params = querySchema.parse(rawParams)
@@ -87,9 +91,15 @@ export async function GET(request: Request) {
       }
     }
 
-    allRecords.sort(
-      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-    )
+    allRecords.sort((a, b) => {
+      const multiplier = params.sortDirection === 'asc' ? 1 : -1
+      if (params.sortField === 'date') {
+        return multiplier * (new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+      }
+      if (a.amount < b.amount) return -1 * multiplier
+      if (a.amount > b.amount) return 1 * multiplier
+      return 0
+    })
 
     const filtered = params.direction === 'all'
       ? allRecords
