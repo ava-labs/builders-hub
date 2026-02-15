@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { fetchWithRetry } from '../fetchWithRetry'
 import type { HistoricalData, TimeInterval, DateRange } from '../types'
 
 async function fetchHistorical(
@@ -15,11 +16,7 @@ async function fetchHistorical(
     params.set('endDate', dateRange.to.toISOString())
   }
 
-  const response = await fetch(`/api/rwa/historical?${params.toString()}`)
-  if (!response.ok) {
-    throw new Error(`Failed to fetch historical data: ${response.status}`)
-  }
-
+  const response = await fetchWithRetry(`/api/rwa/historical?${params.toString()}`)
   return response.json()
 }
 

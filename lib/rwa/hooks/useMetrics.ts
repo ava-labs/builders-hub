@@ -2,15 +2,12 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { parseBigints, BIGINT_METRIC_KEYS } from '../utils'
+import { fetchWithRetry } from '../fetchWithRetry'
 import type { AllMetrics } from '../types'
 
 async function fetchMetrics(forceRefresh = false): Promise<AllMetrics> {
   const url = forceRefresh ? '/api/rwa/metrics?refresh=true' : '/api/rwa/metrics'
-  const response = await fetch(url)
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch metrics: ${response.status}`)
-  }
+  const response = await fetchWithRetry(url)
 
   const data = await response.json()
   return parseBigints(data, BIGINT_METRIC_KEYS) as AllMetrics
