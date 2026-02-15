@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useCallback, useMemo } from 'react'
-import type { TimeSeriesDataPoint } from '../types'
 
 interface ZoomState {
   left: string | null
@@ -14,9 +13,9 @@ type ChartMouseEvent = {
   activeLabel?: string | number | undefined
 }
 
-interface UseChartZoomResult {
+interface UseChartZoomResult<T extends { date: string }> {
   zoomState: ZoomState
-  zoomedData: TimeSeriesDataPoint[]
+  zoomedData: T[]
   isZoomed: boolean
   handleMouseDown: (e: ChartMouseEvent) => void
   handleMouseMove: (e: ChartMouseEvent) => void
@@ -31,7 +30,7 @@ const initialZoomState: ZoomState = {
   refAreaRight: null,
 }
 
-export function useChartZoom(data: TimeSeriesDataPoint[]): UseChartZoomResult {
+export function useChartZoom<T extends { date: string }>(data: T[]): UseChartZoomResult<T> {
   const [zoomState, setZoomState] = useState<ZoomState>(initialZoomState)
 
   const isZoomed = zoomState.left !== null && zoomState.right !== null

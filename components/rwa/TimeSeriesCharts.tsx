@@ -30,7 +30,6 @@ import { useChartZoom } from '@/lib/rwa/hooks/useChartZoom'
 import { toCumulative } from '@/lib/rwa/calculations/aggregations'
 import { usePalette } from '@/lib/rwa/hooks/usePalette'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -271,8 +270,12 @@ function SingleChart({
           <ChartTypeSelector value={chartType} onChange={setChartType} />
         </CardHeader>
         <CardContent>
-          <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-            No data available for this metric
+          <div className="h-[300px] flex flex-col items-center justify-center gap-3 text-muted-foreground">
+            <BarChart3 className="h-10 w-10 opacity-40" />
+            <div className="text-center">
+              <p className="text-sm font-medium">No data available yet</p>
+              <p className="text-xs mt-1 opacity-70">Data will appear here once activity is recorded for this period</p>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -325,6 +328,7 @@ function SingleChart({
               <XAxis dataKey="date" tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }} />
               <YAxis tickFormatter={formatFn} tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }} />
               <Tooltip content={<CustomTooltip formatter={formatFn} />} />
+              <Legend />
               {!isZoomed && <Brush dataKey="date" height={30} stroke={color} />}
               <Area
                 type="monotone"
@@ -344,6 +348,7 @@ function SingleChart({
               <XAxis dataKey="date" tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }} />
               <YAxis tickFormatter={formatFn} tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }} />
               <Tooltip content={<CustomTooltip formatter={formatFn} />} />
+              <Legend />
               {!isZoomed && <Brush dataKey="date" height={30} stroke={color} />}
               <Bar dataKey="value" fill={color} name={title} />
               {refLine}
@@ -355,6 +360,7 @@ function SingleChart({
               <XAxis dataKey="date" tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }} />
               <YAxis tickFormatter={formatFn} tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }} />
               <Tooltip content={<CustomTooltip formatter={formatFn} />} />
+              <Legend />
               {!isZoomed && <Brush dataKey="date" height={30} stroke={color} />}
               <Line
                 type="monotone"
@@ -473,13 +479,27 @@ function StackedComparisonChart({
           </div>
         </CardHeader>
         <CardContent>
-          <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-            No financing or repayment data available
+          <div className="h-[300px] flex flex-col items-center justify-center gap-3 text-muted-foreground">
+            <BarChart3 className="h-10 w-10 opacity-40" />
+            <div className="text-center">
+              <p className="text-sm font-medium">No data available yet</p>
+              <p className="text-xs mt-1 opacity-70">Financing and repayment data will appear here once recorded</p>
+            </div>
           </div>
         </CardContent>
       </Card>
     )
   }
+
+  const {
+    zoomState: combinedZoomState,
+    zoomedData: combinedZoomedData,
+    isZoomed: combinedIsZoomed,
+    handleMouseDown: combinedHandleMouseDown,
+    handleMouseMove: combinedHandleMouseMove,
+    handleMouseUp: combinedHandleMouseUp,
+    resetZoom: combinedResetZoom,
+  } = useChartZoom(combinedData)
 
   if (viewMode === 'separated') {
     return (
@@ -519,16 +539,17 @@ function StackedComparisonChart({
           {toggleButton}
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="relative">
+        <ChartControls isZoomed={combinedIsZoomed} onResetZoom={combinedResetZoom} />
         <ResponsiveContainer width="100%" height={300}>
           {combinedChartType === 'bar' ? (
-            <BarChart data={combinedData} syncId="rwa-dashboard">
+            <BarChart data={combinedZoomedData} syncId="rwa-dashboard" onMouseDown={combinedHandleMouseDown} onMouseMove={combinedHandleMouseMove} onMouseUp={combinedHandleMouseUp}>
               <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
               <XAxis dataKey="date" tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }} />
               <YAxis tickFormatter={formatCurrency} tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }} />
               <Tooltip content={<CustomTooltip />} />
               <Legend />
-              <Brush dataKey="date" height={30} stroke={colors.assetsFinanced} />
+              {!combinedIsZoomed && <Brush dataKey="date" height={30} stroke={colors.assetsFinanced} />}
               <Bar
                 dataKey="assetsFinanced"
                 fill={colors.assetsFinanced}
@@ -539,15 +560,24 @@ function StackedComparisonChart({
                 fill={colors.lenderRepayments}
                 name="Lender Repayments"
               />
+              {combinedZoomState.refAreaLeft && combinedZoomState.refAreaRight && (
+                <ReferenceArea
+                  x1={combinedZoomState.refAreaLeft}
+                  x2={combinedZoomState.refAreaRight}
+                  strokeOpacity={0.3}
+                  fill={colors.assetsFinanced}
+                  fillOpacity={0.3}
+                />
+              )}
             </BarChart>
           ) : combinedChartType === 'line' ? (
-            <LineChart data={combinedData} syncId="rwa-dashboard">
+            <LineChart data={combinedZoomedData} syncId="rwa-dashboard" onMouseDown={combinedHandleMouseDown} onMouseMove={combinedHandleMouseMove} onMouseUp={combinedHandleMouseUp}>
               <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
               <XAxis dataKey="date" tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }} />
               <YAxis tickFormatter={formatCurrency} tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }} />
               <Tooltip content={<CustomTooltip />} />
               <Legend />
-              <Brush dataKey="date" height={30} stroke={colors.assetsFinanced} />
+              {!combinedIsZoomed && <Brush dataKey="date" height={30} stroke={colors.assetsFinanced} />}
               <Line
                 type="monotone"
                 dataKey="assetsFinanced"
@@ -564,15 +594,24 @@ function StackedComparisonChart({
                 dot={false}
                 name="Lender Repayments"
               />
+              {combinedZoomState.refAreaLeft && combinedZoomState.refAreaRight && (
+                <ReferenceArea
+                  x1={combinedZoomState.refAreaLeft}
+                  x2={combinedZoomState.refAreaRight}
+                  strokeOpacity={0.3}
+                  fill={colors.assetsFinanced}
+                  fillOpacity={0.3}
+                />
+              )}
             </LineChart>
           ) : (
-            <AreaChart data={combinedData} syncId="rwa-dashboard">
+            <AreaChart data={combinedZoomedData} syncId="rwa-dashboard" onMouseDown={combinedHandleMouseDown} onMouseMove={combinedHandleMouseMove} onMouseUp={combinedHandleMouseUp}>
               <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
               <XAxis dataKey="date" tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }} />
               <YAxis tickFormatter={formatCurrency} tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }} />
               <Tooltip content={<CustomTooltip />} />
               <Legend />
-              <Brush dataKey="date" height={30} stroke={colors.assetsFinanced} />
+              {!combinedIsZoomed && <Brush dataKey="date" height={30} stroke={colors.assetsFinanced} />}
               <Area
                 type="monotone"
                 dataKey="assetsFinanced"
@@ -591,6 +630,15 @@ function StackedComparisonChart({
                 strokeWidth={2}
                 name="Lender Repayments"
               />
+              {combinedZoomState.refAreaLeft && combinedZoomState.refAreaRight && (
+                <ReferenceArea
+                  x1={combinedZoomState.refAreaLeft}
+                  x2={combinedZoomState.refAreaRight}
+                  strokeOpacity={0.3}
+                  fill={colors.assetsFinanced}
+                  fillOpacity={0.3}
+                />
+              )}
             </AreaChart>
           )}
         </ResponsiveContainer>
@@ -607,9 +655,6 @@ export function TimeSeriesCharts({
   hideHeader = false,
 }: TimeSeriesChartsProps) {
   const COLORS = useChartColors()
-  const handleIntervalChange = (value: string) => {
-    onIntervalChange(value as TimeInterval)
-  }
 
   if (isLoading) {
     return (
@@ -617,11 +662,6 @@ export function TimeSeriesCharts({
         {!hideHeader && (
           <div className="flex items-center justify-between">
             <Skeleton className="h-6 w-32" />
-            <Skeleton className="h-9 w-48" />
-          </div>
-        )}
-        {hideHeader && (
-          <div className="flex justify-end">
             <Skeleton className="h-9 w-48" />
           </div>
         )}
@@ -654,28 +694,6 @@ export function TimeSeriesCharts({
       {!hideHeader && (
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold">Historical Trends</h2>
-          <div data-export-hidden>
-            <Tabs value={interval} onValueChange={handleIntervalChange}>
-              <TabsList>
-                <TabsTrigger value="daily">Daily</TabsTrigger>
-                <TabsTrigger value="weekly">Weekly</TabsTrigger>
-                <TabsTrigger value="monthly">Monthly</TabsTrigger>
-              </TabsList>
-            </Tabs>
-          </div>
-        </div>
-      )}
-      {hideHeader && (
-        <div className="flex justify-end">
-          <div data-export-hidden>
-            <Tabs value={interval} onValueChange={handleIntervalChange}>
-              <TabsList>
-                <TabsTrigger value="daily">Daily</TabsTrigger>
-                <TabsTrigger value="weekly">Weekly</TabsTrigger>
-                <TabsTrigger value="monthly">Monthly</TabsTrigger>
-              </TabsList>
-            </Tabs>
-          </div>
         </div>
       )}
 
