@@ -19,7 +19,7 @@ function buildChartColors(palette: RWAPalette) {
     assetsFinanced: palette.shades[700],
     lenderRepayments: palette.shades[400],
     capitalUtilization: palette.shades[400],
-    netCapitalPosition: palette.shades[900],
+    netCapitalPosition: palette.shades[800],
     lenderValinor: palette.shades[700],
     lenderAvalanche: palette.shades[400],
   }
@@ -40,7 +40,7 @@ function isValidTrendPeriod(v: string | null): v is TrendPeriod {
 }
 
 export function usePaletteProvider() {
-  const [palette, setPaletteState] = useState<RWAPalette>(PALETTE_PRESETS[0])
+  const [palette, setPaletteState] = useState<RWAPalette>(PALETTE_PRESETS[2])
   const [trendPeriod, setTrendPeriodState] = useState<TrendPeriod>('30d')
 
   useEffect(() => {
@@ -71,6 +71,7 @@ export function usePaletteProvider() {
     () =>
       ({
         '--rwa-accent-900': palette.shades[900],
+        '--rwa-accent-800': palette.shades[800],
         '--rwa-accent-700': palette.shades[700],
         '--rwa-accent-600': palette.shades[600],
         '--rwa-accent-500': palette.shades[500],
