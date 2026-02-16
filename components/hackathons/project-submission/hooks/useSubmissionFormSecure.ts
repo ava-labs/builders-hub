@@ -12,41 +12,63 @@ import { useRouter } from 'next/navigation';
 const BaseFormSchema = z.object({
   project_name: z
     .string()
-    .min(2, { message: 'Project Name must be at least 2 characters' })
+    .min(1, { message: 'Project Name is required' })
     .max(60, { message: 'Max 60 characters allowed' }),
   short_description: z
     .string()
-    .min(30, { message: 'Short description must be at least 30 characters' })
-    .max(280, { message: 'Max 280 characters allowed' }),
+    .max(280, { message: 'Max 280 characters allowed' })
+    .optional()
+    .or(z.literal('')),
   full_description: z
     .string()
-    .min(30, { message: 'Full description must be at least 30 characters' }),
+    .optional()
+    .or(z.literal('')),
   tech_stack: z
     .string()
-    .min(30, { message: 'Tech stack must be at least 30 characters' }),
+    .optional()
+    .or(z.literal('')),
   github_repository: z.preprocess(
     (val) => {
       if (!val) return [];
       if (typeof val === 'string') return [];
-      return val;
+      if (!Array.isArray(val)) return val;
+
+      // Auto-format links by prepending https:// if needed
+      return val.map((link: any) => {
+        if (typeof link !== 'string') return link;
+        const trimmedLink = link.trim();
+        if (!trimmedLink) return trimmedLink;
+
+        // If it doesn't start with http:// or https://, prepend https://
+        if (!trimmedLink.startsWith('http://') && !trimmedLink.startsWith('https://')) {
+          return `https://${trimmedLink}`;
+        }
+        return trimmedLink;
+      });
     },
     z.array(z.string().min(1, { message: 'Repository link is required' }))
-      .min(1, { message: 'At least one link is required' })
+      .optional()
+      .default([])
       .refine((links) => new Set(links).size === links.length, {
         message: 'Duplicate repository links are not allowed',
       })
       .superRefine((links, ctx) => {
+        // After preprocessing, all links should have http/https
         const invalidLinks = links.filter((link) => {
-          if (link.startsWith('http')) {
-            try { new URL(link); return false; } catch { return true; }
+          if (!link || link.trim().length === 0) return true;
+
+          try {
+            new URL(link);
+            return false; // Valid URL
+          } catch {
+            return true; // Invalid URL
           }
-          return link.trim().length === 0;
         });
 
         if (invalidLinks.length > 0) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
-            message: 'Please enter valid links (URLs or other formats)',
+            message: 'Please enter valid repository links',
             path: [],
           });
         }
@@ -57,13 +79,27 @@ const BaseFormSchema = z.object({
     (val) => {
       if (!val) return [];
       if (typeof val === 'string') return [];
-      return val;
+      if (!Array.isArray(val)) return val;
+
+      // Auto-format links by prepending https:// if needed
+      return val.map((link: any) => {
+        if (typeof link !== 'string') return link;
+        const trimmedLink = link.trim();
+        if (!trimmedLink) return trimmedLink;
+
+        // If it doesn't start with http:// or https://, prepend https://
+        if (!trimmedLink.startsWith('http://') && !trimmedLink.startsWith('https://')) {
+          return `https://${trimmedLink}`;
+        }
+        return trimmedLink;
+      });
     },
     z.array(
       z.string()
         .min(1, { message: 'Demo link cannot be empty' })
     )
-      .min(1, { message: 'At least one demo link is required' })
+      .optional()
+      .default([])
       .refine(
         (links) => {
           const uniqueLinks = new Set(links);
@@ -74,6 +110,8 @@ const BaseFormSchema = z.object({
       .refine(
         (links) => {
           return links.every(url => {
+            if (!url || url.trim().length === 0) return true;
+
             try {
               new URL(url);
               return true;
@@ -166,7 +204,7 @@ export const Step1Schema = BaseFormSchema.pick({
   
   // Validación para other_category si se selecciona "Other (Specify)"
   if (data.categories && data.categories.includes('Other (Specify)')) {
-    if (!data.other_category || data.other_category.trim().length < 2) {
+    if (!data.other_category || data.other_category.trim().length < 1) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: 'Please specify the other category',
@@ -185,7 +223,7 @@ export const Step2Schema = BaseFormSchema.pick({
 }).refine(
   (data) => {
     if (data.is_preexisting_idea) {
-      return data.explanation && data.explanation.length >= 2;
+      return data.explanation && data.explanation.length >= 1;
     }
     return true;
   },
@@ -200,7 +238,7 @@ export const FormSchema = BaseFormSchema
   .refine(
     (data) => {
       if (data.is_preexisting_idea) {
-        return data.explanation && data.explanation.length >= 2;
+        return data.explanation && data.explanation.length >= 1;
       }
       return true;
     },
@@ -226,7 +264,7 @@ export const FormSchema = BaseFormSchema
     (data) => {
       // Si se selecciona "Other (Specify)", other_category es requerido
       if (data.categories && data.categories.includes('Other (Specify)')) {
-        return data.other_category && data.other_category.trim().length >= 2;
+        return data.other_category && data.other_category.trim().length >= 1;
       }
       return true;
     },
@@ -424,7 +462,7 @@ export const useSubmissionFormSecure = () => {
     }
   }, [state.hackathonId, session?.user?.id, toast]);
 
-  const saveProject = useCallback(async (data: SubmissionForm): Promise<boolean> => {
+  const saveProject = useCallback(async (data: SubmissionForm): Promise<{ success: boolean; projectId?: string }> => {
     try {
 
       if (!canSubmit) {
@@ -513,8 +551,8 @@ export const useSubmissionFormSecure = () => {
         ...(state.hackathonId && { hackaton_id: state.hackathonId }),
         user_id: session?.user?.id,
       };
-      const success = await actions.saveProject(finalData);
-      return success;
+      const result = await actions.saveProject(finalData);
+      return result;
     } catch (error: any) {
       console.error('Error in saveProject:', error);
       toast({
@@ -522,7 +560,7 @@ export const useSubmissionFormSecure = () => {
         description: error.message,
         variant: 'destructive',
       });
-      return false;
+      return { success: false };
     }
   }, [
     canSubmit,
@@ -539,47 +577,44 @@ export const useSubmissionFormSecure = () => {
   ]);
 
 
-  const handleSaveWithoutRoute = useCallback(async (): Promise<void> => {
+  const handleSaveWithoutRoute = useCallback(async (): Promise<{ success: boolean; projectId?: string }> => {
     try {
       const currentValues = form.getValues();
       const saveData = { ...currentValues, isDraft: true };
-      await saveProject(saveData);
+      const result = await saveProject(saveData);
 
-      toast({
-        title: 'Project saved',
-        description: 'Your project has been saved successfully.',
-      });
-      
-      // Redirect to profile projects section if no hackathon
-      if (!state.hackathonId) {
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-        router.push('/profile#projects');
+      if (result.success) {
+        toast({
+          title: 'Project saved',
+          description: 'Your project has been saved successfully.',
+        });
       }
+
+      return result;
     } catch (error) {
       console.error('Error in handleSaveWithoutRoute:', error);
-      throw error;
+      return { success: false };
     }
-  }, [form, saveProject, toast, router, state.hackathonId]);
+  }, [form, saveProject, toast]);
 
 
   const handleSave = useCallback(async (): Promise<void> => {
+    console.log('💾 handleSave called for Save & Continue Later');
     try {
-      await handleSaveWithoutRoute();
-      if (state.hackathonId) {
+      const result = await handleSaveWithoutRoute();
+      console.log('💾 handleSave result:', result);
+
+      if (result.success && result.projectId) {
+        console.log('💾 handleSave redirecting to profile');
         toast({
           title: 'Project saved',
-          description: 'Your project has been successfully saved. You will be redirected to the hackathon page.',
+          description: 'Your project has been saved. Redirecting to your profile...',
         });
-        await new Promise((resolve) => setTimeout(resolve, 3000));
-        router.push(`/hackathons/${state.hackathonId}`);
-      } else {
-        toast({
-          title: 'Project saved',
-          description: 'Your project has been successfully saved. You will be redirected to your profile.',
-        });
-        await new Promise((resolve) => setTimeout(resolve, 3000));
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        console.log('💾 handleSave executing redirect to: /profile#projects');
         router.push('/profile#projects');
       }
+      // If not successful, error message already shown by handleSaveWithoutRoute
     } catch (error) {
       console.error('Error in handleSave:', error);
       toast({
@@ -588,7 +623,7 @@ export const useSubmissionFormSecure = () => {
         variant: 'destructive',
       });
     }
-  }, [handleSaveWithoutRoute, toast, router, state.hackathonId]);
+  }, [handleSaveWithoutRoute, toast, router]);
 
 
   const setFormData = useCallback((project: any) => {
