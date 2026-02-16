@@ -11,73 +11,43 @@ export default async function ProjectPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  console.log('📍 [START] Showcase [id] page component started');
-
   const { id } = await params;
-  console.log('📍 Project ID from params:', id);
-  console.log('📍 Project ID type:', typeof id);
 
   // Require authentication
-  console.log('📍 Getting server session...');
   const session = await getAuthSession();
 
-  console.log('📍 Session exists?', !!session);
-  console.log('📍 Session object:', JSON.stringify(session, null, 2));
-  console.log('📍 Session.user exists?', !!session?.user);
-  console.log('📍 Session.user.id:', session?.user?.id);
-
   if (!session?.user?.id) {
-    console.log('❌ No session.user.id, redirecting to login');
     redirect(`/login?callbackUrl=/showcase/${id}`);
   }
 
   // Showcase individual project pages are admin-only
-  console.log('📍 Checking user roles...');
-  console.log('📍 session.user.custom_attributes raw:', session.user.custom_attributes);
-  console.log('📍 session.user.custom_attributes type:', typeof session.user.custom_attributes);
-  console.log('📍 session.user.custom_attributes is array?', Array.isArray(session.user.custom_attributes));
-
   const userRoles = session.user.custom_attributes || [];
-  console.log('📍 userRoles after default:', userRoles);
-  console.log('📍 userRoles length:', userRoles.length);
-  console.log('📍 userRoles JSON:', JSON.stringify(userRoles));
-
-  // Check each role individually
-  const hasShowcase = userRoles.includes('showcase');
-  const hasDevrel = userRoles.includes('devrel');
-  const hasAdmin = userRoles.includes('admin');
-
-  console.log('📍 Has "showcase" role?', hasShowcase);
-  console.log('📍 Has "devrel" role?', hasDevrel);
-  console.log('📍 Has "admin" role?', hasAdmin);
-
-  const hasShowcaseRole = hasShowcase || hasDevrel || hasAdmin;
-  console.log('📍 Has ANY showcase role?', hasShowcaseRole);
+  const hasShowcaseRole = userRoles.includes('showcase') || userRoles.includes('devrel') || userRoles.includes('admin');
 
   if (!hasShowcaseRole) {
-    console.log('❌ Access denied - no showcase role, redirecting to /showcase');
-    redirect("/showcase?error=unauthorized");
+    // Render unauthorized message directly
+    const { Alert, AlertDescription } = await import("@/components/ui/alert");
+    const { AlertCircle } = await import("lucide-react");
+
+    return (
+      <main className="container relative max-w-[1400px] pb-16">
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <Alert variant="destructive" className="max-w-md">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              <strong className="font-semibold">Access Denied</strong>
+              <p className="mt-2">
+                You don't have permission to view this project. This section is only accessible to users with showcase, devrel, or admin roles.
+              </p>
+            </AlertDescription>
+          </Alert>
+        </div>
+      </main>
+    );
   }
 
-  console.log('✅ Access granted! Loading project...');
-
-  let project;
-  let badges;
-
-  try {
-    console.log('🔄 Fetching project with id:', id);
-    project = await getProject(id);
-    console.log('✅ Project loaded successfully:', project?.project_name);
-
-    console.log('🔄 Fetching badges for project:', id);
-    badges = await getUserBadgesByProjectId(id);
-    console.log('✅ Badges loaded successfully:', badges?.length);
-  } catch (error) {
-    console.error('❌ Error loading project or badges:', error);
-    throw error; // Re-throw to see Next.js error handling
-  }
-
-  console.log('🎨 Rendering ProjectOverview component');
+  const project = await getProject(id);
+  const badges = await getUserBadgesByProjectId(id);
 
   return (
     <main className="container relative max-w-[1400px] pb-16">
