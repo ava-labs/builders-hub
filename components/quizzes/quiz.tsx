@@ -52,9 +52,9 @@ const Quiz: React.FC<QuizProps> = ({ quizId, onQuizCompleted }) => {
   const isLocked = attemptCount >= MAX_ATTEMPTS && !isCorrect;
   const isCoolingDown = cooldownRemaining > 0;
 
-  // Cooldown countdown timer
+  // Cooldown countdown timer — only active after all attempts exhausted
   useEffect(() => {
-    if (!lastAttemptAt || isCorrect || !isAnswerChecked) return;
+    if (!lastAttemptAt || isCorrect || !isLocked) return;
 
     const updateCooldown = () => {
       const elapsed = Date.now() - lastAttemptAt;
@@ -142,7 +142,8 @@ const Quiz: React.FC<QuizProps> = ({ quizId, onQuizCompleted }) => {
           selectedAnswers.every(answer => quizInfo.correctAnswers.includes(answer));
 
       const newAttemptCount = correct ? attemptCount : attemptCount + 1;
-      const newLastAttemptAt = correct ? lastAttemptAt : Date.now();
+      // Only start the 24hr cooldown on the final failed attempt
+      const newLastAttemptAt = !correct && newAttemptCount >= MAX_ATTEMPTS ? Date.now() : lastAttemptAt;
 
       setIsCorrect(correct);
       setIsAnswerChecked(true);
@@ -164,7 +165,7 @@ const Quiz: React.FC<QuizProps> = ({ quizId, onQuizCompleted }) => {
   };
 
   const handleTryAgain = async () => {
-    if (isLocked || isCoolingDown) return;
+    if (isLocked) return;
 
     // Reset answer state but preserve attempt tracking
     resetQuizState();
@@ -332,9 +333,8 @@ const Quiz: React.FC<QuizProps> = ({ quizId, onQuizCompleted }) => {
                   buttonVariants({ variant: 'secondary' }),
                 )}
                 onClick={handleTryAgain}
-                disabled={isCoolingDown}
               >
-                {isCoolingDown ? `Retry in ${formatCooldown(cooldownRemaining)}` : 'Try Again'}
+                Try Again
               </button>
             </div>
           )
