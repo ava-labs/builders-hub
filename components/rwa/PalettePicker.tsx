@@ -27,7 +27,7 @@ export function PalettePicker() {
           />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-3" align="end">
+      <PopoverContent className="w-auto p-3 max-w-[95vw]" align="end" collisionPadding={8}>
         <p className="text-xs font-medium text-muted-foreground mb-2">
           Dashboard palette
         </p>

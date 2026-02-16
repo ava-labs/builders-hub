@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { format, subDays, subMonths, startOfYear } from 'date-fns'
 import { Calendar as CalendarIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -54,9 +54,18 @@ export function DateRangeSelector({
   dateRange,
   onDateRangeChange,
 }: DateRangeSelectorProps) {
+  const [isMobile, setIsMobile] = useState(false)
   const [activePreset, setActivePreset] = useState<DatePreset>('all')
   const [open, setOpen] = useState(false)
   const [calendarRange, setCalendarRange] = useState<{ from: Date; to?: Date } | undefined>()
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 639px)')
+    setIsMobile(mq.matches)
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
 
   const handlePresetClick = (preset: DatePreset) => {
     setActivePreset(preset)
@@ -93,7 +102,7 @@ export function DateRangeSelector({
           {triggerLabel}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="end">
+      <PopoverContent className="w-auto p-0 max-w-[95vw] sm:max-w-none overflow-x-hidden sm:overflow-x-visible" align="end" collisionPadding={8}>
         <div className="flex flex-col sm:flex-row">
           {/* Presets — horizontal row on mobile, hidden on sm+ */}
           <div className="flex gap-1 border-b p-2 sm:hidden overflow-x-auto">
@@ -122,7 +131,7 @@ export function DateRangeSelector({
               defaultMonth={dateRange?.from ?? new Date()}
               selected={calendarRange ?? (dateRange ? { from: dateRange.from, to: dateRange.to } : undefined)}
               onSelect={handleCalendarSelect}
-              numberOfMonths={2}
+              numberOfMonths={isMobile ? 1 : 2}
             />
           </div>
           {/* Presets sidebar — hidden on mobile, visible on sm+ */}

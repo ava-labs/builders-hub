@@ -1073,8 +1073,6 @@ nav button[aria-current="page"]:hover {
   [data-radix-popover-content][data-state="open"],
   [data-slot="popover-content"][data-state="open"] {
     z-index: 10000 !important;
-    position: fixed !important;
-    display: flex !important;
     visibility: visible !important;
     opacity: 1 !important;
     pointer-events: auto !important;
