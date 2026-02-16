@@ -26,7 +26,7 @@ export interface ProjectContextType {
   dispatch: React.Dispatch<ProjectAction>;
   actions: {
     initializeProject: (hackathonId: string, invitationId?: string) => Promise<void>;
-    saveProject: (data: any) => Promise<boolean>;
+    saveProject: (data: any) => Promise<{ success: boolean; projectId?: string }>;
     resetProject: () => void;
     setTeamName: (name: string) => void;
     setOpenJoinTeam: (open: boolean) => void;
@@ -193,43 +193,44 @@ export function ProjectSubmissionProvider({ children }: { children: ReactNode })
     }
   }, [session?.user?.id, toast]);
 
-  const saveProject = useCallback(async (data: any): Promise<boolean> => {
+  const saveProject = useCallback(async (data: any): Promise<{ success: boolean; projectId?: string }> => {
     try {
       dispatch({ type: 'SET_STATUS', payload: 'saving' });
-      
+
       const projectData = {
         ...data,
         ...(state.hackathonId && { hackaton_id: state.hackathonId }),
         user_id: session?.user?.id,
         id: state.id || undefined,
       };
-      
+
       const response = await axios.post('/api/project', projectData);
-      
+
       if (response.data?.project?.id) {
-        dispatch({ type: 'SET_PROJECT_ID', payload: response.data.project.id });
+        const projectId = response.data.project.id;
+        dispatch({ type: 'SET_PROJECT_ID', payload: projectId });
         dispatch({ type: 'SET_STATUS', payload: 'editing' });
-        
+
         toast({
           title: 'Project saved successfully',
           description: 'Your project has been saved.',
         });
-        
-        return true;
+
+        return { success: true, projectId };
       }
 
-      return false;
+      return { success: false };
     } catch (error: any) {
       dispatch({ type: 'SET_ERROR', payload: error.message });
       dispatch({ type: 'SET_STATUS', payload: 'error' });
-      
+
       toast({
         title: 'Error saving project',
         description: error.message,
         variant: 'destructive',
       });
-      
-      return false;
+
+      return { success: false };
     }
   }, [state.hackathonId, state.id, session?.user?.id, toast]);
 
