@@ -16,7 +16,7 @@ import Link from "next/link";
 import { VerifyEmailProps } from "@/types/verifyEmailProps";
 import axios from "axios";
 import { LoadingButton } from "@/components/ui/loading-button";
-import { useLoginModalState, triggerNewUserLogin } from "@/hooks/useLoginModal";
+import { useLoginModalState, triggerNewUserLogin, triggerLoginComplete } from "@/hooks/useLoginModal";
 const verifySchema = z.object({
   code: z
     .string()
@@ -65,7 +65,7 @@ export function VerifyEmail({
           window.location.href = url;
         }, 300);
       } else {
-        
+
         // Clear pending redirect - LoginModalWrapper will handle showing terms
         setPendingRedirectUrl(null);
       }
@@ -137,8 +137,12 @@ export function VerifyEmail({
           await new Promise(resolve => setTimeout(resolve, 100));
           // Trigger the event that LoginModalWrapper is listening to
           triggerNewUserLogin();
+          // Note: triggerLoginComplete() will be called AFTER they complete terms + profile
         } else {
-          // Not a new user, just close the modal
+          // Not a new user, their login flow is complete after OTP
+          // Trigger login complete event to notify all components
+          triggerLoginComplete();
+          // Close the modal
           closeLoginModal();
         }
 

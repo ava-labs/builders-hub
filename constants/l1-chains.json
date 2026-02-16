@@ -19,7 +19,13 @@
         "link": "https://explorer.avax.network/thegrotto"
       }
     ],
-    "isTestnet": false
+    "isTestnet": false,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "80000",
@@ -51,6 +57,12 @@
       {
         "name": "Snowtrace",
         "link": "https://8787.snowtrace.io"
+      }
+    ],
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
       }
     ]
   },
@@ -86,7 +98,13 @@
       "symbol": "ARTERY",
       "decimals": 18,
       "logoUri": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png"
-    }
+    },
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "65713",
@@ -250,7 +268,13 @@
       "symbol": "BLAZE",
       "decimals": 18,
       "logoUri": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png"
-    }
+    },
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "1344",
@@ -300,7 +324,13 @@
       "symbol": "BTIC",
       "decimals": 18,
       "logoUri": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png"
-    }
+    },
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "35414",
@@ -388,7 +418,13 @@
       "symbol": "CX",
       "decimals": 18,
       "logoUri": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png"
-    }
+    },
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "326663",
@@ -525,7 +561,13 @@
       "symbol": "DGAS",
       "decimals": 18,
       "logoUri": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png"
-    }
+    },
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "7979",
@@ -586,7 +628,13 @@
       "symbol": "ETX",
       "decimals": 18,
       "logoUri": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png"
-    }
+    },
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "33345",
@@ -612,7 +660,13 @@
       "symbol": "EVN",
       "decimals": 18,
       "logoUri": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png"
-    }
+    },
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "33311",
@@ -676,7 +730,13 @@
       "symbol": "GAS",
       "decimals": 18,
       "logoUri": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png"
-    }
+    },
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "62789",
@@ -700,7 +760,13 @@
       "symbol": "FRQ",
       "decimals": 18,
       "logoUri": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png"
-    }
+    },
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "741741",
@@ -783,7 +849,13 @@
       "symbol": "HASHD",
       "decimals": 18,
       "logoUri": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png"
-    }
+    },
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "8198",
@@ -944,7 +1016,13 @@
       "symbol": "KALIS",
       "decimals": 18,
       "logoUri": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png"
-    }
+    },
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "379",
@@ -1051,7 +1129,13 @@
       "symbol": "LBHG",
       "decimals": 18,
       "logoUri": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png"
-    }
+    },
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "72379",
@@ -1077,7 +1161,13 @@
       "symbol": "VJP",
       "decimals": 18,
       "logoUri": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png"
-    }
+    },
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "62521",
@@ -1119,7 +1209,13 @@
       "symbol": "LYLTY",
       "decimals": 18,
       "logoUri": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png"
-    }
+    },
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "5419",
@@ -1341,7 +1437,13 @@
       "symbol": "DIEGO",
       "decimals": 18,
       "logoUri": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png"
-    }
+    },
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "12150",
@@ -1375,7 +1477,13 @@
       "symbol": "QBE",
       "decimals": 18,
       "logoUri": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png"
-    }
+    },
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "6119",
@@ -1585,7 +1693,13 @@
       "symbol": "TIN",
       "decimals": 18,
       "logoUri": "https://images.ctfassets.net/gcj8jwzm6086/468mzLVncwxvPoNr4WIzG0/e3e0a0de11f4b0754bdde0d112b9ae97/mainnet.png"
-    }
+    },
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "13790",
@@ -1713,7 +1827,13 @@
       "symbol": "PLASMA",
       "decimals": 18,
       "logoUri": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png"
-    }
+    },
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "192",
@@ -1785,7 +1905,13 @@
       "symbol": "GAS",
       "decimals": 18,
       "logoUri": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png"
-    }
+    },
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "27827",
@@ -1842,7 +1968,13 @@
         "link": "https://explorer.avax.network/andromeda"
       }
     ],
-    "isTestnet": false
+    "isTestnet": false,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "420101",
@@ -1864,7 +1996,13 @@
         "link": "https://explorer.avax.network/hemp"
       }
     ],
-    "isTestnet": false
+    "isTestnet": false,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "49460",
@@ -1886,7 +2024,13 @@
         "link": "https://explorer.avax.network/qr1209t1ms"
       }
     ],
-    "isTestnet": false
+    "isTestnet": false,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "2044",
@@ -1932,7 +2076,13 @@
         "link": "https://explorer-test.avax.network/academiciv"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "89805",
@@ -1954,7 +2104,13 @@
         "link": "https://explorer-test.avax.network/aeratech01"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "74560",
@@ -1976,7 +2132,13 @@
         "link": "https://subnets-test.avax.network/alphayys"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "2201",
@@ -1998,7 +2160,13 @@
         "link": "https://explorer-test.avax.network/apparentco"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "33410",
@@ -2020,7 +2188,13 @@
         "link": "https://explorer-test.avax.network/arkrail"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "47208",
@@ -2066,7 +2240,13 @@
         "link": "https://explorer-test.avax.network/aurorapay"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "63298",
@@ -2088,7 +2268,13 @@
         "link": "https://explorer-test.avax.network/avachae"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "85297",
@@ -2110,7 +2296,13 @@
         "link": "https://subnets-test.avax.network/avcdemo622"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "43113",
@@ -2180,7 +2372,13 @@
         "link": "https://subnets-test.avax.network/blazetestn"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "75234",
@@ -2202,7 +2400,13 @@
         "link": "https://subnets-test.avax.network/btest"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "617",
@@ -2224,7 +2428,13 @@
         "link": "https://subnets-test.avax.network/soilnet"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "1492",
@@ -2246,7 +2456,13 @@
         "link": "https://subnets-test.avax.network/caonabo"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "1991",
@@ -2268,7 +2484,13 @@
         "link": "https://subnets-test.avax.network/chainvast"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "65152",
@@ -2290,7 +2512,13 @@
         "link": "https://explorer-test.avax.network/copperbris"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "1064",
@@ -2312,7 +2540,13 @@
         "link": "https://explorer-test.avax.network/crederdev1"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "707071",
@@ -2334,7 +2568,13 @@
         "link": "https://explorer-test.avax.network/cxchain"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "432201",
@@ -2404,7 +2644,13 @@
         "link": "https://subnets-test.avax.network/dinarippr"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "179205",
@@ -2426,7 +2672,13 @@
         "link": "https://subnets-test.avax.network/dfnpaper"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "779672",
@@ -2471,7 +2723,13 @@
         "link": "https://subnets-test.avax.network/dsrv2"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "173750",
@@ -2516,7 +2774,13 @@
         "link": "https://subnets-test.avax.network/egmtester"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "90350",
@@ -2538,7 +2802,13 @@
         "link": "https://explorer-test.avax.network/es1003t1td"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "33898",
@@ -2560,7 +2830,13 @@
         "link": "https://subnets-test.avax.network/etxtestnet"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "94797",
@@ -2582,7 +2858,13 @@
         "link": "https://explorer-test.avax.network/evolve"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "27308",
@@ -2604,7 +2886,13 @@
         "link": "https://explorer-test.avax.network/fhstaging"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "21201",
@@ -2626,7 +2914,13 @@
         "link": "https://explorer-test.avax.network/fm1215t1td"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "36237",
@@ -2648,7 +2942,13 @@
         "link": "https://explorer-test.avax.network/gauntlet"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "97433",
@@ -2694,7 +2994,13 @@
         "link": "https://subnets-test.avax.network/hiva"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "4227",
@@ -2740,7 +3046,13 @@
         "link": "https://subnets-test.avax.network/hiss"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "17070",
@@ -2762,7 +3074,13 @@
         "link": "https://subnets-test.avax.network/impressedh"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "54414",
@@ -2856,7 +3174,13 @@
         "link": "https://subnets-test.avax.network/jna"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "17789",
@@ -2878,7 +3202,13 @@
         "link": "https://explorer-test.avax.network/kulatest"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "99991",
@@ -2900,7 +3230,13 @@
         "link": "https://explorer-test.avax.network/lifev1"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "94909",
@@ -2922,7 +3258,13 @@
         "link": "https://explorer-test.avax.network/lifeaitest"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "37558",
@@ -2944,7 +3286,13 @@
         "link": "https://subnets-test.avax.network/ltmax"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "41548",
@@ -2966,7 +3314,13 @@
         "link": "https://explorer-test.avax.network/midcoralow"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "77869",
@@ -2988,7 +3342,13 @@
         "link": "https://explorer-test.avax.network/mirotst67"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "27777",
@@ -3010,7 +3370,13 @@
         "link": "https://explorer-test.avax.network/testmixa"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "52118",
@@ -3032,7 +3398,13 @@
         "link": "https://subnets-test.avax.network/modex"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "77242",
@@ -3054,7 +3426,13 @@
         "link": "https://subnets-test.avax.network/mon"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "201",
@@ -3076,7 +3454,13 @@
         "link": "https://subnets-test.avax.network/monthlygra"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "44269",
@@ -3098,7 +3482,13 @@
         "link": "https://subnets-test.avax.network/naka"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "95946",
@@ -3120,7 +3510,13 @@
         "link": "https://subnets-test.avax.network/nexustest"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "88188",
@@ -3142,7 +3538,13 @@
         "link": "https://subnets-test.avax.network/northasset"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "40478",
@@ -3164,7 +3566,13 @@
         "link": "https://subnets-test.avax.network/northerncr"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "8022",
@@ -3234,7 +3642,13 @@
         "link": "https://explorer-test.avax.network/rpc"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "99812",
@@ -3256,7 +3670,13 @@
         "link": "https://subnets-test.avax.network/pindora"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "24665",
@@ -3278,7 +3698,13 @@
         "link": "https://explorer-test.avax.network/pricing06"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "88479",
@@ -3300,7 +3726,13 @@
         "link": "https://explorer-test.avax.network/qbot175364"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "1429",
@@ -3322,7 +3754,13 @@
         "link": "https://explorer-test.avax.network/qbot443194"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "466379",
@@ -3344,7 +3782,13 @@
         "link": "https://explorer-test.avax.network/qbot668689"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "121083",
@@ -3366,7 +3810,13 @@
         "link": "https://subnets-test.avax.network/qdev"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "690681",
@@ -3388,7 +3838,13 @@
         "link": "https://explorer-test.avax.network/qecotest"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "12764",
@@ -3410,7 +3866,13 @@
         "link": "https://explorer-test.avax.network/qr0102t1ts"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "606051",
@@ -3432,7 +3894,13 @@
         "link": "https://explorer-test.avax.network/qr0106m1ts"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "91088",
@@ -3454,7 +3922,13 @@
         "link": "https://explorer-test.avax.network/qr0107q1ts"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "10467",
@@ -3476,7 +3950,13 @@
         "link": "https://explorer-test.avax.network/qr0107q2ts"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "85167",
@@ -3498,7 +3978,13 @@
         "link": "https://explorer-test.avax.network/qr0107q3ts"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "84352",
@@ -3520,7 +4006,13 @@
         "link": "https://subnets-test.avax.network/qr0408t4ts"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "25406",
@@ -3542,7 +4034,13 @@
         "link": "https://explorer-test.avax.network/qr1106t2td"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "14457",
@@ -3564,7 +4062,13 @@
         "link": "https://explorer-test.avax.network/qr1110t3td"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "41350",
@@ -3586,7 +4090,13 @@
         "link": "https://explorer-test.avax.network/qr1212s1ts"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "30237",
@@ -3608,7 +4118,13 @@
         "link": "https://explorer-test.avax.network/qr1216t1td"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "35385",
@@ -3630,7 +4146,13 @@
         "link": "https://explorer-test.avax.network/qr1216t1tp"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "30614",
@@ -3652,7 +4174,13 @@
         "link": "https://explorer-test.avax.network/qr1217t1tp"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "1776",
@@ -3675,7 +4203,13 @@
         "link": "https://subnets-test.avax.network/quantinium"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "66525",
@@ -3697,7 +4231,13 @@
         "link": "https://explorer-test.avax.network/rm1006t2td"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "15394",
@@ -3719,7 +4259,13 @@
         "link": "https://explorer-test.avax.network/hiddensalm"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "80816",
@@ -3741,7 +4287,13 @@
         "link": "https://explorer-test.avax.network/rm1024t1ts"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "86302",
@@ -3763,7 +4315,13 @@
         "link": "https://explorer-test.avax.network/rm1104t1td"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "41542",
@@ -3785,7 +4343,13 @@
         "link": "https://explorer-test.avax.network/worthwhile"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "18176",
@@ -3807,7 +4371,13 @@
         "link": "https://explorer-test.avax.network/sparewhite"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "42610",
@@ -3829,7 +4399,13 @@
         "link": "https://explorer-test.avax.network/silvercalm"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "62989",
@@ -3851,7 +4427,13 @@
         "link": "https://explorer-test.avax.network/sk1020t1ts"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "77722",
@@ -3873,7 +4455,13 @@
         "link": "https://explorer-test.avax.network/skwks2k"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "94078",
@@ -3895,7 +4483,13 @@
         "link": "https://explorer-test.avax.network/sl1217t1ts"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "80952",
@@ -3917,7 +4511,13 @@
         "link": "https://explorer-test.avax.network/tsoshi"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "48795",
@@ -3963,7 +4563,13 @@
         "link": "https://subnets-test.avax.network/washoku"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "54585",
@@ -3985,7 +4591,13 @@
         "link": "https://explorer-test.avax.network/t1k"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "80541",
@@ -4007,7 +4619,13 @@
         "link": "https://explorer-test.avax.network/ta0916t2td"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "58667",
@@ -4029,7 +4647,13 @@
         "link": "https://explorer-test.avax.network/talloliveh"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "56400",
@@ -4075,7 +4699,13 @@
         "link": "https://subnets-test.avax.network/thegrotto"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "85011",
@@ -4143,7 +4773,13 @@
         "link": "https://subnets-test.avax.network/tkavast1"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "70616",
@@ -4165,7 +4801,13 @@
         "link": "https://explorer-test.avax.network/tvoid"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "79424",
@@ -4187,7 +4829,13 @@
         "link": "https://explorer-test.avax.network/twinnirchn"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "6118",
@@ -4233,7 +4881,13 @@
         "link": "https://explorer-test.avax.network/wastefulro"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   },
   {
     "chainId": "92870",
@@ -4277,6 +4931,12 @@
         "link": "https://explorer-test.avax.network/wholegoldl"
       }
     ],
-    "isTestnet": true
+    "isTestnet": true,
+    "baasProviders": [
+      {
+        "name": "AvaCloud",
+        "slug": "avacloud"
+      }
+    ]
   }
 ]

@@ -30,11 +30,12 @@ export interface projectProps {
   onProjectCreated?: () => void;
   onHandleSave?: () => Promise<void>;
   availableTracks: HackathonTrack[];
-  
+
   openjoinTeamDialog?: boolean;
   onOpenChange: (open: boolean) => void;
   teamName?: string;
   currentEmail?: string;
+  currentUserName?: string;
   openCurrentProject: boolean;
   setOpenCurrentProject: (open: boolean) => void;
 }
