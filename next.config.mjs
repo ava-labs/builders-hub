@@ -1245,11 +1245,6 @@ const config = {
         permanent: true,
       },
       {
-        source: "/docs/nodes/run-a-node",
-        destination: "/docs/nodes",
-        permanent: true,
-      },
-      {
         source: "/docs/reference/avalanchego/c-chain/txn-format",
         destination: "/docs/rpcs/c-chain/txn-format",
         permanent: true,
