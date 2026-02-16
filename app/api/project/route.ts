@@ -44,7 +44,9 @@ export const GET = withAuth(async (request: Request, context, session) => {
     const sessionUserId = session.user.id;
 
     const project = await GetProjectByHackathonAndUser(hackaton_id, sessionUserId, invitation_id);
-    return NextResponse.json({ project });
+
+    // Return null project if none found - this is valid for new project creation
+    return NextResponse.json({ project: project || null });
   } catch (error: any) {
     console.error("Error GET /api/project:", error);
     const wrappedError = error as Error;
