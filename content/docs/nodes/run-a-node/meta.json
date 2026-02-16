@@ -1,6 +1,7 @@
 {
   "title": "Set up a Node",
   "pages": [
+    "index",
     "---Primary Network---",
     "using-docker",
     "using-install-script",
