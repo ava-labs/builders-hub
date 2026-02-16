@@ -3,7 +3,6 @@ import { calculateAllMetrics } from '@/lib/rwa/calculations/metrics'
 import { cache, CacheKeys } from '@/lib/rwa/glacier/cache'
 import { serializeBigints } from '@/lib/rwa/utils'
 import { checkRateLimit } from '@/lib/rwa/middleware/rate-limit'
-import type { MultiPeriodTrend } from '@/lib/rwa/types'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 300
@@ -34,7 +33,6 @@ interface SerializedAllMetrics {
     principalRepayments: string
     convertedUsdc: string
   }
-  trends?: Record<string, MultiPeriodTrend>
   lenderBreakdown: SerializedLenderBreakdown[]
   lastUpdated: string
 }

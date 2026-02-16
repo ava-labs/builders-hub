@@ -8,13 +8,10 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { Skeleton } from '@/components/ui/skeleton'
-import { InfoIcon, TrendingUp, TrendingDown } from 'lucide-react'
+import { InfoIcon } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { bigintToNumber } from '@/lib/rwa/utils'
 import { useCountUp } from '@/lib/rwa/hooks/useCountUp'
-import type { MetricTrend, MultiPeriodTrend } from '@/lib/rwa/types'
-import { usePalette } from '@/lib/rwa/hooks/usePalette'
-
 type MetricFormat = 'currency' | 'days' | 'ratio' | 'percentage'
 
 interface MetricCardProps {
@@ -24,7 +21,6 @@ interface MetricCardProps {
   tooltip?: string
   isLoading?: boolean
   icon?: LucideIcon
-  trend?: MultiPeriodTrend | null
 }
 
 function formatValue(value: number, format: MetricFormat): string {
@@ -45,59 +41,6 @@ function formatValue(value: number, format: MetricFormat): string {
   }
 }
 
-function formatTrendValue(t: { value: number; direction: string }): string {
-  return `${t.value > 0 ? '+' : ''}${t.value.toFixed(1)}%`
-}
-
-function isMultiPeriodTrend(t: unknown): t is MultiPeriodTrend {
-  return t !== null && typeof t === 'object' && '30d' in (t as Record<string, unknown>)
-}
-
-export function TrendPillBadge({ trend }: { trend: MultiPeriodTrend }) {
-  const { trendPeriod } = usePalette()
-  // Guard against stale cached data in old MetricTrend format
-  const normalized: MultiPeriodTrend = isMultiPeriodTrend(trend)
-    ? trend
-    : { '7d': trend as unknown as MetricTrend, '30d': trend as unknown as MetricTrend, '90d': trend as unknown as MetricTrend }
-  const active = normalized[trendPeriod]
-  const bgClass =
-    active.direction === 'up' ? 'bg-green-500/10' :
-    active.direction === 'down' ? 'bg-red-500/10' : 'bg-gray-500/10'
-  const textClass =
-    active.direction === 'up' ? 'text-green-600 dark:text-green-400' :
-    active.direction === 'down' ? 'text-red-600 dark:text-red-400' : 'text-gray-500'
-
-  return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <span className={`inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-medium cursor-default ${bgClass} ${textClass}`}>
-            {active.direction === 'up' && <TrendingUp className="h-3 w-3" />}
-            {active.direction === 'down' && <TrendingDown className="h-3 w-3" />}
-            {formatTrendValue(active)}
-          </span>
-        </TooltipTrigger>
-        <TooltipContent>
-          <div className="space-y-1 text-xs">
-            <div className="flex justify-between gap-4">
-              <span className="text-muted-foreground">7d:</span>
-              <span className="font-medium">{formatTrendValue(normalized['7d'])}</span>
-            </div>
-            <div className="flex justify-between gap-4">
-              <span className="text-muted-foreground">30d:</span>
-              <span className="font-medium">{formatTrendValue(normalized['30d'])}</span>
-            </div>
-            <div className="flex justify-between gap-4">
-              <span className="text-muted-foreground">90d:</span>
-              <span className="font-medium">{formatTrendValue(normalized['90d'])}</span>
-            </div>
-          </div>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
-  )
-}
-
 function AnimatedValue({ value, format }: { value: number | bigint; format: MetricFormat }) {
   const numValue = typeof value === 'bigint' ? bigintToNumber(value) : value
   const animated = useCountUp(numValue)
@@ -111,7 +54,6 @@ export function MetricCard({
   tooltip,
   isLoading = false,
   icon: Icon,
-  trend,
 }: MetricCardProps) {
   if (isLoading) {
     return (
@@ -157,11 +99,6 @@ export function MetricCard({
           '-'
         )}
       </div>
-      {trend && (
-        <div className="mt-2">
-          <TrendPillBadge trend={trend} />
-        </div>
-      )}
     </Card>
   )
 }

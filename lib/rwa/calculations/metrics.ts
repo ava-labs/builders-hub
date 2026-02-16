@@ -10,8 +10,6 @@ import type {
   OatFiMetrics,
   AllMetrics,
   ParsedTransfer,
-  MetricTrend,
-  MultiPeriodTrend,
   LenderBreakdown,
 } from '../types'
 
@@ -86,114 +84,6 @@ function bigintDivideAsNumber(numerator: bigint, denominator: bigint): number {
   if (denominator === BigInt(0)) return 0
   const scaled = (numerator * BigInt(10000)) / denominator
   return Number(scaled) / 10000
-}
-
-function buildTrend(current: number, previous: number): MetricTrend {
-  if (previous === 0) {
-    return { value: 0, direction: 'neutral' }
-  }
-  const change = ((current - previous) / Math.abs(previous)) * 100
-  const direction = change > 0.01 ? 'up' : change < -0.01 ? 'down' : 'neutral'
-  return { value: Math.round(change * 100) / 100, direction }
-}
-
-function calculateTrends(
-  transfersByAddress: Map<string, ParsedTransfer[]>,
-  lenderTransfers: ParsedTransfer[]
-): Record<string, MultiPeriodTrend> {
-  const now = Date.now()
-  const DAY_MS = 24 * 60 * 60 * 1000
-  const periods = [
-    { label: '7d' as const, days: 7 },
-    { label: '30d' as const, days: 30 },
-    { label: '90d' as const, days: 90 },
-  ]
-
-  const tranchePoolAddress = normalizeAddress(ADDRESSES.TRANCHE_POOL)
-  const borrowerAddress = normalizeAddress(ADDRESSES.BORROWER_OPERATING)
-
-  const sumAmounts = (ts: ParsedTransfer[]): number =>
-    Number(ts.reduce((s, t) => s + t.amount, BigInt(0))) / 1e6
-
-  const cumulativeTrendForPeriod = (
-    transfers: ParsedTransfer[],
-    days: number,
-    filterFn?: (t: ParsedTransfer) => boolean
-  ): MetricTrend => {
-    const filtered = filterFn ? transfers.filter(filterFn) : transfers
-    const totalNow = sumAmounts(filtered)
-    const cutoff = now - days * DAY_MS
-    const totalThen = sumAmounts(
-      filtered.filter((t) => t.timestamp.getTime() < cutoff)
-    )
-    return buildTrend(totalNow, totalThen)
-  }
-
-  const periodTrendForPeriod = (
-    transfers: ParsedTransfer[],
-    days: number,
-    filterFn?: (t: ParsedTransfer) => boolean
-  ): MetricTrend => {
-    const filtered = filterFn ? transfers.filter(filterFn) : transfers
-    const periodStart = now - days * DAY_MS
-    const prevStart = now - 2 * days * DAY_MS
-    const current = filtered.filter((t) => {
-      const ts = t.timestamp.getTime()
-      return ts >= periodStart && ts < now
-    })
-    const previous = filtered.filter((t) => {
-      const ts = t.timestamp.getTime()
-      return ts >= prevStart && ts < periodStart
-    })
-    return buildTrend(sumAmounts(current), sumAmounts(previous))
-  }
-
-  const buildMultiPeriod = (
-    trendFn: (days: number) => MetricTrend
-  ): MultiPeriodTrend => ({
-    '7d': trendFn(7),
-    '30d': trendFn(30),
-    '90d': trendFn(90),
-  })
-
-  // Deduplicated non-internal transfers for volume trend
-  const dedupedTransfers: ParsedTransfer[] = []
-  const seen = new Set<string>()
-  for (const [, transfers] of transfersByAddress) {
-    for (const transfer of transfers) {
-      if (transfer.isInternal) continue
-      const key = `${transfer.txHash}-${transfer.from}-${transfer.to}`
-      if (seen.has(key)) continue
-      seen.add(key)
-      dedupedTransfers.push(transfer)
-    }
-  }
-
-  const tranchePoolTransfers = transfersByAddress.get(tranchePoolAddress) ?? []
-  const borrowerTransfers = transfersByAddress.get(borrowerAddress) ?? []
-
-  return {
-    transactedVolume: buildMultiPeriod((days) =>
-      cumulativeTrendForPeriod(dedupedTransfers, days)
-    ),
-    committedCapital: buildMultiPeriod((days) =>
-      cumulativeTrendForPeriod(lenderTransfers, days)
-    ),
-    assetsFinanced: buildMultiPeriod((days) =>
-      cumulativeTrendForPeriod(
-        tranchePoolTransfers,
-        days,
-        (t) => t.to === borrowerAddress
-      )
-    ),
-    lenderRepayments: buildMultiPeriod((days) =>
-      periodTrendForPeriod(
-        borrowerTransfers,
-        days,
-        (t) => t.to === tranchePoolAddress
-      )
-    ),
-  }
 }
 
 function calculateLenderBreakdown(
@@ -288,13 +178,11 @@ export async function calculateAllMetrics(forceRefresh = false): Promise<AllMetr
     convertedUsdc,
   }
 
-  const trends = calculateTrends(transfersByAddress, lenderTransfers)
   const lenderBreakdown = calculateLenderBreakdown(lenderTransfers)
 
   return {
     general,
     oatfi,
-    trends,
     lenderBreakdown,
     lastUpdated: new Date().toISOString(),
   }
