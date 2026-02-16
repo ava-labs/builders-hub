@@ -259,20 +259,20 @@ export function TransactionTable() {
   return (
     <Card>
       <CardHeader className="pb-0">
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <CardTitle className="text-base font-medium">Recent Transactions</CardTitle>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <div className="relative">
               <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <Input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search tx hash..."
-                className="w-[180px] h-8 text-xs pl-7 dark:border-muted-foreground/25"
+                className="w-[140px] sm:w-[180px] h-8 text-xs pl-7 dark:border-muted-foreground/25"
               />
             </div>
             <Select value={explorer} onValueChange={handleExplorerChange}>
-              <SelectTrigger className="w-[180px] h-8 text-xs dark:border-muted-foreground/25">
+              <SelectTrigger className="w-[130px] sm:w-[180px] h-8 text-xs dark:border-muted-foreground/25">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

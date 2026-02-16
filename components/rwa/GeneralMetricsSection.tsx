@@ -21,8 +21,7 @@ import {
   Gauge,
   InfoIcon,
 } from 'lucide-react'
-import type { GeneralMetrics, MultiPeriodTrend, LenderBreakdown } from '@/lib/rwa/types'
-import { TrendPillBadge } from './MetricCard'
+import type { GeneralMetrics, LenderBreakdown } from '@/lib/rwa/types'
 import { bigintToNumber } from '@/lib/rwa/utils'
 import { useCountUp } from '@/lib/rwa/hooks/useCountUp'
 import { usePalette } from '@/lib/rwa/hooks/usePalette'
@@ -31,7 +30,6 @@ interface GeneralMetricsSectionProps {
   metrics: GeneralMetrics | null
   isLoading?: boolean
   error?: string | null
-  trends?: Record<string, MultiPeriodTrend> | null
   lenderBreakdown?: LenderBreakdown[] | null
 }
 
@@ -65,42 +63,21 @@ interface BreakdownItem {
   color: string
 }
 
-function MiniPieChart({ items }: { items: BreakdownItem[] }) {
-  if (items.length < 2) return null
-  const r = 8
-  const circumference = 2 * Math.PI * r
-  const firstPct = items[0].percentage / 100
-  const firstDash = circumference * firstPct
-  const secondDash = circumference - firstDash
-  const tooltipText = items.map((i) => `${i.label} ${i.percentage.toFixed(0)}%`).join(' · ')
-
+function InlineLenderBreakdown({ items }: { items: BreakdownItem[] }) {
+  if (items.length === 0) return null
   return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <svg width="20" height="20" viewBox="0 0 20 20" className="cursor-default shrink-0">
-            <circle
-              cx="10" cy="10" r={r}
-              fill="none"
-              stroke={items[1].color}
-              strokeWidth="4"
-            />
-            <circle
-              cx="10" cy="10" r={r}
-              fill="none"
-              stroke={items[0].color}
-              strokeWidth="4"
-              strokeDasharray={`${firstDash} ${secondDash}`}
-              strokeDashoffset={circumference * 0.25}
-              transform="rotate(-90 10 10)"
-            />
-          </svg>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p className="text-xs">{tooltipText}</p>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+    <span className="text-xs text-muted-foreground flex flex-wrap items-center justify-center">
+      {items.map((item, i) => (
+        <span key={item.label}>
+          {i > 0 && <span className="mx-1">·</span>}
+          <span
+            className="inline-block w-2 h-2 rounded-full mr-1 align-middle"
+            style={{ backgroundColor: item.color }}
+          />
+          {item.label} {item.percentage.toFixed(0)}%
+        </span>
+      ))}
+    </span>
   )
 }
 
@@ -131,7 +108,6 @@ function KeyMetricCard({
   icon: Icon,
   tooltip,
   isLoading,
-  trend,
   breakdown,
 }: {
   label: string
@@ -139,7 +115,6 @@ function KeyMetricCard({
   icon: React.ComponentType<{ className?: string }>
   tooltip: string
   isLoading?: boolean
-  trend?: MultiPeriodTrend | null
   breakdown?: BreakdownItem[]
 }) {
   if (isLoading) {
@@ -175,10 +150,9 @@ function KeyMetricCard({
           ? <AnimatedCurrencyValue value={value} />
           : '-'}
       </div>
-      {(trend || (breakdown && breakdown.length > 0)) && (
+      {breakdown && breakdown.length > 0 && (
         <div className="mt-2 flex items-center justify-center gap-4">
-          {trend && <TrendPillBadge trend={trend} />}
-          {breakdown && breakdown.length > 0 && <MiniPieChart items={breakdown} />}
+          <InlineLenderBreakdown items={breakdown} />
         </div>
       )}
     </Card>
@@ -208,6 +182,13 @@ const SECONDARY_METRICS = [
     icon: RotateCcw,
   },
   {
+    key: 'averageCapitalUtilization' as const,
+    label: 'Avg Capital Utilization',
+    format: 'percentage' as const,
+    tooltip: 'Average daily capital utilization rate over facility lifetime',
+    icon: Gauge,
+  },
+  {
     key: 'lifeSinceInception' as const,
     label: 'Days Active',
     format: 'days' as const,
@@ -221,20 +202,12 @@ const SECONDARY_METRICS = [
     tooltip: 'Life Since Inception / Capital Turnover',
     icon: Timer,
   },
-  {
-    key: 'averageCapitalUtilization' as const,
-    label: 'Avg Capital Utilization',
-    format: 'percentage' as const,
-    tooltip: 'Average daily capital utilization rate over facility lifetime',
-    icon: Gauge,
-  },
 ]
 
 export function GeneralMetricsSection({
   metrics,
   isLoading = false,
   error,
-  trends,
   lenderBreakdown,
 }: GeneralMetricsSectionProps) {
   const lenderColors = useLenderChartColors()
@@ -256,21 +229,19 @@ export function GeneralMetricsSection({
   }
 
   return (
-    <section className="space-y-6">
-      {/* Mobile: horizontal scroll snap carousel */}
-      <div className="sm:hidden flex gap-4 overflow-x-auto snap-x snap-mandatory pb-2 -mx-4 px-4 scrollbar-none">
+    <section className="space-y-3 sm:space-y-6">
+      {/* Mobile: vertical stack */}
+      <div className="sm:hidden flex flex-col gap-3">
         {PRIMARY_METRICS.map((config) => (
-          <div key={config.key} className="snap-center min-w-[280px] flex-shrink-0">
-            <KeyMetricCard
-              label={config.label}
-              value={metrics?.[config.key]}
-              icon={config.icon}
-              tooltip={config.tooltip}
-              isLoading={isLoading}
-              trend={config.key === 'committedCapital' ? undefined : trends?.[config.key]}
-              breakdown={config.key === 'committedCapital' ? breakdownItems : undefined}
-            />
-          </div>
+          <KeyMetricCard
+            key={config.key}
+            label={config.label}
+            value={metrics?.[config.key]}
+            icon={config.icon}
+            tooltip={config.tooltip}
+            isLoading={isLoading}
+            breakdown={config.key === 'committedCapital' ? breakdownItems : undefined}
+          />
         ))}
       </div>
 
@@ -284,7 +255,6 @@ export function GeneralMetricsSection({
             icon={config.icon}
             tooltip={config.tooltip}
             isLoading={isLoading}
-            trend={config.key === 'committedCapital' ? undefined : trends?.[config.key]}
             breakdown={config.key === 'committedCapital' ? breakdownItems : undefined}
           />
         ))}
@@ -302,7 +272,6 @@ export function GeneralMetricsSection({
               format={config.format}
               tooltip={config.tooltip}
               icon={config.icon}
-              trend={trends?.[config.key]}
             />
           )
         )}

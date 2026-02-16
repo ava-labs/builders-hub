@@ -177,10 +177,10 @@ export function CapitalFlowSankey({ metrics, isLoading = false }: CapitalFlowSan
   if (isLoading) {
     return (
       <Card>
-        <CardHeader>
+        <CardHeader className="p-3 sm:p-6">
           <Skeleton className="h-5 w-48" />
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
           <Skeleton className="h-[200px] w-full" />
         </CardContent>
       </Card>
@@ -191,10 +191,10 @@ export function CapitalFlowSankey({ metrics, isLoading = false }: CapitalFlowSan
 
   return (
     <Card>
-      <CardHeader className="pb-2">
+      <CardHeader className="p-3 sm:p-6 pb-2">
         <CardTitle className="text-sm font-medium">Capital Flow Pipeline</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0 space-y-6">
         {/* Forward Flow — Desktop (horizontal) */}
         <div className="hidden md:block space-y-4">
           <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
@@ -289,9 +289,9 @@ export function CapitalFlowSankey({ metrics, isLoading = false }: CapitalFlowSan
 
         {/* Pool Status */}
         <div className="space-y-2 pt-2 border-t border-border">
-          <div className="flex items-center justify-between text-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-0 text-sm">
             <span className="text-muted-foreground">Pool Status</span>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
               <span className="text-xs text-muted-foreground">
                 Idle:{' '}
                 <AmountWithTooltip

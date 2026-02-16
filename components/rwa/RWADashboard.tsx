@@ -18,15 +18,30 @@ import { useSectionNavigation } from '@/hooks/use-section-navigation'
 import { StickyNavBar } from '@/components/stats/StickyNavBar'
 import { useMetrics } from '@/lib/rwa/hooks/useMetrics'
 import { useHistorical } from '@/lib/rwa/hooks/useHistorical'
+import dynamic from 'next/dynamic'
 import { GeneralMetricsSection } from './GeneralMetricsSection'
 import { OatFiSection } from './OatFiSection'
-import { CapitalFlowSankey } from './CapitalFlowSankey'
-import { TimeSeriesCharts } from './TimeSeriesCharts'
 import { DateRangeSelector } from './DateRangeSelector'
 import { ExportMenu } from './ExportMenu'
 import { PalettePicker } from './PalettePicker'
 import { PartnerLogos } from './PartnerLogos'
-import { TransactionTable } from './TransactionTable'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Card } from '@/components/ui/card'
+
+const CapitalFlowSankey = dynamic(
+  () => import('./CapitalFlowSankey').then((m) => ({ default: m.CapitalFlowSankey })),
+  { ssr: false, loading: () => <Card className="p-6"><Skeleton className="h-[300px] w-full" /></Card> },
+)
+
+const TimeSeriesCharts = dynamic(
+  () => import('./TimeSeriesCharts').then((m) => ({ default: m.TimeSeriesCharts })),
+  { ssr: false, loading: () => <Card className="p-6"><Skeleton className="h-[400px] w-full" /></Card> },
+)
+
+const TransactionTable = dynamic(
+  () => import('./TransactionTable').then((m) => ({ default: m.TransactionTable })),
+  { ssr: false, loading: () => <Card className="p-6"><Skeleton className="h-[200px] w-full" /></Card> },
+)
 import { PaletteContext, usePaletteProvider } from '@/lib/rwa/hooks/usePalette'
 import type { TimeInterval, DateRange } from '@/lib/rwa/types'
 
@@ -142,40 +157,6 @@ export function RWADashboard() {
         className="hidden md:block"
       >
         <div className="flex items-center gap-2">
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 w-8 p-0"
-                aria-label="Change trend period"
-              >
-                <span className="text-[10px] font-semibold">{paletteCtx.trendPeriod}</span>
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-3" align="end">
-              <p className="text-xs font-medium text-muted-foreground mb-2">
-                Trend period
-              </p>
-              <div className="flex gap-2">
-                {(['7d', '30d', '90d'] as const).map((p) => (
-                  <button
-                    key={p}
-                    onClick={() => paletteCtx.setTrendPeriod(p)}
-                    className="relative h-7 w-7 rounded-md text-[10px] font-medium border transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    aria-label={p}
-                  >
-                    {p}
-                    {paletteCtx.trendPeriod === p && (
-                      <span className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <span className="absolute inset-0 rounded-md ring-2 ring-primary" />
-                      </span>
-                    )}
-                  </button>
-                ))}
-              </div>
-            </PopoverContent>
-          </Popover>
           <PalettePicker />
           <ExportMenu
             metrics={metrics}
@@ -195,6 +176,26 @@ export function RWADashboard() {
         </div>
       </StickyNavBar>
 
+      {/* Mobile action bar — visible below md */}
+      <div className="flex md:hidden items-center justify-end gap-2">
+        <PalettePicker />
+        <ExportMenu
+          metrics={metrics}
+          historical={historical}
+          dashboardElementId={DASHBOARD_ELEMENT_ID}
+        />
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-8 text-xs gap-1.5"
+          onClick={handleRefresh}
+          disabled={metricsLoading || historicalLoading}
+        >
+          <RefreshCw className={`h-3.5 w-3.5 ${metricsLoading || historicalLoading ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
+      </div>
+
       {/* Dashboard content */}
       <div
         id={DASHBOARD_ELEMENT_ID}
@@ -208,8 +209,8 @@ export function RWADashboard() {
               metrics={metrics?.general ?? null}
               isLoading={metricsLoading}
               error={metricsError?.message}
-              trends={metrics?.trends}
               lenderBreakdown={metrics?.lenderBreakdown}
+
             />
           </MobileCollapsible>
         </section>
@@ -244,8 +245,8 @@ export function RWADashboard() {
         {/* Historical Trends - wrapped in muted background */}
         <section id="rwa-historical">
           <MobileCollapsible title="Historical Trends" defaultOpen>
-            <div className="bg-muted/30 rounded-xl p-6">
-              <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+            <div className="bg-muted/30 rounded-xl p-3 sm:p-6">
+              <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-4 mb-4 sm:mb-6">
                 <h2 className="text-xl font-semibold">Historical Trends</h2>
                 <div className="flex items-center gap-1.5" data-export-hidden>
                   {/* Interval dropdown */}

@@ -251,11 +251,11 @@ function SingleChart({
   if (isLoading) {
     return (
       <Card id={chartId}>
-        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <CardHeader className="p-3 sm:p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <CardTitle className="text-lg">{title}</CardTitle>
           <Skeleton className="h-8 w-24" />
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
           <Skeleton className="h-[300px] w-full" />
         </CardContent>
       </Card>
@@ -265,11 +265,11 @@ function SingleChart({
   if (!data || data.length === 0) {
     return (
       <Card id={chartId}>
-        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <CardHeader className="p-3 sm:p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <CardTitle className="text-lg">{title}</CardTitle>
           <ChartTypeSelector value={chartType} onChange={setChartType} />
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
           <div className="h-[300px] flex flex-col items-center justify-center gap-3 text-muted-foreground">
             <BarChart3 className="h-10 w-10 opacity-40" />
             <div className="text-center">
@@ -310,7 +310,7 @@ function SingleChart({
 
   return (
     <Card id={chartId}>
-      <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+      <CardHeader className="p-3 sm:p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <CardTitle className="text-lg">{title}</CardTitle>
         <div className="flex items-center gap-2 flex-shrink-0">
           {showViewModeToggle && (
@@ -319,16 +319,15 @@ function SingleChart({
           <ChartTypeSelector value={chartType} onChange={setChartType} />
         </div>
       </CardHeader>
-      <CardContent className="relative">
+      <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0 relative">
         <ChartControls isZoomed={isZoomed} onResetZoom={resetZoom} />
         <ResponsiveContainer width="100%" height={300}>
           {chartType === 'area' ? (
             <AreaChart {...chartProps} syncId="rwa-dashboard">
               <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-              <XAxis dataKey="date" tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }} />
-              <YAxis tickFormatter={formatFn} tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }} />
+              <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'var(--muted-foreground)' }} interval="preserveStartEnd" />
+              <YAxis tickFormatter={formatFn} tick={{ fontSize: 10, fill: 'var(--muted-foreground)' }} />
               <Tooltip content={<CustomTooltip formatter={formatFn} />} />
-              <Legend />
               {!isZoomed && <Brush dataKey="date" height={30} stroke={color} />}
               <Area
                 type="monotone"
@@ -345,10 +344,9 @@ function SingleChart({
           ) : chartType === 'bar' ? (
             <BarChart {...chartProps} syncId="rwa-dashboard">
               <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-              <XAxis dataKey="date" tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }} />
-              <YAxis tickFormatter={formatFn} tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }} />
+              <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'var(--muted-foreground)' }} interval="preserveStartEnd" />
+              <YAxis tickFormatter={formatFn} tick={{ fontSize: 10, fill: 'var(--muted-foreground)' }} />
               <Tooltip content={<CustomTooltip formatter={formatFn} />} />
-              <Legend />
               {!isZoomed && <Brush dataKey="date" height={30} stroke={color} />}
               <Bar dataKey="value" fill={color} name={title} />
               {refLine}
@@ -357,10 +355,9 @@ function SingleChart({
           ) : (
             <LineChart {...chartProps} syncId="rwa-dashboard">
               <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-              <XAxis dataKey="date" tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }} />
-              <YAxis tickFormatter={formatFn} tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }} />
+              <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'var(--muted-foreground)' }} interval="preserveStartEnd" />
+              <YAxis tickFormatter={formatFn} tick={{ fontSize: 10, fill: 'var(--muted-foreground)' }} />
               <Tooltip content={<CustomTooltip formatter={formatFn} />} />
-              <Legend />
               {!isZoomed && <Brush dataKey="date" height={30} stroke={color} />}
               <Line
                 type="monotone"
@@ -453,14 +450,14 @@ function StackedComparisonChart({
   if (isLoading) {
     return (
       <Card>
-        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <CardHeader className="p-3 sm:p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <CardTitle className="text-lg">Assets Financed vs Repayments</CardTitle>
           <div className="flex items-center gap-2 flex-shrink-0">
             <Skeleton className="h-8 w-24" />
             {toggleButton}
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
           <Skeleton className="h-[300px] w-full" />
         </CardContent>
       </Card>
@@ -470,7 +467,7 @@ function StackedComparisonChart({
   if (combinedData.length === 0) {
     return (
       <Card>
-        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <CardHeader className="p-3 sm:p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <CardTitle className="text-lg">Assets Financed vs Repayments</CardTitle>
           <div className="flex items-center gap-2 flex-shrink-0">
             <ViewModeToggle value={dataViewMode} onChange={setDataViewMode} />
@@ -478,7 +475,7 @@ function StackedComparisonChart({
             {toggleButton}
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
           <div className="h-[300px] flex flex-col items-center justify-center gap-3 text-muted-foreground">
             <BarChart3 className="h-10 w-10 opacity-40" />
             <div className="text-center">
@@ -531,7 +528,7 @@ function StackedComparisonChart({
 
   return (
     <Card>
-      <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+      <CardHeader className="p-3 sm:p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <CardTitle className="text-lg">Assets Financed vs Repayments</CardTitle>
         <div className="flex items-center gap-2 flex-shrink-0">
           <ViewModeToggle value={dataViewMode} onChange={setDataViewMode} />
@@ -539,14 +536,14 @@ function StackedComparisonChart({
           {toggleButton}
         </div>
       </CardHeader>
-      <CardContent className="relative">
+      <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0 relative">
         <ChartControls isZoomed={combinedIsZoomed} onResetZoom={combinedResetZoom} />
         <ResponsiveContainer width="100%" height={300}>
           {combinedChartType === 'bar' ? (
             <BarChart data={combinedZoomedData} syncId="rwa-dashboard" onMouseDown={combinedHandleMouseDown} onMouseMove={combinedHandleMouseMove} onMouseUp={combinedHandleMouseUp}>
               <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-              <XAxis dataKey="date" tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }} />
-              <YAxis tickFormatter={formatCurrency} tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }} />
+              <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'var(--muted-foreground)' }} interval="preserveStartEnd" />
+              <YAxis tickFormatter={formatCurrency} tick={{ fontSize: 10, fill: 'var(--muted-foreground)' }} />
               <Tooltip content={<CustomTooltip />} />
               <Legend />
               {!combinedIsZoomed && <Brush dataKey="date" height={30} stroke={colors.assetsFinanced} />}
@@ -573,8 +570,8 @@ function StackedComparisonChart({
           ) : combinedChartType === 'line' ? (
             <LineChart data={combinedZoomedData} syncId="rwa-dashboard" onMouseDown={combinedHandleMouseDown} onMouseMove={combinedHandleMouseMove} onMouseUp={combinedHandleMouseUp}>
               <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-              <XAxis dataKey="date" tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }} />
-              <YAxis tickFormatter={formatCurrency} tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }} />
+              <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'var(--muted-foreground)' }} interval="preserveStartEnd" />
+              <YAxis tickFormatter={formatCurrency} tick={{ fontSize: 10, fill: 'var(--muted-foreground)' }} />
               <Tooltip content={<CustomTooltip />} />
               <Legend />
               {!combinedIsZoomed && <Brush dataKey="date" height={30} stroke={colors.assetsFinanced} />}
@@ -607,8 +604,8 @@ function StackedComparisonChart({
           ) : (
             <AreaChart data={combinedZoomedData} syncId="rwa-dashboard" onMouseDown={combinedHandleMouseDown} onMouseMove={combinedHandleMouseMove} onMouseUp={combinedHandleMouseUp}>
               <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-              <XAxis dataKey="date" tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }} />
-              <YAxis tickFormatter={formatCurrency} tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }} />
+              <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'var(--muted-foreground)' }} interval="preserveStartEnd" />
+              <YAxis tickFormatter={formatCurrency} tick={{ fontSize: 10, fill: 'var(--muted-foreground)' }} />
               <Tooltip content={<CustomTooltip />} />
               <Legend />
               {!combinedIsZoomed && <Brush dataKey="date" height={30} stroke={colors.assetsFinanced} />}
@@ -665,22 +662,22 @@ export function TimeSeriesCharts({
             <Skeleton className="h-9 w-48" />
           </div>
         )}
-        <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
+        <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2">
           {[1, 2, 3, 4].map((i) => (
             <Card key={i}>
-              <CardHeader>
+              <CardHeader className="p-3 sm:p-6">
                 <Skeleton className="h-5 w-32" />
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
                 <Skeleton className="h-[300px] w-full" />
               </CardContent>
             </Card>
           ))}
           <Card className="lg:col-span-2">
-            <CardHeader>
+            <CardHeader className="p-3 sm:p-6">
               <Skeleton className="h-5 w-48" />
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
               <Skeleton className="h-[300px] w-full" />
             </CardContent>
           </Card>
@@ -697,7 +694,7 @@ export function TimeSeriesCharts({
         </div>
       )}
 
-      <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
+      <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2">
         <SingleChart
           title="Transaction Volume Over Time"
           data={historical?.transactedVolume ?? []}
