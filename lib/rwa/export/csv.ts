@@ -75,7 +75,7 @@ export function exportHistoricalToCSV(historical: HistoricalData): void {
     }
   }
 
-  const headers = ['Date', 'Transacted Volume', 'Assets Financed', 'Lender Repayments', 'Capital Utilization (%)']
+  const headers = ['Date', 'Transacted Volume', 'Assets Financed', 'Lender Repayments', 'Capital Utilization (%)', 'Committed Capital', 'Net Capital Position']
   const rows = sortedDates.map((date) => {
     const values = valuesByDate.get(date) ?? {}
     return [
@@ -84,6 +84,8 @@ export function exportHistoricalToCSV(historical: HistoricalData): void {
       values.assetsFinanced ?? '',
       values.lenderRepayments ?? '',
       values.capitalUtilization ?? '',
+      values.committedCapital ?? '',
+      values.netCapitalPosition ?? '',
     ]
   })
 
