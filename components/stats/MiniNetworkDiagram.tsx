@@ -329,26 +329,6 @@ export default function MiniNetworkDiagram({
       });
     }
     
-    // Fallback: if no ICM data or very few connections, connect to primary
-    if (connections.length < 5) {
-      const primaryIndex = nodes.findIndex(n => n.isPrimary);
-      if (primaryIndex >= 0) {
-        nodes.forEach((_, index) => {
-          if (index !== primaryIndex && !connections.some(c => 
-            (c.from === primaryIndex && c.to === index) || 
-            (c.from === index && c.to === primaryIndex)
-          )) {
-            connections.push({
-              from: primaryIndex,
-              to: index,
-              opacity: 0.12,
-              messageCount: 0,
-            });
-          }
-        });
-      }
-    }
-    
     return connections;
   }, []);
 
