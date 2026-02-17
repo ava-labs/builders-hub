@@ -281,23 +281,26 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
       />
 
       {(validatorBalance || blsProofOfPossession) && (
-        <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-lg p-4 border border-zinc-200 dark:border-zinc-700">
-          <h3 className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">
-            Validator Details
-          </h3>
-          <div className="space-y-2 text-sm text-zinc-600 dark:text-zinc-400">
-            {validatorBalance && (
-              <p><span className="font-medium">Initial AVAX Balance:</span> {validatorBalance} AVAX</p>
-            )}
-            {userPChainBalanceNavax && validatorBalance && BigInt(Number(validatorBalance) * 1e9) > userPChainBalanceNavax && (
-              <p className="text-xs mt-1 text-red-500 dark:text-red-400">
-                Validator balance ({validatorBalance} AVAX) exceeds your P-Chain balance ({(Number(userPChainBalanceNavax) / 1e9).toFixed(2)} AVAX).
-              </p>
-            )}
-            {blsProofOfPossession && (
-              <p><span className="font-medium">BLS Proof of Possession:</span> {blsProofOfPossession.substring(0, 50)}...</p>
-            )}
-          </div>
+        <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 px-4 py-3 space-y-3">
+          {validatorBalance && (
+            <div className="flex items-baseline justify-between">
+              <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Initial Balance</span>
+              <span className="text-sm font-mono text-zinc-800 dark:text-zinc-200">{validatorBalance} AVAX</span>
+            </div>
+          )}
+          {userPChainBalanceNavax && validatorBalance && BigInt(Number(validatorBalance) * 1e9) > userPChainBalanceNavax && (
+            <p className="text-xs text-red-600 dark:text-red-400">
+              Exceeds P-Chain balance ({(Number(userPChainBalanceNavax) / 1e9).toFixed(2)} AVAX)
+            </p>
+          )}
+          {blsProofOfPossession && (
+            <div className="space-y-1">
+              <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">BLS Proof of Possession</span>
+              <div className="text-xs font-mono text-zinc-600 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-800/50 rounded border border-zinc-200 dark:border-zinc-700/50 px-3 py-2 break-all">
+                {blsProofOfPossession}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

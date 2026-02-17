@@ -377,17 +377,6 @@ const SubmitPChainTxWeightUpdate: React.FC<SubmitPChainTxWeightUpdateProps> = ({
                 </div>
             )}
 
-            <Alert variant="info">
-                <p className="text-sm">
-                    <strong>This step will:</strong>
-                </p>
-                <ul className="list-disc list-inside text-sm mt-2 space-y-1">
-                    <li>Aggregate signatures from L1 validators (67% quorum)</li>
-                    <li>Submit the signed warp message to the P-Chain</li>
-                    <li>Update the validator&apos;s weight on the network</li>
-                </ul>
-            </Alert>
-
             <Button
                 onClick={handleSubmitPChainTx}
                 disabled={isProcessing || !unsignedWarpMessage || !!txSuccess || (!!signedWarpMessage && !isCoreWallet)}

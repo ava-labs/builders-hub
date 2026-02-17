@@ -353,17 +353,9 @@ const CompletePChainWeightUpdate: React.FC<CompletePChainWeightUpdateProps> = ({
                 </div>
             )}
 
-            <Alert variant="info">
-                <p className="text-sm">
-                    <strong>Before completing {isDelegation ? 'delegation' : 'weight change'}:</strong>
-                </p>
-                <ul className="list-disc list-inside text-sm mt-2 space-y-1">
-                    <li>Ensure the P-Chain transaction has been confirmed</li>
-                    <li>Wait a few minutes for the transaction to propagate</li>
-                    <li>The warp message will be aggregated and submitted</li>
-                    <li>Once completed, the {isDelegation ? 'delegation' : 'weight change'} will be active</li>
-                </ul>
-            </Alert>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                Ensure the P-Chain transaction is confirmed before proceeding. The warp message will be aggregated and submitted to complete the {isDelegation ? 'delegation' : 'weight change'}.
+            </p>
 
             <Button
                 onClick={handleCompleteWeightUpdate}
