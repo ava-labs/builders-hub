@@ -4,6 +4,7 @@ import { CONTRACT_REGISTRY } from '@/lib/contracts';
 import { SELECTOR_CATEGORIES } from '@/lib/selectors';
 
 // Cache for 10 minutes
+export const dynamic = 'force-dynamic';
 export const revalidate = 600;
 
 export async function GET(request: Request) {

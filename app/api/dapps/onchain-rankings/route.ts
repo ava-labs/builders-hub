@@ -8,6 +8,7 @@ import {
 import { CONTRACT_REGISTRY, PROTOCOL_SLUGS } from '@/lib/contracts';
 
 // Cache for 10 minutes - this is an expensive aggregation query
+export const dynamic = 'force-dynamic';
 export const revalidate = 600;
 
 export interface OnChainRankingsResponse {

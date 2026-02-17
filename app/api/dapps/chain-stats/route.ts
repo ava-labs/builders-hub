@@ -3,6 +3,7 @@ import { queryClickHouse, C_CHAIN_ID, buildAddressFilter, getTotalChainGas } fro
 import { CONTRACT_REGISTRY, PROTOCOL_SLUGS } from '@/lib/contracts';
 
 // Cache for 10 minutes - heavy aggregation query
+export const dynamic = 'force-dynamic';
 export const revalidate = 600;
 
 export interface ChainStatsResponse {

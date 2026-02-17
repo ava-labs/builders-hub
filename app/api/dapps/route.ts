@@ -21,6 +21,7 @@ function getCanonicalSlug(slug: string): string | null {
   return null;
 }
 
+export const dynamic = 'force-dynamic';
 export const revalidate = 300; // Cache for 5 minutes
 
 async function fetchAllProtocols(): Promise<DefiLlamaProtocol[]> {
