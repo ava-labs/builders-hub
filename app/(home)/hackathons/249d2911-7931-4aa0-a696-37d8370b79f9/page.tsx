@@ -111,7 +111,7 @@ export default async function HackathonPage({
                 <div className="flex gap-4 items-center flex-1">
                   <Image
                     src={
-                      hackathon.icon.trim().length > 0
+                      hackathon.icon?.trim().length > 0
                         ? hackathon.icon
                         : "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/hackathon-images/project-logo-ILfO9EujWnQj1xMZpIIWTZ8mc87I7f.png"
                     }
