@@ -17,9 +17,9 @@ import { Step, Steps } from "fumadocs-ui/components/steps";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
 import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
-import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 import { utils } from '@avalabs/avalanchejs';
+import { useValidatorManager } from "@/components/toolbox/hooks/contracts";
 
 const metadata: ConsoleToolMetadata = {
     title: "Initial Validator Manager Configuration",
@@ -47,7 +47,7 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
     const managerAddress = useCreateChainStore()(state => state.managerAddress);
     const setManagerAddress = useCreateChainStore()(state => state.setManagerAddress);
 
-    const { notify } = useConsoleNotifications();
+    const validatorManager = useValidatorManager(managerAddress || null);
 
     useEffect(() => {
         if (walletEVMAddress && !adminAddress) {
@@ -95,7 +95,6 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
 
                 // If we get here without error, contract is initialized
                 setIsInitialized(true);
-                console.log('Contract is initialized, admin:', isInit);
                 return;
             } catch (readError) {
                 // If this fails with a specific revert message about not being initialized, we know it's not initialized
@@ -119,7 +118,6 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
                 toBlock: 'latest'
             });
 
-            console.log('Initialization logs:', logs);
             setIsInitialized(logs.length > 0);
             if (logs.length > 0) {
                 setInitEvent(logs[0]);
@@ -145,23 +143,11 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
             maximumChurnPercentage: Number(maximumChurnPercentage)
         };
 
-        const initPromise = coreWalletClient.writeContract({
-            address: managerAddress as `0x${string}`,
-            abi: ValidatorManagerABI.abi,
-            functionName: 'initialize',
-            args: [settings],
-            chain: viemChain ?? undefined,
-            account: walletEVMAddress as `0x${string}`
-        });
-
-        notify({
-            type: 'call',
-            name: 'Initialize Validator Manager'
-        }, initPromise, viemChain ?? undefined);
-
         try {
-            const hash = await initPromise;
-            await publicClient.waitForTransactionReceipt({ hash });
+            const hash = await validatorManager.initialize({
+                settings
+            });
+            await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
             await checkIfInitialized();
         } finally {
             setIsInitializing(false);

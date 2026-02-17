@@ -11,7 +11,6 @@ import { useCreateChainStore } from "@/components/toolbox/stores/createChainStor
 import { useWalletStore } from "@/components/toolbox/stores/walletStore"
 import { useValidatorManagerDetails } from "@/components/toolbox/hooks/useValidatorManagerDetails"
 import ValidatorManagerABI from "@/contracts/icm-contracts/compiled/ValidatorManager.json"
-import PoAManagerABI from "@/contracts/icm-contracts/compiled/PoAManager.json"
 import { useAvalancheSDKChainkit } from "@/components/toolbox/stores/useAvalancheSDKChainkit"
 import { cb58ToHex } from "@/components/toolbox/console/utilities/format-converter/FormatConverter"
 import { GetRegistrationJustification } from "@/components/toolbox/console/permissioned-l1s/ValidatorManager/justification"
@@ -19,6 +18,7 @@ import { packL1ValidatorRegistration } from "@/components/toolbox/coreViem/utils
 import { packWarpIntoAccessList } from "@/components/toolbox/console/permissioned-l1s/ValidatorManager/packWarp"
 import { useViemChainStore } from "@/components/toolbox/stores/toolboxStore"
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
+import { useValidatorManager, usePoAManager } from '@/components/toolbox/hooks/contracts';
 
 type ParsedInitiatedRegistration = {
   validationId: string
@@ -68,6 +68,10 @@ const RemoveExpiredValidatorRegistration: React.FC = () => {
     ownerType,
     isDetectingOwnerType,
   } = useValidatorManagerDetails({ subnetId })
+
+  const useMultisig = ownerType === 'PoAManager';
+  const validatorManager = useValidatorManager(!useMultisig ? validatorManagerAddress : null);
+  const poaManager = usePoAManager(useMultisig ? contractOwner : null);
 
   const initiatedEventAbi = useMemo(() => {
     const abi = (ValidatorManagerABI.abi as unknown) as Abi
@@ -156,8 +160,6 @@ const RemoveExpiredValidatorRegistration: React.FC = () => {
       let cursor = startBlock
       const allLogs: any[] = []
       
-      console.log(`Searching ${totalBlocks} blocks (${totalChunks} chunks) from block ${startBlock} to ${latest}`)
-      
       while (cursor <= latest) {
         const to = cursor + CHUNK_SIZE > latest ? latest : cursor + CHUNK_SIZE
         currentChunk++
@@ -172,8 +174,6 @@ const RemoveExpiredValidatorRegistration: React.FC = () => {
         allLogs.push(...chunkLogs)
         cursor = to + 1n
       }
-
-      console.log(`Found ${allLogs.length} InitiatedValidatorRegistration events`)
 
       const parsed: ParsedInitiatedRegistration[] = allLogs.map((log: any) => {
         const args = (log as Log & { args?: any }).args || {}
@@ -321,15 +321,10 @@ const RemoveExpiredValidatorRegistration: React.FC = () => {
       if (!coreWalletClient || !viemChain || !coreWalletClient.account) throw new Error('Wallet/chain not initialized')
       if (!subnetId) throw new Error('Subnet ID required')
 
-      const useMultisig = ownerType === 'PoAManager'
-      const targetContractAddress = useMultisig ? contractOwner : validatorManagerAddress
-      const targetAbi = useMultisig ? (PoAManagerABI.abi as Abi) : (ValidatorManagerABI.abi as Abi)
-
       // Build justification and sign removal message (validationID, false)
       const justification = await GetRegistrationJustification(validationId, subnetId, publicClient)
       if (!justification) throw new Error('Could not build justification for this validation ID')
 
-      console.log("justification", justification)
       const validationIDBytes = hexToBytes(validationId as `0x${string}`)
       const removeValidatorMessage = packL1ValidatorRegistration(
         validationIDBytes,
@@ -349,24 +344,13 @@ const RemoveExpiredValidatorRegistration: React.FC = () => {
       }, signaturePromise);
       const signature = await signaturePromise;
       const signedMessage = signature.signedMessage
-      console.log("signedMessage", signedMessage)
       const signedPChainWarpMsgBytes = hexToBytes(`0x${signedMessage}`)
       const accessList = packWarpIntoAccessList(signedPChainWarpMsgBytes)
 
-      const writePromise = coreWalletClient.writeContract({
-        address: targetContractAddress as `0x${string}`,
-        abi: targetAbi,
-        functionName: 'completeValidatorRemoval',
-        args: [0],
-        accessList,
-        account: coreWalletClient.account,
-        chain: viemChain,
-      })
-      notify({
-        type: 'call',
-        name: 'Complete Validator Removal'
-      }, writePromise, viemChain ?? undefined);
-      const hash = await writePromise;
+      // Use appropriate hook based on ownerType
+      const hash = useMultisig
+        ? await poaManager.completeValidatorRemoval(0, accessList)
+        : await validatorManager.completeValidatorRemoval(0, accessList);
       setActionState((s) => ({
         ...s,
         [validationId]: {
