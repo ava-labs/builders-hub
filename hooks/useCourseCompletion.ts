@@ -2,14 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { getQuizResponse } from '@/utils/quizzes/indexedDB';
-import quizData from '@/components/quizzes/quizData.json';
+import quizData from '@/components/quizzes/data';
 
 export interface CourseCompletionEntry {
   nodeId: string;
   courseSlug: string;
 }
 
-const quizCourses = (quizData as any).courses as Record<string, { title: string; quizzes: string[] }>;
+const quizCourses = quizData.courses;
 
 export function useCourseCompletion(courses: CourseCompletionEntry[]) {
   const [completionMap, setCompletionMap] = useState<Map<string, boolean>>(new Map());

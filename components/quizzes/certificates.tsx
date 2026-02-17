@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { getQuizResponse } from '@/utils/quizzes/indexedDB';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/utils/cn';
-import quizDataImport from '@/components/quizzes/quizData.json';
+import quizData from '@/components/quizzes/data';
 import Quiz from '@/components/quizzes/quiz';
 import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
 import { Linkedin, Twitter, Award, Share2, CheckCircle2, XCircle } from 'lucide-react';
@@ -21,31 +21,6 @@ interface QuizInfo {
   chapter: string;
   question: string;
 }
-
-interface QuizData {
-  question: string;
-  options: string[];
-  correctAnswers: number[];
-  hint: string;
-  explanation: string;
-  chapter: string;
-}
-
-interface Course {
-  title: string;
-  quizzes: string[];
-}
-
-interface QuizDataStructure {
-  courses: {
-    [courseId: string]: Course;
-  };
-  quizzes: {
-    [quizId: string]: QuizData;
-  };
-}
-
-const quizData = quizDataImport as QuizDataStructure;
 
 const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
   const router = useRouter();
