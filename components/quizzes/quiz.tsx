@@ -6,7 +6,8 @@ import { parseTextWithLinks } from '../../utils/safeHtml';
 import Image from 'next/image';
 import { cn } from '@/utils/cn';
 import { buttonVariants } from '@/components/ui/button';
-import quizData from './quizData.json';
+import quizData from './data';
+import type { QuizData, FullQuizData } from './data';
 
 const MAX_ATTEMPTS = 3;
 const COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 hours
@@ -16,21 +17,8 @@ interface QuizProps {
   onQuizCompleted?: (quizId: string) => void;
 }
 
-interface QuizData {
-  question: string;
-  options: string[];
-  correctAnswers: number[];
-  hint: string;
-  explanation: string;
-}
-
-interface FullQuizData extends QuizData {
-  alternates?: QuizData[];
-  chapter?: string;
-}
-
 function getVariant(quizId: string, variantIndex: number): QuizData | null {
-  const baseQuiz = (quizData.quizzes as Record<string, FullQuizData>)[quizId];
+  const baseQuiz = quizData.quizzes[quizId];
   if (!baseQuiz) return null;
   if (variantIndex === 0 || !baseQuiz.alternates) return baseQuiz;
   if (variantIndex - 1 < baseQuiz.alternates.length) {
