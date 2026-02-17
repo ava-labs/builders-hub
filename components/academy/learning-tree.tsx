@@ -3,9 +3,11 @@
 import React from "react";
 import Link from "next/link";
 import { cn } from "@/utils/cn";
-import { ArrowRight, ChevronDown, GraduationCap, BookOpen, Shield, Clock, Monitor, Terminal, MessageSquare, Hammer, Settings, Network, Code, Hexagon, Users, Wallet, Lock } from "lucide-react";
+import { ArrowRight, ChevronDown, GraduationCap, BookOpen, Shield, Clock, Monitor, Terminal, MessageSquare, Hammer, Settings, Network, Code, Hexagon, Users, Wallet, Lock, Check } from "lucide-react";
 import { getCourseDurations, getCourseTools } from "@/content/courses";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useCourseCompletion } from "@/hooks/useCourseCompletion";
+import { useCourseBadges } from "@/hooks/useCourseBadges";
 
 // CourseNode interface definition
 export interface CourseNode {
@@ -110,6 +112,16 @@ export default function LearningTree({
     ? blockchainCategoryStyles 
     : entrepreneurCategoryStyles;
 
+  // Course completion tracking
+  const courseEntries = React.useMemo(() =>
+    learningPaths.map(node => ({
+      nodeId: node.id,
+      courseSlug: getCourseSlug(node.slug),
+    })), [learningPaths]
+  );
+  const { completionMap } = useCourseCompletion(courseEntries);
+  const { badgeImageMap } = useCourseBadges(completionMap, courseEntries);
+
   const resolveSlug = (slug: string) => {
     if (pathType === 'entrepreneur') {
       const cleanSlug = slug.replace(/^entrepreneur\//, '');
@@ -201,6 +213,7 @@ export default function LearningTree({
           if (parentNode) {
             // Check if this connection should be highlighted
             const isActive = highlightedNodes.has(node.id) && highlightedNodes.has(depId);
+            const isCompleted = completionMap.get(node.id) === true;
 
             // Calculate the center points of the nodes
             const parentCenterX = parentNode.position.x;
@@ -230,13 +243,13 @@ export default function LearningTree({
                 key={`${depId}-${node.id}`}
                 d={pathData}
                 fill="none"
-                stroke={isActive ? (isDarkMode ? "rgb(212, 212, 216)" : "rgb(161, 161, 170)") : isDarkMode ? "rgb(113, 113, 122)" : "rgb(226, 232, 240)"}
-                strokeWidth={isActive ? "1.5" : "1"}
-                opacity={isActive ? "1" : isDarkMode ? "0.6" : "0.5"}
+                stroke={isActive ? (isDarkMode ? "rgb(212, 212, 216)" : "rgb(161, 161, 170)") : isCompleted ? (isDarkMode ? "rgb(52, 211, 153)" : "rgb(16, 185, 129)") : isDarkMode ? "rgb(113, 113, 122)" : "rgb(226, 232, 240)"}
+                strokeWidth={isActive ? "1.5" : isCompleted ? "1.5" : "1"}
+                opacity={isActive ? "1" : isCompleted ? "0.85" : isDarkMode ? "0.6" : "0.5"}
                 className="transition-all duration-700 ease-in-out"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                markerEnd={isActive ? activeMarker : inactiveMarker}
+                markerEnd={isActive ? activeMarker : isCompleted ? (isDarkMode ? "url(#arrow-completed-dark)" : "url(#arrow-completed-light)") : inactiveMarker}
               />
             );
           }
@@ -264,7 +277,7 @@ export default function LearningTree({
                 {/* Connection line from previous course */}
                 {index > 0 && (
                   <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                    <svg width="16" height="16" viewBox="0 0 16 16" className="text-zinc-400 dark:text-zinc-600">
+                    <svg width="16" height="16" viewBox="0 0 16 16" className={completionMap.get(node.id) === true ? "text-emerald-500 dark:text-emerald-400" : "text-zinc-400 dark:text-zinc-600"}>
                       <path
                         d="M8 2 L8 10"
                         stroke="currentColor"
@@ -317,6 +330,29 @@ export default function LearningTree({
                     )}>
                       <Icon className="w-3.5 h-3.5" />
                     </div>
+
+                    {/* Completion badge */}
+                    {completionMap.has(node.id) && (
+                      <div className={cn(
+                        "absolute rounded-full overflow-hidden",
+                        "flex items-center justify-center",
+                        "border-2 transition-all duration-300",
+                        (completionMap.get(node.id) && badgeImageMap.has(node.id))
+                          ? "w-9 h-9 -top-3 -left-3"
+                          : "w-7 h-7 -top-2 -left-2",
+                        completionMap.get(node.id)
+                          ? badgeImageMap.has(node.id)
+                            ? "border-transparent shadow-md"
+                            : cn("bg-gradient-to-br shadow-md text-white border-transparent", style?.gradient)
+                          : "bg-zinc-100 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700"
+                      )}>
+                        {completionMap.get(node.id) && badgeImageMap.has(node.id) ? (
+                          <img src={badgeImageMap.get(node.id)} alt="Badge" className="w-full h-full object-cover" />
+                        ) : completionMap.get(node.id) ? (
+                          <Check className="w-3.5 h-3.5" />
+                        ) : null}
+                      </div>
+                    )}
 
                     {/* Content */}
                     <h4 className="font-semibold text-sm mb-1 text-zinc-900 dark:text-white leading-tight pr-6">
@@ -463,6 +499,38 @@ export default function LearningTree({
                 fill="rgb(212, 212, 216)"
               />
             </marker>
+            {/* Completed arrow for light mode */}
+            <marker
+              id="arrow-completed-light"
+              viewBox="0 0 10 10"
+              refX="5"
+              refY="5"
+              markerWidth="6"
+              markerHeight="6"
+              orient="auto"
+            >
+              <path
+                d="M 0 0 L 10 5 L 0 10 z"
+                fill="rgb(16, 185, 129)"
+                opacity="0.85"
+              />
+            </marker>
+            {/* Completed arrow for dark mode */}
+            <marker
+              id="arrow-completed-dark"
+              viewBox="0 0 10 10"
+              refX="5"
+              refY="5"
+              markerWidth="6"
+              markerHeight="6"
+              orient="auto"
+            >
+              <path
+                d="M 0 0 L 10 5 L 0 10 z"
+                fill="rgb(52, 211, 153)"
+                opacity="0.85"
+              />
+            </marker>
           </defs>
           {drawConnections()}
         </svg>
@@ -528,6 +596,29 @@ export default function LearningTree({
                   )}>
                     <Icon className="w-4 h-4" />
                   </div>
+
+                  {/* Completion badge */}
+                  {completionMap.has(node.id) && (
+                    <div className={cn(
+                      "absolute rounded-full overflow-hidden",
+                      "flex items-center justify-center",
+                      "border-2 transition-all duration-300",
+                      (completionMap.get(node.id) && badgeImageMap.has(node.id))
+                        ? "w-10 h-10 -top-3.5 -left-3.5"
+                        : "w-8 h-8 -top-2.5 -left-2.5",
+                      completionMap.get(node.id)
+                        ? badgeImageMap.has(node.id)
+                          ? "border-transparent shadow-md"
+                          : cn("bg-gradient-to-br shadow-md text-white border-transparent", style?.gradient)
+                        : "bg-zinc-100 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700"
+                    )}>
+                      {completionMap.get(node.id) && badgeImageMap.has(node.id) ? (
+                        <img src={badgeImageMap.get(node.id)} alt="Badge" className="w-full h-full object-cover" />
+                      ) : completionMap.get(node.id) ? (
+                        <Check className="w-4 h-4" />
+                      ) : null}
+                    </div>
+                  )}
 
                   {/* Content */}
                   <h4 className="font-semibold text-sm mb-1.5 text-zinc-900 dark:text-white leading-tight pr-6">

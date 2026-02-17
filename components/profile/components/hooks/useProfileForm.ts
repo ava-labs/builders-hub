@@ -17,6 +17,7 @@ export const profileSchema = z.object({
   is_student: z.boolean().optional().default(false),
   is_founder: z.boolean().optional().default(false),
   is_employee: z.boolean().optional().default(false),
+  is_developer: z.boolean().optional().default(false),
   is_enthusiast: z.boolean().optional().default(false),
   // Founder fields
   founder_company_name: z.string().optional(),
@@ -63,6 +64,7 @@ export function useProfileForm() {
       is_student: false,
       is_founder: false,
       is_employee: false,
+      is_developer: false,
       is_enthusiast: false,
       founder_company_name: "",
       employee_company_name: "",
@@ -125,6 +127,7 @@ export function useProfileForm() {
             is_student: basicProfileData?.is_student ?? profile.user_type?.is_student ?? false,
             is_founder: basicProfileData?.is_founder ?? profile.user_type?.is_founder ?? false,
             is_employee: basicProfileData?.is_employee ?? profile.user_type?.is_employee ?? false,
+            is_developer: basicProfileData?.is_developer ?? profile.user_type?.is_developer ?? false,
             is_enthusiast: basicProfileData?.is_enthusiast ?? profile.user_type?.is_enthusiast ?? false,
             founder_company_name: basicProfileData?.founder_company_name || profile.user_type?.founder_company_name || "",
             employee_company_name: basicProfileData?.employee_company_name || profile.user_type?.employee_company_name || "",
@@ -234,26 +237,27 @@ export function useProfileForm() {
       }
 
       // Build user_type object to send as JSON
-      const { 
-        is_student, 
-        is_founder, 
-        is_employee, 
-        is_enthusiast, 
+      const {
+        is_student,
+        is_founder,
+        is_employee,
+        is_developer,
+        is_enthusiast,
         founder_company_name,
         employee_company_name,
         employee_role,
-        student_institution, 
-        company_name, 
+        student_institution,
+        company_name,
         role,
         wallet,
-        ...restData 
+        ...restData
       } = data;
-      
+
       // Clean wallet array: remove empty strings and duplicates
-      const cleanedWallets = Array.isArray(wallet) 
-        ? [...new Set(wallet.filter(w => w && w.trim() !== ""))] 
+      const cleanedWallets = Array.isArray(wallet)
+        ? [...new Set(wallet.filter(w => w && w.trim() !== ""))]
         : [];
-      
+
       const profileData = {
         ...restData,
         wallet: cleanedWallets.length > 0 ? cleanedWallets : [],
@@ -262,6 +266,7 @@ export function useProfileForm() {
           is_student,
           is_founder,
           is_employee,
+          is_developer,
           is_enthusiast,
           ...(founder_company_name && { founder_company_name }),
           ...(employee_company_name && { employee_company_name }),
@@ -399,26 +404,27 @@ export function useProfileForm() {
       }
 
       // Build user_type object to send as JSON
-      const { 
-        is_student, 
-        is_founder, 
-        is_employee, 
-        is_enthusiast, 
+      const {
+        is_student,
+        is_founder,
+        is_employee,
+        is_developer,
+        is_enthusiast,
         founder_company_name,
         employee_company_name,
         employee_role,
-        student_institution, 
-        company_name, 
+        student_institution,
+        company_name,
         role,
         wallet,
-        ...restData 
+        ...restData
       } = data;
-      
+
       // Clean wallet array: remove empty strings and duplicates
-      const cleanedWallets = Array.isArray(wallet) 
-        ? [...new Set(wallet.filter(w => w && w.trim() !== ""))] 
+      const cleanedWallets = Array.isArray(wallet)
+        ? [...new Set(wallet.filter(w => w && w.trim() !== ""))]
         : [];
-      
+
       const profileData = {
         ...restData,
         wallet: cleanedWallets.length > 0 ? cleanedWallets : [],
@@ -427,6 +433,7 @@ export function useProfileForm() {
           is_student,
           is_founder,
           is_employee,
+          is_developer,
           is_enthusiast,
           ...(founder_company_name && { founder_company_name }),
           ...(employee_company_name && { employee_company_name }),

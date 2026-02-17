@@ -486,11 +486,6 @@ const config = {
         permanent: true,
       },
       {
-        source: '/events',
-        destination: '/hackathons',
-        permanent: true,
-      },
-      {
         source: '/tools/l1-launcher',
         destination: '/academy/avalanche-l1/avalanche-fundamentals/04-creating-an-l1/01-creating-an-l1',
         permanent: true,
@@ -1848,6 +1843,27 @@ const config = {
         destination: "/academy/entrepreneur",
         permanent: true,
       }
+    ];
+  },
+  async rewrites() {
+    return [
+      // Rewrite .md requests to serve raw markdown content
+      {
+        source: '/docs/:path*.md',
+        destination: '/api/raw/docs/:path*',
+      },
+      {
+        source: '/academy/:path*.md',
+        destination: '/api/raw/academy/:path*',
+      },
+      {
+        source: '/blog/:path*.md',
+        destination: '/api/raw/blog/:path*',
+      },
+      {
+        source: '/integrations/:path*.md',
+        destination: '/api/raw/integrations/:path*',
+      },
     ];
   },
 };

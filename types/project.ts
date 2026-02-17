@@ -28,6 +28,7 @@ export interface Project {
   tracks: string[];
   categories?: string[];
   other_category?: string;
+  deployed_addresses?: Array<{ address: string; tag?: string }>;
   members?:Member[]
   user_id?:string
   isDraft?:boolean

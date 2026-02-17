@@ -86,6 +86,7 @@ interface NavGroup {
   id: string;
   title: string;
   icon: LucideIcon;
+  defaultOpen?: boolean;
   requiresL1?: boolean;
   items: (NavItem | CollapsibleSubGroup)[];
 }
@@ -194,6 +195,7 @@ const data = {
       id: "your-l1",
       title: "Your L1",
       icon: Box,
+      defaultOpen: true,
       items: [
         {
           title: "My L1 Dashboard",
@@ -309,10 +311,43 @@ const data = {
             },
           ],
         },
+        // Staking sub-group (permissionless L1 operations)
         {
-          title: "Native Staking Manager",
-          url: "/console/permissionless-l1s/native-staking-manager-setup",
-          icon: GitMerge,
+          id: "staking",
+          title: "Staking",
+          icon: HandCoins,
+          items: [
+            {
+              title: "Staking Manager Setup",
+              url: "/console/permissionless-l1s/staking-manager-setup",
+              icon: GitMerge,
+            },
+            {
+              title: "Native Staking Manager",
+              url: "/console/permissionless-l1s/native-staking-manager-setup",
+              icon: GitMerge,
+            },
+            {
+              title: "Query PoS Validators",
+              url: "/console/permissionless-l1s/query-pos-validator-set",
+              icon: Hexagon,
+            },
+            {
+              title: "Stake",
+              url: "/console/permissionless-l1s/stake",
+              icon: HandCoins,
+            },
+            {
+              title: "Delegate",
+              url: "/console/permissionless-l1s/delegate",
+              icon: ArrowUpDown,
+            },
+            {
+              title: "Withdraw",
+              url: "/console/permissionless-l1s/withdraw",
+              icon: SquareMinus,
+            },
+          ],
         },
       ],
     },

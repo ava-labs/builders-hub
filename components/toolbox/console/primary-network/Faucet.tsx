@@ -14,6 +14,7 @@ import { AccountRequirementsConfigKey } from "../../hooks/useAccountRequirements
 import { useFaucetRateLimit } from "@/hooks/useFaucetRateLimit";
 import { useFaucetBalance } from "@/hooks/useFaucetBalance";
 import { Check, Droplets, ExternalLink, Clock, Wallet, RefreshCw, Loader2 } from "lucide-react";
+import Link from "next/link";
 
 function FaucetBalanceDisplay({
   balance,
@@ -343,6 +344,13 @@ function Faucet({ onSuccess }: BaseConsoleToolProps) {
           Core Faucet
           <ExternalLink className="w-3 h-3" />
         </a>
+        <span>•</span>
+        <Link
+          href="/console/primary-network/devnet-faucet"
+          className="hover:text-zinc-900 dark:hover:text-white transition-colors underline"
+        >
+          Devnet Faucet
+        </Link>
       </div>
     </div>
   );

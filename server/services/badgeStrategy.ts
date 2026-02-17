@@ -84,6 +84,38 @@ export class BadgeByRequirementStrategy implements BadgeAssignmentStrategy {
 }
 
 /**
+ * Strategy for Console badges
+ */
+export class ConsoleBadgeStrategy implements BadgeAssignmentStrategy {
+  async assignBadge(body: AssignBadgeBody): Promise<AssignBadgeResult> {
+    if (!body.consoleTrigger) {
+      return {
+        success: false,
+        message: "Console trigger type is required for console badges",
+        badge_id: "",
+        user_id: body.userId,
+        badges: [],
+      };
+    }
+
+    const { checkAndAwardConsoleBadges } = await import("./consoleBadge/consoleBadgeService");
+    await checkAndAwardConsoleBadges(body.userId, body.consoleTrigger);
+
+    return {
+      success: true,
+      message: "Console badges evaluated",
+      badge_id: "",
+      user_id: body.userId,
+      badges: [],
+    };
+  }
+
+  getRequiredRole(): string | null {
+    return null;
+  }
+}
+
+/**
  * Factory to create badge assignment strategies
  */
 export class BadgeStrategyFactory {
@@ -95,6 +127,8 @@ export class BadgeStrategyFactory {
         return new ProjectBadgeStrategy();
       case BadgeCategory.requirement:
         return new BadgeByRequirementStrategy();
+      case BadgeCategory.console:
+        return new ConsoleBadgeStrategy();
       default:
         throw new Error(`Unsupported badge category: ${category}`);
     }

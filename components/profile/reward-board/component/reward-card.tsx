@@ -6,8 +6,8 @@ import type { BadgeCardProps } from "../types/badgeCard";
 import { RequirementsPanel } from "./requirement-panel";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
-import { StaticMedal } from "./static-metal";
 import { AutoRotateMedal } from "./auto-rotate-badge";
+import { Lock, CheckCircle2 } from "lucide-react";
 
 const DISC = { radius: 1.3, segments: 200 };
 
@@ -29,30 +29,36 @@ export const RewardCard = ({
         style={{ userSelect: "none" }}
       >
         <div
-          className="w-full h-[230px] cursor-pointer"
+          className="w-full h-[230px] cursor-pointer flex items-center justify-center"
           onClick={() => setOpen(true)}
         >
-          <Canvas
-
-            shadows={false}
-            dpr={[1, 2]}
-            camera={{ position: [0, 0, 4.1], fov: 45 }}
-            frameloop="demand"
-            gl={{
-              antialias: true,
-              alpha: true,
-              outputColorSpace: THREE.SRGBColorSpace,
-              toneMapping: THREE.ACESFilmicToneMapping,
-              toneMappingExposure: 0.8,
-
+          <div
+            className="relative w-[170px] h-[170px] rounded-full overflow-hidden"
+            style={{
+              border: "3px solid #999B9B",
+              background: "#52525B",
             }}
-
           >
-            <ambientLight intensity={1} />
-            <directionalLight position={[2.2, 3, 5]} intensity={1.15} />
-            <directionalLight position={[-3, -2, -4]} intensity={0.45} />
-            <StaticMedal image={image} is_unlocked={is_unlocked} Disc={DISC} />
-          </Canvas>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={image || "/wolfie/wolfie-hack.png"}
+              alt={name}
+              className={`w-full h-full object-cover ${!is_unlocked ? "grayscale opacity-50" : ""}`}
+              loading="lazy"
+            />
+          </div>
+        </div>
+        <div className="text-center mt-1 px-2">
+          <div className="flex items-center justify-center gap-1.5">
+            {is_unlocked ? (
+              <CheckCircle2 className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
+            ) : (
+              <Lock className="w-3.5 h-3.5 text-zinc-400 flex-shrink-0" />
+            )}
+            <span className={`text-sm font-medium truncate ${is_unlocked ? "text-gray-900 dark:text-white" : "text-zinc-400 dark:text-zinc-500"}`}>
+              {name}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -61,7 +67,7 @@ export const RewardCard = ({
           <DialogTitle>{name ?? "Badge details"}</DialogTitle>
         </VisuallyHidden>
         <DialogContent
-          hideCloseButton={true}
+       
           onOpenAutoFocus={(e) => e.preventDefault()}
           onCloseAutoFocus={(e) => e.preventDefault()}
           className="max-w-lg   bg-transparent shadow-none border-none  p-0 flex flex-col items-center"

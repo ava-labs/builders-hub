@@ -172,6 +172,23 @@ export function FlowCompletionModal({
           )}
         </div>
 
+        {/* Accomplishments */}
+        {metadata.accomplishments.length > 0 && (
+          <div className="px-6 py-4 bg-white dark:bg-zinc-900 border-b border-zinc-200/80 dark:border-zinc-800">
+            <h3 className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-3">
+              What you accomplished
+            </h3>
+            <ul className="space-y-2">
+              {metadata.accomplishments.map((text, index) => (
+                <li key={index} className="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
+                  <Check className="h-4 w-4 flex-shrink-0 text-green-500" />
+                  <span>{text}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         {/* Next Steps */}
         {(recommended.length > 0 || optional.length > 0) && (
           <div className="p-6">

@@ -3,7 +3,6 @@
 import { useCreateChainStore } from "@/components/toolbox/stores/createChainStore";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 import { useState } from "react";
-import { Button } from "@/components/toolbox/components/Button";
 import { type ConvertToL1Validator } from "@/components/toolbox/components/ValidatorListInput";
 import { ValidatorListInput } from "@/components/toolbox/components/ValidatorListInput";
 import InputChainId from "@/components/toolbox/components/InputChainId";
@@ -11,19 +10,18 @@ import SelectSubnet, { SubnetSelection } from "@/components/toolbox/components/S
 import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
-import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 import { Step, Steps } from 'fumadocs-ui/components/steps';
 import Link from "next/link";
 import { BookOpen, ExternalLink, AlertTriangle } from "lucide-react";
-import { CliAlternative } from "@/components/console/cli-alternative";
+import { CoreWalletTransactionButton } from "@/components/toolbox/components/CoreWalletTransactionButton";
 
 const metadata: ConsoleToolMetadata = {
     title: "Convert Subnet to L1",
     description: "Convert your existing Subnet to an L1 with validator management",
     toolRequirements: [
-        WalletRequirementsConfigKey.PChainBalance
+        WalletRequirementsConfigKey.WalletConnected
     ],
     githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
 };
@@ -46,7 +44,7 @@ function ConvertToL1({ onSuccess }: BaseConsoleToolProps) {
 
     const { pChainAddress, isTestnet } = useWalletStore();
     const pChainBalance = useWalletStore((s) => s.balances.pChain);
-    const { coreWalletClient } = useConnectedWallet();
+    const coreWalletClient = useWalletStore((s) => s.coreWalletClient);
 
     const [isConverting, setIsConverting] = useState(false);
 
@@ -80,6 +78,8 @@ function ConvertToL1({ onSuccess }: BaseConsoleToolProps) {
     }
 
     async function handleConvertToL1() {
+        if (!coreWalletClient) return;
+
         setConvertToL1TxId("");
         setIsConverting(true);
 
@@ -189,18 +189,16 @@ function ConvertToL1({ onSuccess }: BaseConsoleToolProps) {
                 </Link>{" "}
                 on the P-Chain. This conversion is <strong>irreversible</strong>.
             </div>
-            <Button
+            <CoreWalletTransactionButton
                 variant="primary"
                 onClick={handleConvertToL1}
                 disabled={!selection.subnetId || !validatorManagerAddress || validators.length === 0 || (selection.subnet?.isL1)}
                 loading={isConverting}
-                icon={<img src="/images/core.svg" alt="" className="w-4 h-4" />}
                 className="w-full"
+                cliCommand={buildConvertCliCommand()}
             >
                 {selection.subnet?.isL1 ? "Already Converted" : "Convert to L1"}
-            </Button>
-
-            <CliAlternative command={buildConvertCliCommand()} />
+            </CoreWalletTransactionButton>
         </div>
     );
 }

@@ -2,24 +2,22 @@
 
 import { useState } from "react";
 import { useCreateChainStore } from "@/components/toolbox/stores/createChainStore";
-import { Button } from "@/components/toolbox/components/Button";
 import { Input } from "@/components/toolbox/components/Input";
 import InputSubnetId from "@/components/toolbox/components/InputSubnetId";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
-import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
-import { ExternalLink, BookOpen, GraduationCap } from "lucide-react";
+import { Check, ExternalLink, BookOpen, GraduationCap, ArrowUpRight } from "lucide-react";
 import Link from "next/link";
-import { CliAlternative } from "@/components/console/cli-alternative";
+import { CoreWalletTransactionButton } from "@/components/toolbox/components/CoreWalletTransactionButton";
 
 const metadata: ConsoleToolMetadata = {
     title: "Create Subnet",
     description: "Create a new Subnet or select an existing one to build your L1 on",
     toolRequirements: [
-        WalletRequirementsConfigKey.PChainBalance
+        WalletRequirementsConfigKey.WalletConnected
     ],
     githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
 };
@@ -30,11 +28,13 @@ function CreateSubnet(_props: BaseConsoleToolProps) {
     const setSubnetID = store(state => state.setSubnetID);
 
     const { pChainAddress, isTestnet } = useWalletStore();
-    const { coreWalletClient } = useConnectedWallet();
+    const coreWalletClient = useWalletStore((s) => s.coreWalletClient);
     const { notify } = useConsoleNotifications();
     const [isCreatingSubnet, setIsCreatingSubnet] = useState(false);
 
     async function handleCreateSubnet() {
+        if (!coreWalletClient) return;
+
         setIsCreatingSubnet(true);
 
         const createSubnetTx = coreWalletClient.createSubnet({
@@ -50,6 +50,8 @@ function CreateSubnet(_props: BaseConsoleToolProps) {
             setIsCreatingSubnet(false);
         }
     }
+
+    const hasSubnet = !!subnetId;
 
     return (
         <div className="space-y-6">
@@ -101,16 +103,16 @@ function CreateSubnet(_props: BaseConsoleToolProps) {
                             </Link>{" "}
                             on the P-Chain.
                         </p>
-                        <Button
+                        <CoreWalletTransactionButton
                             onClick={handleCreateSubnet}
                             loading={isCreatingSubnet}
                             loadingText="Creating..."
                             variant="primary"
-                            icon={<img src="/images/core.svg" alt="" className="w-4 h-4" />}
                             className="w-full"
+                            cliCommand={`platform subnet create --network ${isTestnet ? "fuji" : "mainnet"}`}
                         >
                             Create Subnet
-                        </Button>
+                        </CoreWalletTransactionButton>
                     </div>
                 </div>
 
@@ -129,7 +131,28 @@ function CreateSubnet(_props: BaseConsoleToolProps) {
                 </div>
             </div>
 
-            <CliAlternative command={`platform subnet create --network ${isTestnet ? "fuji" : "mainnet"}`} />
+            {/* Ready State */}
+            {hasSubnet && (
+                <div className="flex items-center gap-3 p-3 rounded-lg border border-green-500/30 bg-green-500/5">
+                    <div className="flex-shrink-0 h-6 w-6 rounded-full bg-green-500/10 flex items-center justify-center">
+                        <Check className="h-3.5 w-3.5 text-green-500" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-green-700 dark:text-green-400">Subnet Ready</p>
+                        <p className="text-xs font-mono text-muted-foreground truncate">{subnetId}</p>
+                    </div>
+                    <a
+                        href={`https://${isTestnet ? 'subnets-test' : 'subnets'}.avax.network/subnets/${subnetId}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-shrink-0 text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+                    >
+                        Explorer
+                        <ArrowUpRight className="h-3 w-3" />
+                    </a>
+                </div>
+            )}
+
         </div>
     );
 }

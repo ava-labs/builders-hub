@@ -4,6 +4,7 @@ import "./styles.css";
 import ReferralButton from "@/components/build-games/ReferralButton";
 import ReferralLink from "@/components/build-games/ReferralLink";
 import { ApplyButton } from "@/components/build-games/ApplyButton";
+import ApplicationStatusTracker from "@/components/build-games/ApplicationStatusTracker";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import type { Metadata } from "next";
 
@@ -726,7 +727,7 @@ function HowItWorksSection() {
           </BodyText>
         </SectionHeader>
         <TimelineRow className="bg-[rgba(255,255,255,0.2)]">
-          <WeekLabel text="Jan 20 - Feb 13" />
+          <WeekLabel text="Jan 20 - Feb 18" />
           <ThreeColumnGrid>
             <GridLabel text="Focus" />
             <GridValue>Application Process</GridValue>
@@ -942,7 +943,7 @@ There are no tracks, no themes, and no restrictions on what you can build.
     },
     {
       question: "When do applications close?",
-      answer: "Applications close February 13th (tentative)."
+      answer: "Applications close February 18th (tentative)."
     },
     {
       question: "How are projects evaluated?",
@@ -963,9 +964,9 @@ There are no predefined tracks or categories, and strong projects may look very 
     {
       question: "What is the competition timeline?",
       answer: `Applications Open: January 20th
-Applications Close: February 13th
+Applications Close: February 18th
 Acceptance Letters: Rolling
-Competition Begins: February TBA
+Competition Begins: February 20th
 Finals & Awards: March TBA`
     },
     {
@@ -1075,7 +1076,7 @@ function MainContent() {
     <div className="absolute content-stretch flex flex-col items-start left-[-0.05px] right-[0.05px] top-0" data-name="Main">
       <HeroSection />
       <HeroTilesSection />
-      <ApplyTodayCTA />
+      <ApplicationStatusTracker />
       <div className="relative shrink-0 w-full" data-name="CTA">
         <div className="flex flex-col justify-center size-full">
           <div className="content-stretch flex flex-col gap-[16px] items-start justify-center px-[186px] py-0 relative w-full">
