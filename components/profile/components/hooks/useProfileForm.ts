@@ -538,13 +538,14 @@ export function useProfileForm() {
   // Wallet handlers
   const handleAddWallet = (address: string) => {
     const currentWallets = watchedValues.wallet || [];
-    // Validar formato antes de agregar
-    if (address && address.trim() !== "" && /^0x[a-fA-F0-9]{40}$/.test(address.trim())) {
-      const trimmedAddress = address.trim();
-      // Evitar duplicados
-      if (!currentWallets.includes(trimmedAddress)) {
-        setValue("wallet", [...currentWallets, trimmedAddress], { shouldDirty: true });
-      }
+    const trimmedAddress = address?.trim() ?? "";
+    if (trimmedAddress === "" || !/^0x[a-fA-F0-9]{40}$/.test(trimmedAddress)) return;
+    // Evitar duplicados (comparación case-insensitive: las direcciones Ethereum son la misma con distinta capitalización)
+    const isDuplicate = currentWallets.some(
+      (w) => w.toLowerCase() === trimmedAddress.toLowerCase()
+    );
+    if (!isDuplicate) {
+      setValue("wallet", [...currentWallets, trimmedAddress], { shouldDirty: true });
     }
   };
 
