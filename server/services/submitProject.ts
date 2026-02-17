@@ -170,7 +170,7 @@ export async function createProject(
         deployed_addresses: normalizeDeployedAddresses(projectData.deployed_addresses),
         explanation: projectData.explanation ?? "",
         origin: "Project submission",
-        hackaton_id: projectData.hackaton_id ?? null,
+        // Note: hackaton_id is handled via the hackathon relation below, not directly
         // Member created together with project
         members: {
           create: {

@@ -22,16 +22,18 @@ model Hackathon {
   icon            String         @default("")
   small_banner    String         @default("")
   participants    Int
-  organizers      String?
   top_most        Boolean?       @default(false)
+  organizers      String?
   custom_link     String?
   created_by      String?
   is_public       Boolean?
   updated_by      String?
+  event           String?        @default("hackathon")
   created_by_user User?          @relation(fields: [created_by], references: [id])
   updated_by_user User?          @relation("HackathonUpdatedBy", fields: [updated_by], references: [id])
   projects        Project[]
   registrations   RegisterForm[]
+  cohosts         String[]       @default([])
 }
 
 model User {

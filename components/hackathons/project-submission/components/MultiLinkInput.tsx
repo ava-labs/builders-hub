@@ -36,10 +36,15 @@ export const MultiLinkInput: React.FC<MultiLinkInputProps> = ({
     if (!newLink) return;
 
     try {
-      
-      const url = new URL(newLink);
-      
-      
+      // Auto-format URL by prepending https:// if needed
+      let formattedLink = newLink.trim();
+      if (!formattedLink.startsWith('http://') && !formattedLink.startsWith('https://')) {
+        formattedLink = `https://${formattedLink}`;
+      }
+
+      const url = new URL(formattedLink);
+
+
       if (name === 'demo_link' && (
         url.hostname.includes('youtube.com') ||
         url.hostname.includes('youtu.be') ||
@@ -53,9 +58,9 @@ export const MultiLinkInput: React.FC<MultiLinkInputProps> = ({
       }
 
       const currentLinks = (form.getValues(name) as string[]) || [];
-      
-      
-      if (currentLinks.includes(newLink)) {
+
+
+      if (currentLinks.includes(formattedLink)) {
         form.setError(name, {
           type: 'manual',
           message: 'This link has already been added'
@@ -63,7 +68,7 @@ export const MultiLinkInput: React.FC<MultiLinkInputProps> = ({
         return;
       }
 
-      form.setValue(name, [...currentLinks, newLink], { shouldValidate: true });
+      form.setValue(name, [...currentLinks, formattedLink], { shouldValidate: true });
       setNewLink("");
     } catch (error) {
       form.setError(name, {

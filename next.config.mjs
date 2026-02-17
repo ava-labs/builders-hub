@@ -486,11 +486,6 @@ const config = {
         permanent: true,
       },
       {
-        source: '/events',
-        destination: '/hackathons',
-        permanent: true,
-      },
-      {
         source: '/tools/l1-launcher',
         destination: '/academy/avalanche-l1/avalanche-fundamentals/04-creating-an-l1/01-creating-an-l1',
         permanent: true,
@@ -1247,11 +1242,6 @@ const config = {
       {
         source: "/docs/nodes/maintain/background-service-config",
         destination: "/docs/nodes/maintain/run-as-background-service",
-        permanent: true,
-      },
-      {
-        source: "/docs/nodes/run-a-node",
-        destination: "/docs/nodes",
         permanent: true,
       },
       {

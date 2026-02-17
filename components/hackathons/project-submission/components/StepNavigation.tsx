@@ -66,7 +66,9 @@ export const StepNavigation = ({
           variant="red"
           className="px-4 py-2 cursor-pointer"
           onClick={(e) => {
-            if (!isLastStep) {
+            if (isLastStep) {
+              console.log('🔘 Final Submit button clicked');
+            } else {
               e.preventDefault();
               handleNext();
             }
@@ -80,6 +82,7 @@ export const StepNavigation = ({
           loadingText="Saving..."
           type="button"
           onClick={async () => {
+            console.log('💾 Save & Continue Later button clicked');
             try {
               setIsSavingLater(true);
               await onSave();
