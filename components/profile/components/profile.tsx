@@ -424,7 +424,7 @@ export default function Profile({
                   name="wallet"
                   render={({ field }) => (
                     <FormItem className="flex flex-row items-start gap-4">
-                      <FormLabel className="w-32 shrink-0 pt-2">Wallets</FormLabel>
+                      <FormLabel className="w-32 shrink-0 pt-2">EVM Wallet</FormLabel>
                       <div className="flex-1">
                         <FormControl>
                           <div className="space-y-2">
