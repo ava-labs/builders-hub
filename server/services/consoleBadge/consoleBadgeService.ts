@@ -1,6 +1,6 @@
 import { prisma } from "@/prisma/prisma";
 import { BadgeAwardStatus } from "@/types/badge";
-import { ConsoleOperationType, ConsoleBadgeDefinition, CONSOLE_BADGE_NAMES, AwardedConsoleBadge } from "./types";
+import { ConsoleOperationType, ConsoleBadgeDefinition, CONSOLE_BADGE_NAMES, AwardedConsoleBadge, BadgeEvaluationContext } from "./types";
 import {
   evaluateFirstBlood,
   evaluateRecruit,
@@ -167,7 +167,8 @@ const CONSOLE_BADGES: ConsoleBadgeDefinition[] = [
  */
 export async function checkAndAwardConsoleBadges(
   userId: string,
-  operationType: ConsoleOperationType
+  operationType: ConsoleOperationType,
+  context?: BadgeEvaluationContext
 ): Promise<AwardedConsoleBadge[]> {
   const newlyAwarded: AwardedConsoleBadge[] = [];
 
@@ -199,7 +200,7 @@ export async function checkAndAwardConsoleBadges(
     if (awardedBadgeIds.has(dbBadge.id)) continue;
 
     try {
-      const isEarned = await badgeDef.evaluate(userId);
+      const isEarned = await badgeDef.evaluate(userId, context);
       if (isEarned) {
         await prisma.userBadge.upsert({
           where: {
@@ -244,7 +245,7 @@ export async function checkAndAwardConsoleBadges(
  * Evaluate all 15 console badges for a user (used for retroactive migration and first-load check).
  * Returns the array of newly awarded badges.
  */
-export async function evaluateAllConsoleBadges(userId: string): Promise<AwardedConsoleBadge[]> {
+export async function evaluateAllConsoleBadges(userId: string, context?: BadgeEvaluationContext): Promise<AwardedConsoleBadge[]> {
   const newlyAwarded: AwardedConsoleBadge[] = [];
 
   const dbBadges = await prisma.badge.findMany({
@@ -269,7 +270,7 @@ export async function evaluateAllConsoleBadges(userId: string): Promise<AwardedC
     if (awardedBadgeIds.has(dbBadge.id)) continue;
 
     try {
-      const isEarned = await badgeDef.evaluate(userId);
+      const isEarned = await badgeDef.evaluate(userId, context);
       if (isEarned) {
         await prisma.userBadge.upsert({
           where: {

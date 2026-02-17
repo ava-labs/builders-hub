@@ -66,7 +66,8 @@ export const useConsoleLog = (autoFetch: boolean = false) => {
         body: JSON.stringify({
           status: item.status,
           actionPath: item.actionPath,
-          data: item.data
+          data: item.data,
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
         })
       });
 

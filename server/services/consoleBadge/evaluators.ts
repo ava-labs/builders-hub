@@ -176,13 +176,14 @@ export async function evaluateSpeedDemon(userId: string): Promise<boolean> {
   return false;
 }
 
-export async function evaluateNightOwl(userId: string): Promise<boolean> {
+export async function evaluateNightOwl(userId: string, context?: { timezone?: string }): Promise<boolean> {
+  const tz = context?.timezone || 'UTC';
   const result = await prisma.$queryRaw<{ count: bigint }[]>`
     SELECT COUNT(*) as count
     FROM "ConsoleLog"
     WHERE user_id = ${userId}
       AND status = 'success'
-      AND EXTRACT(HOUR FROM created_at) BETWEEN 0 AND 4
+      AND EXTRACT(HOUR FROM created_at AT TIME ZONE ${tz}) BETWEEN 0 AND 4
   `;
   return Number(result[0]?.count ?? 0) >= 10;
 }

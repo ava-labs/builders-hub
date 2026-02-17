@@ -8,7 +8,7 @@ import type { FireworksHandlers } from "@fireworks-js/react";
 import Image from "next/image";
 
 export function ConsoleBadgeNotification() {
-  const { pendingBadges, dismissAll } = useConsoleBadgeNotificationStore();
+  const { pendingBadges, isRetroactive, dismissAll } = useConsoleBadgeNotificationStore();
   const ref = useRef<FireworksHandlers>(null);
 
   const isOpen = pendingBadges.length > 0;
@@ -44,7 +44,9 @@ export function ConsoleBadgeNotification() {
               Console Badges have dropped!
             </h3>
             <p className="text-sm dark:text-zinc-400 text-gray-500 text-center mt-1 mb-2">
-              We just launched console badges and your past activity has already earned you {pendingBadges.length === 1 ? "one" : "some"}!
+              {isRetroactive
+                ? `Your past activity has already earned you ${pendingBadges.length === 1 ? "a badge" : "some badges"}!`
+                : `You just earned ${pendingBadges.length === 1 ? "a new badge" : "new badges"}!`}
             </p>
 
             {pendingBadges.length === 1 ? (

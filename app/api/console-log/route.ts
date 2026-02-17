@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
     if (!body.status || !body.actionPath) {
       return NextResponse.json({ error: 'Status and actionPath are required.' }, { status: 400 });
     }
-    const { status, actionPath, data } = body;
+    const { status, actionPath, data, timezone } = body;
 
     const logEntry = await prisma.consoleLog.create({
       data: {
@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
     });
 
     let awardedBadges: AwardedConsoleBadge[] = [];
-    try { awardedBadges = await checkAndAwardConsoleBadges(session.user.id, 'console_log'); }
+    try { awardedBadges = await checkAndAwardConsoleBadges(session.user.id, 'console_log', { timezone }); }
     catch (e) { console.error('Badge check failed:', e); }
 
     return NextResponse.json({ ...logEntry, awardedBadges });

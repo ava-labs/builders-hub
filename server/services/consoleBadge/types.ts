@@ -1,12 +1,16 @@
 export type ConsoleOperationType = 'console_log' | 'faucet_claim' | 'node_registration';
 
+export interface BadgeEvaluationContext {
+  timezone?: string;
+}
+
 export interface ConsoleBadgeDefinition {
   name: string;
   tier: 'bronze' | 'silver' | 'gold' | 'platinum';
   description: string;
   imagePath: string;
   triggeredBy: ConsoleOperationType[];
-  evaluate: (userId: string) => Promise<boolean>;
+  evaluate: (userId: string, context?: BadgeEvaluationContext) => Promise<boolean>;
   requirementDescription: string;
 }
 

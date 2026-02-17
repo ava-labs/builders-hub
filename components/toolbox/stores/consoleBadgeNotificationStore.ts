@@ -10,15 +10,20 @@ export interface ConsoleBadgeNotification {
 
 interface ConsoleBadgeNotificationState {
   pendingBadges: ConsoleBadgeNotification[];
-  addBadges: (badges: ConsoleBadgeNotification[]) => void;
+  isRetroactive: boolean;
+  addBadges: (badges: ConsoleBadgeNotification[], isRetroactive?: boolean) => void;
   dismissAll: () => void;
 }
 
 export const useConsoleBadgeNotificationStore = create<ConsoleBadgeNotificationState>((set) => ({
   pendingBadges: [],
-  addBadges: (badges) => {
+  isRetroactive: false,
+  addBadges: (badges, isRetroactive = false) => {
     if (!badges || badges.length === 0) return;
-    set((state) => ({ pendingBadges: [...state.pendingBadges, ...badges] }));
+    set((state) => ({
+      pendingBadges: [...state.pendingBadges, ...badges],
+      isRetroactive: state.pendingBadges.length === 0 ? isRetroactive : state.isRetroactive,
+    }));
   },
-  dismissAll: () => set({ pendingBadges: [] }),
+  dismissAll: () => set({ pendingBadges: [], isRetroactive: false }),
 }));

@@ -17,11 +17,15 @@ export function useRetroactiveConsoleBadges() {
 
     localStorage.setItem(key, "1");
 
-    fetch("/api/badge/console-check", { method: "POST" })
+    fetch("/api/badge/console-check", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ timezone: Intl.DateTimeFormat().resolvedOptions().timeZone }),
+    })
       .then((res) => res.json())
       .then((data) => {
         if (data.awardedBadges?.length > 0) {
-          addBadges(data.awardedBadges);
+          addBadges(data.awardedBadges, true);
         }
       })
       .catch(() => {
