@@ -2,19 +2,17 @@
 
 import { useCreateChainStore } from "@/components/toolbox/stores/createChainStore";
 import { useState, useRef } from "react";
-import { Button } from "@/components/toolbox/components/Button";
 import { GenesisBuilderInner } from '@/components/toolbox/console/layer-1/create/GenesisBuilder';
 import { Step, Steps } from "fumadocs-ui/components/steps";
 import { SUBNET_EVM_VM_ID } from "@/constants/console";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
-import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 import { AlertTriangle, BookOpen, GraduationCap, ExternalLink } from "lucide-react";
 import Link from "next/link";
-import { CliAlternative } from "@/components/console/cli-alternative";
+import { CoreWalletTransactionButton } from "@/components/toolbox/components/CoreWalletTransactionButton";
 
 // Import Genesis Wizard components
 import { GenesisWizard } from "@/components/toolbox/components/genesis/GenesisWizard";
@@ -24,7 +22,7 @@ const metadata: ConsoleToolMetadata = {
     title: "Create Chain",
     description: "Configure and create a new blockchain on your subnet",
     toolRequirements: [
-        WalletRequirementsConfigKey.PChainBalance
+        WalletRequirementsConfigKey.WalletConnected
     ],
     githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
 };
@@ -41,7 +39,7 @@ function CreateChain({ onSuccess, embedded = false }: CreateChainProps) {
     const setGenesisData = store(state => state.setGenesisData);
     const setChainName = store(state => state.setChainName);
 
-    const { coreWalletClient } = useConnectedWallet();
+    const coreWalletClient = useWalletStore((s) => s.coreWalletClient);
     const { isTestnet } = useWalletStore();
     const { notify } = useConsoleNotifications();
 
@@ -60,6 +58,8 @@ function CreateChain({ onSuccess, embedded = false }: CreateChainProps) {
     };
 
     async function handleCreateChain() {
+        if (!coreWalletClient) return;
+
         setIsCreatingChain(true);
 
         const createChainTx = coreWalletClient.createChain({
@@ -267,22 +267,20 @@ function CreateChain({ onSuccess, embedded = false }: CreateChainProps) {
                         </div>
                     ) : (
                         <div className="flex items-center justify-center py-12">
-                            <Button
+                            <CoreWalletTransactionButton
                                 onClick={handleCreateChain}
                                 loading={isCreatingChain}
                                 loadingText="Creating Chain..."
                                 disabled={!canCreateChain}
-                                icon={<img src="/images/core.svg" alt="" className="w-4 h-4" />}
                                 className="px-8"
+                                cliCommand={`platform chain create --subnet-id ${subnetId || "<subnet-id>"} --genesis ./genesis.json --name "${localChainName}"${vmId !== SUBNET_EVM_VM_ID ? ` --vm-id ${vmId}` : ""} --network ${isTestnet ? "fuji" : "mainnet"}`}
                             >
                                 Create Chain
-                            </Button>
+                            </CoreWalletTransactionButton>
                         </div>
                     )}
                 </Step>
             </Steps>
-
-            <CliAlternative command={`platform chain create --subnet-id ${subnetId || "<subnet-id>"} --genesis ./genesis.json --name "${localChainName}"${vmId !== SUBNET_EVM_VM_ID ? ` --vm-id ${vmId}` : ""} --network ${isTestnet ? "fuji" : "mainnet"}`} />
         </div>
     );
 }

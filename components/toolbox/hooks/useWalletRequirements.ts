@@ -1,19 +1,21 @@
 import { useMemo, useCallback } from "react";
-import { useWalletStore } from "../stores/walletStore";
+import { useWalletStore, type WalletType } from "../stores/walletStore";
 import { Wallet, Coins, Network } from "lucide-react";
 import { useWalletSwitch } from "./useWalletSwitch";
 import { useWalletConnect } from "./useWalletConnect";
-import type { 
-    RequirementAction, 
-    Requirement, 
-    ConditionalAction, 
-    RedirectAction, 
-    ConnectAction, 
-    NetworkAction, 
-    LoginAction 
+import type {
+    RequirementAction,
+    Requirement,
+    ConditionalAction,
+    RedirectAction,
+    ConnectAction,
+    NetworkAction,
+    LoginAction
 } from "../types/requirements";
 
 export enum WalletRequirementsConfigKey {
+    HasWallet = "hasWallet",
+    WalletConnected = "walletConnected",
     HasCoreWallet = "hasCoreWallet",
     CoreWalletConnected = "coreWalletConnected",
     TestnetRequired = "testnetRequired",
@@ -36,7 +38,7 @@ const ACTIONS = {
         type: 'connect' as const,
         label: 'Connect',
         title: 'Connect Wallet',
-        description: 'Connect your Core wallet to continue'
+        description: 'Connect your wallet to continue'
     },
     SWITCH_TO_TESTNET: {
         type: 'network' as const,
@@ -78,6 +80,7 @@ interface WalletState {
     cChainBalance: number;
     selectedL1Balance: number;
     bootstrapped: boolean;
+    walletType: WalletType;
     isLoading: {
         pChain: boolean;
         cChain: boolean;
@@ -98,6 +101,29 @@ interface WalletRequirementConfig {
 
 // Constants for each requirement type
 const WALLET_REQUIREMENTS: Record<WalletRequirementsConfigKey, WalletRequirementConfig> = {
+    [WalletRequirementsConfigKey.HasWallet]: {
+        id: 'has-wallet',
+        title: 'Wallet detected',
+        description: 'An EVM wallet is required',
+        icon: Wallet,
+        action: ACTIONS.DOWNLOAD_CORE_WALLET,
+        getStatus: (walletState: WalletState) => ({
+            met: walletState.bootstrapped,
+            waiting: false
+        })
+    },
+    [WalletRequirementsConfigKey.WalletConnected]: {
+        id: 'wallet-connected',
+        title: 'Wallet connected',
+        description: 'Connect your wallet to continue',
+        icon: Wallet,
+        prerequisites: [WalletRequirementsConfigKey.HasWallet],
+        action: ACTIONS.CONNECT_WALLET,
+        getStatus: (walletState: WalletState) => ({
+            met: !!walletState.walletEVMAddress,
+            waiting: false
+        })
+    },
     [WalletRequirementsConfigKey.HasCoreWallet]: {
         id: 'has-core-wallet',
         title: 'Core wallet that is installed',
@@ -105,8 +131,8 @@ const WALLET_REQUIREMENTS: Record<WalletRequirementsConfigKey, WalletRequirement
         icon: Wallet,
         action: ACTIONS.DOWNLOAD_CORE_WALLET,
         getStatus: (walletState: WalletState) => ({
-            met: walletState.bootstrapped,
-            waiting: false // Core wallet detection is immediate
+            met: walletState.walletType === 'core',
+            waiting: false
         })
     },
     [WalletRequirementsConfigKey.CoreWalletConnected]: {
@@ -222,6 +248,7 @@ export function useWalletRequirements(configKey: WalletRequirementsConfigKey | W
     const walletChainId = useWalletStore((s) => s.walletChainId);
     const selectedL1Balance = useWalletStore((s) => s.balances.l1Chains[walletChainId.toString()]);
     const bootstrapped = useWalletStore((s) => s.getBootstrapped());
+    const walletType = useWalletStore((s) => s.walletType);
 
     const { safelySwitch } = useWalletSwitch();
     const { connectWallet } = useWalletConnect();
@@ -237,8 +264,9 @@ export function useWalletRequirements(configKey: WalletRequirementsConfigKey | W
         cChainBalance,
         selectedL1Balance,
         bootstrapped,
+        walletType,
         isLoading,
-    }), [coreWalletClient, isTestnet, walletEVMAddress, walletChainId, pChainAddress, pChainBalance, cChainBalance, selectedL1Balance, bootstrapped]);
+    }), [coreWalletClient, isTestnet, walletEVMAddress, walletChainId, pChainAddress, pChainBalance, cChainBalance, selectedL1Balance, bootstrapped, walletType]);
 
     const handleSwitchToTestnet = async () => {
         await safelySwitch(43113, true); // Fuji testnet chain ID and testnet flag
