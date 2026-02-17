@@ -14,6 +14,8 @@ interface ProfileHeaderProps {
   onEditName?: () => void;
   nounAvatarSeed?: AvatarSeed | null;
   nounAvatarEnabled?: boolean;
+  /** 0–100; drives the circular progress bar around the avatar. */
+  completionPercentage?: number;
 }
 
 export function ProfileHeader({
@@ -26,6 +28,7 @@ export function ProfileHeader({
   onEditName,
   nounAvatarSeed,
   nounAvatarEnabled = false,
+  completionPercentage = 0,
 }: ProfileHeaderProps) {
   const [isHoveringAvatar, setIsHoveringAvatar] = useState(false);
   const [isHoveringName, setIsHoveringName] = useState(false);
@@ -46,14 +49,16 @@ export function ProfileHeader({
               seed={nounAvatarSeed}
               name={name}
               size="small"
-              showProgress={false}
+              showProgress={true}
+              profileProgress={completionPercentage}
             />
           ) : (
             <DiceBearAvatar
               seed={null}
               name={name}
               size="small"
-              showProgress={false}
+              showProgress={true}
+              profileProgress={completionPercentage}
             />
           )}
           {isHoveringAvatar && (
