@@ -15,9 +15,6 @@ const config = {
   outputFileTracingIncludes: {
     '/*': ['./tsconfig.json'],
   },
-  env: {
-    APIKEY: process.env.APIKEY,
-  },
   transpilePackages: ["next-mdx-remote"],
   images: {
     remotePatterns: [
@@ -1242,11 +1239,6 @@ const config = {
       {
         source: "/docs/nodes/maintain/background-service-config",
         destination: "/docs/nodes/maintain/run-as-background-service",
-        permanent: true,
-      },
-      {
-        source: "/docs/nodes/run-a-node",
-        destination: "/docs/nodes",
         permanent: true,
       },
       {
