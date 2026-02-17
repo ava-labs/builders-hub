@@ -9,6 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { Plus, Trash, ChevronDown, ChevronRight, ExternalLink } from 'lucide-react';
 import { t } from './translations';
 import { useSession, SessionProvider } from "next-auth/react";
+import { useLoginModalTrigger } from "@/hooks/useLoginModal";
 import axios from 'axios';
 import { initialData, IDataMain, IDataContent, IDataLatest, ITrack, ISchedule, ISpeaker, IResource, IPartner } from './initials';
 import { LanguageButton } from './language-button';
@@ -761,6 +762,7 @@ const ResourceItem = memo(function ResourceItem({ resource, index, collapsed, on
 
 const HackathonsEdit = () => {
   const { data: session, status } = useSession();
+  const { openLoginModal } = useLoginModalTrigger();
   const [myHackathons, setMyHackathons] = useState<any[]>([]);
   const [loadingHackathons, setLoadingHackathons] = useState<boolean>(true);
   const [isSelectedHackathon, setIsSelectedHackathon] = useState(false);
@@ -1762,12 +1764,13 @@ const HackathonsEdit = () => {
            session.user.custom_attributes.includes("devrel");
   };
 
-  // Redirect unauthorized users
+  // Show login modal for unauthorized users
   React.useEffect(() => {
     if (status === "loading") return; // Still loading
     
     if (status === "unauthenticated") {
-      window.location.href = "/login";
+      const currentUrl = window.location.href;
+      openLoginModal(currentUrl);
       return;
     }
     
@@ -1775,7 +1778,7 @@ const HackathonsEdit = () => {
       window.location.href = "/";
       return;
     }
-  }, [session, status]);
+  }, [session, status, openLoginModal]);
 
   // Show loading while checking authentication
   if (status === "loading") {
