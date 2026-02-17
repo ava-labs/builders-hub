@@ -5,6 +5,11 @@ import ReferralButton from "@/components/build-games/ReferralButton";
 import ReferralLink from "@/components/build-games/ReferralLink";
 import { ApplyButton } from "@/components/build-games/ApplyButton";
 import ApplicationStatusTracker from "@/components/build-games/ApplicationStatusTracker";
+import ProgramTimelineWrapper from "@/components/build-games/ProgramTimelineWrapper";
+import BuildGamesResourcesWrapper from "@/components/build-games/BuildGamesResourcesWrapper";
+import HowItWorksWrapper from "@/components/build-games/HowItWorksWrapper";
+import BuildGamesMentors from "@/components/build-games/BuildGamesMentors";
+import BuildGamesPartners from "@/components/build-games/BuildGamesPartners";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import type { Metadata } from "next";
 
@@ -623,7 +628,7 @@ function HeroTilesSection() {
             <div className="content-stretch flex gap-[10px] h-full items-center relative shrink-0 w-[1068px]">
               <HeroTile title="$1,000,000" subtitle="Prize Pool" />
               <HeroTile title="6 Weeks" subtitle="Duration" />
-              <HeroTile title="Jan 2026" subtitle="Applications Open" />
+              <HeroTile title="Feb 20th " subtitle="Kick Off" />
             </div>
           </div>
         </div>
@@ -1080,12 +1085,18 @@ function MainContent() {
       <div className="relative shrink-0 w-full" data-name="CTA">
         <div className="flex flex-col justify-center size-full">
           <div className="content-stretch flex flex-col gap-[16px] items-start justify-center px-[186px] py-0 relative w-full">
+            <ProgramTimelineWrapper />
+            <BuildGamesResourcesWrapper />
             <WhatIsBuildGamesSection />
             <WhoShouldApplySection />
-            <HowItWorksSection />
             <PrizesSection />
+            <HowItWorksWrapper>
+              <HowItWorksSection />
+            </HowItWorksWrapper>
             <div className="h-[24px] shrink-0 w-[197px]" data-name="Spacer" />
             <WhatWereLookingForSection />
+            {<BuildGamesMentors />}
+            {<BuildGamesPartners />}
             <FAQsSection />
             <FinalCTASection />
           </div>

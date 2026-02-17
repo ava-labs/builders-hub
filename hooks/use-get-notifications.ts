@@ -60,6 +60,14 @@ export function useGetNotifications(
       );
 
       if (!response.ok) {
+        // Gracefully handle 500 errors (backend workers not deployed)
+        if (response.status === 500) {
+          console.warn("Notifications service unavailable - workers not deployed");
+          setData({}); // Return empty notifications instead of erroring
+          setLoading(false);
+          return;
+        }
+
         const text: string = await response.text();
         throw new Error(text || "Failed to fetch notifications");
       }
@@ -69,7 +77,13 @@ export function useGetNotifications(
 
       setData(json);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Unknown error");
+      // Silently handle network errors in development
+      if (process.env.NODE_ENV === 'development') {
+        console.warn("Notifications fetch failed:", err);
+        setData({}); // Return empty instead of error state
+      } else {
+        setError(err instanceof Error ? err.message : "Unknown error");
+      }
     } finally {
       setLoading(false);
     }
