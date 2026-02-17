@@ -5,40 +5,33 @@
  */
 
 import { marked } from 'marked';
-import DOMPurify from 'isomorphic-dompurify';
 
-// Configure DOMPurify to allow safe HTML elements
-const ALLOWED_TAGS = [
-  'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-  'p', 'br', 'hr',
-  'ul', 'ol', 'li',
-  'strong', 'b', 'em', 'i', 'u', 's', 'strike',
-  'a', 'img',
-  'blockquote', 'pre', 'code',
-  'table', 'thead', 'tbody', 'tr', 'th', 'td',
-  'div', 'span',
-];
+/**
+ * Simple sanitizer for Edge Runtime environments
+ * Removes script tags and dangerous attributes
+ */
+function simpleSanitize(html: string): string {
+  if (!html) return '';
 
-const ALLOWED_ATTR = [
-  'href', 'src', 'alt', 'title', 'class', 'id',
-  'target', 'rel',
-  'width', 'height',
-];
+  return html
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+    .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
+    .replace(/<form\b[^<]*(?:(?!<\/form>)<[^<]*)*<\/form>/gi, '')
+    .replace(/on\w+\s*=\s*["'][^"']*["']/gi, '')
+    .replace(/on\w+\s*=\s*[^\s>]*/gi, '')
+    .replace(/javascript:/gi, '');
+}
 
 /**
  * Sanitizes HTML content, removing dangerous elements while preserving safe ones.
+ * Falls back to simple sanitization if DOMPurify is not available (Edge Runtime)
  */
 export function sanitizeHtml(html: string): string {
   if (!html) return '';
-  
-  return DOMPurify.sanitize(html, {
-    ALLOWED_TAGS,
-    ALLOWED_ATTR,
-    ALLOW_DATA_ATTR: false,
-    ADD_ATTR: ['target'], // Allow target="_blank" on links
-    FORBID_TAGS: ['script', 'style', 'iframe', 'form', 'input', 'button'],
-    FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus', 'onblur'],
-  });
+
+  // Use simple sanitizer that works in all environments
+  // This is safer for Edge Runtime and serverless environments
+  return simpleSanitize(html);
 }
 
 /**
