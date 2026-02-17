@@ -1,3 +1,4 @@
+import { TransactionLifecycle } from "@/components/sae/TransactionLifecycle";
 import StateGrowthChart from "@/components/content-design/state-growth-chart";
 import { BackToTop } from "@/components/ui/back-to-top";
 import { Feedback } from "@/components/ui/feedback";
@@ -97,6 +98,7 @@ export default async function Page(props: {
               </Tabs>
             ),
             StateGrowthChart,
+            TransactionLifecycle,
             AddNetworkButtonInline,
             File,
             Folder,

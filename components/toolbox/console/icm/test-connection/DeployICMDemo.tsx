@@ -9,10 +9,9 @@ import ICMDemoABI from "@/contracts/example-contracts/compiled/ICMDemo.json";
 import TeleporterMessengerAddress from '@/contracts/icm-contracts-releases/v1.0.0/TeleporterMessenger_Contract_Address_v1.0.0.txt.json';
 import { useSelectedL1 } from "@/components/toolbox/stores/l1ListStore";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
-import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
-import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
+import { useContractDeployer } from "@/components/toolbox/hooks/contracts";
 
 const SENDER_C_CHAIN_ADDRESS = "0x05c474824e7d2cc67cf22b456f7cf60c0e3a1289";
 
@@ -27,14 +26,11 @@ const metadata: ConsoleToolMetadata = {
 
 function DeployICMDemo({ onSuccess }: BaseConsoleToolProps) {
     const { setIcmReceiverAddress, icmReceiverAddress } = useToolboxStore();
-    const { publicClient, walletEVMAddress } = useWalletStore();
-    const { coreWalletClient } = useConnectedWallet();
-    const viemChain = useViemChainStore();
-    const [isDeploying, setIsDeploying] = useState(false);
+    const { publicClient } = useWalletStore();
     const [isTeleporterDeployed, setIsTeleporterDeployed] = useState(false);
     const [criticalError, setCriticalError] = useState<Error | null>(null);
     const selectedL1 = useSelectedL1()();
-    const { notify } = useConsoleNotifications();
+    const { deploy, isDeploying } = useContractDeployer();
     // Throw critical errors during render
     if (criticalError) {
         throw criticalError;
@@ -57,35 +53,19 @@ function DeployICMDemo({ onSuccess }: BaseConsoleToolProps) {
     }, [selectedL1?.evmChainId]);
 
     async function handleDeploy() {
-        setIsDeploying(true);
         setIcmReceiverAddress("");
         try {
-            const deployPromise = coreWalletClient.deployContract({
+            const result = await deploy({
                 abi: ICMDemoABI.abi as any,
-                bytecode: ICMDemoABI.bytecode.object as `0x${string}`,
+                bytecode: ICMDemoABI.bytecode.object,
                 args: [],
-                account: walletEVMAddress as `0x${string}`,
-                chain: viemChain
+                name: 'ICMDemo'
             });
 
-            notify({
-                type: 'deploy',
-                name: 'ICMDemo'
-            }, deployPromise, viemChain ?? undefined);
-
-            const hash = await deployPromise;
-            const receipt = await publicClient.waitForTransactionReceipt({ hash });
-
-            if (!receipt.contractAddress) {
-                throw new Error('No contract address in receipt');
-            }
-
-            setIcmReceiverAddress(receipt.contractAddress);
+            setIcmReceiverAddress(result.contractAddress);
             onSuccess?.();
         } catch (error) {
             setCriticalError(error instanceof Error ? error : new Error(String(error)));
-        } finally {
-            setIsDeploying(false);
         }
     }
 

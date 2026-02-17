@@ -14,7 +14,7 @@ function Resources({ hackathon }: { hackathon: HackathonHeader }) {
       </h2>
       <Separator className='my-8 h-[1px] bg-zinc-300 dark:bg-zinc-800' />
       <p className='text-lg text-gray-600 dark:text-gray-300 mb-6'>
-        Unlock incredible rewards for your innovation and skills in{' '}
+        Find key resources and support for your journey in{' '}
         {hackathon.title}
       </p>
 

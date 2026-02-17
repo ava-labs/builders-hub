@@ -117,7 +117,8 @@ export function useERC20Token(tokenAddress: string | null, abi: any): ERC20Token
       functionName: 'approve',
       args: [spender, parseEther(amount)],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     });
 
     notify({
@@ -139,7 +140,8 @@ export function useERC20Token(tokenAddress: string | null, abi: any): ERC20Token
       functionName: 'transfer',
       args: [to, parseEther(amount)],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     });
 
     notify({
@@ -161,7 +163,8 @@ export function useERC20Token(tokenAddress: string | null, abi: any): ERC20Token
       functionName: 'transferFrom',
       args: [from, to, parseEther(amount)],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`
+      account: walletEVMAddress as `0x${string}`,
+      gas: BigInt(1_000_000),
     });
 
     notify({
