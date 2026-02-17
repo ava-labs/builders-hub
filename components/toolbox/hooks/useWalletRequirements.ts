@@ -288,7 +288,6 @@ export function useWalletRequirements(configKey: WalletRequirementsConfigKey | W
     // Action handler dispatcher
     const handleAction = (requirement: Requirement) => {
         if (!requirement.action) {
-            console.log('No action available for requirement:', requirement.id);
             return;
         }
 
@@ -298,7 +297,6 @@ export function useWalletRequirements(configKey: WalletRequirementsConfigKey | W
         if (requirement.action.type === 'conditional') {
             const resolved = resolveConditionalAction(requirement.action);
             if (!resolved) {
-                console.log('No action available for requirement:', requirement.id);
                 return;
             }
             actionToExecute = resolved;
@@ -318,10 +316,10 @@ export function useWalletRequirements(configKey: WalletRequirementsConfigKey | W
                 break;
             case 'login':
                 // Login actions are handled by account requirements
-                console.log('Login action should be handled by account requirements');
                 break;
             default:
-                console.log('Unknown action:', actionToExecute);
+                // Unknown action type
+                break;
         }
     };
 

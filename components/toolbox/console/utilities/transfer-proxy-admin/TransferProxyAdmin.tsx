@@ -7,13 +7,13 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/toolbox/components/Button";
 import ProxyAdminABI from "@/contracts/openzeppelin-4.9/compiled/ProxyAdmin.json";
 import { getSubnetInfo } from "@/components/toolbox/coreViem/utils/glacier";
+import { useProxyAdmin } from "@/components/toolbox/hooks/contracts";
 import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput";
 import { Input } from "@/components/toolbox/components/Input";
 import { Step, Steps } from "fumadocs-ui/components/steps";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
 import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
-import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 
 // Storage slot with the admin of the proxy (following EIP1967)
@@ -43,7 +43,7 @@ function TransferProxyAdmin({ onSuccess }: BaseConsoleToolProps) {
 
     const [proxyAddress, setProxyAddress] = useState<string>("");
 
-    const { notify } = useConsoleNotifications();
+    const proxyAdmin = useProxyAdmin(proxyAdminAddress);
 
     // Throw critical errors during render
     if (criticalError) {
@@ -138,23 +138,9 @@ function TransferProxyAdmin({ onSuccess }: BaseConsoleToolProps) {
 
         setIsTransferring(true);
 
-        const transferPromise = coreWalletClient.writeContract({
-            address: proxyAdminAddress,
-            abi: ProxyAdminABI.abi,
-            functionName: 'transferOwnership',
-            args: [newOwner as `0x${string}`],
-            chain: viemChain ?? undefined,
-            account: walletEVMAddress as `0x${string}`
-        });
-
-        notify({
-            type: 'call',
-            name: 'Transfer ProxyAdmin Ownership'
-        }, transferPromise, viemChain ?? undefined);
-
         try {
-            const hash = await transferPromise;
-            await publicClient.waitForTransactionReceipt({ hash });
+            const hash = await proxyAdmin.transferOwnership(newOwner as `0x${string}`);
+            await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
             await checkCurrentOwner();
             onSuccess?.();
         } finally {

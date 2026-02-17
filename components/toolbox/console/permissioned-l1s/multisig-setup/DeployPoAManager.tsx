@@ -16,11 +16,11 @@ import { ValidatorManagerDetails } from "@/components/toolbox/components/Validat
 import { useCreateChainStore } from "@/components/toolbox/stores/createChainStore";
 import SelectSafeWallet, { SafeSelection } from "@/components/toolbox/components/SelectSafeWallet";
 
-import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
-import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
+import { useContractDeployer } from "@/components/toolbox/hooks/contracts";
+import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
 
 const metadata: ConsoleToolMetadata = {
     title: "Deploy PoA Manager",
@@ -37,11 +37,10 @@ function DeployPoAManager({ onSuccess }: BaseConsoleToolProps) {
         poaManagerAddress,
         setPoaManagerAddress
     } = useToolboxStore();
-    const { publicClient, walletEVMAddress } = useWalletStore();
+    const { publicClient } = useWalletStore();
     const { coreWalletClient } = useConnectedWallet();
     const createChainStoreSubnetId = useCreateChainStore()(state => state.subnetId);
     const [subnetIdL1, setSubnetIdL1] = useState<string>(createChainStoreSubnetId || "");
-    const [isDeploying, setIsDeploying] = useState(false);
     const [isChecking, setIsChecking] = useState(false);
     const [verifiedOwner, setVerifiedOwner] = useState<string | null>(null);
     const [isInitialized, setIsInitialized] = useState<boolean | null>(null);
@@ -53,7 +52,7 @@ function DeployPoAManager({ onSuccess }: BaseConsoleToolProps) {
     const [safeError, setSafeError] = useState<string | null>(null);
 
     const viemChain = useViemChainStore();
-    const { notify } = useConsoleNotifications();
+    const { deploy, isDeploying } = useContractDeployer();
     const {
         validatorManagerAddress,
         error: validatorManagerError,
@@ -93,7 +92,6 @@ function DeployPoAManager({ onSuccess }: BaseConsoleToolProps) {
             throw new Error("Owner address and validator manager address are required");
         }
 
-        setIsDeploying(true);
         setPoaManagerAddress("");
 
         try {
@@ -101,34 +99,19 @@ function DeployPoAManager({ onSuccess }: BaseConsoleToolProps) {
             await coreWalletClient.addChain({ chain: viemChain });
             await coreWalletClient.switchChain({ id: viemChain!.id });
 
-            const deployPromise = coreWalletClient.deployContract({
+            const result = await deploy({
                 abi: PoAManagerABI.abi as any,
-                bytecode: PoAManagerABI.bytecode.object as `0x${string}`,
+                bytecode: PoAManagerABI.bytecode.object,
                 args: [ownerAddress as `0x${string}`, validatorManagerAddress as `0x${string}`],
-                chain: viemChain,
-                account: walletEVMAddress as `0x${string}`
+                name: 'PoAManager'
             });
 
-            notify({
-                type: 'deploy',
-                name: 'PoAManager'
-            }, deployPromise, viemChain);
-
-            const hash = await deployPromise;
-            const receipt = await publicClient.waitForTransactionReceipt({ hash });
-
-            if (!receipt.contractAddress) {
-                throw new Error('No contract address in receipt');
-            }
-
-            setPoaManagerAddress(receipt.contractAddress);
+            setPoaManagerAddress(result.contractAddress);
             setIsInitialized(true);
             setVerifiedOwner(ownerAddress);
             onSuccess?.();
         } catch (error) {
             setCriticalError(error instanceof Error ? error : new Error(String(error)));
-        } finally {
-            setIsDeploying(false);
         }
     }
 

@@ -6,12 +6,12 @@ import {
   useViemChainStore,
   useToolboxStore,
 } from "@/components/toolbox/stores/toolboxStore";
-import { Chain } from "viem";
 import { Button } from "@/components/toolbox/components/Button";
 import { Input } from "@/components/toolbox/components/Input";
 import { ResultField } from "@/components/toolbox/components/ResultField";
 import { ExternalLink } from "lucide-react";
 import ValidatorManagerABI from "@/contracts/icm-contracts/compiled/ValidatorManager.json";
+import { useValidatorManager } from "@/components/toolbox/hooks/contracts";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import {
   BaseConsoleToolProps,
@@ -39,6 +39,8 @@ function MigrateV1ToV2({ onSuccess }: BaseConsoleToolProps) {
   // State variables
   const [localValidatorManagerAddress, setLocalValidatorManagerAddress] =
     useState<string>(validatorManagerAddress || "");
+
+  const validatorManager = useValidatorManager(localValidatorManagerAddress || null);
   const [validationID, setValidationID] = useState<string>("");
   const [receivedNonce, setReceivedNonce] = useState<string>("");
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
@@ -126,18 +128,14 @@ function MigrateV1ToV2({ onSuccess }: BaseConsoleToolProps) {
       await coreWalletClient.addChain({ chain: viemChain });
       await coreWalletClient.switchChain({ id: viemChain.id });
 
-      // Call the migrateFromV1 function
-      const hash = await coreWalletClient.writeContract({
-        address: localValidatorManagerAddress as `0x${string}`,
-        abi: ValidatorManagerABI.abi,
-        functionName: "migrateFromV1",
-        args: [validationID as `0x${string}`, parseInt(receivedNonce)],
-        chain: viemChain as Chain,
-        account: walletEVMAddress as `0x${string}`,
+      // Call the migrateFromV1 function via hook
+      const hash = await validatorManager.migrateFromV1({
+        validationID: validationID as `0x${string}`,
+        receivedNonce: parseInt(receivedNonce),
       });
 
       // Wait for the transaction to complete
-      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      const receipt = await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
 
       if (receipt.status === "success") {
         setTxHash(hash);

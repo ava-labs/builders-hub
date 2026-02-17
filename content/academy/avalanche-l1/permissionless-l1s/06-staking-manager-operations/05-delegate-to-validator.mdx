@@ -1,0 +1,111 @@
+---
+title: Delegate to Validator
+description: Theory walkthrough of delegating tokens to a PoS validator
+updated: 2025-03-19
+authors: [nicolasarnedo]
+icon: BookOpen
+---
+
+## Delegating to a Validator
+
+Delegation allows token holders to earn staking rewards **without running a validator node**. Delegators lock their tokens with an active validator and receive a share of the staking rewards, minus a delegation fee set by the validator.
+
+### How Delegation Works
+
+When a delegator stakes tokens with a validator:
+- The validator's **weight increases** on the P-Chain (more stake = more consensus influence)
+- The delegator earns rewards proportional to their stake
+- The validator earns a **delegation fee** (percentage of the delegator's rewards)
+- Both are subject to the validator's **minimum stake duration**
+
+### Phase 1: Initiation (L1)
+
+The delegator calls [`initiateDelegatorRegistration`](https://github.com/ava-labs/icm-contracts/blob/main/contracts/validator-manager/NativeTokenStakingManager.sol) on the Staking Manager contract:
+
+```solidity
+function initiateDelegatorRegistration(
+    bytes32 validationID
+) external payable returns (bytes32 delegationID)
+```
+
+Under the hood, the contract:
+- Validates the target validator is Active
+- Validates the delegation amount meets minimum requirements
+- **Locks the delegated tokens** in the contract
+- Converts the token amount to weight
+- Calculates the new total validator weight (existing + delegation)
+- Enforces churn constraints
+- Increments the validator's nonce
+- Sends a `L1ValidatorWeightMessage` to the P-Chain to update the validator's weight
+- Returns a unique `delegationID`
+
+### Phase 2: P-Chain Processing
+
+The weight update message must be signed and submitted to the P-Chain as a `SetL1ValidatorWeightTx`:
+
+1. Aggregate signatures for the weight update message
+2. Submit to the P-Chain
+3. The P-Chain acknowledges the weight change
+4. Returns a signed `L1ValidatorWeightMessage` acknowledgement
+
+### Phase 3: Completion (L1)
+
+Call [`completeDelegatorRegistration(messageIndex)`](https://github.com/ava-labs/icm-contracts/blob/main/contracts/validator-manager/PoSValidatorManager.sol) with the P-Chain's signed response:
+
+- Verifies the Warp message and nonce correspondence
+- Activates the delegation (status → Active)
+- Sets the delegation start time
+- Emits `CompletedDelegatorRegistration`
+
+Anyone can call this function with the signed message.
+
+## Important Constraints
+
+**Validator must be Active:** You can only delegate to validators with Active status. Once a validator has initiated removal, no new delegations can be added.
+
+**Churn limits apply:** Delegation weight changes are subject to the same churn constraints as validator additions, preventing rapid weight fluctuations.
+
+**Delegation fee is fixed:** The fee percentage is set by the validator during registration and cannot be changed for that validation period.
+
+## Appendix: Delegation Flow
+
+<Mermaid
+  chart="
+sequenceDiagram
+    participant Delegator as Delegator (Anyone)
+    participant StakingManager as StakingManager
+    participant WarpMessenger as WarpMessenger (precompile)
+    participant PChain as P-Chain
+
+    %% Phase 1: Initiation
+    Delegator->>StakingManager: initiateDelegatorRegistration{value: amount}(validationID)
+
+    StakingManager->>StakingManager: Validate validator is Active
+
+    StakingManager->>StakingManager: Lock tokens in contract
+
+    StakingManager->>StakingManager: Calculate new total weight
+
+    StakingManager->>StakingManager: Enforce churn constraints
+
+    StakingManager->>StakingManager: Increment validator nonce
+
+    StakingManager->>WarpMessenger: sendWarpMessage(L1ValidatorWeightMessage)
+
+    %% Phase 2: P-Chain Processing
+    WarpMessenger->>PChain: Deliver L1ValidatorWeightMessage
+
+    PChain-->>WarpMessenger: Signed L1ValidatorWeightMessage (ack)
+
+    %% Phase 3: Completion
+    participant AnyCaller as Any Caller
+
+    AnyCaller->>StakingManager: completeDelegatorRegistration(message)
+
+    StakingManager->>StakingManager: Verify Warp message + nonce match
+
+    StakingManager->>StakingManager: Activate delegation + set start time
+
+    StakingManager-->>AnyCaller: emit CompletedDelegatorRegistration
+"
+/>

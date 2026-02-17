@@ -1,0 +1,70 @@
+---
+title: Node Setup Overview
+description: Choose the right setup path for running an Avalanche node, whether you're operating on the Primary Network or an Avalanche L1.
+---
+
+This section covers every way to get an AvalancheGo node running. Pick the path that matches your goal.
+
+## Choose Your Path
+
+<Callout type="info">
+**Not sure which you need?** Primary Network nodes validate the C-Chain, P-Chain, and X-Chain. Avalanche L1 nodes track an L1 blockchain and the P-Chain (for validator set tracking), but do not need to sync the C-Chain or X-Chain.
+</Callout>
+
+### Primary Network Nodes
+
+Run a validator or API node for the Avalanche Primary Network (C/P/X chains).
+
+<Cards>
+  <Card title="Run with Docker" href="/docs/nodes/run-a-node/using-docker">
+    Run using the official AvalancheGo Docker image, or use the interactive Console tool to generate your Docker command.
+  </Card>
+  <Card title="Install Script" href="/docs/nodes/run-a-node/using-install-script">
+    Automated script that installs AvalancheGo and configures it as a system service.
+  </Card>
+  <Card title="Pre-Built Binary" href="/docs/nodes/run-a-node/using-binary">
+    Download a release binary and run it directly.
+  </Card>
+  <Card title="Build from Source" href="/docs/nodes/run-a-node/from-source">
+    Clone the AvalancheGo repository and compile it yourself.
+  </Card>
+  <Card title="Cloud Platforms" href="/docs/nodes/run-a-node/on-third-party-services">
+    Deploy on Alibaba Cloud, AWS, Google Cloud, Latitude, Microsoft Azure, or Tencent Cloud.
+  </Card>
+</Cards>
+
+### Avalanche L1 Nodes
+
+Run a node that tracks an Avalanche L1 blockchain and the P-Chain.
+
+<Cards>
+  <Card title="L1 Node Setup" href="/docs/nodes/run-a-node/avalanche-l1-nodes">
+    Build AvalancheGo from source with Subnet-EVM plugins to track an L1, or use the interactive Console tool.
+  </Card>
+</Cards>
+
+## What Type of Node Should I Run?
+
+| Type | Description | Use Case |
+|------|-------------|----------|
+| **Validator** | Stakes AVAX and participates in consensus | Earn rewards, secure the network |
+| **API / Non-Validating** | Tracks chains and serves RPC requests | Indexing, infrastructure, dApps |
+
+See the [Introduction](/docs/nodes) page for more on node roles, data retention modes, and validator requirements.
+
+## Related Resources
+
+<Cards>
+  <Card title="System Requirements" href="/docs/nodes/system-requirements">
+    Hardware, storage, and networking requirements for different node profiles.
+  </Card>
+  <Card title="Node Storage & Disk Usage" href="/docs/nodes/node-storage/chain-state-management">
+    Understand active vs. archival state, disk growth, and how to manage storage.
+  </Card>
+  <Card title="AvalancheGo Configuration" href="/docs/nodes/configure/configs-flags">
+    Full reference for configuration flags and options.
+  </Card>
+  <Card title="Maintenance & Upgrades" href="/docs/nodes/maintain/upgrade">
+    Keep your node healthy with upgrade procedures, monitoring, and backups.
+  </Card>
+</Cards>

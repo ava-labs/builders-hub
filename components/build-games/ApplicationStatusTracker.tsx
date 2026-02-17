@@ -19,10 +19,10 @@ interface TimelineStep {
 }
 
 const timelineSteps: TimelineStep[] = [
-  { label: "Application Complete", status: "completed" },
-  { label: "Review in Progress", status: "current" },
-  { label: "Decision", status: "upcoming" },
-  { label: "Competition Begins", status: "upcoming", date: "Feb 2026" },
+  { label: "Application Complete", status: "completed", date: "" },
+  { label: "Review in Progress", status: "completed", date: "" },
+  { label: "Decision", status: "completed", date: "(Accepted)" },
+  { label: "Competition Begins", status: "current", date: "Feb 20, 2026" },
 ];
 
 function TimelineStepIcon({ status }: { status: TimelineStep["status"] }) {
@@ -64,11 +64,11 @@ function DesktopTimeline({ steps }: { steps: TimelineStep[] }) {
               >
                 {step.label}
               </span>
-              {step.date && (
-                <span className="font-['Aeonik:Regular',sans-serif] text-[12px] text-[rgba(255,255,255,0.5)]">
-                  {step.date}
-                </span>
-              )}
+              <span className={`font-['Aeonik:Regular',sans-serif] text-[12px] h-[18px] ${
+                step.date === "(Accepted)" ? "text-[#22c55e]" : step.date ? "text-[rgba(255,255,255,0.5)]" : "opacity-0"
+              }`}>
+                {step.date || "\u00A0"}
+              </span>
             </div>
           </div>
           {index < steps.length - 1 && (
@@ -107,11 +107,11 @@ function MobileTimeline({ steps }: { steps: TimelineStep[] }) {
             >
               {step.label}
             </span>
-            {step.date && (
-              <span className="font-['Aeonik:Regular',sans-serif] text-[12px] text-[rgba(255,255,255,0.5)]">
-                {step.date}
-              </span>
-            )}
+            <span className={`font-['Aeonik:Regular',sans-serif] text-[12px] h-[18px] ${
+              step.date === "(Accepted)" ? "text-[#22c55e]" : step.date ? "text-[rgba(255,255,255,0.5)]" : "opacity-0"
+            }`}>
+              {step.date || "\u00A0"}
+            </span>
           </div>
         </div>
       ))}

@@ -20,9 +20,9 @@ import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-
 import TeleporterRegistryAddressInput from "@/components/toolbox/components/TeleporterRegistryAddressInput";
 import { RadioGroup } from "@/components/toolbox/components/RadioGroup";
 import { useSelectedL1 } from "@/components/toolbox/stores/l1ListStore";
-import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { ConsoleToolMetadata, withConsoleToolMetadata } from "@/components/toolbox/components/WithConsoleToolMetadata";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
+import { useContractDeployer } from "@/components/toolbox/hooks/contracts";
 
 const metadata: ConsoleToolMetadata = {
   title: "Deploy Token Home Contract",
@@ -44,9 +44,8 @@ function DeployTokenHome() {
   const selectedL1 = useSelectedL1()();
   const { coreWalletClient, walletEVMAddress, walletChainId } =
     useWalletStore();
-  const { notify } = useConsoleNotifications();
   const viemChain = useViemChainStore();
-  const [isDeploying, setIsDeploying] = useState(false);
+  const { deploy, isDeploying } = useContractDeployer();
   const [teleporterManager, setTeleporterManager] = useState("");
   const [minTeleporterVersion, setMinTeleporterVersion] = useState("1");
   const [tokenAddress, setTokenAddress] = useState("");
@@ -166,13 +165,7 @@ function DeployTokenHome() {
       throw new Error("Failed to fetch chain. Please try again.");
     }
 
-    setIsDeploying(true);
     try {
-      const publicClient = createPublicClient({
-        chain: viemChain,
-        transport: http(viemChain.rpcUrls.default.http[0]),
-      });
-
       const args = [
         teleporterRegistryAddress as `0x${string}`,
         teleporterManager || walletEVMAddress,
@@ -184,46 +177,27 @@ function DeployTokenHome() {
         args.push(BigInt(tokenDecimals));
       }
 
-      const deployPromise = coreWalletClient.deployContract({
+      const result = await deploy({
         abi: (tokenType === "erc20"
           ? ERC20TokenHome.abi
           : NativeTokenHome.abi) as any,
         bytecode:
           tokenType === "erc20"
-            ? (ERC20TokenHome.bytecode.object as `0x${string}`)
-            : (NativeTokenHome.bytecode.object as `0x${string}`),
+            ? ERC20TokenHome.bytecode.object
+            : NativeTokenHome.bytecode.object,
         args,
-        chain: viemChain,
-        account: walletEVMAddress as `0x${string}`,
+        name: "TokenHome",
       });
-
-      notify(
-        {
-          type: "deploy",
-          name: "TokenHome",
-        },
-        deployPromise,
-        viemChain ?? undefined
-      );
-      const receipt = await publicClient.waitForTransactionReceipt({
-        hash: await deployPromise,
-      });
-
-      if (!receipt.contractAddress) {
-        throw new Error("No contract address in receipt");
-      }
 
       if (tokenType === "erc20") {
-        setErc20TokenHomeAddress(receipt.contractAddress);
+        setErc20TokenHomeAddress(result.contractAddress);
       } else {
-        setNativeTokenHomeAddress(receipt.contractAddress);
+        setNativeTokenHomeAddress(result.contractAddress);
       }
     } catch (error) {
       setCriticalError(
         error instanceof Error ? error : new Error(String(error))
       );
-    } finally {
-      setIsDeploying(false);
     }
   }
 

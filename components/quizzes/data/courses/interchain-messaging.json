@@ -1,0 +1,1014 @@
+{
+  "title": "Interchain Messaging",
+  "quizzes": {
+    "301": {
+      "question": "What is the role of a message in cross-blockchain communication?",
+      "options": [
+        "To process the data on the destination chain.",
+        "To contain source, destination, and encoded data with a signature.",
+        "To originate communication from the source chain.",
+        "To validate the message authenticity on the source chain."
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Messages carry essential information between chains, including source and destination details.",
+      "explanation": "A message in cross-blockchain communication contains the source, destination, and encoded data along with a signature that guarantees its authenticity. This ensures that the information being transferred is accurate and can be trusted by the destination chain.",
+      "chapter": "Interchain Messaging",
+      "alternates": [
+        {
+          "question": "What role does the signature play in an Avalanche interchain message?",
+          "options": [
+            "It encrypts the message contents so only the destination chain can read them",
+            "It contains the source, destination, and encoded data for cross-chain communication",
+            "It proves that the message was attested by a sufficient threshold of the source chain's validators",
+            "It determines the gas fee required to process the message on the destination chain"
+          ],
+          "correctAnswers": [
+            2
+          ],
+          "hint": "Think about how the destination chain verifies that a message is legitimate and not fabricated.",
+          "explanation": "The signature in an interchain message serves as cryptographic proof that the message was attested by a sufficient threshold of the source chain's validators. This allows the destination chain to verify the message's authenticity without trusting the relayer, ensuring secure cross-chain communication."
+        },
+        {
+          "question": "What are the essential components that a cross-blockchain message must contain? (Select all that apply)",
+          "options": [
+            "The identifier of the source chain where the message originated",
+            "The private keys of the validators who signed the message",
+            "The destination chain identifier and target contract address",
+            "The encoded payload data to be processed on the destination chain"
+          ],
+          "correctAnswers": [
+            0,
+            2,
+            3
+          ],
+          "hint": "Think about the minimum information needed to route and process a message between two chains.",
+          "explanation": "A cross-blockchain message must include the source chain identifier (so the destination knows where it came from), the destination chain and contract address (for routing), and the encoded payload data (the actual content to be processed). Private keys are never included in messages — only signatures derived from them."
+        }
+      ]
+    },
+    "302": {
+      "question": "How does a multi-chain system achieve greater scalability compared to single-chain networks?",
+      "options": [
+        "By increasing the gas limit on a single chain.",
+        "By running independent chains in parallel, allowing for combined throughput.",
+        "By implementing more complex smart contracts on a single chain.",
+        "By reducing the number of validators in the network."
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Multi-chain systems utilize parallelism to enhance overall network performance.",
+      "explanation": "A multi-chain system achieves greater scalability by running independent chains in parallel. This parallelism allows the network to handle a higher combined throughput of transactions, as each chain can process its own set of transactions simultaneously without being bottlenecked by a single chain's limitations.",
+      "chapter": "Interchain Messaging",
+      "alternates": [
+        {
+          "question": "What is a key trade-off introduced by multi-chain systems compared to single-chain architectures?",
+          "options": [
+            "Multi-chain systems have lower combined throughput because resources are divided across chains",
+            "Multi-chain systems achieve scalability through parallel independent chains but introduce the challenge of cross-chain communication and interoperability",
+            "Multi-chain systems eliminate the need for consensus mechanisms on individual chains",
+            "Multi-chain systems require all chains to share the same validator set, limiting decentralization"
+          ],
+          "correctAnswers": [
+            1
+          ],
+          "hint": "Think about what new problem arises when applications are spread across separate chains.",
+          "explanation": "While multi-chain systems achieve greater scalability by running independent chains in parallel, they introduce the challenge of cross-chain communication and interoperability. Applications on different chains need mechanisms to exchange data and assets, which adds complexity compared to single-chain systems where all applications can interact directly."
+        },
+        {
+          "question": "How does running independent chains in parallel improve throughput in a multi-chain system?",
+          "options": [
+            "Each chain processes its own transactions simultaneously, so the total network capacity is the sum of all chains' throughput",
+            "Parallel chains share a single transaction pool that is processed more efficiently",
+            "Independent chains running in parallel allow for combined throughput across the network",
+            "The chains take turns processing blocks, reducing the overall wait time per transaction"
+          ],
+          "correctAnswers": [
+            0
+          ],
+          "hint": "Think about what 'parallel processing' means — multiple chains doing work at the same time.",
+          "explanation": "In a multi-chain system, each chain operates independently and processes its own transactions at the same time as every other chain. The total network throughput is the sum of all individual chains' throughput, since they are not competing for the same block space or waiting on each other."
+        }
+      ]
+    },
+    "303": {
+      "question": "Which Solidity functions are used for encoding and decoding data?",
+      "options": [
+        "serializeData() and deserializeData()",
+        "encodeData() and decodeData()",
+        "abi.encode() and abi.decode()",
+        "bytes.encode() and bytes.decode()"
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "These functions are part of Solidity's ABI encoding and decoding utilities.",
+      "explanation": "In Solidity, `abi.encode()` is used to encode data into a bytes array, and `abi.decode()` is used to decode a bytes array back into its original types. These functions are essential for handling complex data structures in smart contracts.",
+      "chapter": "Encoding & Decoding",
+      "alternates": [
+        {
+          "question": "What does `abi.encodePacked()` do differently from `abi.encode()` in Solidity?",
+          "options": [
+            "It encodes data with full 32-byte padding for each value, matching the standard ABI specification",
+            "It produces a tightly packed encoding without padding, resulting in a shorter byte array but preventing use with abi.decode()",
+            "It uses abi.encode() and abi.decode() internally but adds compression",
+            "It encodes only string and bytes types while abi.encode() handles all types"
+          ],
+          "correctAnswers": [
+            1
+          ],
+          "hint": "Think about the difference between padded and non-padded encoding and the implications for decoding.",
+          "explanation": "Unlike abi.encode() which pads each value to 32 bytes following the ABI specification, abi.encodePacked() produces a tightly packed encoding with no padding. This results in shorter output but cannot be decoded with abi.decode() because the boundaries between values are ambiguous."
+        },
+        {
+          "question": "What is the return type of `abi.encode()` in Solidity?",
+          "options": [
+            "A string containing the hexadecimal representation of the encoded data",
+            "A uint256 representing the hash of the encoded values",
+            "A bytes array (dynamic byte sequence) containing the ABI-encoded data",
+            "The original data types encoded and decoded using abi.encode() and abi.decode()"
+          ],
+          "correctAnswers": [
+            2
+          ],
+          "hint": "Think about the fundamental data type used to represent raw binary data in Solidity.",
+          "explanation": "The abi.encode() function returns a bytes array (bytes memory), which is a dynamic byte sequence containing the ABI-encoded data. This bytes array can later be decoded back to the original types using abi.decode() when the types and order are known."
+        }
+      ]
+    },
+    "304": {
+      "question": "What is the name of the function used by a dApp to send a cross-chain message in the Interchain Messaging contract?",
+      "options": [
+        "sendCrossChainMessage()",
+        "sendCrossMessage()",
+        "initiateCrossChainCommunication()",
+        "sendMessageCrossChain()"
+      ],
+      "correctAnswers": [
+        0
+      ],
+      "hint": "This function is part of the ITeleporterMessenger interface used for sending messages between chains.",
+      "explanation": "The `sendCrossChainMessage()` function is used by dApps to send cross-chain messages through the Interchain Messaging contract. It takes a `TeleporterMessageInput` struct as input, which includes details such as the destination chain ID, destination address, fee information, required gas limit, allowed relayers, and the encoded message.",
+      "chapter": "Sending a Message",
+      "alternates": [
+        {
+          "question": "Which fields are included in the TeleporterMessageInput struct passed to `sendCrossChainMessage()`? (Select all that apply)",
+          "options": [
+            "The destination blockchain ID and destination contract address for message routing",
+            "The sendCrossChainMessage() function name for identifying the cross-chain call type",
+            "The fee token address and fee amount to incentivize the relayer",
+            "The required gas limit for executing the message on the destination chain"
+          ],
+          "correctAnswers": [
+            0,
+            2,
+            3
+          ],
+          "hint": "Think about all the information needed to route, pay for, and execute a cross-chain message.",
+          "explanation": "The TeleporterMessageInput struct includes the destination blockchain ID and address (for routing), fee token and amount (for relayer incentivization), required gas limit (for destination execution), allowed relayers, and the encoded message. The function name itself is not a field in the struct."
+        },
+        {
+          "question": "What does the `requiredGasLimit` field specify in a cross-chain message sent via Interchain Messaging?",
+          "options": [
+            "The maximum gas the sending transaction can consume on the source chain",
+            "The total gas cost shared between the source and destination chains for the full message lifecycle",
+            "The amount of gas allocated for executing the message handler function on the destination chain",
+            "The gas limit for the sendCrossChainMessage() function call on the source chain"
+          ],
+          "correctAnswers": [
+            2
+          ],
+          "hint": "Think about where the message needs gas to be processed after it has been relayed.",
+          "explanation": "The requiredGasLimit field specifies how much gas should be allocated for executing the receiveTeleporterMessage handler function on the destination chain. This ensures there is enough gas for the destination contract to process the incoming message payload."
+        }
+      ]
+    },
+    "305": {
+      "question": "Which interface must a contract implement to receive messages from the Interchain Messaging contract?",
+      "options": [
+        "ITeleporterMessenger",
+        "ITeleporterReceiver",
+        "ITeleporterSender",
+        "IMessageHandler"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "This interface defines the necessary function for receiving cross-chain messages.",
+      "explanation": "To receive messages from the Interchain Messaging contract, a contract must implement the `ITeleporterReceiver` interface. This interface requires the implementation of the `receiveTeleporterMessage` function, which handles incoming messages.",
+      "chapter": "Receiving a Message",
+      "alternates": [
+        {
+          "question": "What function must be implemented in a contract that uses the `ITeleporterReceiver` interface?",
+          "options": [
+            "handleMessage(bytes32 sourceChainID, address originSender, bytes calldata message)",
+            "onMessageReceived(bytes32 chainID, bytes calldata payload)",
+            "receiveTeleporterMessage(bytes32 sourceBlockchainID, address originSenderAddress, bytes calldata message)",
+            "The ITeleporterReceiver interface that defines how contracts receive cross-chain messages"
+          ],
+          "correctAnswers": [
+            2
+          ],
+          "hint": "Think about the specific function signature required by the ITeleporterReceiver interface.",
+          "explanation": "Contracts implementing the ITeleporterReceiver interface must implement the receiveTeleporterMessage function with the exact signature: receiveTeleporterMessage(bytes32 sourceBlockchainID, address originSenderAddress, bytes calldata message). This function is called by the Interchain Messaging contract when a cross-chain message arrives."
+        },
+        {
+          "question": "Why should a receiving contract verify that the caller of `receiveTeleporterMessage` is the Interchain Messaging contract? (Select all that apply)",
+          "options": [
+            "To prevent unauthorized contracts from injecting fake cross-chain messages",
+            "Because the ITeleporterReceiver interface requires this check for compilation",
+            "To ensure the message has been properly validated through the Avalanche Warp Messaging system",
+            "To reduce gas costs by rejecting invalid calls early in the execution"
+          ],
+          "correctAnswers": [
+            0,
+            2
+          ],
+          "hint": "Consider the security implications if any arbitrary contract could call the receive function.",
+          "explanation": "Verifying the caller is essential for two reasons: it prevents unauthorized contracts from calling receiveTeleporterMessage with fabricated data (preventing spoofed messages), and it ensures the message has been properly validated through the Avalanche Warp Messaging system, meaning the source chain's validators have actually attested to the message."
+        }
+      ]
+    },
+    "306": {
+      "question": "After encoding multiple values into a byte array using `abi.encode()`, what must you know to correctly decode the byte array in Solidity?",
+      "options": [
+        "The length of the byte array",
+        "The contract's address",
+        "The types and order of the encoded values",
+        "The encoding algorithm used"
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "Decoding requires knowledge of the original data structure used during encoding.",
+      "explanation": "To accurately decode a byte array in Solidity using `abi.decode()`, you must know the exact types and the order in which the values were encoded. This ensures that each segment of the byte array is interpreted correctly back into its original form.",
+      "chapter": "Encoding & Decoding",
+      "alternates": [
+        {
+          "question": "What happens if you attempt to decode a bytes array using `abi.decode()` with incorrect types?",
+          "options": [
+            "The function returns default zero values for each specified type",
+            "You must know the types and order of the encoded values to decode correctly, but mismatches are handled gracefully",
+            "The function silently returns corrupted data without any error",
+            "The transaction reverts because the byte data cannot be correctly interpreted with the wrong type schema"
+          ],
+          "correctAnswers": [
+            3
+          ],
+          "hint": "Think about what happens at the EVM level when bytes are interpreted with the wrong structure.",
+          "explanation": "If you attempt to decode a bytes array with incorrect types using abi.decode(), the transaction will revert. The EVM cannot correctly interpret the byte data when the specified types do not match the encoding schema, causing a runtime error rather than returning incorrect data."
+        },
+        {
+          "question": "Why is ABI encoding necessary for cross-chain messages rather than sending raw structured data?",
+          "options": [
+            "Raw structured data would be too large to fit within Avalanche's message size limits",
+            "The types and order of the encoded values must be known for decoding, which raw data cannot guarantee",
+            "ABI encoding compresses the data to reduce the gas cost of cross-chain message delivery",
+            "ABI encoding serializes data into a standardized byte format that any EVM-compatible chain can decode deterministically"
+          ],
+          "correctAnswers": [
+            3
+          ],
+          "hint": "Think about why a standardized format is important when two different blockchains need to interpret the same data.",
+          "explanation": "ABI encoding provides a standardized serialization format that any EVM-compatible chain can decode deterministically. This is essential for cross-chain communication because both the source and destination chains need to interpret the data identically, regardless of their specific implementations."
+        }
+      ]
+    },
+    "307": {
+      "question": "Why are `abi.encode()` functions called twice when encoding a function call with multiple parameters in a cross-chain message?",
+      "options": [
+        "To increase the security of the message.",
+        "To pack the function name and its parameters into a single bytes array.",
+        "To separate the message into two distinct byte arrays.",
+        "To comply with the Teleporter contract requirements."
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Encoding the function name alongside its parameters ensures proper identification and handling on the receiving end.",
+      "explanation": "Calling `abi.encode()` twice allows you to first encode the function parameters and then encode the function name along with the encoded parameters. This ensures that the receiving contract can decode the function name to determine which internal function to execute with the provided parameters.",
+      "chapter": "Encoding the Function Name and Parameters",
+      "alternates": [
+        {
+          "question": "On the receiving end of a cross-chain message, how does the contract determine which internal function to execute?",
+          "options": [
+            "The contract checks the msg.sender address to determine the appropriate function",
+            "The contract first decodes the outer encoding to extract the function identifier, then routes to the correct handler and decodes the parameters",
+            "The Interchain Messaging contract automatically routes the message to the correct function",
+            "The abi.encode() function is called twice to pack the function name and parameters together"
+          ],
+          "correctAnswers": [
+            1
+          ],
+          "hint": "Think about the two-layer decoding process that mirrors the two-layer encoding.",
+          "explanation": "On the receiving end, the contract first decodes the outer abi.encode layer to extract the function identifier (name or enum). Based on this identifier, it routes the message to the appropriate internal handler function, which then decodes the inner layer to extract the actual parameters."
+        },
+        {
+          "question": "What problem does double encoding with `abi.encode()` solve when a cross-chain contract supports multiple actions?",
+          "options": [
+            "It allows the receiving contract to identify which action to perform and extract the corresponding parameters from a single bytes payload",
+            "It increases message security by encrypting the function parameters in a second encoding layer",
+            "It packs the function name and parameters into a single bytes array for transmission",
+            "It reduces the total gas cost of encoding by splitting the work into two smaller operations"
+          ],
+          "correctAnswers": [
+            0
+          ],
+          "hint": "Consider a contract that handles multiple types of cross-chain messages — how does it know what to do with each one?",
+          "explanation": "When a cross-chain contract supports multiple actions (e.g., deposit, withdraw, swap), double encoding solves the routing problem. The outer encoding contains the action identifier, and the inner encoding contains the action-specific parameters. This allows the receiver to first identify what action to perform, then extract the right parameters for that action."
+        }
+      ]
+    },
+    "308": {
+      "question": "How does the TeleporterRegistry contract track different versions of the TeleporterMessenger contracts?",
+      "options": [
+        "By maintaining an array of contract addresses.",
+        "By using separate variables for each version.",
+        "By maintaining a mapping of version numbers to contract addresses.",
+        "By storing all contract addresses in a single bytes array."
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "The registry uses a key-value structure to associate versions with their corresponding contract addresses.",
+      "explanation": "The TeleporterRegistry contract tracks different versions of the TeleporterMessenger contracts by maintaining a mapping of version numbers to their respective contract addresses. This allows cross-Avalanche L1 dApps to request either the latest version or a specific version of the TeleporterMessenger as needed.",
+      "chapter": "How the ICM Registry works",
+      "alternates": [
+        {
+          "question": "Why does the TeleporterRegistry use a versioning system for TeleporterMessenger contracts?",
+          "options": [
+            "To allow dApps to upgrade to newer TeleporterMessenger versions without redeploying their own contracts",
+            "To maintain a mapping of version numbers to contract addresses for each TeleporterMessenger",
+            "To prevent older versions of TeleporterMessenger from being used after a new version is released",
+            "To reduce gas costs by consolidating multiple messenger contracts into a single deployment"
+          ],
+          "correctAnswers": [
+            0
+          ],
+          "hint": "Think about the problem that arises when a critical messaging contract needs to be updated.",
+          "explanation": "The versioning system allows dApps to seamlessly upgrade to newer TeleporterMessenger versions by simply querying the registry for the latest version, without needing to redeploy their own contracts or update hardcoded addresses. This provides upgrade flexibility while maintaining backward compatibility."
+        },
+        {
+          "question": "How can a dApp retrieve a specific version of TeleporterMessenger from the TeleporterRegistry?",
+          "options": [
+            "By calling getLatestTeleporter() which always returns the most recent version",
+            "By providing the desired version number to getTeleporterFromVersion(), which looks up the corresponding contract address in the registry's mapping",
+            "By deploying a new registry that only contains the desired version",
+            "The registry maps version numbers to contract addresses, and the dApp queries this mapping"
+          ],
+          "correctAnswers": [
+            1
+          ],
+          "hint": "Think about how a key-value lookup would work to retrieve a specific version's address.",
+          "explanation": "A dApp can retrieve a specific version of TeleporterMessenger by calling getTeleporterFromVersion() with the desired version number. The registry looks up the version number in its internal mapping and returns the corresponding contract address, allowing dApps to pin to specific versions if needed."
+        }
+      ]
+    },
+    "309": {
+      "question": "What is the purpose of the `Recover` algorithm in some signature schemes?",
+      "options": [
+        "To generate a key pair.",
+        "To sign a message using the private key.",
+        "To recover the public key from a message and its signature.",
+        "To verify the integrity of a message."
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "The `Recover` algorithm helps to retrieve the public key used to create a signature.",
+      "explanation": "The `Recover` algorithm is used to retrieve the public key that corresponds to the private key used to create the signature for a given message. This allows for verification of the signature by matching the recovered public key with the sender's public key, ensuring the authenticity and integrity of the message.",
+      "chapter": "Signature Schemes",
+      "alternates": [
+        {
+          "question": "In a digital signature scheme, what are the three fundamental algorithms? (Select all that apply)",
+          "options": [
+            "KeyGen — generates a public/private key pair",
+            "Recover — recovers the public key from a message and its signature",
+            "Sign — creates a signature using the private key and a message",
+            "Verify — checks whether a signature is valid for a given message and public key"
+          ],
+          "correctAnswers": [
+            0,
+            2,
+            3
+          ],
+          "hint": "Think about the basic operations needed for any signature scheme to function: creating keys, signing, and checking signatures.",
+          "explanation": "The three fundamental algorithms in a digital signature scheme are: KeyGen (generates a key pair), Sign (creates a signature using the private key), and Verify (checks a signature against a message and public key). The Recover algorithm exists in some schemes like ECDSA but is not a universal fundamental algorithm."
+        },
+        {
+          "question": "How is the Recover algorithm used in blockchain transaction validation on Avalanche?",
+          "options": [
+            "It recovers lost private keys from the blockchain's transaction history",
+            "It reconstructs corrupted messages using the original signature as a checksum",
+            "It recovers the public key from a message and its signature for verification purposes",
+            "It derives the signer's public key (and thus their address) from a transaction's signature, allowing nodes to verify the sender's identity"
+          ],
+          "correctAnswers": [
+            3
+          ],
+          "hint": "Think about how a blockchain node knows which account sent a transaction when only the signature is included.",
+          "explanation": "In blockchain transaction validation, the Recover algorithm derives the signer's public key from the transaction data and its signature. Since Avalanche (and Ethereum) addresses are derived from public keys, this allows nodes to determine the sender's address from the signature alone, without requiring the public key to be transmitted separately."
+        }
+      ]
+    },
+    "310": {
+      "question": "What is a key advantage of the BLS multi-signature scheme in blockchain applications?",
+      "options": [
+        "It requires only one private key for all participants.",
+        "It eliminates the need for public keys.",
+        "It uses symmetric cryptography for enhanced security.",
+        "It supports signature and public key aggregation, resulting in compact signatures."
+      ],
+      "correctAnswers": [
+        3
+      ],
+      "hint": "The BLS scheme is known for its ability to aggregate multiple signatures into one.",
+      "explanation": "The BLS (Boneh-Lynn-Shacham) multi-signature scheme is highly efficient for blockchain applications due to its support for both signature and public key aggregation. This means multiple signatures can be compressed into a single short signature, and multiple public keys can be aggregated into one, reducing the storage and transmission overhead while maintaining security and integrity.",
+      "chapter": "Signature Schemes",
+      "alternates": [
+        {
+          "question": "How does BLS signature aggregation benefit Avalanche's interchain messaging system?",
+          "options": [
+            "It allows a single validator to sign messages on behalf of the entire validator set",
+            "It compresses multiple validator signatures into one compact signature, reducing the data that must be verified on the destination chain",
+            "It supports signature and public key aggregation, producing compact signatures for efficiency",
+            "It eliminates the need for validators to have individual key pairs"
+          ],
+          "correctAnswers": [
+            1
+          ],
+          "hint": "Think about the data overhead when hundreds of validators need to attest to a cross-chain message.",
+          "explanation": "BLS signature aggregation allows multiple validator signatures to be combined into a single compact signature. For Avalanche's interchain messaging, this dramatically reduces the amount of signature data that needs to be transmitted and verified on the destination chain, making cross-chain communication more efficient."
+        },
+        {
+          "question": "What property of BLS signatures makes them particularly suitable for threshold signing in blockchain consensus?",
+          "options": [
+            "BLS signatures are larger than ECDSA signatures, providing more security bits",
+            "BLS signatures can be verified without knowing the signer's public key",
+            "BLS signatures support non-interactive aggregation, meaning signatures can be combined without signers coordinating with each other",
+            "BLS supports both signature and public key aggregation to produce compact results"
+          ],
+          "correctAnswers": [
+            2
+          ],
+          "hint": "Think about the practical challenge of getting many validators to produce a combined signature.",
+          "explanation": "BLS signatures support non-interactive aggregation, meaning individual validator signatures can be combined into an aggregate signature without the validators needing to coordinate or communicate with each other during the signing process. This is ideal for blockchain consensus where validators sign independently and their signatures are later combined."
+        }
+      ]
+    },
+    "311": {
+      "question": "What is the primary responsibility of the P-Chain in the Avalanche Network?",
+      "options": [
+        "Overseeing validator registration and staking operations for Avalanche L1s.",
+        "Managing the execution of smart contracts.",
+        "Handling transactions on the X-Chain.",
+        "Facilitating the transfer of assets between different chains."
+      ],
+      "correctAnswers": [
+        0
+      ],
+      "hint": "The P-Chain is responsible for validator and staking operations.",
+      "explanation": "In the Avalanche Network, the P-Chain is responsible for validator and Avalanche L1-level operations. This includes the creation of new blockchains and Avalanche L1s, the addition of validators to Avalanche L1s, staking operations, and other platform-level operations. By registering BLS public keys and managing staking, the P-Chain ensures the security and functionality of the network.",
+      "chapter": "P-Chain",
+      "alternates": [
+        {
+          "question": "Which chains make up the Avalanche Primary Network? (Select all that apply)",
+          "options": [
+            "P-Chain — responsible for platform-level operations including validator management and staking",
+            "X-Chain — optimized for creating and trading digital assets",
+            "C-Chain — an EVM-compatible chain for smart contract execution",
+            "D-Chain — a dedicated data availability chain for L1s"
+          ],
+          "correctAnswers": [
+            0,
+            1,
+            2
+          ],
+          "hint": "Think about the three specialized chains that every Avalanche validator must participate in.",
+          "explanation": "The Avalanche Primary Network consists of three chains: the P-Chain (Platform Chain for validator and L1 management), the X-Chain (Exchange Chain for asset creation and trading), and the C-Chain (Contract Chain for EVM-compatible smart contracts). There is no D-Chain in the Primary Network."
+        },
+        {
+          "question": "How does the P-Chain interact with Avalanche L1s in terms of validator management?",
+          "options": [
+            "The P-Chain directly executes smart contracts on behalf of L1 validators",
+            "The P-Chain automatically assigns validators to L1s based on network load",
+            "The P-Chain oversees validator registration and staking operations for all L1s",
+            "The P-Chain tracks which validators are assigned to which L1s and manages their staking weights"
+          ],
+          "correctAnswers": [
+            3
+          ],
+          "hint": "Think about the P-Chain as a registry that keeps track of the validator sets for all L1s.",
+          "explanation": "The P-Chain serves as the coordination layer for validator management across all Avalanche L1s. It tracks which validators belong to which L1s, manages their staking weights, and records their BLS public keys. L1 creators register their validator sets through P-Chain transactions."
+        }
+      ]
+    },
+    "312": {
+      "question": "Which component is responsible for relaying interchain messages to the destination chain in the Avalanche Network?",
+      "options": [
+        "Warp Precompile",
+        "Signature Verification",
+        "AWM Relayer",
+        "Message Initialization"
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "This component checks outgoing messages and delivers them to the destination chain.",
+      "explanation": "The **AWM Relayer** is responsible for relaying interchain messages to the destination chain. It periodically checks the source Avalanche L1 for outgoing messages and delivers these by calling the Interchain Messaging contract on the destination Avalanche L1. This ensures that messages are efficiently transmitted between chains.",
+      "chapter": "Data Flow of an Interchain Message",
+      "alternates": [
+        {
+          "question": "What is the sequence of steps involved in relaying an interchain message from source to destination in Avalanche?",
+          "options": [
+            "Message creation → validator signing → AWM Relayer pickup → signature aggregation → delivery to destination chain",
+            "AWM Relayer creates the message → validators verify → message is sent to destination",
+            "The AWM Relayer relays messages to the destination chain after checking the source for outgoing messages",
+            "Message creation → direct peer-to-peer delivery between source and destination validators"
+          ],
+          "correctAnswers": [
+            0
+          ],
+          "hint": "Think about the full lifecycle of a message from when a dApp sends it to when it arrives on the destination.",
+          "explanation": "The interchain message flow follows these steps: (1) a dApp creates and sends a message via the Interchain Messaging contract, (2) source chain validators sign the message using BLS, (3) the AWM Relayer picks up the signed message, (4) signatures are aggregated, and (5) the relayer delivers the message to the destination chain's Interchain Messaging contract."
+        },
+        {
+          "question": "What happens on the destination chain when the AWM Relayer delivers an interchain message?",
+          "options": [
+            "The AWM Relayer directly calls the target dApp contract, bypassing the Interchain Messaging contract",
+            "The destination chain's Interchain Messaging contract verifies the aggregated BLS signature and then calls the target contract's receiveTeleporterMessage function",
+            "The message is stored in a queue and processed in the next block",
+            "The AWM Relayer component relays the message to the destination chain for processing"
+          ],
+          "correctAnswers": [
+            1
+          ],
+          "hint": "Think about the verification and routing steps that happen before the target contract receives the message.",
+          "explanation": "When the AWM Relayer delivers a message, the destination chain's Interchain Messaging contract first verifies the aggregated BLS signature against the source chain's validator set to ensure authenticity. After successful verification, it calls the target contract's receiveTeleporterMessage function with the decoded message payload."
+        }
+      ]
+    },
+    "313": {
+      "question": "How does the AWM Relayer in the Avalanche Network detect new outgoing messages?",
+      "options": [
+        "By periodically polling the source chain or being triggered by notifications.",
+        "By receiving real-time alerts from validators.",
+        "By scanning transaction receipts on the destination chain.",
+        "By querying the latest block headers exclusively."
+      ],
+      "correctAnswers": [
+        0
+      ],
+      "hint": "The AWM Relayer uses either a regular checking mechanism or event-based triggers.",
+      "explanation": "The AWM Relayer detects new outgoing messages by either polling the source Avalanche L1 periodically for new messages or being triggered by notifications whenever a new outgoing message is detected by a node. This dual approach ensures that messages are efficiently picked up and relayed to the destination chain.",
+      "chapter": "Message Pickup",
+      "alternates": [
+        {
+          "question": "What is the role of a node subscription mechanism in the AWM Relayer's message detection process?",
+          "options": [
+            "It subscribes to the destination chain to check if messages have already been delivered",
+            "The AWM Relayer detects messages by periodically polling or being triggered by notifications",
+            "It periodically polls the source chain for new messages at fixed time intervals",
+            "It allows the relayer to receive real-time notifications when new outgoing messages are emitted, reducing detection latency"
+          ],
+          "correctAnswers": [
+            3
+          ],
+          "hint": "Think about the event-driven approach to detecting new messages compared to periodic checking.",
+          "explanation": "The node subscription mechanism provides an event-driven approach where the AWM Relayer receives real-time notifications whenever new outgoing interchain messages are emitted. This reduces detection latency compared to periodic polling, as the relayer is alerted immediately when a new message is available."
+        },
+        {
+          "question": "What information does the AWM Relayer need to collect from source chain validators before it can deliver a message?",
+          "options": [
+            "The validators' private keys to re-sign the message for the destination chain",
+            "The validators' IP addresses to establish direct connections with the destination chain",
+            "BLS signatures from a sufficient threshold of validators who have attested to the message",
+            "The AWM Relayer detects outgoing messages by polling the source chain or receiving notifications"
+          ],
+          "correctAnswers": [
+            2
+          ],
+          "hint": "Think about what cryptographic proof the destination chain needs to verify the message is legitimate.",
+          "explanation": "The AWM Relayer must collect BLS signatures from a sufficient threshold of source chain validators who have attested to the outgoing message. These signatures are then aggregated and included when delivering the message to the destination chain, providing cryptographic proof of the message's authenticity."
+        }
+      ]
+    },
+    "314": {
+      "question": "Why does the AWM Relayer not aggregate the BLS Public Keys off-chain and attach them to the message?",
+      "options": [
+        "Because aggregating off-chain would increase the message size significantly.",
+        "To prevent the AWM Relayer from creating fraudulent public keys and signatures, ensuring security.",
+        "Because the destination chain does not support off-chain aggregation.",
+        "To reduce the computational load on the AWM Relayer."
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Aggregating public keys off-chain could allow the relayer to fabricate signatures.",
+      "explanation": "The AWM Relayer does not aggregate the BLS Public Keys off-chain and attach them to the message to prevent security vulnerabilities. If aggregation were done off-chain, the relayer could create fake public keys and signatures, compromising the authenticity and integrity of the messages. By requiring each validator on the destination chain to perform the aggregation, the system ensures that the aggregated public key accurately represents the signing validators, maintaining trust and security in the cross-chain communication process.",
+      "chapter": "Signature Schemes",
+      "alternates": [
+        {
+          "question": "Where does BLS public key aggregation occur in the Avalanche interchain messaging process, and why?",
+          "options": [
+            "On the source chain, to reduce the data size before the relayer picks up the message",
+            "In the P-Chain smart contract, which provides a pre-aggregated key to all chains",
+            "Off-chain by the AWM Relayer to prevent fraudulent public key and signature creation",
+            "On the destination chain, because each validator independently verifies by aggregating the public keys from its local copy of the P-Chain validator data"
+          ],
+          "correctAnswers": [
+            3
+          ],
+          "hint": "Think about which entity has a trusted, local copy of the validator set data and can perform aggregation securely.",
+          "explanation": "BLS public key aggregation occurs on the destination chain. Each destination chain validator has a local copy of the source chain's validator set (from the P-Chain) and performs the aggregation independently. This ensures security because the validators use their own trusted data rather than relying on the relayer's potentially manipulated aggregation."
+        },
+        {
+          "question": "What security vulnerability would exist if the AWM Relayer were allowed to aggregate BLS public keys off-chain? (Select all that apply)",
+          "options": [
+            "The relayer could fabricate a fake aggregated public key that matches a forged aggregate signature",
+            "The relayer could not aggregate public keys off-chain due to technical limitations of BLS",
+            "The destination chain would have no way to verify that the aggregated key corresponds to legitimate source chain validators",
+            "Preventing off-chain aggregation by the AWM Relayer ensures security and prevents fraudulent keys"
+          ],
+          "correctAnswers": [
+            0,
+            2
+          ],
+          "hint": "Think about what would happen if the relayer could provide both the signature AND the public key used to verify it.",
+          "explanation": "If the AWM Relayer aggregated public keys off-chain, it could create a fraudulent aggregated public key and a matching forged aggregate signature. The destination chain would have no way to verify that the provided aggregated key actually corresponds to legitimate source chain validators, completely undermining the security model."
+        }
+      ]
+    },
+    "315": {
+      "question": "What is the primary purpose of depositing ERC-20 tokens into the Interchain Messaging contract in the Avalanche Network?",
+      "options": [
+        "To pay for gas fees associated with transactions.",
+        "To serve as collateral for staking operations.",
+        "To incentivize the AWM Relayer by providing a reward for delivering messages.",
+        "To lock tokens and prevent them from being transferred."
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "Depositing tokens serves as a financial incentive for relayers to perform their duties.",
+      "explanation": "Depositing ERC-20 tokens into the Interchain Messaging contract acts as a reward mechanism for the AWM Relayer. When a relayer successfully delivers a message, they can claim the deposited tokens as compensation for their efforts in ensuring reliable cross-chain communication. This incentivization helps maintain the efficiency and security of the messaging system.",
+      "chapter": "Fee Data Flow",
+      "alternates": [
+        {
+          "question": "Who can claim the ERC-20 fee tokens deposited in the Interchain Messaging contract?",
+          "options": [
+            "Any validator on the destination chain can claim the fees",
+            "The original sender can reclaim the fee if the message is not delivered within a timeout period",
+            "The fee incentivizes the AWM Relayer to deliver messages as a reward for cross-chain delivery",
+            "Only the AWM Relayer that successfully delivers the message to the destination chain can claim the deposited fee"
+          ],
+          "correctAnswers": [
+            3
+          ],
+          "hint": "Think about who does the work of delivering the message and therefore deserves the reward.",
+          "explanation": "Only the AWM Relayer that successfully delivers the cross-chain message can claim the deposited ERC-20 fee tokens. This direct incentive mechanism ensures that relayers are compensated for their work and motivated to deliver messages promptly and reliably."
+        },
+        {
+          "question": "What happens if a sender does not attach any fee tokens when sending a cross-chain message?",
+          "options": [
+            "The message is rejected by the Interchain Messaging contract and cannot be sent",
+            "The message is sent but no relayer has a financial incentive to deliver it, so delivery depends on altruistic or subsidized relayers",
+            "Depositing ERC-20 tokens incentivizes the AWM Relayer as a reward for message delivery",
+            "The destination chain automatically charges the recipient for the delivery cost"
+          ],
+          "correctAnswers": [
+            1
+          ],
+          "hint": "Think about what motivates a relayer to spend gas delivering someone else's message.",
+          "explanation": "If no fee tokens are attached, the message can still be sent, but there is no financial incentive for a relayer to deliver it. In this case, delivery would depend on relayers who operate altruistically or are subsidized by the dApp. The protocol does not require a fee but relies on the fee mechanism for reliable delivery."
+        }
+      ]
+    },
+    "316": {
+      "question": "According to the Avalanche Network's fee incentivization model, how should the minimum fee amount be calculated to ensure that a Relayer makes at least a 10% profit?",
+      "options": [
+        "Fee = requiredGasLimit * gas_price_in_native_token",
+        "Fee = (requiredGasLimit * gas_price_in_native_token) / 1.1",
+        "Fee = requiredGasLimit + gas_price_in_native_token + native_token_price",
+        "Fee = 1.1 * (requiredGasLimit * gas_price_in_native_token * native_token_price)"
+      ],
+      "correctAnswers": [
+        3
+      ],
+      "hint": "The fee should cover the costs and provide additional profit to the Relayer.",
+      "explanation": "To ensure the Relayer makes at least a 10% profit, the fee amount should be calculated as 1.1 times the cost. The cost is determined by multiplying the requiredGasLimit by the gas price in native tokens and the native token price. Therefore, the minimum fee should be 1.1 * (requiredGasLimit * gas_price_in_native_token * native_token_price).",
+      "chapter": "Determining the Fee",
+      "alternates": [
+        {
+          "question": "What factors must be considered when calculating the cost of relaying a cross-chain message? (Select all that apply)",
+          "options": [
+            "The requiredGasLimit needed to execute the message on the destination chain",
+            "The gas price on the destination chain at the time of delivery",
+            "The fee amount calculated as 1.1 times the requiredGasLimit multiplied by gas price and token price",
+            "The price of the destination chain's native token relative to the fee token being paid"
+          ],
+          "correctAnswers": [
+            0,
+            1,
+            3
+          ],
+          "hint": "Think about all the variables that determine how much it costs a relayer to deliver a message.",
+          "explanation": "The relay cost depends on three main factors: the requiredGasLimit (how much gas the destination execution needs), the gas price on the destination chain (cost per unit of gas), and the native token price (to convert the gas cost into the fee token's denomination). All three must be considered to set an appropriate fee."
+        },
+        {
+          "question": "Why does the fee calculation formula include a 1.1 multiplier (110% of cost)?",
+          "options": [
+            "To account for gas price volatility between when the fee is set and when the message is delivered",
+            "Because the Interchain Messaging contract charges a 10% protocol fee on all messages",
+            "To ensure the relayer makes at least a minimum profit margin as incentive for reliable delivery",
+            "To calculate the fee as 1.1 times the requiredGasLimit multiplied by gas price and native token price"
+          ],
+          "correctAnswers": [
+            2
+          ],
+          "hint": "Think about what would happen if relayers only broke even — would they still be motivated to deliver messages?",
+          "explanation": "The 1.1 multiplier ensures the relayer earns at least a 10% profit margin above their actual gas costs. Without a profit incentive, relayers would have no economic motivation to spend their own gas delivering cross-chain messages, which could lead to unreliable message delivery across the network."
+        }
+      ]
+    },
+    "4018": {
+      "question": "What makes interoperability between Avalanche L1s easier compared to interoperability between unrelated blockchains from different networks?",
+      "options": [
+        "Interoperability is equally difficult in all cases",
+        "Avalanche L1s all share the same state",
+        "All Avalanche L1s use the same consensus mechanism and virtual machine, but practical implementations reveal this is not the case and involves additional complexity",
+        "Avalanche provides standardized cryptographic algorithms in AvalancheGo that enable cross-L1 communication out of the box, even when execution layers differ"
+      ],
+      "correctAnswers": [
+        3
+      ],
+      "hint": "Think about what AvalancheGo provides at the protocol level.",
+      "explanation": "Avalanche makes interoperability easier by providing standardized cryptographic algorithms implemented in AvalancheGo, the node software. These built-in modules enable cross-L1 communication out of the box, even when the application and execution layers (VMs) of the chains are completely different. VMs can utilize these modules to sign and verify messages, making interoperability between Avalanche L1s much simpler than coordinating between unrelated chains from different networks that lack such standardization.",
+      "chapter": "Interchain Messaging",
+      "alternates": [
+        {
+          "question": "What role does AvalancheGo play in enabling interoperability between Avalanche L1s with different virtual machines?",
+          "options": [
+            "AvalancheGo forces all L1s to use the same virtual machine for compatibility",
+            "AvalancheGo provides standardized cryptographic algorithms that enable cross-L1 communication out of the box, even when execution layers differ",
+            "AvalancheGo provides standardized cryptographic modules that VMs can use to sign and verify cross-chain messages, regardless of their execution layer differences",
+            "AvalancheGo acts as a universal translator that converts VM-specific transactions between chains"
+          ],
+          "correctAnswers": [
+            2
+          ],
+          "hint": "Think about what built-in modules the node software provides at the protocol level.",
+          "explanation": "AvalancheGo, the Avalanche node software, implements standardized cryptographic modules including BLS signature schemes. These modules are available to any virtual machine running on an Avalanche L1, regardless of whether the VM is EVM-based, a custom VM, or any other execution environment. VMs can utilize these modules to sign outgoing messages and verify incoming ones, providing a common communication layer beneath the application and execution layers."
+        },
+        {
+          "question": "What makes interoperability between two unrelated blockchains from different networks fundamentally harder than between Avalanche L1s? (Select all that apply)",
+          "options": [
+            "Unrelated chains lack standardized cryptographic primitives for cross-chain message signing and verification",
+            "Unrelated chains must rely on external trusted third parties (bridge validators) since there is no shared infrastructure",
+            "Avalanche L1s all share the same state, making cross-chain reads trivial",
+            "Unrelated chains always use different programming languages"
+          ],
+          "correctAnswers": [
+            0,
+            1
+          ],
+          "hint": "Think about what infrastructure Avalanche provides that external networks do not share.",
+          "explanation": "Interoperability between unrelated blockchains is harder because they lack a shared protocol layer with standardized cryptographic algorithms. Without common signing and verification tools, these chains must rely on external trusted third parties like bridge validator sets to observe one chain and relay messages to the other. Avalanche L1s avoid this by sharing AvalancheGo's built-in cryptographic modules, which provide native message signing and verification capabilities that any L1's validators can use regardless of their VM choice."
+        }
+      ]
+    },
+    "4019": {
+      "question": "Why is finality crucial for building cross-chain applications and interoperable systems? (Select all that apply)",
+      "options": [
+        "It makes transactions faster on all chains",
+        "It eliminates the need for validators",
+        "It reduces gas fees across chains, which would actually introduce several security vulnerabilities and involves additional complexity and involves additional complexity",
+        "It ensures source chain transactions are confirmed and immutable, allowing destination chain actions to execute securely without risk of source chain reverting"
+      ],
+      "correctAnswers": [
+        0,
+        3
+      ],
+      "hint": "Think about what happens if the source chain could revert after the destination acts.",
+      "explanation": "Finality is crucial because it ensures that transactions on the source chain are confirmed and immutable. This guarantee allows actions triggered on the destination chain to be executed securely, knowing that the source chain won't revert the state that induced the cross-chain message. Without finality, there would be a risk that the destination chain acts on a message, but then the source chain reverts, creating inconsistency and potential security vulnerabilities across the interoperable system.",
+      "chapter": "Interchain Messaging",
+      "alternates": [
+        {
+          "question": "What security risk would exist in cross-chain applications if the source chain lacked fast finality?",
+          "options": [
+            "It ensures source chain transactions are confirmed and immutable, allowing destination chain actions to execute securely",
+            "The source chain would become too slow for any transactions to process",
+            "Validators on the destination chain would lose their staking rewards",
+            "The destination chain could act on a cross-chain message, but then the source chain could revert the transaction that triggered it, creating a state inconsistency"
+          ],
+          "correctAnswers": [
+            3
+          ],
+          "hint": "Think about what happens on the destination chain if the source chain rolls back.",
+          "explanation": "Without fast finality, there is a window where a transaction on the source chain could be reverted (e.g., through a chain reorganization) after the destination chain has already acted on the corresponding cross-chain message. For example, tokens could be unlocked on the destination chain based on a lock transaction on the source chain that later gets reversed, effectively creating tokens from nothing. This is why Avalanche's sub-second finality is particularly valuable for cross-chain applications."
+        },
+        {
+          "question": "How does Avalanche's consensus finality compare to probabilistic finality chains (like Bitcoin) for cross-chain messaging purposes?",
+          "options": [
+            "They are identical since both eventually confirm transactions",
+            "Avalanche achieves sub-second deterministic finality, meaning cross-chain messages can be acted on almost immediately without waiting for multiple block confirmations",
+            "Probabilistic finality is actually better because it provides more security confirmations over time",
+            "Finality makes transactions faster on all chains regardless of the consensus mechanism used"
+          ],
+          "correctAnswers": [
+            1
+          ],
+          "hint": "Think about the timing difference between deterministic and probabilistic finality for triggering destination chain actions.",
+          "explanation": "Avalanche uses a consensus mechanism that provides deterministic (absolute) finality in sub-second timeframes. Once a transaction is finalized, it cannot be reverted under any circumstances. This is critical for cross-chain messaging because the destination chain can immediately and safely act on the message. Probabilistic finality chains like Bitcoin require waiting for multiple block confirmations (often 30-60 minutes) to achieve sufficient confidence that a transaction won't be reversed, significantly slowing cross-chain operations."
+        }
+      ]
+    },
+    "4020": {
+      "question": "According to the research paper 'SoK: Communication Across Distributed Ledgers,' what conclusion do researchers reach about trustless cross-chain communication protocols?",
+      "options": [
+        "A trustless, correct CCC protocol is impossible, as the problem reduces to the Fair Exchange problem which has been proven unsolvable",
+        "Trustless CCC protocols are easy to implement",
+        "Trustless CCC protocols only work on Proof of Work chains, which is an oversimplification of the actual process and involves additional complexity",
+        "Trustless CCC protocols require special hardware"
+      ],
+      "correctAnswers": [
+        0
+      ],
+      "hint": "Think about the theoretical limitations of distributed systems.",
+      "explanation": "The researchers conclude that a trustless, correct cross-chain communication (CCC) protocol is impossible. Using computational complexity theory, they demonstrate that the trustless CCC protocol problem can be reduced to the Fair Exchange problem, which has been mathematically proven to have no solution. In practice, this means bridges and cross-chain communications must rely on some form of trusted infrastructure—such as centralized observers or sets of third-party bridge validators—to observe the source chain and deliver messages to the destination chain.",
+      "chapter": "Interchain Messaging",
+      "alternates": [
+        {
+          "question": "What practical implication does the impossibility of trustless CCC protocols have for real-world bridge designs?",
+          "options": [
+            "All bridges and cross-chain communications must rely on some form of trusted infrastructure, such as centralized observers or third-party bridge validators",
+            "A trustless, correct CCC protocol is impossible because the problem reduces to the Fair Exchange problem",
+            "Real-world bridges should avoid using any validators entirely",
+            "Bridge developers should focus on making their bridges faster rather than more secure"
+          ],
+          "correctAnswers": [
+            0
+          ],
+          "hint": "Think about what bridges need in practice given the theoretical impossibility result.",
+          "explanation": "Since the research proves that a perfectly trustless CCC protocol is impossible, all real-world bridges must incorporate some trusted infrastructure. This typically manifests as centralized relayers, multi-sig committees, or sets of bridge validators that observe the source chain and relay messages. Avalanche's approach with AWM minimizes this by reusing the source L1's existing validator set rather than introducing a new trusted party, but some form of trust is still inherent in the relayer that delivers messages."
+        },
+        {
+          "question": "According to the SoK paper, what are the required attributes for a correct CCC protocol? (Select all that apply)",
+          "options": [
+            "Effectiveness: all relevant transactions are posted on their respective chains at the desired time",
+            "Atomicity: either all or no transactions are posted at the desired time",
+            "The problem reduces to the Fair Exchange problem, which has been proven unsolvable",
+            "Timeliness: all transactions will eventually be posted on their respective chains"
+          ],
+          "correctAnswers": [
+            0,
+            1,
+            3
+          ],
+          "hint": "Think about the formal requirements for a protocol to be considered correct.",
+          "explanation": "The SoK paper defines three attributes for a correct CCC protocol: Effectiveness means all relevant transactions are posted on their respective chains at the desired time. Atomicity means either all transactions are posted at the desired time, or none are posted at all (no partial state). Timeliness means all transactions will eventually be posted. The researchers show that achieving all three attributes without a trusted party reduces to the Fair Exchange problem, proving it impossible."
+        }
+      ]
+    },
+    "4021": {
+      "question": "What is the primary trust assumption of Avalanche Warp Messaging (AWM)?",
+      "options": [
+        "Trust in a centralized bridge operator",
+        "Trust in the validators of the source L1 signing the message, which is the same trust users already place when using that L1",
+        "Trust in a separate set of bridge validators unrelated to the L1, although this is not how the protocol actually works in practice",
+        "Trust in the destination L1 validators to verify the source"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Think about who signs AWM messages and what trust users already have.",
+      "explanation": "AWM's trust assumption is based on trusting the validators of the source L1 that sign the message. This is the same trust users already place when using that L1 for any transaction. Rather than introducing new trusted third parties like traditional bridges, AWM leverages the existing validator set's signatures. This approach eliminates additional trust assumptions beyond what users already accept by using the source blockchain itself.",
+      "chapter": "Interchain Messaging",
+      "alternates": [
+        {
+          "question": "How does AWM's trust model compare to traditional bridge architectures that use dedicated bridge validators?",
+          "options": [
+            "AWM is more secure because it uses more validators than traditional bridges",
+            "AWM trusts the validators of the source L1 signing the message, which is the same trust users already place in that L1",
+            "AWM and traditional bridges have identical trust models since both use validators",
+            "AWM introduces fewer additional trust assumptions because it reuses the source L1's existing validators rather than adding a new set of bridge-specific validators"
+          ],
+          "correctAnswers": [
+            3
+          ],
+          "hint": "Think about whether AWM adds new trusted parties beyond what you already trust.",
+          "explanation": "Traditional bridges typically require users to trust a separate set of bridge validators or a multi-sig committee that is distinct from any blockchain's validator set. This introduces an additional trust assumption on top of the chains themselves. AWM eliminates this extra trust layer by having the source L1's own validators sign cross-chain messages using BLS signatures. Since users already trust these validators by virtue of using the source L1, AWM adds no new trust assumptions."
+        },
+        {
+          "question": "What cryptographic mechanism do AWM validators use to sign cross-chain messages?",
+          "options": [
+            "Standard ECDSA signatures like those used for regular Avalanche transactions",
+            "BLS (Boneh-Lynn-Shacham) signatures that can be aggregated from multiple validators into a compact proof",
+            "Trust in a centralized bridge operator who signs messages on behalf of validators",
+            "RSA signatures with 2048-bit keys for maximum security"
+          ],
+          "correctAnswers": [
+            1
+          ],
+          "hint": "Think about what type of signature scheme allows efficient aggregation from many validators.",
+          "explanation": "AWM uses BLS (Boneh-Lynn-Shacham) signatures, which have a key property: multiple individual signatures from different validators can be aggregated into a single compact signature. This is critical for scalability because instead of verifying hundreds of individual validator signatures on the destination chain, only the aggregated signature needs to be verified. The AWM relayer collects individual BLS signatures from a sufficient share of the source L1's validators and aggregates them before submitting to the destination chain."
+        }
+      ]
+    },
+    "4022": {
+      "question": "What is the primary role of a relayer in Avalanche Interchain Messaging?",
+      "options": [
+        "To observe source chains for ICM messages and deliver them to destination chains, serving as the message delivery infrastructure",
+        "To mine cryptocurrency",
+        "To validate transactions and create new blocks, but in reality the system operates quite differently and involves additional complexity",
+        "To store blockchain data permanently"
+      ],
+      "correctAnswers": [
+        0
+      ],
+      "hint": "Think about the message delivery mechanism in cross-chain communication.",
+      "explanation": "Relayers serve as the message delivery infrastructure in Avalanche Interchain Messaging. They observe source chains for ICM messages and deliver these messages to the appropriate destination chains. While AWM handles message signing and verification using validator signatures, relayers provide the actual transport mechanism. They can be run by anyone and may charge fees for their service. Without relayers, messages would be created and signed but never delivered to their destinations.",
+      "chapter": "Interchain Messaging",
+      "alternates": [
+        {
+          "question": "What happens to an ICM cross-chain message if no relayer picks it up for delivery? (Select all that apply)",
+          "options": [
+            "The message is automatically rerouted through the P-Chain to reach the destination",
+            "The message remains signed and available at the source chain but is never delivered to the destination",
+            "It observes source chains for ICM messages and delivers them to destination chains as infrastructure",
+            "Anyone can run their own relayer to deliver the pending message since relaying is permissionless"
+          ],
+          "correctAnswers": [
+            1,
+            3
+          ],
+          "hint": "Think about who can run a relayer and whether messages have expiration.",
+          "explanation": "If no relayer picks up a message, it remains signed by the source L1's validators and is available for delivery, but it simply sits undelivered. The message does not expire. Since anyone can run an AWM Relayer, a user could start their own relayer to deliver their own messages if no existing relayer handles it. This permissionless nature ensures that messages are never permanently lost, though they may be delayed without active relayer infrastructure."
+        },
+        {
+          "question": "How are relayers incentivized to deliver cross-chain messages in the Avalanche ICM system?",
+          "options": [
+            "Relayers earn block rewards from the destination chain's consensus mechanism",
+            "Relayers mine cryptocurrency as compensation for message delivery",
+            "Relayers can charge fees for delivery, and Interchain Messaging allows senders to incentivize relayers with ERC-20 tokens attached to messages",
+            "Relayers are always operated for free by Ava Labs as a public service"
+          ],
+          "correctAnswers": [
+            2
+          ],
+          "hint": "Think about the economic model for relayer operation and how senders attach value to messages.",
+          "explanation": "Relayers can be incentivized through fees. The Interchain Messaging (ICM/Teleporter) protocol allows senders to attach ERC-20 token fees to their messages, which relayers collect upon successful delivery. The relayer must also pay gas on the destination chain to submit the transaction, so the fee needs to cover this cost plus profit. Alternatively, an L1 may operate its own relayer to onboard users, and AvaCloud offers hosted relayer services for bridges deployed through their platform."
+        }
+      ]
+    },
+    "4023": {
+      "question": "Why might you want to restrict which relayers can deliver messages to your cross-chain application? (Select all that apply)",
+      "options": [
+        "To eliminate all relayers, but practical implementations reveal this is not the case and involves additional complexity and involves additional complexity",
+        "To ensure message delivery quality, prevent spam, guarantee SLAs, or maintain control over the delivery infrastructure for security and reliability",
+        "To increase gas costs",
+        "To make the system more centralized for no reason"
+      ],
+      "correctAnswers": [
+        1,
+        3
+      ],
+      "hint": "Think about quality of service and security considerations.",
+      "explanation": "Restricting relayers allows you to ensure message delivery quality and maintain specific service level agreements (SLAs). You might want to guarantee that only relayers you trust or have contracted with can deliver messages to your application. This can help prevent spam, ensure reliable delivery times, maintain security standards, and give you control over the message delivery infrastructure. While AWM is permissionless by default, applications can implement their own restrictions based on their specific reliability and security requirements.",
+      "chapter": "Interchain Messaging",
+      "alternates": [
+        {
+          "question": "By default, can any relayer deliver AWM messages to any Avalanche L1, or is delivery restricted?",
+          "options": [
+            "AWM is permissionless by default, meaning any relayer can deliver messages to any L1, but applications can implement their own restrictions",
+            "To ensure message delivery quality, prevent spam, guarantee SLAs, or maintain control over the delivery infrastructure",
+            "Delivery is restricted by default and requires explicit authorization from the P-Chain",
+            "Only AvaCloud-operated relayers can deliver messages on mainnet"
+          ],
+          "correctAnswers": [
+            0
+          ],
+          "hint": "Think about the default permission model and whether applications can customize it.",
+          "explanation": "AWM is permissionless by default, meaning any relayer can pick up and deliver any message to any destination L1. There are no protocol-level restrictions on who can relay. However, individual cross-chain applications can implement their own restrictions at the smart contract level by checking the relayer's address before accepting a delivered message. This gives applications flexibility to choose between an open delivery model or a controlled one depending on their requirements."
+        },
+        {
+          "question": "What are concrete scenarios where restricting relayer access would be beneficial for a production cross-chain application? (Select all that apply)",
+          "options": [
+            "When you need guaranteed delivery SLAs and uptime for business-critical cross-chain operations",
+            "When you want to prevent spam or DoS attacks where malicious relayers flood your contract with duplicate messages",
+            "When you want to eliminate all relayers from the system entirely",
+            "When you want to increase gas costs for message delivery"
+          ],
+          "correctAnswers": [
+            0,
+            1
+          ],
+          "hint": "Think about reliability and security requirements for production applications.",
+          "explanation": "Restricting relayers is beneficial when applications need guaranteed delivery times (SLAs) for business-critical operations like financial transactions, where a contracted relayer provides uptime guarantees. It also helps prevent spam or DoS attacks where an attacker could run a malicious relayer that submits duplicate or reordered messages. By restricting to known, trusted relayers, applications can ensure reliable, ordered delivery and protect against message manipulation or flooding attacks."
+        }
+      ]
+    }
+  }
+}
