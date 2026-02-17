@@ -5,8 +5,9 @@ import ReferralButton from "@/components/build-games/ReferralButton";
 import ReferralLink from "@/components/build-games/ReferralLink";
 import { ApplyButton } from "@/components/build-games/ApplyButton";
 import ApplicationStatusTracker from "@/components/build-games/ApplicationStatusTracker";
-import ProgramTimeline from "@/components/build-games/ProgramTimeline";
-import BuildGamesResources from "@/components/build-games/BuildGamesResources";
+import ProgramTimelineWrapper from "@/components/build-games/ProgramTimelineWrapper";
+import BuildGamesResourcesWrapper from "@/components/build-games/BuildGamesResourcesWrapper";
+import HowItWorksWrapper from "@/components/build-games/HowItWorksWrapper";
 import BuildGamesMentors from "@/components/build-games/BuildGamesMentors";
 import BuildGamesPartners from "@/components/build-games/BuildGamesPartners";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
@@ -1084,15 +1085,18 @@ function MainContent() {
       <div className="relative shrink-0 w-full" data-name="CTA">
         <div className="flex flex-col justify-center size-full">
           <div className="content-stretch flex flex-col gap-[16px] items-start justify-center px-[186px] py-0 relative w-full">
-            <ProgramTimeline />
-            <BuildGamesResources />
+            <ProgramTimelineWrapper />
+            <BuildGamesResourcesWrapper />
             <WhatIsBuildGamesSection />
             <WhoShouldApplySection />
             <PrizesSection />
+            <HowItWorksWrapper>
+              <HowItWorksSection />
+            </HowItWorksWrapper>
             <div className="h-[24px] shrink-0 w-[197px]" data-name="Spacer" />
             <WhatWereLookingForSection />
-            {/* <BuildGamesMentors /> */}
-            {/* <BuildGamesPartners /> */}
+            {<BuildGamesMentors />}
+            {<BuildGamesPartners />}
             <FAQsSection />
             <FinalCTASection />
           </div>
