@@ -11,6 +11,9 @@ import { useAutomatedFaucet } from "@/hooks/useAutomatedFaucet";
 import { useRetroactiveConsoleBadges } from "@/hooks/useRetroactiveConsoleBadges";
 import { TrackNewUser } from "@/components/analytics/TrackNewUser";
 import { LoginModalWrapper } from "@/components/login/LoginModalWrapper";
+import { CommandPalette } from "@/components/console/command-palette";
+import { OnboardingTour } from "@/components/console/onboarding-tour";
+import { WelcomeModal } from "@/components/console/onboarding-tour/welcome-modal";
 import { ConsoleBadgeNotification } from "@/components/console/ConsoleBadgeNotification";
 
 function ConsoleContent({ children }: { children: ReactNode }) {
@@ -38,6 +41,9 @@ function ConsoleContent({ children }: { children: ReactNode }) {
       </SidebarProvider>
       <Toaster position="bottom-right" richColors expand={true} visibleToasts={5}/>
       <ConsoleBadgeNotification />
+      <CommandPalette />
+      <OnboardingTour />
+      <WelcomeModal />
     </WalletProvider>
   );
 }

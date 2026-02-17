@@ -1,7 +1,11 @@
-import { redirect } from "next/navigation";
+import type { Metadata } from "next";
+import { ICTTSetupClientPage } from "./client-page";
+
+export const metadata: Metadata = {
+  title: "ICTT Setup | Builder Console",
+  description: "Visual bridge builder for Interchain Token Transfer. Connect your L1s with drag-and-drop simplicity.",
+};
 
 export default function Page() {
-  redirect("/console/ictt/setup/deploy-test-erc20");
+  return <ICTTSetupClientPage />;
 }
-
-

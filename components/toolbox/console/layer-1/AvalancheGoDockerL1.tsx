@@ -18,6 +18,7 @@ import { SUBNET_EVM_VM_ID } from "@/constants/console";
 import { generateChainConfig, generateDockerCommand, generateConfigFileCommand } from "./node-config";
 import { useNodeConfigHighlighting } from "./useNodeConfigHighlighting";
 import { DockerInstallation } from "../../components/DockerInstallation";
+import { NetworkingGuide } from "@/components/console/networking-guide";
 
 function AvalanchegoDockerInner() {
     const { setHighlightPath, clearHighlight, highlightPath } = useGenesisHighlight();
@@ -317,6 +318,11 @@ function AvalanchegoDockerInner() {
                         </a>
                         .
                     </p>
+
+                    {/* Network Requirements */}
+                    <div className="mt-6">
+                        <NetworkingGuide />
+                    </div>
                 </Step>
 
                 <Step>
