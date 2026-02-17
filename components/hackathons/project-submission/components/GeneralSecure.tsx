@@ -213,24 +213,17 @@ export default function GeneralSecureComponent({
     // Explicitly prevent default form submission
     if (event) {
       event.preventDefault();
-      console.log('🛑 Prevented default form submission');
     }
 
     try {
-      console.log('📤 Calling saveProject...');
       const result = await saveProject(data);
-      console.log('✅ Submit result:', result);
-      console.log('📍 hackathonId:', hackathonId);
-      console.log('📍 result.projectId:', result.projectId);
 
       if (result.success) {
-        console.log('✅ Save was successful - redirecting to profile');
         toast({
           title: "Project submitted",
           description:
             "Your project has been successfully submitted. Redirecting to your profile...",
         });
-        console.log('🎯 Executing redirect to: /profile#projects');
         router.push('/profile#projects');
       } else {
         console.error('❌ Save failed, result.success is false');
