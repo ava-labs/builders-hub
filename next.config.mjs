@@ -15,9 +15,6 @@ const config = {
   outputFileTracingIncludes: {
     '/*': ['./tsconfig.json'],
   },
-  env: {
-    APIKEY: process.env.APIKEY,
-  },
   transpilePackages: ["next-mdx-remote"],
   images: {
     remotePatterns: [
