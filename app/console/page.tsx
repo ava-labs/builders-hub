@@ -144,7 +144,7 @@ function CliInstallSnippet() {
   }, []);
 
   return (
-    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 rounded-xl border border-zinc-200/60 dark:border-zinc-800/60 px-4 py-3">
+    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 rounded-xl px-4 py-3">
       <p className="text-sm text-zinc-500 dark:text-zinc-400 shrink-0">
         <span className="hidden sm:inline">Don&apos;t have Core? </span>
         <span className="sm:hidden">No Core? </span>
