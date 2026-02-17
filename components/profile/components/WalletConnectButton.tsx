@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -12,7 +12,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Wallet, QrCode, Loader2 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
 import EthereumProvider from "@walletconnect/ethereum-provider";
 import { QRCodeSVG } from "qrcode.react";
 
@@ -89,7 +88,6 @@ export function WalletConnectButton({
   const [qrCodeUri, setQrCodeUri] = useState<string | null>(null);
   const [showQRCode, setShowQRCode] = useState(false);
   const [eip6963Providers, setEip6963Providers] = useState<EIP6963ProviderDetail[]>([]);
-  const { toast } = useToast();
   
   // Use useRef to maintain stable callback reference
   const onWalletConnectedRef = useRef(onWalletConnected);
@@ -98,6 +96,12 @@ export function WalletConnectButton({
   useEffect(() => {
     onWalletConnectedRef.current = onWalletConnected;
   }, [onWalletConnected]);
+
+  // Request accounts; wallet_revokePermissions was tried but Zerion returns 403, so we call eth_requestAccounts only
+  const requestAccountsWithPicker = useCallback(async (provider: unknown): Promise<string[]> => {
+    const accounts = await (provider as any).request({ method: "eth_requestAccounts" }) as string[];
+    return accounts ?? [];
+  }, []);
 
   // Initialize WalletConnect Provider with singleton pattern
   useEffect(() => {
@@ -160,10 +164,6 @@ export function WalletConnectButton({
             setIsOpen(false);
             setShowQRCode(false);
             setQrCodeUri(null);
-            toast({
-              title: "Wallet Connected",
-              description: "Successfully connected via WalletConnect",
-            });
           }
         });
 
@@ -303,9 +303,7 @@ export function WalletConnectButton({
           type: "extension",
           connect: async () => {
             try {
-              const accounts = await provider.request({
-                method: "eth_requestAccounts",
-              }) as string[];
+              const accounts = await requestAccountsWithPicker(provider);
               return accounts?.[0] || null;
             } catch (error: any) {
               if (error.code === 4001) {
@@ -335,9 +333,7 @@ export function WalletConnectButton({
         type: "extension",
         connect: async () => {
           try {
-            const accounts = await (window.ethereum as any)!.request({
-              method: "eth_requestAccounts",
-            }) as string[];
+            const accounts = await requestAccountsWithPicker((window as any).ethereum);
             return accounts?.[0] || null;
           } catch (error: any) {
             if (error.code === 4001) {
@@ -364,9 +360,7 @@ export function WalletConnectButton({
         type: "extension",
         connect: async () => {
           try {
-            const accounts = await window.zerion!.request({
-              method: "eth_requestAccounts",
-            }) as string[];
+            const accounts = await requestAccountsWithPicker(window.zerion!);
             return accounts?.[0] || null;
           } catch (error: any) {
             if (error.code === 4001) {
@@ -391,9 +385,7 @@ export function WalletConnectButton({
         type: "extension",
         connect: async () => {
           try {
-            const accounts = await (window as any).coinbaseWalletExtension.request({
-              method: "eth_requestAccounts",
-            }) as string[];
+            const accounts = await requestAccountsWithPicker((window as any).coinbaseWalletExtension);
             return accounts?.[0] || null;
           } catch (error: any) {
             if (error.code === 4001) {
@@ -421,9 +413,7 @@ export function WalletConnectButton({
             throw new Error("Please install Core Wallet extension to connect.");
           }
           try {
-            const accounts = await window.avalanche!.request({
-              method: "eth_requestAccounts",
-            }) as string[];
+            const accounts = await requestAccountsWithPicker(window.avalanche!);
             return accounts?.[0] || null;
           } catch (error: any) {
             if (error.code === 4001) {
@@ -446,9 +436,7 @@ export function WalletConnectButton({
         type: "extension",
         connect: async () => {
           try {
-            const accounts = await (window.ethereum as any)!.request({
-              method: "eth_requestAccounts",
-            }) as string[];
+            const accounts = await requestAccountsWithPicker((window as any).ethereum);
             return accounts?.[0] || null;
           } catch (error: any) {
             if (error.code === 4001) {
@@ -471,9 +459,7 @@ export function WalletConnectButton({
         type: "extension",
         connect: async () => {
           try {
-            const accounts = await (window.ethereum as any)!.request({
-              method: "eth_requestAccounts",
-            }) as string[];
+            const accounts = await requestAccountsWithPicker((window as any).ethereum);
             return accounts?.[0] || null;
           } catch (error: any) {
             if (error.code === 4001) {
@@ -502,9 +488,7 @@ export function WalletConnectButton({
         type: "extension",
         connect: async () => {
           try {
-            const accounts = await (window.ethereum as any)!.request({
-              method: "eth_requestAccounts",
-            }) as string[];
+            const accounts = await requestAccountsWithPicker((window as any).ethereum);
             return accounts?.[0] || null;
           } catch (error: any) {
             if (error.code === 4001) {
@@ -526,7 +510,7 @@ export function WalletConnectButton({
   // update available wallets when the WalletConnect provider or EIP-6963 providers change
   useEffect(() => {
     setAvailableWallets(detectWallets());
-  }, [walletConnectProvider, eip6963Providers]);
+  }, [walletConnectProvider, eip6963Providers, requestAccountsWithPicker]);
 
   // Listen for account changes in MetaMask
   useEffect(() => {
@@ -563,20 +547,11 @@ export function WalletConnectButton({
           onWalletConnected(address);
           setIsOpen(false);
           setIsConnecting(false);
-          toast({
-            title: "Wallet Connected",
-            description: `Successfully connected to ${wallet.name}`,
-          });
         }
       }
     } catch (error: any) {
       setIsConnecting(false);
       setShowQRCode(false);
-      toast({
-        title: "Connection Failed",
-        description: error.message || "Failed to connect wallet",
-        variant: "destructive",
-      });
     }
   };
 
