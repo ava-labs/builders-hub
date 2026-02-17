@@ -1,6 +1,7 @@
 "use client";
 
 import { useSession } from 'next-auth/react';
+import { useLoginModalTrigger } from '@/hooks/useLoginModal';
 
 import { useState, useMemo } from 'react';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
@@ -24,6 +25,7 @@ import { cn } from '@/lib/cn';
 
 export default function ConsoleHistoryPage() {
   const { data: session, status } = useSession();
+  const { openLoginModal } = useLoginModalTrigger();
   const { logs: fullHistory, getExplorerUrl, loading } = useConsoleNotifications();
   const [searchTerm, setSearchTerm] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -435,7 +437,10 @@ export default function ConsoleHistoryPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => window.location.href = '/login'}
+                        onClick={() => {
+                          const currentUrl = window.location.href;
+                          openLoginModal(currentUrl);
+                        }}
                         className="gap-2"
                       >
                         <LogIn className="h-4 w-4" />

@@ -4,7 +4,7 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useLoginModalTrigger } from "@/hooks/useLoginModal";
 
 interface SubmitButtonProps {
   hackathonId: string;
@@ -20,15 +20,15 @@ export default function SubmitButton({
   variant = "red",
 }: SubmitButtonProps) {
   const { status } = useSession();
-  const router = useRouter();
+  const { openLoginModal } = useLoginModalTrigger();
 
   const handleClick = (e: React.MouseEvent) => {
     if (status === "unauthenticated") {
       e.preventDefault();
-      // Redirect to login with current hackathon page + #submission anchor as callback
+      // Show login modal with current hackathon page + #submission anchor as callback
       const currentPage = window.location.pathname + window.location.search;
       const callbackWithAnchor = `${currentPage}#submission`;
-      router.push(`/login?callbackUrl=${encodeURIComponent(callbackWithAnchor)}`);
+      openLoginModal(callbackWithAnchor);
     }
   };
 
