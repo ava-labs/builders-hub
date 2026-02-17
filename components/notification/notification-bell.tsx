@@ -8,6 +8,9 @@ import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from "@radix-ui
 import { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useTheme } from "next-themes";
+import DOMPurify from "isomorphic-dompurify";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 export type DbNotification = {
   id: number;
@@ -20,6 +23,7 @@ export type DbNotification = {
   template: string;
   status: string;
 };
+
 type NotificationsResponse = Record<string, DbNotification[]>;
 
 const metricsBaseUrl: string | undefined =
@@ -228,7 +232,51 @@ export function NotificationAccordionItem(
         </AccordionTrigger>
 
         <AccordionContent className="px-4 pb-4 pt-2">
-          {notification.content}
+          {(() => {
+            switch (notification.content_type) {
+              case "text/plain":
+                return notification.content;
+
+              case "text/markdown":
+                return <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    // Keep styling consistent; customize as needed.
+                    p: (props: React.ComponentPropsWithoutRef<"p">) => (
+                      <p className="text-sm text-zinc-700 dark:text-zinc-200 leading-6" {...props} />
+                    ),
+                    a: (props: React.ComponentPropsWithoutRef<"a">) => (
+                      <a className="underline underline-offset-4" target="_blank" rel="noreferrer" {...props} />
+                    ),
+                    ul: (props: React.ComponentPropsWithoutRef<"ul">) => (
+                      <ul className="list-disc pl-5 space-y-1" {...props} />
+                    ),
+                    ol: (props: React.ComponentPropsWithoutRef<"ol">) => (
+                      <ol className="list-decimal pl-5 space-y-1" {...props} />
+                    ),
+                    code: (props: React.ComponentPropsWithoutRef<"code">) => (
+                      <code className="px-1 py-0.5 rounded bg-zinc-200/60 dark:bg-zinc-800/60" {...props} />
+                    ),
+                  }}
+                >
+                  {notification.content}
+                </ReactMarkdown>;
+              case "text/html": {
+                const sanitizedHtml: string = DOMPurify.sanitize(notification.content);
+
+                return (
+                  <div
+                    className="prose prose-sm dark:prose-invert"
+                    dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
+                  />
+                );
+              }
+
+
+              default:
+                return notification.content;
+            }
+          })()}
         </AccordionContent>
       </AccordionItem>
 

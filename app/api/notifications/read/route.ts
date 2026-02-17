@@ -1,33 +1,41 @@
 import { getToken, encode } from "next-auth/jwt";
 import { NextResponse } from "next/server";
 
-type ReadNotificationsBody = unknown; // Keep it flexible unless you want to type it strictly.
-
 export async function POST(req: any): Promise<Response> {
   try {
-    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET ?? '' })
+    const token = await getToken({
+      req,
+      secret: process.env.NEXTAUTH_SECRET ?? "",
+    });
     if (!token) return new Response("Unauthorized", { status: 401 });
-    const encodedToken = await encode({ token: token, secret: process.env.NEXTAUTH_SECRET ?? '' })
-    if (!encodedToken) return new Response("Error at get notifications", { status: 500 });
+    const encodedToken = await encode({
+      token: token,
+      secret: process.env.NEXTAUTH_SECRET ?? "",
+    });
+    if (!encodedToken)
+      return new Response("Error at get notifications", { status: 500 });
 
-    const body: ReadNotificationsBody = await req.json();
+    const body: any = await req.json();
 
     const baseUrl: string | undefined = process.env.NEXT_PUBLIC_AVALANCHE_WORKERS_URL;
+    const avalancheWorkersApiKey: string | undefined =
+      process.env.AVALANCHE_WORKERS_API_KEY;
 
-    if (!baseUrl) {
-      return NextResponse.json(
-        { error: "Missing AVALANCHE_WORKERS_URL" },
-        { status: 500 }
-      );
+    if (!baseUrl || !avalancheWorkersApiKey) {
+      return NextResponse.json({ error: "Failed" }, { status: 500 });
     }
 
+    console.log('BODY: ', body)
     const upstream: Response = await fetch(`${baseUrl}/notifications/read`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "authorization": encodedToken,
+        "x-api-key": avalancheWorkersApiKey,
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify({
+        notifications: body,
+        authUser: token.id,
+      }),
       cache: "no-store",
     });
 
@@ -35,7 +43,7 @@ export async function POST(req: any): Promise<Response> {
       const text: string = await upstream.text();
       return NextResponse.json(
         { error: text || "Failed to read notifications" },
-        { status: upstream.status }
+        { status: upstream.status },
       );
     }
 
