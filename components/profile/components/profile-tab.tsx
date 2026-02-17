@@ -8,7 +8,7 @@ import { ProfileHeader } from "./ProfileHeader";
 import type { ReactNode } from "react";
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import { useProfileForm } from "./hooks/useProfileForm";
+import { useProfileForm, getProfileCompletionPercentage } from "./hooks/useProfileForm";
 import { AvatarSeed } from "./DiceBearAvatar";
 import { NounAvatarConfig } from "./NounAvatarConfig";
 
@@ -33,8 +33,20 @@ export default function ProfileTab({ achievements }: ProfileTabProps) {
   const [nounAvatarSeed, setNounAvatarSeed] = useState<AvatarSeed | null>(null);
   const [nounAvatarEnabled, setNounAvatarEnabled] = useState(false);
 
-  // Get profile data using the hook
-  const { form, watchedValues, isLoading } = useProfileForm();
+  // Single form instance so header progress updates while editing (watchedValues shared)
+  const {
+    form,
+    watchedValues,
+    isLoading,
+    isSaving,
+    isAutoSaving,
+    handleRemoveSkill,
+    handleAddSocial,
+    handleRemoveSocial,
+    handleAddWallet,
+    handleRemoveWallet,
+    onSubmit,
+  } = useProfileForm();
 
   // Load Noun avatar data
   useEffect(() => {
@@ -133,6 +145,7 @@ export default function ProfileTab({ achievements }: ProfileTabProps) {
                 onEditAvatar={() => setIsNounAvatarConfigOpen(true)}
                 nounAvatarSeed={nounAvatarSeed}
                 nounAvatarEnabled={nounAvatarEnabled}
+                completionPercentage={getProfileCompletionPercentage(watchedValues)}
               />
 
               {/* Separator */}
@@ -171,7 +184,18 @@ export default function ProfileTab({ achievements }: ProfileTabProps) {
           {/* Right Content - Tab Content */}
           <div className="flex-1 min-w-0">
             <TabsContent value="personal" className="mt-1">
-              <Profile />
+              <Profile
+                form={form}
+                watchedValues={watchedValues}
+                isSaving={isSaving}
+                isAutoSaving={isAutoSaving}
+                handleRemoveSkill={handleRemoveSkill}
+                handleAddSocial={handleAddSocial}
+                handleRemoveSocial={handleRemoveSocial}
+                handleAddWallet={handleAddWallet}
+                handleRemoveWallet={handleRemoveWallet}
+                onSubmit={onSubmit}
+              />
             </TabsContent>
 
             <TabsContent value="projects" className="mt-1">
