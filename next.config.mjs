@@ -479,7 +479,13 @@ const config = {
       },
       {
         source: '/hackathon',
-        destination: '/hackathons/26bfce9b-4d44-4d40-8fbe-7903e76d48fa',
+        destination: '/hackathons',
+        permanent: true,
+      },
+      // Build Games hackathon redirect
+      {
+        source: '/hackathons/249d2911-7931-4aa0-a696-37d8370b79f9',
+        destination: '/build-games',
         permanent: true,
       },
       {
