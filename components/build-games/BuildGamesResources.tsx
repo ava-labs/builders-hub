@@ -19,6 +19,11 @@ export default async function BuildGamesResources() {
     link: string;
   }>;
 
+  // Only render if there's at least one resource
+  if (resources.length === 0) {
+    return null;
+  }
+
   return (
     <div className="gradient-border-section relative rounded-[16px] shrink-0 w-full">
       <img
@@ -37,36 +42,33 @@ export default async function BuildGamesResources() {
           </p>
         </div>
 
-        {/* Resources Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+        {/* Resources List */}
+        <div className="flex flex-col divide-y divide-white/5 w-full">
           {resources.map((resource, index) => (
             <a
               key={index}
               href={resource.link}
               target="_blank"
               rel="noopener noreferrer"
-              className="group relative p-6 rounded-xl bg-[rgba(255,255,255,0.02)] border border-[#66acd6]/20 backdrop-blur-sm hover:bg-[rgba(255,255,255,0.04)] transition-all duration-300 hover:border-[#66acd6]/40 hover:shadow-lg hover:shadow-cyan-500/10 cursor-pointer"
+              className="group relative px-4 py-3 hover:bg-[rgba(102,172,214,0.05)] transition-all duration-200 cursor-pointer first:pt-0 last:pb-0"
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-[#66acd6]/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl" />
-              <div className="relative flex items-start gap-4">
-                <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-[#66acd6]/10 border border-[#66acd6]/20 flex-shrink-0">
-                  <DynamicIcon
-                    name={resource.icon as any}
-                    size={24}
-                    className="text-[#66acd6]"
-                  />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <h3 className="text-lg font-['Aeonik:Medium',sans-serif] font-medium text-white">
+              <div className="flex items-center gap-3">
+                <DynamicIcon
+                  name={resource.icon as any}
+                  size={16}
+                  className="text-[#66acd6]/70 group-hover:text-[#66acd6] transition-colors flex-shrink-0"
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-baseline gap-2 flex-wrap">
+                    <span className="text-[14px] font-['Aeonik:Medium',sans-serif] text-white group-hover:text-[#66acd6] transition-colors">
                       {resource.title}
-                    </h3>
-                    <ExternalLink className="text-[#66acd6] opacity-0 group-hover:opacity-100 transition-opacity" size={16} />
+                    </span>
+                    <span className="text-[13px] font-['Aeonik:Regular',sans-serif] text-white/50">
+                      {resource.description}
+                    </span>
                   </div>
-                  <p className="text-[15px] font-['Aeonik:Regular',sans-serif] text-white/70 leading-relaxed">
-                    {resource.description}
-                  </p>
                 </div>
+                <ExternalLink className="text-white/30 group-hover:text-[#66acd6] transition-colors flex-shrink-0" size={14} />
               </div>
             </a>
           ))}
