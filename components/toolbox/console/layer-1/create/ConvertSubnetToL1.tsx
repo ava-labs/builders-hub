@@ -17,6 +17,7 @@ import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-
 import { Step, Steps } from 'fumadocs-ui/components/steps';
 import Link from "next/link";
 import { BookOpen, ExternalLink, AlertTriangle } from "lucide-react";
+import { CliAlternative } from "@/components/console/cli-alternative";
 
 const metadata: ConsoleToolMetadata = {
     title: "Convert Subnet to L1",
@@ -50,6 +51,33 @@ function ConvertToL1({ onSuccess }: BaseConsoleToolProps) {
     const [isConverting, setIsConverting] = useState(false);
 
     const { notify } = useConsoleNotifications();
+
+    function buildConvertCliCommand() {
+        const parts = [
+            `platform subnet convert-l1`,
+            `--subnet-id ${selection.subnetId || "<subnet-id>"}`,
+            `--chain-id ${validatorManagerChainID || "<chain-id>"}`,
+            `--manager ${validatorManagerAddress || "<address>"}`,
+        ];
+
+        if (validators.length > 0) {
+            const nodeIds = validators.map(v => v.nodeID || "<node-id>").join(",");
+            const blsKeys = validators.map(v => v.nodePOP.publicKey || "<bls-key>").join(",");
+            const blsPops = validators.map(v => v.nodePOP.proofOfPossession || "<bls-pop>").join(",");
+            const balanceAvax = validators[0]?.validatorBalance
+                ? (Number(validators[0].validatorBalance) / 1e9).toString()
+                : "1.0";
+            parts.push(`--validator-node-ids ${nodeIds}`);
+            parts.push(`--validator-bls-public-keys ${blsKeys}`);
+            parts.push(`--validator-bls-pops ${blsPops}`);
+            parts.push(`--validator-balance ${balanceAvax}`);
+        } else {
+            parts.push(`--mock-validator`);
+        }
+
+        parts.push(`--network ${isTestnet ? "fuji" : "mainnet"}`);
+        return parts.join(" ");
+    }
 
     async function handleConvertToL1() {
         setConvertToL1TxId("");
@@ -166,10 +194,13 @@ function ConvertToL1({ onSuccess }: BaseConsoleToolProps) {
                 onClick={handleConvertToL1}
                 disabled={!selection.subnetId || !validatorManagerAddress || validators.length === 0 || (selection.subnet?.isL1)}
                 loading={isConverting}
+                icon={<img src="/images/core.svg" alt="" className="w-4 h-4" />}
                 className="w-full"
             >
                 {selection.subnet?.isL1 ? "Already Converted" : "Convert to L1"}
             </Button>
+
+            <CliAlternative command={buildConvertCliCommand()} />
         </div>
     );
 }

@@ -200,6 +200,11 @@ svg.lucide.lucide-folder-open {
   animation-delay: calc(var(--i) * 0.5s);
 }
 
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
 /* Blinking cursor animation for typewriter effect */
 @keyframes blink {
   0%, 100% {

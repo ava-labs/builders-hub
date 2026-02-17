@@ -19,7 +19,6 @@ import {
   Calculator,
   Coins,
   Box,
-  Globe,
   ArrowUpDown,
   ShieldCheck,
   ShieldUser,
@@ -87,7 +86,6 @@ interface NavGroup {
   id: string;
   title: string;
   icon: LucideIcon;
-  defaultOpen?: boolean;
   requiresL1?: boolean;
   items: (NavItem | CollapsibleSubGroup)[];
 }
@@ -135,7 +133,6 @@ const data = {
       id: "get-started",
       title: "Get Started",
       icon: Rocket,
-      defaultOpen: true,
       items: [
         {
           title: "Blueprints",
@@ -154,12 +151,49 @@ const data = {
         },
       ],
     },
+    // Primary Network
+    {
+      id: "primary-network",
+      title: "Primary Network",
+      icon: Network,
+      items: [
+        {
+          title: "Data API Keys",
+          url: "/console/utilities/data-api-keys",
+          icon: BookKey,
+        },
+        {
+          title: "Node Setup",
+          url: "/console/primary-network/node-setup",
+          icon: Server,
+        },
+        {
+          title: "Stake",
+          url: "/console/primary-network/stake",
+          icon: HandCoins,
+        },
+        {
+          title: "C/P-Chain Bridge",
+          url: "/console/primary-network/c-p-bridge",
+          icon: ArrowLeftRight,
+        },
+        {
+          title: "Ethereum Bridge",
+          url: "https://core.app/bridge",
+          icon: ArrowUpDown,
+        },
+        {
+          title: "Unit Converter",
+          url: "/console/primary-network/unit-converter",
+          icon: Calculator,
+        },
+      ],
+    },
     // Your L1 - always visible, pages handle wallet state
     {
       id: "your-l1",
       title: "Your L1",
       icon: Box,
-      defaultOpen: true,
       items: [
         {
           title: "My L1 Dashboard",
@@ -275,56 +309,10 @@ const data = {
             },
           ],
         },
-        // Permissionless L1s (PoS)
         {
-          id: "permissionless",
-          title: "Permissionless (PoS)",
-          icon: Globe,
-          items: [
-            {
-              title: "Native Staking Manager",
-              url: "/console/permissionless-l1s/native-staking-manager-setup",
-              icon: GitMerge,
-            },
-          ],
-        },
-      ],
-    },
-    // Primary Network
-    {
-      id: "primary-network",
-      title: "Primary Network",
-      icon: Network,
-      items: [
-        {
-          title: "Data API Keys",
-          url: "/console/utilities/data-api-keys",
-          icon: BookKey,
-        },
-        {
-          title: "Node Setup",
-          url: "/console/primary-network/node-setup",
-          icon: Server,
-        },
-        {
-          title: "Stake",
-          url: "/console/primary-network/stake",
-          icon: HandCoins,
-        },
-        {
-          title: "C/P-Chain Bridge",
-          url: "/console/primary-network/c-p-bridge",
-          icon: ArrowLeftRight,
-        },
-        {
-          title: "Ethereum Bridge",
-          url: "https://core.app/bridge",
-          icon: ArrowUpDown,
-        },
-        {
-          title: "Unit Converter",
-          url: "/console/primary-network/unit-converter",
-          icon: Calculator,
+          title: "Native Staking Manager",
+          url: "/console/permissionless-l1s/native-staking-manager-setup",
+          icon: GitMerge,
         },
       ],
     },
@@ -356,14 +344,14 @@ const data = {
         },
       ],
     },
-    // Free Testnet Infrastructure
+    // Tools & Utilities (merged testnet-infra + utilities)
     {
-      id: "testnet-infra",
-      title: "Free Testnet Infra",
-      icon: Server,
+      id: "tools",
+      title: "Tools",
+      icon: Wrench,
       items: [
         {
-          title: "Nodes",
+          title: "Testnet Nodes",
           url: "/console/testnet-infra/nodes",
           icon: Server,
         },
@@ -372,14 +360,6 @@ const data = {
           url: "/console/testnet-infra/icm-relayer",
           icon: Layers,
         },
-      ],
-    },
-    // Utilities
-    {
-      id: "utilities",
-      title: "Utilities",
-      icon: Wrench,
-      items: [
         {
           title: "Format Converter",
           url: "/console/utilities/format-converter",
@@ -407,6 +387,18 @@ const data = {
 
 interface ConsoleSidebarProps extends React.ComponentProps<typeof Sidebar> {}
 
+// Check if a group contains the active path
+function groupContainsPath(group: NavGroup, pathname: string): boolean {
+  return group.items.some((item) => {
+    if (isCollapsibleSubGroup(item)) {
+      return item.items.some(
+        (sub) => pathname === sub.url || pathname.startsWith(sub.url + "/")
+      );
+    }
+    return pathname === item.url || pathname.startsWith(item.url + "/");
+  });
+}
+
 // Collapsible Section Component
 function CollapsibleSection({
   group,
@@ -419,20 +411,21 @@ function CollapsibleSection({
   isOpen: boolean;
   onToggle: () => void;
 }) {
+  // Auto-expand if the current path is inside this group
+  const containsActive = groupContainsPath(group, pathname);
+  const effectiveOpen = isOpen || containsActive;
+
   return (
-    <Collapsible open={isOpen} onOpenChange={onToggle}>
-      <SidebarGroup>
+    <Collapsible open={effectiveOpen} onOpenChange={onToggle}>
+      <SidebarGroup className="py-1">
         <CollapsibleTrigger asChild>
-          <SidebarGroupLabel className="cursor-pointer hover:bg-sidebar-accent/50 rounded-md transition-colors group/label">
+          <SidebarGroupLabel className="cursor-pointer hover:bg-sidebar-accent/50 rounded-md transition-colors group/label font-semibold text-xs uppercase tracking-wide">
             <div className="flex items-center justify-between w-full">
-              <span className="flex items-center gap-2">
-                <group.icon className="h-4 w-4" />
-                <span>{group.title}</span>
-              </span>
+              <span>{group.title}</span>
               <ChevronRight
                 className={cn(
-                  "h-4 w-4 transition-transform duration-200",
-                  isOpen && "rotate-90"
+                  "h-3.5 w-3.5 opacity-50 transition-transform duration-200",
+                  effectiveOpen && "rotate-90"
                 )}
               />
             </div>
@@ -473,28 +466,31 @@ function CollapsibleSubGroupItem({
 }) {
   const { isCollapsed, toggleSection } = useSidebarStateContext();
   const subGroupId = `sub-${subGroup.id}`;
-  const isOpen = !isCollapsed(subGroupId);
 
   // Check if any child is active
   const hasActiveChild = subGroup.items.some(
     (item) => pathname === item.url || pathname.startsWith(item.url + "/")
   );
 
+  // Subgroups default collapsed — open if child is active or user explicitly expanded
+  // (inverted: presence in collapsed set = user toggled open for subgroups)
+  const isOpen = hasActiveChild || isCollapsed(subGroupId);
+
   return (
     <SidebarMenuItem>
       <Collapsible open={isOpen} onOpenChange={() => toggleSection(subGroupId)}>
         <CollapsibleTrigger asChild>
           <SidebarMenuButton
+            size="sm"
             className={cn(
-              "cursor-pointer",
-              hasActiveChild && "bg-sidebar-accent/50"
+              "cursor-pointer text-sidebar-foreground/50 hover:text-sidebar-foreground font-medium",
+              hasActiveChild && "text-sidebar-foreground"
             )}
           >
-            <subGroup.icon className="h-4 w-4" />
             <span>{subGroup.title}</span>
             <ChevronRight
               className={cn(
-                "ml-auto h-4 w-4 transition-transform duration-200",
+                "ml-auto h-3 w-3 opacity-40 transition-transform duration-200",
                 isOpen && "rotate-90"
               )}
             />
@@ -507,9 +503,15 @@ function CollapsibleSubGroupItem({
                 pathname === item.url || pathname.startsWith(item.url + "/");
               return (
                 <SidebarMenuSubItem key={item.title}>
-                  <SidebarMenuSubButton asChild isActive={isActive}>
+                  <SidebarMenuSubButton
+                    asChild
+                    isActive={isActive}
+                    className={cn(
+                      "text-sidebar-foreground/50 hover:text-sidebar-foreground",
+                      isActive && "text-sidebar-foreground"
+                    )}
+                  >
                     <Link href={item.url}>
-                      <item.icon className="h-4 w-4" />
                       <span>{item.title}</span>
                     </Link>
                   </SidebarMenuSubButton>
@@ -548,12 +550,15 @@ function NavMenuItem({
       <SidebarMenuButton
         asChild
         isActive={isActive}
-        className={cn(isComingSoon && "opacity-50 cursor-not-allowed")}
+        className={cn(
+          "text-sidebar-foreground/70 hover:text-sidebar-foreground",
+          isActive && "text-sidebar-foreground",
+          isComingSoon && "opacity-50 cursor-not-allowed"
+        )}
         disabled={isComingSoon}
       >
         {isComingSoon ? (
-          <span className="flex items-center gap-2">
-            <item.icon className="h-4 w-4" />
+          <span>
             <span>{item.title} (soon)</span>
           </span>
         ) : isExternal ? (
@@ -561,15 +566,13 @@ function NavMenuItem({
             href={item.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-2 w-full"
+            className="flex items-center w-full"
           >
-            <item.icon className="h-4 w-4" />
             <span>{item.title}</span>
-            <ExternalLink className="ml-auto h-4 w-4" />
+            <ExternalLink className="ml-auto h-3.5 w-3.5 opacity-50" />
           </a>
         ) : (
           <Link href={item.url}>
-            <item.icon className="h-4 w-4" />
             <span>{item.title}</span>
           </Link>
         )}
@@ -603,15 +606,20 @@ export function ConsoleSidebar({ ...props }: ConsoleSidebarProps) {
 
         <SidebarContent>
           {/* Main Navigation */}
-          <SidebarGroup>
+          <SidebarGroup className="pb-0">
             <SidebarMenu>
               {data.navMain.map((item) => {
                 const isActive = pathname === item.url;
                 return (
                   <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild isActive={isActive}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive}
+                      size="sm"
+                      className="text-sidebar-foreground/60 hover:text-sidebar-foreground"
+                    >
                       <Link href={item.url}>
-                        <item.icon />
+                        <item.icon className="h-3.5 w-3.5" />
                         <span>{item.title}</span>
                       </Link>
                     </SidebarMenuButton>
@@ -628,8 +636,7 @@ export function ConsoleSidebar({ ...props }: ConsoleSidebarProps) {
               return null;
             }
 
-            const isOpen =
-              group.defaultOpen !== false && !isCollapsed(group.id);
+            const isOpen = !isCollapsed(group.id);
 
             return (
               <CollapsibleSection

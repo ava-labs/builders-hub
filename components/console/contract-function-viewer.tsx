@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { codeToHtml } from "shiki";
 import { Copy, Check, ExternalLink, Minus, Plus } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export interface SourceConfig {
   filename: string;
@@ -290,7 +291,7 @@ export function ContractFunctionViewer({
   const currentGithubUrl = isMultiSource ? currentTab?.githubUrl : githubUrl;
 
   return (
-    <div className={`lg:sticky lg:top-4 flex flex-col rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 overflow-hidden ${className}`}>
+    <div className={cn("lg:sticky lg:top-4 flex flex-col rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 overflow-hidden", className)}>
       {/* Tab Bar */}
       <div className="shrink-0 flex items-center gap-1 px-2 pt-2 bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200/80 dark:border-zinc-800">
         {/* File Tabs (multi-source mode) */}
@@ -300,11 +301,12 @@ export function ContractFunctionViewer({
               <button
                 key={idx}
                 onClick={() => setActiveTab(idx)}
-                className={`px-3 py-2 text-xs font-medium rounded-t-lg transition-colors ${
+                className={cn(
+                  "px-3 py-2 text-xs font-medium rounded-t-lg transition-colors",
                   activeTab === idx
                     ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 border-t border-x border-zinc-200/80 dark:border-zinc-700 -mb-px"
                     : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300"
-                }`}
+                )}
               >
                 {tab.filename}
               </button>
@@ -355,7 +357,7 @@ export function ContractFunctionViewer({
       </div>
 
       {/* Code Content */}
-      <div className={`overflow-auto ${isMultiSource ? 'max-h-[400px]' : ''}`}>
+      <div className={cn("overflow-auto", isMultiSource && "max-h-[400px]")}>
         {loading ? (
           <div className="flex items-center justify-center py-8">
             <div className="flex items-center gap-3 text-zinc-500 dark:text-zinc-400">
@@ -367,7 +369,7 @@ export function ContractFunctionViewer({
           // Multi-source: show active tab content
           currentTab && (
             <div
-              className="py-3 px-4 overflow-x-auto shiki-container font-mono"
+              className="py-3 px-4 overflow-x-auto contract-fn-shiki-container font-mono"
               style={{ "--code-font-size": `${fontSize}px`, fontSize: `${fontSize}px`, lineHeight: 1.6 } as React.CSSProperties}
             >
               {currentTab.highlighted ? (
@@ -385,18 +387,19 @@ export function ContractFunctionViewer({
                 {/* Block Label */}
                 {codeBlocks.length > 1 && (
                   <div className="px-3 py-1.5 bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-100 dark:border-zinc-800">
-                    <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${
+                    <span className={cn(
+                      "text-[10px] font-mono px-1.5 py-0.5 rounded",
                       idx === 0
                         ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
                         : "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300"
-                    }`}>
+                    )}>
                       {block.label}
                     </span>
                   </div>
                 )}
                 {/* Code */}
                 <div
-                  className="py-3 px-4 overflow-x-auto shiki-container font-mono"
+                  className="py-3 px-4 overflow-x-auto contract-fn-shiki-container font-mono"
                   style={{ "--code-font-size": `${fontSize}px`, fontSize: `${fontSize}px`, lineHeight: 1.6 } as React.CSSProperties}
                 >
                   {block.highlighted ? (
@@ -419,23 +422,23 @@ export function ContractFunctionViewer({
       )}
 
       <style jsx global>{`
-        .shiki-container pre {
+        .contract-fn-shiki-container pre {
           background: transparent !important;
           margin: 0;
           padding: 0;
           min-width: max-content;
         }
-        .shiki-container pre,
-        .shiki-container code,
-        .shiki-container span {
+        .contract-fn-shiki-container pre,
+        .contract-fn-shiki-container code,
+        .contract-fn-shiki-container span {
           font-size: var(--code-font-size, 11px) !important;
           line-height: 1.6 !important;
         }
-        .shiki-container code {
+        .contract-fn-shiki-container code {
           display: block;
           min-width: max-content;
         }
-        .shiki-container .line {
+        .contract-fn-shiki-container .line {
           display: block;
           min-width: max-content;
         }

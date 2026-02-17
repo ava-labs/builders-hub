@@ -109,14 +109,14 @@ export function ValidatorManagerDecision({
   return (
     <div
       className={cn(
-        "rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 overflow-hidden",
+        "rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden",
         className
       )}
     >
       {/* Header */}
-      <div className="p-4 border-b border-zinc-200 dark:border-zinc-700 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30">
+      <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 text-white">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-100 dark:bg-violet-900/30 text-violet-500">
             <HelpCircle className="h-5 w-5" />
           </div>
           <div>
@@ -145,18 +145,18 @@ export function ValidatorManagerDecision({
                 onMouseEnter={() => setHoveredOption(option.id)}
                 onMouseLeave={() => setHoveredOption(null)}
                 className={cn(
-                  "relative p-4 rounded-lg border-2 text-left transition-all duration-200",
+                  "relative p-4 rounded-xl border text-left transition-all duration-200",
                   isSelected
-                    ? "border-blue-500 bg-blue-50 dark:bg-blue-950/30 ring-2 ring-blue-500/20"
+                    ? "border-violet-500 bg-violet-50 dark:bg-violet-950/20 ring-2 ring-violet-500/20"
                     : isHovered
                     ? "border-zinc-300 dark:border-zinc-600 bg-zinc-50 dark:bg-zinc-800/50"
-                    : "border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600"
+                    : "border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-600"
                 )}
               >
                 {/* Selection indicator */}
                 {isSelected && (
                   <div className="absolute top-3 right-3">
-                    <CheckCircle2 className="h-5 w-5 text-blue-500" />
+                    <CheckCircle2 className="h-5 w-5 text-violet-500" />
                   </div>
                 )}
 
@@ -164,9 +164,9 @@ export function ValidatorManagerDecision({
                 <div className="flex items-center gap-3 mb-3">
                   <div
                     className={cn(
-                      "flex h-12 w-12 items-center justify-center rounded-lg",
+                      "flex h-12 w-12 items-center justify-center rounded-xl",
                       isSelected
-                        ? "bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400"
+                        ? "bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400"
                         : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400"
                     )}
                   >
@@ -206,7 +206,7 @@ export function ValidatorManagerDecision({
 
                 {/* Recommendation badge */}
                 {option.recommendation && (
-                  <div className="mt-3 flex items-center gap-2 text-xs font-medium text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/50 px-2 py-1 rounded-full w-fit">
+                  <div className="mt-3 flex items-center gap-2 text-xs font-medium text-violet-700 dark:text-violet-300 bg-violet-100 dark:bg-violet-900/50 px-2 py-1 rounded-full w-fit">
                     <Lightbulb className="h-3 w-3" />
                     {option.recommendation}
                   </div>
@@ -233,7 +233,7 @@ export function ValidatorManagerDecision({
 
         {/* Detailed Comparison */}
         {showDetails && (
-          <div className="mt-4 border-t border-zinc-200 dark:border-zinc-700 pt-4">
+          <div className="mt-4 border-t border-zinc-200 dark:border-zinc-800 pt-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {OPTIONS.map((option) => (
                 <div key={option.id} className="space-y-4">
@@ -284,7 +284,7 @@ export function ValidatorManagerDecision({
 
                   {/* Best For */}
                   <div>
-                    <h6 className="text-xs font-medium uppercase tracking-wider text-blue-600 dark:text-blue-400 mb-2">
+                    <h6 className="text-xs font-medium uppercase tracking-wider text-violet-600 dark:text-violet-400 mb-2">
                       Best For
                     </h6>
                     <ul className="space-y-1.5">
@@ -293,7 +293,7 @@ export function ValidatorManagerDecision({
                           key={index}
                           className="flex items-start gap-2 text-sm text-zinc-700 dark:text-zinc-300"
                         >
-                          <Users className="h-4 w-4 text-blue-500 flex-shrink-0 mt-0.5" />
+                          <Users className="h-4 w-4 text-violet-500 flex-shrink-0 mt-0.5" />
                           {use}
                         </li>
                       ))}
@@ -307,7 +307,7 @@ export function ValidatorManagerDecision({
             <div className="mt-6 overflow-x-auto">
               <table className="w-full text-sm border-collapse">
                 <thead>
-                  <tr className="border-b border-zinc-200 dark:border-zinc-700">
+                  <tr className="border-b border-zinc-200 dark:border-zinc-800">
                     <th className="text-left py-2 px-3 text-zinc-600 dark:text-zinc-400 font-medium">
                       Feature
                     </th>
@@ -326,7 +326,7 @@ export function ValidatorManagerDecision({
                   </tr>
                 </thead>
                 <tbody className="text-zinc-900 dark:text-zinc-100">
-                  <tr className="border-b border-zinc-100 dark:border-zinc-800">
+                  <tr className="border-b border-zinc-200 dark:border-zinc-800">
                     <td className="py-2 px-3 flex items-center gap-2">
                       <Coins className="h-4 w-4 text-zinc-400" />
                       Transaction Fees
@@ -334,7 +334,7 @@ export function ValidatorManagerDecision({
                     <td className="py-2 px-3 text-center text-green-600 dark:text-green-400">Lower</td>
                     <td className="py-2 px-3 text-center text-amber-600 dark:text-amber-400">Higher</td>
                   </tr>
-                  <tr className="border-b border-zinc-100 dark:border-zinc-800">
+                  <tr className="border-b border-zinc-200 dark:border-zinc-800">
                     <td className="py-2 px-3 flex items-center gap-2">
                       <Zap className="h-4 w-4 text-zinc-400" />
                       Setup Complexity
@@ -342,7 +342,7 @@ export function ValidatorManagerDecision({
                     <td className="py-2 px-3 text-center text-amber-600 dark:text-amber-400">Higher</td>
                     <td className="py-2 px-3 text-center text-green-600 dark:text-green-400">Lower</td>
                   </tr>
-                  <tr className="border-b border-zinc-100 dark:border-zinc-800">
+                  <tr className="border-b border-zinc-200 dark:border-zinc-800">
                     <td className="py-2 px-3 flex items-center gap-2">
                       <Shield className="h-4 w-4 text-zinc-400" />
                       Security Model
@@ -365,10 +365,10 @@ export function ValidatorManagerDecision({
         )}
 
         {/* Quick tip */}
-        <div className="mt-4 p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800">
+        <div className="mt-4 p-3 rounded-xl bg-violet-50 dark:bg-violet-950/20 border border-violet-200 dark:border-violet-800">
           <div className="flex items-start gap-2">
-            <Lightbulb className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
-            <p className="text-sm text-blue-800 dark:text-blue-200">
+            <Lightbulb className="h-4 w-4 text-violet-600 dark:text-violet-400 mt-0.5 flex-shrink-0" />
+            <p className="text-sm text-violet-800 dark:text-violet-200">
               <strong>Tip:</strong> Most production teams choose to deploy on their L1 for significant gas cost savings. Start with C-Chain during initial development if you need faster iteration.
             </p>
           </div>

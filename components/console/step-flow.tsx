@@ -3,6 +3,8 @@
 import React, { useMemo, useState, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Check } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { FlowCompletionModal, type FlowCompletionAction } from "./flow-completion-modal";
 import { getFlowMetadata, type FlowMetadata } from "@/config/console-flows";
 
@@ -184,32 +186,32 @@ export default function StepFlow({
                 <li key={s.key} className="flex items-center gap-3">
                   <Link
                     href={`${basePath}/${s.key}`}
-                    className={[
-                      "inline-flex items-center gap-2 rounded-md px-3 py-1.5 border",
+                    className={cn(
+                      "inline-flex items-center gap-2 rounded-lg px-3 py-1.5 border transition-colors",
                       isActiveStep
-                        ? "border-blue-500 text-blue-600 dark:text-blue-400"
+                        ? "border-primary text-primary"
                         : isDoneStep
-                          ? "border-green-500 text-green-600 dark:text-green-400"
-                          : "border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300",
+                          ? "border-green-300 dark:border-green-700 text-green-600 dark:text-green-400"
+                          : "border-border text-muted-foreground",
                       s.optional ? "border-dashed" : "",
-                    ].join(" ")}
+                    )}
                   >
                     <span
-                      className={[
-                        "flex h-5 w-5 items-center justify-center rounded-full text-[11px]",
+                      className={cn(
+                        "flex h-6 w-6 items-center justify-center rounded-full text-xs",
                         isActiveStep
-                          ? "bg-blue-600 text-white"
+                          ? "bg-primary text-primary-foreground"
                           : isDoneStep
-                            ? "bg-green-600 text-white"
-                            : "bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-200",
-                      ].join(" ")}
+                            ? "bg-green-500 text-white"
+                            : "bg-muted text-muted-foreground",
+                      )}
                     >
-                      {stepIdx + 1}
+                      {isDoneStep ? <Check className="h-3.5 w-3.5" /> : stepIdx + 1}
                     </span>
                     <span>{s.title}</span>
                   </Link>
                   {stepIdx < steps.length - 1 && (
-                    <span className="text-zinc-400 ml-3">→</span>
+                    <span className="text-muted-foreground/50 ml-3">→</span>
                   )}
                 </li>
               );
@@ -224,35 +226,34 @@ export default function StepFlow({
                         <React.Fragment key={opt.key}>
                           <Link
                             href={`${basePath}/${opt.key}`}
-                            className={[
-                              "inline-flex items-center gap-2 rounded-md px-3 py-1.5 border",
+                            className={cn(
+                              "inline-flex items-center gap-2 rounded-lg px-3 py-1.5 border transition-colors",
                               isOptionActive
-                                ? "border-blue-500 text-blue-600 dark:text-blue-400"
+                                ? "border-primary text-primary"
                                 : isDoneStep
-                                ? "border-green-500 text-green-600 dark:text-green-400"
-                                : "border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300",
+                                ? "border-green-300 dark:border-green-700 text-green-600 dark:text-green-400"
+                                : "border-border text-muted-foreground",
                               s.optional
                                 ? "border-dashed"
                                 : "",
-                            ].join(" ")}
-                            style={{ display: "inline-flex", visibility: "visible", opacity: 1 }}
+                            )}
                           >
                             <span
-                              className={[
-                                "flex h-5 w-5 items-center justify-center rounded-full text-[11px]",
+                              className={cn(
+                                "flex h-6 w-6 items-center justify-center rounded-full text-xs",
                                 isOptionActive
-                                  ? "bg-blue-600 text-white"
+                                  ? "bg-primary text-primary-foreground"
                                   : isDoneStep
-                                  ? "bg-green-600 text-white"
-                                  : "bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-200",
-                              ].join(" ")}
+                                  ? "bg-green-500 text-white"
+                                  : "bg-muted text-muted-foreground",
+                              )}
                             >
-                              {stepIdx + 1}
+                              {isDoneStep ? <Check className="h-3.5 w-3.5" /> : stepIdx + 1}
                             </span>
                             <span>{opt.label}</span>
                           </Link>
                           {optIdx < s.options.length - 1 && (
-                            <span className="text-xs uppercase tracking-wide text-zinc-500">
+                            <span className="text-xs uppercase tracking-wide text-muted-foreground">
                               or
                             </span>
                           )}
@@ -261,7 +262,7 @@ export default function StepFlow({
                     })}
                   </div>
                   {stepIdx < steps.length - 1 && (
-                    <span className="text-zinc-400 ml-3">→</span>
+                    <span className="text-muted-foreground/50 ml-3">→</span>
                   )}
                 </li>
               );
@@ -270,7 +271,7 @@ export default function StepFlow({
         </ol>
       </nav>
 
-      <div className="border-t py-8">
+      <div className="border-t border-border py-8">
         <div className="min-h-[200px]">
           <CurrentComponent />
         </div>
@@ -279,7 +280,7 @@ export default function StepFlow({
           {prevLink ? (
             <Link
               href={prevLink}
-              className="rounded-md border border-zinc-300 dark:border-zinc-700 px-4 py-2 text-sm"
+              className="rounded-lg border border-border px-4 py-2 text-sm font-medium transition-colors"
             >
               Back
             </Link>
@@ -287,7 +288,7 @@ export default function StepFlow({
             <button
               type="button"
               disabled
-              className="rounded-md border border-zinc-300 dark:border-zinc-700 px-4 py-2 text-sm disabled:opacity-50"
+              className="rounded-lg border border-border px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50"
             >
               Back
             </button>
@@ -297,7 +298,7 @@ export default function StepFlow({
             {"optional" in currentStep && currentStep.optional && nextLink && (
               <Link
                 href={nextLink}
-                className="rounded-md border border-zinc-300 dark:border-zinc-700 px-4 py-2 text-sm"
+                className="rounded-lg border border-border px-4 py-2 text-sm font-medium transition-colors"
               >
                 Skip
               </Link>
@@ -306,7 +307,7 @@ export default function StepFlow({
               <button
                 type="button"
                 onClick={handleFinish}
-                className="rounded-md bg-blue-600 text-white px-4 py-2 text-sm"
+                className="rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 text-sm font-medium transition-colors"
               >
                 Finish
               </button>
@@ -314,7 +315,7 @@ export default function StepFlow({
               nextLink && (
                 <Link
                   href={nextLink}
-                  className="rounded-md bg-blue-600 text-white px-4 py-2 text-sm"
+                  className="rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 text-sm font-medium transition-colors"
                 >
                   Next
                 </Link>
@@ -338,5 +339,3 @@ export default function StepFlow({
     </div>
   );
 }
-
-

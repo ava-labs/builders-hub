@@ -114,7 +114,7 @@ export function SDKCodeViewer({
   const activeHighlight = highlighted[activeTab];
 
   return (
-    <div className={`grid grid-cols-1 lg:grid-cols-2 gap-6 ${className}`}>
+    <div className={cn("grid grid-cols-1 lg:grid-cols-2 gap-6", className)}>
       {/* Left: Form Controls */}
       <div>{children}</div>
 
@@ -132,14 +132,12 @@ export function SDKCodeViewer({
             <button
               key={source.filename}
               onClick={() => setActiveTab(i)}
-              className={`
-                flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-t-lg transition-colors
-                ${
-                  activeTab === i
-                    ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 border-t border-x border-zinc-200/80 dark:border-zinc-700 -mb-px"
-                    : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
-                }
-              `}
+              className={cn(
+                "flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-t-lg transition-colors",
+                activeTab === i
+                  ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 border-t border-x border-zinc-200/80 dark:border-zinc-700 -mb-px"
+                  : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+              )}
             >
               <FileCode className="w-4 h-4" />
               {source.filename}

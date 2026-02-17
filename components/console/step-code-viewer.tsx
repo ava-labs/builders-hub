@@ -257,13 +257,13 @@ export function StepCodeViewer({
       {/* Header - Shows current step info */}
       <div className="shrink-0 flex items-center gap-2 px-4 py-3 bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200/80 dark:border-zinc-800">
         {/* Step indicator */}
-        <span className="w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-bold">
+        <span className="w-6 h-6 rounded-full bg-violet-500 text-white flex items-center justify-center text-xs font-bold">
           {stepIndex + 1}
         </span>
 
         {/* Language icon */}
         {displayStep.codeType === "typescript" ? (
-          <Code2 className="w-4 h-4 text-blue-500" />
+          <Code2 className="w-4 h-4 text-violet-500" />
         ) : (
           <FileCode className="w-4 h-4 text-amber-500" />
         )}
@@ -317,7 +317,7 @@ export function StepCodeViewer({
           <span className={cn(
             "px-2 py-0.5 text-[10px] font-mono rounded",
             displayStep.codeType === "typescript"
-              ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
+              ? "bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300"
               : "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300"
           )}>
             {displayStep.filename}
@@ -358,7 +358,7 @@ export function StepCodeViewer({
                 )}
                 {/* Code */}
                 <div
-                  className="py-3 px-4 overflow-x-auto shiki-container font-mono"
+                  className="py-3 px-4 overflow-x-auto step-shiki-container font-mono"
                   style={{ "--code-font-size": `${fontSize}px`, fontSize: `${fontSize}px`, lineHeight: 1.6 } as React.CSSProperties}
                 >
                   {block.highlighted ? (
@@ -374,23 +374,23 @@ export function StepCodeViewer({
       </div>
 
       <style jsx global>{`
-        .shiki-container pre {
+        .step-shiki-container pre {
           background: transparent !important;
           margin: 0;
           padding: 0;
           min-width: max-content;
         }
-        .shiki-container pre,
-        .shiki-container code,
-        .shiki-container span {
+        .step-shiki-container pre,
+        .step-shiki-container code,
+        .step-shiki-container span {
           font-size: var(--code-font-size, 11px) !important;
           line-height: 1.6 !important;
         }
-        .shiki-container code {
+        .step-shiki-container code {
           display: block;
           min-width: max-content;
         }
-        .shiki-container .line {
+        .step-shiki-container .line {
           display: block;
           min-width: max-content;
         }

@@ -98,7 +98,7 @@ export function IrreversibilityWarning({
   return (
     <div
       className={cn(
-        "rounded-lg border-2 p-4",
+        "rounded-xl border p-4",
         config.container,
         className
       )}
@@ -124,7 +124,7 @@ export function IrreversibilityWarning({
 
       {/* Checklist */}
       {checklist.length > 0 && (
-        <div className="mt-4 space-y-2 ml-13">
+        <div className="mt-4 space-y-2 ml-[52px]">
           <p className={cn("text-xs font-medium uppercase tracking-wider mb-2", config.description)}>
             Please confirm you have:
           </p>
@@ -132,7 +132,7 @@ export function IrreversibilityWarning({
             <label
               key={index}
               className={cn(
-                "flex items-center gap-3 cursor-pointer group p-2 rounded-md transition-colors",
+                "flex items-center gap-3 cursor-pointer group p-2 rounded-xl transition-colors",
                 "hover:bg-black/5 dark:hover:bg-white/5"
               )}
             >
@@ -175,7 +175,7 @@ export function IrreversibilityWarning({
               onClick={onCancel}
               disabled={isLoading}
               className={cn(
-                "px-4 py-2 text-sm font-medium rounded-md transition-colors",
+                "px-4 py-2 text-sm font-medium rounded-xl transition-colors",
                 "border border-zinc-300 dark:border-zinc-600",
                 "text-zinc-700 dark:text-zinc-300",
                 "hover:bg-zinc-100 dark:hover:bg-zinc-800",
@@ -191,7 +191,7 @@ export function IrreversibilityWarning({
               onClick={onConfirm}
               disabled={!canProceed || isLoading}
               className={cn(
-                "px-4 py-2 text-sm font-medium rounded-md transition-colors",
+                "px-4 py-2 text-sm font-medium rounded-xl transition-all",
                 config.confirmBtn,
                 "disabled:opacity-50 disabled:cursor-not-allowed"
               )}

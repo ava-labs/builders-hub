@@ -1,6 +1,6 @@
 "use client"
 import { useEffect, useState, useCallback, useRef, useMemo } from "react"
-import { ArrowDownUp, Clock } from "lucide-react"
+import { ArrowDownUp, Clock, BookOpen, ExternalLink } from "lucide-react"
 import { Button } from "@/components/toolbox/components/Button"
 import { useWalletStore } from "@/components/toolbox/stores/walletStore"
 import { pvm, Utxo, TransferOutput, evm } from '@avalabs/avalanchejs'
@@ -8,11 +8,13 @@ import { getRPCEndpoint } from '@/components/toolbox/coreViem/utils/rpc'
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements"
 import { Success } from "@/components/toolbox/components/Success"
 import { AmountInput } from "@/components/toolbox/components/AmountInput"
-import { StepCard, StepIndicator } from "@/components/toolbox/components/StepCard"
+import { StepIndicator } from "@/components/toolbox/components/StepCard"
 import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext"
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../components/WithConsoleToolMetadata"
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 import { SDKCodeViewer, type SDKCodeSource } from "@/components/console/sdk-code-viewer";
+import { CliAlternative } from "@/components/console/cli-alternative";
+import Link from "next/link";
 
 // Extended props for this specific tool
 interface CrossChainTransferProps extends BaseConsoleToolProps {
@@ -44,9 +46,6 @@ function CrossChainTransfer({
     const [completedExportXPChain, setCompletedExportXPChain] = useState<"P" | "C">("P")
     const [completedImportXPChain, setCompletedImportXPChain] = useState<"P" | "C">("P")
     const [importTxId, setImportTxId] = useState<string | null>(null)
-    const [_currentStep, setCurrentStep] = useState<number>(1)
-    const [step1Expanded, setStep1Expanded] = useState<boolean>(true)
-    const [step2Expanded, setStep2Expanded] = useState<boolean>(false)
     const [error, setError] = useState<string | null>(null)
     const [importError, setImportError] = useState<string | null>(null)
     const [cToP_UTXOs, setC_To_P_UTXOs] = useState<Utxo<TransferOutput>[]>([])
@@ -218,7 +217,6 @@ function CrossChainTransfer({
     const handleExport = async () => {
         if (!validateAmount()) return;
 
-        setCurrentStep(3); // Move to step 3 when export is initiated
         setExportLoading(true);
         setError(null);
 
@@ -367,18 +365,6 @@ function CrossChainTransfer({
         }
     }, [availableUTXOs.length, completedExportTxId, exportTxId, importTxId]);
 
-    // Auto-expand step management - don't allow collapsing incomplete steps
-    useEffect(() => {
-        const step1Status = getStep1Status();
-        const step2Status = getStep2Status();
-
-        // Step 1 should be expanded when it's not completed yet, or when step 2 is pending
-        setStep1Expanded(step1Status !== 'completed' || step2Status === 'pending');
-
-        // Step 2 should be expanded when it's active, has errors, or is completed
-        setStep2Expanded(step2Status === 'active' || step2Status === 'error' || step2Status === 'completed');
-    }, [exportLoading, completedExportTxId, importLoading, importTxId, error, importError, availableUTXOs.length, step1AutoCollapse, step2AutoCollapse]);
-
     // Auto-switch to direction with pending UTXOs
     useEffect(() => {
         if (!exportTxId && !completedExportTxId && !importTxId) {
@@ -471,185 +457,175 @@ console.log("Import tx:", txnResponse.txHash);`,
         ];
     }, [sourceChain, amount, pChainAddress, walletEVMAddress, coreEthAddress]);
 
+    const cliCommand = sourceChain === "c-chain"
+        ? `platform transfer c-to-p --amount ${amount || "<amount>"} --network ${isTestnet ? "fuji" : "mainnet"}`
+        : `platform transfer p-to-c --amount ${amount || "<amount>"} --network ${isTestnet ? "fuji" : "mainnet"}`;
+
+    const sourceChainName = sourceChain === "c-chain" ? "C-Chain" : "P-Chain";
+    const destChainName = destinationChain === "c-chain" ? "C-Chain" : "P-Chain";
+    const sourceBalance = sourceChain === "c-chain" ? cChainBalance : pChainBalance;
+    const destBalance = destinationChain === "c-chain" ? cChainBalance : pChainBalance;
+
+    const chainLogo = (chain: string) =>
+        chain === "c-chain"
+            ? "https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/3e4b8ff10b69bfa31e70080a4b142cd0/avalanche-avax-logo.svg"
+            : "https://images.ctfassets.net/gcj8jwzm6086/42aMwoCLblHOklt6Msi6tm/1e64aa637a8cead39b2db96fe3225c18/pchain-square.svg";
+
     return (
-        <SDKCodeViewer sources={sdkSources} height="auto">
-        <div className="flex flex-col gap-6 w-full max-w-3xl mx-auto">
-                {/* Progress Overview */}
-                <div className="bg-zinc-50 dark:bg-zinc-800/50 p-4 rounded-xl border border-zinc-200/80 dark:border-zinc-800">
-                    <div className="flex items-center justify-center gap-4 mb-3">
-                        <StepIndicator stepNumber={1} title="Export" status={getStep1Status()} />
-                        <StepIndicator stepNumber={2} title="Import" status={getStep2Status()} isLast />
+        <SDKCodeViewer sources={sdkSources} height="350px" className="lg:grid-cols-1">
+        <div className="space-y-4">
+                {/* Context */}
+                <div className="text-sm text-muted-foreground bg-muted/50 rounded-lg p-4">
+                    <p className="mb-2">
+                        Transfer AVAX between the C-Chain and P-Chain.
+                        Requires two transactions: export from the source, then import to the destination.
+                    </p>
+                    <Link
+                        href="/docs/rpcs/p-chain/txn-format"
+                        className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
+                    >
+                        <BookOpen className="h-3 w-3" />
+                        P-Chain Transaction Format
+                        <ExternalLink className="h-3 w-3" />
+                    </Link>
+                </div>
+
+                {/* Transfer Widget */}
+                <div className="rounded-lg border border-border overflow-hidden">
+                    {/* From */}
+                    <div className="p-4 bg-card">
+                        <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                                <img src={chainLogo(sourceChain)} alt="" className="h-5 w-5" />
+                                <span className="text-sm font-medium text-foreground">From {sourceChainName}</span>
+                            </div>
+                            <span className="text-xs text-muted-foreground">
+                                Balance: {sourceBalance.toFixed(4)} AVAX
+                            </span>
+                        </div>
+                        <AmountInput
+                            label=""
+                            value={amount}
+                            onChange={setAmount}
+                            type="number"
+                            min="0"
+                            max={sourceBalance.toString()}
+                            step="0.000001"
+                            required
+                            disabled={exportLoading || importLoading}
+                            error={error ?? undefined}
+                            button={
+                                <Button
+                                    onClick={handleMaxAmount}
+                                    disabled={exportLoading || sourceBalance <= 0}
+                                    stickLeft
+                                >
+                                    MAX
+                                </Button>
+                            }
+                        />
                     </div>
-                    <div className="text-center text-sm text-zinc-600 dark:text-zinc-400">
-                        Complete both transactions to transfer AVAX between chains
+
+                    {/* Swap Divider */}
+                    <div className="relative flex justify-center">
+                        <div className="absolute inset-x-0 top-1/2 border-t border-border" />
+                        <button
+                            type="button"
+                            onClick={handleSwapChains}
+                            disabled={exportLoading || importLoading}
+                            className="relative z-10 flex h-8 w-8 items-center justify-center rounded-full bg-muted border border-border hover:bg-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            aria-label="Swap chains"
+                        >
+                            <ArrowDownUp className="h-3.5 w-3.5 text-muted-foreground" />
+                        </button>
+                    </div>
+
+                    {/* To */}
+                    <div className="p-4 bg-card">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <img src={chainLogo(destinationChain)} alt="" className="h-5 w-5" />
+                                <span className="text-sm font-medium text-foreground">To {destChainName}</span>
+                            </div>
+                            <span className="text-xs text-muted-foreground">
+                                Balance: {destBalance.toFixed(4)} AVAX
+                            </span>
+                        </div>
                     </div>
                 </div>
 
-                {/* Step 1: Export Transaction */}
-                <StepCard
-                    stepNumber={1}
-                    title="Export from Source Chain"
-                    description={completedExportTxId === "utxo-available"
-                        ? `UTXOs already available for import (previous export detected)`
-                        : `Export ${amount} AVAX from ${sourceChain === "c-chain" ? "C-Chain" : "P-Chain"} to ${destinationChain === "p-chain" ? "P-Chain" : "C-Chain"}`}
-                    status={getStep1Status()}
-                    isExpanded={step1Expanded}
-                    onToggle={() => setStep1Expanded(!step1Expanded)}
-                    error={error ?? undefined}
-                >
-                    {/* From Chain Selection */}
-                    <div className="space-y-2 mb-6">
-                        <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                            Source Chain
-                        </label>
-                        <div className="relative">
-                            <div className="w-full flex items-center justify-between px-4 py-3 bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-xl text-zinc-900 dark:text-zinc-100">
-                                <div className="flex items-center gap-3">
-                                    <div className="rounded-full w-8 h-8 flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-800">
-                                        {sourceChain === "c-chain" ? (
-                                            <img
-                                                src="https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/3e4b8ff10b69bfa31e70080a4b142cd0/avalanche-avax-logo.svg"
-                                                alt="C-Chain Logo"
-                                                className="h-5 w-5"
-                                            />
-                                        ) : (
-                                            <img
-                                                src="https://images.ctfassets.net/gcj8jwzm6086/42aMwoCLblHOklt6Msi6tm/1e64aa637a8cead39b2db96fe3225c18/pchain-square.svg"
-                                                alt="P-Chain Logo"
-                                                className="h-5 w-5"
-                                            />
-                                        )}
-                                    </div>
-                                    <div className="text-left">
-                                        <div className="font-medium">Avalanche {sourceChain === "c-chain" ? "C-Chain" : "P-Chain"}</div>
-                                        <div className="text-sm text-zinc-500 dark:text-zinc-400">
-                                            {sourceChain === "c-chain" ? "EVM-compatible chain for smart contracts" : "Native chain for staking & validators"}
-                                        </div>
-                                    </div>
-                                </div>
+                {/* Step Progress */}
+                <div className="flex items-center justify-center gap-3">
+                    <StepIndicator stepNumber={1} title="Export" status={getStep1Status()} />
+                    <StepIndicator stepNumber={2} title="Import" status={getStep2Status()} isLast />
+                </div>
 
-                                {/* Switch Button */}
-                                <button
-                                    type="button"
-                                    onClick={handleSwapChains}
-                                    className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-800 transition-colors focus:outline-none focus:ring-2 focus:ring-zinc-400 dark:focus:ring-zinc-500 focus:ring-offset-2 hover:bg-zinc-200 dark:hover:bg-zinc-700 cursor-pointer"
-                                    aria-label="Switch source and destination chains"
-                                >
-                                    <ArrowDownUp className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Transfer Amount Input */}
-                    <AmountInput
-                        label="Amount to Transfer"
-                        value={amount}
-                        onChange={setAmount}
-                        type="number"
-                        min="0"
-                        max={(sourceChain === "c-chain" ? cChainBalance : pChainBalance).toString()}
-                        step="0.000001"
-                        required
-                        disabled={exportLoading || importLoading}
-                        error={error ?? undefined}
-                        button={
-                            <Button
-                                onClick={handleMaxAmount}
-                                disabled={exportLoading || (sourceChain === "c-chain" ? cChainBalance <= 0 : pChainBalance <= 0)}
-                                stickLeft
-                            >
-                                MAX
-                            </Button>
-                        }
-                    />
-
-                    {/* To Chain Selection - Disabled */}
-                    <div className="space-y-2 mb-6">
-                        <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                            Destination Chain
-                        </label>
-                        <div className="relative">
-                            <div className="w-full flex items-center justify-between px-4 py-3 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/80 dark:border-zinc-800 rounded-xl text-zinc-600 dark:text-zinc-400 cursor-not-allowed opacity-75">
-                                <div className="flex items-center gap-3">
-                                    <div className="rounded-full w-8 h-8 flex items-center justify-center bg-zinc-200 dark:bg-zinc-700 border border-zinc-200/80 dark:border-zinc-800">
-                                        {destinationChain === "c-chain" ? (
-                                            <img
-                                                src="https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/3e4b8ff10b69bfa31e70080a4b142cd0/avalanche-avax-logo.svg"
-                                                alt="C-Chain Logo"
-                                                className="h-5 w-5 opacity-60"
-                                            />
-                                        ) : (
-                                            <img
-                                                src="https://images.ctfassets.net/gcj8jwzm6086/42aMwoCLblHOklt6Msi6tm/1e64aa637a8cead39b2db96fe3225c18/pchain-square.svg"
-                                                alt="P-Chain Logo"
-                                                className="h-5 w-5 opacity-60"
-                                            />
-                                        )}
-                                    </div>
-                                    <div className="text-left">
-                                        <div className="font-medium">Avalanche {destinationChain === "c-chain" ? "C-Chain" : "P-Chain"}</div>
-                                        <div className="text-sm text-zinc-500 dark:text-zinc-500">
-                                            {destinationChain === "c-chain" ? "EVM-compatible chain for smart contracts" : "Native chain for staking & validators"}
-                                        </div>
-                                    </div>
-                                </div>
-                                {/* No ChevronDown - indicating it's not clickable */}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Export Button */}
-                    {!exportTxId && (
+                {/* Action Area */}
+                <div className="space-y-3">
+                    {/* Export phase */}
+                    {!completedExportTxId && !exportLoading && availableUTXOs.length === 0 && (
                         <Button
                             variant="primary"
                             onClick={handleExport}
-                            disabled={exportLoading || importLoading || Number(amount) <= 0 || !!error}
-                            loading={exportLoading}
-                            loadingText={`Exporting from ${sourceChain === "c-chain" ? "C-Chain" : "P-Chain"}...`}
+                            disabled={Number(amount) <= 0 || !!error}
+                            icon={<img src="/images/core.svg" alt="" className="w-4 h-4" />}
                             className="w-full"
                         >
-                            {`Export ${amount} AVAX`}
+                            Export {amount || "0"} AVAX from {sourceChainName}
                         </Button>
                     )}
 
-                    {/* Export Transaction Result */}
-                    {completedExportTxId && completedExportTxId !== "utxo-available" && (
-                        <div className="mt-4">
-                            <Success
-                                label="Export Transaction Completed"
-                                value={completedExportTxId}
-                                isTestnet={isTestnet}
-                                xpChain={completedExportXPChain}
-                            />
+                    {/* Export loading */}
+                    {exportLoading && (
+                        <Button
+                            variant="primary"
+                            disabled
+                            loading
+                            loadingText={`Exporting from ${sourceChainName}...`}
+                            className="w-full"
+                        >
+                            Exporting...
+                        </Button>
+                    )}
+
+                    {/* Export error */}
+                    {error && (
+                        <div className="p-3 rounded-lg border border-destructive/30 bg-destructive/5">
+                            <p className="text-sm text-destructive">{error}</p>
                         </div>
                     )}
-                </StepCard>
 
-                {/* Step 2: Import Transaction */}
-                <StepCard
-                    stepNumber={2}
-                    title="Import to Destination Chain"
-                    description={`Import the exported AVAX to ${destinationChain === "p-chain" ? "P-Chain" : "C-Chain"} to complete the transfer`}
-                    status={getStep2Status()}
-                    isExpanded={step2Expanded}
-                    onToggle={() => setStep2Expanded(!step2Expanded)}
-                    error={importError ?? undefined}
-                >
-                    {/* UTXOs Available for Import */}
+                    {/* Export success */}
+                    {completedExportTxId && completedExportTxId !== "utxo-available" && (
+                        <Success
+                            label="Export Completed"
+                            value={completedExportTxId}
+                            isTestnet={isTestnet}
+                            xpChain={completedExportXPChain}
+                        />
+                    )}
+
+                    {/* Waiting for UTXOs after export */}
+                    {completedExportTxId && availableUTXOs.length === 0 && !exportLoading && (
+                        <div className="flex items-center justify-center gap-2 py-3 text-sm text-muted-foreground">
+                            <Clock className="h-4 w-4 animate-pulse" />
+                            Waiting for UTXOs to arrive...
+                        </div>
+                    )}
+
+                    {/* Import phase */}
                     {availableUTXOs.length > 0 && !importTxId && (
                         <>
-                            <div className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
-                                {totalUtxoAmount.toFixed(6)} AVAX available to import to {destinationChain === "p-chain" ? "P-Chain" : "C-Chain"}
+                            <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-muted/50 border border-border text-sm">
+                                <span className="text-muted-foreground">Ready to import</span>
+                                <span className="font-mono font-medium text-foreground">{totalUtxoAmount.toFixed(6)} AVAX</span>
                             </div>
 
-                            <div className="space-y-2 mb-4">
-                                {availableUTXOs.map((utxo, index) => (
-                                    <div key={index} className="text-sm font-mono text-zinc-700 dark:text-zinc-200 bg-zinc-50 dark:bg-zinc-800/50 p-3 rounded-lg border border-zinc-200/80 dark:border-zinc-800">
-                                        {(Number(utxo.output.amt.value()) / 1_000_000_000).toFixed(6)} AVAX
-                                    </div>
-                                ))}
-                            </div>
+                            {importError && (
+                                <div className="p-3 rounded-lg border border-destructive/30 bg-destructive/5">
+                                    <p className="text-sm text-destructive">{importError}</p>
+                                </div>
+                            )}
 
                             <Button
                                 variant="primary"
@@ -657,68 +633,56 @@ console.log("Import tx:", txnResponse.txHash);`,
                                 disabled={importLoading}
                                 loading={importLoading}
                                 loadingText="Importing..."
+                                icon={<img src="/images/core.svg" alt="" className="w-4 h-4" />}
                                 className="w-full"
                             >
-                                {`Import to ${destinationChain === "p-chain" ? "P-Chain" : "C-Chain"}`}
+                                Import to {destChainName}
                             </Button>
                         </>
                     )}
 
-                    {/* Import Transaction Result */}
+                    {/* Transfer complete */}
                     {importTxId && (
-                        <div className="mt-4">
+                        <>
                             <Success
-                                label="Import Transaction Completed"
+                                label="Transfer Complete"
                                 value={importTxId}
                                 isTestnet={isTestnet}
                                 xpChain={completedImportXPChain}
                             />
-                        </div>
+                            <Button
+                                variant="secondary"
+                                onClick={() => {
+                                    setExportTxId("");
+                                    setCompletedExportTxId("");
+                                    setImportTxId(null);
+                                    setAmount("");
+                                    setError(null);
+                                    setImportError(null);
+                                    setStep1AutoCollapse(false);
+                                    setStep2AutoCollapse(false);
+                                    setTimeout(() => {
+                                        if (availableUTXOs.length > 0) {
+                                            setCompletedExportTxId("utxo-available");
+                                            setStep1AutoCollapse(true);
+                                        }
+                                    }, 100);
+                                }}
+                                className="w-full"
+                            >
+                                Start New Transfer
+                            </Button>
+                        </>
                     )}
-
-                    {/* Waiting for Export */}
-                    {!completedExportTxId && !availableUTXOs.length && (
-                        <div className="text-center py-8">
-                            <Clock className="h-8 w-8 text-zinc-400 mx-auto mb-2" />
-                            <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                                Waiting for export transaction to complete...
-                            </p>
-                        </div>
-                    )}
-                </StepCard>
-
-                {/* Estimated Fees */}
-                <div className="flex justify-between items-center px-4 py-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-200/80 dark:border-zinc-800">
-                    <div className="font-medium text-zinc-900 dark:text-white">Estimated total fees</div>
-                    <div className="font-medium text-zinc-900 dark:text-white">~0.001 AVAX</div>
                 </div>
 
-                {/* Reset Button - Show after successful transfer */}
-                {importTxId && (
-                    <Button
-                        variant="secondary"
-                        onClick={() => {
-                            setExportTxId("");
-                            setCompletedExportTxId("");
-                            setImportTxId(null);
-                            setAmount("");
-                            setError(null);
-                            setImportError(null);
-                            setStep1AutoCollapse(false);
-                            setStep2AutoCollapse(false);
-                            // After reset, check if UTXOs are available again to auto-skip
-                            setTimeout(() => {
-                                if (availableUTXOs.length > 0) {
-                                    setCompletedExportTxId("utxo-available");
-                                    setStep1AutoCollapse(true);
-                                }
-                            }, 100);
-                        }}
-                        className="w-full"
-                    >
-                        Start New Transfer
-                    </Button>
-                )}
+                {/* Fee */}
+                <div className="flex justify-between items-center text-xs text-muted-foreground px-1">
+                    <span>Estimated fee</span>
+                    <span>~0.001 AVAX</span>
+                </div>
+
+                <CliAlternative command={cliCommand} />
         </div>
         </SDKCodeViewer>
     );

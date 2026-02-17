@@ -8,11 +8,13 @@ import { Step, Steps } from "fumadocs-ui/components/steps";
 import { SUBNET_EVM_VM_ID } from "@/constants/console";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
 import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
+import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 import { AlertTriangle, BookOpen, GraduationCap, ExternalLink } from "lucide-react";
 import Link from "next/link";
+import { CliAlternative } from "@/components/console/cli-alternative";
 
 // Import Genesis Wizard components
 import { GenesisWizard } from "@/components/toolbox/components/genesis/GenesisWizard";
@@ -40,6 +42,7 @@ function CreateChain({ onSuccess, embedded = false }: CreateChainProps) {
     const setChainName = store(state => state.setChainName);
 
     const { coreWalletClient } = useConnectedWallet();
+    const { isTestnet } = useWalletStore();
     const { notify } = useConsoleNotifications();
 
     const [isCreatingChain, setIsCreatingChain] = useState(false);
@@ -269,8 +272,8 @@ function CreateChain({ onSuccess, embedded = false }: CreateChainProps) {
                                 loading={isCreatingChain}
                                 loadingText="Creating Chain..."
                                 disabled={!canCreateChain}
+                                icon={<img src="/images/core.svg" alt="" className="w-4 h-4" />}
                                 className="px-8"
-                                size="lg"
                             >
                                 Create Chain
                             </Button>
@@ -278,6 +281,8 @@ function CreateChain({ onSuccess, embedded = false }: CreateChainProps) {
                     )}
                 </Step>
             </Steps>
+
+            <CliAlternative command={`platform chain create --subnet-id ${subnetId || "<subnet-id>"} --genesis ./genesis.json --name "${localChainName}"${vmId !== SUBNET_EVM_VM_ID ? ` --vm-id ${vmId}` : ""} --network ${isTestnet ? "fuji" : "mainnet"}`} />
         </div>
     );
 }

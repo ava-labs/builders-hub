@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { codeToHtml } from "shiki";
 import { Copy, Check, ExternalLink, FileCode, Minus, Plus } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export interface ContractSource {
   name: string;
@@ -129,7 +130,7 @@ export function ContractDeployViewer({
   const isLoading = loading[activeTab];
 
   return (
-    <div className={`grid grid-cols-1 lg:grid-cols-2 gap-6 items-start ${className}`}>
+    <div className={cn("grid grid-cols-1 lg:grid-cols-2 gap-6 items-start", className)}>
       {/* Left: Deploy Controls */}
       <div>{children}</div>
 
@@ -141,14 +142,12 @@ export function ContractDeployViewer({
             <button
               key={contract.filename}
               onClick={() => setActiveTab(i)}
-              className={`
-                flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-t-lg transition-colors
-                ${
-                  activeTab === i
-                    ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 border-t border-x border-zinc-200/80 dark:border-zinc-700 -mb-px"
-                    : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
-                }
-              `}
+              className={cn(
+                "flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-t-lg transition-colors",
+                activeTab === i
+                  ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 border-t border-x border-zinc-200/80 dark:border-zinc-700 -mb-px"
+                  : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+              )}
             >
               <FileCode className="w-4 h-4" />
               {contract.filename}
@@ -215,7 +214,7 @@ export function ContractDeployViewer({
               {/* Line Numbers - fixed, only vertical scroll */}
               <div
                 ref={lineNumbersRef}
-                className="shrink-0 py-4 pl-4 pr-3 text-right select-none border-r border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-800/30 overflow-hidden font-mono code-line-numbers"
+                className="shrink-0 py-4 pl-4 pr-3 text-right select-none border-r border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-800/30 overflow-hidden font-mono contract-deploy-line-numbers"
                 style={{
                   "--code-font-size": `${fontSize}px`,
                   fontSize: `${fontSize}px`,
@@ -231,7 +230,7 @@ export function ContractDeployViewer({
               {/* Code - scrollable both directions */}
               <div
                 ref={codeScrollRef}
-                className="flex-1 py-4 pl-4 pr-4 overflow-auto shiki-container font-mono"
+                className="flex-1 py-4 pl-4 pr-4 overflow-auto contract-deploy-shiki-container font-mono"
                 style={{
                   "--code-font-size": `${fontSize}px`,
                   fontSize: `${fontSize}px`,
@@ -247,7 +246,7 @@ export function ContractDeployViewer({
               {/* Line Numbers - fixed, only vertical scroll */}
               <div
                 ref={lineNumbersRef}
-                className="shrink-0 py-4 pl-4 pr-3 text-right select-none border-r border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-800/30 overflow-hidden font-mono code-line-numbers"
+                className="shrink-0 py-4 pl-4 pr-3 text-right select-none border-r border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-800/30 overflow-hidden font-mono contract-deploy-line-numbers"
                 style={{
                   "--code-font-size": `${fontSize}px`,
                   fontSize: `${fontSize}px`,
@@ -289,28 +288,28 @@ export function ContractDeployViewer({
 
       {/* Shiki reset styles */}
       <style jsx global>{`
-        .shiki-container pre {
+        .contract-deploy-shiki-container pre {
           background: transparent !important;
           margin: 0;
           padding: 0;
           min-width: max-content;
         }
-        .shiki-container pre,
-        .shiki-container code,
-        .shiki-container span {
+        .contract-deploy-shiki-container pre,
+        .contract-deploy-shiki-container code,
+        .contract-deploy-shiki-container span {
           font-size: var(--code-font-size, 11px) !important;
           line-height: 1.6 !important;
         }
-        .shiki-container code {
+        .contract-deploy-shiki-container code {
           display: block;
           min-width: max-content;
         }
-        .shiki-container .line {
+        .contract-deploy-shiki-container .line {
           display: block;
           min-width: max-content;
         }
-        .code-line-numbers,
-        .code-line-numbers div {
+        .contract-deploy-line-numbers,
+        .contract-deploy-line-numbers div {
           font-size: var(--code-font-size, 11px) !important;
           line-height: 1.6 !important;
         }

@@ -2,9 +2,26 @@
 
 import { useSession } from "next-auth/react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, Suspense } from "react";
-import { ChevronRight, Layers, Users, MessagesSquare, ArrowUpDown, Settings, Droplets, Sparkles } from "lucide-react";
+import { useEffect, useState, useCallback, Suspense } from "react";
+import {
+  ChevronRight,
+  Layers,
+  Sparkles,
+  BookKey,
+  LayoutDashboard,
+  ArrowLeftRight,
+  Network,
+  Users,
+  Settings,
+  MessagesSquare,
+  ArrowUpDown,
+  Terminal,
+  Copy,
+  Check,
+} from "lucide-react";
 import Link from "next/link";
+import { motion } from "framer-motion";
+import { EcosystemMarquee } from "@/components/console/ecosystem-marquee";
 
 function RedirectLogic() {
   const { data: session, status } = useSession();
@@ -51,56 +68,116 @@ function RedirectIfNewUser() {
   );
 }
 
+const containerVariants = {
+  hidden: {},
+  visible: {
+    transition: { staggerChildren: 0.08, delayChildren: 0.1 },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { type: "spring" as const, stiffness: 200, damping: 20 },
+  },
+};
+
+function BentoCard({
+  href,
+  className = "",
+  children,
+}: {
+  href: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <motion.div variants={itemVariants}>
+      <Link href={href} className="block h-full">
+        <motion.div
+          whileHover={{ y: -2 }}
+          transition={{ type: "spring" as const, stiffness: 400, damping: 25 }}
+          className={`group relative h-full rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm p-5 transition-all duration-200 hover:border-zinc-300 dark:hover:border-zinc-700 ${className}`}
+          style={{ boxShadow: "0 1px 2px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.03)" }}
+          onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "0 2px 4px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.06)"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "0 1px 2px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.03)"; }}
+        >
+          {children}
+        </motion.div>
+      </Link>
+    </motion.div>
+  );
+}
+
+function SubLink({
+  href,
+  icon: Icon,
+  label,
+}: {
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="flex items-center gap-2 text-sm rounded-md px-2 py-1.5 -mx-2 transition-colors text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 hover:text-zinc-700 dark:hover:text-zinc-200"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <Icon className="w-3.5 h-3.5" />
+      <span>{label}</span>
+    </Link>
+  );
+}
+
+const INSTALL_CMD = "curl -sSfL https://raw.githubusercontent.com/ava-labs/platform-cli/main/install.sh | sh";
+
+function CliInstallSnippet() {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = useCallback(async () => {
+    await navigator.clipboard.writeText(INSTALL_CMD);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }, []);
+
+  return (
+    <div
+      className="rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm p-5"
+      style={{ boxShadow: "0 1px 2px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.03)" }}
+    >
+      <div className="flex items-center gap-2 mb-3">
+        <Terminal className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
+        <h3 className="font-medium text-zinc-900 dark:text-zinc-100 text-sm">Install the P-Chain CLI</h3>
+      </div>
+      <div className="flex items-center gap-2 rounded-lg bg-zinc-100 dark:bg-zinc-800 px-3 py-2.5 overflow-hidden">
+        <span className="text-xs text-zinc-400 dark:text-zinc-500 select-none">$</span>
+        <code className="text-sm font-mono truncate flex-1">
+          <span className="text-emerald-600 dark:text-emerald-400">curl</span>
+          <span className="text-zinc-500 dark:text-zinc-400"> -sSfL </span>
+          <span className="text-sky-600 dark:text-sky-400">https://raw.githubusercontent.com/ava-labs/platform-cli/main/install.sh</span>
+          <span className="text-zinc-500 dark:text-zinc-400"> | </span>
+          <span className="text-amber-600 dark:text-amber-400">sh</span>
+        </code>
+        <button
+          onClick={handleCopy}
+          className="p-1 rounded text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors shrink-0"
+          aria-label="Copy install command"
+        >
+          {copied ? (
+            <Check className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400" />
+          ) : (
+            <Copy className="w-3.5 h-3.5" />
+          )}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function ConsoleDashboard() {
-  const quickActions = [
-    {
-      title: "Create L1",
-      description: "Launch a new Layer 1 blockchain",
-      href: "/console/layer-1/create",
-      icon: Layers,
-    },
-    {
-      title: "Blueprints",
-      description: "Pre-configured L1 templates",
-      href: "/console/blueprints",
-      icon: Sparkles,
-      highlight: true,
-    },
-    {
-      title: "Testnet Faucet",
-      description: "Get test AVAX for development",
-      href: "/console/primary-network/faucet",
-      icon: Droplets,
-    },
-  ];
-
-  const tools = [
-    {
-      category: "Primary Network",
-      items: [
-        { title: "Node Setup", href: "/console/primary-network/node-setup", icon: Settings },
-        { title: "Stake AVAX", href: "/console/primary-network/stake", icon: Users },
-        { title: "C/P Bridge", href: "/console/primary-network/c-p-bridge", icon: ArrowUpDown },
-      ],
-    },
-    {
-      category: "Your L1",
-      items: [
-        { title: "Validators", href: "/console/layer-1/validator-set", icon: Users },
-        { title: "Tokenomics", href: "/console/l1-tokenomics/fee-manager", icon: Settings },
-        { title: "Performance", href: "/console/layer-1/performance-monitor", icon: ChevronRight },
-      ],
-    },
-    {
-      category: "Cross-Chain",
-      items: [
-        { title: "ICM Setup", href: "/console/icm/setup", icon: MessagesSquare },
-        { title: "Bridge Setup", href: "/console/ictt/setup", icon: ArrowUpDown },
-        { title: "Token Transfer", href: "/console/ictt/token-transfer", icon: ArrowUpDown },
-      ],
-    },
-  ];
-
   const ecosystemChains = [
     // Gaming
     { name: "FIFA", image: "https://images.ctfassets.net/gcj8jwzm6086/27QiWdtdwCaIeFbYhA47KG/5b4245767fc39d68b566f215e06c8f3a/FIFA_logo.png", link: "https://collect.fifa.com/" },
@@ -140,128 +217,192 @@ function ConsoleDashboard() {
         }}
       />
 
-      <div className="relative max-w-5xl mx-auto">
-        {/* Header */}
-        <div className="mb-10">
-          <h1 className="text-3xl font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight">
-            Builder Console
-          </h1>
-          <p className="mt-2 text-zinc-600 dark:text-zinc-400">
-            Create and manage Avalanche L1 blockchains
-          </p>
+      <div className="relative max-w-6xl mx-auto">
+        {/* Hero */}
+        <div className="mb-10 pt-2">
+          <motion.h1
+            className="text-4xl md:text-5xl font-bold tracking-tight"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <span className="text-zinc-900 dark:text-zinc-100">Builder</span>{" "}
+            <span className="text-zinc-400 dark:text-zinc-500">Console</span>
+          </motion.h1>
+          <motion.p
+            className="mt-3 text-zinc-500 dark:text-zinc-400 text-base md:text-lg max-w-lg"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15, duration: 0.5 }}
+          >
+            Create and manage Avalanche infrastructure
+          </motion.p>
         </div>
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
-          {quickActions.map((action) => {
-            const Icon = action.icon;
-            return (
-              <Link
-                key={action.title}
-                href={action.href}
-                className={`group block p-5 rounded-xl border transition-all duration-200 hover:shadow-lg dark:hover:shadow-zinc-900/50 ${
-                  action.highlight
-                    ? "bg-zinc-900 dark:bg-zinc-100 border-zinc-900 dark:border-zinc-100 hover:bg-zinc-800 dark:hover:bg-zinc-200"
-                    : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700"
-                }`}
-              >
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center mb-3 ${
-                  action.highlight
-                    ? "bg-white/10 dark:bg-zinc-900/20"
-                    : "bg-zinc-100 dark:bg-zinc-800"
-                }`}>
-                  <Icon className={`w-5 h-5 ${
-                    action.highlight
-                      ? "text-white dark:text-zinc-900"
-                      : "text-zinc-600 dark:text-zinc-400"
-                  }`} />
-                </div>
-                <div className={`font-medium ${
-                  action.highlight
-                    ? "text-white dark:text-zinc-900"
-                    : "text-zinc-900 dark:text-zinc-100"
-                }`}>
-                  {action.title}
-                </div>
-                <div className={`text-sm mt-0.5 ${
-                  action.highlight
-                    ? "text-zinc-300 dark:text-zinc-600"
-                    : "text-zinc-500 dark:text-zinc-400"
-                }`}>
-                  {action.description}
-                </div>
-              </Link>
-            );
-          })}
-        </div>
-
-        {/* Tools Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-          {tools.map((section) => (
-            <div key={section.category}>
-              <h3 className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-3">
-                {section.category}
-              </h3>
-              <div className="space-y-1">
-                {section.items.map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <Link
-                      key={item.title}
-                      href={item.href}
-                      className="group flex items-center gap-3 p-3 -mx-3 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800/50 transition-colors"
-                    >
-                      <Icon className="w-4 h-4 text-zinc-400 dark:text-zinc-500" />
-                      <span className="text-sm text-zinc-700 dark:text-zinc-300 group-hover:text-zinc-900 dark:group-hover:text-zinc-100">
-                        {item.title}
-                      </span>
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Ecosystem */}
-        <div className="pt-8 border-t border-zinc-200 dark:border-zinc-800">
-          <div className="flex items-center justify-between mb-5">
-            <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+        {/* Ecosystem Marquee */}
+        <motion.div
+          className="mb-10"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3, duration: 0.6 }}
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-medium text-zinc-400 dark:text-zinc-500">
               Built on Avalanche
             </h3>
             <a
               href="https://build.avax.network/stats/l1"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-xs text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors"
+              className="text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
             >
               View all →
             </a>
           </div>
-          <div className="flex flex-wrap gap-3">
-            {ecosystemChains.map((chain) => (
-              <a
-                key={chain.name}
-                href={chain.link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group flex items-center gap-2.5 px-3 py-2 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 transition-all"
+          <EcosystemMarquee chains={ecosystemChains} />
+        </motion.div>
+
+        {/* Bento Grid */}
+        <motion.div
+          className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-12"
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+        >
+          {/* Row 1: Create L1 (span-4) + Blueprints (span-2) */}
+          <motion.div className="md:col-span-4" variants={itemVariants}>
+            <Link href="/console/layer-1/create" className="block h-full">
+              <motion.div
+                whileHover={{ y: -2 }}
+                transition={{ type: "spring" as const, stiffness: 400, damping: 25 }}
+                className="group h-full min-h-[200px] rounded-2xl border border-zinc-800 dark:border-zinc-800 bg-zinc-900 dark:bg-zinc-900 p-6 transition-all duration-200 hover:border-zinc-700 dark:hover:border-zinc-700"
+                style={{ boxShadow: "inset 0 1px 0 0 rgba(255,255,255,0.06), 0 2px 8px rgba(0,0,0,0.15), 0 8px 24px rgba(0,0,0,0.1)" }}
+                onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "inset 0 1px 0 0 rgba(255,255,255,0.06), 0 4px 12px rgba(0,0,0,0.2), 0 16px 40px rgba(0,0,0,0.15)"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "inset 0 1px 0 0 rgba(255,255,255,0.06), 0 2px 8px rgba(0,0,0,0.15), 0 8px 24px rgba(0,0,0,0.1)"; }}
               >
+                <div className="flex items-start justify-between h-full">
+                  <div>
+                    <div className="w-10 h-10 rounded-xl bg-white/[0.08] flex items-center justify-center mb-4 transition-colors group-hover:bg-white/[0.14]">
+                      <Layers className="w-5 h-5 text-zinc-300 transition-colors group-hover:text-white" />
+                    </div>
+                    <h2 className="text-xl font-semibold text-white dark:text-white mb-1.5">
+                      Create L1
+                    </h2>
+                    <p className="text-zinc-400 dark:text-zinc-400 text-sm max-w-sm leading-relaxed">
+                      Launch a new Layer 1 blockchain with custom validators, tokenomics, and governance
+                    </p>
+
+                  </div>
+                  <div className="flex items-center self-center ml-4">
+                    <ChevronRight className="w-5 h-5 text-zinc-600 transition-all duration-200 group-hover:text-zinc-400 group-hover:translate-x-1" />
+                  </div>
+                </div>
+              </motion.div>
+            </Link>
+          </motion.div>
+
+          <motion.div className="md:col-span-2" variants={itemVariants}>
+            <Link href="/console/blueprints" className="block h-full">
+              <motion.div
+                whileHover={{ y: -2 }}
+                transition={{ type: "spring" as const, stiffness: 400, damping: 25 }}
+                className="group h-full min-h-[200px] rounded-2xl border border-zinc-200/80 dark:border-zinc-700 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm p-6 transition-all duration-200 hover:border-zinc-300 dark:hover:border-zinc-600"
+                style={{ boxShadow: "0 1px 2px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.03)" }}
+                onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "0 2px 4px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.06)"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "0 1px 2px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.03)"; }}
+              >
+                <div className="flex items-center gap-2.5 mb-4">
+                  <div className="w-10 h-10 rounded-xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center transition-colors group-hover:bg-zinc-200/80 dark:group-hover:bg-zinc-700/80">
+                    <Sparkles className="w-5 h-5 text-zinc-600 dark:text-zinc-400" />
+                  </div>
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-2 py-0.5 rounded-full">
+                    New
+                  </span>
+                </div>
+                <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-1.5">
+                  Blueprints
+                </h2>
+                <p className="text-zinc-500 dark:text-zinc-400 text-sm leading-relaxed">
+                  Pre-configured L1 templates for gaming, DeFi, and enterprise
+                </p>
+              </motion.div>
+            </Link>
+          </motion.div>
+
+          {/* CLI Install */}
+          <motion.div className="md:col-span-6" variants={itemVariants}>
+            <CliInstallSnippet />
+          </motion.div>
+
+          {/* Row 2: Faucet (3) + API Keys (3) */}
+          <div className="md:col-span-3">
+            <BentoCard href="/console/primary-network/faucet">
+              <div className="w-9 h-9 rounded-xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mb-3 transition-colors group-hover:bg-zinc-200/80 dark:group-hover:bg-zinc-700/80">
                 <img
-                  src={chain.image}
-                  alt={chain.name}
-                  className="w-6 h-6 rounded-full object-contain"
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none';
-                  }}
+                  src="/images/avax.png"
+                  alt="AVAX"
+                  className="w-4 h-4 opacity-50 dark:opacity-40 grayscale group-hover:opacity-70 dark:group-hover:opacity-60 transition-opacity"
                 />
-                <span className="text-sm text-zinc-700 dark:text-zinc-300">
-                  {chain.name}
-                </span>
-              </a>
-            ))}
+              </div>
+              <h3 className="font-medium text-zinc-900 dark:text-zinc-100 mb-0.5">Testnet Faucet</h3>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400">Get test AVAX for development</p>
+            </BentoCard>
           </div>
-        </div>
+
+          <div className="md:col-span-3">
+            <BentoCard href="/console/utilities/data-api-keys">
+              <div className="w-9 h-9 rounded-xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mb-3 transition-colors group-hover:bg-zinc-200/80 dark:group-hover:bg-zinc-700/80">
+                <BookKey className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
+              </div>
+              <h3 className="font-medium text-zinc-900 dark:text-zinc-100 mb-0.5">Data API Keys</h3>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400">Manage your API access keys</p>
+            </BentoCard>
+          </div>
+
+          {/* Row 3: Primary Network (2) + Your L1 (2) + Cross-Chain (2) */}
+          <div className="md:col-span-2">
+            <BentoCard href="/console/primary-network/node-setup">
+              <div className="w-9 h-9 rounded-xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mb-3 transition-colors group-hover:bg-zinc-200/80 dark:group-hover:bg-zinc-700/80">
+                <Network className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
+              </div>
+              <h3 className="font-medium text-zinc-900 dark:text-zinc-100">Primary Network</h3>
+              <div className="space-y-0.5 mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-800">
+                <SubLink href="/console/primary-network/node-setup" icon={Settings} label="Node Setup" />
+                <SubLink href="/console/primary-network/stake" icon={Users} label="Stake AVAX" />
+                <SubLink href="/console/primary-network/c-p-bridge" icon={ArrowUpDown} label="C/P Bridge" />
+              </div>
+            </BentoCard>
+          </div>
+
+          <div className="md:col-span-2">
+            <BentoCard href="/console/layer-1/validator-set">
+              <div className="w-9 h-9 rounded-xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mb-3 transition-colors group-hover:bg-zinc-200/80 dark:group-hover:bg-zinc-700/80">
+                <LayoutDashboard className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
+              </div>
+              <h3 className="font-medium text-zinc-900 dark:text-zinc-100">Your L1</h3>
+              <div className="space-y-0.5 mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-800">
+                <SubLink href="/console/layer-1/validator-set" icon={Users} label="Validators" />
+                <SubLink href="/console/l1-tokenomics/fee-manager" icon={Settings} label="Tokenomics" />
+                <SubLink href="/console/layer-1/performance-monitor" icon={ChevronRight} label="Performance" />
+              </div>
+            </BentoCard>
+          </div>
+
+          <div className="md:col-span-2">
+            <BentoCard href="/console/icm/setup">
+              <div className="w-9 h-9 rounded-xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mb-3 transition-colors group-hover:bg-zinc-200/80 dark:group-hover:bg-zinc-700/80">
+                <ArrowLeftRight className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
+              </div>
+              <h3 className="font-medium text-zinc-900 dark:text-zinc-100">Cross-Chain</h3>
+              <div className="space-y-0.5 mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-800">
+                <SubLink href="/console/icm/setup" icon={MessagesSquare} label="ICM Setup" />
+                <SubLink href="/console/ictt/setup" icon={ArrowUpDown} label="ICTT Bridge" />
+                <SubLink href="/console/ictt/token-transfer" icon={ArrowUpDown} label="Token Transfer" />
+              </div>
+            </BentoCard>
+          </div>
+        </motion.div>
+
       </div>
     </div>
   );
