@@ -357,10 +357,14 @@ export default function ProgramTimeline() {
       status: statuses[1],
       date: "Feb 25",
       details: {
-        deadline: "February 25, 2026 at 11:59 PM PST",
+        deadline: "February 25, 2026 at 11:59 PM EST",
         requirements: "Create a 1-minute video clearly explaining your project idea, target problem, solution approach, and value proposition.",
         criteria: "Clarity of idea, problem-solution fit, innovation, presentation quality, and potential market impact.",
-        support: "Video creation tips, pitch feedback sessions, and storytelling guidance from mentors.",
+        support: (
+          <>
+            Attend the Product design workshops, and join the <a href="https://t.me/avalancheacademy/4337" target="_blank" rel="noopener noreferrer" className="underline text-[#66acd6]">Support chat</a>.
+          </>
+        ),
       },
     },
     {
@@ -368,10 +372,10 @@ export default function ProgramTimeline() {
       status: statuses[2],
       date: "March 9",
       details: {
-        deadline: "March 9, 2026 at 11:59 PM PST",
+        deadline: "March 9, 2026 at 11:59 PM EST",
         requirements: "Functional prototype, GitHub repository with code, technical documentation, and product walkthrough video demonstrating key features.",
-        criteria: "Technical implementation quality, use of Avalanche technologies, code structure, feature completeness, and UX design.",
-        support: "Technical mentorship, code reviews, Avalanche integration help, and development best practices guidance.",
+        criteria: "Technical implementation quality, use of Avalanche technologies, MVP architecture design, and UX design.",
+        support: "Attend the Office Hours and get feedback from mentors and other builders. Schedule a time here: ",
       },
     },
     {
@@ -379,11 +383,11 @@ export default function ProgramTimeline() {
       status: statuses[3],
       date: "March 19",
       details: {
-        deadline: "March 19, 2026 at 11:59 PM PST",
+        deadline: "March 19, 2026 at 11:59 PM EST",
         requirements: "Go-to-market plan, growth strategy, target user personas, competitive analysis, and long-term product vision document.",
         criteria: "Market understanding, growth strategy viability, user acquisition plan, business model clarity, and scalability potential.",
-        support: "GTM strategy workshops, market research guidance, business model feedback, and ecosystem partnership introductions.",
-      },
+        support: "Attend the Office Hours and get feedback from mentors and other builders. Schedule a time here:.",
+      }
     },
     {
       label: "Stage 4: Finals",
@@ -393,7 +397,7 @@ export default function ProgramTimeline() {
         deadline: "March 27, 2026 - Live presentation",
         requirements: "Final pitch deck, live product demo, complete project documentation, and Q&A session with judges.",
         criteria: "Overall project quality, innovation, technical excellence, market potential, presentation skills, and ecosystem fit.",
-        support: "Presentation coaching, demo preparation, final pitch refinement, and technical setup assistance for showcase.",
+        support: "Presentation coaching, demo preparation, final pitch refinement. Attend the Office Hours and get feedback from mentors and other builders. Schedule a time here: ",
       },
     },
   ];
@@ -495,37 +499,75 @@ export default function ProgramTimeline() {
         </div>
 
         {/* Submit Button - Only show for stages 1-4 (not Kick Off) */}
-        {selectedPhaseIndex >= 1 && (
-          <div className="flex justify-center w-full pt-4">
-            <a
-              href="/hackathons/project-submission?hackathon=249d2911-7931-4aa0-a696-37d8370b79f9"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group relative inline-flex"
-            >
-              <div className="absolute -inset-1 bg-gradient-to-r from-[#66acd6] via-[#38bdf8] to-[#66acd6] rounded-xl blur-sm opacity-40 group-hover:opacity-70 transition duration-500 animate-pulse" />
-              <div className="relative flex items-center gap-3 px-10 py-5 bg-[#66acd6] rounded-xl font-['Aeonik:Medium',sans-serif] font-medium text-[#152d44] group-hover:bg-[#7fc0e5] transition-all duration-200 shadow-xl shadow-cyan-500/30 group-hover:shadow-cyan-500/50 group-hover:scale-105">
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
+        {selectedPhaseIndex >= 1 && (() => {
+          // Check if submission should be disabled (before kick off)
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const kickOffDate = phaseDeadlines[0];
+          const isBeforeKickOff = today < kickOffDate;
+          const isDisabled = isBeforeKickOff;
+
+          return (
+            <div className="flex flex-col items-center w-full pt-4 gap-3">
+              {isDisabled ? (
+                <div className="group relative inline-flex opacity-50 cursor-not-allowed">
+                  <div className="relative flex items-center gap-3 px-10 py-5 bg-gray-600 rounded-xl font-['Aeonik:Medium',sans-serif] font-medium text-gray-400">
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                    <span className="text-[17px]">Submit {competitionPhases[selectedPhaseIndex].label}</span>
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </div>
+                </div>
+              ) : (
+                <a
+                  href="/hackathons/project-submission?hackathon=249d2911-7931-4aa0-a696-37d8370b79f9"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group relative inline-flex"
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                </svg>
-                <span className="text-[17px]">Submit {competitionPhases[selectedPhaseIndex].label}</span>
-                <svg
-                  className="w-5 h-5 transition-transform group-hover:translate-x-1"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </div>
-            </a>
-          </div>
-        )}
+                  <div className="absolute -inset-1 bg-gradient-to-r from-[#66acd6] via-[#38bdf8] to-[#66acd6] rounded-xl blur-sm opacity-40 group-hover:opacity-70 transition duration-500 animate-pulse" />
+                  <div className="relative flex items-center gap-3 px-10 py-5 bg-[#66acd6] rounded-xl font-['Aeonik:Medium',sans-serif] font-medium text-[#152d44] group-hover:bg-[#7fc0e5] transition-all duration-200 shadow-xl shadow-cyan-500/30 group-hover:shadow-cyan-500/50 group-hover:scale-105">
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                    <span className="text-[17px]">Submit {competitionPhases[selectedPhaseIndex].label}</span>
+                    <svg
+                      className="w-5 h-5 transition-transform group-hover:translate-x-1"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </div>
+                </a>
+              )}
+              {isDisabled && (
+                <p className="text-[13px] font-['Aeonik:Regular',sans-serif] text-white/50 text-center">
+                  Submissions Forms open after the Kick Off on February 20, 2026
+                </p>
+              )}
+            </div>
+          );
+        })()}
       </div>
     </div>
   );
