@@ -7,7 +7,7 @@ interface PhaseDetails {
   deadline: string;
   requirements: string;
   criteria: string;
-  support: string;
+  support: string | React.ReactNode;
 }
 
 interface TimelinePhase {
@@ -216,19 +216,29 @@ function KickOffDetails() {
           </div>
         </div>
 
-        <div className="mt-10 p-6 rounded-xl bg-[rgba(102,172,214,0.08)] border border-[#66acd6]/20">
+        <a
+          href="https://calendar.google.com/calendar/u/0?cid=Y19mNzExYTJkN2NjZDJhZTY2MWFjYmJlMjE5MDM4ZDZmYzcwMjRjNmFiMzJjNGVmZDhhNmVkYTIxMDY1MGRiODdiQGdyb3VwLmNhbGVuZGFyLmdvb2dsZS5jb20"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="group mt-10 p-6 rounded-xl bg-[rgba(102,172,214,0.08)] border border-[#66acd6]/20 hover:border-[#66acd6]/40 hover:bg-[rgba(102,172,214,0.12)] transition-all duration-300 cursor-pointer block"
+        >
           <div className="flex items-start gap-3">
-            <Calendar className="text-[#66acd6] flex-shrink-0 mt-1" size={20} />
-            <div>
-              <p className="text-[15px] font-['Aeonik:Medium',sans-serif] text-white mb-1">
-                📅 February 20, 2026
-              </p>
+            <Calendar className="text-[#66acd6] flex-shrink-0 mt-1 group-hover:scale-110 transition-transform" size={20} />
+            <div className="flex-1">
+              <div className="flex items-center justify-between">
+                <p className="text-[15px] font-['Aeonik:Medium',sans-serif] text-white mb-1">
+                  📅 February 20, 2026
+                </p>
+                <span className="text-[#66acd6] text-[12px] font-['Aeonik:Medium',sans-serif] opacity-0 group-hover:opacity-100 transition-opacity">
+                  + Add to Calendar
+                </span>
+              </div>
               <p className="text-[14px] font-['Aeonik:Regular',sans-serif] text-white/70">
                 Mark your calendar and come prepared to be inspired, connect with fellow builders, and start shaping your idea!
               </p>
             </div>
           </div>
-        </div>
+        </a>
       </div>
     </div>
   );
@@ -427,14 +437,30 @@ export default function ProgramTimeline() {
     <div className="gradient-border-section relative rounded-[16px] shrink-0 w-full">
       <img alt="" className="absolute inset-0 max-w-none object-50%-50% object-cover opacity-30 pointer-events-none rounded-[16px] size-full" src="/build-games/frame-23.png" />
       <div className="content-stretch flex flex-col items-start overflow-clip pb-[48px] pt-[48px] px-[48px] relative rounded-[inherit] w-full">
-        <div className="content-stretch flex flex-col gap-[10px] items-start overflow-clip p-[10px] relative shrink-0 w-[478px] mb-12">
-          <div className="flex flex-col font-['Aeonik:Medium',sans-serif] justify-center leading-[0] not-italic relative shrink-0 text-[48px] text-white w-[306.049px]">
-            <p className="leading-none">
-              Program
-              <br aria-hidden="true" />
-              Timeline
-            </p>
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 mb-12 w-full">
+          <div className="content-stretch flex flex-col gap-[10px] items-start overflow-clip p-[10px] relative shrink-0">
+            <div className="flex flex-col font-['Aeonik:Medium',sans-serif] justify-center leading-[0] not-italic relative shrink-0 text-[48px] text-white">
+              <p className="leading-none">
+                Program
+                <br aria-hidden="true" />
+                Timeline
+              </p>
+            </div>
           </div>
+
+          {/* Add to Calendar Button */}
+          <a
+            href="https://calendar.google.com/calendar/u/0?cid=Y19mNzExYTJkN2NjZDJhZTY2MWFjYmJlMjE5MDM4ZDZmYzcwMjRjNmFiMzJjNGVmZDhhNmVkYTIxMDY1MGRiODdiQGdyb3VwLmNhbGVuZGFyLmdvb2dsZS5jb20"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group relative inline-flex"
+          >
+            <div className="absolute -inset-1 bg-gradient-to-r from-[#66acd6] via-[#38bdf8] to-[#66acd6] rounded-lg blur-sm opacity-30 group-hover:opacity-50 transition duration-300" />
+            <div className="relative flex items-center gap-2 px-6 py-3 bg-[#66acd6] rounded-lg font-['Aeonik:Medium',sans-serif] font-medium text-[#152d44] group-hover:bg-[#7fc0e5] transition-all duration-200 shadow-lg shadow-cyan-500/20 group-hover:shadow-cyan-500/40">
+              <Calendar size={20} />
+              <span className="text-[15px] whitespace-nowrap">Add to Calendar</span>
+            </div>
+          </a>
         </div>
 
         {/* Timeline */}
