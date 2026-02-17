@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useSelectedL1 } from "@/components/toolbox/stores/l1ListStore";
 import { useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
-import { hexToBytes, decodeErrorResult, Abi } from "viem";
+import { hexToBytes, decodeErrorResult, Abi, encodeAbiParameters } from "viem";
 import { packWarpIntoAccessList } from "../ValidatorManager/packWarp";
 import ValidatorManagerABI from "@/contracts/icm-contracts/compiled/ValidatorManager.json";
 import { Button } from "@/components/toolbox/components/Button";
@@ -13,13 +13,14 @@ import { getSubnetInfo } from "@/components/toolbox/coreViem/utils/glacier";
 import { useAvalancheSDKChainkit } from "@/components/toolbox/stores/useAvalancheSDKChainkit";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
-import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 import { cb58ToHex } from "@/components/toolbox/console/utilities/format-converter/FormatConverter";
 import { ContractFunctionViewer } from "@/components/console/contract-function-viewer";
 import { Check, ChevronDown, ChevronRight } from "lucide-react";
+import { DynamicCodeBlock } from "fumadocs-ui/components/dynamic-codeblock";
 import versions from "@/scripts/versions.json";
+import { fetchConversionData, ConversionData } from "./fetchConversionData";
 
 const ICM_COMMIT = versions["ava-labs/icm-contracts"];
 const add0x = (hex: string): `0x${string}` => (hex.startsWith("0x") ? (hex as `0x${string}`) : `0x${hex}`);
@@ -27,7 +28,7 @@ const add0x = (hex: string): `0x${string}` => (hex.startsWith("0x") ? (hex as `0
 const metadata: ConsoleToolMetadata = {
   title: "Initialize Validator Set",
   description: "Initialize the ValidatorManager with the initial validator set from P-Chain",
-  toolRequirements: [WalletRequirementsConfigKey.EVMChainBalance],
+  toolRequirements: [WalletRequirementsConfigKey.WalletConnected],
   githubUrl: generateConsoleToolGitHubUrl(import.meta.url),
 };
 
@@ -35,8 +36,10 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
   const [conversionTxID, setConversionTxID] = useState<string>("");
   const [L1ConversionSignature, setL1ConversionSignature] = useState<string>("");
   const viemChain = useViemChainStore();
-  const { publicClient, walletEVMAddress } = useWalletStore();
-  const { coreWalletClient } = useConnectedWallet();
+  const { publicClient, walletEVMAddress, isTestnet } = useWalletStore();
+  const coreWalletClient = useWalletStore((s) => s.coreWalletClient);
+  const walletType = useWalletStore((s) => s.walletType);
+  const isCoreWallet = walletType === "core";
   const { aggregateSignature } = useAvalancheSDKChainkit();
   const [isInitializing, setIsInitializing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -46,22 +49,29 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
   const [conversionTxIDError, setConversionTxIDError] = useState<string>("");
   const [isAggregating, setIsAggregating] = useState(false);
   const [txSuccess, setTxSuccess] = useState(false);
+  const [managerAddress, setManagerAddress] = useState<string>("");
+  const [conversionResult, setConversionResult] = useState<ConversionData | null>(null);
 
-  const { sendCoreWalletNotSetNotification, notify } = useConsoleNotifications();
+  const { notify } = useConsoleNotifications();
 
+  // Unified aggregation: works for ALL wallet types
   async function aggSigs() {
     setError(null);
     setIsAggregating(true);
 
     const aggPromise = (async () => {
-      const { message, justification, signingSubnetId } = await coreWalletClient.extractWarpMessageFromPChainTx({
-        txId: conversionTxID,
-      });
+      // Use fetchConversionData (P-Chain RPC + Glacier) — no wallet dependency
+      const data = await fetchConversionData(conversionTxID, isTestnet);
+      setConversionResult(data);
+
+      if (data.managerAddress) {
+        setManagerAddress(data.managerAddress);
+      }
 
       const { signedMessage } = await aggregateSignature({
-        message: message,
-        justification: justification,
-        signingSubnetId: signingSubnetId,
+        message: data.message,
+        justification: data.justification,
+        signingSubnetId: data.signingSubnetId,
         quorumPercentage: 67,
       });
       setL1ConversionSignature(signedMessage);
@@ -86,6 +96,8 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
     getSubnetInfo(subnetId)
       .then((subnetInfo) => {
         setConversionTxID(subnetInfo.l1ConversionTransactionHash);
+        const contractAddr = subnetInfo.l1ValidatorManagerDetails?.contractAddress;
+        if (contractAddr) setManagerAddress(contractAddr);
       })
       .catch((error) => {
         console.error("Error getting subnet info:", error);
@@ -93,14 +105,41 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
       });
   }, [selectedL1?.subnetId]);
 
+  // Build the transaction args from conversion data
+  function buildTxArgs(data: ConversionData) {
+    return [
+      {
+        subnetID: add0x(cb58ToHex(data.subnetId)),
+        validatorManagerBlockchainID: add0x(cb58ToHex(data.chainId)),
+        validatorManagerAddress: data.managerAddress as `0x${string}`,
+        initialValidators: data.validators.map(
+          ({ nodeID, weight, signer }: { nodeID: string; weight: number; signer: { publicKey: string } }) => {
+            const nodeIDBytes = nodeID.startsWith("0x") ? nodeID : add0x(nodeID);
+            const blsPublicKeyBytes = signer.publicKey.startsWith("0x") ? signer.publicKey : add0x(signer.publicKey);
+            return {
+              nodeID: nodeIDBytes,
+              blsPublicKey: blsPublicKeyBytes,
+              weight: weight,
+            };
+          }
+        ),
+      },
+      0,
+    ];
+  }
+
+  // Core Wallet path: send tx with access list in-browser
   const onInitialize = async () => {
     if (!conversionTxID) {
       setError("Conversion Tx ID is required");
       return;
     }
-    const evmChainRpcUrl = selectedL1?.rpcUrl;
     if (!coreWalletClient) {
-      sendCoreWalletNotSetNotification();
+      setError("Core Wallet required for in-browser submission");
+      return;
+    }
+    if (!conversionResult) {
+      setError("Aggregate signatures first");
       return;
     }
 
@@ -108,36 +147,14 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
     setError(null);
 
     try {
-      const { validators, subnetId, chainId, managerAddress } = await coreWalletClient.extractWarpMessageFromPChainTx({
-        txId: conversionTxID,
-      });
-      const txArgs = [
-        {
-          subnetID: add0x(cb58ToHex(subnetId)),
-          validatorManagerBlockchainID: add0x(cb58ToHex(chainId)),
-          validatorManagerAddress: managerAddress as `0x${string}`,
-          initialValidators: validators.map(
-            ({ nodeID, weight, signer }: { nodeID: string; weight: number; signer: { publicKey: string } }) => {
-              const nodeIDBytes = nodeID.startsWith("0x") ? nodeID : add0x(nodeID);
-              const blsPublicKeyBytes = signer.publicKey.startsWith("0x") ? signer.publicKey : add0x(signer.publicKey);
-              return {
-                nodeID: nodeIDBytes,
-                blsPublicKey: blsPublicKeyBytes,
-                weight: weight,
-              };
-            }
-          ),
-        },
-        0,
-      ];
-
+      const txArgs = buildTxArgs(conversionResult);
       setCollectedData({ ...(txArgs[0] as any), L1ConversionSignature });
 
       const signatureBytes = hexToBytes(add0x(L1ConversionSignature));
       const accessList = packWarpIntoAccessList(signatureBytes);
 
       const initPromise = coreWalletClient.writeContract({
-        address: managerAddress as `0x${string}`,
+        address: conversionResult.managerAddress as `0x${string}`,
         abi: ValidatorManagerABI.abi,
         functionName: "initializeValidatorSet",
         args: txArgs,
@@ -152,6 +169,7 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
       const hash = await initPromise;
       const receipt = await publicClient.waitForTransactionReceipt({ hash });
 
+      const evmChainRpcUrl = selectedL1?.rpcUrl;
       if (receipt.status !== "success") {
         const decodedError = await debugTraceAndDecode(hash, evmChainRpcUrl!);
         throw new Error(`Transaction failed: ${decodedError}`);
@@ -165,6 +183,79 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
       setIsInitializing(false);
     }
   };
+
+  // Generate cast command with real encoded args for generic wallets
+  function generateCastCommand(): string {
+    if (!conversionResult || !L1ConversionSignature) return "";
+
+    const rpcUrl = selectedL1?.rpcUrl || "<L1_RPC_URL>";
+    const addr = conversionResult.managerAddress || managerAddress || "<VALIDATOR_MANAGER_ADDRESS>";
+
+    const txArgs = buildTxArgs(conversionResult);
+    const conversionData = txArgs[0] as {
+      subnetID: `0x${string}`;
+      validatorManagerBlockchainID: `0x${string}`;
+      validatorManagerAddress: `0x${string}`;
+      initialValidators: { nodeID: string; blsPublicKey: string; weight: number }[];
+    };
+
+    // ABI-encode the ConversionData struct + uint32
+    const encodedArgs = encodeAbiParameters(
+      [
+        {
+          type: "tuple",
+          components: [
+            { name: "subnetID", type: "bytes32" },
+            { name: "validatorManagerBlockchainID", type: "bytes32" },
+            { name: "validatorManagerAddress", type: "address" },
+            {
+              name: "initialValidators",
+              type: "tuple[]",
+              components: [
+                { name: "nodeID", type: "bytes" },
+                { name: "blsPublicKey", type: "bytes" },
+                { name: "weight", type: "uint64" },
+              ],
+            },
+          ],
+        },
+        { type: "uint32" },
+      ],
+      [
+        {
+          subnetID: conversionData.subnetID,
+          validatorManagerBlockchainID: conversionData.validatorManagerBlockchainID,
+          validatorManagerAddress: conversionData.validatorManagerAddress,
+          initialValidators: conversionData.initialValidators.map((v) => ({
+            nodeID: v.nodeID as `0x${string}`,
+            blsPublicKey: v.blsPublicKey as `0x${string}`,
+            weight: BigInt(v.weight),
+          })),
+        },
+        0,
+      ]
+    );
+
+    // Build the access list JSON
+    let accessListJson = '"<ACCESS_LIST>"';
+    try {
+      const signatureBytes = hexToBytes(add0x(L1ConversionSignature));
+      const accessList = packWarpIntoAccessList(signatureBytes);
+      accessListJson = `'${JSON.stringify(accessList)}'`;
+    } catch {
+      // Keep placeholder
+    }
+
+    return [
+      `cast send ${addr} \\`,
+      `  "initializeValidatorSet((bytes32,bytes32,address,(bytes,bytes,uint64)[]),uint32)" \\`,
+      `  ${encodedArgs} \\`,
+      `  --access-list ${accessListJson} \\`,
+      `  --gas-limit 2000000 \\`,
+      `  --rpc-url ${rpcUrl} \\`,
+      `  --private-key $PRIVATE_KEY`,
+    ].join("\n");
+  }
 
   const step1Complete = !!L1ConversionSignature;
   const step2Complete = txSuccess;
@@ -292,24 +383,12 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
 
                 {step1Complete && (
                   <div className="mt-2 space-y-2">
-                    <div>
-                      <label className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400 mb-1">
-                        Aggregated Signature
-                      </label>
-                      <textarea
-                        value={L1ConversionSignature}
-                        onChange={(e) => setL1ConversionSignature(e.target.value)}
-                        className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-mono h-16 resize-none"
-                        placeholder="0x..."
-                      />
-                    </div>
-
                     {step2Complete ? (
                       <div className="flex items-center gap-1.5 text-green-600 dark:text-green-400">
                         <Check className="w-3.5 h-3.5" />
                         <span className="text-xs font-medium">Validator set initialized</span>
                       </div>
-                    ) : (
+                    ) : isCoreWallet ? (
                       <Button
                         variant="primary"
                         onClick={onInitialize}
@@ -319,6 +398,8 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
                       >
                         Initialize Validator Set
                       </Button>
+                    ) : (
+                      <DynamicCodeBlock lang="bash" code={generateCastCommand()} />
                     )}
                   </div>
                 )}

@@ -8,7 +8,7 @@ import ValidatorManagerABI from "@/contracts/icm-contracts/compiled/ValidatorMan
 import ValidatorMessagesABI from "@/contracts/icm-contracts/compiled/ValidatorMessages.json";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
-import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
+import { useWalletClient } from "wagmi";
 import versions from "@/scripts/versions.json";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
@@ -38,7 +38,7 @@ const CONTRACT_SOURCES: ContractSource[] = [
 const metadata: ConsoleToolMetadata = {
   title: "Deploy Validator Contracts",
   description: "Deploy the ValidatorMessages library and ValidatorManager contract",
-  toolRequirements: [WalletRequirementsConfigKey.EVMChainBalance],
+  toolRequirements: [WalletRequirementsConfigKey.WalletConnected],
   githubUrl: generateConsoleToolGitHubUrl(import.meta.url),
 };
 
@@ -50,7 +50,7 @@ function DeployValidatorContracts({ onSuccess }: BaseConsoleToolProps) {
     validatorManagerAddress,
   } = useToolboxStore();
   const { publicClient, walletEVMAddress } = useWalletStore();
-  const { coreWalletClient } = useConnectedWallet();
+  const { data: walletClient } = useWalletClient();
   const [isDeployingMessages, setIsDeployingMessages] = useState(false);
   const [isDeployingManager, setIsDeployingManager] = useState(false);
   const viemChain = useViemChainStore();
@@ -64,14 +64,15 @@ function DeployValidatorContracts({ onSuccess }: BaseConsoleToolProps) {
   };
 
   async function deployValidatorMessages() {
+    if (!walletClient) throw new Error("Wallet not connected");
     setIsDeployingMessages(true);
     setValidatorMessagesLibAddress("");
 
     if (!viemChain) throw new Error("Viem chain not found");
-    await coreWalletClient.addChain({ chain: viemChain });
-    await coreWalletClient.switchChain({ id: viemChain.id });
+    await walletClient.addChain({ chain: viemChain });
+    await walletClient.switchChain({ id: viemChain.id });
 
-    const deployPromise = coreWalletClient.deployContract({
+    const deployPromise = walletClient.deployContract({
       abi: ValidatorMessagesABI.abi as any,
       bytecode: ValidatorMessagesABI.bytecode.object as `0x${string}`,
       args: [],
@@ -91,14 +92,15 @@ function DeployValidatorContracts({ onSuccess }: BaseConsoleToolProps) {
   }
 
   async function deployValidatorManager() {
+    if (!walletClient) throw new Error("Wallet not connected");
     setIsDeployingManager(true);
     setValidatorManagerAddress("");
 
     if (!viemChain) throw new Error("Viem chain not found");
-    await coreWalletClient.addChain({ chain: viemChain });
-    await coreWalletClient.switchChain({ id: viemChain.id });
+    await walletClient.addChain({ chain: viemChain });
+    await walletClient.switchChain({ id: viemChain.id });
 
-    const deployPromise = coreWalletClient.deployContract({
+    const deployPromise = walletClient.deployContract({
       abi: ValidatorManagerABI.abi as any,
       bytecode: getLinkedValidatorManagerBytecode(),
       args: [0],

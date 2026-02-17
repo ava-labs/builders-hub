@@ -33,7 +33,7 @@ const metadata: ConsoleToolMetadata = {
   title: "Read PoA Manager Contract",
   description: "Read and view contract data from the PoAManager",
   toolRequirements: [
-    WalletRequirementsConfigKey.CoreWalletConnected
+    WalletRequirementsConfigKey.WalletConnected
   ],
   githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
 }

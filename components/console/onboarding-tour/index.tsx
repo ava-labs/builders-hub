@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useOnboardingTour } from "@/hooks/useOnboardingTour";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
-import { useWalletConnect } from "@/components/toolbox/hooks/useWalletConnect";
+import { useConnectModal } from '@rainbow-me/rainbowkit';
 import { CONSOLE_TOUR_STEPS, type TourStep } from "./types";
 import { TourSpotlight } from "./tour-spotlight";
 import { TourTooltip } from "./tour-tooltip";
@@ -43,7 +43,7 @@ export function OnboardingTour() {
   // Get wallet connection state and connect function
   const walletEVMAddress = useWalletStore((state) => state.walletEVMAddress);
   const isWalletConnected = !!walletEVMAddress;
-  const { connectWallet } = useWalletConnect();
+  const { openConnectModal } = useConnectModal();
 
   // Check if Core wallet is installed
   React.useEffect(() => {
@@ -146,12 +146,10 @@ export function OnboardingTour() {
         return;
       }
 
-      // Otherwise trigger wallet connection
+      // Otherwise trigger wallet connection via RainbowKit modal
       setWaitingForWallet(true);
       try {
-        await connectWallet(); // Actually trigger the wallet popup
-        // If still not connected after attempt (user declined), reset waiting state
-        // The useEffect watching isWalletConnected will handle success case
+        openConnectModal?.();
       } catch {
         setWaitingForWallet(false);
       }

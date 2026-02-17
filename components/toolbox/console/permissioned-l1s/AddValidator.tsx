@@ -43,8 +43,7 @@ const metadata: ConsoleToolMetadata = {
   title: "Add New Validator",
   description: "Add a validator to your L1 by following these steps in order",
   toolRequirements: [
-    WalletRequirementsConfigKey.EVMChainBalance,
-    WalletRequirementsConfigKey.PChainBalance
+    WalletRequirementsConfigKey.WalletConnected
   ],
   githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
 };

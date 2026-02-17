@@ -12,7 +12,7 @@ import { useSelectedL1 } from "@/components/toolbox/stores/l1ListStore";
 import { useCreateChainStore } from "@/components/toolbox/stores/createChainStore";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
-import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
+import { useWalletClient } from "wagmi";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 import { utils } from "@avalabs/avalanchejs";
@@ -25,13 +25,13 @@ const ICM_COMMIT = versions["ava-labs/icm-contracts"];
 const metadata: ConsoleToolMetadata = {
   title: "Initialize Validator Manager",
   description: "Initialize the ValidatorManager contract with admin and churn settings",
-  toolRequirements: [WalletRequirementsConfigKey.EVMChainBalance],
+  toolRequirements: [WalletRequirementsConfigKey.WalletConnected],
   githubUrl: generateConsoleToolGitHubUrl(import.meta.url),
 };
 
 function Initialize({ onSuccess }: BaseConsoleToolProps) {
   const { walletEVMAddress, publicClient } = useWalletStore();
-  const { coreWalletClient } = useConnectedWallet();
+  const { data: walletClient } = useWalletClient();
   const [isChecking, setIsChecking] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
   const [isInitialized, setIsInitialized] = useState<boolean | null>(null);
@@ -69,7 +69,7 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
   }
 
   async function checkIfInitialized() {
-    if (!managerAddress || !window.avalanche) return;
+    if (!managerAddress || !walletClient) return;
 
     setIsChecking(true);
     try {
@@ -127,7 +127,8 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
       maximumChurnPercentage: Number(maximumChurnPercentage),
     };
 
-    const initPromise = coreWalletClient.writeContract({
+    if (!walletClient) throw new Error("Wallet not connected");
+    const initPromise = walletClient.writeContract({
       address: managerAddress as `0x${string}`,
       abi: ValidatorManagerABI.abi,
       functionName: "initialize",

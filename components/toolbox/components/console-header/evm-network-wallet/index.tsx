@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent } from '@/components/ui/dropdown-menu'
 import { useL1ListStore } from '@/components/toolbox/stores/l1ListStore'
 import { Button } from '@/components/ui/button'
-import { useWalletConnect } from '@/components/toolbox/hooks/useWalletConnect'
+import { useConnectModal } from '@rainbow-me/rainbowkit'
 import { useWalletStore } from '@/components/toolbox/stores/walletStore'
 import { createPublicClient, http, formatUnits } from 'viem'
 import { avalancheFuji, avalanche } from 'viem/chains'
@@ -30,8 +30,6 @@ const ERC20_BALANCE_ABI = [
 
 export function EvmNetworkWallet() {
   const [isEditMode, setIsEditMode] = useState(false)
-  const [isCoreWalletAvailable, setIsCoreWalletAvailable] = useState(false)
-  const [isGenericWalletAvailable, setIsGenericWalletAvailable] = useState(false)
   const [tokenBalance, setTokenBalance] = useState<string | null>(null)
 
   const l1ListStore = useL1ListStore()
@@ -60,13 +58,7 @@ export function EvmNetworkWallet() {
     updateAllBalances,
   } = useNetworkActions()
 
-  const { connectWallet } = useWalletConnect()
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    setIsCoreWalletAvailable(!!window.avalanche?.request)
-    setIsGenericWalletAvailable(!!window.ethereum?.request)
-  }, [])
+  const { openConnectModal } = useConnectModal()
 
   // Fetch selected token balance
   useEffect(() => {
@@ -103,13 +95,7 @@ export function EvmNetworkWallet() {
   }, [selectedTokenInfo, walletEVMAddress, walletChainId])
 
   const handlePrimaryButtonClick = (): void => {
-    if (isCoreWalletAvailable || isGenericWalletAvailable) {
-      void connectWallet()
-      return
-    }
-    if (typeof window !== 'undefined') {
-      window.open('https://core.app/download', '_blank', 'noopener,noreferrer')
-    }
+    openConnectModal?.()
   }
 
   const handleRemoveNetwork = (network: any) => {
@@ -118,31 +104,13 @@ export function EvmNetworkWallet() {
 
   // Show connect wallet button if no wallet is connected
   if (!walletEVMAddress) {
-    const buttonLabel = isCoreWalletAvailable
-      ? 'Connect Core Wallet'
-      : isGenericWalletAvailable
-        ? 'Connect Wallet'
-        : 'Download Core Wallet'
-
     return (
       <Button
         onClick={handlePrimaryButtonClick}
         size="sm"
       >
-        {isCoreWalletAvailable ? (
-          <>
-            <img src="/core-logo-dark.svg" alt="Core logo" className="mr-2 h-4 w-4 object-contain dark:hidden" />
-            <img src="/core-logo.svg" alt="Core logo" className="mr-2 h-4 w-4 object-contain hidden dark:block" />
-          </>
-        ) : isGenericWalletAvailable ? (
-          <Wallet className="mr-2 h-4 w-4" />
-        ) : (
-          <>
-            <img src="/core-logo-dark.svg" alt="Core logo" className="mr-2 h-4 w-4 object-contain dark:hidden" />
-            <img src="/core-logo.svg" alt="Core logo" className="mr-2 h-4 w-4 object-contain hidden dark:block" />
-          </>
-        )}
-        <span className="text-sm">{buttonLabel}</span>
+        <Wallet className="mr-2 h-4 w-4" />
+        <span className="text-sm">Connect Wallet</span>
       </Button>
     )
   }

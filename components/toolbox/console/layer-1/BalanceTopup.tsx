@@ -20,6 +20,7 @@ import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } fr
 import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext"
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url"
 import { SDKCodeViewer, type SDKCodeSource } from "@/components/console/sdk-code-viewer"
+import { CliAlternative } from "@/components/console/cli-alternative"
 import { cn } from "@/lib/utils"
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
@@ -27,7 +28,7 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 const metadata: ConsoleToolMetadata = {
   title: "Validator Balance Increase",
   description: "Increase the balance of a validator to extend its validation period and maintain network participation",
-  toolRequirements: [WalletRequirementsConfigKey.PChainBalance],
+  toolRequirements: [WalletRequirementsConfigKey.WalletConnected],
   githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
 }
 
@@ -320,6 +321,8 @@ function ValidatorBalanceIncrease({ onSuccess }: BaseConsoleToolProps) {
                   >
                     Increase Balance
                   </Button>
+
+                  <CliAlternative command={`avalanche validator increase-balance --validation-id ${validatorSelection.validationId || "<validation-id>"} --balance ${amount || "<amount>"} --network ${isTestnet ? "fuji" : "mainnet"}`} />
                 </div>
               </Step>
             </Steps>

@@ -11,7 +11,7 @@ import { getSubnetInfo } from "@/components/toolbox/coreViem/utils/glacier";
 import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
-import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
+import { useWalletClient } from "wagmi";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 import { ContractDeployViewer, type ContractSource } from "@/components/console/contract-deploy-viewer";
@@ -44,7 +44,7 @@ const CONTRACT_SOURCES: ContractSource[] = [
 const metadata: ConsoleToolMetadata = {
   title: "Proxy Setup",
   description: "Upgrade or deploy the TransparentUpgradeableProxy for the ValidatorManager",
-  toolRequirements: [WalletRequirementsConfigKey.EVMChainBalance],
+  toolRequirements: [WalletRequirementsConfigKey.WalletConnected],
   githubUrl: generateConsoleToolGitHubUrl(import.meta.url),
 };
 
@@ -52,7 +52,7 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
   const { validatorManagerAddress } = useToolboxStore();
   const selectedL1 = useSelectedL1()();
   const { publicClient, walletChainId, walletEVMAddress } = useWalletStore();
-  const { coreWalletClient } = useConnectedWallet();
+  const { data: walletClient } = useWalletClient();
   const viemChain = useViemChainStore();
   const { notify } = useConsoleNotifications();
 
@@ -150,7 +150,8 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
 
     setIsUpgrading(true);
     try {
-      const upgradePromise = coreWalletClient.writeContract({
+      if (!walletClient) throw new Error("Wallet not connected");
+      const upgradePromise = walletClient.writeContract({
         address: proxyAdminAddress as `0x${string}`,
         abi: ProxyAdminABI.abi,
         functionName: "upgrade",
@@ -175,7 +176,8 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
     setNewProxyAdminAddress("");
 
     try {
-      const deployPromise = coreWalletClient.deployContract({
+      if (!walletClient) throw new Error("Wallet not connected");
+      const deployPromise = walletClient.deployContract({
         abi: ProxyAdminABI.abi as any,
         bytecode: ProxyAdminABI.bytecode.object as `0x${string}`,
         args: [],
@@ -202,7 +204,8 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
     setNewProxyAddress("");
 
     try {
-      const deployPromise = coreWalletClient.deployContract({
+      if (!walletClient) throw new Error("Wallet not connected");
+      const deployPromise = walletClient.deployContract({
         abi: TransparentUpgradeableProxyABI.abi as any,
         bytecode: TransparentUpgradeableProxyABI.bytecode.object as `0x${string}`,
         args: [deployImplementationAddress, newProxyAdminAddress, "0x"],

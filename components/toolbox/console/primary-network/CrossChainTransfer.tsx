@@ -26,7 +26,7 @@ const metadata: ConsoleToolMetadata = {
     title: "Cross-Chain Transfer",
     description: "Transfer AVAX between Platform (P) and Contract (C) chains.",
     toolRequirements: [
-        WalletRequirementsConfigKey.CoreWalletConnected
+        WalletRequirementsConfigKey.WalletConnected
     ],
     githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
 };

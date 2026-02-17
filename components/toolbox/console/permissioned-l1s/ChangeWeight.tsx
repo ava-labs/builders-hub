@@ -22,8 +22,7 @@ const metadata: ConsoleToolMetadata = {
   title: "Change Consensus Weight of Validators",
   description: "Modify a validator's consensus weight to determine their influence in the network",
   toolRequirements: [
-    WalletRequirementsConfigKey.EVMChainBalance,
-    WalletRequirementsConfigKey.PChainBalance
+    WalletRequirementsConfigKey.WalletConnected
   ],
   githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
 };

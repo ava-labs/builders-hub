@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
-import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { Button } from '@/components/toolbox/components/Button';
 import { Input } from '@/components/toolbox/components/Input';
 import { Success } from '@/components/toolbox/components/Success';
@@ -15,6 +14,7 @@ import { getValidationIdHex } from '@/components/toolbox/coreViem/hooks/getValid
 import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { useValidatorManager, usePoAManager, useNativeTokenStakingManager, useERC20TokenStakingManager } from '@/components/toolbox/hooks/contracts';
+import { fetchRegisterL1ValidatorData } from './fetchRegisterL1ValidatorData';
 
 export type ManagerType = 'PoA' | 'PoS-Native' | 'PoS-ERC20';
 export type OwnerType = 'PoAManager' | 'StakingManager' | 'EOA' | null;
@@ -58,11 +58,9 @@ const CompletePChainRegistration: React.FC<CompletePChainRegistrationProps> = ({
     isLoadingOwnership,
     ownerType,
 }) => {
-    const { coreWalletClient, publicClient, avalancheNetworkID } = useWalletStore();
+    const { publicClient, avalancheNetworkID, isTestnet } = useWalletStore();
     const { aggregateSignature } = useAvalancheSDKChainkit();
     const { notify } = useConsoleNotifications();
-    const viemChain = useViemChainStore();
-    
     const [pChainTxIdState, setPChainTxIdState] = useState(pChainTxId || '');
     const [isProcessing, setIsProcessing] = useState(false);
     const [error, setErrorState] = useState<string | null>(null);
@@ -123,7 +121,7 @@ const CompletePChainRegistration: React.FC<CompletePChainRegistrationProps> = ({
             onError("Manager address is required.");
             return false;
         }
-        if (!coreWalletClient || !publicClient || !viemChain || !coreWalletClient.account) {
+        if (!publicClient) {
             setErrorState("Wallet or chain configuration is not properly initialized.");
             onError("Wallet or chain configuration is not properly initialized.");
             return false;
@@ -163,9 +161,7 @@ const CompletePChainRegistration: React.FC<CompletePChainRegistrationProps> = ({
         setIsProcessing(true);
         try {
             // Step 1: Extract RegisterL1ValidatorMessage from P-Chain transaction
-            const registrationMessageData = await coreWalletClient!.extractRegisterL1ValidatorMessage({
-                txId: pChainTxIdState
-            });
+            const registrationMessageData = await fetchRegisterL1ValidatorData(pChainTxIdState, isTestnet);
 
             setExtractedData({
                 subnetID: registrationMessageData.subnetID,

@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
-import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { Button } from '@/components/toolbox/components/Button';
 import { Input } from '@/components/toolbox/components/Input';
 import { Success } from '@/components/toolbox/components/Success';
@@ -12,6 +11,7 @@ import { packWarpIntoAccessList } from '../ValidatorManager/packWarp';
 import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { useValidatorManager, usePoAManager } from '@/components/toolbox/hooks/contracts';
+import { fetchL1ValidatorWeightData } from '../../shared/fetchL1ValidatorWeightData';
 
 interface CompleteValidatorRemovalProps {
   subnetIdL1: string;
@@ -45,9 +45,8 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
   isLoadingOwnership,
   ownerType,
 }) => {
-  const { coreWalletClient, publicClient, avalancheNetworkID, walletEVMAddress } = useWalletStore();
+  const { publicClient, avalancheNetworkID, isTestnet } = useWalletStore();
   const { aggregateSignature } = useAvalancheSDKChainkit();
-  const viemChain = useViemChainStore();
   const [pChainTxId, setPChainTxId] = useState(initialPChainTxId || '');
   const { notify } = useConsoleNotifications();
 
@@ -105,7 +104,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
       onError("PoAManager address could not be fetched. Please ensure the ValidatorManager is owned by a PoAManager.");
       return;
     }
-    if (!coreWalletClient || !publicClient || !viemChain) {
+    if (!publicClient) {
       setErrorState("Wallet or chain configuration is not properly initialized.");
       onError("Wallet or chain configuration is not properly initialized.");
       return;
@@ -114,9 +113,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
     setIsProcessing(true);
     try {
       // Step 1: Extract L1ValidatorWeightMessage from P-Chain transaction
-      const weightMessageData = await coreWalletClient.extractL1ValidatorWeightMessage({
-        txId: pChainTxId
-      });
+      const weightMessageData = await fetchL1ValidatorWeightData(pChainTxId, isTestnet);
 
       setExtractedData({
         validationID: weightMessageData.validationID,

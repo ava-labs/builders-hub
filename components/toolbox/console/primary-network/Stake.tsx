@@ -17,6 +17,7 @@ import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 import { Alert } from '@/components/toolbox/components/Alert';
 import { SDKCodeViewer, type SDKCodeSource } from "@/components/console/sdk-code-viewer";
+import { CliAlternative } from "@/components/console/cli-alternative";
 import { Check, Copy, ArrowUpRight } from "lucide-react";
 
 // SDK source code for display
@@ -103,7 +104,7 @@ const metadata: ConsoleToolMetadata = {
   title: "Stake on Primary Network",
   description: "Stake AVAX as a validator on Avalanche's Primary Network to secure the network and earn rewards",
   toolRequirements: [
-    WalletRequirementsConfigKey.PChainBalance
+    WalletRequirementsConfigKey.WalletConnected
   ],
   githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
 }
@@ -476,6 +477,8 @@ function Stake({ onSuccess }: BaseConsoleToolProps) {
                 >
                   Stake {networkName} Validator
                 </Button>
+
+                <CliAlternative command={`avalanche primary addPermissionlessValidator --node-id ${validator?.nodeID || "<node-id>"} --stake-amount ${stakeInAvax || "<amount>"} --staking-period ${endTime || "<end-time>"} --network ${onFuji ? "fuji" : "mainnet"}`} />
               </div>
             </Step>
           </Steps>

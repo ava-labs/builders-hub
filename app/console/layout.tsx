@@ -32,7 +32,7 @@ function ConsoleContent({ children }: { children: ReactNode }) {
         }
       >
         <ConsoleSidebar variant="inset" />
-        <SidebarInset className="bg-white dark:bg-gray-800 h-[calc(100vh-var(--fd-banner-height,0px)-1rem)] overflow-hidden m-2">
+        <SidebarInset className="bg-white dark:bg-zinc-900 h-[calc(100vh-var(--fd-banner-height,0px)-1rem)] overflow-hidden m-2">
           <SiteHeader />
           <div className="flex flex-1 flex-col gap-4 p-8 overflow-y-auto h-[calc(100vh-var(--fd-banner-height,0px)-var(--header-height)-1rem)]">
             {children}

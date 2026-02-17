@@ -12,15 +12,16 @@ import {
 import { useOnboardingTour } from "@/hooks/useOnboardingTour";
 
 export function WelcomeModal() {
-  const { hasSeenWelcome, startTour, markWelcomeSeen } = useOnboardingTour();
+  const { hasSeenWelcome, hasCompletedTour, startTour, markWelcomeSeen, endTour } = useOnboardingTour();
   const [isOpen, setIsOpen] = React.useState(false);
+  const [dontShowAgain, setDontShowAgain] = React.useState(true);
 
   React.useEffect(() => {
-    if (!hasSeenWelcome) {
+    if (!hasSeenWelcome && !hasCompletedTour) {
       const timer = setTimeout(() => setIsOpen(true), 800);
       return () => clearTimeout(timer);
     }
-  }, [hasSeenWelcome]);
+  }, [hasSeenWelcome, hasCompletedTour]);
 
   const handleStartTour = () => {
     setIsOpen(false);
@@ -29,10 +30,14 @@ export function WelcomeModal() {
 
   const handleSkip = () => {
     setIsOpen(false);
-    markWelcomeSeen();
+    if (dontShowAgain) {
+      endTour(); // Permanently dismiss (sets both hasSeenWelcome + hasCompletedTour)
+    } else {
+      markWelcomeSeen(); // Only mark welcome seen, tour can still be shown
+    }
   };
 
-  if (hasSeenWelcome) return null;
+  if (hasSeenWelcome || hasCompletedTour) return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleSkip()}>
@@ -48,6 +53,19 @@ export function WelcomeModal() {
           <p className="text-sm text-muted-foreground">
             Take a quick tour to learn where everything is, or skip and explore on your own.
           </p>
+        </div>
+
+        <div className="flex items-center gap-2 pb-2">
+          <input
+            type="checkbox"
+            id="dont-show-again"
+            checked={dontShowAgain}
+            onChange={(e) => setDontShowAgain(e.target.checked)}
+            className="h-4 w-4 rounded border-gray-300"
+          />
+          <label htmlFor="dont-show-again" className="text-xs text-muted-foreground cursor-pointer">
+            Don&apos;t show again
+          </label>
         </div>
 
         <div className="flex gap-2">

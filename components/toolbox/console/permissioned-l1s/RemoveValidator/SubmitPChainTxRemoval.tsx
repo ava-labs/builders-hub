@@ -6,6 +6,7 @@ import { Success } from '@/components/toolbox/components/Success';
 import { Alert } from '@/components/toolbox/components/Alert';
 import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
+import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 
 interface SubmitPChainTxRemovalProps {
   subnetIdL1: string;
@@ -27,7 +28,9 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
   onSuccess,
   onError,
 }) => {
-  const { coreWalletClient, pChainAddress, publicClient } = useWalletStore();
+  const { coreWalletClient, pChainAddress, publicClient, isTestnet } = useWalletStore();
+  const walletType = useWalletStore((s) => s.walletType);
+  const isCoreWallet = walletType === 'core';
   const { aggregateSignature } = useAvalancheSDKChainkit();
   const { notify } = useConsoleNotifications();
   const [evmTxHash, setEvmTxHash] = useState(initialEvmTxHash || '');
@@ -42,6 +45,7 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
     weight: bigint;
     endTime: bigint;
   } | null>(null);
+  const [manualPChainTxId, setManualPChainTxId] = useState('');
 
   // Update evmTxHash when initialEvmTxHash prop changes
   useEffect(() => {
@@ -194,7 +198,7 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
     setErrorState(null);
     setTxSuccess(null);
     
-    if (!coreWalletClient) {
+    if (isCoreWallet && !coreWalletClient) {
       setErrorState("Core wallet not found");
       return;
     }
@@ -219,15 +223,17 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
       onError("Event data not found. Check the transaction hash.");
       return;
     }
-    if (typeof window === 'undefined' || !window.avalanche) {
-      setErrorState("Core wallet not found. Please ensure Core is installed and active.");
-      onError("Core wallet not found. Please ensure Core is installed and active.");
-      return;
-    }
-    if (!pChainAddress) {
-      setErrorState("P-Chain address is missing from wallet. Please connect your wallet properly.");
-      onError("P-Chain address is missing from wallet. Please connect your wallet properly.");
-      return;
+    if (isCoreWallet) {
+      if (typeof window === 'undefined' || !window.avalanche) {
+        setErrorState("Core wallet not found. Please ensure Core is installed and active.");
+        onError("Core wallet not found. Please ensure Core is installed and active.");
+        return;
+      }
+      if (!pChainAddress) {
+        setErrorState("P-Chain address is missing from wallet. Please connect your wallet properly.");
+        onError("P-Chain address is missing from wallet. Please connect your wallet properly.");
+        return;
+      }
     }
 
     setIsProcessing(true);
@@ -246,8 +252,13 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
 
       setSignedWarpMessage(signedMessage);
 
+      if (!isCoreWallet) {
+        // Generic wallet: aggregation done, CLI command shown in render
+        return;
+      }
+
       // Step 2: Submit to P-Chain
-      const pChainTxIdPromise = coreWalletClient.setL1ValidatorWeight({
+      const pChainTxIdPromise = coreWalletClient!.setL1ValidatorWeight({
         signedWarpMessage: signedMessage,
       });
       notify('setL1ValidatorWeight', pChainTxIdPromise);
@@ -281,6 +292,32 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
     setErrorState(null);
     setTxSuccess(null);
     setSignedWarpMessage(null);
+    setManualPChainTxId('');
+  };
+
+  const handleContinueWithManualTxId = () => {
+    if (!manualPChainTxId.trim()) {
+      setErrorState("P-Chain transaction ID is required");
+      return;
+    }
+    if (!eventData) {
+      setErrorState("Event data not found. Check the transaction hash.");
+      return;
+    }
+    setTxSuccess(`P-Chain transaction submitted! ID: ${manualPChainTxId}`);
+    onSuccess(manualPChainTxId, eventData);
+  };
+
+  const generateCLICommand = () => {
+    if (!signedWarpMessage) return '';
+    const nodeUrl = isTestnet
+      ? 'https://api.avax-test.network'
+      : 'https://api.avax.network';
+    return [
+      `avalanche platform setL1ValidatorWeight \\`,
+      `  --node-url ${nodeUrl} \\`,
+      `  --signed-warp-message "${signedWarpMessage}"`,
+    ].join('\n');
   };
 
   // Don't render if no subnet is selected
@@ -304,10 +341,33 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
 
       <Button
         onClick={handleSubmitPChainTx}
-        disabled={isProcessing || !evmTxHash.trim() || !unsignedWarpMessage || !eventData || txSuccess !== null}
+        disabled={isProcessing || !evmTxHash.trim() || !unsignedWarpMessage || !eventData || txSuccess !== null || (!!signedWarpMessage && !isCoreWallet)}
       >
-        {isProcessing ? 'Processing...' : 'Sign & Submit to P-Chain'}
+        {isProcessing ? 'Processing...' : (isCoreWallet ? 'Sign & Submit to P-Chain' : 'Aggregate Signatures')}
       </Button>
+
+      {!isCoreWallet && signedWarpMessage && !txSuccess && (
+        <div className="space-y-3">
+          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 border border-blue-200 dark:border-blue-800">
+            <p className="text-sm font-medium text-blue-700 dark:text-blue-300">
+              Signatures aggregated successfully. Run this command to submit the P-Chain transaction:
+            </p>
+          </div>
+          <DynamicCodeBlock lang="bash" code={generateCLICommand()} />
+          <Input
+            label="P-Chain Transaction ID"
+            value={manualPChainTxId}
+            onChange={setManualPChainTxId}
+            placeholder="Paste the P-Chain transaction ID after running the command above"
+          />
+          <Button
+            onClick={handleContinueWithManualTxId}
+            disabled={!manualPChainTxId.trim()}
+          >
+            Continue with P-Chain TX ID
+          </Button>
+        </div>
+      )}
 
       {error && (
         <Alert variant="error">{error}</Alert>

@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { Button } from '@/components/toolbox/components/Button';
 import SelectValidationID, { ValidationSelection } from '@/components/toolbox/components/SelectValidationID';
-import validatorManagerAbi from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
 import { Success } from '@/components/toolbox/components/Success';
 import { Alert } from '@/components/toolbox/components/Alert';
 import { MultisigOption } from '@/components/toolbox/components/MultisigOption';
@@ -34,8 +32,7 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
   initialValidationId,
   ownershipState,
 }) => {
-  const { coreWalletClient, publicClient } = useWalletStore();
-  const viemChain = useViemChainStore();
+  const { walletEVMAddress: connectedAddress, publicClient } = useWalletStore();
   const [validation, setValidation] = useState<ValidationSelection>({
     validationId: initialValidationId || '',
     nodeId: initialNodeId || ''
@@ -91,8 +88,8 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
     setErrorState(null);
     setTxSuccess(null);
 
-    if (!coreWalletClient) {
-      setErrorState("Core wallet not found");
+    if (!connectedAddress) {
+      setErrorState("Wallet not connected");
       return;
     }
 
@@ -102,7 +99,6 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
 
     setIsProcessing(true);
     try {
-      const [account] = await coreWalletClient.requestAddresses();
 
       let hash;
       let receipt;

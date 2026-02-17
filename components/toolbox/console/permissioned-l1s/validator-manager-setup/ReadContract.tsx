@@ -36,7 +36,7 @@ const serializeValue = (value: any): any => {
 const metadata: ConsoleToolMetadata = {
   title: "Read Contract",
   description: "Read and view contract state from the ValidatorManager",
-  toolRequirements: [WalletRequirementsConfigKey.CoreWalletConnected],
+  toolRequirements: [WalletRequirementsConfigKey.WalletConnected],
   githubUrl: generateConsoleToolGitHubUrl(import.meta.url),
 };
 
@@ -74,7 +74,7 @@ function ReadContract({ onSuccess }: BaseConsoleToolProps) {
     setIsReading(true);
     setEventLogs({});
 
-    if (!proxyAddress || !window.avalanche) return;
+    if (!proxyAddress) return;
 
     try {
       const viewFunctions = ValidatorManagerABI.abi.filter(

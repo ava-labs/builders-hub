@@ -7,6 +7,7 @@ import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalanch
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { Alert } from '@/components/toolbox/components/Alert';
 import { decodeAbiParameters } from 'viem';
+import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 
 interface SubmitPChainTxRegisterL1ValidatorProps {
   subnetIdL1: string;
@@ -29,7 +30,9 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
   onSuccess,
   onError,
 }) => {
-  const { coreWalletClient, pChainAddress, publicClient } = useWalletStore();
+  const { coreWalletClient, pChainAddress, publicClient, isTestnet } = useWalletStore();
+  const walletType = useWalletStore((s) => s.walletType);
+  const isCoreWallet = walletType === 'core';
   const { aggregateSignature } = useAvalancheSDKChainkit();
   const { notify } = useConsoleNotifications();
   const [evmTxHashState, setEvmTxHashState] = useState(evmTxHash || '');
@@ -39,6 +42,7 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
   const [unsignedWarpMessage, setUnsignedWarpMessage] = useState<string | null>(null);
   const [signedWarpMessage, setSignedWarpMessage] = useState<string | null>(null);
   const [evmTxHashError, setEvmTxHashError] = useState<string | null>(null);
+  const [manualPChainTxId, setManualPChainTxId] = useState('');
 
   useEffect(() => {
     if (evmTxHash && !evmTxHashState) {
@@ -133,7 +137,7 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
     setErrorState(null);
     setTxSuccess(null);
 
-    if (!coreWalletClient) {
+    if (isCoreWallet && !coreWalletClient) {
       setErrorState("Core wallet not found");
       return;
     }
@@ -171,7 +175,7 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
       return;
     }
 
-    if (!pChainAddress) {
+    if (isCoreWallet && !pChainAddress) {
       setErrorState("P-Chain address is missing. Please connect your wallet.");
       onError("P-Chain address is missing.");
       return;
@@ -192,7 +196,12 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
 
       setSignedWarpMessage(signedMessage);
 
-      const registerL1ValidatorPromise = coreWalletClient.registerL1Validator({
+      if (!isCoreWallet) {
+        // Generic wallet: aggregation done, CLI command shown in render
+        return;
+      }
+
+      const registerL1ValidatorPromise = coreWalletClient!.registerL1Validator({
         balance: validatorBalance.trim(),
         blsProofOfPossession: blsProofOfPossession.trim(),
         signedWarpMessage: signedMessage,
@@ -226,6 +235,30 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
     setErrorState(null);
     setTxSuccess(null);
     setSignedWarpMessage(null);
+    setManualPChainTxId('');
+  };
+
+  const handleContinueWithManualTxId = () => {
+    if (!manualPChainTxId.trim()) {
+      setErrorState("P-Chain transaction ID is required");
+      return;
+    }
+    setTxSuccess(`P-Chain transaction submitted! ID: ${manualPChainTxId}`);
+    onSuccess(manualPChainTxId);
+  };
+
+  const generateCLICommand = () => {
+    if (!signedWarpMessage) return '';
+    const nodeUrl = isTestnet
+      ? 'https://api.avax-test.network'
+      : 'https://api.avax.network';
+    return [
+      `avalanche contract registerL1Validator \\`,
+      `  --node-url ${nodeUrl} \\`,
+      `  --signed-warp-message "${signedWarpMessage}" \\`,
+      `  --balance ${validatorBalance || '<BALANCE_AVAX>'} \\`,
+      `  --bls-proof-of-possession "${blsProofOfPossession || '<BLS_PROOF>'}"`,
+    ].join('\n');
   };
 
   if (!subnetIdL1) {
@@ -270,10 +303,33 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
 
       <Button
         onClick={handleSubmitPChainTx}
-        disabled={isProcessing || !evmTxHashState.trim() || !validatorBalance || !blsProofOfPossession || !unsignedWarpMessage || txSuccess !== null}
+        disabled={isProcessing || !evmTxHashState.trim() || !validatorBalance || !blsProofOfPossession || !unsignedWarpMessage || txSuccess !== null || (!!signedWarpMessage && !isCoreWallet)}
       >
-        {isProcessing ? 'Processing...' : 'Sign & Submit to P-Chain'}
+        {isProcessing ? 'Processing...' : (isCoreWallet ? 'Sign & Submit to P-Chain' : 'Aggregate Signatures')}
       </Button>
+
+      {!isCoreWallet && signedWarpMessage && !txSuccess && (
+        <div className="space-y-3">
+          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 border border-blue-200 dark:border-blue-800">
+            <p className="text-sm font-medium text-blue-700 dark:text-blue-300">
+              Signatures aggregated successfully. Run this command to submit the P-Chain transaction:
+            </p>
+          </div>
+          <DynamicCodeBlock lang="bash" code={generateCLICommand()} />
+          <Input
+            label="P-Chain Transaction ID"
+            value={manualPChainTxId}
+            onChange={setManualPChainTxId}
+            placeholder="Paste the P-Chain transaction ID after running the command above"
+          />
+          <Button
+            onClick={handleContinueWithManualTxId}
+            disabled={!manualPChainTxId.trim()}
+          >
+            Continue with P-Chain TX ID
+          </Button>
+        </div>
+      )}
 
       {error && (
         <Alert variant="error">{error}</Alert>

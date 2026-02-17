@@ -54,8 +54,7 @@ const metadata: ConsoleToolMetadata = {
   title: "Remove Validator",
   description: "Remove a validator from an Avalanche L1 by following these steps in order",
   toolRequirements: [
-    WalletRequirementsConfigKey.EVMChainBalance,
-    WalletRequirementsConfigKey.PChainBalance
+    WalletRequirementsConfigKey.WalletConnected
   ],
   githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
 }

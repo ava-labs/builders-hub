@@ -14,6 +14,7 @@ import { useDisableL1Validator, ValidatorData } from "./DisableL1ValidatorContex
 import ValidatorSelector from "./ValidatorSelector";
 import { formatAvaxBalance } from "@/components/toolbox/coreViem/utils/format";
 import { SDKCodeViewer, SDKCodeSource } from "@/components/console/sdk-code-viewer";
+import { CliAlternative } from "@/components/console/cli-alternative";
 
 // TypeScript code showing the P-Chain disable operation
 const DISABLE_VALIDATOR_CODE = `// Disable an L1 Validator directly on the P-Chain
@@ -61,7 +62,7 @@ const metadata: ConsoleToolMetadata = {
   title: "Disable L1 Validator",
   description: "Disable an L1 validator directly on the P-Chain. This is an emergency operation that bypasses the Validator Manager Contract and can be used when the L1 is down or unreachable.",
   toolRequirements: [
-    WalletRequirementsConfigKey.PChainBalance
+    WalletRequirementsConfigKey.WalletConnected
   ],
   githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
 };
@@ -343,6 +344,7 @@ function DisableValidator({ onSuccess }: BaseConsoleToolProps) {
             !isAuthorized ||
             !coreWalletClient
           }
+
           className="w-full py-2 px-4 text-sm font-medium"
         >
           {isProcessing ? (
@@ -357,6 +359,8 @@ function DisableValidator({ onSuccess }: BaseConsoleToolProps) {
             </span>
           )}
         </Button>
+
+        <CliAlternative command={`avalanche validator disable --validation-id ${selectedValidator?.validationId || "<validation-id>"} --network ${isTestnet ? "fuji" : "mainnet"}`} />
       </div>
     </SDKCodeViewer>
   );

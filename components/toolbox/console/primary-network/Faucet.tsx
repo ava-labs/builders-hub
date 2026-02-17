@@ -3,6 +3,7 @@ import { EVMFaucetButton } from "@/components/toolbox/components/ConnectWallet/E
 import { PChainFaucetButton } from "@/components/toolbox/components/ConnectWallet/PChainFaucetButton";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { useL1List, L1ListItem } from "@/components/toolbox/stores/l1ListStore";
+
 import {
   BaseConsoleToolProps,
   ConsoleToolMetadata,
@@ -124,7 +125,7 @@ const metadata: ConsoleToolMetadata = {
   title: "Testnet Faucet",
   description: "Request free test tokens for Fuji testnet and Avalanche L1s",
   toolRequirements: [
-    WalletRequirementsConfigKey.TestnetRequired,
+    WalletRequirementsConfigKey.WalletConnected,
     AccountRequirementsConfigKey.UserLoggedIn,
   ],
   githubUrl: generateConsoleToolGitHubUrl(import.meta.url),

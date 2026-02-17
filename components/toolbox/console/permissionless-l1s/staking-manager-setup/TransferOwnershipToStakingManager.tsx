@@ -1,14 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useToolboxStore, useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
-import { useWalletStore } from "@/components/toolbox/stores/walletStore";
+import { useState } from "react";
+import { useToolboxStore } from "@/components/toolbox/stores/toolboxStore";
 import { TransferOwnership } from "@/components/toolbox/console/permissioned-l1s/multisig-setup/TransferOwnership";
 import { ConsoleToolMetadata, withConsoleToolMetadata, BaseConsoleToolProps } from '../../../components/WithConsoleToolMetadata';
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
-import { Callout } from "fumadocs-ui/components/callout";
 import { StepCodeViewer, type StepConfig } from "@/components/console/step-code-viewer";
+import { Info, AlertTriangle } from "lucide-react";
 import versions from "@/scripts/versions.json";
 
 const ICM_COMMIT = versions["ava-labs/icm-contracts"];
@@ -143,20 +142,38 @@ function TransferOwnershipToStakingManager({ onSuccess }: BaseConsoleToolProps) 
       <div className="flex flex-col rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
         <div className="flex-1 overflow-auto p-5 space-y-4">
           {stakingManagerAddress && (
-            <Callout type="info">
-              <p className="font-semibold mb-2">{stakingManagerType} Staking Manager Detected</p>
-              <p>Your {stakingManagerType} Staking Manager address has been automatically filled in below:</p>
-              <p className="mt-2">
-                <code className="text-xs break-all">{stakingManagerAddress}</code>
-              </p>
-            </Callout>
+            <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800">
+              <div className="flex items-start gap-3">
+                <Info className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
+                <div>
+                  <h3 className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-1">
+                    {stakingManagerType} Staking Manager Detected
+                  </h3>
+                  <p className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
+                    Your {stakingManagerType} Staking Manager address has been automatically filled in below:
+                  </p>
+                  <code className="mt-1.5 inline-block px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-mono text-xs break-all">
+                    {stakingManagerAddress}
+                  </code>
+                </div>
+              </div>
+            </div>
           )}
 
           {!stakingManagerAddress && (
-            <Callout type="warn">
-              <p className="font-semibold mb-2">No Staking Manager Found</p>
-              <p>No staking manager address found. Please deploy and initialize a Staking Manager first, or manually enter the address below.</p>
-            </Callout>
+            <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+                <div>
+                  <h3 className="text-sm font-medium text-amber-900 dark:text-amber-100 mb-1">
+                    No Staking Manager Found
+                  </h3>
+                  <p className="text-xs text-amber-700 dark:text-amber-300 leading-relaxed">
+                    No staking manager address found. Please deploy and initialize a Staking Manager first, or manually enter the address below.
+                  </p>
+                </div>
+              </div>
+            </div>
           )}
 
           <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800">

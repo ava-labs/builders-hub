@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
+import React, { useState } from 'react';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { Button } from '@/components/toolbox/components/Button';
 import { ConvertToL1Validator } from '@/components/toolbox/components/ValidatorListInput';
@@ -10,7 +9,6 @@ import { MultisigOption } from '@/components/toolbox/components/MultisigOption';
 import { getValidationIdHex } from '@/components/toolbox/coreViem/hooks/getValidationID';
 import { Alert } from '@/components/toolbox/components/Alert';
 import { useValidatorManager } from '@/components/toolbox/hooks/contracts';
-import validatorManagerAbi from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
 
 interface InitiateValidatorRegistrationProps {
   subnetId: string;
@@ -40,8 +38,7 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
   ownershipState,
   contractTotalWeight,
 }) => {
-  const { coreWalletClient, publicClient } = useWalletStore();
-  const viemChain = useViemChainStore();
+  const { walletEVMAddress: connectedAddress, publicClient } = useWalletStore();
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setErrorState] = useState<string | null>(null);
   const [txSuccess, setTxSuccess] = useState<string | null>(null);
@@ -89,8 +86,8 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
     setErrorState(null);
     setTxSuccess(null);
 
-    if (!coreWalletClient) {
-      setErrorState("Core wallet not found");
+    if (!connectedAddress) {
+      setErrorState("Wallet not connected");
       return;
     }
 
@@ -116,7 +113,6 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
     setIsProcessing(true);
     try {
       const validator = validators[0];
-      const [account] = await coreWalletClient.requestAddresses();
 
       // Process P-Chain Addresses using shared utility
       const pChainRemainingBalanceOwnerAddressesHex = validator.remainingBalanceOwner.addresses.map(parsePChainAddress);

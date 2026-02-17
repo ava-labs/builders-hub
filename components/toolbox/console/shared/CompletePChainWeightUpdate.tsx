@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
-import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { Button } from '@/components/toolbox/components/Button';
 import { Input } from '@/components/toolbox/components/Input';
 import { Success } from '@/components/toolbox/components/Success';
@@ -14,6 +13,7 @@ import { packL1ValidatorWeightMessage } from '@/components/toolbox/coreViem/util
 import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { useValidatorManager, usePoAManager, useNativeTokenStakingManager, useERC20TokenStakingManager } from '@/components/toolbox/hooks/contracts';
+import { fetchL1ValidatorWeightData } from './fetchL1ValidatorWeightData';
 
 export type WeightUpdateType = 'ChangeWeight' | 'Delegation';
 export type OwnerType = 'PoAManager' | 'StakingManager' | 'EOA' | null;
@@ -64,11 +64,9 @@ const CompletePChainWeightUpdate: React.FC<CompletePChainWeightUpdateProps> = ({
     isLoadingOwnership,
     ownerType,
 }) => {
-    const { coreWalletClient, publicClient, avalancheNetworkID, walletEVMAddress } = useWalletStore();
+    const { publicClient, avalancheNetworkID, isTestnet } = useWalletStore();
     const { aggregateSignature } = useAvalancheSDKChainkit();
     const { notify } = useConsoleNotifications();
-    const viemChain = useViemChainStore();
-    
     const [pChainTxIdState, setPChainTxIdState] = useState(pChainTxId || '');
     const [delegationIDState, setDelegationIDState] = useState(delegationID || '');
     const [isProcessing, setIsProcessing] = useState(false);
@@ -134,7 +132,7 @@ const CompletePChainWeightUpdate: React.FC<CompletePChainWeightUpdateProps> = ({
             onError("Manager address is required.");
             return false;
         }
-        if (!coreWalletClient || !publicClient || !viemChain) {
+        if (!publicClient) {
             setErrorState("Wallet or chain configuration is not properly initialized.");
             onError("Wallet or chain configuration is not properly initialized.");
             return false;
@@ -176,9 +174,7 @@ const CompletePChainWeightUpdate: React.FC<CompletePChainWeightUpdateProps> = ({
         setIsProcessing(true);
         try {
             // Step 1: Extract L1ValidatorWeightMessage from P-Chain transaction
-            const weightMessageData = await coreWalletClient!.extractL1ValidatorWeightMessage({
-                txId: pChainTxIdState
-            });
+            const weightMessageData = await fetchL1ValidatorWeightData(pChainTxIdState, isTestnet);
 
             setExtractedData({
                 validationID: weightMessageData.validationID,

@@ -2,7 +2,7 @@ import { useMemo, useCallback } from "react";
 import { useWalletStore, type WalletType } from "../stores/walletStore";
 import { Wallet, Coins, Network } from "lucide-react";
 import { useWalletSwitch } from "./useWalletSwitch";
-import { useWalletConnect } from "./useWalletConnect";
+import { useConnectModal } from '@rainbow-me/rainbowkit';
 import type {
     RequirementAction,
     Requirement,
@@ -251,7 +251,8 @@ export function useWalletRequirements(configKey: WalletRequirementsConfigKey | W
     const walletType = useWalletStore((s) => s.walletType);
 
     const { safelySwitch } = useWalletSwitch();
-    const { connectWallet } = useWalletConnect();
+    const { openConnectModal } = useConnectModal();
+    const connectWallet = async () => { openConnectModal?.() };
 
     // Create wallet state object to pass to requirement status functions (memoized to prevent excessive re-renders)
     const walletState: WalletState = useMemo(() => ({

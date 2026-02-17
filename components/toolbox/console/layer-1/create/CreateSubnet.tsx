@@ -9,7 +9,7 @@ import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
-import { Check, ExternalLink, BookOpen, GraduationCap, ArrowUpRight } from "lucide-react";
+import { ExternalLink, BookOpen, GraduationCap } from "lucide-react";
 import Link from "next/link";
 import { CoreWalletTransactionButton } from "@/components/toolbox/components/CoreWalletTransactionButton";
 
@@ -50,8 +50,6 @@ function CreateSubnet(_props: BaseConsoleToolProps) {
             setIsCreatingSubnet(false);
         }
     }
-
-    const hasSubnet = !!subnetId;
 
     return (
         <div className="space-y-6">
@@ -130,28 +128,6 @@ function CreateSubnet(_props: BaseConsoleToolProps) {
                     />
                 </div>
             </div>
-
-            {/* Ready State */}
-            {hasSubnet && (
-                <div className="flex items-center gap-3 p-3 rounded-lg border border-green-500/30 bg-green-500/5">
-                    <div className="flex-shrink-0 h-6 w-6 rounded-full bg-green-500/10 flex items-center justify-center">
-                        <Check className="h-3.5 w-3.5 text-green-500" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-green-700 dark:text-green-400">Subnet Ready</p>
-                        <p className="text-xs font-mono text-muted-foreground truncate">{subnetId}</p>
-                    </div>
-                    <a
-                        href={`https://${isTestnet ? 'subnets-test' : 'subnets'}.avax.network/subnets/${subnetId}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex-shrink-0 text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
-                    >
-                        Explorer
-                        <ArrowUpRight className="h-3 w-3" />
-                    </a>
-                </div>
-            )}
 
         </div>
     );
