@@ -40,6 +40,36 @@ export const profileSchema = z.object({
 
 export type ProfileFormValues = z.infer<typeof profileSchema>;
 
+/** Number of criteria used for profile completion (each counts 1). */
+const PROFILE_COMPLETION_CRITERIA = 9;
+
+/**
+ * Computes profile completion percentage (0–100) based on filled fields
+ * used in the profile form. Used for the circular progress around the avatar.
+ */
+export function getProfileCompletionPercentage(values: Partial<ProfileFormValues> | undefined): number {
+  if (!values) return 0;
+  const v = values;
+  const has = (s: string | undefined) => (s?.trim() ?? "") !== "";
+  const hasRole =
+    v.is_developer === true ||
+    v.is_enthusiast === true ||
+    (v.is_student === true && has(v.student_institution)) ||
+    (v.is_founder === true && has(v.founder_company_name)) ||
+    (v.is_employee === true && has(v.employee_company_name) && has(v.employee_role));
+  let completed = 0;
+  if (has(v.name)) completed++;
+  if (has(v.bio)) completed++;
+  if (has(v.country)) completed++;
+  if (hasRole) completed++;
+  if (has(v.github)) completed++;
+  if (Array.isArray(v.wallet) && v.wallet.filter((w) => has(w)).length > 0) completed++;
+  if (has(v.telegram_user)) completed++;
+  if (Array.isArray(v.socials) && v.socials.length > 0) completed++;
+  if (Array.isArray(v.skills) && v.skills.length > 0) completed++;
+  return Math.round((completed / PROFILE_COMPLETION_CRITERIA) * 100);
+}
+
 export function useProfileForm() {
   const { data: session } = useSession();
   const { toast } = useToast();
