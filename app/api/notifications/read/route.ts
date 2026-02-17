@@ -12,7 +12,7 @@ export async function POST(req: any): Promise<Response> {
 
     const body: ReadNotificationsBody = await req.json();
 
-    const baseUrl: string | undefined = process.env.AVALANCHE_WORKERS_URL;
+    const baseUrl: string | undefined = process.env.NEXT_PUBLIC_AVALANCHE_WORKERS_URL;
 
     if (!baseUrl) {
       return NextResponse.json(

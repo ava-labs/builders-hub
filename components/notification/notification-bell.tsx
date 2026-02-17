@@ -22,6 +22,10 @@ export type DbNotification = {
 };
 type NotificationsResponse = Record<string, DbNotification[]>;
 
+const metricsBaseUrl: string | undefined =
+  process.env.NEXT_PUBLIC_AVALANCHE_WORKERS_URL;
+
+
 export default function NotificationBell(): React.JSX.Element | null {
   const { data: session } = useSession() ?? {}
   const [open, setOpen] = useState<boolean>(false);
