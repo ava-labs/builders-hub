@@ -346,24 +346,6 @@ const InitiateDelegation: React.FC<InitiateDelegationProps> = ({
                 <Alert variant="warning">{settingsError}</Alert>
             )}
 
-            {contractSettings && (
-                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
-                    <h4 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">
-                        Delegation Requirements
-                    </h4>
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                        <div>
-                            <span className="text-blue-600 dark:text-blue-400">Minimum Amount:</span>
-                            <span className="ml-1 font-mono">{contractSettings.minimumStakeAmount} {isNative ? 'tokens' : 'ERC20'}</span>
-                        </div>
-                        <div>
-                            <span className="text-blue-600 dark:text-blue-400">Maximum Amount:</span>
-                            <span className="ml-1 font-mono">{contractSettings.maximumStakeAmount} {isNative ? 'tokens' : 'ERC20'}</span>
-                        </div>
-                    </div>
-                </div>
-            )}
-
             <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-lg p-4 border border-zinc-200 dark:border-zinc-700">
                 <h3 className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">
                     Delegation Registration ({tokenLabel} Staking)
@@ -385,7 +367,9 @@ const InitiateDelegation: React.FC<InitiateDelegationProps> = ({
                         step="0.01"
                         placeholder="100"
                         disabled={isProcessing || isApproving}
-                        helperText={`Amount of ${tokenLabel.toLowerCase()}s to delegate`}
+                        helperText={contractSettings
+                            ? `Required: ${contractSettings.minimumStakeAmount} - ${contractSettings.maximumStakeAmount} tokens`
+                            : `Amount of ${tokenLabel.toLowerCase()}s to delegate`}
                     />
 
                     <div className="space-y-2">
