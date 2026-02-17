@@ -5,7 +5,7 @@ export interface ContractInfo {
   address: string;
   name: string;
   protocol: string;
-  category: 'dex' | 'lending' | 'derivatives' | 'bridge' | 'nft' | 'yield' | 'gaming' | 'token' | 'other';
+  category: 'dex' | 'lending' | 'derivatives' | 'bridge' | 'nft' | 'yield' | 'gaming' | 'token' | 'infrastructure' | 'icm' | 'other';
   type: 'router' | 'factory' | 'pool' | 'vault' | 'token' | 'staking' | 'rewards' | 'orderbook' | 'controller' | 'other';
 }
 
@@ -53,6 +53,14 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     protocol: 'Trader Joe',
     category: 'dex',
     type: 'staking',
+  },
+  // LB Proxy
+  '0x7bfd7192e76d950832c77bb412aae841049d8d9b': {
+    address: '0x7bfd7192e76d950832c77bb412aae841049d8d9b',
+    name: 'TransparentUpgradeableProxy (LB)',
+    protocol: 'Trader Joe',
+    category: 'dex',
+    type: 'router',
   },
   // LB (Liquidity Book) V2.0
   '0x6e77932a92582f504ff6c4bdbcef7da6c198aeef': {
@@ -965,6 +973,81 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     category: 'dex',
     type: 'other',
   },
+
+  // ============ LI.FI ============
+  '0x1231deb6f5749ef6ce6943a275a1d3e7486f4eae': {
+    address: '0x1231deb6f5749ef6ce6943a275a1d3e7486f4eae',
+    name: 'LiFi Diamond Proxy',
+    protocol: 'LI.FI',
+    category: 'bridge',
+    type: 'router',
+  },
+
+  // ============ PARASWAP (Additional) ============
+  '0x216b4b4ba9f3e719726886d34a177484278bfcae': {
+    address: '0x216b4b4ba9f3e719726886d34a177484278bfcae',
+    name: 'TokenTransferProxy',
+    protocol: 'ParaSwap',
+    category: 'dex',
+    type: 'other',
+  },
+
+  // ============ AVALANCHE ICM ============
+  '0x253b2784c75e510dd0ff1da844684a1ac0aa5fcf': {
+    address: '0x253b2784c75e510dd0ff1da844684a1ac0aa5fcf',
+    name: 'TeleporterMessenger',
+    protocol: 'Avalanche ICM',
+    category: 'icm',
+    type: 'router',
+  },
+  '0x7c43605e14f391720e1b37e49c78c4b03a488d98': {
+    address: '0x7c43605e14f391720e1b37e49c78c4b03a488d98',
+    name: 'TeleporterRegistry',
+    protocol: 'Avalanche ICM',
+    category: 'icm',
+    type: 'other',
+  },
+
+  // ============ INFRASTRUCTURE ============
+  '0xca11bde05977b3631167028862be2a173976ca11': {
+    address: '0xca11bde05977b3631167028862be2a173976ca11',
+    name: 'Multicall3',
+    protocol: 'Infrastructure',
+    category: 'infrastructure',
+    type: 'other',
+  },
+
+  // ============ OPENSEA ============
+  '0x00000000006c3852cbef3e08e8df289169ede581': {
+    address: '0x00000000006c3852cbef3e08e8df289169ede581',
+    name: 'Seaport 1.1',
+    protocol: 'OpenSea',
+    category: 'nft',
+    type: 'router',
+  },
+  '0x00000000000001ad428e4906ae43d8f9852d0dd6': {
+    address: '0x00000000000001ad428e4906ae43d8f9852d0dd6',
+    name: 'Seaport 1.4',
+    protocol: 'OpenSea',
+    category: 'nft',
+    type: 'router',
+  },
+  '0x00000000000000adc04c56bf30ac9d3c0aaf14dc': {
+    address: '0x00000000000000adc04c56bf30ac9d3c0aaf14dc',
+    name: 'Seaport 1.5',
+    protocol: 'OpenSea',
+    category: 'nft',
+    type: 'router',
+  },
+
+  // ============ YIELD YAK (Additional) ============
+  '0xddaaad7366b455aff8e7c82940c43ceb5829b604': {
+    address: '0xddaaad7366b455aff8e7c82940c43ceb5829b604',
+    name: 'MiniYak (mYAK)',
+    protocol: 'Yield Yak',
+    category: 'yield',
+    type: 'token',
+  },
 };
 
 // Protocol slug mapping for linking to dApp pages (canonical slug per protocol)
@@ -988,6 +1071,14 @@ export const PROTOCOL_SLUGS: Record<string, string> = {
   'Balancer': 'balancer-v2',
   'OpenOcean': 'openocean',
   'Dexalot': 'dexalot',
+  // Bridge / Cross-chain
+  'LI.FI': 'lifi',
+  // ICM
+  'Avalanche ICM': 'avalanche-icm',
+  // Infrastructure
+  'Infrastructure': 'infrastructure',
+  // NFT
+  'OpenSea': 'opensea',
   // Gaming
   'Crabada': 'crabada',
   'Chikn': 'chikn',
@@ -1086,6 +1177,18 @@ export const SLUG_ALIASES: Record<string, string> = {
   'dexalot': 'Dexalot',
   // LayerZero
   'layerzero': 'LayerZero',
+  // LI.FI
+  'lifi': 'LI.FI',
+  'li-fi': 'LI.FI',
+  // Avalanche ICM
+  'avalanche-icm': 'Avalanche ICM',
+  'teleporter': 'Avalanche ICM',
+  // Infrastructure
+  'infrastructure': 'Infrastructure',
+  'multicall': 'Infrastructure',
+  // OpenSea
+  'opensea': 'OpenSea',
+  'seaport': 'OpenSea',
   // Gaming
   'crabada': 'Crabada',
   'chikn': 'Chikn',
