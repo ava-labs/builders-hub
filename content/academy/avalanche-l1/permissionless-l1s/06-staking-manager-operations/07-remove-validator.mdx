@@ -1,0 +1,106 @@
+---
+title: Remove Validator
+description: Theory walkthrough of removing a PoS validator and claiming staking rewards
+updated: 2025-03-19
+authors: [nicolasarnedo]
+icon: BookOpen
+---
+
+## Removing a PoS Validator
+
+Removing a validator in a PoS setup returns the staked tokens **plus any earned staking rewards**. Only the owner of the validation period (the address that initiated it) can remove the validator, and only after the **minimum stake duration** has elapsed.
+
+### Phase 1: Initiation (L1)
+
+The validator owner calls [`initiateValidatorRemoval(validationID)`](https://github.com/ava-labs/icm-contracts/blob/main/contracts/validator-manager/StakingManager.sol) on the Staking Manager contract.
+
+Under the hood, the contract:
+- Verifies the caller is the validation period owner
+- Ensures the **minimum stake duration** has passed
+- An uptime proof may optionally be provided to determine reward eligibility
+- Sets the validator status to `PendingRemoved`
+- Constructs a weight message with `weight = 0` (removal is encoded as a weight update to zero)
+- Sends a Warp message to the P-Chain
+
+<Callout type="info">
+**Uptime Proof**: When initiating removal, the contract can accept an uptime proof from the P-Chain. If provided, it is used to calculate rewards. If no proof is provided, the latest known uptime will be used. Higher uptime = higher rewards.
+</Callout>
+
+### Phase 2: P-Chain Processing
+
+The weight update message (weight = 0) is signed and submitted to the P-Chain as a `SetL1ValidatorWeightTx`:
+
+1. Aggregate signatures for the weight update
+2. Submit to the P-Chain
+3. The P-Chain removes the validator and acknowledges with a signed `L1ValidatorRegistrationMessage` with `valid = false`
+
+### Phase 3: Completion (L1)
+
+Call [`completeValidatorRemoval(messageIndex)`](https://github.com/ava-labs/icm-contracts/blob/main/contracts/validator-manager/ValidatorManager.sol#L573) with the P-Chain's signed response:
+
+- Verifies the Warp message and `valid == false`
+- Calculates staking rewards based on uptime
+- **Returns the staked tokens** to the validator owner
+- **Distributes validator rewards** (minted via Native Minter precompile for native token staking)
+- Sets the status to Completed
+- Emits `CompletedValidatorRemoval`
+
+### Claiming Delegation Fees
+
+Delegation fees earned by the validator are **not** distributed during `completeValidatorRemoval` to bound gas consumption. Instead, the validator must call `claimDelegationFees(validationID)` separately after the validation period ends.
+
+## Minimum Stake Duration
+
+The minimum stake duration is set by the validator when they register. The validator **cannot** initiate removal until this duration has elapsed since the validation period started.
+
+```
+canRemove = block.timestamp >= startTime + minStakeDuration
+```
+
+## Appendix: PoS Validator Removal Flow
+
+<Mermaid
+  chart="
+sequenceDiagram
+    participant Owner as Validation Owner
+    participant StakingManager as StakingManager
+    participant WarpMessenger as WarpMessenger (precompile)
+    participant PChain as P-Chain
+
+    %% Phase 1: Initiation
+    Owner->>StakingManager: initiateValidatorRemoval(validationID)
+
+    StakingManager->>StakingManager: Verify caller is owner
+
+    StakingManager->>StakingManager: Check minStakeDuration elapsed
+
+    StakingManager->>StakingManager: Set status = PendingRemoved
+
+    StakingManager->>WarpMessenger: sendWarpMessage(weightMessage(weight=0))
+
+    %% Phase 2: P-Chain Processing
+    WarpMessenger->>PChain: Deliver L1ValidatorWeightMessage(weight=0)
+
+    PChain-->>WarpMessenger: Signed L1ValidatorRegistrationMessage(valid=false)
+
+    %% Phase 3: Completion
+    participant AnyCaller as Any Caller
+
+    AnyCaller->>StakingManager: completeValidatorRemoval(message)
+
+    StakingManager->>StakingManager: Verify Warp message + valid == false
+
+    StakingManager->>StakingManager: Calculate rewards based on uptime
+
+    StakingManager->>StakingManager: Return staked tokens to owner
+
+    StakingManager->>StakingManager: Distribute validator rewards
+
+    StakingManager-->>AnyCaller: emit CompletedValidatorRemoval
+
+    %% Claim delegation fees
+    Owner->>StakingManager: claimDelegationFees(validationID)
+
+    StakingManager->>StakingManager: Transfer accumulated delegation fees
+"
+/>

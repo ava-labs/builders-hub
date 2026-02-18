@@ -28,13 +28,14 @@ export function SidebarActions({
   const [isCopyingMarkdown, setIsCopyingMarkdown] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
 
+  // Ensure pagePath includes the pageType prefix (e.g. /docs or /academy)
+  const fullPath = pagePath.startsWith(`/${pageType}`) ? pagePath : `/${pageType}${pagePath}`;
+
   const handleCopyMarkdown = async () => {
     setIsCopyingMarkdown(true);
     setIsCopied(false);
 
     try {
-      // Construct the full path and append .md for markdown content
-      const fullPath = pagePath.startsWith(`/${pageType}`) ? pagePath : `/${pageType}${pagePath}`;
       const apiUrl = `${window.location.origin}${fullPath}.md`;
       const response = await fetch(apiUrl);
 
@@ -67,14 +68,14 @@ export function SidebarActions({
   };
 
   const openInChatGPT = () => {
-    const mdUrl = `${typeof window !== 'undefined' ? window.location.origin : 'https://build.avax.network'}${pagePath}.md`;
+    const mdUrl = `${typeof window !== 'undefined' ? window.location.origin : 'https://build.avax.network'}${fullPath}.md`;
     const prompt = `Read ${mdUrl}, I want to ask questions about it.`;
     const chatGPTUrl = `https://chat.openai.com/?q=${encodeURIComponent(prompt)}`;
     window.open(chatGPTUrl, '_blank', 'noopener,noreferrer');
   };
 
   const openInClaude = () => {
-    const mdUrl = `${typeof window !== 'undefined' ? window.location.origin : 'https://build.avax.network'}${pagePath}.md`;
+    const mdUrl = `${typeof window !== 'undefined' ? window.location.origin : 'https://build.avax.network'}${fullPath}.md`;
     const prompt = `Read ${mdUrl}, I want to ask questions about it.`;
     const claudeUrl = `https://claude.ai/new?q=${encodeURIComponent(prompt)}`;
     window.open(claudeUrl, '_blank', 'noopener,noreferrer');
