@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useCallback } from "react";
-import { useSession, getSession } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import { usePathname } from "next/navigation";
 import { useLoginModalTrigger } from "@/hooks/useLoginModal";
 
@@ -30,12 +30,6 @@ export function AutoLoginModalTrigger() {
   const triggerLoginModal = useCallback(async () => {
     // Double-check status hasn't changed to authenticated during the delay
     if (statusRef.current === "authenticated") {
-      return;
-    }
-
-    // Also check fresh session to handle race conditions after new user flow
-    const freshSession = await getSession();
-    if (freshSession?.user) {
       return;
     }
 

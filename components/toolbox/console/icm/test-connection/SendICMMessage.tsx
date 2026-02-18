@@ -7,6 +7,7 @@ import { Success } from "@/components/toolbox/components/Success";
 import { createPublicClient, http } from 'viem';
 import ICMDemoABI from "@/contracts/example-contracts/compiled/ICMDemo.json";
 import { Input } from "@/components/toolbox/components/Input";
+import { useICMDemo } from "@/components/toolbox/hooks/contracts";
 import { cb58ToHex } from '@/components/toolbox/console/utilities/format-converter/FormatConverter';
 import SelectBlockchainId from "@/components/toolbox/components/SelectBlockchainId";
 import { useL1ByChainId, useSelectedL1 } from "@/components/toolbox/stores/l1ListStore";
@@ -14,7 +15,6 @@ import { useEffect } from "react";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
 import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
-import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 
 const predeployedDemos: Record<string, string> = {
@@ -43,7 +43,9 @@ function SendICMMessage({ onSuccess }: BaseConsoleToolProps) {
     const viemChain = useViemChainStore();
     const [isQuerying, setIsQuerying] = useState(false);
     const [lastReceivedMessage, setLastReceivedMessage] = useState<number>();
-    const { notify } = useConsoleNotifications();
+
+    const icmDemo = useICMDemo(icmReceiverAddress || null);
+
     // Throw critical errors during render
     if (criticalError) {
         throw criticalError;
@@ -96,39 +98,13 @@ function SendICMMessage({ onSuccess }: BaseConsoleToolProps) {
         setIsSending(true);
         setLastTxId(undefined);
         try {
-            const sourceAddress = icmReceiverAddress as `0x${string}`;
             const destinationAddress = targetToolboxStore.icmReceiverAddress as `0x${string}`;
 
-            const publicClient = createPublicClient({
-                chain: viemChain,
-                transport: http(viemChain.rpcUrls.default.http[0]),
-            });
-
-            if (!coreWalletClient.account) {
-                throw new Error('No wallet account connected');
-            }
-
-            const { request } = await publicClient.simulateContract({
-                address: sourceAddress,
-                abi: ICMDemoABI.abi,
-                functionName: 'sendMessage',
-                args: [
-                    destinationAddress,
-                    BigInt(message),
-                    destinationBlockchainIDHex as `0x${string}`
-                ],
-                account: coreWalletClient.account,
-                chain: viemChain,
-            });
-
-            const writePromise = coreWalletClient.writeContract(request);
-
-            notify({
-                type: 'call',
-                name: 'Send ICM Message'
-            }, writePromise, viemChain ?? undefined);
-
-            const hash = await writePromise;
+            const hash = await icmDemo.sendMessage(
+                destinationAddress,
+                BigInt(message),
+                destinationBlockchainIDHex as `0x${string}`
+            );
             console.log("Transaction hash:", hash);
             setLastTxId(hash);
             onSuccess?.();

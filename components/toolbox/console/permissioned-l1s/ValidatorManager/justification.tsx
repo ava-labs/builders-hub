@@ -28,24 +28,6 @@ function extractAddressedCall(messageBytes: Uint8Array): Uint8Array {
 
     const codecVersion = (messageBytes[0] << 8) | messageBytes[1];
 
-    const networkIDBytes = messageBytes.slice(2, 6);
-    console.log(`Raw networkID bytes: 0x${Buffer.from(networkIDBytes).toString('hex')}`);
-    const networkID = (messageBytes[2] << 24) |
-      (messageBytes[3] << 16) |
-      (messageBytes[4] << 8) |
-      messageBytes[5];
-
-    console.log(`UnsignedMessage -> codecVersion: ${codecVersion}, NetworkID: ${networkID}`);
-
-    const sourceChainIDBytes = messageBytes.slice(6, 38);
-    console.log(`Raw sourceChainID bytes: 0x${Buffer.from(sourceChainIDBytes).toString('hex')}`);
-    try {
-      let sourceChainIDStr = utils.base58check.encode(Buffer.from(sourceChainIDBytes));
-      console.log(`UnsignedMessage -> SourceChainID: ${sourceChainIDStr}`);
-    } catch (e) {
-      console.log('Could not encode sourceChainID from UnsignedMessage');
-    }
-
     const messageLength = (messageBytes[38] << 24) |
       (messageBytes[39] << 16) |
       (messageBytes[40] << 8) |
@@ -317,13 +299,11 @@ export async function GetRegistrationJustification(
 
     // Compare the derived hash with the target validation ID
     if (compareBytes(bootstrapValidationIDHash, targetValidationIDBytes)) {
-      console.log(`ValidationID ${validationIDHex} matches HASH of bootstrap validator derived ID (subnet ${subnetIDStr}, index ${index})`);
       // Marshal justification using the *original* subnetID and index
       const justificationBytes = marshalConvertSubnetToL1TxDataJustification(subnetIDBytes, index);
       return justificationBytes;
     }
   }
-  console.log(`ValidationID ${validationIDHex} not found within the HASHES of the first ${NUM_BOOTSTRAP_VALIDATORS_TO_SEARCH} bootstrap validator indices for subnet ${subnetIDStr}. Checking Warp logs...`);
 
 
   // 2. If not a bootstrap validator, search Warp logs
@@ -335,8 +315,6 @@ export async function GetRegistrationJustification(
     let marshalledJustification: Uint8Array | null = null;
     let chunksSearched = 0;
 
-    console.log(`Searching Warp logs in chunks of ${CHUNK_SIZE} blocks starting from latest...`);
-
     while (!foundMatch && chunksSearched < MAX_CHUNKS) {
       // Get the current block number for this iteration
       const latestBlockNum = toBlock === 'latest'
@@ -346,8 +324,6 @@ export async function GetRegistrationJustification(
       // Calculate the fromBlock for this chunk
       const fromBlockNum = Math.max(0, Number(latestBlockNum) - CHUNK_SIZE);
 
-      console.log(`Searching blocks ${fromBlockNum} to ${toBlock === 'latest' ? latestBlockNum : toBlock}...`);
-
       const warpLogs = await publicClient.getLogs({
         address: WARP_ADDRESS,
         event: sendWarpMessageEventAbi,
@@ -356,8 +332,6 @@ export async function GetRegistrationJustification(
       });
 
       if (warpLogs.length > 0) {
-        console.log(`Found ${warpLogs.length} Warp logs in current chunk. Searching for ValidationID ${validationIDHex}...`);
-
         for (const log of warpLogs.slice().reverse()) {
           try {
             const decodedArgs = log.args as { message?: `0x${string}` };
@@ -395,7 +369,6 @@ export async function GetRegistrationJustification(
                 marshalledJustification.set(lengthVarint, tag.length);
                 marshalledJustification.set(payloadBytes, tag.length + lengthVarint.length);
 
-                console.log(`Found matching ValidationID ${validationIDHex} in Warp log (Tx: ${log.transactionHash}). Marshalled justification.`);
                 foundMatch = true;
                 break;
               }
@@ -406,8 +379,6 @@ export async function GetRegistrationJustification(
             console.error(`Error processing log entry for tx ${log.transactionHash}:`, logProcessingError);
           }
         }
-      } else {
-        console.log(`No Warp logs found in blocks ${fromBlockNum} to ${toBlock === 'latest' ? latestBlockNum : toBlock}.`);
       }
 
       // Exit the loop if we found a match
@@ -418,15 +389,10 @@ export async function GetRegistrationJustification(
 
       // Stop if we've reached the genesis block
       if (toBlock <= 0) {
-        console.log(`Reached genesis block. Search complete.`);
         break;
       }
 
       chunksSearched++;
-    }
-
-    if (!foundMatch) {
-      console.log(`No matching registration log found for ValidationID ${validationIDHex} after searching ${chunksSearched} chunks.`);
     }
 
     return marshalledJustification;
