@@ -177,7 +177,7 @@ console.log("Last message:", lastMessage.toString());`,
 function DeployICMDemo({ onSuccess }: BaseConsoleToolProps) {
   const { setIcmReceiverAddress, icmReceiverAddress } = useToolboxStore();
   const { publicClient, walletEVMAddress } = useWalletStore();
-  const { coreWalletClient } = useConnectedWallet();
+  const { walletClient } = useConnectedWallet();
   const viemChain = useViemChainStore();
   const [isDeploying, setIsDeploying] = useState(false);
   const [isTeleporterDeployed, setIsTeleporterDeployed] = useState(false);
@@ -210,7 +210,7 @@ function DeployICMDemo({ onSuccess }: BaseConsoleToolProps) {
     setIsDeploying(true);
     setIcmReceiverAddress("");
     try {
-      const deployPromise = coreWalletClient.deployContract({
+      const deployPromise = walletClient.deployContract({
         abi: ICMDemoABI.abi as any,
         bytecode: ICMDemoABI.bytecode.object as `0x${string}`,
         args: [],

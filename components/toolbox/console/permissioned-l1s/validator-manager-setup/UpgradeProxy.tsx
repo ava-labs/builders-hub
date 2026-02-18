@@ -35,7 +35,7 @@ function UpgradeProxy({ onSuccess }: BaseConsoleToolProps) {
     const [proxyAdminAddress, setProxyAdminAddress] = useState<`0x${string}` | null>(null);
     const selectedL1 = useSelectedL1()();
     const { publicClient, walletChainId, walletEVMAddress } = useWalletStore();
-    const { coreWalletClient } = useConnectedWallet();
+    const { walletClient } = useConnectedWallet();
     const [isUpgrading, setIsUpgrading] = useState(false);
     const [currentImplementation, setCurrentImplementation] = useState<string | null>(null);
     const [desiredImplementation, setDesiredImplementation] = useState<string | null>(null);

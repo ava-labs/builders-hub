@@ -31,7 +31,7 @@ const metadata: ConsoleToolMetadata = {
 
 function MigrateV1ToV2({ onSuccess }: BaseConsoleToolProps) {
   const { publicClient, walletEVMAddress } = useWalletStore();
-  const { coreWalletClient } = useConnectedWallet();
+  const { walletClient } = useConnectedWallet();
   const viemChain = useViemChainStore();
   const { validatorManagerAddress, setValidatorManagerAddress } =
     useToolboxStore();
@@ -125,8 +125,8 @@ function MigrateV1ToV2({ onSuccess }: BaseConsoleToolProps) {
       if (!viemChain) throw new Error("Chain not selected");
 
       // Ensure we are on the correct chain
-      await coreWalletClient.addChain({ chain: viemChain });
-      await coreWalletClient.switchChain({ id: viemChain.id });
+      await walletClient.addChain({ chain: viemChain });
+      await walletClient.switchChain({ id: viemChain.id });
 
       // Call the migrateFromV1 function via hook
       const hash = await validatorManager.migrateFromV1({

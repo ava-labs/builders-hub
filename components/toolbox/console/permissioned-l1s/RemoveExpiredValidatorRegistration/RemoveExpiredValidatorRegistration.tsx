@@ -9,6 +9,7 @@ import SelectSubnetId from "@/components/toolbox/components/SelectSubnetId";
 import { ValidatorManagerDetails } from "@/components/toolbox/components/ValidatorManagerDetails";
 import { useCreateChainStore } from "@/components/toolbox/stores/createChainStore";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
+import { useWalletClient } from 'wagmi';
 import { useValidatorManagerDetails } from "@/components/toolbox/hooks/useValidatorManagerDetails";
 import ValidatorManagerABI from "@/contracts/icm-contracts/compiled/ValidatorManager.json";
 import PoAManagerABI from "@/contracts/icm-contracts/compiled/PoAManager.json";
@@ -56,7 +57,8 @@ const metadata: ConsoleToolMetadata = {
 
 function RemoveExpiredValidatorRegistration() {
   const [subnetId, setSubnetId] = useState<string>(useCreateChainStore()((s) => s.subnetId) || "");
-  const { publicClient, coreWalletClient, avalancheNetworkID } = useWalletStore();
+  const { publicClient, avalancheNetworkID } = useWalletStore();
+  const { data: walletClient } = useWalletClient();
   const viemChain = useViemChainStore();
   const { notify } = useConsoleNotifications();
   const [isLoading, setIsLoading] = useState(false);
@@ -351,7 +353,7 @@ function RemoveExpiredValidatorRegistration() {
     }));
     try {
       if (!validatorManagerAddress) throw new Error("Validator Manager address not found");
-      if (!coreWalletClient || !viemChain || !coreWalletClient.account) throw new Error("Wallet/chain not initialized");
+      if (!walletClient || !viemChain || !walletClient.account) throw new Error("Wallet/chain not initialized");
       if (!subnetId) throw new Error("Subnet ID required");
 
       const useMultisig = ownerType === "PoAManager";
@@ -386,13 +388,13 @@ function RemoveExpiredValidatorRegistration() {
       const signedPChainWarpMsgBytes = hexToBytes(`0x${signedMessage}`);
       const accessList = packWarpIntoAccessList(signedPChainWarpMsgBytes);
 
-      const writePromise = coreWalletClient.writeContract({
+      const writePromise = walletClient!.writeContract({
         address: targetContractAddress as `0x${string}`,
         abi: targetAbi,
         functionName: "completeValidatorRemoval",
         args: [0],
         accessList,
-        account: coreWalletClient.account,
+        account: walletClient!.account,
         chain: viemChain,
       });
       notify(

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSelectedL1 } from "@/components/toolbox/stores/l1ListStore";
 import { useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
+import { useWalletClient } from 'wagmi';
 import { hexToBytes, decodeErrorResult, Abi, encodeAbiParameters } from "viem";
 import { packWarpIntoAccessList } from "../ValidatorManager/packWarp";
 import ValidatorManagerABI from "@/contracts/icm-contracts/compiled/ValidatorManager.json";
@@ -37,7 +38,7 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
   const [L1ConversionSignature, setL1ConversionSignature] = useState<string>("");
   const viemChain = useViemChainStore();
   const { publicClient, walletEVMAddress, isTestnet } = useWalletStore();
-  const coreWalletClient = useWalletStore((s) => s.coreWalletClient);
+  const { data: walletClient } = useWalletClient();
   const walletType = useWalletStore((s) => s.walletType);
   const isCoreWallet = walletType === "core";
   const { aggregateSignature } = useAvalancheSDKChainkit();
@@ -134,7 +135,7 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
       setError("Conversion Tx ID is required");
       return;
     }
-    if (!coreWalletClient) {
+    if (!walletClient) {
       setError("Core Wallet required for in-browser submission");
       return;
     }
@@ -153,7 +154,7 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
       const signatureBytes = hexToBytes(add0x(L1ConversionSignature));
       const accessList = packWarpIntoAccessList(signatureBytes);
 
-      const initPromise = coreWalletClient.writeContract({
+      const initPromise = walletClient!.writeContract({
         address: conversionResult.managerAddress as `0x${string}`,
         abi: ValidatorManagerABI.abi,
         functionName: "initializeValidatorSet",

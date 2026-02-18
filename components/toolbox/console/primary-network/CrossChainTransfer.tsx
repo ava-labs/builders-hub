@@ -218,6 +218,10 @@ function CrossChainTransfer({
     // Add handlers for buttons
     const handleExport = async () => {
         if (!validateAmount()) return;
+        if (!coreWalletClient) {
+            setError("Cross-chain transfers require Core Wallet for P-Chain signing. Please connect with Core Wallet or use the CLI alternative below.");
+            return;
+        }
 
         setExportLoading(true);
         setError(null);
@@ -268,6 +272,10 @@ function CrossChainTransfer({
     }
 
     const handleImport = async () => {
+        if (!coreWalletClient) {
+            setImportError("Cross-chain transfers require Core Wallet for P-Chain signing.");
+            return;
+        }
         setImportLoading(true);
         setImportError(null);
 

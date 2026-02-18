@@ -32,7 +32,7 @@ const metadata: ConsoleToolMetadata = {
 
 function NativeMinter({ onSuccess }: BaseConsoleToolProps) {
   const { publicClient, walletEVMAddress } = useWalletStore();
-  const { coreWalletClient } = useConnectedWallet();
+  const { walletClient } = useConnectedWallet();
   const viemChain = useViemChainStore();
   const [amount, setAmount] = useState<string>("");
   const [recipient, setRecipient] = useState<string>("");
@@ -47,7 +47,7 @@ function NativeMinter({ onSuccess }: BaseConsoleToolProps) {
       const amountInWei = BigInt(amount) * BigInt(10 ** 18);
 
       // Call the mintNativeCoin function using the contract ABI
-      const hash = await coreWalletClient.writeContract({
+      const hash = await walletClient.writeContract({
         address: DEFAULT_NATIVE_MINTER_ADDRESS as `0x${string}`,
         abi: nativeMinterAbi.abi,
         functionName: "mintNativeCoin",
@@ -72,7 +72,7 @@ function NativeMinter({ onSuccess }: BaseConsoleToolProps) {
   };
 
   const isValidAmount = amount && Number(amount) > 0;
-  const canMint = Boolean(recipient && isValidAmount && walletEVMAddress && coreWalletClient && !isMinting);
+  const canMint = Boolean(recipient && isValidAmount && walletEVMAddress && walletClient && !isMinting);
 
   return (
     <CheckPrecompile

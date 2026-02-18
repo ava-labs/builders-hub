@@ -1,19 +1,31 @@
 import React, { createContext, useContext } from 'react';
 import { useWalletStore } from '../stores/walletStore';
+import { useWalletClient } from 'wagmi';
 import type { CoreWalletClientType } from '../coreViem';
+import type { WalletClient } from 'viem';
 
 interface ConnectedWalletContextValue {
-    coreWalletClient: CoreWalletClientType;
+    /** Wagmi wallet client — works for ALL connected EVM wallets (Core, MetaMask, Rabby, etc.) */
+    walletClient: WalletClient;
+    /** Core wallet client with P-Chain methods — null when connected with a non-Core wallet */
+    coreWalletClient: CoreWalletClientType | null;
 }
 
 const ConnectedWalletContext = createContext<ConnectedWalletContextValue | null>(null);
 
 export function ConnectedWalletProvider({ children }: { children: React.ReactNode }) {
     const coreWalletClient = useWalletStore((s) => s.coreWalletClient);
+    const { data: wagmiWalletClient } = useWalletClient();
 
-    // At this point, we know all requirements are met, so type assertion is safe
+    // Requirements have been checked, so the wallet should be connected.
+    // If wagmiWalletClient is not yet available (brief async gap), don't render children.
+    if (!wagmiWalletClient) {
+        return null;
+    }
+
     const contextValue: ConnectedWalletContextValue = {
-        coreWalletClient: coreWalletClient as CoreWalletClientType,
+        walletClient: wagmiWalletClient,
+        coreWalletClient: coreWalletClient ?? null,
     };
 
     return (

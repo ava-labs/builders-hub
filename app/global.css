@@ -93,6 +93,14 @@ nav#nd-nav {
   padding-top: 0 !important;
 }
 
+/* Console sidebar: offset for the announcement banner + main navbar (h-14 = 3.5rem) */
+/* The shadcn sidebar is fixed inset-y-0 (top:0, bottom:0) by default.
+   Inside the console, it must start below the banner + navbar. */
+#nd-home-layout [data-slot="sidebar-container"] {
+  top: calc(var(--fd-banner-height, 0px) + 3.5rem) !important;
+  height: calc(100vh - var(--fd-banner-height, 0px) - 3.5rem) !important;
+}
+
 /* Remove ALL left whitespace from navbar to fill screen edge */
 body > div > nav,
 body > div > header,
@@ -825,10 +833,10 @@ nav button[data-slot="dropdown-menu-trigger"]:hover {
   background-color: rgba(255, 255, 255, 0.08) !important;
 }
 
-/* Larger padding for type: 'main' items (University, Blog) to match menu hover size */
+/* Larger padding for nav items - more breathing room between links */
 nav li > a {
-  padding-left: 0.9rem !important;
-  padding-right: 0.9rem !important;
+  padding-left: 1.1rem !important;
+  padding-right: 1.1rem !important;
   padding-top: 0.5rem !important;
   padding-bottom: 0.5rem !important;
 }
@@ -1175,12 +1183,34 @@ nav button[aria-current="page"]:hover {
 #nd-nav nav {
   min-width: 0 !important;
   overflow: visible !important; /* Changed from hidden to allow dropdown */
+  max-width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
 }
 
 /* Prevent navbar items from wrapping or overflowing */
 #nd-nav .flex.h-14.w-full.items-center.px-4 {
   gap: 0.5rem !important;
   overflow: visible !important; /* Changed from hidden to allow dropdown */
+}
+
+/* Remove fumadocs max-width centering so navbar goes full-width edge-to-edge */
+#nd-nav > div > * {
+  max-width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+/* Left-center-right navbar layout:
+   Logo (left, shrink-to-fit) | Nav links (center, flex-1) | Search+login (right, shrink-to-fit) */
+#nd-nav ul.flex.flex-row.items-center.gap-2.px-6.max-sm\:hidden {
+  flex: 1 !important;
+  justify-content: center !important;
+  gap: 0.5rem !important;
+}
+
+#nd-nav div.flex.flex-row.items-center.justify-end.gap-1\.5.flex-1.max-lg\:hidden {
+  flex: 0 0 auto !important;
 }
 
 /* Add overflow scroll for mobile menu on small screens */

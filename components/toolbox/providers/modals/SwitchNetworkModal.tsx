@@ -67,7 +67,7 @@ function useSwitchNetworkModalState() {
 
 export function SwitchNetworkModal() {
     const { isOpen, closeModal } = useSwitchNetworkModalState();
-    const { client: coreWalletClient } = useWallet();
+    const { client: walletClient } = useWallet();
     const { walletChainId, setWalletChainId } = useWalletStore();
     const l1ListStore = useL1ListStore();
     const l1List = l1ListStore((s: any) => s.l1List);
@@ -89,7 +89,7 @@ export function SwitchNetworkModal() {
     }, [l1List, searchQuery]);
 
     const handleSwitchNetwork = async (network: any) => {
-        if (!coreWalletClient) {
+        if (!walletClient) {
             setError('Please connect your wallet first');
             return;
         }
@@ -98,7 +98,7 @@ export function SwitchNetworkModal() {
         setError(null);
 
         try {
-            await coreWalletClient.switchChain({ id: network.evmChainId });
+            await walletClient.switchChain({ id: network.evmChainId });
             setWalletChainId(network.evmChainId);
             closeModal({ success: true, chainId: network.evmChainId });
         } catch (err) {

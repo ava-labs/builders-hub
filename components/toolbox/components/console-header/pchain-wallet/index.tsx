@@ -12,7 +12,6 @@ export function WalletPChain() {
   const pChainBalance = useWalletStore((s) => s.balances.pChain);
   const updatePChainBalance = useWalletStore((s) => s.updatePChainBalance);
   const walletEVMAddress = useWalletStore((s) => s.walletEVMAddress);
-  const walletType = useWalletStore((s) => s.walletType);
 
   const [isCopied, setIsCopied] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -42,7 +41,7 @@ export function WalletPChain() {
     return `${address.slice(0, leading)}...${address.slice(-trailing)}`
   };
 
-  if (!walletEVMAddress || walletType !== 'core') return null;
+  if (!walletEVMAddress || !pChainAddress) return null;
 
   return (
     <DropdownMenu>

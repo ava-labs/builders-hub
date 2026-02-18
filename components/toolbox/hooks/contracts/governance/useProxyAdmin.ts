@@ -3,6 +3,7 @@ import { useViemChainStore } from '../../../stores/toolboxStore';
 import { readContract } from 'viem/actions';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { useWallet } from '../../useWallet';
+import { useWalletClient } from 'wagmi';
 import ProxyAdminAbi from '@/contracts/openzeppelin-4.9/compiled/ProxyAdmin.json';
 
 export interface ProxyAdminHook {
@@ -31,13 +32,14 @@ export function useProxyAdmin(
   contractAddress: string | null,
   abi?: any
 ): ProxyAdminHook {
-  const { coreWalletClient, walletEVMAddress } = useWalletStore();
+  const { walletEVMAddress } = useWalletStore();
   const viemChain = useViemChainStore();
   const { notify } = useConsoleNotifications();
   const { avalancheWalletClient } = useWallet();
+  const { data: walletClient } = useWalletClient();
 
   const contractAbi = abi ?? ProxyAdminAbi.abi;
-  const isReady = Boolean(contractAddress && avalancheWalletClient && viemChain);
+  const isReady = Boolean(contractAddress && walletClient && viemChain);
 
   // Read functions
   const owner = async (): Promise<string> => {
@@ -75,11 +77,11 @@ export function useProxyAdmin(
 
   // Write functions
   const transferOwnership = async (newOwner: string): Promise<string> => {
-    if (!coreWalletClient || !contractAddress || !walletEVMAddress || !viemChain) {
+    if (!walletClient || !contractAddress || !walletEVMAddress || !viemChain) {
       throw new Error('Wallet not connected or contract not ready');
     }
 
-    const writePromise = coreWalletClient.writeContract({
+    const writePromise = walletClient!.writeContract({
       address: contractAddress as `0x${string}`,
       abi: contractAbi,
       functionName: 'transferOwnership',
@@ -98,11 +100,11 @@ export function useProxyAdmin(
   };
 
   const upgrade = async (proxy: string, implementation: string): Promise<string> => {
-    if (!coreWalletClient || !contractAddress || !walletEVMAddress || !viemChain) {
+    if (!walletClient || !contractAddress || !walletEVMAddress || !viemChain) {
       throw new Error('Wallet not connected or contract not ready');
     }
 
-    const writePromise = coreWalletClient.writeContract({
+    const writePromise = walletClient!.writeContract({
       address: contractAddress as `0x${string}`,
       abi: contractAbi,
       functionName: 'upgrade',
@@ -121,11 +123,11 @@ export function useProxyAdmin(
   };
 
   const upgradeAndCall = async (proxy: string, implementation: string, data: string): Promise<string> => {
-    if (!coreWalletClient || !contractAddress || !walletEVMAddress || !viemChain) {
+    if (!walletClient || !contractAddress || !walletEVMAddress || !viemChain) {
       throw new Error('Wallet not connected or contract not ready');
     }
 
-    const writePromise = coreWalletClient.writeContract({
+    const writePromise = walletClient!.writeContract({
       address: contractAddress as `0x${string}`,
       abi: contractAbi,
       functionName: 'upgradeAndCall',
@@ -144,11 +146,11 @@ export function useProxyAdmin(
   };
 
   const changeProxyAdmin = async (proxy: string, newAdmin: string): Promise<string> => {
-    if (!coreWalletClient || !contractAddress || !walletEVMAddress || !viemChain) {
+    if (!walletClient || !contractAddress || !walletEVMAddress || !viemChain) {
       throw new Error('Wallet not connected or contract not ready');
     }
 
-    const writePromise = coreWalletClient.writeContract({
+    const writePromise = walletClient!.writeContract({
       address: contractAddress as `0x${string}`,
       abi: contractAbi,
       functionName: 'changeProxyAdmin',

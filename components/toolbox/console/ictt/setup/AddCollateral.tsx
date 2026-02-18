@@ -1,6 +1,7 @@
 "use client";
 
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
+import { useWalletClient } from 'wagmi';
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { Button } from "@/components/toolbox/components/Button";
 import { Success } from "@/components/toolbox/components/Success";
@@ -37,7 +38,8 @@ const metadata: ConsoleToolMetadata = {
 function AddCollateral() {
     const [criticalError, setCriticalError] = useState<Error | null>(null);
     const { nativeTokenRemoteAddress } = useToolboxStore();
-    const { coreWalletClient, walletEVMAddress } = useWalletStore();
+    const { walletEVMAddress } = useWalletStore();
+    const { data: walletClient } = useWalletClient();
     const { notify } = useConsoleNotifications();
     const viemChain = useViemChainStore();
     const selectedL1 = useSelectedL1()();
@@ -327,7 +329,7 @@ function AddCollateral() {
     }, [fetchStatus]);
 
     const handleApprove = async () => {
-        if (!sourceL1?.rpcUrl || !coreWalletClient?.account || !tokenHomeAddress || !tokenAddress || tokenDecimals === null || !amount || !sourceL1ViemChain) {
+        if (!sourceL1?.rpcUrl || !walletClient?.account || !tokenHomeAddress || !tokenAddress || tokenDecimals === null || !amount || !sourceL1ViemChain) {
             setLocalError("Missing required information for approval.");
             return;
         }
@@ -348,11 +350,11 @@ function AddCollateral() {
                 abi: ExampleERC20ABI.abi,
                 functionName: 'approve',
                 args: [tokenHomeAddress as Address, amountParsed],
-                account: coreWalletClient.account,
+                account: walletClient!.account,
                 chain: sourceL1ViemChain,
             });
 
-            const writePromise = coreWalletClient.writeContract(request);
+            const writePromise = walletClient!.writeContract(request);
             notify({
                 type: 'call',
                 name: 'Approve Tokens'
@@ -373,7 +375,7 @@ function AddCollateral() {
     };
 
     const handleAddCollateral = async () => {
-        if (!sourceL1?.rpcUrl || !coreWalletClient?.account || !tokenHomeAddress || tokenDecimals === null || !amount || !remoteContractAddress || !selectedL1 || !sourceL1ViemChain || !tokenType) {
+        if (!sourceL1?.rpcUrl || !walletClient?.account || !tokenHomeAddress || tokenDecimals === null || !amount || !remoteContractAddress || !selectedL1 || !sourceL1ViemChain || !tokenType) {
             setLocalError("Missing required information to add collateral.");
             return;
         }
@@ -419,7 +421,7 @@ function AddCollateral() {
             
             const { request } = await publicClient.simulateContract(simulateParams);
 
-            const writePromise = coreWalletClient.writeContract({
+            const writePromise = walletClient!.writeContract({
                 ...request,
                 account: walletEVMAddress as `0x${string}`,
             });

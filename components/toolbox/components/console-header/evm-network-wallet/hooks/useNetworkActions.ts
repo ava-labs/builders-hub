@@ -15,7 +15,6 @@ export function useNetworkActions() {
     setWalletChainId,
     isTestnet,
     walletEVMAddress,
-    walletType,
     balances,
   } = useWalletStore()
 
@@ -36,19 +35,30 @@ export function useNetworkActions() {
       }
 
       if (network.evmChainId) {
-        if (walletType === 'core' && window.avalanche?.request) {
-          // Core Wallet path: use window.avalanche directly
+        // EVM wallet path: works for all wallets (Core, MetaMask, Rabby, WalletConnect, etc.)
+        // First try wagmi (works for chains in config: C-Chain, Fuji).
+        // If that fails, fall back to raw EIP-1193 provider calls so
+        // custom L1 networks can be added/switched to dynamically.
+        try {
+          await switchChainAsync({ chainId: network.evmChainId })
+        } catch (switchError) {
+          // wagmi failed (chain not in static config) — use raw EIP-1193 provider
+          console.debug('wagmi switchChain failed, trying raw provider:', switchError)
+          const provider = await connector?.getProvider?.() as { request: (args: { method: string; params?: unknown[] }) => Promise<unknown> } | undefined
+          if (!provider?.request) {
+            console.debug('No EIP-1193 provider available for chain switch')
+            return
+          }
           const chainIdHex = `0x${network.evmChainId.toString(16)}`
-
           try {
-            await window.avalanche.request({
+            await provider.request({
               method: 'wallet_switchEthereumChain',
               params: [{ chainId: chainIdHex }],
             })
-          } catch (switchError: any) {
-            if (switchError?.code === 4902 || switchError?.message?.includes('Unrecognized chain')) {
+          } catch (rawSwitchError: any) {
+            if (rawSwitchError?.code === 4902 || rawSwitchError?.message?.includes('Unrecognized chain')) {
               try {
-                await window.avalanche.request({
+                await provider.request({
                   method: 'wallet_addEthereumChain',
                   params: [{
                     chainId: chainIdHex,
@@ -67,61 +77,13 @@ export function useNetworkActions() {
                 return
               }
             } else {
-              console.debug('Failed to switch chain in wallet:', switchError)
+              console.debug('Failed to switch chain in wallet:', rawSwitchError)
               return
             }
           }
-        } else {
-          // Generic EVM wallet path (Rabby, MetaMask, WalletConnect, etc.)
-          // First try wagmi (works for chains in config: C-Chain, Fuji).
-          // If that fails, fall back to raw EIP-1193 provider calls so
-          // custom L1 networks can be added/switched to dynamically.
-          try {
-            await switchChainAsync({ chainId: network.evmChainId })
-          } catch (switchError) {
-            // wagmi failed (chain not in static config) — use raw EIP-1193 provider
-            console.debug('wagmi switchChain failed, trying raw provider:', switchError)
-            const provider = await connector?.getProvider?.() as { request: (args: { method: string; params?: unknown[] }) => Promise<unknown> } | undefined
-            if (!provider?.request) {
-              console.debug('No EIP-1193 provider available for chain switch')
-              return
-            }
-            const chainIdHex = `0x${network.evmChainId.toString(16)}`
-            try {
-              await provider.request({
-                method: 'wallet_switchEthereumChain',
-                params: [{ chainId: chainIdHex }],
-              })
-            } catch (rawSwitchError: any) {
-              if (rawSwitchError?.code === 4902 || rawSwitchError?.message?.includes('Unrecognized chain')) {
-                try {
-                  await provider.request({
-                    method: 'wallet_addEthereumChain',
-                    params: [{
-                      chainId: chainIdHex,
-                      chainName: network.name,
-                      nativeCurrency: {
-                        name: network.coinName || network.name,
-                        symbol: network.coinName || 'ETH',
-                        decimals: 18,
-                      },
-                      rpcUrls: [network.rpcUrl],
-                      blockExplorerUrls: network.explorerUrl ? [network.explorerUrl] : undefined,
-                    }],
-                  })
-                } catch (addError) {
-                  console.error('Failed to add chain to wallet:', addError)
-                  return
-                }
-              } else {
-                console.debug('Failed to switch chain in wallet:', rawSwitchError)
-                return
-              }
-            }
-            // Raw provider switch succeeded but wagmi won't see chains
-            // outside its static config, so manually sync Zustand store.
-            setWalletChainId(network.evmChainId)
-          }
+          // Raw provider switch succeeded but wagmi won't see chains
+          // outside its static config, so manually sync Zustand store.
+          setWalletChainId(network.evmChainId)
         }
 
         // Determine if this is C-Chain for appropriate balance update

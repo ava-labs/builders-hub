@@ -132,7 +132,7 @@ function SubLink({
   );
 }
 
-const INSTALL_CMD = "curl -sSfL https://raw.githubusercontent.com/ava-labs/platform-cli/main/install.sh | sh";
+const INSTALL_CMD = "curl -sSfL https://build.avax.network/install/platform-cli | sh";
 
 function CliInstallSnippet() {
   const [copied, setCopied] = useState(false);
@@ -154,7 +154,7 @@ function CliInstallSnippet() {
       <div className="flex items-center gap-2 flex-1 min-w-0 rounded-lg bg-zinc-100 dark:bg-zinc-800/80 px-3 py-2 overflow-x-auto w-full sm:w-auto">
         <span className="text-xs text-zinc-400 dark:text-zinc-500 select-none font-mono shrink-0">$</span>
         <code className="text-sm font-mono whitespace-nowrap text-zinc-600 dark:text-zinc-300">
-          curl -sSfL https://raw.githubusercontent.com/ava-labs/platform-cli/main/install.sh | sh
+          curl -sSfL build.avax.network/install/platform-cli | sh
         </code>
         <button
           onClick={handleCopy}

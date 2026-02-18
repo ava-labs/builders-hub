@@ -42,7 +42,7 @@ type ConsoleToolComponent = BaseConsoleToolComponent & {
  *     {
  *         title: "Cross-Chain Transfer",
  *         description: "Transfer AVAX between Platform (P) and Contract (C) chains",
- *         toolRequirements: [WalletRequirementsConfigKey.CoreWalletConnected]
+ *         toolRequirements: [WalletRequirementsConfigKey.WalletConnected]
  *     }
  * );
  */

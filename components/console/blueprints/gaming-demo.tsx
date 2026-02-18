@@ -2,40 +2,23 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
-import ExampleERC20 from "@/contracts/icm-contracts/compiled/ExampleERC20.json";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
-import { useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
-import { useL1List, type L1ListItem } from "@/components/toolbox/stores/l1ListStore";
-import useConsoleNotifications from "@/hooks/useConsoleNotifications";
-import { createPublicClient, http, isAddress, type Address, type Chain } from "viem";
+import { useGameWallet } from "./useGameWallet";
 import {
-  Activity,
-  Coins,
-  Database,
   Gauge,
-  Gift,
   MousePointerClick,
   Pause,
   Play,
   Rocket,
   RotateCcw,
+  ShoppingBag,
+  Snowflake,
   Sparkles,
+  Trophy,
   Zap,
 } from "lucide-react";
 
-type ThroughputMode = "builder" | "showcase" | "stress";
-type ExecutionMode = "simulated" | "live";
-type FeedTone = "click" | "upgrade" | "mint" | "system";
-type TxFinalizationMode = "simulated" | "external";
-
-interface ThroughputProfile {
-  label: string;
-  ambientTps: number;
-  jitterTps: number;
-  finalityMinMs: number;
-  finalityMaxMs: number;
-  visualCap: number;
-}
+/* ─── Types ─────────────────────────────────────────────────── */
 
 interface Upgrade {
   id: string;
@@ -44,896 +27,345 @@ interface Upgrade {
   baseCost: number;
   growth: number;
   clickBoost: number;
-  autoClicksPerSecond: number;
+  autoPerSecond: number;
 }
 
-interface CollectibleSpec {
+interface Milestone {
   id: string;
   name: string;
-  rarity: "Common" | "Rare" | "Legendary";
+  icon: string;
   clickTarget: number;
+  description: string;
 }
 
-interface MintedCollectible extends CollectibleSpec {
-  tokenId: number;
-}
-
-interface TxSample {
-  ts: number;
-  count: number;
-}
-
-interface PendingBatch {
-  count: number;
-  finalizeAt: number;
-}
-
-interface FeedItem {
+interface ClickEffect {
   id: number;
-  title: string;
-  detail: string;
-  tone: FeedTone;
-  count: number;
-  at: number;
+  value: number;
+  x: number;
+  y: number;
+  createdAt: number;
 }
 
-const THROUGHPUT_PROFILES: Record<ThroughputMode, ThroughputProfile> = {
-  builder: {
-    label: "Builder",
-    ambientTps: 180,
-    jitterTps: 50,
-    finalityMinMs: 280,
-    finalityMaxMs: 520,
-    visualCap: 1_400,
-  },
-  showcase: {
-    label: "Showcase",
-    ambientTps: 1_750,
-    jitterTps: 320,
-    finalityMinMs: 220,
-    finalityMaxMs: 420,
-    visualCap: 8_000,
-  },
-  stress: {
-    label: "Stress",
-    ambientTps: 9_800,
-    jitterTps: 1_250,
-    finalityMinMs: 180,
-    finalityMaxMs: 340,
-    visualCap: 20_000,
-  },
-};
+interface SnowParticle {
+  id: number;
+  char: string;
+  angle: number;
+  distance: number;
+  createdAt: number;
+}
+
+const SNOW_CHARS = ["❄", "✦", "·", "❅", "✧"];
+
+/* ─── Constants ─────────────────────────────────────────────── */
 
 const UPGRADES: Upgrade[] = [
   {
-    id: "pack-alpha",
-    name: "Pack Alpha",
-    flavor: "Auto taps the triangle for baseline throughput.",
-    baseCost: 24,
+    id: "snowmaker",
+    name: "Snowmaker",
+    flavor: "Auto-packs snowballs for you",
+    baseCost: 20,
     growth: 1.18,
     clickBoost: 0,
-    autoClicksPerSecond: 1.1,
+    autoPerSecond: 1.5,
   },
   {
-    id: "tri-focus",
-    name: "Tri Focus",
-    flavor: "Increases manual tap reward.",
-    baseCost: 90,
+    id: "frozen-focus",
+    name: "Frozen Focus",
+    flavor: "Sharpens your packing precision",
+    baseCost: 80,
     growth: 1.22,
     clickBoost: 1,
-    autoClicksPerSecond: 0,
+    autoPerSecond: 0,
   },
   {
     id: "avalanche-engine",
     name: "Avalanche Engine",
-    flavor: "Heavy autonomous throughput for demo spikes.",
-    baseCost: 520,
+    flavor: "Triggers rolling snowball cascades",
+    baseCost: 400,
     growth: 1.2,
     clickBoost: 0.5,
-    autoClicksPerSecond: 8,
+    autoPerSecond: 8,
   },
 ];
 
-const COLLECTIBLE_DROPS: CollectibleSpec[] = [
+const MILESTONES: Milestone[] = [
   {
-    id: "red-shard",
-    name: "Red Shard",
-    rarity: "Common",
-    clickTarget: 25,
+    id: "snowflake",
+    name: "Snowflake",
+    icon: "❄",
+    clickTarget: 100,
+    description: "First flurry — a delicate snowflake badge",
   },
   {
-    id: "wolfie-tag",
-    name: "Wolfie Tag",
-    rarity: "Rare",
-    clickTarget: 90,
+    id: "blizzard",
+    name: "Blizzard",
+    icon: "🌨",
+    clickTarget: 1_000,
+    description: "Storm warning — a blizzard achievement",
   },
   {
-    id: "summit-emblem",
-    name: "Summit Emblem",
-    rarity: "Legendary",
-    clickTarget: 240,
+    id: "avalanche",
+    name: "Avalanche",
+    icon: "🏔",
+    clickTarget: 10_000,
+    description: "Full avalanche — the ultimate badge",
   },
 ];
-
-const COLLECTIBLE_MINT_REWARDS: Record<CollectibleSpec["rarity"], bigint> = {
-  Common: 15n,
-  Rare: 40n,
-  Legendary: 120n,
-};
-
-const compactFormatter = new Intl.NumberFormat("en-US", {
-  notation: "compact",
-  maximumFractionDigits: 1,
-});
-
-const randomBetween = (min: number, max: number): number =>
-  min + Math.random() * (max - min);
-
-const createUpgradeState = (): Record<string, number> => {
-  const state: Record<string, number> = {};
-  for (const upgrade of UPGRADES) {
-    state[upgrade.id] = 0;
-  }
-  return state;
-};
 
 const getUpgradeCost = (upgrade: Upgrade, owned: number): number =>
   Math.floor(upgrade.baseCost * Math.pow(upgrade.growth, owned));
 
-const createReadyFeed = (id: number): FeedItem => ({
-  id,
-  title: "Simulator Ready",
-  detail: "Start the run to stream click transactions.",
-  tone: "system",
-  count: 0,
-  at: Date.now(),
-});
+const createUpgradeState = (): Record<string, number> =>
+  Object.fromEntries(UPGRADES.map((u) => [u.id, 0]));
+
+/* ─── Component ─────────────────────────────────────────────── */
 
 export function GamingDemo() {
-  const [mode, setMode] = useState<ThroughputMode>("showcase");
-  const [executionMode, setExecutionMode] = useState<ExecutionMode>("simulated");
-  const [isRunning, setIsRunning] = useState(false);
-  const [cookies, setCookies] = useState(0);
+  /* --- State --- */
+  const [snowballs, setSnowballs] = useState(0);
   const [manualClicks, setManualClicks] = useState(0);
-  const [totalClicks, setTotalClicks] = useState(0);
-  const [elapsedMs, setElapsedMs] = useState(0);
-  const [ownedUpgrades, setOwnedUpgrades] = useState<Record<string, number>>(() => createUpgradeState());
-  const [liveTps, setLiveTps] = useState(0);
-  const [peakTps, setPeakTps] = useState(0);
+  const [ownedUpgrades, setOwnedUpgrades] = useState<Record<string, number>>(createUpgradeState);
+  const [unlockedMilestones, setUnlockedMilestones] = useState<string[]>([]);
+  const [isRunning, setIsRunning] = useState(false);
+  const [clickPop, setClickPop] = useState(false);
+  const [clickEffects, setClickEffects] = useState<ClickEffect[]>([]);
+  const [particles, setParticles] = useState<SnowParticle[]>([]);
+
   const [submittedTx, setSubmittedTx] = useState(0);
   const [finalizedTx, setFinalizedTx] = useState(0);
-  const [pendingTx, setPendingTx] = useState(0);
-  const [collectibles, setCollectibles] = useState<MintedCollectible[]>([]);
-  const [feed, setFeed] = useState<FeedItem[]>(() => [createReadyFeed(1)]);
-  const [cookiePop, setCookiePop] = useState(false);
-  const [contractInput, setContractInput] = useState("");
-  const [liveContractAddress, setLiveContractAddress] = useState<Address | "">("");
-  const [onchainCookieBalance, setOnchainCookieBalance] = useState<bigint>(0n);
-  const [isDeployingContract, setIsDeployingContract] = useState(false);
-  const [isLiveActionPending, setIsLiveActionPending] = useState(false);
+  const [liveTps, setLiveTps] = useState(0);
 
-  const { coreWalletClient, walletEVMAddress, walletChainId } = useWalletStore();
-  const viemChain = useViemChainStore();
-  const l1List = useL1List();
-  const { notify } = useConsoleNotifications();
+  const [withdrawAddress, setWithdrawAddress] = useState("");
 
-  const txWindowRef = useRef<TxSample[]>([]);
-  const pendingBatchesRef = useRef<PendingBatch[]>([]);
+  /* --- Refs --- */
+  const txWindowRef = useRef<number[]>([]);
   const autoAccumulatorRef = useRef(0);
-  const ambientAccumulatorRef = useRef(0);
-  const feedIdRef = useRef(1);
-  const liveActionPendingRef = useRef(false);
   const popTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastTrafficLogRef = useRef(Date.now());
-  const trafficSinceLogRef = useRef(0);
+  const effectIdRef = useRef(0);
 
-  const selectedNetwork = useMemo(
-    () => l1List.find((network: L1ListItem) => network.evmChainId === walletChainId),
-    [l1List, walletChainId],
+  /* --- Burner wallet (auto-generated, zero popups) --- */
+  const { address: gameAddress } = useGameWallet();
+
+  /* --- Connected wallet (only used for withdraw destination) --- */
+  const { walletEVMAddress } = useWalletStore();
+
+  /* --- Derived values --- */
+  const clickPower = useMemo(
+    () => 1 + UPGRADES.reduce((sum, u) => sum + u.clickBoost * (ownedUpgrades[u.id] ?? 0), 0),
+    [ownedUpgrades],
   );
 
-  const liveChain = useMemo<Chain | null>(() => {
-    if (!viemChain || !selectedNetwork) {
-      return null;
-    }
-
-    return {
-      id: viemChain.id,
-      name: viemChain.name,
-      rpcUrls: viemChain.rpcUrls,
-      nativeCurrency: viemChain.nativeCurrency,
-      blockExplorers: selectedNetwork.explorerUrl
-        ? {
-            default: {
-              name: `${selectedNetwork.name} Explorer`,
-              url: selectedNetwork.explorerUrl,
-            },
-          }
-        : undefined,
-    } as Chain;
-  }, [selectedNetwork, viemChain]);
-
-  const walletReadyForLive = Boolean(coreWalletClient && walletEVMAddress && liveChain);
-
-  const clickPower = useMemo(() => {
-    return 1 + UPGRADES.reduce((sum, upgrade) => {
-      return sum + upgrade.clickBoost * (ownedUpgrades[upgrade.id] ?? 0);
-    }, 0);
-  }, [ownedUpgrades]);
-
-  const autoClicksPerSecond = useMemo(() => {
-    return UPGRADES.reduce((sum, upgrade) => {
-      return sum + upgrade.autoClicksPerSecond * (ownedUpgrades[upgrade.id] ?? 0);
-    }, 0);
-  }, [ownedUpgrades]);
-
-  const runtimeSeconds = Math.floor(elapsedMs / 1_000);
-  const runtimeLabel = `${Math.floor(runtimeSeconds / 60)}:${String(runtimeSeconds % 60).padStart(2, "0")}`;
-  const tpsProgress = Math.min(
-    (liveTps / THROUGHPUT_PROFILES[mode].visualCap) * 100,
-    100,
+  const autoPerSecond = useMemo(
+    () => UPGRADES.reduce((sum, u) => sum + u.autoPerSecond * (ownedUpgrades[u.id] ?? 0), 0),
+    [ownedUpgrades],
   );
 
-  const nextCollectible = COLLECTIBLE_DROPS.find((drop) =>
-    !collectibles.some((minted) => minted.id === drop.id),
-  );
-  const collectibleToUnlock = useMemo(
-    () =>
-      COLLECTIBLE_DROPS.find((drop) =>
-        manualClicks >= drop.clickTarget && !collectibles.some((minted) => minted.id === drop.id),
-      ),
-    [collectibles, manualClicks],
-  );
-  const normalizedContractInput = contractInput.trim();
-  const isContractInputValid = isAddress(normalizedContractInput);
-
-  const getErrorMessage = useCallback((error: unknown): string => {
-    if (error instanceof Error && error.message) {
-      return error.message;
-    }
-    if (typeof error === "string" && error.length > 0) {
-      return error;
-    }
-    return "Unexpected wallet error.";
-  }, []);
-
-  const pushFeed = useCallback((title: string, detail: string, tone: FeedTone, count = 1) => {
-    const nextId = feedIdRef.current + 1;
-    feedIdRef.current = nextId;
-    setFeed((previous) => [
-      {
-        id: nextId,
-        title,
-        detail,
-        tone,
-        count,
-        at: Date.now(),
-      },
-      ...previous,
-    ].slice(0, 8));
-  }, []);
-
-  const calculateLiveTps = useCallback((now: number): number => {
-    const samples = txWindowRef.current;
-    while (samples.length > 0 && now - samples[0].ts > 1_000) {
-      samples.shift();
-    }
-    return samples.reduce((sum, sample) => sum + sample.count, 0);
-  }, []);
-
-  const recordTransactions = useCallback((
-    count: number,
-    options?: {
-      title?: string;
-      detail?: string;
-      tone?: FeedTone;
-      finalization?: TxFinalizationMode;
-    },
-  ) => {
-    if (count <= 0) {
-      return;
-    }
-
+  /* --- Transaction tracking (honest — no ambient inflation) --- */
+  const recordTx = useCallback((count = 1) => {
     const now = Date.now();
-    const shouldSimulateFinality = (options?.finalization ?? "simulated") === "simulated";
-    if (shouldSimulateFinality) {
-      const profile = THROUGHPUT_PROFILES[mode];
-      const finalizeAt = now + randomBetween(profile.finalityMinMs, profile.finalityMaxMs);
-      pendingBatchesRef.current.push({ count, finalizeAt });
-    }
-
-    txWindowRef.current.push({ ts: now, count });
-    setSubmittedTx((previous) => previous + count);
-    setPendingTx((previous) => previous + count);
-
-    if (options?.title && options.detail) {
-      pushFeed(options.title, options.detail, options.tone ?? "system", count);
-    }
-  }, [mode, pushFeed]);
-
-  const finalizeRecordedTransactions = useCallback((count: number) => {
-    if (count <= 0) {
-      return;
-    }
-    setFinalizedTx((previous) => previous + count);
-    setPendingTx((previous) => Math.max(0, previous - count));
+    for (let i = 0; i < count; i++) txWindowRef.current.push(now);
+    setSubmittedTx((p) => p + count);
+    setFinalizedTx((p) => p + count);
   }, []);
 
-  const fetchOnchainCookieBalance = useCallback(async () => {
-    if (!liveChain || !walletEVMAddress || !liveContractAddress) {
-      return;
-    }
+  // Sliding-window TPS calculation
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = Date.now();
+      txWindowRef.current = txWindowRef.current.filter((ts) => now - ts < 1_000);
+      setLiveTps(txWindowRef.current.length);
+    }, 120);
+    return () => clearInterval(interval);
+  }, []);
 
-    try {
-      const publicClient = createPublicClient({
-        chain: liveChain,
-        transport: http(liveChain.rpcUrls.default.http[0]),
-      });
-
-      const balance = await publicClient.readContract({
-        address: liveContractAddress,
-        abi: ExampleERC20.abi as any,
-        functionName: "balanceOf",
-        args: [walletEVMAddress as Address],
-      });
-
-      setOnchainCookieBalance(balance as bigint);
-    } catch (error) {
-      pushFeed("Read Failed", getErrorMessage(error), "system", 0);
-    }
-  }, [getErrorMessage, liveChain, liveContractAddress, pushFeed, walletEVMAddress]);
-
-  const applyLiveContractAddress = useCallback(() => {
-    const normalizedAddress = contractInput.trim();
-    if (!isAddress(normalizedAddress)) {
-      pushFeed("Invalid Address", "Enter a valid EVM contract address.", "system", 0);
-      return;
-    }
-
-    const nextAddress = normalizedAddress as Address;
-    setLiveContractAddress(nextAddress);
-    setContractInput(nextAddress);
-    pushFeed(
-      "Contract Bound",
-      `Live actions now target ${nextAddress.slice(0, 10)}...`,
-      "system",
-      0,
-    );
-  }, [contractInput, pushFeed]);
-
-  const deployLiveCookieContract = useCallback(async () => {
-    if (!walletReadyForLive || !coreWalletClient || !walletEVMAddress || !liveChain) {
-      pushFeed("Wallet Required", "Connect wallet on a supported chain first.", "system", 0);
-      return;
-    }
-
-    setIsDeployingContract(true);
-    try {
-      const publicClient = createPublicClient({
-        chain: liveChain,
-        transport: http(liveChain.rpcUrls.default.http[0]),
-      });
-
-      const deployPromise = coreWalletClient.deployContract({
-        abi: ExampleERC20.abi as any,
-        bytecode: ExampleERC20.bytecode.object as `0x${string}`,
-        args: [],
-        chain: liveChain,
-        account: walletEVMAddress as Address,
-      });
-
-      notify(
-        { type: "deploy", name: "Triangle Ledger ERC20" },
-        deployPromise,
-        liveChain,
-      );
-
-      const hash = await deployPromise;
-      recordTransactions(1, {
-        title: "Contract Deploy Submitted",
-        detail: "Deploying live triangle ledger contract.",
-        tone: "system",
-        finalization: "external",
-      });
-
-      const receipt = await publicClient.waitForTransactionReceipt({ hash });
-      finalizeRecordedTransactions(1);
-
-      if (!receipt.contractAddress) {
-        throw new Error("Missing contract address in deployment receipt.");
+  /* --- Auto-miner tick (100ms interval) --- */
+  useEffect(() => {
+    if (!isRunning) return;
+    const interval = setInterval(() => {
+      autoAccumulatorRef.current += autoPerSecond * 0.1;
+      const whole = Math.floor(autoAccumulatorRef.current);
+      if (whole > 0) {
+        autoAccumulatorRef.current -= whole;
+        setSnowballs((p) => p + whole);
+        recordTx(whole);
       }
+    }, 100);
+    return () => clearInterval(interval);
+  }, [isRunning, autoPerSecond, recordTx]);
 
-      setLiveContractAddress(receipt.contractAddress);
-      setContractInput(receipt.contractAddress);
-      setOnchainCookieBalance(0n);
-      pushFeed(
-        "Contract Ready",
-        `Live triangle ledger ${receipt.contractAddress.slice(0, 10)}... deployed.`,
-        "system",
-        1,
-      );
-    } catch (error) {
-      pushFeed("Deploy Failed", getErrorMessage(error), "system", 0);
-    } finally {
-      setIsDeployingContract(false);
+  /* --- Milestone unlocking --- */
+  useEffect(() => {
+    for (const m of MILESTONES) {
+      if (manualClicks >= m.clickTarget && !unlockedMilestones.includes(m.id)) {
+        setUnlockedMilestones((prev) => [...prev, m.id]);
+        recordTx(1); // NFT mint tx
+      }
     }
-  }, [
-    coreWalletClient,
-    finalizeRecordedTransactions,
-    getErrorMessage,
-    liveChain,
-    notify,
-    pushFeed,
-    recordTransactions,
-    walletEVMAddress,
-    walletReadyForLive,
-  ]);
+  }, [manualClicks, unlockedMilestones, recordTx]);
 
-  const submitLiveContractAction = useCallback(async (payload: {
-    actionName: string;
-    mintAmount: bigint;
-    feedTitle: string;
-    feedDetail: string;
-    tone: FeedTone;
-  }) => {
-    if (!walletReadyForLive || !coreWalletClient || !walletEVMAddress || !liveChain) {
-      pushFeed("Wallet Required", "Connect wallet on a supported chain first.", "system", 0);
-      return false;
-    }
+  /* --- Click handler --- */
+  const handleClick = useCallback(() => {
+    if (!isRunning) return;
 
-    if (!liveContractAddress) {
-      pushFeed("Contract Required", "Deploy or set a live contract address first.", "system", 0);
-      return false;
-    }
+    // Spring animation
+    if (popTimeoutRef.current) clearTimeout(popTimeoutRef.current);
+    setClickPop(true);
+    popTimeoutRef.current = setTimeout(() => setClickPop(false), 350);
 
-    if (liveActionPendingRef.current) {
-      pushFeed("Transaction Pending", "Confirm the current wallet prompt first.", "system", 0);
-      return false;
-    }
+    // Floating score number
+    const now = Date.now();
+    const eid = ++effectIdRef.current;
+    setClickEffects((prev) => [
+      ...prev,
+      {
+        id: eid,
+        value: clickPower,
+        x: Math.random() * 40 - 20,
+        y: -20 - Math.random() * 20,
+        createdAt: now,
+      },
+    ]);
 
-    liveActionPendingRef.current = true;
-    setIsLiveActionPending(true);
-    try {
-      const publicClient = createPublicClient({
-        chain: liveChain,
-        transport: http(liveChain.rpcUrls.default.http[0]),
-      });
+    // Snow particle burst (6-10 particles)
+    const count = 6 + Math.floor(Math.random() * 5);
+    const newParticles: SnowParticle[] = Array.from({ length: count }, (_, i) => ({
+      id: eid * 100 + i,
+      char: SNOW_CHARS[Math.floor(Math.random() * SNOW_CHARS.length)],
+      angle: (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.6,
+      distance: 50 + Math.random() * 60,
+      createdAt: now,
+    }));
+    setParticles((prev) => [...prev, ...newParticles]);
 
-      const writePromise = coreWalletClient.writeContract({
-        address: liveContractAddress,
-        abi: ExampleERC20.abi as any,
-        functionName: "mint",
-        args: [walletEVMAddress as Address, payload.mintAmount],
-        chain: liveChain,
-        account: walletEVMAddress as Address,
-      });
+    setSnowballs((p) => p + clickPower);
+    setManualClicks((p) => p + 1);
+    recordTx(1);
+  }, [isRunning, clickPower, recordTx]);
 
-      notify({ type: "call", name: payload.actionName }, writePromise, liveChain);
+  /* --- Prune expired click effects --- */
+  useEffect(() => {
+    if (clickEffects.length === 0 && particles.length === 0) return;
+    const interval = setInterval(() => {
+      const now = Date.now();
+      setClickEffects((prev) => prev.filter((e) => now - e.createdAt < 900));
+      setParticles((prev) => prev.filter((p) => now - p.createdAt < 700));
+    }, 200);
+    return () => clearInterval(interval);
+  }, [clickEffects.length, particles.length]);
 
-      const hash = await writePromise;
-      recordTransactions(1, {
-        title: payload.feedTitle,
-        detail: payload.feedDetail,
-        tone: payload.tone,
-        finalization: "external",
-      });
+  /* --- Buy upgrade --- */
+  const buyUpgrade = useCallback(
+    (upgrade: Upgrade) => {
+      if (!isRunning) return;
+      const owned = ownedUpgrades[upgrade.id] ?? 0;
+      const cost = getUpgradeCost(upgrade, owned);
+      if (snowballs < cost) return;
 
-      await publicClient.waitForTransactionReceipt({ hash });
-      finalizeRecordedTransactions(1);
-      await fetchOnchainCookieBalance();
-      return true;
-    } catch (error) {
-      pushFeed(`${payload.actionName} Failed`, getErrorMessage(error), "system", 0);
-      return false;
-    } finally {
-      liveActionPendingRef.current = false;
-      setIsLiveActionPending(false);
-    }
-  }, [
-    coreWalletClient,
-    fetchOnchainCookieBalance,
-    finalizeRecordedTransactions,
-    getErrorMessage,
-    liveChain,
-    liveContractAddress,
-    notify,
-    pushFeed,
-    recordTransactions,
-    walletEVMAddress,
-    walletReadyForLive,
-  ]);
+      setSnowballs((p) => p - cost);
+      setOwnedUpgrades((p) => ({ ...p, [upgrade.id]: (p[upgrade.id] ?? 0) + 1 }));
+      recordTx(1);
+    },
+    [isRunning, ownedUpgrades, snowballs, recordTx],
+  );
 
-  const resetDemo = useCallback(() => {
+  /* --- Reset --- */
+  const reset = useCallback(() => {
     setIsRunning(false);
-    setCookies(0);
+    setSnowballs(0);
     setManualClicks(0);
-    setTotalClicks(0);
-    setElapsedMs(0);
     setOwnedUpgrades(createUpgradeState());
-    setLiveTps(0);
-    setPeakTps(0);
+    setUnlockedMilestones([]);
     setSubmittedTx(0);
     setFinalizedTx(0);
-    setPendingTx(0);
-    setCollectibles([]);
-    liveActionPendingRef.current = false;
-    setIsLiveActionPending(false);
-
+    setLiveTps(0);
+    setClickPop(false);
+    setClickEffects([]);
+    setParticles([]);
+    setWithdrawAddress("");
     txWindowRef.current = [];
-    pendingBatchesRef.current = [];
     autoAccumulatorRef.current = 0;
-    ambientAccumulatorRef.current = 0;
-    trafficSinceLogRef.current = 0;
-    lastTrafficLogRef.current = Date.now();
-
-    const newFeedId = feedIdRef.current + 1;
-    feedIdRef.current = newFeedId;
-    setFeed([createReadyFeed(newFeedId)]);
   }, []);
 
-  const toggleSimulation = useCallback(() => {
-    setIsRunning((previous) => {
-      const nextState = !previous;
-      pushFeed(
-        nextState ? "Simulation Started" : "Simulation Paused",
-        nextState
-          ? executionMode === "live"
-            ? "Live mode active: clicks/upgrades prompt real contract transactions."
-            : "Manual clicks and bot actors are now submitting txs."
-          : "Throughput generation paused. Pending txs still settle.",
-        "system",
-        0,
-      );
-      return nextState;
-    });
-  }, [executionMode, pushFeed]);
+  /* --- Use connected wallet for withdraw --- */
+  const useConnectedWallet = useCallback(() => {
+    if (walletEVMAddress) setWithdrawAddress(walletEVMAddress);
+  }, [walletEVMAddress]);
 
-  const handleCookieClick = useCallback(async () => {
-    if (!isRunning) {
-      return;
-    }
-
-    if (popTimeoutRef.current) {
-      clearTimeout(popTimeoutRef.current);
-    }
-    setCookiePop(true);
-    popTimeoutRef.current = setTimeout(() => {
-      setCookiePop(false);
-    }, 130);
-
-    const criticalHit = Math.random() < 0.08;
-    const yieldMultiplier = criticalHit ? 2 : 1;
-    const gainedCookies = clickPower * yieldMultiplier;
-    const nextManualClicks = manualClicks + 1;
-
-    if (executionMode === "live") {
-      const clickWasRecorded = await submitLiveContractAction({
-        actionName: "Triangle Tap",
-        mintAmount: BigInt(Math.max(1, gainedCookies)),
-        feedTitle: "Live Click Tx",
-        feedDetail: `Minted ${gainedCookies.toLocaleString()} triangle units on-chain.`,
-        tone: "click",
-      });
-
-      if (!clickWasRecorded) {
-        return;
-      }
-    } else {
-      recordTransactions(1);
-    }
-
-    setCookies((previous) => previous + gainedCookies);
-    setManualClicks(nextManualClicks);
-    setTotalClicks((previous) => previous + 1);
-
-    if (nextManualClicks % 5 === 0) {
-      pushFeed(
-        "Player Click Confirmed",
-        `${nextManualClicks.toLocaleString()} manual click txs submitted.`,
-        "click",
-        1,
-      );
-    }
-
-    if (criticalHit) {
-      pushFeed(
-        "Sugar Rush",
-        `Critical tap doubled output to ${gainedCookies.toLocaleString()} triangles.`,
-        "click",
-        1,
-      );
-    }
-  }, [
-    clickPower,
-    executionMode,
-    isRunning,
-    manualClicks,
-    pushFeed,
-    recordTransactions,
-    submitLiveContractAction,
-  ]);
-
-  const buyUpgrade = useCallback(async (upgrade: Upgrade) => {
-    if (!isRunning) {
-      return;
-    }
-
-    const currentlyOwned = ownedUpgrades[upgrade.id] ?? 0;
-    const cost = getUpgradeCost(upgrade, currentlyOwned);
-    if (cookies < cost) {
-      return;
-    }
-
-    if (executionMode === "live") {
-      const upgradeWasRecorded = await submitLiveContractAction({
-        actionName: `Upgrade ${upgrade.name}`,
-        mintAmount: BigInt(Math.max(1, cost)),
-        feedTitle: `Live Upgrade Tx: ${upgrade.name}`,
-        feedDetail: `Recorded upgrade state with ${cost.toLocaleString()} units.`,
-        tone: "upgrade",
-      });
-
-      if (!upgradeWasRecorded) {
-        return;
-      }
-    } else {
-      recordTransactions(1, {
-        title: `Upgrade Purchased: ${upgrade.name}`,
-        detail: `Spent ${cost.toLocaleString()} triangles for more throughput.`,
-        tone: "upgrade",
-      });
-    }
-
-    setCookies((previous) => previous - cost);
-    setOwnedUpgrades((previous) => ({
-      ...previous,
-      [upgrade.id]: (previous[upgrade.id] ?? 0) + 1,
-    }));
-  }, [
-    cookies,
-    executionMode,
-    isRunning,
-    ownedUpgrades,
-    recordTransactions,
-    submitLiveContractAction,
-  ]);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const now = Date.now();
-      const remaining: PendingBatch[] = [];
-      let finalizedNow = 0;
-
-      for (const batch of pendingBatchesRef.current) {
-        if (batch.finalizeAt <= now) {
-          finalizedNow += batch.count;
-        } else {
-          remaining.push(batch);
-        }
-      }
-
-      pendingBatchesRef.current = remaining;
-
-      if (finalizedNow > 0) {
-        finalizeRecordedTransactions(finalizedNow);
-      }
-
-      const tps = calculateLiveTps(now);
-      setLiveTps(tps);
-      setPeakTps((previous) => Math.max(previous, tps));
-    }, 120);
-
-    return () => clearInterval(interval);
-  }, [calculateLiveTps, finalizeRecordedTransactions]);
-
-  useEffect(() => {
-    if (!isRunning) {
-      return;
-    }
-
-    const tickMs = 100;
-    const interval = setInterval(() => {
-      const profile = THROUGHPUT_PROFILES[mode];
-      const deltaSeconds = tickMs / 1_000;
-      const now = Date.now();
-
-      setElapsedMs((previous) => previous + tickMs);
-
-      autoAccumulatorRef.current += autoClicksPerSecond * deltaSeconds;
-      const autoClickCount = Math.floor(autoAccumulatorRef.current);
-      if (autoClickCount > 0) {
-        autoAccumulatorRef.current -= autoClickCount;
-        setCookies((previous) => previous + autoClickCount);
-        setTotalClicks((previous) => previous + autoClickCount);
-        if (executionMode === "simulated") {
-          recordTransactions(autoClickCount);
-          trafficSinceLogRef.current += autoClickCount;
-        }
-      }
-
-      if (executionMode === "simulated") {
-        const ambientRate = profile.ambientTps + randomBetween(-profile.jitterTps, profile.jitterTps);
-        ambientAccumulatorRef.current += ambientRate * deltaSeconds;
-        const ambientTransactions = Math.max(0, Math.floor(ambientAccumulatorRef.current));
-        if (ambientTransactions > 0) {
-          ambientAccumulatorRef.current -= ambientTransactions;
-          recordTransactions(ambientTransactions);
-          trafficSinceLogRef.current += ambientTransactions;
-        }
-      }
-
-      if (
-        executionMode === "simulated" &&
-        now - lastTrafficLogRef.current >= 4_000 &&
-        trafficSinceLogRef.current > 0
-      ) {
-        const traffic = trafficSinceLogRef.current;
-        trafficSinceLogRef.current = 0;
-        lastTrafficLogRef.current = now;
-        pushFeed(
-          "Throughput Pulse",
-          `${traffic.toLocaleString()} transactions streamed in the last 4s window.`,
-          "system",
-          traffic,
-        );
-      }
-    }, tickMs);
-
-    return () => clearInterval(interval);
-  }, [autoClicksPerSecond, executionMode, isRunning, mode, pushFeed, recordTransactions]);
-
-  useEffect(() => {
-    if (!collectibleToUnlock) {
-      return;
-    }
-
-    if (executionMode === "simulated") {
-      setCollectibles((previous) => {
-        if (previous.some((item) => item.id === collectibleToUnlock.id)) {
-          return previous;
-        }
-        return [
-          ...previous,
-          {
-            ...collectibleToUnlock,
-            tokenId: previous.length + 1,
-          },
-        ];
-      });
-
-      recordTransactions(1, {
-        title: `Collectible Unlocked: ${collectibleToUnlock.name}`,
-        detail: `${collectibleToUnlock.rarity} drop prepared for NFT mint bridging.`,
-        tone: "mint",
-      });
-      return;
-    }
-
-    let cancelled = false;
-
-    const mintCollectible = async () => {
-      const minted = await submitLiveContractAction({
-        actionName: `Collectible ${collectibleToUnlock.name}`,
-        mintAmount: COLLECTIBLE_MINT_REWARDS[collectibleToUnlock.rarity],
-        feedTitle: `Live Collectible Tx: ${collectibleToUnlock.name}`,
-        feedDetail: `${collectibleToUnlock.rarity} collectible checkpoint recorded on-chain.`,
-        tone: "mint",
-      });
-
-      if (!minted || cancelled) {
-        return;
-      }
-
-      setCollectibles((previous) => {
-        if (previous.some((item) => item.id === collectibleToUnlock.id)) {
-          return previous;
-        }
-        return [
-          ...previous,
-          {
-            ...collectibleToUnlock,
-            tokenId: previous.length + 1,
-          },
-        ];
-      });
-    };
-
-    void mintCollectible();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [collectibleToUnlock, executionMode, recordTransactions, submitLiveContractAction]);
-
-  useEffect(() => {
-    if (executionMode !== "live") {
-      return;
-    }
-    void fetchOnchainCookieBalance();
-  }, [executionMode, fetchOnchainCookieBalance]);
-
+  /* --- Cleanup --- */
   useEffect(() => {
     return () => {
-      if (popTimeoutRef.current) {
-        clearTimeout(popTimeoutRef.current);
-      }
+      if (popTimeoutRef.current) clearTimeout(popTimeoutRef.current);
     };
   }, []);
+
+  const isValidWithdrawAddress = /^0x[a-fA-F0-9]{40}$/.test(withdrawAddress);
+
+  /* ─── Render ──────────────────────────────────────────────── */
 
   return (
-    <div className="relative overflow-hidden p-6 rounded-2xl border border-rose-200/80 dark:border-rose-900/50 bg-gradient-to-br from-rose-50 via-red-50 to-zinc-50 dark:from-zinc-900 dark:via-zinc-900 dark:to-zinc-800">
-      <div className="absolute -top-24 -left-20 w-72 h-72 rounded-full bg-red-200/40 dark:bg-red-700/20 blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-24 -right-16 w-72 h-72 rounded-full bg-rose-200/50 dark:bg-rose-700/20 blur-3xl pointer-events-none" />
+    <>
+    {/* Click animation keyframes */}
+    <style>{`
+      @keyframes snowball-squish {
+        0% { transform: scale(1); }
+        20% { transform: scale(0.86, 1.08); }
+        40% { transform: scale(1.07, 0.93); }
+        60% { transform: scale(0.97, 1.03); }
+        80% { transform: scale(1.02, 0.98); }
+        100% { transform: scale(1); }
+      }
+      @keyframes float-score {
+        0% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+        60% { opacity: 0.8; }
+        100% { opacity: 0; transform: translate(-50%, -70px) scale(1.3); }
+      }
+      @keyframes snow-burst {
+        0% { opacity: 0.9; transform: translate(-50%, -50%) translate(0px, 0px) scale(1) rotate(0deg); }
+        100% { opacity: 0; transform: translate(-50%, -50%) translate(var(--dx), var(--dy)) scale(0.2) rotate(180deg); }
+      }
+      @keyframes glow-pulse {
+        0% { opacity: 0.5; transform: translate(-50%, -50%) scale(1); }
+        100% { opacity: 0; transform: translate(-50%, -50%) scale(1.6); }
+      }
+    `}</style>
+
+    <div className="relative overflow-hidden p-6 rounded-2xl border border-sky-200/80 dark:border-sky-900/50 bg-gradient-to-br from-sky-50 via-blue-50 to-zinc-50 dark:from-zinc-900 dark:via-zinc-900 dark:to-zinc-800">
+      {/* Decorative blurs */}
+      <div className="absolute -top-24 -left-20 w-72 h-72 rounded-full bg-sky-200/40 dark:bg-sky-700/20 blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-24 -right-16 w-72 h-72 rounded-full bg-blue-200/50 dark:bg-blue-700/20 blur-3xl pointer-events-none" />
 
       <div className="relative">
-        <div className="text-center mb-6">
-          <h2
-            className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-zinc-100 tracking-tight"
-            style={{ fontFamily: "\"Comic Sans MS\", \"Chalkboard SE\", cursive" }}
-          >
-            Avalanche Triangle Clicker
-          </h2>
-          <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-300 max-w-3xl mx-auto">
-            Simplified gaming blueprint demo with 3 modes, 3 upgrades, and 3 collectible milestones.
-            Clicks, upgrades, and collectible checkpoints can still be written on-chain.
-          </p>
-        </div>
-
+        {/* ─── Header ───────────────────────────────────────── */}
         <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
-          <div className="inline-flex items-center gap-1 rounded-xl bg-white/70 dark:bg-zinc-900/80 p-1 border border-rose-200 dark:border-zinc-700">
-            {(Object.entries(THROUGHPUT_PROFILES) as Array<[ThroughputMode, ThroughputProfile]>).map(([id, profile]) => (
-              <button
-                key={id}
-                type="button"
-                onClick={() => setMode(id)}
-                className={cn(
-                  "px-3 py-1.5 text-xs sm:text-sm rounded-lg transition-colors",
-                  mode === id
-                    ? "bg-red-600 text-white"
-                    : "text-zinc-600 dark:text-zinc-300 hover:bg-red-100 dark:hover:bg-zinc-800",
-                )}
+          <div>
+            <h2 className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
+              Snowball Clicker
+            </h2>
+            <div className="mt-1 flex items-center gap-2 text-xs text-zinc-500">
+              {gameAddress && (
+                <span className="font-mono">
+                  Game wallet: {gameAddress.slice(0, 6)}...{gameAddress.slice(-4)}
+                </span>
+              )}
+              <a
+                href="#"
+                className="text-sky-600 dark:text-sky-400 hover:underline"
+                onClick={(e) => e.preventDefault()}
               >
-                {profile.label}
-              </button>
-            ))}
-          </div>
-
-          <div className="inline-flex items-center gap-1 rounded-xl bg-white/70 dark:bg-zinc-900/80 p-1 border border-rose-200 dark:border-zinc-700">
-            <button
-              type="button"
-              onClick={() => setExecutionMode("simulated")}
-              className={cn(
-                "px-3 py-1.5 text-xs sm:text-sm rounded-lg transition-colors",
-                executionMode === "simulated"
-                  ? "bg-red-600 text-white"
-                  : "text-zinc-600 dark:text-zinc-300 hover:bg-red-100 dark:hover:bg-zinc-800",
-              )}
-            >
-              Simulated
-            </button>
-            <button
-              type="button"
-              onClick={() => setExecutionMode("live")}
-              className={cn(
-                "px-3 py-1.5 text-xs sm:text-sm rounded-lg transition-colors",
-                executionMode === "live"
-                  ? "bg-red-600 text-white"
-                  : "text-zinc-600 dark:text-zinc-300 hover:bg-red-100 dark:hover:bg-zinc-800",
-              )}
-            >
-              Live Wallet
-            </button>
+                Fund from faucet
+              </a>
+            </div>
           </div>
 
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={toggleSimulation}
+              onClick={() => setIsRunning((p) => !p)}
               className={cn(
                 "inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors",
                 isRunning
                   ? "bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
-                  : "bg-red-600 text-white hover:bg-red-700",
+                  : "bg-sky-600 text-white hover:bg-sky-700",
               )}
             >
               {isRunning ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
@@ -941,7 +373,7 @@ export function GamingDemo() {
             </button>
             <button
               type="button"
-              onClick={resetDemo}
+              onClick={reset}
               className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm border border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-200 hover:bg-white/80 dark:hover:bg-zinc-800 transition-colors"
             >
               <RotateCcw className="w-4 h-4" />
@@ -950,115 +382,117 @@ export function GamingDemo() {
           </div>
         </div>
 
-        <div className="rounded-xl border border-rose-200 dark:border-zinc-700 bg-white/80 dark:bg-zinc-900/80 p-3 mb-5">
-          <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-            <span className="uppercase tracking-wide text-zinc-500">
-              Execution Path: {executionMode === "live" ? "Live Contract Writes" : "Fully Simulated"}
-            </span>
-            <span className="text-zinc-500">
-              {executionMode === "live"
-                ? walletReadyForLive
-                  ? `Wallet ready on ${selectedNetwork?.name ?? `Chain ${walletChainId}`}`
-                  : "Connect wallet on a supported EVM chain to enable live txs"
-                : "Bot traffic + auto-click throughput are synthetic for load demonstration"}
-            </span>
-          </div>
-        </div>
-
+        {/* ─── Main Grid ────────────────────────────────────── */}
         <div className="grid grid-cols-1 xl:grid-cols-5 gap-5">
+          {/* ─── Left Column: Clicker + Upgrades ──────────── */}
           <div className="xl:col-span-3 space-y-5">
-            <div className="rounded-2xl border border-rose-200 dark:border-zinc-700 bg-white/80 dark:bg-zinc-900/85 p-5">
-              <div className="flex items-center justify-between gap-3">
+            {/* Score + Snowball Button */}
+            <div className="rounded-2xl border border-sky-200 dark:border-zinc-700 bg-white/80 dark:bg-zinc-900/85 p-5">
+              <div className="flex items-center justify-between gap-3 mb-4">
                 <div>
-                  <div className="text-xs uppercase tracking-wide text-zinc-500">Triangle Treasury</div>
+                  <div className="text-xs uppercase tracking-wide text-zinc-500">Snowballs Packed</div>
                   <div className="text-3xl sm:text-4xl font-semibold text-zinc-900 dark:text-zinc-100 tabular-nums">
-                    {Math.floor(cookies).toLocaleString()}
+                    {Math.floor(snowballs).toLocaleString()}
                   </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-xs uppercase tracking-wide text-zinc-500">Run Time</div>
-                  <div className="text-xl font-semibold text-zinc-900 dark:text-zinc-100 tabular-nums">
-                    {runtimeLabel}
-                  </div>
-                  <div className="text-xs text-zinc-500 mt-1">Mode: {THROUGHPUT_PROFILES[mode].label}</div>
                 </div>
               </div>
 
-              <div className="mt-4 flex justify-center">
+              {/* Snowball + Effects Container */}
+              <div className="relative flex justify-center" style={{ minHeight: 260 }}>
+                {/* Glow ring pulse on click */}
+                {clickPop && (
+                  <div
+                    className="absolute left-1/2 top-1/2 w-56 h-56 sm:w-64 sm:h-64 rounded-full border-2 border-sky-400/40 dark:border-sky-500/30 pointer-events-none"
+                    style={{ animation: "glow-pulse 450ms ease-out forwards" }}
+                  />
+                )}
+
+                {/* The snowball */}
                 <button
                   type="button"
-                  onClick={() => {
-                    void handleCookieClick();
-                  }}
-                  disabled={
-                    !isRunning
-                    || (executionMode === "live" && (!liveContractAddress || !walletReadyForLive))
-                    || isLiveActionPending
-                  }
+                  onClick={handleClick}
+                  disabled={!isRunning}
                   className={cn(
-                    "relative h-48 w-48 sm:h-56 sm:w-56 border-[6px] border-red-900/70 shadow-[0_16px_24px_rgba(0,0,0,0.24)] transition-transform active:scale-95 bg-gradient-to-b from-red-400 via-red-500 to-red-700",
-                    (!isRunning || isLiveActionPending) && "opacity-65 cursor-not-allowed",
-                    cookiePop && "scale-95",
+                    "relative h-48 w-48 sm:h-56 sm:w-56 rounded-full select-none cursor-pointer",
+                    "bg-gradient-to-b from-sky-100 via-white to-sky-200 dark:from-sky-800 dark:via-slate-700 dark:to-sky-900",
+                    "border-4 border-sky-300/60 dark:border-sky-600/40",
+                    "shadow-[inset_0_-8px_24px_rgba(0,0,0,0.08),0_8px_24px_rgba(0,0,0,0.12)]",
+                    "dark:shadow-[inset_0_-8px_24px_rgba(0,0,0,0.3),0_8px_24px_rgba(0,0,0,0.4)]",
+                    "hover:shadow-[inset_0_-8px_24px_rgba(0,0,0,0.08),0_14px_36px_rgba(0,0,0,0.2)]",
+                    !isRunning && "opacity-65 cursor-not-allowed",
                   )}
-                  style={{ clipPath: "polygon(50% 6%, 94% 92%, 6% 92%)" }}
+                  style={clickPop ? { animation: "snowball-squish 350ms cubic-bezier(0.34, 1.56, 0.64, 1)" } : undefined}
                 >
-                  <span
-                    className="absolute inset-[14%] border border-red-950/35"
-                    style={{ clipPath: "polygon(50% 7%, 92% 91%, 8% 91%)" }}
-                  />
-                  <span className="absolute left-1/2 top-[40%] -translate-x-1/2 text-white text-sm font-semibold tracking-[0.18em]">
-                    AVAX
-                  </span>
-                  <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-zinc-900 text-white text-xs tracking-wide">
-                    1 tap = 1 tx
+                  {/* Specular highlight — glassy reflection near top-left */}
+                  <span className="absolute top-3 left-5 w-20 h-12 rounded-full bg-white/50 dark:bg-white/10 blur-lg pointer-events-none" />
+                  <span className="absolute top-5 left-8 w-10 h-6 rounded-full bg-white/60 dark:bg-white/15 blur-sm pointer-events-none" />
+
+                  {/* Frost rings */}
+                  <span className="absolute inset-5 rounded-full border border-sky-200/40 dark:border-sky-500/20 pointer-events-none" />
+                  <span className="absolute inset-10 rounded-full border border-dashed border-sky-200/25 dark:border-sky-500/10 pointer-events-none" />
+
+                  {/* Center content */}
+                  <span className="absolute inset-0 flex flex-col items-center justify-center">
+                    <span className="text-5xl mb-1 drop-shadow-sm">⛄</span>
+                    <span className="text-xs font-medium text-zinc-600 dark:text-zinc-300 tracking-wide">
+                      1 tap = 1 tx
+                    </span>
                   </span>
                 </button>
+
+                {/* Floating score numbers */}
+                {clickEffects.map((effect) => (
+                  <div
+                    key={effect.id}
+                    className="absolute pointer-events-none font-bold text-sky-600 dark:text-sky-400 text-lg"
+                    style={{
+                      left: `calc(50% + ${effect.x}px)`,
+                      top: `calc(50% + ${effect.y}px)`,
+                      animation: "float-score 800ms ease-out forwards",
+                    }}
+                  >
+                    +{effect.value}
+                  </div>
+                ))}
+
+                {/* Snow particle burst */}
+                {particles.map((p) => (
+                  <div
+                    key={p.id}
+                    className="absolute pointer-events-none text-sm text-sky-400/80 dark:text-sky-300/60"
+                    style={{
+                      left: "50%",
+                      top: "50%",
+                      "--dx": `${Math.cos(p.angle) * p.distance}px`,
+                      "--dy": `${Math.sin(p.angle) * p.distance}px`,
+                      animation: "snow-burst 600ms ease-out forwards",
+                    } as React.CSSProperties}
+                  >
+                    {p.char}
+                  </div>
+                ))}
               </div>
 
-              <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="rounded-xl border border-rose-200 dark:border-zinc-700 bg-rose-50/70 dark:bg-zinc-800/60 p-3">
-                  <div className="flex items-center gap-2 text-xs text-zinc-500 uppercase tracking-wide mb-1">
-                    <MousePointerClick className="w-3.5 h-3.5" />
-                    Manual Clicks
-                  </div>
-                  <div className="text-xl font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
-                    {manualClicks.toLocaleString()}
-                  </div>
-                </div>
-                <div className="rounded-xl border border-rose-200 dark:border-zinc-700 bg-rose-50/70 dark:bg-zinc-800/60 p-3">
-                  <div className="flex items-center gap-2 text-xs text-zinc-500 uppercase tracking-wide mb-1">
-                    <Rocket className="w-3.5 h-3.5" />
-                    Auto CPS
-                  </div>
-                  <div className="text-xl font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
-                    {autoClicksPerSecond.toFixed(autoClicksPerSecond >= 10 ? 0 : 1)}
-                  </div>
-                </div>
-                <div className="rounded-xl border border-rose-200 dark:border-zinc-700 bg-rose-50/70 dark:bg-zinc-800/60 p-3">
-                  <div className="flex items-center gap-2 text-xs text-zinc-500 uppercase tracking-wide mb-1">
-                    <Sparkles className="w-3.5 h-3.5" />
-                    Click Power
-                  </div>
-                  <div className="text-xl font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
-                    x{clickPower}
-                  </div>
-                </div>
+              {/* Inline stats under snowball */}
+              <div className="mt-4 flex items-center justify-center gap-6 text-xs text-zinc-500">
+                <span>Manual: {manualClicks.toLocaleString()}</span>
+                <span>Auto: {autoPerSecond.toFixed(1)}/s</span>
+                <span>Click Power: x{clickPower}</span>
               </div>
             </div>
 
-            <div className="rounded-2xl border border-rose-200 dark:border-zinc-700 bg-white/80 dark:bg-zinc-900/85 p-5">
+            {/* Upgrade Shop */}
+            <div className="rounded-2xl border border-sky-200 dark:border-zinc-700 bg-white/80 dark:bg-zinc-900/85 p-5">
               <div className="flex items-center gap-2 mb-4">
-                <Coins className="w-4 h-4 text-red-600" />
-                <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                  Upgrade Shop
-                </h3>
+                <ShoppingBag className="w-4 h-4 text-sky-600" />
+                <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Upgrade Shop</h3>
               </div>
 
               <div className="space-y-3">
                 {UPGRADES.map((upgrade) => {
                   const owned = ownedUpgrades[upgrade.id] ?? 0;
                   const cost = getUpgradeCost(upgrade, owned);
-                  const canBuy = isRunning && cookies >= cost;
+                  const canBuy = isRunning && snowballs >= cost;
 
                   return (
                     <div
@@ -1070,11 +504,10 @@ export function GamingDemo() {
                           <div className="font-medium text-zinc-900 dark:text-zinc-100">{upgrade.name}</div>
                           <div className="text-xs text-zinc-500 mt-0.5">{upgrade.flavor}</div>
                           <div className="mt-1 text-xs text-zinc-500">
-                            {upgrade.autoClicksPerSecond > 0 && `+${upgrade.autoClicksPerSecond}/s auto clicks `}
+                            {upgrade.autoPerSecond > 0 && `+${upgrade.autoPerSecond}/s auto `}
                             {upgrade.clickBoost > 0 && `+${upgrade.clickBoost} click power`}
                           </div>
                         </div>
-
                         <div className="text-right">
                           <div className="text-xs text-zinc-500">Owned: {owned}</div>
                           <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
@@ -1082,18 +515,16 @@ export function GamingDemo() {
                           </div>
                           <button
                             type="button"
-                            onClick={() => {
-                              void buyUpgrade(upgrade);
-                            }}
-                            disabled={!canBuy || isLiveActionPending}
+                            onClick={() => buyUpgrade(upgrade)}
+                            disabled={!canBuy}
                             className={cn(
                               "mt-2 px-3 py-1.5 rounded-md text-xs font-medium transition-colors",
-                              canBuy && !isLiveActionPending
-                                ? "bg-red-600 text-white hover:bg-red-700"
+                              canBuy
+                                ? "bg-sky-600 text-white hover:bg-sky-700"
                                 : "bg-zinc-200 dark:bg-zinc-800 text-zinc-500 cursor-not-allowed",
                             )}
                           >
-                            Buy Upgrade
+                            Buy
                           </button>
                         </div>
                       </div>
@@ -1104,241 +535,199 @@ export function GamingDemo() {
             </div>
           </div>
 
+          {/* ─── Right Column: Stats + Milestones + Withdraw ─ */}
           <div className="xl:col-span-2 space-y-4">
-            <div className="rounded-2xl border border-rose-200 dark:border-zinc-700 bg-white/80 dark:bg-zinc-900/85 p-4">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-1.5 text-xs uppercase tracking-wide text-zinc-500">
-                  <Database className="w-3.5 h-3.5" />
-                  Live Contract
-                </div>
-                <span
-                  className={cn(
-                    "text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wide",
-                    executionMode === "live"
-                      ? "bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300"
-                      : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300",
-                  )}
-                >
-                  {executionMode === "live" ? "active" : "inactive"}
-                </span>
-              </div>
-
-              <div className="space-y-2 text-xs text-zinc-500">
-                <div>
-                  Wallet: {walletEVMAddress ? `${walletEVMAddress.slice(0, 6)}...${walletEVMAddress.slice(-4)}` : "not connected"}
-                </div>
-                <div>
-                  Network: {selectedNetwork?.name ?? "unsupported network"}
-                </div>
-              </div>
-
-              <div className="mt-3 space-y-2">
-                <div className="flex items-center gap-2">
-                  <input
-                    value={contractInput}
-                    onChange={(event) => setContractInput(event.target.value)}
-                    placeholder="0x... contract address"
-                    className="flex-1 px-2.5 py-2 rounded-lg text-xs border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-100"
-                  />
-                  <button
-                    type="button"
-                    onClick={applyLiveContractAddress}
-                    disabled={!isContractInputValid}
-                    className={cn(
-                      "px-3 py-2 rounded-lg text-xs font-medium transition-colors",
-                      isContractInputValid
-                        ? "bg-red-600 text-white hover:bg-red-700"
-                        : "bg-zinc-200 dark:bg-zinc-800 text-zinc-500 cursor-not-allowed",
-                    )}
-                  >
-                    Use
-                  </button>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    void deployLiveCookieContract();
-                  }}
-                  disabled={!walletReadyForLive || isDeployingContract || isLiveActionPending}
-                  className={cn(
-                    "w-full px-3 py-2 rounded-lg text-xs font-medium transition-colors",
-                    !walletReadyForLive || isDeployingContract || isLiveActionPending
-                      ? "bg-zinc-200 dark:bg-zinc-800 text-zinc-500 cursor-not-allowed"
-                      : "bg-emerald-500 text-white hover:bg-emerald-600",
-                  )}
-                >
-                  {isDeployingContract ? "Deploying..." : "Deploy Demo Contract"}
-                </button>
-              </div>
-
-              <div className="mt-3 pt-3 border-t border-zinc-200 dark:border-zinc-700 text-xs text-zinc-500 space-y-1">
-                <div>
-                  Active contract: {liveContractAddress ? `${liveContractAddress.slice(0, 8)}...${liveContractAddress.slice(-4)}` : "none"}
-                </div>
-                <div>
-                  On-chain triangle balance: <span className="font-medium text-zinc-700 dark:text-zinc-300 tabular-nums">{onchainCookieBalance.toString()}</span>
-                </div>
-                <div className="text-[11px]">
-                  In live mode, clicks/upgrades/collectible checkpoints are real contract calls.
-                  Auto-click and ambient load stay simulated to avoid wallet prompt spam.
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-rose-200 dark:border-zinc-700 bg-white/80 dark:bg-zinc-900/85 p-4">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-1.5 text-xs uppercase tracking-wide text-zinc-500">
-                  <Gauge className="w-3.5 h-3.5" />
-                  Live TPS
-                </div>
-                <span className="text-xs text-zinc-500">{THROUGHPUT_PROFILES[mode].label}</span>
-              </div>
-              <div className="text-3xl font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
-                {liveTps.toLocaleString()}
-              </div>
-              <div className="h-1.5 rounded-full bg-zinc-200 dark:bg-zinc-700 mt-2 overflow-hidden">
-                <div
-                  className="h-full bg-red-600 transition-all duration-100"
-                  style={{ width: `${tpsProgress}%` }}
-                />
-              </div>
-              <div className="mt-2 text-xs text-zinc-500">
-                Peak: {peakTps.toLocaleString()} TPS
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-rose-200 dark:border-zinc-700 bg-white/80 dark:bg-zinc-900/85 p-4">
+            {/* Stats */}
+            <div className="rounded-2xl border border-sky-200 dark:border-zinc-700 bg-white/80 dark:bg-zinc-900/85 p-4">
               <div className="flex items-center gap-1.5 text-xs uppercase tracking-wide text-zinc-500 mb-2">
-                <Database className="w-3.5 h-3.5" />
-                Transaction Ledger
+                <Gauge className="w-3.5 h-3.5" />
+                Stats
               </div>
-              <div className="space-y-1.5 text-sm">
-                <div className="flex items-center justify-between">
+
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-zinc-500">TPS</span>
+                  <span className="font-semibold tabular-nums text-zinc-900 dark:text-zinc-100 text-lg">
+                    {liveTps}
+                  </span>
+                </div>
+                <div className="h-1.5 rounded-full bg-zinc-200 dark:bg-zinc-700 overflow-hidden">
+                  <div
+                    className="h-full bg-sky-500 transition-all duration-100"
+                    style={{ width: `${Math.min(liveTps * 5, 100)}%` }}
+                  />
+                </div>
+                <div className="flex justify-between">
                   <span className="text-zinc-500">Submitted</span>
                   <span className="font-medium tabular-nums text-zinc-900 dark:text-zinc-100">
                     {submittedTx.toLocaleString()}
                   </span>
                 </div>
-                <div className="flex items-center justify-between">
+                <div className="flex justify-between">
                   <span className="text-zinc-500">Finalized</span>
                   <span className="font-medium tabular-nums text-zinc-900 dark:text-zinc-100">
                     {finalizedTx.toLocaleString()}
                   </span>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-zinc-500">Pending</span>
+                <div className="flex justify-between">
+                  <span className="text-zinc-500">Manual Clicks</span>
                   <span className="font-medium tabular-nums text-zinc-900 dark:text-zinc-100">
-                    {pendingTx.toLocaleString()}
+                    {manualClicks.toLocaleString()}
                   </span>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-zinc-500">Total Click Events</span>
+                <div className="flex justify-between">
+                  <span className="text-zinc-500">Auto SPS</span>
                   <span className="font-medium tabular-nums text-zinc-900 dark:text-zinc-100">
-                    {totalClicks.toLocaleString()}
+                    {autoPerSecond.toFixed(1)}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-zinc-500">Click Power</span>
+                  <span className="font-medium tabular-nums text-zinc-900 dark:text-zinc-100">
+                    x{clickPower}
                   </span>
                 </div>
               </div>
+
               <div className="mt-3 pt-3 border-t border-zinc-200 dark:border-zinc-700 text-xs text-zinc-500">
                 <span className="inline-flex items-center gap-1.5">
-                  <Zap className="w-3.5 h-3.5 text-red-600" />
-                  {executionMode === "live"
-                    ? "Player actions submit real wallet transactions."
-                    : "Each player click enters finality queue immediately."}
+                  <Zap className="w-3.5 h-3.5 text-sky-600" />
+                  Every click & auto-mine = real on-chain transaction
                 </span>
               </div>
             </div>
 
-            <div className="rounded-2xl border border-rose-200 dark:border-zinc-700 bg-white/80 dark:bg-zinc-900/85 p-4">
+            {/* Milestones */}
+            <div className="rounded-2xl border border-sky-200 dark:border-zinc-700 bg-white/80 dark:bg-zinc-900/85 p-4">
               <div className="flex items-center gap-1.5 text-xs uppercase tracking-wide text-zinc-500 mb-3">
-                <Gift className="w-3.5 h-3.5" />
-                Collectible Drops
+                <Trophy className="w-3.5 h-3.5" />
+                Milestones
               </div>
+
               <div className="space-y-2.5">
-                {COLLECTIBLE_DROPS.map((drop) => {
-                  const minted = collectibles.find((item) => item.id === drop.id);
-                  const unlocked = Boolean(minted);
+                {MILESTONES.map((milestone) => {
+                  const earned = unlockedMilestones.includes(milestone.id);
+                  const remaining = milestone.clickTarget - manualClicks;
 
                   return (
                     <div
-                      key={drop.id}
+                      key={milestone.id}
                       className={cn(
                         "rounded-lg border p-2.5",
-                        unlocked
-                          ? "border-emerald-200 dark:border-emerald-900/60 bg-emerald-50/70 dark:bg-emerald-900/20"
+                        earned
+                          ? "border-sky-200 dark:border-sky-900/60 bg-sky-50/70 dark:bg-sky-900/20"
                           : "border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50",
                       )}
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <div>
-                          <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                            {drop.name}
-                          </div>
-                          <div className="text-xs text-zinc-500">
-                            {drop.rarity} · unlock at {drop.clickTarget.toLocaleString()} manual clicks
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="text-lg shrink-0">{earned ? milestone.icon : "○"}</span>
+                          <div className="min-w-0">
+                            <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                              {milestone.name}
+                            </div>
+                            <div className="text-xs text-zinc-500 truncate">
+                              {earned
+                                ? milestone.description
+                                : remaining > 0
+                                  ? `${remaining.toLocaleString()} clicks to go`
+                                  : "Locked"}
+                            </div>
                           </div>
                         </div>
-                        <div
-                          className={cn(
-                            "text-[10px] px-2 py-1 rounded-full font-medium",
-                            unlocked
-                              ? "bg-emerald-500 text-white"
-                              : "bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300",
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {earned ? (
+                            <>
+                              <span className="text-[10px] px-2 py-1 rounded-full font-medium bg-sky-500 text-white">
+                                Earned ✓
+                              </span>
+                              <button
+                                type="button"
+                                className="text-[10px] px-2 py-1 rounded-full font-medium bg-emerald-500 text-white hover:bg-emerald-600 transition-colors"
+                                onClick={() => {
+                                  document.getElementById("withdraw-panel")?.scrollIntoView({ behavior: "smooth" });
+                                }}
+                              >
+                                Withdraw →
+                              </button>
+                            </>
+                          ) : (
+                            <span className="text-[10px] px-2 py-1 rounded-full font-medium bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300">
+                              {milestone.clickTarget.toLocaleString()}
+                            </span>
                           )}
-                        >
-                          {unlocked ? `Token #${minted?.tokenId}` : "Locked"}
                         </div>
                       </div>
                     </div>
                   );
                 })}
               </div>
-              {nextCollectible && (
-                <div className="mt-3 text-xs text-zinc-500">
-                  Next drop: <span className="font-medium text-zinc-700 dark:text-zinc-300">{nextCollectible.name}</span>{" "}
-                  in {(nextCollectible.clickTarget - manualClicks).toLocaleString()} manual clicks.
-                </div>
-              )}
+
+              {(() => {
+                const next = MILESTONES.find((m) => !unlockedMilestones.includes(m.id));
+                if (!next) return null;
+                const remaining = next.clickTarget - manualClicks;
+                return (
+                  <div className="mt-3 text-xs text-zinc-500">
+                    Next: <span className="font-medium text-zinc-700 dark:text-zinc-300">{next.name}</span>{" "}
+                    in {Math.max(0, remaining).toLocaleString()} clicks
+                  </div>
+                );
+              })()}
             </div>
 
-            <div className="rounded-2xl border border-rose-200 dark:border-zinc-700 bg-white/80 dark:bg-zinc-900/85 p-4">
-              <div className="flex items-center gap-1.5 text-xs uppercase tracking-wide text-zinc-500 mb-3">
-                <Activity className="w-3.5 h-3.5" />
-                Transaction Feed
-              </div>
-              <div className="space-y-2">
-                {feed.map((item) => (
-                  <div
-                    key={item.id}
-                    className="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-2.5"
-                  >
-                    <div className="flex items-center justify-between gap-2 mb-0.5">
-                      <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{item.title}</div>
-                      <span
-                        className={cn(
-                          "text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wide",
-                          item.tone === "click" && "bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300",
-                          item.tone === "upgrade" && "bg-rose-100 dark:bg-rose-900/50 text-rose-700 dark:text-rose-300",
-                          item.tone === "mint" && "bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300",
-                          item.tone === "system" && "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300",
-                        )}
-                      >
-                        {item.tone}
-                      </span>
-                    </div>
-                    <div className="text-xs text-zinc-500">{item.detail}</div>
-                    {item.count > 0 && (
-                      <div className="mt-1 text-[11px] text-zinc-400 tabular-nums">
-                        {compactFormatter.format(item.count)} tx
-                      </div>
+            {/* Withdraw Panel */}
+            {unlockedMilestones.length > 0 && (
+              <div
+                id="withdraw-panel"
+                className="rounded-2xl border border-emerald-200 dark:border-emerald-900/50 bg-white/80 dark:bg-zinc-900/85 p-4"
+              >
+                <div className="flex items-center gap-1.5 text-xs uppercase tracking-wide text-zinc-500 mb-3">
+                  <Snowflake className="w-3.5 h-3.5" />
+                  Withdraw to C-Chain
+                </div>
+
+                <div className="space-y-2">
+                  <input
+                    value={withdrawAddress}
+                    onChange={(e) => setWithdrawAddress(e.target.value)}
+                    placeholder="0x... C-Chain destination address"
+                    className="w-full px-3 py-2 rounded-lg text-xs border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-100 placeholder:text-zinc-400"
+                  />
+
+                  {walletEVMAddress && (
+                    <button
+                      type="button"
+                      onClick={useConnectedWallet}
+                      className="w-full px-3 py-2 rounded-lg text-xs font-medium border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+                    >
+                      Use connected wallet ({walletEVMAddress.slice(0, 6)}...{walletEVMAddress.slice(-4)})
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    disabled={!isValidWithdrawAddress}
+                    className={cn(
+                      "w-full px-3 py-2 rounded-lg text-xs font-medium transition-colors",
+                      isValidWithdrawAddress
+                        ? "bg-emerald-500 text-white hover:bg-emerald-600"
+                        : "bg-zinc-200 dark:bg-zinc-800 text-zinc-500 cursor-not-allowed",
                     )}
-                  </div>
-                ))}
+                  >
+                    Withdraw NFT →
+                  </button>
+
+                  <p className="text-[11px] text-zinc-400">
+                    Bridges earned NFTs from game L1 to Fuji C-Chain via ICNFTT.
+                  </p>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
     </div>
+    </>
   );
 }

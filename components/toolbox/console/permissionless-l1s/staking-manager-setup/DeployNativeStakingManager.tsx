@@ -50,7 +50,7 @@ function DeployNativeStakingManager({ onSuccess }: BaseConsoleToolProps) {
     setNativeStakingManagerAddress,
   } = useToolboxStore();
   const { publicClient, walletEVMAddress } = useWalletStore();
-  const { coreWalletClient } = useConnectedWallet();
+  const { walletClient } = useConnectedWallet();
   const [isDeployingMessages, setIsDeployingMessages] = useState(false);
   const [isDeployingManager, setIsDeployingManager] = useState(false);
   const viemChain = useViemChainStore();
@@ -68,10 +68,10 @@ function DeployNativeStakingManager({ onSuccess }: BaseConsoleToolProps) {
     setValidatorMessagesLibAddress("");
 
     if (!viemChain) throw new Error("Viem chain not found");
-    await coreWalletClient.addChain({ chain: viemChain });
-    await coreWalletClient.switchChain({ id: viemChain.id });
+    await walletClient.addChain({ chain: viemChain });
+    await walletClient.switchChain({ id: viemChain.id });
 
-    const deployPromise = coreWalletClient.deployContract({
+    const deployPromise = walletClient.deployContract({
       abi: ValidatorMessagesABI.abi as any,
       bytecode: ValidatorMessagesABI.bytecode.object as `0x${string}`,
       args: [],
@@ -95,10 +95,10 @@ function DeployNativeStakingManager({ onSuccess }: BaseConsoleToolProps) {
     setNativeStakingManagerAddress("");
 
     if (!viemChain) throw new Error("Viem chain not found");
-    await coreWalletClient.addChain({ chain: viemChain });
-    await coreWalletClient.switchChain({ id: viemChain.id });
+    await walletClient.addChain({ chain: viemChain });
+    await walletClient.switchChain({ id: viemChain.id });
 
-    const deployPromise = coreWalletClient.deployContract({
+    const deployPromise = walletClient.deployContract({
       abi: NativeTokenStakingManager.abi as any,
       bytecode: getLinkedStakingManagerBytecode(),
       args: [0], // ICMInitializable.Allowed

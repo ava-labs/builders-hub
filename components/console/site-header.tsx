@@ -11,14 +11,11 @@ import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
 import dynamic from "next/dynamic";
-import { ThemeToggle } from "./theme-toggle";
 import { Fragment } from "react";
 import { useBreadcrumbs } from "@/hooks/use-breadcrumbs";
 import { pathToBreadcrumb } from "./breadcrumbs-mapping";
-import { BuilderHubAccountButton } from "./builder-hub-account-button";
 import { History, HelpCircle, Gamepad2, Book, MessageCircle } from "lucide-react";
 import Link from "next/link";
-import { CommandPaletteTrigger } from "./command-palette";
 import { NotificationCenter } from "./notification-center";
 import {
   DropdownMenu,
@@ -46,7 +43,7 @@ export function SiteHeader() {
   };
 
   return (
-    <header className="sticky top-0 z-50 flex h-(--header-height) shrink-0 items-center gap-2 border-b backdrop-blur  transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height) rounded-t-2xl overflow-x-hidden min-w-0">
+    <header className="sticky top-0 z-30 flex h-(--header-height) shrink-0 items-center gap-2 border-b backdrop-blur  transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height) rounded-t-2xl overflow-x-hidden min-w-0">
       <div className="flex w-full items-center gap-1 px-4 lg:gap-2 lg:px-6 min-w-0">
         <SidebarTrigger className="-ml-1" />
         <Separator
@@ -76,13 +73,6 @@ export function SiteHeader() {
           </BreadcrumbList>
         </Breadcrumb>
         <div className="ml-auto flex items-center gap-2">
-          <div data-tour="command-palette">
-            <CommandPaletteTrigger />
-          </div>
-          <Separator
-            orientation="vertical"
-            className="h-4!"
-          />
           <div data-tour="network-switch">
             <TestnetMainnetSwitch />
           </div>
@@ -128,8 +118,6 @@ export function SiteHeader() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <BuilderHubAccountButton />
-          <ThemeToggle />
         </div>
       </div>
     </header>

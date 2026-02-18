@@ -23,6 +23,7 @@ import { useSelectedL1 } from "@/components/toolbox/stores/l1ListStore";
 import { ConsoleToolMetadata, withConsoleToolMetadata } from "@/components/toolbox/components/WithConsoleToolMetadata";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { useContractDeployer } from "@/components/toolbox/hooks/contracts";
+import { useWalletClient } from 'wagmi';
 
 const metadata: ConsoleToolMetadata = {
   title: "Deploy Token Home Contract",
@@ -42,8 +43,8 @@ function DeployTokenHome() {
   } = useToolboxStore();
   const wrappedNativeTokenAddress = useWrappedNativeToken();
   const selectedL1 = useSelectedL1()();
-  const { coreWalletClient, walletEVMAddress, walletChainId } =
-    useWalletStore();
+  const { walletEVMAddress, walletChainId } = useWalletStore();
+  const { data: walletClient } = useWalletClient();
   const viemChain = useViemChainStore();
   const { deploy, isDeploying } = useContractDeployer();
   const [teleporterManager, setTeleporterManager] = useState("");
@@ -141,8 +142,8 @@ function DeployTokenHome() {
   }, [tokenAddress, viemChain?.id]);
 
   async function handleDeploy() {
-    if (!coreWalletClient) {
-      setCriticalError(new Error("Core wallet not found"));
+    if (!walletClient) {
+      setCriticalError(new Error("Wallet not connected"));
       return;
     }
 

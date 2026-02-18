@@ -85,7 +85,7 @@ export default function RWABlueprintPage() {
                 key={useCase}
                 className="flex items-center gap-3 p-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900"
               >
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                <div className="w-1.5 h-1.5 rounded-full bg-zinc-400 dark:bg-zinc-500" />
                 <span className="text-sm text-zinc-700 dark:text-zinc-300">{useCase}</span>
               </div>
             ))}

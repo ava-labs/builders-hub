@@ -4,6 +4,7 @@
 import { useL1ByChainId, useSelectedL1 } from "@/components/toolbox/stores/l1ListStore";
 import { useToolboxStore, useViemChainStore, getToolboxStore } from "@/components/toolbox/stores/toolboxStore";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
+import { useWalletClient } from 'wagmi';
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { Button } from "@/components/toolbox/components/Button";
 import { Success } from "@/components/toolbox/components/Success";
@@ -27,7 +28,8 @@ const DEFAULT_GAS_LIMIT = 250000n;
 
 export default function TokenBridge() {
     const [criticalError, setCriticalError] = useState<Error | null>(null);
-    const { coreWalletClient, walletEVMAddress } = useWalletStore();
+    const { walletEVMAddress } = useWalletStore();
+    const { data: walletClient } = useWalletClient();
     const viemChain = useViemChainStore();
     const selectedL1 = useSelectedL1()();
 
@@ -327,7 +329,7 @@ export default function TokenBridge() {
 
     // Handle token approval
     const handleApprove = async () => {
-        if (!viemChain || !coreWalletClient?.account || !sourceContractAddress || !tokenAddress || tokenDecimals === null || !amount) {
+        if (!viemChain || !walletClient?.account || !sourceContractAddress || !tokenAddress || tokenDecimals === null || !amount) {
             setLocalError("Missing required information for approval.");
             return;
         }
@@ -350,11 +352,11 @@ export default function TokenBridge() {
                 abi: ExampleERC20ABI.abi,
                 functionName: 'approve',
                 args: [sourceContractAddress as Address, amountParsed],
-                account: coreWalletClient.account,
+                account: walletClient!.account,
                 chain: viemChain,
             });
 
-            const hash = await coreWalletClient.writeContract(request);
+            const hash = await walletClient!.writeContract(request);
             setLastApprovalTxId(hash);
 
             await publicClient.waitForTransactionReceipt({ hash });
@@ -371,7 +373,7 @@ export default function TokenBridge() {
 
     // Handle token sending
     const handleSend = async () => {
-        if (!viemChain || !coreWalletClient?.account || !sourceContractAddress || tokenDecimals === null
+        if (!viemChain || !walletClient?.account || !sourceContractAddress || tokenDecimals === null
             || !amount || !destinationContractAddress || !recipientAddress || !destinationBlockchainIDHex || !requiredGasLimit) {
             setLocalError("Missing required information to send tokens.");
             return;
@@ -425,11 +427,11 @@ export default function TokenBridge() {
                     ? [sendInput]
                     : (isNativeValueTransfer ? [sendInput] : [sendInput, amountParsed]),
                 value: (sourceTransferrerType === "nativeRemote" || isNativeValueTransfer) ? amountParsed : 0n,
-                account: coreWalletClient.account,
+                account: walletClient!.account,
                 chain: viemChain,
             });
 
-            const hash = await coreWalletClient.writeContract(request);
+            const hash = await walletClient!.writeContract(request);
             setLastSendTxId(hash);
             setLastSendTxDetails({ source: { initiatedAt: Date.now() } });
 

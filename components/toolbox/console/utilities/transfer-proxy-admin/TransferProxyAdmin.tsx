@@ -33,7 +33,7 @@ function TransferProxyAdmin({ onSuccess }: BaseConsoleToolProps) {
     const [proxyAdminAddress, setProxyAdminAddress] = useState<`0x${string}` | null>(null);
     const selectedL1 = useSelectedL1()();
     const { publicClient, walletChainId, walletEVMAddress } = useWalletStore();
-    const { coreWalletClient } = useConnectedWallet();
+    const { walletClient } = useConnectedWallet();
     const [isTransferring, setIsTransferring] = useState(false);
     const [currentOwner, setCurrentOwner] = useState<string | null>(null);
     const [newOwner, setNewOwner] = useState<string>("");

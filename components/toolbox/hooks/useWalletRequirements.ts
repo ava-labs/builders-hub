@@ -16,8 +16,6 @@ import type {
 export enum WalletRequirementsConfigKey {
     HasWallet = "hasWallet",
     WalletConnected = "walletConnected",
-    HasCoreWallet = "hasCoreWallet",
-    CoreWalletConnected = "coreWalletConnected",
     TestnetRequired = "testnetRequired",
     CChainBalance = "cChainBalance",
     PChainBalance = "pChainBalance",
@@ -26,19 +24,19 @@ export enum WalletRequirementsConfigKey {
 
 // Reusable action constants
 const ACTIONS = {
-    DOWNLOAD_CORE_WALLET: {
-        type: 'redirect' as const,
-        label: 'Download',
-        title: 'Download Core Wallet',
-        description: 'Download the Core wallet to continue',
-        link: 'https://core.app/download',
-        target: '_blank'
-    },
     CONNECT_WALLET: {
         type: 'connect' as const,
         label: 'Connect',
         title: 'Connect Wallet',
         description: 'Connect your wallet to continue'
+    },
+    DOWNLOAD_CORE_WALLET: {
+        type: 'redirect' as const,
+        label: 'Download',
+        title: 'Download Core Wallet',
+        description: 'Get Core — the wallet built for Avalanche',
+        link: 'https://core.app/download',
+        target: '_blank'
     },
     SWITCH_TO_TESTNET: {
         type: 'network' as const,
@@ -106,7 +104,24 @@ const WALLET_REQUIREMENTS: Record<WalletRequirementsConfigKey, WalletRequirement
         title: 'Wallet detected',
         description: 'An EVM wallet is required',
         icon: Wallet,
-        action: ACTIONS.DOWNLOAD_CORE_WALLET,
+        action: {
+            type: 'conditional',
+            label: 'Connect',
+            title: 'Connect Wallet',
+            description: 'Connect or install an EVM wallet',
+            conditions: [
+                {
+                    // Wallet provider detected (window.ethereum or similar) → show Connect
+                    condition: (walletState) => walletState.bootstrapped || (typeof window !== 'undefined' && !!(window as any).ethereum),
+                    action: ACTIONS.CONNECT_WALLET
+                },
+                {
+                    // No wallet detected at all → show Download Core
+                    condition: () => true,
+                    action: ACTIONS.DOWNLOAD_CORE_WALLET
+                }
+            ]
+        },
         getStatus: (walletState: WalletState) => ({
             met: walletState.bootstrapped,
             waiting: false
@@ -124,35 +139,12 @@ const WALLET_REQUIREMENTS: Record<WalletRequirementsConfigKey, WalletRequirement
             waiting: false
         })
     },
-    [WalletRequirementsConfigKey.HasCoreWallet]: {
-        id: 'has-core-wallet',
-        title: 'Core wallet that is installed',
-        description: 'Download the Core wallet to continue',
-        icon: Wallet,
-        action: ACTIONS.DOWNLOAD_CORE_WALLET,
-        getStatus: (walletState: WalletState) => ({
-            met: walletState.walletType === 'core',
-            waiting: false
-        })
-    },
-    [WalletRequirementsConfigKey.CoreWalletConnected]: {
-        id: 'core-wallet-connected',
-        title: 'Core wallet that is connected',
-        description: 'Connect your Core wallet to continue',
-        icon: Wallet,
-        prerequisites: [WalletRequirementsConfigKey.HasCoreWallet],
-        action: ACTIONS.CONNECT_WALLET,
-        getStatus: (walletState: WalletState) => ({
-            met: !!walletState.walletEVMAddress,
-            waiting: !!walletState.coreWalletClient && !walletState.bootstrapped
-        })
-    },
     [WalletRequirementsConfigKey.TestnetRequired]: {
         id: 'testnet-required',
         title: 'Connect to Testnet',
         description: 'Switch to testnet if currently on mainnet',
         icon: Network,
-        prerequisites: [WalletRequirementsConfigKey.CoreWalletConnected],
+        prerequisites: [WalletRequirementsConfigKey.WalletConnected],
         action: ACTIONS.SWITCH_TO_TESTNET,
         getStatus: (walletState: WalletState) => ({
             met: !!walletState.isTestnet,
@@ -164,7 +156,7 @@ const WALLET_REQUIREMENTS: Record<WalletRequirementsConfigKey, WalletRequirement
         title: 'C-Chain balance',
         description: 'You need tokens to pay for transaction fees',
         icon: Coins,
-        prerequisites: [WalletRequirementsConfigKey.CoreWalletConnected],
+        prerequisites: [WalletRequirementsConfigKey.WalletConnected],
         action: {
             type: 'conditional',
             label: 'Get Tokens',
@@ -192,7 +184,7 @@ const WALLET_REQUIREMENTS: Record<WalletRequirementsConfigKey, WalletRequirement
         title: 'P-Chain balance',
         description: 'You need tokens to pay for transaction fees',
         icon: Coins,
-        prerequisites: [WalletRequirementsConfigKey.CoreWalletConnected],
+        prerequisites: [WalletRequirementsConfigKey.WalletConnected],
         action: {
             type: 'conditional',
             label: 'Get Tokens',
@@ -220,7 +212,7 @@ const WALLET_REQUIREMENTS: Record<WalletRequirementsConfigKey, WalletRequirement
         title: 'EVM Chain balance',
         description: 'You need tokens to pay for transaction fees',
         icon: Coins,
-        prerequisites: [WalletRequirementsConfigKey.CoreWalletConnected],
+        prerequisites: [WalletRequirementsConfigKey.WalletConnected],
         action: ACTIONS.SWITCH_TO_TESTNET,
         getStatus: (walletState: WalletState) => ({
             met: walletState.selectedL1Balance > 0,

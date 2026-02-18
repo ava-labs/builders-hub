@@ -46,7 +46,7 @@ function TeleporterRegistry({ onSuccess }: BaseConsoleToolProps) {
   const [criticalError, setCriticalError] = useState<Error | null>(null);
   const { setTeleporterRegistryAddress, teleporterRegistryAddress } = useToolboxStore();
   const { publicClient, walletEVMAddress } = useWalletStore();
-  const { coreWalletClient } = useConnectedWallet();
+  const { walletClient } = useConnectedWallet();
   const [isDeploying, setIsDeploying] = useState(false);
   const viemChain = useViemChainStore();
   const selectedL1 = useSelectedL1()();
@@ -63,7 +63,7 @@ function TeleporterRegistry({ onSuccess }: BaseConsoleToolProps) {
     setIsDeploying(true);
     setTeleporterRegistryAddress("");
     try {
-      const deployPromise = coreWalletClient.deployContract({
+      const deployPromise = walletClient.deployContract({
         bytecode: TeleporterRegistryBytecode.content.trim() as `0x${string}`,
         abi: TeleporterRegistryManualyCompiled.abi as any,
         args: [

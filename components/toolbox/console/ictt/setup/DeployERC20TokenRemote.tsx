@@ -11,6 +11,7 @@ import {
   getToolboxStore,
 } from "@/components/toolbox/stores/toolboxStore";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
+import { useWalletClient } from 'wagmi';
 import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/toolbox/components/Button";
 import { Success } from "@/components/toolbox/components/Success";
@@ -41,7 +42,8 @@ function DeployERC20TokenRemote() {
   const [criticalError, setCriticalError] = useState<Error | null>(null);
   const { erc20TokenRemoteAddress, setErc20TokenRemoteAddress } =
     useToolboxStore();
-  const { coreWalletClient, walletEVMAddress } = useWalletStore();
+  const { walletEVMAddress } = useWalletStore();
+  const { data: walletClient } = useWalletClient();
   const viemChain = useViemChainStore();
   const selectedL1 = useSelectedL1()();
   const { deploy, isDeploying } = useContractDeployer();
@@ -162,7 +164,7 @@ function DeployERC20TokenRemote() {
   }, [sourceChainId]);
 
   async function handleDeploy() {
-    if (!coreWalletClient) {
+    if (!walletClient) {
       setCriticalError(new Error("Core wallet not found"));
       return;
     }

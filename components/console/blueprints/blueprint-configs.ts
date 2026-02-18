@@ -54,7 +54,7 @@ export const gamingConfig = {
 }`,
     annotations: [
       { marker: 1, key: "gasLimit", highlight: "20M gas per block", description: "High capacity for many concurrent game actions per block." },
-      { marker: 2, key: "targetBlockRate", highlight: "1 second blocks", description: "Fast block production for responsive gameplay. Default is 2s." },
+      { marker: 2, key: "targetBlockRate", highlight: "1s blocks (configurable to 200ms)", description: "Fast block production for responsive gameplay. Avalanche L1s support sub-second block times." },
       { marker: 3, key: "minBaseFee", highlight: "1 gwei (~$0.00001)", description: "Ultra-low fees let players spam thousands of actions affordably." },
       { marker: 4, key: "baseFeeChangeDenominator", highlight: "48 (stable fees)", description: "Higher than default (36) prevents fee spikes during intense gameplay." },
     ]

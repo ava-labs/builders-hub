@@ -128,7 +128,7 @@ function SetRoleForm({
   onFunctionChange,
 }: SetRoleFormProps) {
   const { publicClient, walletEVMAddress, walletChainId } = useWalletStore();
-  const { coreWalletClient } = useConnectedWallet();
+  const { walletClient } = useConnectedWallet();
   const viemChain = useViemChainStore();
   const [isProcessing, setIsProcessing] = useState(false);
   const [address, setAddress] = useState<string>("");
@@ -143,7 +143,7 @@ function SetRoleForm({
 
     try {
       const functionName = ROLES[role].function;
-      const hash = await coreWalletClient.writeContract({
+      const hash = await walletClient.writeContract({
         address: precompileAddress as `0x${string}`,
         abi: abi,
         functionName,

@@ -120,7 +120,7 @@ function ConfigDisplay({ config, lastChangedAt }: ConfigDisplayProps) {
 
 function FeeManager({ onSuccess }: BaseConsoleToolProps) {
   const { publicClient, walletEVMAddress } = useWalletStore();
-  const { coreWalletClient } = useConnectedWallet();
+  const { walletClient } = useConnectedWallet();
   const viemChain = useViemChainStore();
   const [gasLimit, setGasLimit] = useState<string>("20000000");
   const [targetBlockRate, setTargetBlockRate] = useState<string>("2");
@@ -144,7 +144,7 @@ function FeeManager({ onSuccess }: BaseConsoleToolProps) {
     setActiveAction("set");
 
     try {
-      const hash = await coreWalletClient.writeContract({
+      const hash = await walletClient.writeContract({
         address: DEFAULT_FEE_MANAGER_ADDRESS as `0x${string}`,
         abi: feeManagerAbi.abi,
         functionName: "setFeeConfig",
@@ -221,7 +221,7 @@ function FeeManager({ onSuccess }: BaseConsoleToolProps) {
 
   const canSetFeeConfig = Boolean(
     walletEVMAddress &&
-    coreWalletClient &&
+    walletClient &&
     !isSettingConfig
   );
 

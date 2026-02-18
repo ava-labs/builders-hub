@@ -38,7 +38,7 @@ function DeployPoAManager({ onSuccess }: BaseConsoleToolProps) {
         setPoaManagerAddress
     } = useToolboxStore();
     const { publicClient } = useWalletStore();
-    const { coreWalletClient } = useConnectedWallet();
+    const { walletClient } = useConnectedWallet();
     const createChainStoreSubnetId = useCreateChainStore()(state => state.subnetId);
     const [subnetIdL1, setSubnetIdL1] = useState<string>(createChainStoreSubnetId || "");
     const [isChecking, setIsChecking] = useState(false);
@@ -96,8 +96,8 @@ function DeployPoAManager({ onSuccess }: BaseConsoleToolProps) {
 
         try {
             if (!viemChain) throw new Error("Viem chain not found");
-            await coreWalletClient.addChain({ chain: viemChain });
-            await coreWalletClient.switchChain({ id: viemChain!.id });
+            await walletClient.addChain({ chain: viemChain });
+            await walletClient.switchChain({ id: viemChain!.id });
 
             const result = await deploy({
                 abi: PoAManagerABI.abi as any,

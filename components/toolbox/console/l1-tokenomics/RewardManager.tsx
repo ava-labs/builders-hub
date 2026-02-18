@@ -82,7 +82,7 @@ function StatusCard({ title, value, status, onRefresh, isRefreshing }: StatusCar
 
 function RewardManager({ onSuccess }: BaseConsoleToolProps) {
   const { publicClient, walletEVMAddress } = useWalletStore();
-  const { coreWalletClient } = useConnectedWallet();
+  const { walletClient } = useConnectedWallet();
   const viemChain = useViemChainStore();
 
   // Tab state
@@ -105,7 +105,7 @@ function RewardManager({ onSuccess }: BaseConsoleToolProps) {
   const [highlightFunction, setHighlightFunction] = useState<string>("allowFeeRecipients");
 
   const handleAllowFeeRecipients = async () => {
-    if (!coreWalletClient.account) {
+    if (!walletClient.account) {
       throw new Error("Please connect your wallet first");
     }
 
@@ -113,11 +113,11 @@ function RewardManager({ onSuccess }: BaseConsoleToolProps) {
     setTxHash(null);
 
     try {
-      const hash = await coreWalletClient.writeContract({
+      const hash = await walletClient.writeContract({
         address: DEFAULT_REWARD_MANAGER_ADDRESS as `0x${string}`,
         abi: rewardManagerAbi.abi,
         functionName: "allowFeeRecipients",
-        account: coreWalletClient.account,
+        account: walletClient.account,
         chain: viemChain,
       });
 
@@ -149,7 +149,7 @@ function RewardManager({ onSuccess }: BaseConsoleToolProps) {
   };
 
   const handleDisableRewards = async () => {
-    if (!coreWalletClient.account) {
+    if (!walletClient.account) {
       throw new Error("Please connect your wallet first");
     }
 
@@ -157,11 +157,11 @@ function RewardManager({ onSuccess }: BaseConsoleToolProps) {
     setTxHash(null);
 
     try {
-      const hash = await coreWalletClient.writeContract({
+      const hash = await walletClient.writeContract({
         address: DEFAULT_REWARD_MANAGER_ADDRESS as `0x${string}`,
         abi: rewardManagerAbi.abi,
         functionName: "disableRewards",
-        account: coreWalletClient.account,
+        account: walletClient.account,
         chain: viemChain,
       });
 
@@ -193,7 +193,7 @@ function RewardManager({ onSuccess }: BaseConsoleToolProps) {
   };
 
   const handleSetRewardAddress = async () => {
-    if (!coreWalletClient.account) {
+    if (!walletClient.account) {
       throw new Error("Please connect your wallet first");
     }
 
@@ -205,12 +205,12 @@ function RewardManager({ onSuccess }: BaseConsoleToolProps) {
     setTxHash(null);
 
     try {
-      const hash = await coreWalletClient.writeContract({
+      const hash = await walletClient.writeContract({
         address: DEFAULT_REWARD_MANAGER_ADDRESS as `0x${string}`,
         abi: rewardManagerAbi.abi,
         functionName: "setRewardAddress",
         args: [rewardAddress],
-        account: coreWalletClient.account,
+        account: walletClient.account,
         chain: viemChain,
       });
 
@@ -245,7 +245,7 @@ function RewardManager({ onSuccess }: BaseConsoleToolProps) {
   const canSetRewardAddress = Boolean(
     rewardAddress &&
     walletEVMAddress &&
-    coreWalletClient &&
+    walletClient &&
     !isSettingRewardAddress
   );
 

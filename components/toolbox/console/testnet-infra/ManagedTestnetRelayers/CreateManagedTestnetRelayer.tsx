@@ -28,7 +28,7 @@ function CreateManagedTestnetRelayerBase() {
     const { createRelayer, fetchRelayers, relayers } = useManagedTestnetRelayers();
     const { notify } = useConsoleNotifications();
     const { l1List } = useL1ListStore()();
-    const { coreWalletClient } = useConnectedWallet();
+    const { walletClient } = useConnectedWallet();
     const { walletEVMAddress } = useWalletStore();
 
     // Step 1: Network selection
@@ -198,7 +198,7 @@ function CreateManagedTestnetRelayerBase() {
             };
 
             // Switch chain in Core wallet
-            await coreWalletClient.switchChain({ id: evmChainId });
+            await walletClient.switchChain({ id: evmChainId });
 
             const publicClient = createPublicClient({
                 transport: http(config.rpcUrl),
@@ -209,7 +209,7 @@ function CreateManagedTestnetRelayerBase() {
                 blockTag: 'pending',
             });
 
-            const transactionPromise = coreWalletClient.sendTransaction({
+            const transactionPromise = walletClient.sendTransaction({
                 to: createdRelayer.relayerId as `0x${string}`,
                 value: parseEther(amount),
                 account: walletEVMAddress as `0x${string}`,

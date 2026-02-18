@@ -44,7 +44,7 @@ const metadata: ConsoleToolMetadata = {
 function DeployExampleRewardCalculator({ onSuccess }: BaseConsoleToolProps) {
   const { rewardCalculatorAddress, setRewardCalculatorAddress } = useToolboxStore();
   const { publicClient, walletEVMAddress } = useWalletStore();
-  const { coreWalletClient } = useConnectedWallet();
+  const { walletClient } = useConnectedWallet();
   const [isDeploying, setIsDeploying] = useState(false);
   const [rewardBasisPoints, setRewardBasisPoints] = useState<string>("500"); // Default 5% APR
   const viemChain = useViemChainStore();
@@ -55,10 +55,10 @@ function DeployExampleRewardCalculator({ onSuccess }: BaseConsoleToolProps) {
     setRewardCalculatorAddress("");
 
     if (!viemChain) throw new Error("Viem chain not found");
-    await coreWalletClient.addChain({ chain: viemChain });
-    await coreWalletClient.switchChain({ id: viemChain.id });
+    await walletClient.addChain({ chain: viemChain });
+    await walletClient.switchChain({ id: viemChain.id });
 
-    const deployPromise = coreWalletClient.deployContract({
+    const deployPromise = walletClient.deployContract({
       abi: ExampleRewardCalculator.abi as any,
       bytecode: ExampleRewardCalculator.bytecode.object as `0x${string}`,
       args: [BigInt(rewardBasisPoints)], // Constructor takes uint64 rewardBasisPoints

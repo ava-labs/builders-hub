@@ -175,7 +175,7 @@ if (lastMessage === expectedMessage) {
 function SendICMMessage({ onSuccess }: BaseConsoleToolProps) {
   const [criticalError, setCriticalError] = useState<Error | null>(null);
   const { icmReceiverAddress, setIcmReceiverAddress } = useToolboxStore();
-  const { coreWalletClient } = useConnectedWallet();
+  const { walletClient } = useConnectedWallet();
   const selectedL1 = useSelectedL1()();
   const [message, setMessage] = useState(Math.floor(Math.random() * 10000));
   const [destinationChainId, setDestinationChainId] = useState<string>("");
@@ -241,7 +241,7 @@ function SendICMMessage({ onSuccess }: BaseConsoleToolProps) {
         transport: http(viemChain.rpcUrls.default.http[0]),
       });
 
-      if (!coreWalletClient.account) {
+      if (!walletClient.account) {
         throw new Error('No wallet account connected');
       }
 
@@ -254,11 +254,11 @@ function SendICMMessage({ onSuccess }: BaseConsoleToolProps) {
           BigInt(message),
           destinationBlockchainIDHex as `0x${string}`
         ],
-        account: coreWalletClient.account,
+        account: walletClient.account,
         chain: viemChain,
       });
 
-      const writePromise = coreWalletClient.writeContract(request);
+      const writePromise = walletClient.writeContract(request);
 
       notify({
         type: 'call',

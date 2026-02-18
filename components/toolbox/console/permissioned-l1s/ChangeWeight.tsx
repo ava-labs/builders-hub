@@ -38,7 +38,7 @@ const ChangeWeightStateless: React.FC<BaseConsoleToolProps> = ({ onSuccess }) =>
 
   // Form state
   const { walletEVMAddress } = useWalletStore();
-  const { coreWalletClient } = useConnectedWallet();
+  const { walletClient } = useConnectedWallet();
   const createChainStoreSubnetId = useCreateChainStore()(state => state.subnetId);
   const [subnetIdL1, setSubnetIdL1] = useState<string>(createChainStoreSubnetId || "");
   const [nodeId, setNodeId] = useState<string>('');

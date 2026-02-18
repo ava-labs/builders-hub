@@ -14,6 +14,7 @@ import SelectSubnet, { SubnetSelection } from '@/components/toolbox/components/S
 import { useValidatorManagerDetails } from '@/components/toolbox/hooks/useValidatorManagerDetails';
 import NativeTokenStakingManager from "@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json";
 import { parseEther } from "viem";
+import { useWalletClient } from 'wagmi';
 import versions from '@/scripts/versions.json';
 import { cb58ToHex } from '@/components/toolbox/console/utilities/format-converter/FormatConverter';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
@@ -186,7 +187,8 @@ function InitializeNativeStakingManager({ onSuccess }: BaseConsoleToolProps) {
     const [weightToValueFactor, setWeightToValueFactor] = useState<string>("1");
     const [rewardCalculatorAddress, setRewardCalculatorAddress] = useState<string>("");
 
-    const { coreWalletClient, publicClient, walletEVMAddress } = useWalletStore();
+    const { publicClient, walletEVMAddress } = useWalletStore();
+    const { data: walletClient } = useWalletClient();
     const viemChain = useViemChainStore();
     const { nativeStakingManagerAddress: storedStakingManagerAddress, rewardCalculatorAddress: storedRewardCalculatorAddress } = useToolboxStore();
     const { notify } = useConsoleNotifications();
@@ -262,7 +264,7 @@ function InitializeNativeStakingManager({ onSuccess }: BaseConsoleToolProps) {
 
         setIsInitializing(true);
         try {
-            if (!coreWalletClient) throw new Error("Wallet not connected");
+            if (!walletClient) throw new Error("Wallet not connected");
             if (!validatorManagerAddress) throw new Error("Validator Manager address required");
             if (!rewardCalculatorAddress) throw new Error("Reward Calculator address required");
             if (!blockchainId) throw new Error("Blockchain ID not found");
@@ -295,7 +297,7 @@ function InitializeNativeStakingManager({ onSuccess }: BaseConsoleToolProps) {
 
             const gasWithBuffer = gasEstimate + (gasEstimate * 20n / 100n);
 
-            const writePromise = coreWalletClient.writeContract({
+            const writePromise = walletClient!.writeContract({
                 address: stakingManagerAddressInput as `0x${string}`,
                 abi: NativeTokenStakingManager.abi,
                 functionName: 'initialize',

@@ -8,6 +8,7 @@ import { Alert } from '@/components/toolbox/components/Alert';
 import NativeTokenStakingManager from '@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json';
 import ERC20TokenStakingManager from '@/contracts/icm-contracts/compiled/ERC20TokenStakingManager.json';
 import { useNativeTokenStakingManager, useERC20TokenStakingManager } from '@/components/toolbox/hooks/contracts';
+import { useWalletClient } from 'wagmi';
 
 type TokenType = 'native' | 'erc20';
 
@@ -28,7 +29,8 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
     onSuccess,
     onError,
 }) => {
-    const { coreWalletClient, publicClient, walletEVMAddress } = useWalletStore();
+    const { publicClient, walletEVMAddress } = useWalletStore();
+    const { data: walletClient } = useWalletClient();
     const viemChain = useViemChainStore();
 
     const nativeStakingManager = useNativeTokenStakingManager(tokenType === 'native' ? stakingManagerAddress : null);
@@ -46,7 +48,7 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
         setErrorState(null);
         setTxHash(null);
 
-        if (!coreWalletClient || !publicClient || !viemChain) {
+        if (!walletClient || !publicClient || !viemChain) {
             const msg = "Wallet or chain configuration is not properly initialized.";
             setErrorState(msg);
             onError(msg);

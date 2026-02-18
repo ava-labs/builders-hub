@@ -34,7 +34,7 @@ export interface TransferOwnershipProps extends BaseConsoleToolProps {
 function TransferOwnership({ onSuccess, defaultNewOwnerAddress }: TransferOwnershipProps) {
     const [criticalError, setCriticalError] = useState<Error | null>(null);
     const { publicClient, walletEVMAddress } = useWalletStore();
-    const { coreWalletClient } = useConnectedWallet();
+    const { walletClient } = useConnectedWallet();
     const [isTransferring, setIsTransferring] = useState(false);
     const [selectedSubnetId, setSelectedSubnetId] = useState<string>('');
     const [newOwnerAddress, setNewOwnerAddress] = useState<string>(defaultNewOwnerAddress || '');
@@ -115,7 +115,7 @@ function TransferOwnership({ onSuccess, defaultNewOwnerAddress }: TransferOwners
 
     async function handleTransferOwnership() {
         setIsTransferring(true);
-        if (!coreWalletClient.account) {
+        if (!walletClient.account) {
             throw new Error('No wallet account connected');
         }
         try {

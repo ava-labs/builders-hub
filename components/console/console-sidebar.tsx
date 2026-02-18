@@ -9,7 +9,6 @@ import {
   MessagesSquare,
   Wrench,
   Droplets,
-  ArrowLeft,
   Shield,
   Network,
   GitMerge,
@@ -37,6 +36,8 @@ import {
   LayoutDashboard,
   Workflow,
   Sparkles,
+  Search,
+  X,
   type LucideIcon,
 } from "lucide-react";
 
@@ -54,7 +55,6 @@ import {
   SidebarMenuSubItem,
   SidebarMenuSubButton,
 } from "@/components/ui/sidebar";
-import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import {
   Collapsible,
   CollapsibleContent,
@@ -121,11 +121,6 @@ const data = {
       title: "Home",
       url: "/console",
       icon: Home,
-    },
-    {
-      title: "Back to Builder Hub",
-      url: "/",
-      icon: ArrowLeft,
     },
   ],
   navGroups: [
@@ -621,68 +616,150 @@ export function ConsoleSidebar({ ...props }: ConsoleSidebarProps) {
   const sidebarState = useSidebarState();
   const { isCollapsed, toggleSection } = sidebarState;
 
+  const [searchQuery, setSearchQuery] = React.useState("");
+  const searchInputRef = React.useRef<HTMLInputElement>(null);
+
   // Get wallet chain ID to determine if user is on an L1
   const walletChainId = useWalletStore((s) => s.walletChainId);
   const isConnectedToL1 =
     walletChainId !== 0 && !C_CHAIN_IDS.includes(walletChainId);
 
+  // Flatten all nav items for search
+  const allNavItems = React.useMemo(() => {
+    const items: NavItem[] = [];
+    data.navMain.forEach((item) => items.push(item));
+    data.navGroups.forEach((group) => {
+      group.items.forEach((item) => {
+        if (isCollapsibleSubGroup(item)) {
+          item.items.forEach((subItem) => items.push(subItem));
+        } else {
+          items.push(item);
+        }
+      });
+    });
+    return items;
+  }, []);
+
+  // Filter items based on search query
+  const filteredItems = React.useMemo(() => {
+    if (!searchQuery.trim()) return [];
+    const query = searchQuery.toLowerCase();
+    return allNavItems.filter((item) =>
+      item.title.toLowerCase().includes(query)
+    );
+  }, [searchQuery, allNavItems]);
+
+  const isSearching = searchQuery.trim().length > 0;
+
+  // Clear search on navigation
+  React.useEffect(() => {
+    setSearchQuery("");
+  }, [pathname]);
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Escape") {
+      setSearchQuery("");
+      searchInputRef.current?.blur();
+    }
+  };
+
   return (
     <SidebarStateContext.Provider value={sidebarState}>
       <Sidebar {...props} data-tour="sidebar">
-        <SidebarHeader>
-          <Link
-            href="/console"
-            className="flex items-center gap-2 group transition-all duration-200 p-2"
-          >
-            <AvalancheLogo className="size-7" fill="currentColor" />
-            <span className="font-large font-semibold">Builder Console</span>
-          </Link>
+        <SidebarHeader className="px-3 pt-3 pb-1">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-sidebar-foreground/40" />
+            <input
+              ref={searchInputRef}
+              type="text"
+              placeholder="Search..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={handleSearchKeyDown}
+              className="w-full rounded-md border border-sidebar-border bg-transparent pl-8 pr-8 py-1.5 text-sm text-sidebar-foreground placeholder:text-sidebar-foreground/40 focus:outline-none focus:ring-1 focus:ring-sidebar-ring"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => {
+                  setSearchQuery("");
+                  searchInputRef.current?.focus();
+                }}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-sidebar-foreground/40 hover:text-sidebar-foreground"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
         </SidebarHeader>
 
         <SidebarContent>
-          {/* Main Navigation */}
-          <SidebarGroup className="pb-0">
-            <SidebarMenu>
-              {data.navMain.map((item) => {
-                const isActive = pathname === item.url;
+          {isSearching ? (
+            <SidebarGroup>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {filteredItems.length > 0 ? (
+                    filteredItems.map((item) => (
+                      <NavMenuItem
+                        key={item.url}
+                        item={item}
+                        pathname={pathname}
+                      />
+                    ))
+                  ) : (
+                    <div className="px-3 py-8 text-center text-sm text-sidebar-foreground/40">
+                      No results for &ldquo;{searchQuery}&rdquo;
+                    </div>
+                  )}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          ) : (
+            <>
+              {/* Main Navigation */}
+              <SidebarGroup className="pb-0">
+                <SidebarMenu>
+                  {data.navMain.map((item) => {
+                    const isActive = pathname === item.url;
+                    return (
+                      <SidebarMenuItem key={item.title}>
+                        <SidebarMenuButton
+                          asChild
+                          isActive={isActive}
+                          size="sm"
+                          className="text-sidebar-foreground/60 hover:text-sidebar-foreground"
+                        >
+                          <Link href={item.url}>
+                            <item.icon className="h-3.5 w-3.5" />
+                            <span>{item.title}</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  })}
+                </SidebarMenu>
+              </SidebarGroup>
+
+              {/* Navigation Groups with Collapsible Sections */}
+              {data.navGroups.map((group) => {
+                // Skip L1-only sections when not connected to L1
+                if (group.requiresL1 && !isConnectedToL1) {
+                  return null;
+                }
+
+                const isOpen = !isCollapsed(group.id);
+
                 return (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={isActive}
-                      size="sm"
-                      className="text-sidebar-foreground/60 hover:text-sidebar-foreground"
-                    >
-                      <Link href={item.url}>
-                        <item.icon className="h-3.5 w-3.5" />
-                        <span>{item.title}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
+                  <CollapsibleSection
+                    key={group.id}
+                    group={group}
+                    pathname={pathname}
+                    isOpen={isOpen}
+                    onToggle={() => toggleSection(group.id)}
+                  />
                 );
               })}
-            </SidebarMenu>
-          </SidebarGroup>
-
-          {/* Navigation Groups with Collapsible Sections */}
-          {data.navGroups.map((group) => {
-            // Skip L1-only sections when not connected to L1
-            if (group.requiresL1 && !isConnectedToL1) {
-              return null;
-            }
-
-            const isOpen = !isCollapsed(group.id);
-
-            return (
-              <CollapsibleSection
-                key={group.id}
-                group={group}
-                pathname={pathname}
-                isOpen={isOpen}
-                onToggle={() => toggleSection(group.id)}
-              />
-            );
-          })}
+            </>
+          )}
         </SidebarContent>
       </Sidebar>
     </SidebarStateContext.Provider>

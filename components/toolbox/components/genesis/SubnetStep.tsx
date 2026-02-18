@@ -20,6 +20,9 @@ export function SubnetStep({ subnetId, onSubnetIdChange }: SubnetStepProps) {
     const [isCreatingSubnet, setIsCreatingSubnet] = useState(false);
 
     async function handleCreateSubnet() {
+        if (!coreWalletClient) {
+            return;
+        }
         setIsCreatingSubnet(true);
 
         const createSubnetTx = coreWalletClient.createSubnet({

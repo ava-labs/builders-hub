@@ -48,9 +48,9 @@ function CliCommandBlock({ command }: { command: string }) {
 }
 
 /**
- * A transaction button that adapts based on wallet type:
- * - Core wallet: branded transaction card with integrated logo + optional tx description
- * - Non-Core wallet: disabled button with a promoted CLI alternative
+ * A P-Chain transaction button that adapts based on wallet type:
+ * - Core wallet: branded transaction card with onClick handler for in-browser signing
+ * - Non-Core EVM wallet: shows CLI command as the primary action path
  */
 export function CoreWalletTransactionButton({
   children,
@@ -62,10 +62,10 @@ export function CoreWalletTransactionButton({
   variant = "primary",
   className,
 }: CoreWalletTransactionButtonProps) {
-  const walletType = useWalletStore((s) => s.walletType);
-  const isCoreWallet = walletType === "core";
+  const coreWalletClient = useWalletStore((s) => s.coreWalletClient);
+  const hasCoreWallet = !!coreWalletClient;
 
-  if (isCoreWallet) {
+  if (hasCoreWallet) {
     return (
       <>
         <div className={cn("space-y-2", className)}>
@@ -111,24 +111,10 @@ export function CoreWalletTransactionButton({
     );
   }
 
-  // Non-Core wallet: disabled button + prominent CLI instructions
+  // Non-Core wallet: show CLI command as primary action
   return (
     <div className="space-y-3">
-      <div className="relative">
-        <Button
-          disabled={true}
-          variant={variant}
-          className={className}
-        >
-          {children}
-        </Button>
-        <div className="absolute inset-0 flex items-center justify-center bg-background/80 rounded-xl">
-          <span className="text-xs font-medium text-muted-foreground">
-            Requires Core Wallet for P-Chain transactions
-          </span>
-        </div>
-      </div>
-      {cliCommand && (
+      {cliCommand ? (
         <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
           <div className="flex items-center gap-2 mb-2">
             <Terminal className="h-4 w-4 text-primary" />
@@ -138,12 +124,20 @@ export function CoreWalletTransactionButton({
               rel="noopener noreferrer"
               className="text-sm font-medium text-primary hover:underline inline-flex items-center gap-1"
             >
-              Use the platform-cli instead
+              Run via platform-cli
               <ExternalLink className="h-3 w-3" />
             </a>
           </div>
           <CliCommandBlock command={cliCommand} />
         </div>
+      ) : (
+        <Button
+          disabled={true}
+          variant={variant}
+          className={className}
+        >
+          {children}
+        </Button>
       )}
     </div>
   );

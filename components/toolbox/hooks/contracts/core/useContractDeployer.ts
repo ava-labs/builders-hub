@@ -28,19 +28,19 @@ export interface ContractDeployerHook {
  */
 export function useContractDeployer(): ContractDeployerHook {
   const { publicClient, walletEVMAddress } = useWalletStore();
-  const { coreWalletClient } = useConnectedWallet();
+  const { walletClient } = useConnectedWallet();
   const viemChain = useViemChainStore();
   const { notify } = useConsoleNotifications();
   const [isDeploying, setIsDeploying] = useState(false);
 
   const deploy = async (params: DeployParams): Promise<DeployResult> => {
-    if (!coreWalletClient || !publicClient || !walletEVMAddress || !viemChain) {
+    if (!walletClient || !publicClient || !walletEVMAddress || !viemChain) {
       throw new Error('Wallet not connected or chain not configured');
     }
 
     setIsDeploying(true);
     try {
-      const deployPromise = coreWalletClient.deployContract({
+      const deployPromise = walletClient.deployContract({
         abi: params.abi,
         bytecode: params.bytecode as `0x${string}`,
         args: params.args,

@@ -305,7 +305,6 @@ export const useNetworkInfo = () => {
 
 // Wallet type selectors
 export const useWalletType = () => useWalletStore((state) => state.walletType);
-export const useIsCoreWallet = () => useWalletStore((state) => state.walletType === 'core');
 
 // Selector for specific L1 balance
 export const useL1Balance = (chainId: string) => useWalletStore((state) => state.balances.l1Chains[chainId] || 0);

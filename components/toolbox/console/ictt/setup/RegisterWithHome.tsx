@@ -21,7 +21,7 @@ import { cb58ToHex } from '@/components/toolbox/console/utilities/format-convert
 import SelectBlockchainId from "@/components/toolbox/components/SelectBlockchainId";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
-import { useWalletStore } from "@/components/toolbox/stores/walletStore";
+import { useWalletClient } from 'wagmi';
 import { ConsoleToolMetadata, withConsoleToolMetadata } from "@/components/toolbox/components/WithConsoleToolMetadata";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 
@@ -37,7 +37,7 @@ function RegisterWithHome() {
   const { erc20TokenRemoteAddress, nativeTokenRemoteAddress } =
     useToolboxStore();
   const [remoteAddress, setRemoteAddress] = useState("");
-  const { coreWalletClient } = useWalletStore();
+  const { data: walletClient } = useWalletClient();
   const { notify } = useConsoleNotifications();
   const viemChain = useViemChainStore();
   const selectedL1 = useSelectedL1()();
@@ -136,7 +136,7 @@ function RegisterWithHome() {
   async function handleRegister() {
     setLocalError("");
 
-    if (!coreWalletClient || !coreWalletClient.account) {
+    if (!walletClient || !walletClient.account) {
       setLocalError("Core wallet not found");
       return;
     }
@@ -169,11 +169,11 @@ function RegisterWithHome() {
         functionName: "registerWithHome",
         args: [feeInfo],
         chain: viemChain,
-        account: coreWalletClient.account,
+        account: walletClient!.account,
       });
 
       // Send the transaction
-      const writePromise = coreWalletClient.writeContract(request);
+      const writePromise = walletClient!.writeContract(request);
       notify(
         {
           type: "call",

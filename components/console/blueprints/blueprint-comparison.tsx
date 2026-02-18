@@ -45,7 +45,7 @@ const blueprints: BlueprintData[] = [
     id: "gaming",
     name: "Gaming",
     icon: <Gamepad2 className="w-4 h-4" />,
-    color: "text-pink-500",
+    color: "text-zinc-900 dark:text-zinc-100",
     href: "/console/blueprints/gaming",
     deployHref: "/console/layer-1/create?blueprint=gaming",
     blockTime: "1s",
@@ -64,7 +64,7 @@ const blueprints: BlueprintData[] = [
     id: "defi",
     name: "DeFi",
     icon: <TrendingUp className="w-4 h-4" />,
-    color: "text-violet-500",
+    color: "text-zinc-900 dark:text-zinc-100",
     href: "/console/blueprints/defi",
     deployHref: "/console/layer-1/create?blueprint=defi",
     blockTime: "1s",
@@ -83,7 +83,7 @@ const blueprints: BlueprintData[] = [
     id: "rwa",
     name: "Tokenization",
     icon: <Building2 className="w-4 h-4" />,
-    color: "text-emerald-500",
+    color: "text-zinc-900 dark:text-zinc-100",
     href: "/console/blueprints/rwa",
     deployHref: "/console/layer-1/create?blueprint=rwa",
     blockTime: "2s",
@@ -217,12 +217,7 @@ export function BlueprintComparison() {
               >
                 <div className="flex flex-col items-center gap-2">
                   <div
-                    className={cn(
-                      "w-10 h-10 rounded-xl flex items-center justify-center",
-                      blueprint.id === "gaming" && "bg-pink-100 dark:bg-pink-900/30",
-                      blueprint.id === "defi" && "bg-violet-100 dark:bg-violet-900/30",
-                      blueprint.id === "rwa" && "bg-emerald-100 dark:bg-emerald-900/30"
-                    )}
+                    className="w-10 h-10 rounded-xl flex items-center justify-center bg-zinc-100 dark:bg-zinc-800"
                   >
                     <span className={blueprint.color}>{blueprint.icon}</span>
                   </div>
@@ -332,12 +327,7 @@ export function BlueprintComparison() {
                   </Link>
                   <Link
                     href={blueprint.deployHref}
-                    className={cn(
-                      "inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium text-white transition-colors",
-                      blueprint.id === "gaming" && "bg-pink-500 hover:bg-pink-600",
-                      blueprint.id === "defi" && "bg-violet-500 hover:bg-violet-600",
-                      blueprint.id === "rwa" && "bg-emerald-500 hover:bg-emerald-600"
-                    )}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium text-white bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 transition-colors"
                   >
                     Deploy
                     <ArrowRight className="w-4 h-4" />

@@ -11,6 +11,7 @@ import ExampleERC20 from '@/contracts/icm-contracts/compiled/ExampleERC20.json';
 import { parseEther, formatEther, decodeEventLog } from 'viem';
 import { useNativeTokenStakingManager, useERC20TokenStakingManager } from '@/components/toolbox/hooks/contracts';
 import { useERC20Token } from '@/components/toolbox/hooks/useERC20Token';
+import { useWalletClient } from 'wagmi';
 
 type TokenType = 'native' | 'erc20';
 
@@ -36,7 +37,8 @@ const InitiateDelegation: React.FC<InitiateDelegationProps> = ({
     onSuccess,
     onError,
 }) => {
-    const { coreWalletClient, publicClient, walletEVMAddress } = useWalletStore();
+    const { publicClient, walletEVMAddress } = useWalletStore();
+    const { data: walletClient } = useWalletClient();
     const viemChain = useViemChainStore();
 
     // Initialize hooks
@@ -95,7 +97,7 @@ const InitiateDelegation: React.FC<InitiateDelegationProps> = ({
     }, [publicClient, stakingManagerAddress, contractAbi]);
 
     const handleApproveERC20 = async () => {
-        if (!erc20TokenAddress || !coreWalletClient || !publicClient || !viemChain) {
+        if (!erc20TokenAddress || !walletClient || !publicClient || !viemChain) {
             setErrorState("ERC20 token address or wallet not available");
             return;
         }
@@ -123,7 +125,7 @@ const InitiateDelegation: React.FC<InitiateDelegationProps> = ({
         setTxHash(null);
         setDelegationID(null);
 
-        if (!coreWalletClient || !publicClient || !viemChain) {
+        if (!walletClient || !publicClient || !viemChain) {
             setErrorState("Wallet or chain configuration is not properly initialized.");
             onError("Wallet or chain configuration is not properly initialized.");
             return;

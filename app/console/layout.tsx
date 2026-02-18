@@ -13,10 +13,13 @@ import { useAutomatedFaucet } from "@/hooks/useAutomatedFaucet";
 import { useRetroactiveConsoleBadges } from "@/hooks/useRetroactiveConsoleBadges";
 import { TrackNewUser } from "@/components/analytics/TrackNewUser";
 import { LoginModalWrapper } from "@/components/login/LoginModalWrapper";
-import { CommandPalette } from "@/components/console/command-palette";
 import { OnboardingTour } from "@/components/console/onboarding-tour";
 import { WelcomeModal } from "@/components/console/onboarding-tour/welcome-modal";
 import { ConsoleBadgeNotification } from "@/components/console/ConsoleBadgeNotification";
+import { LayoutWrapper } from "@/app/layout-wrapper.client";
+import { baseOptions } from "@/app/layout.config";
+import { NavbarDropdownInjector } from "@/components/navigation/navbar-dropdown-injector";
+import Script from "next/script";
 
 function ConsolePageTransition({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -37,28 +40,42 @@ function ConsoleContent({ children }: { children: ReactNode }) {
   useAutomatedFaucet();
   useRetroactiveConsoleBadges();
 
+  // The main navbar is h-14 (3.5rem). All height calcs subtract it alongside the banner.
+  const viewportHeight = "calc(100vh - 3.5rem - var(--fd-banner-height,0px))";
+
   return (
     <WalletProvider>
-      <SidebarProvider
-        className="!h-[calc(100vh-var(--fd-banner-height,0px))] !min-h-[calc(100vh-var(--fd-banner-height,0px))] !max-h-[calc(100vh-var(--fd-banner-height,0px))] overflow-hidden"
-        style={
-          {
-            "--sidebar-width": "calc(var(--spacing) * 72)",
-            "--header-height": "calc(var(--spacing) * 12)",
-          } as React.CSSProperties
-        }
-      >
-        <ConsoleSidebar variant="inset" />
-        <SidebarInset className="bg-white dark:bg-zinc-900 h-[calc(100vh-var(--fd-banner-height,0px)-1rem)] overflow-hidden m-2">
-          <SiteHeader />
-          <div className="flex flex-1 flex-col gap-4 p-8 overflow-y-auto h-[calc(100vh-var(--fd-banner-height,0px)-var(--header-height)-1rem)]">
-            <ConsolePageTransition>{children}</ConsolePageTransition>
-          </div>
-        </SidebarInset>
-      </SidebarProvider>
+      <LayoutWrapper baseOptions={baseOptions}>
+        <NavbarDropdownInjector />
+        <SidebarProvider
+          className="!overflow-hidden"
+          style={
+            {
+              "--sidebar-width": "calc(var(--spacing) * 72)",
+              "--header-height": "calc(var(--spacing) * 12)",
+              height: viewportHeight,
+              minHeight: viewportHeight,
+              maxHeight: viewportHeight,
+            } as React.CSSProperties
+          }
+        >
+          <ConsoleSidebar variant="inset" />
+          <SidebarInset
+            className="bg-white dark:bg-zinc-900 overflow-hidden m-2"
+            style={{ height: `calc(${viewportHeight} - 1rem)` }}
+          >
+            <SiteHeader />
+            <div
+              className="flex flex-1 flex-col gap-4 p-8 overflow-y-auto"
+              style={{ height: `calc(${viewportHeight} - var(--header-height) - 1rem)` }}
+            >
+              <ConsolePageTransition>{children}</ConsolePageTransition>
+            </div>
+          </SidebarInset>
+        </SidebarProvider>
+      </LayoutWrapper>
       <Toaster position="bottom-right" richColors expand={true} visibleToasts={5}/>
       <ConsoleBadgeNotification />
-      <CommandPalette />
       <OnboardingTour />
       <WelcomeModal />
     </WalletProvider>
@@ -69,6 +86,8 @@ export default function Layout({ children }: { children: ReactNode }) {
   return (
     <SessionProvider>
       <TrackNewUser />
+      {/* Temporary: Figma capture script for design export — remove after capture */}
+      <Script src="https://mcp.figma.com/mcp/html-to-design/capture.js" strategy="afterInteractive" />
       <ConsoleContent>{children}</ConsoleContent>
       <LoginModalWrapper />
     </SessionProvider>

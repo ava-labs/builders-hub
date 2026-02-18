@@ -35,7 +35,7 @@ function ICMRelayerInner({ onSuccess }: BaseConsoleToolProps) {
     const selectedL1 = useSelectedL1()();
     const [criticalError, setCriticalError] = useState<Error | null>(null);
     const { isTestnet, walletEVMAddress } = useWalletStore();
-    const { coreWalletClient } = useConnectedWallet();
+    const { walletClient } = useConnectedWallet();
     const { l1List } = useL1ListStore()();
     const { notify } = useConsoleNotifications();
     const { setHighlightPath, clearHighlight, highlightPath } = useGenesisHighlight();
@@ -203,7 +203,7 @@ function ICMRelayerInner({ onSuccess }: BaseConsoleToolProps) {
                 blockTag: 'pending',
             });
 
-            const transactionPromise = coreWalletClient.sendTransaction({
+            const transactionPromise = walletClient.sendTransaction({
                 to: relayerAddress as `0x${string}`,
                 value: parseEther(amount),
                 account: walletEVMAddress as `0x${string}`,

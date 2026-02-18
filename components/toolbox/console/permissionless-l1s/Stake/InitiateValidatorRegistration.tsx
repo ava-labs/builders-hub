@@ -12,6 +12,7 @@ import ExampleERC20 from '@/contracts/icm-contracts/compiled/ExampleERC20.json';
 import { parseEther, formatEther } from 'viem';
 import { useNativeTokenStakingManager, useERC20TokenStakingManager } from '@/components/toolbox/hooks/contracts';
 import { useERC20Token } from '@/components/toolbox/hooks/useERC20Token';
+import { useWalletClient } from 'wagmi';
 
 interface ContractSettings {
     minimumStakeAmount: string;
@@ -45,7 +46,8 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
     onSuccess,
     onError,
 }) => {
-    const { coreWalletClient, publicClient, walletEVMAddress, pChainAddress } = useWalletStore();
+    const { publicClient, walletEVMAddress, pChainAddress } = useWalletStore();
+    const { data: walletClient } = useWalletClient();
     const viemChain = useViemChainStore();
 
     // Initialize hooks
@@ -109,7 +111,7 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
     }, [publicClient, stakingManagerAddress, contractAbi]);
 
     const handleApproveERC20 = async () => {
-        if (!erc20TokenAddress || !coreWalletClient || !publicClient || !viemChain) {
+        if (!erc20TokenAddress || !walletClient || !publicClient || !viemChain) {
             setErrorState("ERC20 token address or wallet not available");
             return;
         }
@@ -137,7 +139,7 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
         setTxHash(null);
         setValidationID(null);
 
-        if (!coreWalletClient || !publicClient || !viemChain) {
+        if (!walletClient || !publicClient || !viemChain) {
             setErrorState("Wallet or chain configuration is not properly initialized.");
             onError("Wallet or chain configuration is not properly initialized.");
             return;

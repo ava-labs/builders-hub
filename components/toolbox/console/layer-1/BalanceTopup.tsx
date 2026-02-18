@@ -110,6 +110,11 @@ function ValidatorBalanceIncrease({ onSuccess }: BaseConsoleToolProps) {
     setValidatorTxId("")
 
     try {
+      if (!coreWalletClient) {
+        setError("This operation requires Core Wallet for P-Chain transactions. Use the CLI alternative below.")
+        setLoading(false)
+        return
+      }
       const txHash = await coreWalletClient.increaseL1ValidatorBalance({
         validationId: validatorSelection.validationId,
         balanceInAvax: amountNumber,

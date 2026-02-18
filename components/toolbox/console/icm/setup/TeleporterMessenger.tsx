@@ -46,7 +46,7 @@ const metadata: ConsoleToolMetadata = {
 function TeleporterMessenger({ onSuccess }: BaseConsoleToolProps) {
   const [criticalError, setCriticalError] = useState<Error | null>(null);
   const { publicClient, walletEVMAddress } = useWalletStore();
-  const { coreWalletClient } = useConnectedWallet();
+  const { walletClient } = useConnectedWallet();
   const viemChain = useViemChainStore();
   const [isDeploying, setIsDeploying] = useState(false);
   const [deployerBalance, setDeployerBalance] = useState(BigInt(0));
@@ -92,7 +92,7 @@ function TeleporterMessenger({ onSuccess }: BaseConsoleToolProps) {
   const handleTopUp = async () => {
     setIsSending(true);
     try {
-      const hash = await coreWalletClient.sendTransaction({
+      const hash = await walletClient.sendTransaction({
         to: deployerAddress as `0x${string}`,
         value: parseEther(amount),
         chain: viemChain,
@@ -111,7 +111,7 @@ function TeleporterMessenger({ onSuccess }: BaseConsoleToolProps) {
   const handleDeploy = async () => {
     setIsDeploying(true);
     try {
-      const hash = await coreWalletClient.sendRawTransaction({
+      const hash = await walletClient.sendRawTransaction({
         serializedTransaction: TeleporterMessengerDeploymentTransaction.content as `0x${string}`,
       });
 

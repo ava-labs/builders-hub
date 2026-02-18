@@ -4,6 +4,7 @@ import WrappedNativeToken from "@/contracts/icm-contracts/compiled/WrappedNative
 import { useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
 import { useWrappedNativeToken, useSetWrappedNativeToken } from "@/components/toolbox/stores/l1ListStore";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
+import { useWalletClient } from 'wagmi';
 import { useNativeCurrencyInfo, useSetNativeCurrencyInfo } from "@/components/toolbox/stores/l1ListStore";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/toolbox/components/Button";
@@ -47,7 +48,8 @@ function DeployWrappedNative({ onSuccess }: BaseConsoleToolProps) {
     const [wrappedNativeTokenAddress, setLocalWrappedNativeTokenAddress] = useState<string>(cachedWrappedToken || '');
     const [hasPredeployedToken, setHasPredeployedToken] = useState(!!cachedWrappedToken);
     const [isCheckingToken, setIsCheckingToken] = useState(!cachedWrappedToken);
-    const { walletChainId, walletEVMAddress, coreWalletClient } = useWalletStore();
+    const { walletChainId, walletEVMAddress } = useWalletStore();
+    const { data: walletClient } = useWalletClient();
     const setNativeCurrencyInfo = useSetNativeCurrencyInfo();
     const viemChain = useViemChainStore();
     const { deploy, isDeploying } = useContractDeployer();
@@ -179,7 +181,7 @@ function DeployWrappedNative({ onSuccess }: BaseConsoleToolProps) {
     }, [isMounted, viemChain, walletEVMAddress, selectedL1, walletChainId, cachedWrappedToken, cachedNativeCurrency, wrappedNativeTokenAddress]);
    
     async function handleDeploy() {
-        if (!coreWalletClient) {
+        if (!walletClient) {
             setCriticalError(new Error("Core wallet not found"));
             return;
         }
