@@ -8,17 +8,17 @@ description: Install and configure Platform CLI for Avalanche P-Chain operations
 The install script downloads the latest release binary for your platform:
 
 ```bash
-curl -sSfL https://raw.githubusercontent.com/ava-labs/platform-cli/main/install.sh | sh
+curl -sSfL https://build.avax.network/install/platform-cli | sh
 ```
 
 Options:
 
 ```bash
 # Install to a custom directory
-curl -sSfL https://raw.githubusercontent.com/ava-labs/platform-cli/main/install.sh | sh -s -- -b ~/.local/bin
+curl -sSfL https://build.avax.network/install/platform-cli | sh -s -- -b ~/.local/bin
 
 # Install a specific version
-curl -sSfL https://raw.githubusercontent.com/ava-labs/platform-cli/main/install.sh | sh -s -- -v v0.2.0
+curl -sSfL https://build.avax.network/install/platform-cli | sh -s -- -v v0.2.0
 ```
 
 The script auto-detects your OS (Linux/macOS) and architecture (amd64/arm64), downloads the release tarball, verifies checksums, and installs the `platform` binary.
