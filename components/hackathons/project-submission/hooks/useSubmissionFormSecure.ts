@@ -173,6 +173,80 @@ const BaseFormSchema = z.object({
       // Retornar array vacío si todas las entradas fueron filtradas (campo opcional)
       return filtered;
     }),
+  website: z.preprocess(
+    (val) => {
+      if (!val) return [];
+      if (typeof val === 'string') {
+        try {
+          const parsed = JSON.parse(val);
+          if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+            return Object.entries(parsed).map(([key, value]) => ({
+              key: String(key),
+              value: String(value ?? ''),
+            }));
+          }
+        } catch {
+          // single URL as string: treat as key "url"
+          const trimmed = val.trim();
+          if (trimmed) return [{ key: 'url', value: trimmed }];
+        }
+        return [];
+      }
+      if (typeof val === 'object' && val !== null && !Array.isArray(val)) {
+        return Object.entries(val).map(([k, v]) => ({
+          key: String(k),
+          value: String(v ?? ''),
+        }));
+      }
+      if (Array.isArray(val)) {
+        return val.map((item) =>
+          typeof item === 'object' && item !== null && 'key' in item && 'value' in item
+            ? { key: String(item.key), value: String(item.value ?? '') }
+            : { key: '', value: '' }
+        );
+      }
+      return [];
+    },
+    z
+      .array(z.object({ key: z.string(), value: z.string() }))
+      .default([])
+  ),
+  socials: z.preprocess(
+    (val) => {
+      if (!val) return [];
+      if (typeof val === 'string') {
+        try {
+          const parsed = JSON.parse(val);
+          if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+            return Object.entries(parsed).map(([key, value]) => ({
+              key: String(key),
+              value: String(value ?? ''),
+            }));
+          }
+        } catch {
+          return [];
+        }
+        return [];
+      }
+      if (typeof val === 'object' && val !== null && !Array.isArray(val)) {
+        return Object.entries(val).map(([k, v]) => ({
+          key: String(k),
+          value: String(v ?? ''),
+        }));
+      }
+      if (Array.isArray(val)) {
+        return val.map((item) =>
+          typeof item === 'object' && item !== null && 'key' in item && 'value' in item
+            ? { key: String(item.key), value: String(item.value ?? '') }
+            : { key: '', value: '' }
+        );
+      }
+      return [];
+    },
+    z
+      .array(z.object({ key: z.string(), value: z.string() }))
+      .default([])
+  ),
   logo_url: z.string().optional(),
   cover_url: z.string().optional(),
   hackaton_id: z.string().optional(),
@@ -301,6 +375,8 @@ export const useSubmissionFormSecure = (lang: EventsLang = 'en') => {
       categories: [],
       other_category: '',
       deployed_addresses: [],
+      website: [],
+      socials: [],
       is_preexisting_idea: false,
       github_repository: [],
       demo_link: [],
@@ -539,6 +615,17 @@ export const useSubmissionFormSecure = (lang: EventsLang = 'en') => {
           (!item.tag || item.tag.trim().length > 0)
       );
 
+      // Convertir website y socials (array clave-valor) a objeto JSONB
+      const keyValueToObject = (arr: Array<{ key: string; value: string }> | undefined) => {
+        if (!arr || !Array.isArray(arr)) return null;
+        const obj: Record<string, string> = {};
+        arr.forEach(({ key, value }) => {
+          const k = key?.trim();
+          if (k && value != null) obj[k] = String(value).trim();
+        });
+        return Object.keys(obj).length > 0 ? obj : null;
+      };
+
       const finalData = {
         ...data,
         logo_url: uploadedFiles.logoFileUrl ?? '',
@@ -548,6 +635,8 @@ export const useSubmissionFormSecure = (lang: EventsLang = 'en') => {
         demo_link: data.demo_link?.join(',') ?? "",
         categories: data.categories?.join(',') ?? "",
         deployed_addresses: filteredDeployedAddresses,
+        website: keyValueToObject(data.website),
+        socials: keyValueToObject(data.socials),
         is_winner: false,
         ...(state.hackathonId && { hackaton_id: state.hackathonId }),
         user_id: session?.user?.id,
@@ -654,6 +743,42 @@ export const useSubmissionFormSecure = (lang: EventsLang = 'en') => {
       deployed_addresses: Array.isArray(project.deployed_addresses) 
         ? project.deployed_addresses 
         : [],
+      website: (() => {
+        const w = project.website;
+        if (!w) return [];
+        if (typeof w === 'object' && w !== null && !Array.isArray(w)) {
+          return Object.entries(w).map(([key, value]) => ({ key, value: String(value ?? '') }));
+        }
+        if (typeof w === 'string') {
+          try {
+            const p = JSON.parse(w);
+            if (p && typeof p === 'object' && !Array.isArray(p)) {
+              return Object.entries(p).map(([k, v]) => ({ key: k, value: String(v ?? '') }));
+            }
+          } catch {
+            return [];
+          }
+        }
+        return Array.isArray(w) ? w : [];
+      })(),
+      socials: (() => {
+        const s = project.socials;
+        if (!s) return [];
+        if (typeof s === 'object' && s !== null && !Array.isArray(s)) {
+          return Object.entries(s).map(([key, value]) => ({ key, value: String(value ?? '') }));
+        }
+        if (typeof s === 'string') {
+          try {
+            const p = JSON.parse(s);
+            if (p && typeof p === 'object' && !Array.isArray(p)) {
+              return Object.entries(p).map(([k, v]) => ({ key: k, value: String(v ?? '') }));
+            }
+          } catch {
+            return [];
+          }
+        }
+        return Array.isArray(s) ? s : [];
+      })(),
       logoFile: project.logo_url ?? undefined,
       coverFile: project.cover_url ?? undefined,
       screenshots: project.screenshots ?? [],
