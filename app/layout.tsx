@@ -14,6 +14,7 @@ import { HideOnChatPage } from "@/components/layout/chat-page-hider";
 import { EmbedModeDetector } from "@/components/layout/embed-mode-detector";
 import { ThemeProvider } from "@/components/content-design/theme-observer";
 import { ChatBubble } from "@/components/chat/chat-bubble";
+import { UserAvatarProvider } from "@/components/context/UserAvatarContext";
 
 export const metadata = createMetadata({
   title: {
@@ -54,7 +55,9 @@ export default function Layout({ children }: { children: ReactNode }) {
           </Suspense>
           <Body>
             <ThemeProvider>
-              <SearchRootProvider>{children}</SearchRootProvider>
+              <UserAvatarProvider>
+                <SearchRootProvider>{children}</SearchRootProvider>
+              </UserAvatarProvider>
               <HideOnChatPage>
                 <div id="privacy-banner-root" className="relative">
                   <PrivacyPolicyBox />
