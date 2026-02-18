@@ -33,7 +33,7 @@ import { captureEventReferrerFromUrl, getEventReferrer, clearEventReferrer } fro
 
 // Esquema de validación
 const createRegisterSchema = (isOnline: boolean) => z.object({
-  name: z.string().min(1, "Name is required"),
+  name: z.string().trim().min(1, "Name is required"),
   email: z.string().email("Invalid email"),
   company_name: z.string().optional(),
   telegram_user: z.string().min(1, "Telegram username is required"),

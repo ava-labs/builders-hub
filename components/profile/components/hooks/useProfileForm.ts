@@ -5,9 +5,9 @@ import { z } from "zod";
 import { useSession } from "next-auth/react";
 import { useToast } from "@/hooks/use-toast";
 
-// Zod validation schema - no required fields, only format validations
+// Zod validation schema - name is required; rest are format validations
 export const profileSchema = z.object({
-  name: z.string().optional(),
+  name: z.string().trim().min(1, 'Name is required'),
   username: z.string().optional(),
   bio: z.string().max(250, "Bio must not exceed 250 characters").optional(),
   email: z.email("Invalid email").optional(), // Email from session, optional
