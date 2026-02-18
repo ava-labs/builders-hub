@@ -139,7 +139,7 @@ export default function Profile({
                     name="country"
                     render={({ field }) => (
                       <FormItem className="flex flex-row items-center gap-4">
-                        <FormLabel className="w-32 shrink-0">City of Residence</FormLabel>
+                        <FormLabel className="w-32 shrink-0">Country</FormLabel>
                         <div className="flex-1">
                           <Select onValueChange={field.onChange} value={field.value}>
                             <FormControl>
