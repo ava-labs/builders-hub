@@ -89,6 +89,9 @@ function AvalanchegoDockerInner() {
     const isRPC = nodeType === "public-rpc" || nodeType === "validator-rpc";
     const isValidator = nodeType === "validator" || nodeType === "validator-rpc";
 
+    // Map L1-specific node types to the shared config types used by node-config.ts
+    const configNodeType: "validator" | "rpc" | "archival" = nodeType === "validator" ? "validator" : "rpc";
+
     // Get highlighted lines for JSON preview
     const highlightedLines = useNodeConfigHighlighting(highlightPath, configJson);
 
@@ -97,7 +100,7 @@ function AvalanchegoDockerInner() {
     useEffect(() => {
         try {
             const config = generateChainConfig(
-                nodeType,
+                configNodeType,
                 enableDebugTrace,
                 adminApiEnabled,
                 pruningEnabled,
@@ -1096,7 +1099,7 @@ function AvalanchegoDockerInner() {
                                             subnetId,
                                             chainId,
                                             config,
-                                            nodeType,
+                                            configNodeType,
                                             effectiveNetworkID,
                                             vmId
                                         );
