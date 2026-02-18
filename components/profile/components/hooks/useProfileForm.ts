@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { zodResolver } from "@/lib/zodResolver";
 import { z } from "zod";
 import { useSession } from "next-auth/react";
 import { useToast } from "@/hooks/use-toast";
@@ -84,6 +84,7 @@ export function useProfileForm() {
   // Initialize form with react-hook-form and Zod
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
+    mode: "onChange",
     defaultValues: {
       name: "",
       username: "",
