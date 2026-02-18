@@ -6,6 +6,15 @@ import { CONTRACT_REGISTRY, PROTOCOL_SLUGS } from '@/lib/contracts';
 export const dynamic = 'force-dynamic';
 export const revalidate = 600;
 
+export interface CategoryBreakdown {
+  category: string;
+  txCount: number;
+  gasUsed: number;
+  avaxBurned: number;
+  gasShare: number;
+  delta: number; // % change vs previous period
+}
+
 export interface ChainStatsResponse {
   // Overall chain stats
   totalTransactions: number;
@@ -24,6 +33,9 @@ export interface ChainStatsResponse {
     avaxBurned: number;
     gasShare: number;
   }[];
+
+  // Category breakdown with deltas (for treemap)
+  categoryBreakdown: CategoryBreakdown[];
 
   // Daily stats for last 30 days
   dailyStats: {
@@ -63,13 +75,26 @@ export async function GET(request: Request) {
     const allAddresses = Array.from(protocolAddresses.values()).flat();
     const addressFilter = buildAddressFilter(allAddresses);
 
-    // Time filter: days=0 means all-time (no filter)
+    // Time filters: current period and previous period (for delta)
     const timeFilter = days > 0 ? `AND block_time >= now() - INTERVAL ${days} DAY` : '';
+    const prevTimeFilter = days > 0
+      ? `AND block_time >= now() - INTERVAL ${days * 2} DAY AND block_time < now() - INTERVAL ${days} DAY`
+      : '';
     // For daily stats, use 90 days if all-time, otherwise use the requested range
     const dailyDays = days > 0 ? days : 90;
 
     // Run queries in parallel
-    const [watermarkResult, contractStatsResult, dailyStatsResult, totalChainStats, nativeTransferResult, contractDeployResult] = await Promise.all([
+    const [
+      watermarkResult,
+      contractStatsResult,
+      prevContractStatsResult,
+      dailyStatsResult,
+      totalChainStats,
+      nativeTransferResult,
+      contractDeployResult,
+      prevNativeTransferResult,
+      prevContractDeployResult,
+    ] = await Promise.all([
       // 1. Get watermark for latest block
       queryClickHouse<{
         block_number: number;
@@ -80,7 +105,7 @@ export async function GET(request: Request) {
         WHERE chain_id = ${C_CHAIN_ID}
       `),
 
-      // 2. Get per-contract stats for the time period
+      // 2. Get per-contract stats for the CURRENT period
       queryClickHouse<{
         address: string;
         tx_count: string;
@@ -99,7 +124,28 @@ export async function GET(request: Request) {
         GROUP BY to
       `),
 
-      // 3. Get daily stats (limited to reasonable range for charting)
+      // 3. Get per-contract stats for the PREVIOUS period (for delta)
+      days > 0
+        ? queryClickHouse<{
+            address: string;
+            tx_count: string;
+            total_gas: string;
+            avax_burned: number;
+          }>(`
+            SELECT
+              lower(concat('0x', hex(to))) as address,
+              count() as tx_count,
+              sum(gas_used) as total_gas,
+              sum(toFloat64(gas_used) * toFloat64(base_fee_per_gas)) / 1e18 as avax_burned
+            FROM raw_txs
+            WHERE chain_id = ${C_CHAIN_ID}
+              AND ${addressFilter}
+              ${prevTimeFilter}
+            GROUP BY to
+          `)
+        : Promise.resolve({ data: [], meta: [], rows: 0, statistics: { elapsed: 0, rows_read: 0, bytes_read: 0 } }),
+
+      // 4. Get daily stats (limited to reasonable range for charting)
       queryClickHouse<{
         date: string;
         tx_count: string;
@@ -119,10 +165,10 @@ export async function GET(request: Request) {
         ORDER BY date
       `),
 
-      // 4. Get total chain gas (for coverage %)
+      // 5. Get total chain gas (for coverage %)
       getTotalChainGas(days),
 
-      // 5. Native transfers: to IS NOT NULL AND input is empty or just '0x'
+      // 6. Native transfers: current period
       queryClickHouse<{
         tx_count: string;
         total_gas: string;
@@ -139,7 +185,7 @@ export async function GET(request: Request) {
           ${timeFilter}
       `),
 
-      // 6. Contract deploys: to IS NULL
+      // 7. Contract deploys: current period
       queryClickHouse<{
         tx_count: string;
         total_gas: string;
@@ -154,6 +200,43 @@ export async function GET(request: Request) {
           AND to IS NULL
           ${timeFilter}
       `),
+
+      // 8. Native transfers: previous period (for delta)
+      days > 0
+        ? queryClickHouse<{
+            tx_count: string;
+            total_gas: string;
+            avax_burned: number;
+          }>(`
+            SELECT
+              count() as tx_count,
+              sum(gas_used) as total_gas,
+              sum(toFloat64(gas_used) * toFloat64(base_fee_per_gas)) / 1e18 as avax_burned
+            FROM raw_txs
+            WHERE chain_id = ${C_CHAIN_ID}
+              AND to IS NOT NULL
+              AND length(input) <= 1
+              ${prevTimeFilter}
+          `)
+        : Promise.resolve({ data: [{ tx_count: '0', total_gas: '0', avax_burned: 0 }], meta: [], rows: 1, statistics: { elapsed: 0, rows_read: 0, bytes_read: 0 } }),
+
+      // 9. Contract deploys: previous period (for delta)
+      days > 0
+        ? queryClickHouse<{
+            tx_count: string;
+            total_gas: string;
+            avax_burned: number;
+          }>(`
+            SELECT
+              count() as tx_count,
+              sum(gas_used) as total_gas,
+              sum(toFloat64(gas_used) * toFloat64(base_fee_per_gas)) / 1e18 as avax_burned
+            FROM raw_txs
+            WHERE chain_id = ${C_CHAIN_ID}
+              AND to IS NULL
+              ${prevTimeFilter}
+          `)
+        : Promise.resolve({ data: [{ tx_count: '0', total_gas: '0', avax_burned: 0 }], meta: [], rows: 1, statistics: { elapsed: 0, rows_read: 0, bytes_read: 0 } }),
     ]);
 
     // Build protocol category lookup
@@ -164,60 +247,78 @@ export async function GET(request: Request) {
       }
     }
 
-    // Aggregate by protocol
-    const protocolStats = new Map<string, { txCount: number; gasUsed: number; avaxBurned: number }>();
-
-    for (const [protocol] of protocolAddresses) {
-      protocolStats.set(protocol, { txCount: 0, gasUsed: 0, avaxBurned: 0 });
-    }
-
-    for (const row of contractStatsResult.data) {
-      for (const [protocol, addresses] of protocolAddresses) {
-        if (addresses.map(a => a.toLowerCase()).includes(row.address)) {
-          const stats = protocolStats.get(protocol)!;
-          stats.txCount += parseInt(row.tx_count) || 0;
-          stats.gasUsed += parseInt(row.total_gas) || 0;
-          stats.avaxBurned += row.avax_burned || 0;
-          break;
+    // Helper: aggregate per-address rows into protocol stats
+    function aggregateByProtocol(rows: { address: string; tx_count: string; total_gas: string; avax_burned: number }[]) {
+      const stats = new Map<string, { txCount: number; gasUsed: number; avaxBurned: number }>();
+      for (const [protocol] of protocolAddresses) {
+        stats.set(protocol, { txCount: 0, gasUsed: 0, avaxBurned: 0 });
+      }
+      for (const row of rows) {
+        for (const [protocol, addresses] of protocolAddresses) {
+          if (addresses.map(a => a.toLowerCase()).includes(row.address)) {
+            const s = stats.get(protocol)!;
+            s.txCount += parseInt(row.tx_count) || 0;
+            s.gasUsed += parseInt(row.total_gas) || 0;
+            s.avaxBurned += row.avax_burned || 0;
+            break;
+          }
         }
       }
+      return stats;
     }
 
-    // Add native transfers as a synthetic protocol entry
+    // Aggregate current and previous periods
+    const currentProtocolStats = aggregateByProtocol(contractStatsResult.data);
+    const prevProtocolStats = aggregateByProtocol(prevContractStatsResult.data);
+
+    // Add native transfers
     const nativeData = nativeTransferResult.data[0];
     const nativeTxCount = parseInt(nativeData?.tx_count) || 0;
     const nativeGas = parseInt(nativeData?.total_gas) || 0;
     const nativeBurned = nativeData?.avax_burned || 0;
     if (nativeTxCount > 0) {
-      protocolStats.set('Native Transfers', { txCount: nativeTxCount, gasUsed: nativeGas, avaxBurned: nativeBurned });
+      currentProtocolStats.set('Native Transfers', { txCount: nativeTxCount, gasUsed: nativeGas, avaxBurned: nativeBurned });
       protocolCategory.set('Native Transfers', 'native');
     }
 
-    // Add contract deploys as a synthetic protocol entry
+    const prevNativeData = prevNativeTransferResult.data[0];
+    prevProtocolStats.set('Native Transfers', {
+      txCount: parseInt(prevNativeData?.tx_count) || 0,
+      gasUsed: parseInt(prevNativeData?.total_gas) || 0,
+      avaxBurned: prevNativeData?.avax_burned || 0,
+    });
+
+    // Add contract deploys
     const deployData = contractDeployResult.data[0];
     const deployTxCount = parseInt(deployData?.tx_count) || 0;
     const deployGas = parseInt(deployData?.total_gas) || 0;
     const deployBurned = deployData?.avax_burned || 0;
     if (deployTxCount > 0) {
-      protocolStats.set('Contract Deploys', { txCount: deployTxCount, gasUsed: deployGas, avaxBurned: deployBurned });
+      currentProtocolStats.set('Contract Deploys', { txCount: deployTxCount, gasUsed: deployGas, avaxBurned: deployBurned });
       protocolCategory.set('Contract Deploys', 'infrastructure');
     }
 
-    // Calculate tagged totals (address-matched only, for coverage)
+    const prevDeployData = prevContractDeployResult.data[0];
+    prevProtocolStats.set('Contract Deploys', {
+      txCount: parseInt(prevDeployData?.tx_count) || 0,
+      gasUsed: parseInt(prevDeployData?.total_gas) || 0,
+      avaxBurned: prevDeployData?.avax_burned || 0,
+    });
+
+    // Calculate tagged totals
     let taggedTxCount = 0;
     let taggedGas = 0;
     let taggedBurned = 0;
-    for (const stats of protocolStats.values()) {
+    for (const stats of currentProtocolStats.values()) {
       taggedTxCount += stats.txCount;
       taggedGas += stats.gasUsed;
       taggedBurned += stats.avaxBurned;
     }
 
-    // Use total chain gas as the denominator for gasShare
     const totalChainGas = totalChainStats.totalGas;
 
-    // Create sorted protocol breakdown - gasShare computed against total chain gas
-    const protocolBreakdown = Array.from(protocolStats.entries())
+    // Create sorted protocol breakdown
+    const protocolBreakdown = Array.from(currentProtocolStats.entries())
       .map(([protocol, stats]) => ({
         protocol,
         slug: PROTOCOL_SLUGS[protocol] || null,
@@ -230,6 +331,46 @@ export async function GET(request: Request) {
       .filter(p => p.txCount > 0)
       .sort((a, b) => b.gasUsed - a.gasUsed)
       .slice(0, 30);
+
+    // Build category breakdown with deltas
+    const categoryMap = new Map<string, { current: { txCount: number; gasUsed: number; avaxBurned: number }; prev: { gasUsed: number } }>();
+
+    for (const [protocol, stats] of currentProtocolStats) {
+      const cat = protocolCategory.get(protocol) || 'other';
+      if (!categoryMap.has(cat)) {
+        categoryMap.set(cat, { current: { txCount: 0, gasUsed: 0, avaxBurned: 0 }, prev: { gasUsed: 0 } });
+      }
+      const entry = categoryMap.get(cat)!;
+      entry.current.txCount += stats.txCount;
+      entry.current.gasUsed += stats.gasUsed;
+      entry.current.avaxBurned += stats.avaxBurned;
+    }
+
+    for (const [protocol, stats] of prevProtocolStats) {
+      const cat = protocolCategory.get(protocol) || 'other';
+      if (!categoryMap.has(cat)) {
+        categoryMap.set(cat, { current: { txCount: 0, gasUsed: 0, avaxBurned: 0 }, prev: { gasUsed: 0 } });
+      }
+      categoryMap.get(cat)!.prev.gasUsed += stats.gasUsed;
+    }
+
+    const categoryBreakdown: CategoryBreakdown[] = Array.from(categoryMap.entries())
+      .map(([category, data]) => {
+        const prevGas = data.prev.gasUsed;
+        const currGas = data.current.gasUsed;
+        const delta = prevGas > 0 ? ((currGas - prevGas) / prevGas) * 100 : (currGas > 0 ? 100 : 0);
+
+        return {
+          category,
+          txCount: data.current.txCount,
+          gasUsed: data.current.gasUsed,
+          avaxBurned: data.current.avaxBurned,
+          gasShare: totalChainGas > 0 ? (data.current.gasUsed / totalChainGas) * 100 : 0,
+          delta,
+        };
+      })
+      .filter(c => c.gasUsed > 0)
+      .sort((a, b) => b.gasUsed - a.gasUsed);
 
     // Format daily stats
     const dailyStats = dailyStatsResult.data.map(row => ({
@@ -248,6 +389,7 @@ export async function GET(request: Request) {
       latestBlock: watermark?.block_number || 0,
       latestBlockTime: watermark?.block_time || '',
       protocolBreakdown,
+      categoryBreakdown,
       dailyStats,
       coverage: {
         taggedGasPercent: totalChainGas > 0 ? (taggedGas / totalChainGas) * 100 : 0,
