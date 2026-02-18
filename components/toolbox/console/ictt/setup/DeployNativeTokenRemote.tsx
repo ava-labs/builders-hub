@@ -17,12 +17,12 @@ import ExampleERC20 from "@/contracts/icm-contracts/compiled/ExampleERC20.json";
 import SelectBlockchainId from "@/components/toolbox/components/SelectBlockchainId";
 import { CheckPrecompile } from "@/components/toolbox/components/CheckPrecompile";
 import TeleporterRegistryAddressInput from "@/components/toolbox/components/TeleporterRegistryAddressInput";
-import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { AcknowledgementCallout } from "@/components/toolbox/components/AcknowledgementCallout";
 import { LockedContent } from "@/components/toolbox/components/LockedContent";
 import { ConsoleToolMetadata, withConsoleToolMetadata } from "@/components/toolbox/components/WithConsoleToolMetadata";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
+import { useContractDeployer } from "@/components/toolbox/hooks/contracts";
 
 const metadata: ConsoleToolMetadata = {
     title: "Deploy Native Token Remote Contract",
@@ -38,10 +38,9 @@ function DeployNativeTokenRemote() {
     } = useToolboxStore();
     const [teleporterRegistryAddress, setTeleporterRegistryAddress] = useState("");
     const { coreWalletClient, walletEVMAddress } = useWalletStore();
-    const { notify } = useConsoleNotifications();
     const viemChain = useViemChainStore();
     const selectedL1 = useSelectedL1()();
-    const [isDeploying, setIsDeploying] = useState(false);
+    const { deploy, isDeploying } = useContractDeployer();
     const [sourceChainId, setSourceChainId] = useState<string>("");
     const [teleporterManager, setTeleporterManager] = useState(walletEVMAddress);
     const [localError, setLocalError] = useState("");
@@ -160,7 +159,6 @@ function DeployNativeTokenRemote() {
         }
 
         setLocalError("");
-        setIsDeploying(true);
 
         try {
             if (!viemChain || !selectedL1) {
@@ -181,11 +179,6 @@ function DeployNativeTokenRemote() {
                 throw new Error("Burned Fees Reporting Reward Percentage must be between 0 and 100.");
             }
 
-            const publicClient = createPublicClient({
-                chain: viemChain,
-                transport: http(viemChain.rpcUrls.default.http[0])
-            });
-
             const constructorArgs = [
                 {
                     teleporterRegistryAddress: teleporterRegistryAddress as `0x${string}`,
@@ -202,31 +195,18 @@ function DeployNativeTokenRemote() {
 
             console.log("Deploying NativeTokenRemote with args:", constructorArgs);
 
-            const deployPromise = coreWalletClient.deployContract({
+            const result = await deploy({
                 abi: NativeTokenRemote.abi as any,
-                bytecode: NativeTokenRemote.bytecode.object as `0x${string}`,
+                bytecode: NativeTokenRemote.bytecode.object,
                 args: constructorArgs,
-                chain: viemChain,
-                account: walletEVMAddress as `0x${string}`
-            });
-            notify({
-                type: 'deploy',
                 name: 'NativeTokenRemote'
-            }, deployPromise, viemChain ?? undefined);
+            });
 
-            const receipt = await publicClient.waitForTransactionReceipt({ hash: await deployPromise });
-
-            if (!receipt.contractAddress) {
-                throw new Error("No contract address in receipt");
-            }
-
-            setNativeTokenRemoteAddress(receipt.contractAddress);
+            setNativeTokenRemoteAddress(result.contractAddress);
         } catch (error: any) {
             console.error("Deployment failed:", error);
             setLocalError(`Deployment failed: ${error.shortMessage || error.message}`);
             setCriticalError(error instanceof Error ? error : new Error(String(error)));
-        } finally {
-            setIsDeploying(false);
         }
     }
 

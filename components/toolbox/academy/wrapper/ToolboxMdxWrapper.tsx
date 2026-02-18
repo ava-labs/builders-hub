@@ -22,11 +22,11 @@ export default function ToolboxMdxWrapper({ children }: { children: React.ReactN
         <SessionProvider>
             <WalletProvider>
                 <div
-                    className="h-screen overflow-hidden m-2 rounded-xl border border-gray-200 dark:border-gray-700 flex flex-col"
+                    className="min-h-[500px] max-h-[80vh] w-full max-w-full overflow-hidden my-4 rounded-xl border border-gray-200 dark:border-gray-700 flex flex-col"
                     style={{ "--header-height": "calc(var(--spacing) * 12)" } as React.CSSProperties}
                 >
                     <EmbeddedConsoleHeader />
-                    <div className="flex flex-1 flex-col gap-4 p-6 overflow-y-auto bg-white dark:bg-gray-800">
+                    <div className="flex flex-1 flex-col gap-4 p-6 overflow-y-auto overflow-x-hidden bg-white dark:bg-gray-800">
                         {children}
                     </div>
                 </div>

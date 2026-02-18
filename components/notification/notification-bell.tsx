@@ -24,7 +24,7 @@ const metricsBaseUrl: string | undefined =
   process.env.NEXT_PUBLIC_AVALANCHE_METRICS_URL;
 type NotificationsResponse = Record<string, DbNotification[]>;
 
-export default function NotificationBell(): React.JSX.Element {
+export default function NotificationBell(): React.JSX.Element | null {
   const { data: session } = useSession() ?? {}
   const [open, setOpen] = useState<boolean>(false);
   const [readedNotifications, setReadedNotifications] = useState<number[]>([]);
@@ -32,7 +32,16 @@ export default function NotificationBell(): React.JSX.Element {
   const users: string[] = [session?.user?.id || ''];
   const className: string | undefined = undefined;
 
-  const { data, refetch } = useGetNotifications(users, session?.jwt_token ?? '');
+  // Don't call notifications API if workers aren't deployed
+  const { data, refetch } = useGetNotifications(
+    metricsBaseUrl ? users : [],
+    metricsBaseUrl ? (session?.jwt_token ?? '') : null
+  );
+
+  // Don't render notification bell if workers aren't deployed
+  if (!metricsBaseUrl) {
+    return null;
+  }
 
   const notifications: DbNotification[] = useMemo((): DbNotification[] => {
     const payload: NotificationsResponse | null = (data ?? null) as NotificationsResponse | null;

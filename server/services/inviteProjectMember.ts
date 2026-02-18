@@ -19,7 +19,8 @@ export async function generateInvitation(
   hackathonId: string,
   userId: string,
   inviterName: string,
-  emails: string[]
+  emails: string[],
+  projectId?: string
 ): Promise<InvitationResult> {
   if (!hackathonId) {
     throw new Error("Hackathon ID is required");
@@ -27,8 +28,17 @@ export async function generateInvitation(
 
   // Remove duplicate emails to prevent multiple invitations to the same user
   const uniqueEmails = [...new Set(emails)];
-  
-  const project = await createProject(hackathonId, userId);
+
+  // Use existing project if provided, otherwise create a new one
+  let project;
+  if (projectId) {
+    project = await prisma.project.findUnique({ where: { id: projectId } });
+    if (!project) {
+      throw new Error("Project not found");
+    }
+  } else {
+    project = await createProject(hackathonId, userId);
+  }
 
   const invitationLinks: invitationLink[] = [];
 

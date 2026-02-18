@@ -19,6 +19,8 @@ export type {
   TitleSettings,
   BackgroundSettings,
   FooterSettings,
+  PlaygroundChartData,
+  ExportMode,
 } from "./types";
 
 // Constants
