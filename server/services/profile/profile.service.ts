@@ -73,8 +73,14 @@ function validateProfileData(profileData: UpdateExtendedProfileData, userId: str
         throw new ProfileValidationError('No data provided for update.', 400);
     }
 
-   
-  
+    // Name must not be empty when provided
+    if (profileData.name !== undefined) {
+        const trimmed = typeof profileData.name === 'string' ? profileData.name.trim() : '';
+        if (trimmed.length === 0) {
+            throw new ProfileValidationError('Name cannot be empty.', 400);
+        }
+    }
+
     // Validate that at least one user type is selected
     // Only validate if user types are being updated
     const hasUserTypeUpdate = 
