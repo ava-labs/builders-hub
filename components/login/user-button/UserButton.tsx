@@ -15,25 +15,56 @@ import { useState, useMemo, useEffect } from 'react';
 import { CircleUserRound } from 'lucide-react';
 import { Separator } from '@radix-ui/react-dropdown-menu';
 import { useLoginModalTrigger } from '@/hooks/useLoginModal';
+import { DiceBearAvatar } from '@/components/profile/components/DiceBearAvatar';
+import type { AvatarSeed } from '@/components/profile/components/DiceBearAvatar';
+import { useUserAvatar } from '@/components/context/UserAvatarContext';
+
+const AVATAR_SIZE = 32;
+
 export function UserButton() {
   const { data: session, status } = useSession() ?? {};
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [localSeed, setLocalSeed] = useState<AvatarSeed | null>(null);
+  const [localEnabled, setLocalEnabled] = useState(false);
+  const avatarContext = useUserAvatar();
   const isAuthenticated = status === 'authenticated';
   const { openLoginModal } = useLoginModalTrigger();
 
-  // Dividir el correo por @ para evitar cortes no deseados
-  const formattedEmail = useMemo(() => {
-    const email = session?.user?.email;
-    if (!email) return null;
+  const nounAvatarSeed = avatarContext?.nounAvatarSeed ?? localSeed;
+  const nounAvatarEnabled = avatarContext?.nounAvatarEnabled ?? localEnabled;
 
-    const atIndex = email.indexOf('@');
-    if (atIndex === -1) return { localPart: email, domain: null };
-
-    return {
-      localPart: email.substring(0, atIndex),
-      domain: email.substring(atIndex), // Incluye el @
+  // Sincronizar avatar con API; actualizar contexto (si existe) o estado local
+  useEffect(() => {
+    if (!isAuthenticated) {
+      avatarContext?.setNounAvatar(null, false);
+      setLocalSeed(null);
+      setLocalEnabled(false);
+      return;
+    }
+    let cancelled = false;
+    fetch('/api/user/noun-avatar')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!cancelled && data) {
+          const seed = data.seed ?? null;
+          const enabled = data.enabled ?? false;
+          avatarContext?.setNounAvatar(seed, enabled);
+          setLocalSeed(seed);
+          setLocalEnabled(enabled);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          avatarContext?.setNounAvatar(null, false);
+          setLocalSeed(null);
+          setLocalEnabled(false);
+        }
+      });
+    return () => {
+      cancelled = true;
     };
-  }, [session?.user?.email]);
+  }, [isAuthenticated, avatarContext?.setNounAvatar]);
+  
   const handleSignOut = (): void => {
     // Clean up any stored redirect URLs before logout
     if (typeof window !== "undefined") {
@@ -71,14 +102,22 @@ export function UserButton() {
             <Button
               variant='ghost'
               size='icon'
-              className='rounded-full h-10 w-10 ml-1 cursor-pointer p-1'
+              className='rounded-full h-10 w-10 ml-1 cursor-pointer p-1 overflow-hidden'
             >
-              {session.user.image ? (
+              {nounAvatarEnabled && nounAvatarSeed ? (
+                <div className='h-10 w-10 rounded-full overflow-hidden flex items-center justify-center shrink-0'>
+                  <DiceBearAvatar
+                    seed={nounAvatarSeed}
+                    size='small'
+                    className='pointer-events-none scale-[0.71] origin-center'
+                  />
+                </div>
+              ) : session.user.image ? (
                 <Image
                   src={session.user.image}
                   alt='User Avatar'
-                  width={32}
-                  height={32}
+                  width={AVATAR_SIZE}
+                  height={AVATAR_SIZE}
                   className='rounded-full'
                 />
               ) : (
