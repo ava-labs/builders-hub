@@ -8,7 +8,7 @@ import { revalidatePath } from "next/cache";
 import { ValidationError } from "./hackathons";
 import { prisma } from "@/prisma/prisma";
 import { Project } from "@/types/project";
-import { User } from "@prisma/client";
+import { Prisma, User } from "@prisma/client";
 
 export const projectValidations: Validation[] = [
   {
@@ -161,10 +161,10 @@ export async function createProject(
           deployed_addresses: normalizeDeployedAddresses(projectData.deployed_addresses),
           website: (projectData.website && typeof projectData.website === 'object' && !Array.isArray(projectData.website) && Object.keys(projectData.website).length > 0)
             ? projectData.website
-            : null,
+            : Prisma.JsonNull,
           socials: (projectData.socials && typeof projectData.socials === 'object' && !Array.isArray(projectData.socials) && Object.keys(projectData.socials).length > 0)
             ? projectData.socials
-            : null,
+            : Prisma.JsonNull,
         },
       });
 
@@ -191,10 +191,10 @@ export async function createProject(
         deployed_addresses: normalizeDeployedAddresses(projectData.deployed_addresses),
         website: (projectData.website && typeof projectData.website === 'object' && !Array.isArray(projectData.website) && Object.keys(projectData.website).length > 0)
           ? projectData.website
-          : null,
+          : Prisma.JsonNull,
         socials: (projectData.socials && typeof projectData.socials === 'object' && !Array.isArray(projectData.socials) && Object.keys(projectData.socials).length > 0)
           ? projectData.socials
-          : null,
+          : Prisma.JsonNull,
         explanation: projectData.explanation ?? "",
         origin: "Project submission",
         // Note: hackaton_id is handled via the hackathon relation below, not directly
