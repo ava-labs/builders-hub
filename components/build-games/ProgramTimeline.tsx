@@ -372,7 +372,7 @@ export default function ProgramTimeline() {
         criteria: "Clarity of idea, problem-solution fit, innovation, presentation quality, and potential market impact.",
         support: (
           <>
-            Attend the Product design workshops, and join the <a href="https://t.me/avalancheacademy/4337" target="_blank" rel="noopener noreferrer" className="underline text-[#66acd6]">Support chat</a>.
+            Attend the Product design workshops, and join the <a href="https://t.me/avaxbuildgames" target="_blank" rel="noopener noreferrer" className="underline text-[#66acd6]">Support chat</a>.
           </>
         ),
       },
