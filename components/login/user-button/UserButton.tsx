@@ -142,7 +142,7 @@ export function UserButton() {
               </div>
 
               {session.user.name && session.user.name !== session.user.email && (
-                <p className="text-sm break-words mt-1">
+                <p className="text-sm wrap-break-word mt-1">
                   {session.user.name}
                 </p>
               )}
@@ -196,7 +196,7 @@ export function UserButton() {
           }}
         >
           <CircleUserRound
-            className='!h-8 !w-8 stroke-zinc-900 dark:stroke-white'
+            className='h-8! w-8! stroke-zinc-900 dark:stroke-white'
             strokeWidth={0.85}
           />
         </Button>
