@@ -144,6 +144,12 @@ export async function createProject(
           categories: normalizeCategories(projectData.categories),
           other_category: projectData.other_category ?? null,
           deployed_addresses: normalizeDeployedAddresses(projectData.deployed_addresses),
+          website: (projectData.website && typeof projectData.website === 'object' && !Array.isArray(projectData.website) && Object.keys(projectData.website).length > 0)
+            ? projectData.website
+            : null,
+          socials: (projectData.socials && typeof projectData.socials === 'object' && !Array.isArray(projectData.socials) && Object.keys(projectData.socials).length > 0)
+            ? projectData.socials
+            : null,
         },
       });
 
@@ -168,6 +174,12 @@ export async function createProject(
         categories: normalizeCategories(projectData.categories),
         other_category: projectData.other_category ?? null,
         deployed_addresses: normalizeDeployedAddresses(projectData.deployed_addresses),
+        website: (projectData.website && typeof projectData.website === 'object' && !Array.isArray(projectData.website) && Object.keys(projectData.website).length > 0)
+          ? projectData.website
+          : null,
+        socials: (projectData.socials && typeof projectData.socials === 'object' && !Array.isArray(projectData.socials) && Object.keys(projectData.socials).length > 0)
+          ? projectData.socials
+          : null,
         explanation: projectData.explanation ?? "",
         origin: "Project submission",
         // Note: hackaton_id is handled via the hackathon relation below, not directly

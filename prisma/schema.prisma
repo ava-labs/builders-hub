@@ -141,6 +141,8 @@ model Project {
   origin              String              @default("unknown")
   other_category      String?
   deployed_addresses  Json[]              @default([])
+  website             Json?
+  socials             Json?
   formData            FormData[]
   members             Member[]
   prizes              Prize[]
