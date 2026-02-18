@@ -147,8 +147,8 @@ const UpdateModal = ({ open, onClose, onConfirm, fieldsToUpdate, t, language }: 
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
         <div className="bg-white dark:bg-zinc-900 rounded-lg shadow-lg p-6 max-w-4xl w-full max-h-[90vh] flex flex-col">
-          <h2 className="text-lg font-bold mb-4 flex-shrink-0">{t[language].confirmUpdateTitle || 'Confirm Update'}</h2>
-          <p className="mb-2 flex-shrink-0">{t[language].confirmUpdateText || 'You are about to update the following fields:'}</p>
+          <h2 className="text-lg font-bold mb-4 shrink-0">{t[language].confirmUpdateTitle || 'Confirm Update'}</h2>
+          <p className="mb-2 shrink-0">{t[language].confirmUpdateText || 'You are about to update the following fields:'}</p>
           <ul className="list-disc pl-6 flex-1 min-h-0 overflow-y-auto overflow-x-auto mb-4">
             {fieldsToUpdate.map(({ key, oldValue, newValue }) => (
               <li key={key} className="mb-1">
@@ -162,7 +162,7 @@ const UpdateModal = ({ open, onClose, onConfirm, fieldsToUpdate, t, language }: 
               </li>
             ))}
           </ul>
-          <div className="flex justify-end gap-2 mt-4 flex-shrink-0">
+          <div className="flex justify-end gap-2 mt-4 shrink-0">
             <button onClick={onClose} className="px-4 py-2 rounded bg-zinc-200 dark:bg-zinc-700 hover:bg-zinc-300 dark:hover:bg-zinc-600">{t[language].cancel}</button>
             <button onClick={onConfirm} className="px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700">{t[language].update}</button>
           </div>
