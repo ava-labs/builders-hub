@@ -1,4 +1,4 @@
-import { ArrowLeftRight, Coins, MailIcon, SquareCode, SquareIcon, SquareStackIcon, TerminalIcon, Triangle, HexagonIcon, UserPen } from 'lucide-react';
+import { ArrowLeftRight, Coins, MailIcon, SquareCode, SquareIcon, SquareStackIcon, Triangle } from 'lucide-react';
 
 export type Course = {
     name: string;
@@ -27,18 +27,6 @@ const officialCourses: Course[] = [
         instructors: ["Martin Eckardt", "Ash", "Katherine Sullivan"],
         category: "Fundamentals",
         certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/AvalancheAcademy_Certificate.pdf"
-    },
-    {
-        name: "Intro to Solidity",
-        description: "Start here to learn about Solidity basics with Foundry",
-        slug: "solidity-foundry",
-        icon: <SquareIcon />,
-        status: "normal",
-        duration: "1 hour",
-        languages: [],
-        tools: [],
-        instructors: ["Andrea Vargas", "Katherine Sullivan"],
-        category: "Fundamentals",
     },
     {
         name: "Avalanche Fundamentals",
@@ -75,7 +63,7 @@ const officialCourses: Course[] = [
         duration: "3 hours",
         tools: ["Console"],
         languages: ["Solidity"],
-        instructors: ["Martin Eckardt", "Andrea Vargas", "Ash", "Nicolas Arnedo"], // + Usman
+        instructors: ["Martin Eckardt", "Andrea Vargas", "Ash", "Nicolas Arnedo"],
         category: "Interoperability",
         certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/AvalancheAcademy_Certificate.pdf"
     },
@@ -93,15 +81,15 @@ const officialCourses: Course[] = [
         certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/AvalancheAcademy_Certificate.pdf"
     },
     {
-        name: "Interchain Token Transfer",
-        description: "Deploy Avalanche Interchain Token Transfer to transfer assets between Avalanche blockchains",
-        slug: "interchain-token-transfer",
+        name: "Native Token Bridge",
+        description: "Learn how to bridge native tokens between Avalanche L1s using Interchain Token Transfer",
+        slug: "native-token-bridge",
         icon: <ArrowLeftRight />,
-        status: "normal",
-        duration: "2.5 hours",
-        tools: ["Console"],
+        status: "featured",
+        duration: "2 hours",
+        tools: ["ICM", "Foundry"],
         languages: ["Solidity"],
-        instructors: ["Martin Eckardt", "Andrea Vargas", "Ash", "Owen Wahlgren", "Sarp"],
+        instructors: ["Nicolas Arnedo"],
         category: "Interoperability",
         certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/AvalancheAcademy_Certificate.pdf"
     },
@@ -168,19 +156,33 @@ const officialCourses: Course[] = [
         languages: [],
         instructors: ["Nicolas Arnedo"],
         category: "L1 Development",
+    },
+    {
+        // Hidden entry for certificate generation — Access Restriction has two certificates
+        name: "Access Restriction Fundamentals",
+        description: "Fundamentals certificate for the Access Restriction course",
+        slug: "access-restriction-fundamentals",
+        icon: <SquareStackIcon />,
+        duration: "1 hour",
+        status: "hidden",
+        tools: ["L1 Toolbox", "Docker"],
+        languages: [],
+        instructors: ["Nicolas Arnedo"],
+        category: "L1 Development",
         certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/AvalancheAcademy_Certificate.pdf"
     },
     {
-        name: "AvaCloud APIs",
-        description: "Learn how to leverage AvaCloud APIs to build web apps on Avalanche",
-        slug: "avacloudapis",
-        icon: <SquareCode />,
+        // Hidden entry for certificate generation — Access Restriction has two certificates
+        name: "Access Restriction Advanced",
+        description: "Advanced certificate for the Access Restriction course",
+        slug: "access-restriction-advanced",
+        icon: <SquareStackIcon />,
         duration: "1 hour",
-        status: "featured",
-        tools: ["AvaCloudSDK", "AvaCloud API"],
-        languages: ["Typescript"],
-        instructors: ["Owen Wahlgren"],
-        category: "Smart Contract Development",
+        status: "hidden",
+        tools: ["L1 Toolbox", "Docker"],
+        languages: [],
+        instructors: ["Nicolas Arnedo"],
+        category: "L1 Development",
         certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/AvalancheAcademy_Certificate.pdf"
     },
     {
@@ -197,29 +199,29 @@ const officialCourses: Course[] = [
         certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/AvalancheAcademy_Certificate.pdf"
     },
     {
-        name: "HyperSDK",
-        description: "Learn how to build a high-performance blockchain using HyperSDK",
-        slug: "hypersdk",
-        icon: <TerminalIcon />,
-        duration: "1 hour",
-        status: "hidden",
-        tools: ["HyperSDK"],
-        languages: ["Go", "Typescript"],
-        instructors: ["Aaron Buchwald", "Ilya", "Rodrigo Villar", "Martin Eckardt", "Owen Wahlgren"],
-        category: "L1 Development",
+        name: "NFT Deployment",
+        description: "Learn how to create, prepare, and deploy your own NFT collection on Avalanche",
+        slug: "nft-deployment",
+        icon: <SquareCode />,
+        duration: "1.5 hours",
+        status: "featured",
+        tools: ["Remix IDE", "Pinata"],
+        languages: ["Solidity"],
+        instructors: ["Andrea Vargas", "Ash", "Martin Eckardt"],
+        category: "Smart Contract Development",
         certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/AvalancheAcademy_Certificate.pdf"
     },
     {
-        name: "Chainlink on your L1 via ICM",
-        description: "Utilize Interchain Messaging to make Chainlink services available on any blockchain in the Avalanche Network",
-        slug: "icm-chainlink",
-        icon: <HexagonIcon />,
+        name: "Encrypted ERC",
+        description: "Learn the basics on what is an encrypted ERC token and how to use it",
+        slug: "encrypted-erc",
+        icon: <SquareCode />,
+        duration: "3 hours",
         status: "featured",
-        duration: "2.5 hours",
-        tools: ["ICM", "Chainlink VRF"],
+        tools: [],
         languages: ["Solidity"],
-        instructors: ["Martin Eckardt", "Andrea Vargas", "Ash"],
-        category: "Interoperability",
+        instructors: ["Alejandro Soto"],
+        category: "Smart Contract Development",
         certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/AvalancheAcademy_Certificate.pdf"
     },
     {
@@ -274,67 +276,16 @@ const officialCourses: Course[] = [
         category: "Entrepreneur",
         certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-certificates/FillableAvalanche_EntrepreneurAcademy_Certificate_W3FFP_R1.pdf"
     },
-    {
-        name: "Encrypted ERC",
-        description: "Learn the basics on what is an encrypted ERC token and how to use it",
-        slug: "encrypted-erc",
-        icon: <SquareCode />,
-        duration: "3 hour",
-        status: "featured",
-        tools: [],
-        languages: ["Solidity"],
-        instructors: ["Alejandro Soto"],
-        category: "Smart Contract Development",
-        certificateTemplate: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/AvalancheAcademy_Certificate.pdf"
-    },
-    /*{
-        name:"Chainlink VRF with Interchain Messaging ",
-        description:"Utilize Interchain Messaging to make Chainlink VRF available on any blockchain in the Avalanche Network",
-        slug:"teleporter-chainlink-vrf",
-        icon: Dice3Icon,
-        status: "featured",
-        duration: "2.5 hours",
-        tools: ["Teleporter", "Chainlink VRF"],
-        languages: ["Solidity"]
-     },
-     {
-        name:"HyperSDK",
-        description:"Learn to build customized Virtual Machines using our SDK",
-        slug:"hypersdk",
-        icon: Blocks,
-        duration: "4 hours",
-        tools: [],
-        languages: ["Go"]
-     },*/
 ];
 
-const ecosystemCourses: Course[] = [
-    /*{
-        name:"Run a Gogopool Minipool",
-        description:"A Minipool represents a validator that is jointly funded equally by AVAX borrowed from liquid stakers and AVAX contribution from the minipool operator. Thanks to Minipool design architecture, users can become validators on the Avalanche network with nearly half the usual AVAX requirement.",
-        slug:"gogopool-minipool",
-        icon: Blocks,
-        duration: "2 hours",
-        tools: [],
-        languages: ["Go"]
-   },
-   {
-        name:"Use Safe on an Avalanche Chain",
-        description:"Secure your multi-sig wallet with Safe on a Avalanche L1.",
-        slug:"safe-on-an-avalanche-chain",
-        icon: Blocks,
-        duration: "4 hours",
-        tools: [],
-        languages: ["Go"]
-   }*/
-];
+const ecosystemCourses: Course[] = [];
 
 const entrepreneurCourses = officialCourses.filter((course) => course.category === "Entrepreneur");
 
 // Helper function to create course configuration mappings
 export const getCourseConfig = () => {
     const config: Record<string, { name: string; template: string }> = {};
-    
+
     officialCourses.forEach(course => {
         if (course.certificateTemplate) {
             config[course.slug] = {
@@ -343,7 +294,7 @@ export const getCourseConfig = () => {
             };
         }
     });
-    
+
     return config;
 };
 
@@ -363,26 +314,26 @@ export const getCourseNameMapping = () => {
 // Helper function to get course durations by slug
 export const getCourseDurations = (): Record<string, string> => {
     const durations: Record<string, string> = {};
-    
+
     officialCourses.forEach(course => {
         if (course.duration) {
             durations[course.slug] = course.duration;
         }
     });
-    
+
     return durations;
 };
 
 // Helper function to get course tools by slug (returns the first/main tool)
 export const getCourseTools = (): Record<string, string> => {
     const tools: Record<string, string> = {};
-    
+
     officialCourses.forEach(course => {
         if (course.tools && course.tools.length > 0) {
             tools[course.slug] = course.tools[0];
         }
     });
-    
+
     return tools;
 };
 
@@ -392,5 +343,3 @@ export default {
     avalancheEntrepreneur: entrepreneurCourses,
     ecosystem: ecosystemCourses,
 };
-
-

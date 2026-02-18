@@ -6,10 +6,8 @@ import {
   Settings,
   SproutIcon,
   SquareGanttChart,
-  TerminalIcon,
   Webhook,
   SquareIcon,
-  ArrowLeftRight,
   Coins,
   SquareCode,
   SquareStackIcon,
@@ -141,12 +139,6 @@ export function AcademyDropdown() {
       url: "https://academy.avax.network/course/interchain-messaging",
     },
     {
-      title: "Interchain Token Transfer",
-      description: "Transfer assets between Avalanche blockchains.",
-      icon: <ArrowLeftRight className="w-5 h-5" />,
-      url: "https://academy.avax.network/course/interchain-token-transfer",
-    },
-    {
       title: "Customizing the EVM",
       description: "Add custom precompiles to the EVM.",
       icon: <SquareCode className="w-5 h-5" />,
@@ -157,18 +149,6 @@ export function AcademyDropdown() {
       description: "Design tokenomics for your Avalanche L1.",
       icon: <Coins className="w-5 h-5" />,
       url: "https://academy.avax.network/course/l1-tokenomics",
-    },
-    {
-      title: "AvaCloud APIs",
-      description: "Use AvaCloud APIs to build web apps.",
-      icon: <Webhook className="w-5 h-5" />,
-      url: "https://academy.avax.network/course/avacloudapis",
-    },
-    {
-      title: "HyperSDK",
-      description: "Build high-performance blockchains with HyperSDK.",
-      icon: <TerminalIcon className="w-5 h-5" />,
-      url: "https://academy.avax.network/course/hypersdk",
     },
   ];
   return <RootToggle options={options} />;

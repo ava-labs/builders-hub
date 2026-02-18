@@ -57,7 +57,7 @@ const avalancheShortcuts: Shortcut[] = [
     title: "Bridge Tokens",
     description: "Transfer assets between Avalanche blockchains",
     icon: ArrowLeftRight,
-    href: "/academy/avalanche-l1/interchain-token-transfer"
+    href: "/academy/avalanche-l1/erc20-bridge"
   },
   {
     id: "permissioned-l1",
