@@ -10,7 +10,7 @@ Platform CLI provides commands to add validators and delegate stake on the Avala
 | Network | Validator Min | Delegator Min | Min Duration |
 |---------|---------------|---------------|--------------|
 | **Local** | 1 AVAX | 1 AVAX | 24 hours |
-| **Fuji** | 1 AVAX | 1 AVAX | 14 days |
+| **Fuji** | 1 AVAX | 1 AVAX | 24 hours |
 | **Mainnet** | 2,000 AVAX | 25 AVAX | 14 days |
 
 ## Adding a Validator
@@ -86,7 +86,7 @@ Validators charge a fee as a percentage of delegator rewards:
 ### Start Time
 
 ```bash
---start now          # Default: 30 seconds from submission
+--start now          # Default: 30 seconds from submission (5 minutes with --ledger)
 --start 2026-02-01T00:00:00Z   # RFC3339 format
 ```
 
@@ -112,7 +112,7 @@ By default, rewards go to your P-Chain address. Specify a different address with
 ## Next Steps
 
 <Cards>
-  <Card title="Subnets & L1s" href="/docs/tooling/platform-cli/subnets-and-l1s">
+  <Card title="Subnets" href="/docs/tooling/platform-cli/subnets">
     Create subnets and manage L1 validators
   </Card>
   <Card title="Command Reference" href="/docs/tooling/platform-cli/command-reference">

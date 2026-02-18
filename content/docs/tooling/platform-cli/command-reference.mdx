@@ -10,12 +10,21 @@ Available on all commands:
 | Flag | Short | Description | Default |
 |------|-------|-------------|---------|
 | `--network` | `-n` | Network: `fuji` or `mainnet` | `fuji` |
-| `--private-key` | `-k` | Private key (`PrivateKey-...` or `0x...`) | |
 | `--key-name` | | Load key from keystore by name | |
 | `--ledger` | | Use Ledger hardware wallet | `false` |
 | `--ledger-index` | | Ledger BIP44 address index | `0` |
 | `--rpc-url` | | Custom RPC URL (overrides `--network`) | |
 | `--network-id` | | Network ID for custom RPC | auto-detect |
+| `--allow-insecure-http` | | Allow plain HTTP for non-local endpoints (unsafe) | `false` |
+| `--private-key` | `-k` | Private key (deprecated, prefer `--key-name`) | |
+
+## version
+
+```bash
+platform version
+```
+
+Prints the CLI version.
 
 ## keys
 
@@ -24,25 +33,25 @@ Manage persistent keys stored in `~/.platform/keys/`.
 ### keys generate
 
 ```bash
-platform keys generate --name <name> [--encrypt]
+platform keys generate --name <name> [--encrypt=false]
 ```
 
-| Flag | Description |
-|------|-------------|
-| `--name` | Key name (required, 1-64 alphanumeric characters) |
-| `--encrypt` | Encrypt with password (AES-256-GCM + Argon2id) |
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--name` | Key name (required, 1-64 chars: `[a-zA-Z0-9._-]`, starts with alphanumeric) | |
+| `--encrypt` | Encrypt with password (AES-256-GCM + Argon2id) | `true` |
 
 ### keys import
 
 ```bash
-platform keys import --name <name> [--private-key <key>] [--encrypt]
+platform keys import --name <name> [--private-key <key>] [--encrypt=false]
 ```
 
-| Flag | Description |
-|------|-------------|
-| `--name` | Key name (required) |
-| `--private-key` | Private key string (prompted if omitted) |
-| `--encrypt` | Encrypt with password |
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--name` | Key name (required) | |
+| `--private-key` | Private key string (prompted if omitted) | |
+| `--encrypt` | Encrypt with password | `true` |
 
 ### keys list
 
@@ -57,13 +66,16 @@ platform keys list [--show-addresses]
 ### keys export
 
 ```bash
-platform keys export --name <name> [--format <format>]
+platform keys export --name <name> --output-file <path>
+platform keys export --name <name> --unsafe-stdout
 ```
 
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--name` | Key name (required) | |
 | `--format` | Output format: `cb58` or `hex` | `cb58` |
+| `--output-file` | Write key to file (permissions forced to 0600) | |
+| `--unsafe-stdout` | Print private key to stdout (unsafe, required if no `--output-file`) | `false` |
 
 ### keys delete
 

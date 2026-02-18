@@ -3,22 +3,40 @@ title: Installation
 description: Install and configure Platform CLI for Avalanche P-Chain operations
 ---
 
-## Prerequisites
+## Install Script (Recommended)
 
-- **Go 1.21+** ([install Go](https://go.dev/dl/))
+The install script downloads the latest release binary for your platform:
+
+```bash
+curl -sSfL https://raw.githubusercontent.com/ava-labs/platform-cli/main/install.sh | sh
+```
+
+Options:
+
+```bash
+# Install to a custom directory
+curl -sSfL https://raw.githubusercontent.com/ava-labs/platform-cli/main/install.sh | sh -s -- -b ~/.local/bin
+
+# Install a specific version
+curl -sSfL https://raw.githubusercontent.com/ava-labs/platform-cli/main/install.sh | sh -s -- -v v0.2.0
+```
+
+The script auto-detects your OS (Linux/macOS) and architecture (amd64/arm64), downloads the release tarball, verifies checksums, and installs the `platform` binary.
+
+Verify the installation:
+
+```bash
+platform --help
+```
 
 ## Build from Source
+
+Requires **Go 1.24+** ([install Go](https://go.dev/dl/)).
 
 ```bash
 git clone https://github.com/ava-labs/platform-cli.git
 cd platform-cli
 go build -o platform .
-```
-
-Verify the installation:
-
-```bash
-./platform --help
 ```
 
 ### Ledger Support
@@ -36,12 +54,13 @@ These flags are available on all commands:
 | Flag | Short | Description | Default |
 |------|-------|-------------|---------|
 | `--network` | `-n` | Network: `fuji` or `mainnet` | `fuji` |
-| `--private-key` | `-k` | Private key (`PrivateKey-...` or `0x...` format) | |
 | `--key-name` | | Name of key to load from keystore | |
 | `--ledger` | | Use Ledger hardware wallet | `false` |
 | `--ledger-index` | | Ledger address index (BIP44 path) | `0` |
 | `--rpc-url` | | Custom RPC URL (overrides `--network`) | |
 | `--network-id` | | Network ID for custom RPC (auto-detected if not set) | |
+| `--allow-insecure-http` | | Allow plain HTTP for non-local endpoints (unsafe) | `false` |
+| `--private-key` | `-k` | Private key (deprecated, prefer `--key-name` or `--ledger`) | |
 
 ## Environment Variables
 
@@ -55,8 +74,8 @@ These flags are available on all commands:
 
 When a command needs a private key, Platform CLI checks these sources in order:
 
-1. `--private-key` flag
-2. `--key-name` flag (loads from keystore)
+1. `--key-name` flag (loads from keystore)
+2. `--private-key` flag (deprecated)
 3. Default key in keystore (if set)
 4. `AVALANCHE_PRIVATE_KEY` environment variable
 
