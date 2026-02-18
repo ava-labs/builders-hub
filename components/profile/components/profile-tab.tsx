@@ -11,6 +11,7 @@ import { useSession } from "next-auth/react";
 import { useProfileForm, getProfileCompletionPercentage } from "./hooks/useProfileForm";
 import { AvatarSeed } from "./DiceBearAvatar";
 import { NounAvatarConfig } from "./NounAvatarConfig";
+import { useUserAvatar } from "@/components/context/UserAvatarContext";
 
 // Map hash values to tab values (case-insensitive)
 const hashToTabMap: Record<string, string> = {
@@ -29,6 +30,7 @@ interface ProfileTabProps {
 
 export default function ProfileTab({ achievements }: ProfileTabProps) {
   const { data: session } = useSession();
+  const avatarContext = useUserAvatar();
   const [isNounAvatarConfigOpen, setIsNounAvatarConfigOpen] = useState(false);
   const [nounAvatarSeed, setNounAvatarSeed] = useState<AvatarSeed | null>(null);
   const [nounAvatarEnabled, setNounAvatarEnabled] = useState(false);
@@ -48,27 +50,31 @@ export default function ProfileTab({ achievements }: ProfileTabProps) {
     onSubmit,
   } = useProfileForm();
 
-  // Load Noun avatar data
+  // Load Noun avatar data and sincronizar con contexto (para que UserButton lo muestre)
   useEffect(() => {
     async function loadNounAvatar() {
       try {
         const response = await fetch("/api/user/noun-avatar");
         if (response.ok) {
           const data = await response.json();
-          setNounAvatarSeed(data.seed);
-          setNounAvatarEnabled(data.enabled ?? false);
+          const seed = data.seed ?? null;
+          const enabled = data.enabled ?? false;
+          setNounAvatarSeed(seed);
+          setNounAvatarEnabled(enabled);
+          avatarContext?.setNounAvatar(seed, enabled);
         }
       } catch (error) {
         console.error("Error loading Noun avatar:", error);
       }
     }
     loadNounAvatar();
-  }, []);
+  }, [avatarContext?.setNounAvatar]);
 
-  // Handle avatar save
+  // Handle avatar save: actualizar estado local y contexto para que UserButton refleje el cambio
   const handleNounAvatarSave = async (seed: AvatarSeed, enabled: boolean) => {
     setNounAvatarSeed(seed);
     setNounAvatarEnabled(enabled);
+    avatarContext?.setNounAvatar(seed, enabled);
   };
 
   // Get initial tab from URL hash
