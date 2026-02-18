@@ -145,6 +145,62 @@ export function RegisterForm({
     }
   }
 
+  /** Prefill step1 from profile (name, email, country, telegram, company, role) when field is empty */
+  async function mergeProfileIntoStep1() {
+    const userId = (currentUser as { id?: string })?.id;
+    if (!userId) return;
+    try {
+      const profileRes = await fetch(`/api/profile/extended/${userId}`);
+      if (!profileRes.ok) return;
+      const profile = await profileRes.json();
+      const current = form.getValues();
+      const merged = {
+        ...current,
+        name: (current.name ?? "").trim() || profile.name || current.name || "",
+        email: (current.email ?? "").trim() || profile.email || current.email || "",
+        city: (current.city ?? "").trim() || profile.country || current.city || "",
+        telegram_user: (current.telegram_user ?? "").trim() || profile.telegram_user || current.telegram_user || "",
+        company_name: (current.company_name ?? "").trim() || profile.user_type?.company_name || profile.user_type?.founder_company_name || profile.user_type?.employee_company_name || profile.user_type?.student_institution || current.company_name || "",
+        role: (current.role ?? "").trim() || profile.user_type?.employee_role || profile.user_type?.role || current.role || "",
+      };
+      form.reset(merged);
+    } catch (err) {
+      console.error("Error merging profile into registration form:", err);
+    }
+  }
+
+  /** Persist step1 fields to profile (name, email, country, telegram, company_name, role) */
+  async function saveStep1ToProfile() {
+    const userId = (currentUser as { id?: string })?.id;
+    if (!userId) return;
+    const step1 = form.getValues();
+    try {
+      const profileRes = await fetch(`/api/profile/extended/${userId}`);
+      if (!profileRes.ok) return;
+      const existing = await profileRes.json();
+      const userType = existing.user_type || {};
+      const payload = {
+        name: step1.name ?? existing.name,
+        email: step1.email ?? existing.email,
+        country: (step1.city ?? "").trim() || existing.country,
+        telegram_user: (step1.telegram_user ?? "").trim() || existing.telegram_user,
+        user_type: {
+          ...userType,
+          company_name: (step1.company_name ?? "").trim() || userType.company_name,
+          role: (step1.role ?? "").trim() || userType.role,
+          employee_role: (step1.role ?? "").trim() || userType.employee_role,
+        },
+      };
+      await fetch(`/api/profile/extended/${userId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+    } catch (err) {
+      console.error("Error saving step1 to profile:", err);
+    }
+  }
+
   async function getRegisterFormLoaded() {
     if (!hackathon_id || !currentUser?.email) return;
     try {
@@ -183,8 +239,12 @@ export function RegisterForm({
         setRegistrationForm(loadedData);
       }
       setDataFromLocalStorage();
+      await mergeProfileIntoStep1();
     } catch (err) {
       setDataFromLocalStorage();
+      if (status === "authenticated" && currentUser) {
+        await mergeProfileIntoStep1();
+      }
       console.error("API Error:", err);
     }
   }
@@ -246,7 +306,10 @@ export function RegisterForm({
     }
   }, [hackathon, form]);
 
-  const onSaveLater = () => {
+  const onSaveLater = async () => {
+    if (step === 1) {
+      await saveStep1ToProfile();
+    }
     const preservedUTMs = getPreservedUTMs();
     const effectiveUTM = utm || preservedUTMs.utm || "";
     
@@ -330,8 +393,11 @@ export function RegisterForm({
     }
   };
 
-  const handleStepChange = (newStep: number) => {
+  const handleStepChange = async (newStep: number) => {
     if (newStep >= 1 && newStep <= 3) {
+      if (step === 1 && newStep !== 1) {
+        await saveStep1ToProfile();
+      }
       setStep(newStep);
     }
   };
@@ -431,6 +497,9 @@ export function RegisterForm({
     }
     const isValid = await form.trigger(fieldsToValidate);
     if (isValid) {
+      if (step === 1) {
+        await saveStep1ToProfile();
+      }
       setStep((prev) => prev + 1);
     }
   };
