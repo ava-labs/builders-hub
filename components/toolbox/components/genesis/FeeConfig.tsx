@@ -655,38 +655,24 @@ function FeeConfigBase({
         const preset = PRESETS[selectedPreset];
         const colors = PRESET_COLORS[preset.color];
         const Icon = preset.icon;
-        const bgColorMap: Record<string, string> = {
-          green: 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800/50',
-          blue: 'bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800/50',
-          pink: 'bg-pink-50 dark:bg-pink-950/20 border-pink-200 dark:border-pink-800/50',
-          violet: 'bg-violet-50 dark:bg-violet-950/20 border-violet-200 dark:border-violet-800/50',
-          emerald: 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/50'
-        };
-        const textColorMap: Record<string, { title: string; body: string; detail: string }> = {
-          green: { title: 'text-green-800 dark:text-green-200', body: 'text-green-700 dark:text-green-300', detail: 'text-green-600 dark:text-green-400' },
-          blue: { title: 'text-blue-800 dark:text-blue-200', body: 'text-blue-700 dark:text-blue-300', detail: 'text-blue-600 dark:text-blue-400' },
-          pink: { title: 'text-pink-800 dark:text-pink-200', body: 'text-pink-700 dark:text-pink-300', detail: 'text-pink-600 dark:text-pink-400' },
-          violet: { title: 'text-violet-800 dark:text-violet-200', body: 'text-violet-700 dark:text-violet-300', detail: 'text-violet-600 dark:text-violet-400' },
-          emerald: { title: 'text-emerald-800 dark:text-emerald-200', body: 'text-emerald-700 dark:text-emerald-300', detail: 'text-emerald-600 dark:text-emerald-400' }
-        };
 
         return (
-          <div className={`rounded-lg p-4 border ${bgColorMap[preset.color]}`}>
+          <div className="rounded-lg p-4 border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900">
             <div className="flex items-start gap-3">
               <Icon className={`h-5 w-5 flex-shrink-0 mt-0.5 ${colors.icon}`} />
               <div className="space-y-2">
-                <div className={`font-medium text-sm ${textColorMap[preset.color].title}`}>
+                <div className="font-medium text-sm text-zinc-900 dark:text-zinc-100">
                   {preset.name}
                 </div>
-                <div className={`text-xs ${textColorMap[preset.color].body}`}>
+                <div className="text-xs text-zinc-600 dark:text-zinc-400">
                   {preset.description}
                 </div>
-                <div className={`text-xs space-y-1 pt-1 ${textColorMap[preset.color].detail}`}>
-                  <div>• Gas limit: <strong>{formatNumber(preset.gasLimit)}</strong></div>
-                  <div>• Min fee: <strong>{preset.feeConfig.minBaseFee / 1000000000} gwei</strong></div>
-                  <div>• Fee model: <strong>{preset.feeConfig.maxBlockGasCost === 0 ? 'Static (consistent)' : 'Dynamic (congestion-based)'}</strong></div>
+                <div className="text-xs space-y-1 pt-1 text-zinc-500 dark:text-zinc-400">
+                  <div>• Gas limit: <strong className="text-zinc-700 dark:text-zinc-300">{formatNumber(preset.gasLimit)}</strong></div>
+                  <div>• Min fee: <strong className="text-zinc-700 dark:text-zinc-300">{preset.feeConfig.minBaseFee / 1000000000} gwei</strong></div>
+                  <div>• Fee model: <strong className="text-zinc-700 dark:text-zinc-300">{preset.feeConfig.maxBlockGasCost === 0 ? 'Static (consistent)' : 'Dynamic (congestion-based)'}</strong></div>
                   {preset.compliance && (
-                    <div>• Compliance: <strong>KYC + Allowlist enabled</strong></div>
+                    <div>• Compliance: <strong className="text-zinc-700 dark:text-zinc-300">KYC + Allowlist enabled</strong></div>
                   )}
                 </div>
               </div>
@@ -1008,22 +994,16 @@ function FeeConfigBase({
       </div>
 
       {/* Pricing Model Indicator */}
-      <div className={`rounded-lg p-3 ${
-        isStaticPricing
-          ? 'bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800/50'
-          : 'bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/50'
-      }`}>
+      <div className="rounded-lg p-3 border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900">
         <div className="flex gap-2">
           <Info className={`h-4 w-4 flex-shrink-0 mt-0.5 ${
             isStaticPricing ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'
           }`} />
           <div className="text-xs space-y-1">
-            <div className={`font-medium ${
-              isStaticPricing ? 'text-green-900 dark:text-green-100' : 'text-amber-900 dark:text-amber-100'
-            }`}>
-              {isStaticPricing ? '✓ Static Fee Pricing Active' : '⚡ Dynamic Fee Pricing Active'}
+            <div className="font-medium text-zinc-900 dark:text-zinc-100">
+              {isStaticPricing ? 'Static Fee Pricing' : 'Dynamic Fee Pricing'}
             </div>
-            <div className={isStaticPricing ? 'text-green-800 dark:text-green-200' : 'text-amber-800 dark:text-amber-200'}>
+            <div className="text-zinc-600 dark:text-zinc-400">
               {isStaticPricing
                 ? 'Transaction fees will remain constant regardless of network activity. Ideal for testnets and predictable costs.'
                 : `Fees will adjust based on network congestion. Target gas threshold: ${formatNumber(staticGasThreshold)}.`

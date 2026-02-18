@@ -1,6 +1,8 @@
 "use client";
 
 import { ReactNode } from "react";
+import { usePathname } from "next/navigation";
+import { motion } from "framer-motion";
 import { ConsoleSidebar } from "../../components/console/console-sidebar";
 import { SiteHeader } from "../../components/console/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
@@ -15,6 +17,21 @@ import { CommandPalette } from "@/components/console/command-palette";
 import { OnboardingTour } from "@/components/console/onboarding-tour";
 import { WelcomeModal } from "@/components/console/onboarding-tour/welcome-modal";
 import { ConsoleBadgeNotification } from "@/components/console/ConsoleBadgeNotification";
+
+function ConsolePageTransition({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
+
+  return (
+    <motion.div
+      key={pathname}
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, ease: [0.21, 0.47, 0.32, 0.98] }}
+    >
+      {children}
+    </motion.div>
+  );
+}
 
 function ConsoleContent({ children }: { children: ReactNode }) {
   useAutomatedFaucet();
@@ -35,7 +52,7 @@ function ConsoleContent({ children }: { children: ReactNode }) {
         <SidebarInset className="bg-white dark:bg-zinc-900 h-[calc(100vh-var(--fd-banner-height,0px)-1rem)] overflow-hidden m-2">
           <SiteHeader />
           <div className="flex flex-1 flex-col gap-4 p-8 overflow-y-auto h-[calc(100vh-var(--fd-banner-height,0px)-var(--header-height)-1rem)]">
-            {children}
+            <ConsolePageTransition>{children}</ConsolePageTransition>
           </div>
         </SidebarInset>
       </SidebarProvider>

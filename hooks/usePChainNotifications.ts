@@ -11,8 +11,8 @@ const getPChainTxExplorerURL = (txID: string, isTestnet: boolean) => {
     return `https://${isTestnet ? "subnets-test" : "subnets"}.avax.network/p-chain/tx/${txID}`;
 };
 
-export type PChainAction = 'createSubnet' | 'createChain' | 'convertToL1' | 'addPermissionlessValidator' | 'registerL1Validator' | 'setL1ValidatorWeight';
-export const PChainActionList = ['createSubnet', 'createChain', 'convertToL1', 'addPermissionlessValidator', 'registerL1Validator', 'setL1ValidatorWeight'];
+export type PChainAction = 'createSubnet' | 'createChain' | 'convertToL1' | 'addPermissionlessValidator' | 'registerL1Validator' | 'setL1ValidatorWeight' | 'exportCross' | 'importCross';
+export const PChainActionList = ['createSubnet', 'createChain', 'convertToL1', 'addPermissionlessValidator', 'registerL1Validator', 'setL1ValidatorWeight', 'exportCross', 'importCross'];
 
 type PChainNotificationConfig = {
     loadingMessage: string;
@@ -57,6 +57,18 @@ const configs: Record<PChainAction, PChainNotificationConfig> = {
         successMessage: 'Validator weight set successfully',
         errorMessagePrefix: 'Failed to set validator weight: ',
         eventType: 'validator_weight_set',
+    },
+    exportCross: {
+        loadingMessage: 'Signing cross-chain export with Core...',
+        successMessage: 'Export transaction confirmed',
+        errorMessagePrefix: 'Export failed: ',
+        eventType: 'cross_chain_export',
+    },
+    importCross: {
+        loadingMessage: 'Signing cross-chain import with Core...',
+        successMessage: 'Import transaction confirmed',
+        errorMessagePrefix: 'Import failed: ',
+        eventType: 'cross_chain_import',
     },
 };
 

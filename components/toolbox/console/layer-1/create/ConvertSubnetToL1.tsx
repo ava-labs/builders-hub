@@ -14,12 +14,12 @@ import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 import { Step, Steps } from 'fumadocs-ui/components/steps';
 import Link from "next/link";
-import { BookOpen, ExternalLink, AlertTriangle } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 import { CoreWalletTransactionButton } from "@/components/toolbox/components/CoreWalletTransactionButton";
 
 const metadata: ConsoleToolMetadata = {
     title: "Convert Subnet to L1",
-    description: "Convert your existing Subnet to an L1 with validator management",
+    description: <>Converting a Subnet to an <Link href="/docs/avalanche-l1s" className="text-primary hover:underline">L1</Link> enables sovereign <Link href="/docs/avalanche-l1s/validator-manager/contract" className="text-primary hover:underline">validator management</Link> through a smart contract. This conversion is <strong>irreversible</strong>.</>,
     toolRequirements: [
         WalletRequirementsConfigKey.WalletConnected
     ],
@@ -104,24 +104,9 @@ function ConvertToL1({ onSuccess }: BaseConsoleToolProps) {
 
     return (
         <div className="space-y-6">
-            {/* Context */}
-            <div className="text-sm text-muted-foreground bg-muted/50 rounded-lg p-4">
-                <p className="mb-2">
-                    Converting a Subnet to an L1 enables sovereign validator management through a smart contract.
-                </p>
-                <Link
-                    href="/docs/avalanche-l1s"
-                    className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
-                >
-                    <BookOpen className="h-3 w-3" />
-                    Learn more about L1s
-                    <ExternalLink className="h-3 w-3" />
-                </Link>
-            </div>
-
             <Steps>
                 <Step>
-                    <h3 className="font-medium mb-3">Select Subnet</h3>
+                    <h3 className="text-sm font-semibold mb-3">Select Subnet</h3>
                     <SelectSubnet
                         value={selection.subnetId}
                         onChange={setSelection}
@@ -131,7 +116,7 @@ function ConvertToL1({ onSuccess }: BaseConsoleToolProps) {
                 </Step>
 
                 <Step>
-                    <h3 className="font-medium mb-3">Validator Manager</h3>
+                    <h3 className="text-sm font-semibold mb-3">Validator Manager</h3>
                     <p className="text-sm text-muted-foreground mb-4">
                         The validator manager contract controls your L1's validator set.
                         If you used <strong>Console defaults</strong> for your L1 genesis, a proxy is pre-deployed at{" "}
@@ -162,7 +147,7 @@ function ConvertToL1({ onSuccess }: BaseConsoleToolProps) {
                 </Step>
 
                 <Step>
-                    <h3 className="font-medium mb-3">Initial Validators</h3>
+                    <h3 className="text-sm font-semibold mb-3">Initial Validators</h3>
                     <p className="text-sm text-muted-foreground mb-4">
                         Add at least one validator. Existing Subnet validators cannot be transferred.
                     </p>
@@ -177,28 +162,33 @@ function ConvertToL1({ onSuccess }: BaseConsoleToolProps) {
                         isTestnet={isTestnet}
                     />
                 </Step>
-            </Steps>
 
-            <div className="text-xs text-muted-foreground mb-3">
-                Issues a{" "}
-                <Link
-                    href="/docs/rpcs/p-chain/txn-format#unsigned-convert-subnet-to-l1-tx"
-                    className="text-primary hover:underline"
-                >
-                    ConvertSubnetToL1Tx
-                </Link>{" "}
-                on the P-Chain. This conversion is <strong>irreversible</strong>.
-            </div>
-            <CoreWalletTransactionButton
-                variant="primary"
-                onClick={handleConvertToL1}
-                disabled={!selection.subnetId || !validatorManagerAddress || validators.length === 0 || (selection.subnet?.isL1)}
-                loading={isConverting}
-                className="w-full"
-                cliCommand={buildConvertCliCommand()}
-            >
-                {selection.subnet?.isL1 ? "Already Converted" : "Convert to L1"}
-            </CoreWalletTransactionButton>
+                <Step>
+                    <div>
+                        <h2 className="text-sm font-semibold mb-1">Convert to L1</h2>
+                        <p className="text-xs text-muted-foreground">
+                            Issues a{" "}
+                            <Link
+                                href="/docs/rpcs/p-chain/txn-format#unsigned-convert-subnet-to-l1-tx"
+                                className="text-primary hover:underline"
+                            >
+                                ConvertSubnetToL1Tx
+                            </Link>{" "}
+                            on the P-Chain.
+                        </p>
+                    </div>
+                    <CoreWalletTransactionButton
+                        variant="primary"
+                        onClick={handleConvertToL1}
+                        disabled={!selection.subnetId || !validatorManagerAddress || validators.length === 0 || (selection.subnet?.isL1)}
+                        loading={isConverting}
+                        className="w-full"
+                        cliCommand={buildConvertCliCommand()}
+                    >
+                        {selection.subnet?.isL1 ? "Already Converted" : "Convert to L1"}
+                    </CoreWalletTransactionButton>
+                </Step>
+            </Steps>
         </div>
     );
 }

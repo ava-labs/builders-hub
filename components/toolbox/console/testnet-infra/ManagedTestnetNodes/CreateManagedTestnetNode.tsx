@@ -99,8 +99,8 @@ function CreateManagedTestnetNodeBase() {
     return (
         <Steps>
             <Step>
-                <h2 className="text-lg font-semibold">Step 1: Select Subnet</h2>
-                <p className="text-sm text-gray-500 mb-8">
+                <h2 className="text-sm font-semibold">Step 1: Select Subnet</h2>
+                <p className="text-sm text-muted-foreground mb-4">
                     Enter the Subnet ID of the blockchain you want to create a node for.
                 </p>
                 <SelectSubnet
@@ -113,8 +113,8 @@ function CreateManagedTestnetNodeBase() {
             </Step>
 
             <Step>
-                <h2 className="text-lg font-semibold">Step 2: Create Node</h2>
-                <p className="text-sm text-gray-500 mb-8">
+                <h2 className="text-sm font-semibold">Step 2: Create Node</h2>
+                <p className="text-sm text-muted-foreground mb-4">
                     Review the details and create your managed testnet node.
                 </p>
                 <Button
@@ -127,8 +127,8 @@ function CreateManagedTestnetNodeBase() {
             </Step>
 
             <Step>
-                <h2 className="text-lg font-semibold">Step 3: Add to Wallet</h2>
-                <p className="text-sm text-gray-500 mb-8">
+                <h2 className="text-sm font-semibold">Step 3: Add to Wallet</h2>
+                <p className="text-sm text-muted-foreground mb-4">
                     Add the new node's RPC to your wallet.
                 </p>
                 {createdNode && (
@@ -151,8 +151,8 @@ function CreateManagedTestnetNodeBase() {
                 </Button>
             </Step>
             <Step>
-                <h2 className="text-lg font-semibold">Step 4: Open Testnet Node Manager</h2>
-                <p className="text-sm text-gray-500 mb-8">
+                <h2 className="text-sm font-semibold">Step 4: Open Testnet Node Manager</h2>
+                <p className="text-sm text-muted-foreground mb-4">
                     To view this node and other that you have created, open the Testnet Node Manager.
                 </p>
                 <Link href="/console/testnet-infra/nodes" target="_blank">

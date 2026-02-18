@@ -2,20 +2,18 @@
 
 import { useState } from "react";
 import { useCreateChainStore } from "@/components/toolbox/stores/createChainStore";
-import { Input } from "@/components/toolbox/components/Input";
 import InputSubnetId from "@/components/toolbox/components/InputSubnetId";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
-import { ExternalLink, BookOpen, GraduationCap } from "lucide-react";
 import Link from "next/link";
 import { CoreWalletTransactionButton } from "@/components/toolbox/components/CoreWalletTransactionButton";
 
 const metadata: ConsoleToolMetadata = {
     title: "Create Subnet",
-    description: "Create a new Subnet or select an existing one to build your L1 on",
+    description: <>Every <Link href="/docs/avalanche-l1s" className="text-primary hover:underline">Layer 1</Link> blockchain is validated by exactly one <Link href="/docs/avalanche-l1s" className="text-primary hover:underline">Subnet</Link>. Issues a <Link href="/docs/rpcs/p-chain/txn-format#unsigned-create-subnet-tx" className="text-primary hover:underline">CreateSubnetTx</Link> on the P-Chain.</>,
     toolRequirements: [
         WalletRequirementsConfigKey.WalletConnected
     ],
@@ -53,82 +51,46 @@ function CreateSubnet(_props: BaseConsoleToolProps) {
 
     return (
         <div className="space-y-6">
-            {/* Context Box */}
-            <div className="text-sm text-muted-foreground bg-muted/50 rounded-lg p-4">
-                <p className="mb-3">
-                    A <strong>Subnet</strong> is a sovereign network that defines its own rules for membership and token economics.
-                    Every Avalanche L1 blockchain is validated by exactly one Subnet.
+            {/* Create Subnet — primary action */}
+            <CoreWalletTransactionButton
+                onClick={handleCreateSubnet}
+                loading={isCreatingSubnet}
+                loadingText="Creating..."
+                variant="primary"
+                className="w-full"
+                cliCommand={`platform subnet create --network ${isTestnet ? "fuji" : "mainnet"}`}
+            >
+                Create Subnet
+            </CoreWalletTransactionButton>
+
+            {/* "or" divider */}
+            <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-zinc-200 dark:border-zinc-800" />
+                </div>
+                <div className="relative flex justify-center">
+                    <span className="bg-background px-3 text-xs text-muted-foreground uppercase tracking-wider">
+                        or
+                    </span>
+                </div>
+            </div>
+
+            {/* Paste Subnet ID — fallback for CLI users */}
+            <div className="space-y-2">
+                <p className="text-sm font-medium">Already have a Subnet ID?</p>
+                <p className="text-xs text-muted-foreground">
+                    If you created a subnet via the platform-cli or already own one, paste the Subnet ID below.
                 </p>
-                <div className="flex flex-wrap gap-3">
-                    <Link
-                        href="/docs/avalanche-l1s"
-                        className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
-                    >
-                        <BookOpen className="h-3 w-3" />
-                        L1 Documentation
-                        <ExternalLink className="h-3 w-3" />
-                    </Link>
-                    <Link
-                        href="/academy/avalanche-l1/avalanche-fundamentals"
-                        className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
-                    >
-                        <GraduationCap className="h-3 w-3" />
-                        Fundamentals Course
-                        <ExternalLink className="h-3 w-3" />
-                    </Link>
-                </div>
+                <InputSubnetId
+                    id="create-subnet-id"
+                    label=""
+                    value={subnetId}
+                    onChange={setSubnetID}
+                    validationDelayMs={3000}
+                    hideSuggestions={true}
+                    placeholder="Paste Subnet ID"
+                />
             </div>
-
-            {/* Main Content - Two Column on Desktop */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Create New */}
-                <div className="p-5 rounded-lg border bg-card">
-                    <h3 className="text-sm font-medium mb-3">Create New Subnet</h3>
-                    <div className="space-y-3">
-                        <Input
-                            label="Owner (your P-Chain address)"
-                            value={pChainAddress}
-                            disabled={true}
-                            type="text"
-                        />
-                        <p className="text-xs text-muted-foreground">
-                            Issues a{" "}
-                            <Link
-                                href="/docs/rpcs/p-chain/txn-format#unsigned-create-subnet-tx"
-                                className="text-primary hover:underline"
-                            >
-                                CreateSubnetTx
-                            </Link>{" "}
-                            on the P-Chain.
-                        </p>
-                        <CoreWalletTransactionButton
-                            onClick={handleCreateSubnet}
-                            loading={isCreatingSubnet}
-                            loadingText="Creating..."
-                            variant="primary"
-                            className="w-full"
-                            cliCommand={`platform subnet create --network ${isTestnet ? "fuji" : "mainnet"}`}
-                        >
-                            Create Subnet
-                        </CoreWalletTransactionButton>
-                    </div>
-                </div>
-
-                {/* Use Existing */}
-                <div className="p-5 rounded-lg border bg-card">
-                    <h3 className="text-sm font-medium mb-3">Use Existing Subnet</h3>
-                    <InputSubnetId
-                        id="create-subnet-id"
-                        label=""
-                        value={subnetId}
-                        onChange={setSubnetID}
-                        validationDelayMs={3000}
-                        hideSuggestions={true}
-                        placeholder="Enter Subnet ID"
-                    />
-                </div>
-            </div>
-
         </div>
     );
 }

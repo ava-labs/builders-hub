@@ -3,10 +3,27 @@
 import React, { useMemo, useState, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FlowCompletionModal, type FlowCompletionAction } from "./flow-completion-modal";
 import { getFlowMetadata, type FlowMetadata } from "@/config/console-flows";
+
+const flowContainerVariants = {
+  hidden: {},
+  visible: {
+    transition: { staggerChildren: 0.1, delayChildren: 0.05 },
+  },
+};
+
+const flowItemVariants = {
+  hidden: { opacity: 0, y: 16 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { type: "spring" as const, stiffness: 200, damping: 24 },
+  },
+};
 
 type SingleStep = {
   type: "single";
@@ -174,8 +191,13 @@ export default function StepFlow({
   }, [atLast, currentIndex, steps, basePath]);
 
   return (
-    <div className={className}>
-      <nav className="mb-6">
+    <motion.div
+      className={className}
+      variants={flowContainerVariants}
+      initial="hidden"
+      animate="visible"
+    >
+      <motion.nav className="mb-6" variants={flowItemVariants}>
         <ol className="flex flex-wrap items-center justify-center gap-3 text-sm">
           {steps.map((s, stepIdx) => {
             const isDoneStep = stepIdx < currentIndex;
@@ -269,9 +291,9 @@ export default function StepFlow({
             }
           })}
         </ol>
-      </nav>
+      </motion.nav>
 
-      <div className="border-t border-border py-8">
+      <motion.div className="border-t border-border py-8" variants={flowItemVariants}>
         <div className="min-h-[200px]">
           <CurrentComponent />
         </div>
@@ -323,7 +345,7 @@ export default function StepFlow({
             )}
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Completion Modal */}
       {showCompletionModal && flowMetadata && (
@@ -336,6 +358,6 @@ export default function StepFlow({
           customActions={completionActions}
         />
       )}
-    </div>
+    </motion.div>
   );
 }

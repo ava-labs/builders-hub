@@ -1,6 +1,6 @@
 "use client"
 import { useEffect, useState, useCallback, useRef, useMemo } from "react"
-import { ArrowDownUp, Clock, BookOpen, ExternalLink } from "lucide-react"
+import { ArrowDownUp, Clock } from "lucide-react"
 import { Button } from "@/components/toolbox/components/Button"
 import { useWalletStore } from "@/components/toolbox/stores/walletStore"
 import { pvm, Utxo, TransferOutput, evm } from '@avalabs/avalanchejs'
@@ -14,6 +14,7 @@ import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } fr
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 import { SDKCodeViewer, type SDKCodeSource } from "@/components/console/sdk-code-viewer";
 import { CliAlternative } from "@/components/console/cli-alternative";
+import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import Link from "next/link";
 
 // Extended props for this specific tool
@@ -24,7 +25,7 @@ interface CrossChainTransferProps extends BaseConsoleToolProps {
 
 const metadata: ConsoleToolMetadata = {
     title: "Cross-Chain Transfer",
-    description: "Transfer AVAX between Platform (P) and Contract (C) chains.",
+    description: <>Transfer AVAX between the <Link href="/docs/rpcs/c-chain/api" className="text-primary hover:underline">C-Chain</Link> and <Link href="/docs/rpcs/p-chain/api" className="text-primary hover:underline">P-Chain</Link>. Requires two <Link href="/docs/rpcs/p-chain/txn-format" className="text-primary hover:underline">transactions</Link>: export from the source, then import to the destination.</>,
     toolRequirements: [
         WalletRequirementsConfigKey.WalletConnected
     ],
@@ -69,6 +70,7 @@ function CrossChainTransfer({
 
     const { coreWalletClient } = useConnectedWallet();
     const { updateCChainBalance, updatePChainBalance } = useWalletStore();
+    const { notify } = useConsoleNotifications();
 
     const isTestnet = useWalletStore((s) => s.isTestnet);
     const cChainBalance = useWalletStore((s) => s.balances.cChain);
@@ -220,9 +222,8 @@ function CrossChainTransfer({
         setExportLoading(true);
         setError(null);
 
-        try {
+        const exportPromise = (async () => {
             if (sourceChain === "c-chain") {
-                // C-Chain to P-Chain export using the evmExport function
                 const txnRequest = await coreWalletClient.cChain.prepareExportTxn({
                     destinationChain: "P",
                     exportedOutput: {
@@ -233,14 +234,8 @@ function CrossChainTransfer({
                 });
                 const txnResponse = await coreWalletClient.sendXPTransaction(txnRequest);
                 await coreWalletClient.waitForTxn(txnResponse);
-
-                // Store the export transaction ID to trigger import
-                const txId = txnResponse.txHash;
-                setExportTxId(txId);
-                setCompletedExportTxId(txId);
-                setCompletedExportXPChain("C");
+                return { txHash: txnResponse.txHash, xpChain: "C" as const };
             } else {
-                // P-Chain to C-Chain export using the pvmExport function
                 const txnRequest = await coreWalletClient.pChain.prepareExportTxn({
                     exportedOutputs: [{
                         addresses: [coreEthAddress],
@@ -250,22 +245,23 @@ function CrossChainTransfer({
                 });
                 const txnResponse = await coreWalletClient.sendXPTransaction(txnRequest);
                 await coreWalletClient.waitForTxn(txnResponse);
-
-                const txId = txnResponse.txHash;
-                setExportTxId(txId);
-                setCompletedExportTxId(txId);
-                setCompletedExportXPChain("P");
+                return { txHash: txnResponse.txHash, xpChain: "P" as const };
             }
+        })();
+
+        notify('exportCross', exportPromise.then(r => r.txHash));
+
+        try {
+            const { txHash, xpChain } = await exportPromise;
+            setExportTxId(txHash);
+            setCompletedExportTxId(txHash);
+            setCompletedExportXPChain(xpChain);
 
             await pollForUTXOChanges();
             onBalanceChanged();
-
         } catch (error) {
-            console.error('Export error:', error);
-            let msg = 'Unknown error';
-            if (error instanceof Error) msg = error.message;
+            const msg = error instanceof Error ? error.message : 'Unknown error';
             setError(`Export failed: ${msg}`);
-            console.error("Error sending export transaction:", error);
         } finally {
             setExportLoading(false);
         }
@@ -275,9 +271,8 @@ function CrossChainTransfer({
         setImportLoading(true);
         setImportError(null);
 
-        try {
+        const importPromise = (async () => {
             if (destinationChain === "p-chain") {
-                // Import to P-Chain using pvmImport function
                 const txnRequest = await coreWalletClient.pChain.prepareImportTxn({
                     sourceChain: "C",
                     importedOutput: {
@@ -286,32 +281,34 @@ function CrossChainTransfer({
                 });
                 const txnResponse = await coreWalletClient.sendXPTransaction(txnRequest);
                 await coreWalletClient.waitForTxn(txnResponse);
-                setImportTxId(String(txnResponse.txHash));
-                setCompletedImportXPChain("P");
+                return { txHash: String(txnResponse.txHash), xpChain: "P" as const };
             } else {
-                // Import to C-Chain using evmImportTx function
                 const txnRequest = await coreWalletClient.cChain.prepareImportTxn({
                     sourceChain: "P",
                     toAddress: walletEVMAddress as `0x${string}`,
                 });
                 const txnResponse = await coreWalletClient.sendXPTransaction(txnRequest);
                 await coreWalletClient.waitForTxn(txnResponse);
-                setImportTxId(String(txnResponse.txHash));
-                setCompletedImportXPChain("C");
+                return { txHash: String(txnResponse.txHash), xpChain: "C" as const };
             }
+        })();
+
+        notify('importCross', importPromise.then(r => r.txHash));
+
+        try {
+            const { txHash, xpChain } = await importPromise;
+            setImportTxId(txHash);
+            setCompletedImportXPChain(xpChain);
 
             await pollForUTXOChanges();
             onBalanceChanged();
 
             onSuccess?.();
         } catch (error) {
-            console.error("Error sending import transaction:", error);
-            let msg = 'Unknown error';
-            if (error instanceof Error) msg = error.message;
+            const msg = error instanceof Error ? error.message : 'Unknown error';
             setImportError(`Import failed: ${msg}`);
         } finally {
             setImportLoading(false);
-            // Clear export transaction ID after import is done
             setExportTxId("");
         }
     }
@@ -472,24 +469,8 @@ console.log("Import tx:", txnResponse.txHash);`,
             : "https://images.ctfassets.net/gcj8jwzm6086/42aMwoCLblHOklt6Msi6tm/1e64aa637a8cead39b2db96fe3225c18/pchain-square.svg";
 
     return (
-        <SDKCodeViewer sources={sdkSources} height="350px" className="lg:grid-cols-1">
+        <SDKCodeViewer sources={sdkSources} height="auto">
         <div className="space-y-4">
-                {/* Context */}
-                <div className="text-sm text-muted-foreground bg-muted/50 rounded-lg p-4">
-                    <p className="mb-2">
-                        Transfer AVAX between the C-Chain and P-Chain.
-                        Requires two transactions: export from the source, then import to the destination.
-                    </p>
-                    <Link
-                        href="/docs/rpcs/p-chain/txn-format"
-                        className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
-                    >
-                        <BookOpen className="h-3 w-3" />
-                        P-Chain Transaction Format
-                        <ExternalLink className="h-3 w-3" />
-                    </Link>
-                </div>
-
                 {/* Transfer Widget */}
                 <div className="rounded-lg border border-border overflow-hidden">
                     {/* From */}

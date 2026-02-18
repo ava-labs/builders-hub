@@ -229,15 +229,15 @@ function AvalancheGoDockerPrimaryNetworkInner() {
             >
                 <Steps>
                     <Step>
-                    <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Configure Node Settings</h3>
-                    <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
+                    <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Configure Node Settings</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
                         Choose your network, node type, and configure settings. The configuration preview updates in real-time.
                     </p>
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <div className="space-y-4">
                             <div>
-                                <label className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400 mb-2">
+                                <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-2">
                                     Network
                                 </label>
                                 <div className="grid grid-cols-2 gap-2">
@@ -251,7 +251,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                                         }`}
                                     >
                                         <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Mainnet</div>
-                                        <div className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5">Production network</div>
+                                        <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">Production network</div>
                                     </button>
                                     <button
                                         type="button"
@@ -263,13 +263,13 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                                         }`}
                                     >
                                         <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Fuji</div>
-                                        <div className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5">Testnet</div>
+                                        <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">Testnet</div>
                                     </button>
                                 </div>
                             </div>
 
                             <div>
-                                <label className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400 mb-2">
+                                <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-2">
                                     Node Type
                                 </label>
                                 <div className="grid grid-cols-3 gap-2">
@@ -283,7 +283,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                                         }`}
                                     >
                                         <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Validator</div>
-                                        <div className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5">P2P only</div>
+                                        <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">P2P only</div>
                                     </button>
                                     <button
                                         type="button"
@@ -295,7 +295,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                                         }`}
                                     >
                                         <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">RPC</div>
-                                        <div className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5">Pruned</div>
+                                        <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">Pruned</div>
                                     </button>
                                     <button
                                         type="button"
@@ -307,13 +307,13 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                                         }`}
                                     >
                                         <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Archival</div>
-                                        <div className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5">Full history</div>
+                                        <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">Full history</div>
                                     </button>
                                 </div>
                             </div>
 
                             <div onMouseEnter={() => setHighlightPath('logLevel')} onMouseLeave={clearHighlight}>
-                                <label className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400 mb-2">
+                                <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-2">
                                     Log Level
                                 </label>
                                 <div className="flex flex-wrap gap-1.5">
@@ -336,7 +336,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                                         >
                                             {level.label}
                                             {level.default && logLevel !== level.value && (
-                                                <span className="ml-1 text-[10px] text-zinc-400">(default)</span>
+                                                <span className="ml-1 text-xs text-zinc-400">(default)</span>
                                             )}
                                         </button>
                                     ))}
@@ -829,7 +829,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                                                             step="100"
                                                             className="w-full h-2 bg-zinc-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
                                                         />
-                                                        <div className="flex justify-between text-[10px] text-zinc-400 mt-1">
+                                                        <div className="flex justify-between text-xs text-zinc-400 mt-1">
                                                             <span>0ms (fastest)</span>
                                                             <span>1000ms</span>
                                                             <span>2000ms (default)</span>
@@ -916,10 +916,10 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                                                             </span>
                                                         </label>
                                                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-6">
-                                                            When enabled, allows queries using block tags like <code className="px-1 py-0.5 bg-zinc-100 dark:bg-zinc-800 rounded text-[10px]">pending</code>, <code className="px-1 py-0.5 bg-zinc-100 dark:bg-zinc-800 rounded text-[10px]">safe</code>, and <code className="px-1 py-0.5 bg-zinc-100 dark:bg-zinc-800 rounded text-[10px]">latest</code> that may return data from blocks not yet finalized.
+                                                            When enabled, allows queries using block tags like <code className="px-1 py-0.5 bg-zinc-100 dark:bg-zinc-800 rounded text-xs">pending</code>, <code className="px-1 py-0.5 bg-zinc-100 dark:bg-zinc-800 rounded text-xs">safe</code>, and <code className="px-1 py-0.5 bg-zinc-100 dark:bg-zinc-800 rounded text-xs">latest</code> that may return data from blocks not yet finalized.
                                                         </p>
                                                         <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 ml-6">
-                                                            <strong>Important:</strong> Enable this if your applications use these block tags (common in Ethereum tooling). Without this, only <code className="px-1 py-0.5 bg-zinc-100 dark:bg-zinc-800 rounded text-[10px]">finalized</code> queries are allowed, which may break some dApps.
+                                                            <strong>Important:</strong> Enable this if your applications use these block tags (common in Ethereum tooling). Without this, only <code className="px-1 py-0.5 bg-zinc-100 dark:bg-zinc-800 rounded text-xs">finalized</code> queries are allowed, which may break some dApps.
                                                         </p>
                                                     </div>
                                                 </div>
@@ -1008,8 +1008,8 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                     </Step>
 
                     <Step>
-                        <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Set up Instance</h3>
-                        <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
+                        <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Set up Instance</h3>
+                        <p className="text-sm text-muted-foreground mb-4">
                             Provision a server with the following specifications.
                         </p>
 
@@ -1062,7 +1062,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                     <Step>
                         <DockerInstallation includeCompose={false} />
 
-                        <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">
+                        <p className="mt-4 text-sm text-muted-foreground">
                             If you do not want to use Docker, you can follow the{" "}
                             <a
                                 href="https://github.com/ava-labs/avalanchego?tab=readme-ov-file#installation"
@@ -1076,8 +1076,8 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                     </Step>
 
                     <Step>
-                        <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Create Configuration Files</h3>
-                        <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
+                        <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Create Configuration Files</h3>
+                        <p className="text-sm text-muted-foreground mb-4">
                             Run these commands to create the config files. AvalancheGo reads from these default locations on startup.
                         </p>
 
@@ -1148,8 +1148,8 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                     </Step>
 
                     <Step>
-                        <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Configure Firewall</h3>
-                        <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
+                        <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Configure Firewall</h3>
+                        <p className="text-sm text-muted-foreground mb-4">
                             Open the required ports for your node to communicate with the network.
                         </p>
 
@@ -1158,20 +1158,20 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                             <div className={`rounded-lg p-3 border ${isRPC ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800' : 'bg-zinc-50 dark:bg-zinc-900/50 border-zinc-200 dark:border-zinc-800'}`}>
                                 <div className="flex items-center justify-between mb-1">
                                     <span className="text-sm font-mono font-medium text-zinc-900 dark:text-zinc-100">9651</span>
-                                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">Required</span>
+                                    <span className="text-xs px-1.5 py-0.5 rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">Required</span>
                                 </div>
                                 <div className="text-xs text-zinc-500 dark:text-zinc-400">P2P / Staking port</div>
-                                <div className="text-[10px] text-zinc-400 mt-1">Node-to-node communication</div>
+                                <div className="text-xs text-zinc-400 mt-1">Node-to-node communication</div>
                             </div>
                             <div className={`rounded-lg p-3 border ${isRPC ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800' : 'bg-zinc-50 dark:bg-zinc-900/50 border-zinc-200 dark:border-zinc-800 opacity-50'}`}>
                                 <div className="flex items-center justify-between mb-1">
                                     <span className="text-sm font-mono font-medium text-zinc-900 dark:text-zinc-100">9650</span>
-                                    <span className={`text-[10px] px-1.5 py-0.5 rounded ${isRPC ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500'}`}>
+                                    <span className={`text-xs px-1.5 py-0.5 rounded ${isRPC ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500'}`}>
                                         {isRPC ? 'Required' : 'RPC only'}
                                     </span>
                                 </div>
                                 <div className="text-xs text-zinc-500 dark:text-zinc-400">HTTP / RPC port</div>
-                                <div className="text-[10px] text-zinc-400 mt-1">API requests from clients</div>
+                                <div className="text-xs text-zinc-400 mt-1">API requests from clients</div>
                             </div>
                         </div>
 
@@ -1197,8 +1197,8 @@ sudo ufw status`}
                     </Step>
 
                     <Step>
-                        <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Run Docker</h3>
-                        <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
+                        <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Run Docker</h3>
+                        <p className="text-sm text-muted-foreground mb-4">
                             Start the node. Config is read from the mounted volume — no env vars needed.
                         </p>
 
@@ -1239,7 +1239,7 @@ sudo ufw status`}
                     {nodeType === "validator" && (
                         <>
                         <Step>
-                        <h3 className="text-xl font-bold mb-4">Wait for the Node to Bootstrap</h3>
+                        <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Wait for the Node to Bootstrap</h3>
                             <p>Your node will now bootstrap and sync the Primary Network (P-Chain, X-Chain, and C-Chain). This process can take <strong>several hours to days</strong> depending on your hardware and network connection.</p>
 
                             <p className="mt-4">You can follow the process by checking the logs with the following command:</p>
@@ -1270,8 +1270,8 @@ sudo ufw status`}
                         </Step>
 
                         <Step>
-                            <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Backup Validator Credentials</h3>
-                            <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
+                            <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Backup Validator Credentials</h3>
+                            <p className="text-sm text-muted-foreground mb-4">
                                 Your validator identity is defined by these files in <code className="px-1 py-0.5 bg-zinc-100 dark:bg-zinc-800 rounded text-xs">~/.avalanchego/staking/</code>
                             </p>
 
@@ -1285,7 +1285,7 @@ sudo ufw status`}
                                         <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">TLS Cert</span>
                                     </div>
                                     <div className="text-sm font-mono text-zinc-900 dark:text-zinc-100">staker.crt</div>
-                                    <div className="text-[10px] text-zinc-400 mt-1">Node identity</div>
+                                    <div className="text-xs text-zinc-400 mt-1">Node identity</div>
                                 </div>
                                 <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3 border border-red-200 dark:border-red-800">
                                     <div className="flex items-center gap-2 mb-1">
@@ -1295,7 +1295,7 @@ sudo ufw status`}
                                         <span className="text-xs font-medium text-red-600 dark:text-red-400">Private Key</span>
                                     </div>
                                     <div className="text-sm font-mono text-red-700 dark:text-red-300">staker.key</div>
-                                    <div className="text-[10px] text-red-400 mt-1">Keep secret!</div>
+                                    <div className="text-xs text-red-400 mt-1">Keep secret!</div>
                                 </div>
                                 <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3 border border-red-200 dark:border-red-800">
                                     <div className="flex items-center gap-2 mb-1">
@@ -1305,7 +1305,7 @@ sudo ufw status`}
                                         <span className="text-xs font-medium text-red-600 dark:text-red-400">BLS Key</span>
                                     </div>
                                     <div className="text-sm font-mono text-red-700 dark:text-red-300">signer.key</div>
-                                    <div className="text-[10px] text-red-400 mt-1">P-Chain signing</div>
+                                    <div className="text-xs text-red-400 mt-1">P-Chain signing</div>
                                 </div>
                             </div>
 
