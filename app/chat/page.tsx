@@ -25,12 +25,6 @@ import {
   PanelLeftClose,
   PanelLeft,
   Trash2,
-  Home,
-  Moon,
-  Sun,
-  ChevronRight,
-  LogOut,
-  CircleUserRound,
   Loader2,
   Share2,
   Play,
@@ -81,10 +75,9 @@ import 'katex/dist/katex.min.css';
 import { marked } from 'marked';
 import posthog from 'posthog-js';
 import { useTheme } from 'next-themes';
-import { useSession, signOut } from 'next-auth/react';
+import { useSession } from 'next-auth/react';
 import { useLoginModalTrigger } from '@/hooks/useLoginModal';
-import { LoginModal } from '@/components/login/LoginModal';
-import Image from 'next/image';
+
 import { ShareButton } from '@/components/chat/share-button';
 import { ShareModal } from '@/components/chat/share-modal';
 
@@ -819,11 +812,7 @@ function Sidebar({
   onRenameConversation,
   onShareConversation,
   isAuthenticated,
-  isLoadingAuth,
-  userImage,
-  userName,
   onLogin,
-  onLogout,
   isLoadingConversations,
 }: {
   isOpen: boolean;
@@ -836,14 +825,9 @@ function Sidebar({
   onRenameConversation: (id: string, newTitle: string) => void;
   onShareConversation: (conv: Conversation) => void;
   isAuthenticated: boolean;
-  isLoadingAuth: boolean;
-  userImage?: string | null;
-  userName?: string | null;
   onLogin: () => void;
-  onLogout: () => void;
   isLoadingConversations: boolean;
 }) {
-  const { theme, setTheme } = useTheme();
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
@@ -853,44 +837,19 @@ function Sidebar({
       {/* Mobile overlay */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          className="fixed inset-0 top-14 bg-black/50 z-40 lg:hidden"
           onClick={onToggle}
         />
       )}
 
       {/* Sidebar */}
       <div className={cn(
-        "fixed lg:relative inset-y-0 left-0 z-50 lg:z-auto",
+        "fixed lg:relative top-14 lg:top-0 bottom-0 left-0 z-50 lg:z-auto",
         "bg-[#171720] flex flex-col transition-all duration-200 ease-in-out",
         isOpen
           ? "w-64 translate-x-0"
           : "w-[52px] -translate-x-full lg:translate-x-0"
       )}>
-        {/* Logo/Brand header - links back to main site */}
-        <div className="p-1.5 border-b border-zinc-800/50">
-          <Link
-            href="/"
-            className={cn(
-              "w-full h-10 flex items-center rounded-lg hover:bg-white/5 transition-colors group",
-              isOpen ? "px-3 gap-3" : "justify-center"
-            )}
-            title="Back to Builder Hub"
-          >
-            <div className="w-7 h-7 flex items-center justify-center">
-              <img
-                src="/small-logo.png"
-                alt="Avalanche"
-                className="h-5 w-5 object-contain opacity-70 group-hover:opacity-100 transition-opacity"
-              />
-            </div>
-            {isOpen && (
-              <span className="text-sm font-medium text-zinc-300 group-hover:text-white transition-colors">
-                Avalanche AI
-              </span>
-            )}
-          </Link>
-        </div>
-
         {/* Top section - Toggle + New Chat */}
         <div className="p-1.5 space-y-1">
           {/* Toggle button */}
@@ -1036,80 +995,8 @@ function Sidebar({
           )}
         </div>
 
-        {/* Bottom section - Actions + User */}
-        <div className="border-t border-zinc-800/50 p-1.5 space-y-0.5">
-          {/* Home link */}
-          <Link
-            href="/"
-            className={cn(
-              "w-full h-10 flex items-center rounded-lg hover:bg-white/10 transition-colors",
-              isOpen ? "px-3 gap-3" : "justify-center"
-            )}
-            title="Go to Home"
-          >
-            <Home className="w-5 h-5 text-zinc-400" />
-            {isOpen && <span className="text-sm text-zinc-300">Home</span>}
-          </Link>
-
-          {/* Theme toggle */}
-          <button
-            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            className={cn(
-              "w-full h-10 flex items-center rounded-lg hover:bg-white/10 transition-colors",
-              isOpen ? "px-3 gap-3" : "justify-center"
-            )}
-            title={theme === 'dark' ? 'Light mode' : 'Dark mode'}
-          >
-            {theme === 'dark' ? <Sun className="w-5 h-5 text-zinc-400" /> : <Moon className="w-5 h-5 text-zinc-400" />}
-            {isOpen && <span className="text-sm text-zinc-300">{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>}
-          </button>
-
-          {/* User section */}
-          {isLoadingAuth ? (
-            <div className={cn(
-              "w-full h-10 flex items-center",
-              isOpen ? "px-3 gap-3" : "justify-center"
-            )}>
-              <Loader2 className="w-5 h-5 animate-spin text-zinc-400" />
-              {isOpen && <span className="text-sm text-zinc-400">Loading...</span>}
-            </div>
-          ) : isAuthenticated ? (
-            <div className={cn(
-              "w-full h-10 flex items-center rounded-lg hover:bg-white/10 transition-colors",
-              isOpen ? "px-3 gap-3" : "justify-center"
-            )}>
-              <button
-                onClick={isOpen ? undefined : onToggle}
-                className={cn("flex items-center", isOpen ? "gap-3 flex-1 min-w-0" : "")}
-                title={isOpen ? undefined : "Account"}
-              >
-                {userImage ? (
-                  <Image src={userImage} alt="Profile" width={28} height={28} className="rounded-full shrink-0" />
-                ) : (
-                  <CircleUserRound className="w-7 h-7 text-zinc-400 shrink-0" />
-                )}
-                {isOpen && <span className="text-sm text-zinc-200 truncate">{userName || 'User'}</span>}
-              </button>
-              {isOpen && (
-                <button onClick={onLogout} className="p-1.5 rounded-lg hover:bg-white/10 transition-colors ml-auto" title="Sign out">
-                  <LogOut className="w-4 h-4 text-zinc-400" />
-                </button>
-              )}
-            </div>
-          ) : (
-            <button
-              onClick={onLogin}
-              className={cn(
-                "w-full h-10 flex items-center rounded-lg hover:bg-white/10 transition-colors",
-                isOpen ? "px-3 gap-3" : "justify-center"
-              )}
-              title="Sign in"
-            >
-              <CircleUserRound className="w-5 h-5 text-zinc-400" />
-              {isOpen && <span className="text-sm text-zinc-300">Sign In</span>}
-            </button>
-          )}
-        </div>
+        {/* Bottom section - minimal, navbar handles home/theme/auth */}
+        <div className="border-t border-zinc-800/50 p-1.5" />
       </div>
     </>
   );
@@ -1134,7 +1021,6 @@ function ChatPageInner() {
   // Auth state
   const { data: session, status: authStatus } = useSession();
   const isAuthenticated = authStatus === 'authenticated';
-  const isLoadingAuth = authStatus === 'loading';
   const { openLoginModal } = useLoginModalTrigger();
 
   // Share modal state
@@ -1441,14 +1327,9 @@ function ChatPageInner() {
     openLoginModal(window.location.href);
   };
 
-  const handleLogout = () => {
-    signOut({ redirect: false });
-  };
-
   return (
     <ThinkingModeContext value={{ thinkingMode, setThinkingMode }}>
     <ChatContext value={chat}>
-      <LoginModal />
       {/* Share Modal */}
       {shareModalConversation && (
         <ShareModal
@@ -1480,11 +1361,7 @@ function ChatPageInner() {
           onRenameConversation={handleRenameConversation}
           onShareConversation={handleShareConversation}
           isAuthenticated={isAuthenticated}
-          isLoadingAuth={isLoadingAuth}
-          userImage={session?.user?.image}
-          userName={session?.user?.name}
           onLogin={handleLogin}
-          onLogout={handleLogout}
           isLoadingConversations={isLoadingConversations}
         />
 

@@ -30,6 +30,19 @@ import { LockedContent } from "@/components/toolbox/components/LockedContent";
 import { ConsoleToolMetadata, withConsoleToolMetadata } from "@/components/toolbox/components/WithConsoleToolMetadata";
 import { useContractDeployer } from "@/components/toolbox/hooks/contracts";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
+import versions from "@/scripts/versions.json";
+import { ContractDeployViewer, type ContractSource } from "@/components/console/contract-deploy-viewer";
+
+const ICM_COMMIT = versions["ava-labs/icm-contracts"];
+
+const CONTRACT_SOURCES: ContractSource[] = [
+  {
+    name: "ERC20TokenRemote",
+    filename: "ERC20TokenRemote.sol",
+    url: `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/ictt/TokenRemote/ERC20TokenRemote.sol`,
+    description: "Remote chain endpoint that receives bridged ERC20 tokens from the home chain via ICTT.",
+  },
+];
 
 const metadata: ConsoleToolMetadata = {
   title: "Deploy ERC20 Token Remote Contract",
@@ -226,7 +239,8 @@ function DeployERC20TokenRemote() {
   }
 
   return (
-    <>
+    <ContractDeployViewer contracts={CONTRACT_SOURCES}>
+      <div className="space-y-4">
       <div>
         <p className="mt-2">
           This deploys an `ERC20TokenRemote` contract to the current network (
@@ -368,7 +382,8 @@ function DeployERC20TokenRemote() {
           : "Deploy ERC20 Token Remote"}
       </Button>
       </LockedContent>
-    </>
+      </div>
+    </ContractDeployViewer>
   );
 }
 

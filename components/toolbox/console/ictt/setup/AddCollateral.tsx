@@ -25,6 +25,10 @@ import { RadioGroup } from "@/components/toolbox/components/RadioGroup";
 import { ConsoleToolMetadata, withConsoleToolMetadata } from "@/components/toolbox/components/WithConsoleToolMetadata";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
+import versions from "@/scripts/versions.json";
+import { ContractFunctionViewer } from "@/components/console/contract-function-viewer";
+
+const ICM_COMMIT = versions["ava-labs/icm-contracts"];
 
 const metadata: ConsoleToolMetadata = {
     title: "Add Collateral",
@@ -478,7 +482,8 @@ function AddCollateral() {
     }, [nativeTokenRemoteAddress, selectedL1?.name]);
 
     return (
-        <div className="mt-8 space-y-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+        <div className="space-y-4">
 
             <EVMAddressInput
                 label={`Native Token Remote Contract Address (on ${selectedL1?.name})`}
@@ -651,6 +656,26 @@ function AddCollateral() {
             {lastAddCollateralTxId && (
                 <Success label="Add Collateral Transaction ID" value={lastAddCollateralTxId} />
             )}
+        </div>
+
+        <ContractFunctionViewer
+            sources={[
+                {
+                    filename: "ERC20TokenHome.sol",
+                    sourceUrl: `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/ictt/TokenHome/ERC20TokenHome.sol`,
+                    githubUrl: `https://github.com/ava-labs/icm-contracts/blob/${ICM_COMMIT}/contracts/ictt/TokenHome/ERC20TokenHome.sol`,
+                    highlightFunction: "addCollateral",
+                },
+                {
+                    filename: "NativeTokenHome.sol",
+                    sourceUrl: `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/ictt/TokenHome/NativeTokenHome.sol`,
+                    githubUrl: `https://github.com/ava-labs/icm-contracts/blob/${ICM_COMMIT}/contracts/ictt/TokenHome/NativeTokenHome.sol`,
+                    highlightFunction: "addCollateral",
+                },
+            ]}
+            showFunctionOnly={true}
+            description="Adds collateral tokens to back the remote bridge's initial reserve imbalance"
+        />
         </div>
     );
 }

@@ -91,6 +91,10 @@ interface NavGroup {
   items: (NavItem | CollapsibleSubGroup)[];
 }
 
+interface SearchableNavItem extends NavItem {
+  category: string;
+}
+
 // Helper to check if item is a collapsible subgroup
 function isCollapsibleSubGroup(
   item: NavItem | CollapsibleSubGroup
@@ -197,25 +201,28 @@ const data = {
           url: "/console/my-l1",
           icon: LayoutDashboard,
         },
+        // Infrastructure sub-group
         {
-          title: "Performance Monitor",
-          url: "/console/layer-1/performance-monitor",
-          icon: Activity,
-        },
-        {
-          title: "L1 Node Setup",
-          url: "/console/layer-1/l1-node-setup",
+          id: "infrastructure",
+          title: "Infrastructure",
           icon: Server,
-        },
-        {
-          title: "Explorer Setup",
-          url: "/console/layer-1/explorer-setup",
-          icon: Telescope,
-        },
-        {
-          title: "L1 Validator Balance",
-          url: "/console/layer-1/l1-validator-balance",
-          icon: Coins,
+          items: [
+            {
+              title: "L1 Node Setup",
+              url: "/console/layer-1/l1-node-setup",
+              icon: Server,
+            },
+            {
+              title: "Explorer Setup",
+              url: "/console/layer-1/explorer-setup",
+              icon: Telescope,
+            },
+            {
+              title: "Performance Monitor",
+              url: "/console/layer-1/performance-monitor",
+              icon: Activity,
+            },
+          ],
         },
         // Validators sub-group
         {
@@ -237,6 +244,11 @@ const data = {
               title: "Query Validator Set",
               url: "/console/layer-1/validator-set",
               icon: Hexagon,
+            },
+            {
+              title: "L1 Validator Balance",
+              url: "/console/layer-1/l1-validator-balance",
+              icon: Coins,
             },
             {
               title: "Add Validator",
@@ -262,6 +274,29 @@ const data = {
               title: "Remove Expired Registration",
               url: "/console/permissioned-l1s/remove-expired-validator-registration",
               icon: SquareMinus,
+            },
+          ],
+        },
+        // Staking sub-group (permissionless L1 operations)
+        {
+          id: "staking",
+          title: "Staking",
+          icon: HandCoins,
+          items: [
+            {
+              title: "Staking Manager Setup",
+              url: "/console/permissionless-l1s/staking-manager-setup",
+              icon: GitMerge,
+            },
+            {
+              title: "Stake",
+              url: "/console/permissionless-l1s/stake",
+              icon: HandCoins,
+            },
+            {
+              title: "Delegate",
+              url: "/console/permissionless-l1s/delegate",
+              icon: ArrowUpDown,
             },
           ],
         },
@@ -303,44 +338,6 @@ const data = {
               title: "Transactor Allowlist",
               url: "/console/l1-access-restrictions/transactor-allowlist",
               icon: ShieldUser,
-            },
-          ],
-        },
-        // Staking sub-group (permissionless L1 operations)
-        {
-          id: "staking",
-          title: "Staking",
-          icon: HandCoins,
-          items: [
-            {
-              title: "Staking Manager Setup",
-              url: "/console/permissionless-l1s/staking-manager-setup",
-              icon: GitMerge,
-            },
-            {
-              title: "Native Staking Manager",
-              url: "/console/permissionless-l1s/native-staking-manager-setup",
-              icon: GitMerge,
-            },
-            {
-              title: "Query PoS Validators",
-              url: "/console/permissionless-l1s/query-pos-validator-set",
-              icon: Hexagon,
-            },
-            {
-              title: "Stake",
-              url: "/console/permissionless-l1s/stake",
-              icon: HandCoins,
-            },
-            {
-              title: "Delegate",
-              url: "/console/permissionless-l1s/delegate",
-              icon: ArrowUpDown,
-            },
-            {
-              title: "Withdraw",
-              url: "/console/permissionless-l1s/withdraw",
-              icon: SquareMinus,
             },
           ],
         },
@@ -624,16 +621,21 @@ export function ConsoleSidebar({ ...props }: ConsoleSidebarProps) {
   const isConnectedToL1 =
     walletChainId !== 0 && !C_CHAIN_IDS.includes(walletChainId);
 
-  // Flatten all nav items for search
+  // Flatten all nav items for search, tracking their category path
   const allNavItems = React.useMemo(() => {
-    const items: NavItem[] = [];
-    data.navMain.forEach((item) => items.push(item));
+    const items: SearchableNavItem[] = [];
+    data.navMain.forEach((item) =>
+      items.push({ ...item, category: "" })
+    );
     data.navGroups.forEach((group) => {
       group.items.forEach((item) => {
         if (isCollapsibleSubGroup(item)) {
-          item.items.forEach((subItem) => items.push(subItem));
+          const category = `${group.title} › ${item.title}`;
+          item.items.forEach((subItem) =>
+            items.push({ ...subItem, category })
+          );
         } else {
-          items.push(item);
+          items.push({ ...item, category: group.title });
         }
       });
     });
@@ -698,13 +700,33 @@ export function ConsoleSidebar({ ...props }: ConsoleSidebarProps) {
               <SidebarGroupContent>
                 <SidebarMenu>
                   {filteredItems.length > 0 ? (
-                    filteredItems.map((item) => (
-                      <NavMenuItem
-                        key={item.url}
-                        item={item}
-                        pathname={pathname}
-                      />
-                    ))
+                    (() => {
+                      const grouped: { category: string; items: SearchableNavItem[] }[] = [];
+                      filteredItems.forEach((item) => {
+                        const last = grouped[grouped.length - 1];
+                        if (last && last.category === item.category) {
+                          last.items.push(item);
+                        } else {
+                          grouped.push({ category: item.category, items: [item] });
+                        }
+                      });
+                      return grouped.map((group) => (
+                        <React.Fragment key={group.category || "_root"}>
+                          {group.category && (
+                            <div className="px-3 pt-3 pb-1 text-xs font-medium text-sidebar-foreground/40">
+                              {group.category}
+                            </div>
+                          )}
+                          {group.items.map((item) => (
+                            <NavMenuItem
+                              key={item.url}
+                              item={item}
+                              pathname={pathname}
+                            />
+                          ))}
+                        </React.Fragment>
+                      ));
+                    })()
                   ) : (
                     <div className="px-3 py-8 text-center text-sm text-sidebar-foreground/40">
                       No results for &ldquo;{searchQuery}&rdquo;
