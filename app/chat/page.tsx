@@ -837,7 +837,7 @@ function Sidebar({
       {/* Mobile overlay */}
       {isOpen && (
         <div
-          className="fixed inset-0 top-14 bg-black/50 z-40 lg:hidden"
+          className="fixed inset-0 top-14 bg-black/30 z-40 lg:hidden"
           onClick={onToggle}
         />
       )}
@@ -845,7 +845,7 @@ function Sidebar({
       {/* Sidebar */}
       <div className={cn(
         "fixed lg:relative top-14 lg:top-0 bottom-0 left-0 z-50 lg:z-auto",
-        "bg-[#171720] flex flex-col transition-all duration-200 ease-in-out",
+        "bg-sidebar border-r border-sidebar-border flex flex-col transition-all duration-200 ease-in-out",
         isOpen
           ? "w-64 translate-x-0"
           : "w-[52px] -translate-x-full lg:translate-x-0"
@@ -856,26 +856,26 @@ function Sidebar({
           <button
             onClick={onToggle}
             className={cn(
-              "w-full h-10 flex items-center rounded-lg hover:bg-white/10 transition-colors",
+              "w-full h-10 flex items-center rounded-lg hover:bg-sidebar-accent transition-colors",
               isOpen ? "px-3 gap-3" : "justify-center"
             )}
             title={isOpen ? "Close sidebar" : "Open sidebar"}
           >
-            {isOpen ? <PanelLeftClose className="w-5 h-5 text-zinc-400" /> : <PanelLeft className="w-5 h-5 text-zinc-400" />}
-            {isOpen && <span className="text-sm text-zinc-400">Close</span>}
+            {isOpen ? <PanelLeftClose className="w-5 h-5 text-muted-foreground" /> : <PanelLeft className="w-5 h-5 text-muted-foreground" />}
+            {isOpen && <span className="text-sm text-muted-foreground">Close</span>}
           </button>
 
           {/* New chat button */}
           <button
             onClick={onNewChat}
             className={cn(
-              "w-full h-10 flex items-center rounded-lg border border-zinc-700 hover:bg-white/10 hover:border-zinc-600 transition-colors",
+              "w-full h-10 flex items-center rounded-lg border border-border hover:bg-sidebar-accent transition-colors",
               isOpen ? "px-3 gap-3" : "justify-center"
             )}
             title="New chat"
           >
-            <Plus className="w-5 h-5 text-zinc-300" />
-            {isOpen && <span className="text-sm text-zinc-300 font-medium">New chat</span>}
+            <Plus className="w-5 h-5 text-sidebar-foreground" />
+            {isOpen && <span className="text-sm text-sidebar-foreground font-medium">New chat</span>}
           </button>
         </div>
 
@@ -886,20 +886,20 @@ function Sidebar({
             <div className="px-1.5">
               {isLoadingConversations ? (
                 <div className="flex items-center justify-center py-8">
-                  <Loader2 className="w-5 h-5 animate-spin text-zinc-400" />
+                  <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
                 </div>
               ) : !isAuthenticated ? (
                 <div className="text-center py-8 px-2">
-                  <p className="text-zinc-400 text-sm mb-3">Sign in to save chats</p>
+                  <p className="text-muted-foreground text-sm mb-3">Sign in to save chats</p>
                   <button
                     onClick={onLogin}
-                    className="px-4 py-2 text-sm font-medium rounded-lg bg-white/10 text-white hover:bg-white/20 transition-colors"
+                    className="px-4 py-2 text-sm font-medium rounded-lg bg-sidebar-accent text-sidebar-accent-foreground hover:bg-accent transition-colors"
                   >
                     Sign In
                   </button>
                 </div>
               ) : conversations.length === 0 ? (
-                <div className="text-center py-8 text-zinc-500 text-sm">
+                <div className="text-center py-8 text-muted-foreground text-sm">
                   No conversations yet
                 </div>
               ) : (
@@ -912,12 +912,12 @@ function Sidebar({
                       className={cn(
                         "group flex items-center gap-3 px-3 h-10 rounded-lg cursor-pointer transition-colors",
                         currentConversationId === conv.id
-                          ? "bg-white/10"
-                          : "hover:bg-white/5"
+                          ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                          : "hover:bg-sidebar-accent/50"
                       )}
                       onClick={() => editingId !== conv.id && onSelectConversation(conv.id)}
                     >
-                      <MessageSquare className="w-5 h-5 shrink-0 text-zinc-400" />
+                      <MessageSquare className="w-5 h-5 shrink-0 text-muted-foreground" />
                       {/* Editable title or static title */}
                       {editingId === conv.id ? (
                         <input
@@ -940,10 +940,10 @@ function Sidebar({
                           }}
                           onClick={(e) => e.stopPropagation()}
                           autoFocus
-                          className="flex-1 bg-transparent text-sm text-zinc-200 border-b border-zinc-500 focus:outline-none focus:border-zinc-300"
+                          className="flex-1 bg-transparent text-sm text-sidebar-foreground border-b border-border focus:outline-none focus:border-ring"
                         />
                       ) : (
-                        <span className="flex-1 truncate text-sm text-zinc-200">{conv.title}</span>
+                        <span className="flex-1 truncate text-sm text-sidebar-foreground">{conv.title}</span>
                       )}
                       {/* Share indicator (always visible if shared) */}
                       {conv.isShared && hoveredId !== conv.id && editingId !== conv.id && (
@@ -958,10 +958,10 @@ function Sidebar({
                               setEditTitle(conv.title);
                               setEditingId(conv.id);
                             }}
-                            className="p-1 rounded hover:bg-white/10 transition-colors"
+                            className="p-1 rounded hover:bg-sidebar-accent transition-colors"
                             title="Rename"
                           >
-                            <Pencil className="w-4 h-4 text-zinc-400 hover:text-zinc-200" />
+                            <Pencil className="w-4 h-4 text-muted-foreground hover:text-sidebar-foreground" />
                           </button>
                           <ShareButton
                             isShared={conv.isShared}
@@ -969,10 +969,10 @@ function Sidebar({
                           />
                           <button
                             onClick={(e) => { e.stopPropagation(); onDeleteConversation(conv.id); }}
-                            className="p-1 rounded hover:bg-white/10 transition-colors"
+                            className="p-1 rounded hover:bg-sidebar-accent transition-colors"
                             title="Delete"
                           >
-                            <Trash2 className="w-4 h-4 text-zinc-400 hover:text-red-400" />
+                            <Trash2 className="w-4 h-4 text-muted-foreground hover:text-red-400" />
                           </button>
                         </div>
                       )}
@@ -986,17 +986,17 @@ function Sidebar({
             <div className="flex flex-col items-center px-1.5 py-1">
               <button
                 onClick={onToggle}
-                className="w-full h-10 flex items-center justify-center rounded-lg hover:bg-white/10 transition-colors"
+                className="w-full h-10 flex items-center justify-center rounded-lg hover:bg-sidebar-accent transition-colors"
                 title="Chat history"
               >
-                <MessageSquare className="w-5 h-5 text-zinc-400" />
+                <MessageSquare className="w-5 h-5 text-muted-foreground" />
               </button>
             </div>
           )}
         </div>
 
-        {/* Bottom section - minimal, navbar handles home/theme/auth */}
-        <div className="border-t border-zinc-800/50 p-1.5" />
+        {/* Bottom border for visual closure */}
+        <div className="border-t border-sidebar-border p-1.5" />
       </div>
     </>
   );
@@ -1377,13 +1377,13 @@ function ChatPageInner() {
             style={{ width: embeddedRef && isLargeScreen ? `${100 - panelWidth}%` : '100%' }}
           >
             {/* Header with mobile toggle and share button */}
-            <div className="shrink-0 flex items-center justify-between px-3 py-2 border-b border-zinc-200 dark:border-zinc-800/50">
+            <div className="shrink-0 flex items-center justify-between px-3 py-2 border-b border-border">
               {/* Left: Mobile sidebar toggle */}
               <div className="flex items-center">
                 {!sidebarOpen && (
                   <button
                     onClick={() => setSidebarOpen(true)}
-                    className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors lg:hidden"
+                    className="p-2 rounded-lg hover:bg-accent transition-colors lg:hidden"
                     title="Open sidebar"
                   >
                     <PanelLeft className="w-5 h-5" />
