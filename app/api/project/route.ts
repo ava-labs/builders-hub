@@ -1,10 +1,11 @@
+import { Session } from 'next-auth';
 import { withAuth } from '@/lib/protectedRoute';
 import { prisma } from '@/prisma/prisma';
 import { GetProjectByHackathonAndUser } from '@/server/services/projects';
 import { createProject } from '@/server/services/submitProject';
-import {  NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 
-export const POST = withAuth(async (request,context ,session) => {
+export const POST = withAuth(async (request, _context: unknown, session: Session) => {
   try{
     const body = await request.json();
     const newProject = await createProject({ ...body, submittedBy: session.user.email });
@@ -25,7 +26,7 @@ export const POST = withAuth(async (request,context ,session) => {
 
 
 
-export const GET = withAuth(async (request: Request, context, session) => {
+export const GET = withAuth(async (request: Request, _context: unknown, session: Session) => {
   try {
     const { searchParams } = new URL(request.url);
     const hackaton_id = searchParams.get("hackathon_id") ?? "";

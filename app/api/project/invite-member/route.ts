@@ -1,9 +1,10 @@
+import { Session } from 'next-auth';
 import { withAuth } from "@/lib/protectedRoute";
 import { generateInvitation } from "@/server/services/inviteProjectMember";
 import { isUserProjectMember } from "@/server/services/fileValidation";
 import { NextResponse } from "next/server";
 
-export const POST = withAuth(async (request, context, session) => {
+export const POST = withAuth(async (request, _context: unknown, session: Session) => {
   try {
     const body = await request.json();
     
@@ -29,7 +30,7 @@ export const POST = withAuth(async (request, context, session) => {
     const result = await generateInvitation(
       body.hackathon_id,
       session.user.id, // Use session user ID
-      session.user.name,
+      session.user?.name ?? "",
       body.emails,
       body.project_id, // Pass project_id if it exists
       body.stage       // Optional stage for Build Games invite links
