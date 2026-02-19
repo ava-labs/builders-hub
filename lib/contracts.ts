@@ -1048,6 +1048,104 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     category: 'yield',
     type: 'token',
   },
+
+  // ============ XEN CRYPTO ============
+  '0x18ae1a33044b9b4ccc85dc44da8bb03b86f06600': {
+    address: '0x18ae1a33044b9b4ccc85dc44da8bb03b86f06600',
+    name: 'MCT XenProxy',
+    protocol: 'XEN Crypto',
+    category: 'token',
+    type: 'other',
+  },
+  '0x9ec1c3dcf667f2035fb4cd2eb42a1566fd54d2b7': {
+    address: '0x9ec1c3dcf667f2035fb4cd2eb42a1566fd54d2b7',
+    name: 'CoinTool XEN Batch Minter',
+    protocol: 'XEN Crypto',
+    category: 'token',
+    type: 'other',
+  },
+  '0x94d9e02d115646dfc407abde75fa45256d66e043': {
+    address: '0x94d9e02d115646dfc407abde75fa45256d66e043',
+    name: 'XENTorrent (aXENT)',
+    protocol: 'XEN Crypto',
+    category: 'token',
+    type: 'token',
+  },
+  '0x0000000000771a79d0fc7f3b7fe270eb4498f20b': {
+    address: '0x0000000000771a79d0fc7f3b7fe270eb4498f20b',
+    name: 'MCT MctXenft',
+    protocol: 'XEN Crypto',
+    category: 'token',
+    type: 'other',
+  },
+
+  // ============ MOVEQUEST ============
+  '0xd14f01bfa5999e65780167a0ea530ecf3d0aa24d': {
+    address: '0xd14f01bfa5999e65780167a0ea530ecf3d0aa24d',
+    name: 'MINING',
+    protocol: 'MoveQuest',
+    category: 'gaming',
+    type: 'other',
+  },
+  '0x26dd09be22676a6905c27ea8fac7c7eee59c893f': {
+    address: '0x26dd09be22676a6905c27ea8fac7c7eee59c893f',
+    name: 'MINING V2',
+    protocol: 'MoveQuest',
+    category: 'gaming',
+    type: 'other',
+  },
+
+  // ============ PHARAOH EXCHANGE ============
+  '0x3fed017ec0f5517cdf2e8a9a4156c64d74252146': {
+    address: '0x3fed017ec0f5517cdf2e8a9a4156c64d74252146',
+    name: 'NonfungiblePositionManager',
+    protocol: 'Pharaoh',
+    category: 'dex',
+    type: 'router',
+  },
+  '0xa47ad2c95fae476a73b85a355a5855adb4b3a449': {
+    address: '0xa47ad2c95fae476a73b85a355a5855adb4b3a449',
+    name: 'FarmingCenter',
+    protocol: 'Pharaoh',
+    category: 'dex',
+    type: 'staking',
+  },
+
+  // ============ BLACKHOLE DEX ============
+  '0xe6e554b14892d5cf91df9ce9cd7fe936d2194441': {
+    address: '0xe6e554b14892d5cf91df9ce9cd7fe936d2194441',
+    name: 'Liquidity Manager Bot',
+    protocol: 'Blackhole DEX',
+    category: 'dex',
+    type: 'other',
+  },
+
+  // ============ ODOS (V3) ============
+  '0x0d05a7d3448512b78fa8a9e46c4872c88c4a0d05': {
+    address: '0x0d05a7d3448512b78fa8a9e46c4872c88c4a0d05',
+    name: 'Odos Router V3',
+    protocol: 'Odos',
+    category: 'dex',
+    type: 'router',
+  },
+
+  // ============ GMX V2 (Additional) ============
+  '0x823b558b4bc0a2c4974a0d8d7885aa1102d15dec': {
+    address: '0x823b558b4bc0a2c4974a0d8d7885aa1102d15dec',
+    name: 'GMX V2 OrderHandler',
+    protocol: 'GMX',
+    category: 'derivatives',
+    type: 'orderbook',
+  },
+
+  // ============ VFAT / SICKLE ============
+  '0x5fe05d2c877670ad1fca8f1f8482fd9ded2c9279': {
+    address: '0x5fe05d2c877670ad1fca8f1f8482fd9ded2c9279',
+    name: 'Sickle Automation',
+    protocol: 'vfat.io',
+    category: 'yield',
+    type: 'other',
+  },
 };
 
 // Protocol slug mapping for linking to dApp pages (canonical slug per protocol)
@@ -1092,6 +1190,15 @@ export const PROTOCOL_SLUGS: Record<string, string> = {
   'Joepegs': 'joepegs',
   'Salvor': 'salvor',
   'Kalao': 'kalao',
+  // Token
+  'XEN Crypto': 'xen-crypto',
+  // DEX
+  'Pharaoh': 'pharaoh',
+  'Blackhole DEX': 'blackhole-dex',
+  // Yield
+  'vfat.io': 'vfat',
+  // Gaming
+  'MoveQuest': 'movequest',
   // Other
   'Big Ads': 'big-ads',
   'Red Cast': 'red-cast',
@@ -1202,6 +1309,21 @@ export const SLUG_ALIASES: Record<string, string> = {
   'joepegs': 'Joepegs',
   'salvor': 'Salvor',
   'kalao': 'Kalao',
+  // Token
+  'xen-crypto': 'XEN Crypto',
+  'xen': 'XEN Crypto',
+  // DEX
+  'pharaoh': 'Pharaoh',
+  'pharaoh-exchange': 'Pharaoh',
+  'blackhole-dex': 'Blackhole DEX',
+  'blackhole': 'Blackhole DEX',
+  // Yield
+  'vfat': 'vfat.io',
+  'vfat-io': 'vfat.io',
+  'sickle': 'vfat.io',
+  // Gaming
+  'movequest': 'MoveQuest',
+  'getfit-mining': 'MoveQuest',
   // Other
   'big-ads': 'Big Ads',
   'red-cast': 'Red Cast',
