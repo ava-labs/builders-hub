@@ -1,6 +1,5 @@
 import React from "react";
 import { getProject } from "@/server/services/projects";
-import { Project } from "@/types/showcase";
 import { getUserBadgesByProjectId } from "@/server/services/project-badge";
 import { ShowcaseProjectAuthWrapper } from "@/components/showcase/ShowcaseProjectAuthWrapper";
 
@@ -35,9 +34,9 @@ export default async function ProjectPage({
   console.log('🎨 Rendering ShowcaseProjectAuthWrapper component');
 
   return (
-    <ShowcaseProjectAuthWrapper 
-      project={project as unknown as Project} 
-      badges={badges} 
+    <ShowcaseProjectAuthWrapper
+      project={project}
+      badges={badges}
       projectId={id}
     />
   );

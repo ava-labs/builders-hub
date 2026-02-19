@@ -1,12 +1,11 @@
-import { getAuthSession } from "@/lib/auth/authSession";
+import { Session } from 'next-auth';
 import { withAuthRole } from "@/lib/protectedRoute";
 import { SetWinner } from "@/server/services/set-project-winner";
 import { NextRequest, NextResponse } from "next/server";
 
-export const PUT = withAuthRole("badge_admin", async (req: NextRequest) => {
+export const PUT = withAuthRole("badge_admin", async (req: NextRequest, _context: unknown, session: Session) => {
   const body = await req.json();
-  const session = await getAuthSession();
-  const name = session?.user.name || "user";
+  const name = session.user.name || "user";
 
   try {
     if (!body.project_id) {

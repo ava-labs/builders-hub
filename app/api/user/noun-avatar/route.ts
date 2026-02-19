@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Session } from 'next-auth';
 import { withAuth } from '@/lib/protectedRoute';
 import { prisma } from '@/prisma/prisma';
 
@@ -22,8 +23,8 @@ interface AvatarSeed {
  */
 export const PUT = withAuth(async (
   req: NextRequest,
-  context: any,
-  session: any
+  _context: unknown,
+  session: Session
 ) => {
   try {
     const userId = session.user.id;
@@ -100,8 +101,8 @@ export const PUT = withAuth(async (
  */
 export const GET = withAuth(async (
   req: NextRequest,
-  context: any,
-  session: any
+  _context: unknown,
+  session: Session
 ) => {
   try {
     const userId = session.user.id;
