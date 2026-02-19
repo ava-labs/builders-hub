@@ -1,7 +1,7 @@
 // ClickHouse client for querying C-Chain analytics data
 
-const CLICKHOUSE_URL = process.env.CLICKHOUSE_URL || 'http://44.203.17.233/clickhouse/';
-const CLICKHOUSE_USER = process.env.CLICKHOUSE_USER || 'readonly';
+const CLICKHOUSE_URL = process.env.CLICKHOUSE_URL || '';
+const CLICKHOUSE_USER = process.env.CLICKHOUSE_USER || '';
 const CLICKHOUSE_PASSWORD = process.env.CLICKHOUSE_PASSWORD || '';
 const CLICKHOUSE_DATABASE = process.env.CLICKHOUSE_DATABASE || 'default';
 
@@ -354,6 +354,89 @@ export async function getProtocolMonthlyActivity(
     gasUsed: parseInt(row.total_gas) || 0,
     avaxBurned: row.avax_burned || 0,
     uniqueUsers: parseInt(row.unique_users) || 0,
+  }));
+}
+
+// Total chain gas/tx stats for coverage measurement
+export interface TotalChainStats {
+  totalTx: number;
+  totalGas: number;
+  totalBurned: number;
+}
+
+export async function getTotalChainGas(days: number): Promise<TotalChainStats> {
+  const timeFilter = days > 0 ? `AND block_time >= now() - INTERVAL ${days} DAY` : '';
+
+  const sql = `
+    SELECT
+      count() as total_tx,
+      sum(gas_used) as total_gas,
+      sum(toFloat64(gas_used) * toFloat64(base_fee_per_gas)) / 1e18 as total_burned
+    FROM raw_txs
+    WHERE chain_id = ${C_CHAIN_ID}
+      ${timeFilter}
+  `;
+
+  const result = await queryClickHouse<{
+    total_tx: string;
+    total_gas: string;
+    total_burned: number;
+  }>(sql);
+
+  const data = result.data[0];
+  return {
+    totalTx: parseInt(data.total_tx) || 0,
+    totalGas: parseInt(data.total_gas) || 0,
+    totalBurned: data.total_burned || 0,
+  };
+}
+
+// Top unknown contracts (not in known address list) by gas
+export interface UnknownContract {
+  address: string;
+  txCount: number;
+  totalGas: number;
+}
+
+export async function getTopUnknownContracts(
+  knownAddresses: string[],
+  days: number,
+  limit: number = 20
+): Promise<UnknownContract[]> {
+  const timeFilter = days > 0 ? `AND block_time >= now() - INTERVAL ${days} DAY` : '';
+
+  // Build exclusion list
+  let exclusionFilter = '';
+  if (knownAddresses.length > 0) {
+    const unhexList = knownAddresses.map(a => `unhex('${toUnhex(a)}')`).join(', ');
+    exclusionFilter = `AND to NOT IN (${unhexList})`;
+  }
+
+  const sql = `
+    SELECT
+      lower(concat('0x', hex(to))) as address,
+      count() as tx_count,
+      sum(gas_used) as total_gas
+    FROM raw_txs
+    WHERE chain_id = ${C_CHAIN_ID}
+      AND to IS NOT NULL
+      ${exclusionFilter}
+      ${timeFilter}
+    GROUP BY to
+    ORDER BY total_gas DESC
+    LIMIT ${limit}
+  `;
+
+  const result = await queryClickHouse<{
+    address: string;
+    tx_count: string;
+    total_gas: string;
+  }>(sql);
+
+  return result.data.map(row => ({
+    address: row.address,
+    txCount: parseInt(row.tx_count) || 0,
+    totalGas: parseInt(row.total_gas) || 0,
   }));
 }
 

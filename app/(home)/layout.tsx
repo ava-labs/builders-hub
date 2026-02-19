@@ -20,7 +20,10 @@ export default function Layout({
   children: ReactNode;
 }): React.ReactElement {
   return (
-    <SessionProvider>
+    <SessionProvider
+      refetchInterval={5 * 60}
+      refetchOnWindowFocus={false}
+    >
       <TrackNewUser />
       <NavbarDropdownInjector />
       <WalletProvider>
