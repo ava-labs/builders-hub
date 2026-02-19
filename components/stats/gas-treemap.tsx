@@ -12,11 +12,23 @@ interface CategoryBreakdown {
   delta: number;
 }
 
+interface ProtocolBreakdown {
+  protocol: string;
+  slug: string | null;
+  category: string;
+  txCount: number;
+  gasUsed: number;
+  avaxBurned: number;
+  gasShare: number;
+  delta: number;
+}
+
 interface ChainStatsData {
   totalTransactions: number;
   totalGasUsed: number;
   totalAvaxBurned: number;
   categoryBreakdown: CategoryBreakdown[];
+  protocolBreakdown: ProtocolBreakdown[];
   coverage: {
     taggedGasPercent: number;
     taggedTxPercent: number;
@@ -79,36 +91,39 @@ function getDeltaTextColor(delta: number): string {
   return "#fca5a5";
 }
 
-// Squarified treemap layout algorithm
-interface TreemapRect {
-  category: string;
-  label: string;
-  gasShare: number;
-  delta: number;
-  txCount: number;
-  gasUsed: number;
-  avaxBurned: number;
+// Generic squarify layout - places items into a bounding box
+interface SquarifyItem {
+  key: string;
+  value: number;
+  [k: string]: unknown;
+}
+
+interface SquarifyRect<T extends SquarifyItem> {
+  item: T;
   x: number;
   y: number;
   w: number;
   h: number;
 }
 
-function squarify(
-  items: { category: string; label: string; gasShare: number; delta: number; txCount: number; gasUsed: number; avaxBurned: number; value: number }[],
+function squarify<T extends SquarifyItem>(
+  items: T[],
+  x0: number,
+  y0: number,
   containerW: number,
   containerH: number
-): TreemapRect[] {
+): SquarifyRect<T>[] {
   if (items.length === 0) return [];
 
   const totalValue = items.reduce((sum, item) => sum + item.value, 0);
   if (totalValue === 0) return [];
 
   const sorted = [...items].sort((a, b) => b.value - a.value);
-  const rects: TreemapRect[] = [];
+  const rects: SquarifyRect<T>[] = [];
+  const totalArea = containerW * containerH;
 
   function layoutRow(
-    row: typeof sorted,
+    row: T[],
     x: number,
     y: number,
     w: number,
@@ -118,49 +133,27 @@ function squarify(
     const rowTotal = row.reduce((sum, item) => sum + item.value, 0);
 
     if (isHorizontal) {
-      const rowH = h * (rowTotal / totalValue) * (containerW * containerH) / (w * h) || 0;
+      const rowH =
+        h * (rowTotal / totalValue) * (totalArea / (w * h)) || 0;
       const clampedH = Math.min(rowH, h);
       let cx = x;
 
       for (const item of row) {
         const cellW = rowTotal > 0 ? (item.value / rowTotal) * w : 0;
-        rects.push({
-          category: item.category,
-          label: item.label,
-          gasShare: item.gasShare,
-          delta: item.delta,
-          txCount: item.txCount,
-          gasUsed: item.gasUsed,
-          avaxBurned: item.avaxBurned,
-          x: cx,
-          y,
-          w: cellW,
-          h: clampedH,
-        });
+        rects.push({ item, x: cx, y, w: cellW, h: clampedH });
         cx += cellW;
       }
 
       return { x, y: y + clampedH, w, h: h - clampedH };
     } else {
-      const rowW = w * (rowTotal / totalValue) * (containerW * containerH) / (w * h) || 0;
+      const rowW =
+        w * (rowTotal / totalValue) * (totalArea / (w * h)) || 0;
       const clampedW = Math.min(rowW, w);
       let cy = y;
 
       for (const item of row) {
         const cellH = rowTotal > 0 ? (item.value / rowTotal) * h : 0;
-        rects.push({
-          category: item.category,
-          label: item.label,
-          gasShare: item.gasShare,
-          delta: item.delta,
-          txCount: item.txCount,
-          gasUsed: item.gasUsed,
-          avaxBurned: item.avaxBurned,
-          x,
-          y: cy,
-          w: clampedW,
-          h: cellH,
-        });
+        rects.push({ item, x, y: cy, w: clampedW, h: cellH });
         cy += cellH;
       }
 
@@ -168,13 +161,12 @@ function squarify(
     }
   }
 
-  // Simple slice-and-dice with aspect ratio optimization
   let remaining = [...sorted];
-  let bounds = { x: 0, y: 0, w: containerW, h: containerH };
+  let bounds = { x: x0, y: y0, w: containerW, h: containerH };
 
   while (remaining.length > 0) {
     const isHorizontal = bounds.w >= bounds.h;
-    let bestRow: typeof sorted = [remaining[0]];
+    let bestRow: T[] = [remaining[0]];
     let bestAspect = Infinity;
 
     for (let i = 1; i <= remaining.length; i++) {
@@ -182,19 +174,21 @@ function squarify(
       const rowTotal = row.reduce((sum, item) => sum + item.value, 0);
       const fraction = rowTotal / totalValue;
 
-      // Calculate worst aspect ratio in this row
       let worstAspect = 0;
       for (const item of row) {
         const itemFraction = item.value / rowTotal;
         let cellW: number, cellH: number;
         if (isHorizontal) {
           cellW = itemFraction * bounds.w;
-          cellH = fraction * (containerW * containerH / bounds.w);
+          cellH = fraction * (totalArea / bounds.w);
         } else {
-          cellW = fraction * (containerW * containerH / bounds.h);
+          cellW = fraction * (totalArea / bounds.h);
           cellH = itemFraction * bounds.h;
         }
-        const aspect = cellW > 0 && cellH > 0 ? Math.max(cellW / cellH, cellH / cellW) : Infinity;
+        const aspect =
+          cellW > 0 && cellH > 0
+            ? Math.max(cellW / cellH, cellH / cellW)
+            : Infinity;
         worstAspect = Math.max(worstAspect, aspect);
       }
 
@@ -206,18 +200,78 @@ function squarify(
       }
     }
 
-    bounds = layoutRow(bestRow, bounds.x, bounds.y, bounds.w, bounds.h, isHorizontal);
+    bounds = layoutRow(
+      bestRow,
+      bounds.x,
+      bounds.y,
+      bounds.w,
+      bounds.h,
+      isHorizontal
+    );
     remaining = remaining.slice(bestRow.length);
   }
 
   return rects;
 }
 
+// --- Nested treemap data structures ---
+
+interface CategoryItem extends SquarifyItem {
+  key: string;
+  value: number;
+  category: string;
+  label: string;
+  gasShare: number;
+  delta: number;
+  txCount: number;
+  gasUsed: number;
+  avaxBurned: number;
+}
+
+interface ProtocolItem extends SquarifyItem {
+  key: string;
+  value: number;
+  protocol: string;
+  category: string;
+  gasShare: number;
+  delta: number;
+  txCount: number;
+  gasUsed: number;
+  avaxBurned: number;
+}
+
+type HoveredInfo =
+  | {
+      type: "category";
+      label: string;
+      delta: number;
+      gasShare: number;
+      txCount: number;
+      gasUsed: number;
+      avaxBurned: number;
+      category: string;
+    }
+  | {
+      type: "protocol";
+      label: string;
+      categoryLabel: string;
+      delta: number;
+      gasShare: number;
+      txCount: number;
+      gasUsed: number;
+      avaxBurned: number;
+      category: string;
+    };
+
+const HEADER_HEIGHT = 18;
+const MIN_NEST_HEIGHT = 50;
+const PROTOCOL_OTHERS_THRESHOLD = 0.03; // 3% of category gas
+
 export default function GasTreemap() {
   const [data, setData] = useState<ChainStatsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState<TimeRange>("30d");
-  const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
+  const [hovered, setHovered] = useState<HoveredInfo | null>(null);
   const [dimensions, setDimensions] = useState({ width: 900, height: 500 });
 
   useEffect(() => {
@@ -254,12 +308,27 @@ export default function GasTreemap() {
     return () => observer.disconnect();
   }, []);
 
-  const rects = useMemo(() => {
+  // Build protocol lookup by category
+  const protocolsByCategory = useMemo(() => {
+    if (!data?.protocolBreakdown) return new Map<string, ProtocolBreakdown[]>();
+    const map = new Map<string, ProtocolBreakdown[]>();
+    for (const p of data.protocolBreakdown) {
+      const list = map.get(p.category) || [];
+      list.push(p);
+      map.set(p.category, list);
+    }
+    return map;
+  }, [data]);
+
+  // Outer pass: category-level squarify
+  const categoryRects = useMemo(() => {
     if (!data?.categoryBreakdown) return [];
 
-    const items = data.categoryBreakdown
+    const items: CategoryItem[] = data.categoryBreakdown
       .filter((c) => c.gasShare > 0.1)
       .map((c) => ({
+        key: c.category,
+        value: c.gasUsed,
         category: c.category,
         label: CATEGORY_LABELS[c.category] || c.category,
         gasShare: c.gasShare,
@@ -267,33 +336,149 @@ export default function GasTreemap() {
         txCount: c.txCount,
         gasUsed: c.gasUsed,
         avaxBurned: c.avaxBurned,
-        value: c.gasUsed,
       }));
 
     // Add unclassified block
     if (data.coverage) {
-      const unclassifiedPercent = Math.max(0, 100 - data.coverage.taggedGasPercent);
+      const unclassifiedGas = Math.max(
+        data.coverage.totalChainGas - data.totalGasUsed,
+        0
+      );
+      const unclassifiedPercent = Math.max(
+        0,
+        100 - data.coverage.taggedGasPercent
+      );
       if (unclassifiedPercent > 0.5) {
         items.push({
+          key: "unclassified",
+          value: unclassifiedGas,
           category: "unclassified",
           label: "Unclassified",
           gasShare: unclassifiedPercent,
           delta: 0,
-          txCount: Math.max(data.coverage.totalChainTxs - data.totalTransactions, 0),
-          gasUsed: Math.max(data.coverage.totalChainGas - data.totalGasUsed, 0),
-          avaxBurned: Math.max(data.coverage.totalChainBurned - data.totalAvaxBurned, 0),
-          value: Math.max(data.coverage.totalChainGas - data.totalGasUsed, 0),
+          txCount: Math.max(
+            data.coverage.totalChainTxs - data.totalTransactions,
+            0
+          ),
+          gasUsed: unclassifiedGas,
+          avaxBurned: Math.max(
+            data.coverage.totalChainBurned - data.totalAvaxBurned,
+            0
+          ),
         });
       }
     }
 
-    return squarify(items, dimensions.width, dimensions.height);
+    return squarify(items, 0, 0, dimensions.width, dimensions.height);
   }, [data, dimensions]);
 
-  const hoveredData = useMemo(() => {
-    if (!hoveredCategory) return null;
-    return rects.find((r) => r.category === hoveredCategory) || null;
-  }, [hoveredCategory, rects]);
+  // Inner pass: protocol sub-rects within each category
+  const nestedLayout = useMemo(() => {
+    const result: {
+      catRect: SquarifyRect<CategoryItem>;
+      headerHeight: number;
+      protocolRects: SquarifyRect<ProtocolItem>[];
+      isFlat: boolean; // no nesting, render category label centered
+    }[] = [];
+
+    for (const catRect of categoryRects) {
+      const cat = catRect.item;
+
+      // Unclassified: always flat
+      if (cat.category === "unclassified") {
+        result.push({
+          catRect,
+          headerHeight: 0,
+          protocolRects: [],
+          isFlat: true,
+        });
+        continue;
+      }
+
+      const protocols = protocolsByCategory.get(cat.category) || [];
+
+      // Too small to nest or only one protocol
+      if (catRect.h < MIN_NEST_HEIGHT || catRect.w < 60 || protocols.length <= 1) {
+        result.push({
+          catRect,
+          headerHeight: 0,
+          protocolRects: [],
+          isFlat: true,
+        });
+        continue;
+      }
+
+      // Aggregate small protocols into "Others"
+      const catTotalGas = protocols.reduce((s, p) => s + p.gasUsed, 0);
+      const significant: ProtocolItem[] = [];
+      let othersGas = 0;
+      let othersTx = 0;
+      let othersBurned = 0;
+      let othersShare = 0;
+
+      for (const p of protocols) {
+        if (catTotalGas > 0 && p.gasUsed / catTotalGas < PROTOCOL_OTHERS_THRESHOLD) {
+          othersGas += p.gasUsed;
+          othersTx += p.txCount;
+          othersBurned += p.avaxBurned;
+          othersShare += p.gasShare;
+        } else {
+          significant.push({
+            key: `${cat.category}:${p.protocol}`,
+            value: p.gasUsed,
+            protocol: p.protocol,
+            category: cat.category,
+            gasShare: p.gasShare,
+            delta: p.delta,
+            txCount: p.txCount,
+            gasUsed: p.gasUsed,
+            avaxBurned: p.avaxBurned,
+          });
+        }
+      }
+
+      if (othersGas > 0) {
+        significant.push({
+          key: `${cat.category}:others`,
+          value: othersGas,
+          protocol: "Others",
+          category: cat.category,
+          gasShare: othersShare,
+          delta: 0,
+          txCount: othersTx,
+          gasUsed: othersGas,
+          avaxBurned: othersBurned,
+        });
+      }
+
+      if (significant.length === 0) {
+        result.push({
+          catRect,
+          headerHeight: 0,
+          protocolRects: [],
+          isFlat: true,
+        });
+        continue;
+      }
+
+      const hdr = HEADER_HEIGHT;
+      const innerX = catRect.x + 1;
+      const innerY = catRect.y + hdr + 1;
+      const innerW = Math.max(0, catRect.w - 2);
+      const innerH = Math.max(0, catRect.h - hdr - 2);
+
+      const pRects = squarify(significant, innerX, innerY, innerW, innerH);
+
+      result.push({
+        catRect,
+        headerHeight: hdr,
+        protocolRects: pRects,
+        isFlat: false,
+      });
+    }
+
+    return result;
+  }, [categoryRects, protocolsByCategory]);
 
   if (loading) {
     return (
@@ -350,111 +535,352 @@ export default function GasTreemap() {
           height={dimensions.height}
           viewBox={`0 0 ${dimensions.width} ${dimensions.height}`}
         >
-          {rects.map((rect) => {
-            const isHovered = hoveredCategory === rect.category;
-            const bgColor =
-              rect.category === "unclassified"
-                ? "#1c1c24"
-                : getDeltaColor(rect.delta);
-
-            const showLabel = rect.w > 60 && rect.h > 35;
-            const showDelta = rect.w > 45 && rect.h > 50;
-            const showGasShare = rect.w > 80 && rect.h > 65;
-
-            // Font sizing based on cell size
-            const labelSize = Math.min(16, Math.max(10, Math.min(rect.w, rect.h) / 5));
-            const deltaSize = Math.min(22, Math.max(12, Math.min(rect.w, rect.h) / 4));
-            const shareSize = Math.min(11, Math.max(8, Math.min(rect.w, rect.h) / 7));
-
-            return (
-              <g
-                key={rect.category}
-                onMouseEnter={() => setHoveredCategory(rect.category)}
-                onMouseLeave={() => setHoveredCategory(null)}
-                className="cursor-pointer"
+          <defs>
+            {nestedLayout.map(({ catRect }) => (
+              <clipPath
+                key={`clip-${catRect.item.category}`}
+                id={`clip-${catRect.item.category}`}
               >
                 <rect
-                  x={rect.x + 1}
-                  y={rect.y + 1}
-                  width={Math.max(0, rect.w - 2)}
-                  height={Math.max(0, rect.h - 2)}
-                  fill={bgColor}
+                  x={catRect.x + 1}
+                  y={catRect.y + 1}
+                  width={Math.max(0, catRect.w - 2)}
+                  height={Math.max(0, catRect.h - 2)}
                   rx={3}
-                  opacity={isHovered ? 0.85 : 1}
-                  stroke={isHovered ? "#fff" : "rgba(0,0,0,0.4)"}
-                  strokeWidth={isHovered ? 2 : 1}
                 />
-                {showLabel && (
-                  <text
-                    x={rect.x + rect.w / 2}
-                    y={rect.y + (showDelta ? rect.h * 0.3 : rect.h / 2)}
-                    textAnchor="middle"
-                    dominantBaseline="central"
-                    fill="rgba(255,255,255,0.9)"
-                    fontSize={labelSize}
-                    fontWeight="600"
-                    style={{ pointerEvents: "none" }}
-                  >
-                    {rect.label.length > Math.floor(rect.w / (labelSize * 0.6))
-                      ? `${rect.label.slice(0, Math.floor(rect.w / (labelSize * 0.6)))}...`
-                      : rect.label}
-                  </text>
-                )}
-                {showDelta && (
-                  <text
-                    x={rect.x + rect.w / 2}
-                    y={rect.y + rect.h * 0.55}
-                    textAnchor="middle"
-                    dominantBaseline="central"
-                    fill={
-                      rect.category === "unclassified"
-                        ? "#6b7280"
-                        : getDeltaTextColor(rect.delta)
-                    }
-                    fontSize={deltaSize}
-                    fontWeight="700"
-                    style={{ pointerEvents: "none" }}
-                  >
-                    {rect.category === "unclassified"
-                      ? `${rect.gasShare.toFixed(1)}%`
-                      : `${rect.delta >= 0 ? "+" : ""}${rect.delta.toFixed(1)}%`}
-                  </text>
-                )}
-                {showGasShare && rect.category !== "unclassified" && (
-                  <text
-                    x={rect.x + rect.w / 2}
-                    y={rect.y + rect.h * 0.75}
-                    textAnchor="middle"
-                    dominantBaseline="central"
-                    fill="rgba(255,255,255,0.45)"
-                    fontSize={shareSize}
-                    fontWeight="400"
-                    style={{ pointerEvents: "none" }}
-                  >
-                    {rect.gasShare.toFixed(1)}% of gas
-                  </text>
-                )}
+              </clipPath>
+            ))}
+          </defs>
+
+          {nestedLayout.map(({ catRect, headerHeight, protocolRects, isFlat }) => {
+            const cat = catRect.item;
+            const isUnclassified = cat.category === "unclassified";
+            const isHoveredCategory =
+              hovered?.category === cat.category && hovered.type === "category";
+            const isHoveredAny = hovered?.category === cat.category;
+
+            // --- FLAT category rendering (unclassified, small, or single-protocol) ---
+            if (isFlat) {
+              const bgColor = isUnclassified
+                ? "#1c1c24"
+                : getDeltaColor(cat.delta);
+              const showLabel = catRect.w > 60 && catRect.h > 35;
+              const showDelta = catRect.w > 45 && catRect.h > 50;
+              const showGasShare = catRect.w > 80 && catRect.h > 65;
+              const labelSize = Math.min(
+                16,
+                Math.max(10, Math.min(catRect.w, catRect.h) / 5)
+              );
+              const deltaSize = Math.min(
+                22,
+                Math.max(12, Math.min(catRect.w, catRect.h) / 4)
+              );
+              const shareSize = Math.min(
+                11,
+                Math.max(8, Math.min(catRect.w, catRect.h) / 7)
+              );
+
+              return (
+                <g
+                  key={cat.category}
+                  onMouseEnter={() =>
+                    setHovered({
+                      type: "category",
+                      label: cat.label,
+                      delta: cat.delta,
+                      gasShare: cat.gasShare,
+                      txCount: cat.txCount,
+                      gasUsed: cat.gasUsed,
+                      avaxBurned: cat.avaxBurned,
+                      category: cat.category,
+                    })
+                  }
+                  onMouseLeave={() => setHovered(null)}
+                  className="cursor-pointer"
+                >
+                  <rect
+                    x={catRect.x + 1}
+                    y={catRect.y + 1}
+                    width={Math.max(0, catRect.w - 2)}
+                    height={Math.max(0, catRect.h - 2)}
+                    fill={bgColor}
+                    rx={3}
+                    opacity={isHoveredCategory ? 0.85 : 1}
+                    stroke={isHoveredCategory ? "#fff" : "rgba(0,0,0,0.4)"}
+                    strokeWidth={isHoveredCategory ? 2 : 1}
+                  />
+                  {showLabel && (
+                    <text
+                      x={catRect.x + catRect.w / 2}
+                      y={
+                        catRect.y +
+                        (showDelta ? catRect.h * 0.3 : catRect.h / 2)
+                      }
+                      textAnchor="middle"
+                      dominantBaseline="central"
+                      fill="rgba(255,255,255,0.9)"
+                      fontSize={labelSize}
+                      fontWeight="600"
+                      style={{ pointerEvents: "none" }}
+                    >
+                      {cat.label.length >
+                      Math.floor(catRect.w / (labelSize * 0.6))
+                        ? `${cat.label.slice(0, Math.floor(catRect.w / (labelSize * 0.6)))}...`
+                        : cat.label}
+                    </text>
+                  )}
+                  {showDelta && (
+                    <text
+                      x={catRect.x + catRect.w / 2}
+                      y={catRect.y + catRect.h * 0.55}
+                      textAnchor="middle"
+                      dominantBaseline="central"
+                      fill={
+                        isUnclassified
+                          ? "#6b7280"
+                          : getDeltaTextColor(cat.delta)
+                      }
+                      fontSize={deltaSize}
+                      fontWeight="700"
+                      style={{ pointerEvents: "none" }}
+                    >
+                      {isUnclassified
+                        ? `${cat.gasShare.toFixed(1)}%`
+                        : `${cat.delta >= 0 ? "+" : ""}${cat.delta.toFixed(1)}%`}
+                    </text>
+                  )}
+                  {showGasShare && !isUnclassified && (
+                    <text
+                      x={catRect.x + catRect.w / 2}
+                      y={catRect.y + catRect.h * 0.75}
+                      textAnchor="middle"
+                      dominantBaseline="central"
+                      fill="rgba(255,255,255,0.45)"
+                      fontSize={shareSize}
+                      fontWeight="400"
+                      style={{ pointerEvents: "none" }}
+                    >
+                      {cat.gasShare.toFixed(1)}% of gas
+                    </text>
+                  )}
+                </g>
+              );
+            }
+
+            // --- NESTED category rendering ---
+            const catLabel = cat.label;
+            const headerFontSize = Math.min(
+              11,
+              Math.max(8, catRect.w / 15)
+            );
+
+            return (
+              <g key={cat.category}>
+                {/* Category border */}
+                <rect
+                  x={catRect.x + 1}
+                  y={catRect.y + 1}
+                  width={Math.max(0, catRect.w - 2)}
+                  height={Math.max(0, catRect.h - 2)}
+                  fill="none"
+                  rx={3}
+                  stroke={isHoveredAny ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.5)"}
+                  strokeWidth={1}
+                />
+
+                {/* Category header strip */}
+                <g
+                  onMouseEnter={() =>
+                    setHovered({
+                      type: "category",
+                      label: cat.label,
+                      delta: cat.delta,
+                      gasShare: cat.gasShare,
+                      txCount: cat.txCount,
+                      gasUsed: cat.gasUsed,
+                      avaxBurned: cat.avaxBurned,
+                      category: cat.category,
+                    })
+                  }
+                  onMouseLeave={() => setHovered(null)}
+                  className="cursor-pointer"
+                >
+                  <rect
+                    x={catRect.x + 1}
+                    y={catRect.y + 1}
+                    width={Math.max(0, catRect.w - 2)}
+                    height={headerHeight}
+                    fill="rgba(0,0,0,0.6)"
+                    rx={0}
+                    clipPath={`url(#clip-${cat.category})`}
+                  />
+                  {catRect.w > 40 && (
+                    <text
+                      x={catRect.x + 6}
+                      y={catRect.y + 1 + headerHeight / 2}
+                      textAnchor="start"
+                      dominantBaseline="central"
+                      fill="rgba(255,255,255,0.8)"
+                      fontSize={headerFontSize}
+                      fontWeight="600"
+                      style={{ pointerEvents: "none" }}
+                    >
+                      {catLabel}
+                      <tspan fill="rgba(255,255,255,0.35)" fontWeight="400">
+                        {" "}
+                        {cat.gasShare.toFixed(1)}%
+                      </tspan>
+                    </text>
+                  )}
+                  {catRect.w > 120 && (
+                    <text
+                      x={catRect.x + catRect.w - 6}
+                      y={catRect.y + 1 + headerHeight / 2}
+                      textAnchor="end"
+                      dominantBaseline="central"
+                      fill={getDeltaTextColor(cat.delta)}
+                      fontSize={headerFontSize}
+                      fontWeight="600"
+                      style={{ pointerEvents: "none" }}
+                    >
+                      {cat.delta >= 0 ? "+" : ""}
+                      {cat.delta.toFixed(1)}%
+                    </text>
+                  )}
+                </g>
+
+                {/* Protocol sub-boxes */}
+                <g clipPath={`url(#clip-${cat.category})`}>
+                  {protocolRects.map((pRect) => {
+                    const p = pRect.item;
+                    const isOthers = p.protocol === "Others";
+                    const bgColor = isOthers
+                      ? "#2a2a35"
+                      : getDeltaColor(p.delta);
+
+                    const isHoveredProto =
+                      hovered?.type === "protocol" &&
+                      hovered.category === cat.category &&
+                      hovered.label === p.protocol;
+
+                    const showLabel = pRect.w > 40 && pRect.h > 22;
+                    const showDelta = pRect.w > 35 && pRect.h > 36;
+                    const labelSize = Math.min(
+                      12,
+                      Math.max(8, Math.min(pRect.w, pRect.h) / 5)
+                    );
+                    const deltaSize = Math.min(
+                      16,
+                      Math.max(10, Math.min(pRect.w, pRect.h) / 4)
+                    );
+                    const maxChars = Math.floor(pRect.w / (labelSize * 0.55));
+
+                    return (
+                      <g
+                        key={p.key}
+                        onMouseEnter={() =>
+                          setHovered({
+                            type: "protocol",
+                            label: p.protocol,
+                            categoryLabel: cat.label,
+                            delta: p.delta,
+                            gasShare: p.gasShare,
+                            txCount: p.txCount,
+                            gasUsed: p.gasUsed,
+                            avaxBurned: p.avaxBurned,
+                            category: cat.category,
+                          })
+                        }
+                        onMouseLeave={() => setHovered(null)}
+                        className="cursor-pointer"
+                      >
+                        <rect
+                          x={pRect.x + 0.5}
+                          y={pRect.y + 0.5}
+                          width={Math.max(0, pRect.w - 1)}
+                          height={Math.max(0, pRect.h - 1)}
+                          fill={bgColor}
+                          opacity={isHoveredProto ? 0.8 : 1}
+                          stroke={
+                            isHoveredProto
+                              ? "rgba(255,255,255,0.6)"
+                              : "rgba(0,0,0,0.3)"
+                          }
+                          strokeWidth={isHoveredProto ? 1.5 : 0.5}
+                        />
+                        {showLabel && (
+                          <text
+                            x={pRect.x + pRect.w / 2}
+                            y={
+                              pRect.y +
+                              (showDelta ? pRect.h * 0.35 : pRect.h / 2)
+                            }
+                            textAnchor="middle"
+                            dominantBaseline="central"
+                            fill="rgba(255,255,255,0.85)"
+                            fontSize={labelSize}
+                            fontWeight="500"
+                            style={{ pointerEvents: "none" }}
+                          >
+                            {p.protocol.length > maxChars
+                              ? `${p.protocol.slice(0, maxChars)}...`
+                              : p.protocol}
+                          </text>
+                        )}
+                        {showDelta && (
+                          <text
+                            x={pRect.x + pRect.w / 2}
+                            y={pRect.y + pRect.h * 0.65}
+                            textAnchor="middle"
+                            dominantBaseline="central"
+                            fill={
+                              isOthers
+                                ? "#6b7280"
+                                : getDeltaTextColor(p.delta)
+                            }
+                            fontSize={deltaSize}
+                            fontWeight="700"
+                            style={{ pointerEvents: "none" }}
+                          >
+                            {isOthers
+                              ? "..."
+                              : `${p.delta >= 0 ? "+" : ""}${p.delta.toFixed(1)}%`}
+                          </text>
+                        )}
+                      </g>
+                    );
+                  })}
+                </g>
               </g>
             );
           })}
         </svg>
 
         {/* Hover tooltip */}
-        {hoveredData && (
+        {hovered && (
           <div className="absolute top-3 right-3 bg-zinc-900/95 backdrop-blur-sm border border-zinc-700 rounded-lg px-4 py-3 shadow-2xl text-sm pointer-events-none z-10 min-w-[200px]">
             <div className="flex items-center justify-between mb-2">
-              <span className="font-semibold text-white">{hoveredData.label}</span>
+              <div>
+                {hovered.type === "protocol" && (
+                  <span className="text-zinc-400 text-xs block">
+                    {hovered.categoryLabel}
+                  </span>
+                )}
+                <span className="font-semibold text-white">
+                  {hovered.label}
+                </span>
+              </div>
               <span
                 className="flex items-center gap-1 text-sm font-bold"
-                style={{ color: getDeltaTextColor(hoveredData.delta) }}
+                style={{ color: getDeltaTextColor(hovered.delta) }}
               >
-                {hoveredData.delta >= 0 ? (
+                {hovered.delta >= 0 ? (
                   <TrendingUp className="w-3.5 h-3.5" />
                 ) : (
                   <TrendingDown className="w-3.5 h-3.5" />
                 )}
-                {hoveredData.delta >= 0 ? "+" : ""}
-                {hoveredData.delta.toFixed(2)}%
+                {hovered.delta >= 0 ? "+" : ""}
+                {hovered.delta.toFixed(2)}%
               </span>
             </div>
             <div className="space-y-1 text-zinc-400 text-xs">
@@ -463,7 +889,7 @@ export default function GasTreemap() {
                   <Fuel className="w-3 h-3 text-amber-400" /> Gas Share
                 </span>
                 <span className="text-zinc-200 font-medium">
-                  {hoveredData.gasShare.toFixed(2)}%
+                  {hovered.gasShare.toFixed(2)}%
                 </span>
               </div>
               <div className="flex items-center justify-between">
@@ -471,7 +897,7 @@ export default function GasTreemap() {
                   <Activity className="w-3 h-3 text-blue-400" /> Transactions
                 </span>
                 <span className="text-zinc-200 font-medium">
-                  {formatNumber(hoveredData.txCount)}
+                  {formatNumber(hovered.txCount)}
                 </span>
               </div>
               <div className="flex items-center justify-between">
@@ -479,7 +905,7 @@ export default function GasTreemap() {
                   <Flame className="w-3 h-3 text-orange-400" /> AVAX Burned
                 </span>
                 <span className="text-zinc-200 font-medium">
-                  {hoveredData.avaxBurned.toFixed(2)}
+                  {hovered.avaxBurned.toFixed(2)}
                 </span>
               </div>
             </div>
