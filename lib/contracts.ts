@@ -1314,6 +1314,103 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     category: 'lending',
     type: 'vault',
   },
+
+  // ============ FLY.TRADE (prev. MAGPIE PROTOCOL) ============
+  '0x3611b82c7b13e72b26eb0e9be0613bee7a45ac7c': {
+    address: '0x3611b82c7b13e72b26eb0e9be0613bee7a45ac7c',
+    name: 'MagpieRouterV3_1',
+    protocol: 'Fly.trade',
+    category: 'dex',
+    type: 'router',
+  },
+
+  // ============ DODO ============
+  '0xd4e8db2e3e4fa8dff01244d89d5b593b0a03f74b': {
+    address: '0xd4e8db2e3e4fa8dff01244d89d5b593b0a03f74b',
+    name: 'DPPOneShotSwap',
+    protocol: 'DODO',
+    category: 'dex',
+    type: 'pool',
+  },
+
+  // ============ 0x PROTOCOL ============
+  '0x0000000000001ff3684f28c67538d4d072c22734': {
+    address: '0x0000000000001ff3684f28c67538d4d072c22734',
+    name: 'AllowanceHolder',
+    protocol: '0x Protocol',
+    category: 'dex',
+    type: 'router',
+  },
+
+  // ============ PARASWAP V6 ============
+  '0x6a000f20005980200259b80c5102003040001068': {
+    address: '0x6a000f20005980200259b80c5102003040001068',
+    name: 'AugustusV6',
+    protocol: 'ParaSwap',
+    category: 'dex',
+    type: 'router',
+  },
+
+  // ============ CHAOS LABS ============
+  '0x0efb5a96ed1b33308a73355c56aa1bc1aa7e4a8e': {
+    address: '0x0efb5a96ed1b33308a73355c56aa1bc1aa7e4a8e',
+    name: 'Risk Oracle',
+    protocol: 'Chaos Labs',
+    category: 'infrastructure',
+    type: 'other',
+  },
+
+  // ============ CHAINLINK ============
+  '0x4fa197129e3260e3cc514b68011c5b23bab7475d': {
+    address: '0x4fa197129e3260e3cc514b68011c5b23bab7475d',
+    name: 'Batch VRF Coordinator V2 Plus',
+    protocol: 'Chainlink',
+    category: 'infrastructure',
+    type: 'other',
+  },
+
+  // ============ DEX ROUTER (unbranded aggregator) ============
+  '0x8adfb0d24cdb09c6eb6b001a41820ece98831b91': {
+    address: '0x8adfb0d24cdb09c6eb6b001a41820ece98831b91',
+    name: 'DexRouter',
+    protocol: 'DexRouter',
+    category: 'dex',
+    type: 'router',
+  },
+
+  // ============ PHARAOH (Additional) ============
+  '0xc8b8fcbdb5c019d7802ffb0b39603395d7d3915c': {
+    address: '0xc8b8fcbdb5c019d7802ffb0b39603395d7d3915c',
+    name: 'Ramses V3 SwapRouter',
+    protocol: 'Pharaoh',
+    category: 'dex',
+    type: 'router',
+  },
+
+  // ============ VFAT / SICKLE (Additional) ============
+  '0x0bf0f966a8c1676d2d76c1863cbd84170b949d53': {
+    address: '0x0bf0f966a8c1676d2d76c1863cbd84170b949d53',
+    name: 'NftFarmStrategy',
+    protocol: 'vfat.io',
+    category: 'yield',
+    type: 'other',
+  },
+
+  // ============ MEV / ARBITRAGE BOTS (Round 3) ============
+  '0x8b1bc05128f49af0562998ce7bbdffb26bb0e421': {
+    address: '0x8b1bc05128f49af0562998ce7bbdffb26bb0e421',
+    name: 'MEV Bot (0x2222 deployer #3)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0x31e05ba0fca0a9447a2eb1065c1cc57cb722a924': {
+    address: '0x31e05ba0fca0a9447a2eb1065c1cc57cb722a924',
+    name: 'MEV Bot (0x2222 deployer #4)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
 };
 
 // Protocol slug mapping for linking to dApp pages (canonical slug per protocol)
@@ -1378,6 +1475,14 @@ export const PROTOCOL_SLUGS: Record<string, string> = {
   'Big Ads': 'big-ads',
   'Red Cast': 'red-cast',
   'Banza': 'banza',
+  // DEX Aggregators
+  'Fly.trade': 'fly-trade',
+  'DODO': 'dodo',
+  '0x Protocol': '0x-protocol',
+  'DexRouter': 'dexrouter',
+  // Infrastructure
+  'Chaos Labs': 'chaos-labs',
+  'Chainlink': 'chainlink',
 };
 
 // Map alternative DefiLlama slugs to canonical protocol names
@@ -1511,6 +1616,19 @@ export const SLUG_ALIASES: Record<string, string> = {
   'big-ads': 'Big Ads',
   'red-cast': 'Red Cast',
   'banza': 'Banza',
+  // DEX Aggregators
+  'fly-trade': 'Fly.trade',
+  'fly': 'Fly.trade',
+  'magpie-protocol': 'Fly.trade',
+  'magpie': 'Fly.trade',
+  'dodo': 'DODO',
+  'dodo-exchange': 'DODO',
+  '0x-protocol': '0x Protocol',
+  '0x': '0x Protocol',
+  'dexrouter': 'DexRouter',
+  // Infrastructure
+  'chaos-labs': 'Chaos Labs',
+  'chainlink': 'Chainlink',
 };
 
 // Get contract info by address
