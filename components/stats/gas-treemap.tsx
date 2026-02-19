@@ -267,6 +267,79 @@ const HEADER_HEIGHT = 18;
 const MIN_NEST_HEIGHT = 50;
 const PROTOCOL_OTHERS_THRESHOLD = 0.03; // 3% of category gas
 
+// --- Trend insight generation ---
+
+interface Insight {
+  text: string;
+  deltaDirection: "up" | "down" | "neutral";
+}
+
+function generateInsights(data: ChainStatsData): Insight[] {
+  const insights: Insight[] = [];
+  const cats = data.categoryBreakdown.filter((c) => Math.abs(c.delta) >= 1);
+  const protos = data.protocolBreakdown.filter((p) => Math.abs(p.delta) >= 1);
+
+  // Sort by delta descending
+  const catsUp = [...cats].sort((a, b) => b.delta - a.delta);
+  const catsDown = [...cats].sort((a, b) => a.delta - b.delta);
+
+  const coveredProtocols = new Set<string>();
+
+  // 1. Top category mover (up)
+  if (catsUp.length > 0 && catsUp[0].delta > 0) {
+    const top = catsUp[0];
+    const catLabel = CATEGORY_LABELS[top.category] || top.category;
+    // Find top protocol driving this category
+    const catProtos = protos
+      .filter((p) => p.category === top.category && p.delta > 0)
+      .sort((a, b) => b.delta - a.delta);
+    const driver = catProtos[0];
+    let text = `${catLabel} gas surged **+${top.delta.toFixed(1)}%**`;
+    if (driver) {
+      text += `, led by ${driver.protocol} (+${driver.delta.toFixed(1)}%)`;
+      coveredProtocols.add(driver.protocol);
+    }
+    insights.push({ text, deltaDirection: "up" });
+  }
+
+  // 2. Top category mover (down)
+  if (catsDown.length > 0 && catsDown[0].delta < 0) {
+    const bottom = catsDown[0];
+    const catLabel = CATEGORY_LABELS[bottom.category] || bottom.category;
+    insights.push({
+      text: `${catLabel} dropped **${bottom.delta.toFixed(1)}%** — largest decline this period`,
+      deltaDirection: "down",
+    });
+  }
+
+  // 3. Biggest protocol mover (if not already covered)
+  if (protos.length > 0) {
+    const sorted = [...protos].sort(
+      (a, b) => Math.abs(b.delta) - Math.abs(a.delta)
+    );
+    const biggest = sorted.find((p) => !coveredProtocols.has(p.protocol));
+    if (biggest) {
+      const sign = biggest.delta >= 0 ? "+" : "";
+      insights.push({
+        text: `${biggest.protocol} had the biggest move at **${sign}${biggest.delta.toFixed(1)}%**`,
+        deltaDirection: biggest.delta >= 0 ? "up" : "down",
+      });
+    }
+  }
+
+  // 4. Coverage line
+  if (data.coverage) {
+    const pct = data.coverage.taggedGasPercent;
+    const unclassified = (100 - pct).toFixed(1);
+    insights.push({
+      text: `Coverage: **${pct.toFixed(1)}%** of chain gas classified (${unclassified}% unclassified)`,
+      deltaDirection: "neutral",
+    });
+  }
+
+  return insights.slice(0, 4);
+}
+
 export default function GasTreemap() {
   const [data, setData] = useState<ChainStatsData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -479,6 +552,11 @@ export default function GasTreemap() {
 
     return result;
   }, [categoryRects, protocolsByCategory]);
+
+  const insights = useMemo(() => {
+    if (!data) return [];
+    return generateInsights(data);
+  }, [data]);
 
   if (loading) {
     return (
@@ -915,6 +993,36 @@ export default function GasTreemap() {
           </div>
         )}
       </div>
+
+      {/* Trend summary */}
+      {insights.length > 0 && (
+        <div className="space-y-1.5">
+          {insights.map((insight, i) => (
+            <div key={i} className="flex items-start gap-2 text-sm text-zinc-400">
+              <span
+                className={`mt-1.5 h-1.5 w-1.5 rounded-full shrink-0 ${
+                  insight.deltaDirection === "up"
+                    ? "bg-emerald-400"
+                    : insight.deltaDirection === "down"
+                      ? "bg-red-400"
+                      : "bg-zinc-500"
+                }`}
+              />
+              <span>
+                {insight.text.split(/(\*\*[^*]+\*\*)/).map((part, j) =>
+                  part.startsWith("**") && part.endsWith("**") ? (
+                    <span key={j} className="font-semibold text-zinc-200">
+                      {part.slice(2, -2)}
+                    </span>
+                  ) : (
+                    <span key={j}>{part}</span>
+                  )
+                )}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
