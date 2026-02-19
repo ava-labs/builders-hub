@@ -1,10 +1,7 @@
 import { NextResponse } from 'next/server';
 import { Avalanche } from "@avalanche-sdk/chainkit";
 import { TimeSeriesDataPoint, TimeSeriesMetric, ICMDataPoint, ICMMetric, STATS_CONFIG, getTimestampsFromTimeRange, createTimeSeriesMetric, createICMMetric } from "@/types/stats";
-import l1ChainsData from "@/constants/l1-chains.json";
-
-// Filter to only mainnet chains for ICM aggregation
-const mainnetChains = l1ChainsData.filter(c => (c as { isTestnet?: boolean }).isTestnet !== true);
+import { getChainICMData } from "@/lib/icm-clickhouse";
 
 export const dynamic = 'force-dynamic';
 
@@ -510,107 +507,19 @@ async function getICMData(
       days = getDaysFromTimeRange(timeRange);
     }
 
-    // For "all" chains, aggregate data from all mainnet chains
-    if (chainId === "all") {
-      return await aggregateAllChainsICMData(days, startTimestamp, endTimestamp);
-    }
-
-    const response = await fetchWithTimeout(
-      `https://idx6.solokhin.com/api/${chainId}/metrics/dailyMessageVolume?days=${days}`,
-      { headers: { 'Accept': 'application/json' } }
-    );
-
-    if (!response.ok) return [];
-    const data = await response.json();
-    if (!Array.isArray(data)) return [];
-
-    let filteredData = data
-      .sort((a: any, b: any) => b.timestamp - a.timestamp)
-      .map((item: any) => ({
-        timestamp: item.timestamp,
-        date: item.date,
-        messageCount: item.messageCount || 0,
-        incomingCount: item.incomingCount || 0,
-        outgoingCount: item.outgoingCount || 0,
-      }));
+    let result = await getChainICMData(chainId, days);
 
     if (startTimestamp !== undefined && endTimestamp !== undefined) {
-      filteredData = filteredData.filter((item: ICMDataPoint) =>
+      result = result.filter((item) =>
         item.timestamp >= startTimestamp && item.timestamp <= endTimestamp
       );
     }
 
-    return filteredData;
+    return result;
   } catch (error) {
-    if (error instanceof Error && error.name !== 'AbortError') {
-      console.warn(`[getICMData] Failed for chain ${chainId}:`, error);
-    }
+    console.warn(`[getICMData] Failed for chain ${chainId}:`, error);
     return [];
   }
-}
-
-// Helper function to aggregate ICM data from all mainnet chains
-async function aggregateAllChainsICMData(
-  days: number,
-  startTimestamp?: number,
-  endTimestamp?: number
-): Promise<ICMDataPoint[]> {
-  const aggregatedByDate = new Map<string, ICMDataPoint>();
-
-  // Process chains in batches to avoid overwhelming the API
-  const BATCH_SIZE = 20;
-
-  for (let i = 0; i < mainnetChains.length; i += BATCH_SIZE) {
-    const batch = mainnetChains.slice(i, i + BATCH_SIZE);
-
-    await Promise.all(
-      batch.map(async (chain) => {
-        try {
-          const response = await fetchWithTimeout(
-            `https://idx6.solokhin.com/api/${chain.chainId}/metrics/dailyMessageVolume?days=${days}`,
-            { headers: { 'Accept': 'application/json' } }
-          );
-
-          if (response.ok) {
-            const data = await response.json();
-            if (Array.isArray(data)) {
-              data.forEach((item: any) => {
-                const dateKey = item.date;
-                const existing = aggregatedByDate.get(dateKey);
-
-                if (existing) {
-                  existing.messageCount += item.messageCount || 0;
-                  existing.incomingCount += item.incomingCount || 0;
-                  existing.outgoingCount += item.outgoingCount || 0;
-                } else {
-                  aggregatedByDate.set(dateKey, {
-                    timestamp: item.timestamp,
-                    date: item.date,
-                    messageCount: item.messageCount || 0,
-                    incomingCount: item.incomingCount || 0,
-                    outgoingCount: item.outgoingCount || 0,
-                  });
-                }
-              });
-            }
-          }
-        } catch {
-          // skip chains that fail or timeout
-        }
-      })
-    );
-  }
-
-  let result = Array.from(aggregatedByDate.values())
-    .sort((a, b) => b.timestamp - a.timestamp);
-
-  if (startTimestamp !== undefined && endTimestamp !== undefined) {
-    result = result.filter((item) =>
-      item.timestamp >= startTimestamp && item.timestamp <= endTimestamp
-    );
-  }
-
-  return result;
 }
 
 const ALL_METRICS = [
