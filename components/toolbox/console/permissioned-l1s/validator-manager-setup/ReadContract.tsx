@@ -125,7 +125,6 @@ function ReadContract({ onSuccess }: BaseConsoleToolProps) {
           console.error(`Error getting logs for ${event.name}:`, error)
         }
       }
-      console.log("Event logs:", logs)
       setEventLogs(logs)
     } catch (error) {
       console.error("Main error:", error)

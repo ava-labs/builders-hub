@@ -10,8 +10,8 @@ import { Success } from '@/components/toolbox/components/Success';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 
 import InitiateChangeWeight from '@/components/toolbox/console/permissioned-l1s/ChangeWeight/InitiateChangeWeight';
-import SubmitPChainTxChangeWeight from '@/components/toolbox/console/permissioned-l1s/ChangeWeight/SubmitPChainTxChangeWeight';
-import CompleteChangeWeight from '@/components/toolbox/console/permissioned-l1s/ChangeWeight/CompleteChangeWeight';
+import SubmitPChainTxWeightUpdate from '@/components/toolbox/console/shared/SubmitPChainTxWeightUpdate';
+import CompletePChainWeightUpdate from '@/components/toolbox/console/shared/CompletePChainWeightUpdate';
 import { useCreateChainStore } from '@/components/toolbox/stores/createChainStore';
 import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from '../../components/WithConsoleToolMetadata';
@@ -176,11 +176,13 @@ const ChangeWeightStateless: React.FC<BaseConsoleToolProps> = ({ onSuccess }) =>
               <p className="text-sm text-gray-500 mb-4">
                 Sign the <a href="/docs/acps/77-reinventing-subnets#l1validatorweightmessage" className="text-blue-600 hover:text-blue-800 underline">L1ValidatorWeightMessage</a> and submit a <a href="/docs/acps/77-reinventing-subnets#setl1validatorweighttx" className="text-blue-600 hover:text-blue-800 underline">SetL1ValidatorWeightTx</a> to the P-Chain.
               </p>
-              <SubmitPChainTxChangeWeight
+              <SubmitPChainTxWeightUpdate
                 key={`submit-pchain-${resetKey}`}
                 subnetIdL1={subnetIdL1}
                 initialEvmTxHash={evmTxHash}
                 signingSubnetId={signingSubnetId}
+                txHashLabel="initiateValidatorWeightUpdate Transaction Hash"
+                txHashPlaceholder="Enter the transaction hash from step 2 (0x...)"
                 onSuccess={(pChainTxId) => {
                   setPChainTxId(pChainTxId);
                   setGlobalError(null);
@@ -194,18 +196,19 @@ const ChangeWeightStateless: React.FC<BaseConsoleToolProps> = ({ onSuccess }) =>
               <p className="text-sm text-gray-500 mb-4">
                 Complete the weight change by signing the P-Chain <a href="/docs/acps/77-reinventing-subnets#l1validatorweightmessage" className="text-blue-600 hover:text-blue-800 underline">L1ValidatorWeightMessage</a> and calling the <a href="https://github.com/ava-labs/icm-contracts/blob/main/contracts/validator-manager/ValidatorManager.sol#L690" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline">completeValidatorWeightUpdate</a> function on the Validator Manager contract.
               </p>
-              <CompleteChangeWeight
+              <CompletePChainWeightUpdate
                 key={`complete-change-${resetKey}`}
                 subnetIdL1={subnetIdL1}
-                initialPChainTxId={pChainTxId}
-                isContractOwner={isContractOwner}
-                validatorManagerAddress={validatorManagerAddress}
+                pChainTxId={pChainTxId}
                 signingSubnetId={signingSubnetId}
+                updateType="ChangeWeight"
+                managerAddress={validatorManagerAddress}
+                isContractOwner={isContractOwner}
                 contractOwner={contractOwner}
                 isLoadingOwnership={isLoadingOwnership}
                 ownerType={ownerType}
-                onSuccess={(message) => {
-                  setGlobalSuccess(message);
+                onSuccess={(data) => {
+                  setGlobalSuccess(data.message);
                   setGlobalError(null);
                   onSuccess?.();
                 }}

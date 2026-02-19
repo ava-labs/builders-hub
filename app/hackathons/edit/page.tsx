@@ -1302,7 +1302,6 @@ const HackathonsEdit = () => {
           method: 'POST', 
           headers: {
             'Content-Type': 'application/json',
-            'x-api-key': process.env.APIKEY ?? '',
           },
           body: JSON.stringify(dataToSend),
         });
@@ -1352,8 +1351,6 @@ const HackathonsEdit = () => {
           method: 'PUT', 
           headers: {
             'Content-Type': 'application/json',
-            'x-api-key': process.env.APIKEY ?? '',
-            'id': session?.user?.id ?? '',
           },
           body: JSON.stringify(dataToSend),
         });
@@ -1402,7 +1399,6 @@ const HackathonsEdit = () => {
         method: 'DELETE', 
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': process.env.APIKEY ?? '',
         },
       });
       console.log(response);
@@ -1418,8 +1414,6 @@ const HackathonsEdit = () => {
         method: 'PUT', 
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': process.env.APIKEY ?? '',
-          'id': session?.user?.id ?? '',
         },
         body: JSON.stringify({
           is_public: isPublic
