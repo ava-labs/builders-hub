@@ -1,3 +1,5 @@
+import { NotificationMeans } from '@/lib/notificationDefaults';
+
 /**
  * Structure of the user_type field (stored as JSON in the database)
  */
@@ -34,7 +36,7 @@ export type ExtendedProfile = {
     notifications: boolean | null;
     profile_privacy: string | null;
     telegram_user?: string | null;
-    notification_means?: any;
+    notification_means?: NotificationMeans | null;
 }
 
 /**
