@@ -1411,6 +1411,68 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     category: 'mev',
     type: 'other',
   },
+
+  // ============ AVAXPIXEL ============
+  '0x1edf79e77693561e80072becbcce1e16dc356aca': {
+    address: '0x1edf79e77693561e80072becbcce1e16dc356aca',
+    name: 'APIX Token',
+    protocol: 'AvaxPixel',
+    category: 'gaming',
+    type: 'token',
+  },
+
+  // ============ MEV / ARBITRAGE BOTS (Round 4 — deployer 0x2d75) ============
+  '0x10604ec3d66bd86db80d1782d4df3396902f67f3': {
+    address: '0x10604ec3d66bd86db80d1782d4df3396902f67f3',
+    name: 'MEV Bot (0x2d75 deployer #1)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0xf7a9af4b028448a78aefc589aaa41d1728dc7421': {
+    address: '0xf7a9af4b028448a78aefc589aaa41d1728dc7421',
+    name: 'MEV Bot (0x2d75 deployer #2)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0xc0bbe7e1ea440600cadcbee83640bb60b8f985fb': {
+    address: '0xc0bbe7e1ea440600cadcbee83640bb60b8f985fb',
+    name: 'MEV Bot (0x2d75 deployer #3)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+
+  // ============ MEV / ARBITRAGE BOTS (Round 4 — misc) ============
+  '0x04e1dee021cd12bba022a72806441b43d8212fec': {
+    address: '0x04e1dee021cd12bba022a72806441b43d8212fec',
+    name: 'MEV Bot (swap router pattern)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0x0ac011eb02a44d3fd7ad2e837a9f5a330913af13': {
+    address: '0x0ac011eb02a44d3fd7ad2e837a9f5a330913af13',
+    name: 'MEV Bot (Uniswap V4 #1)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0x56c47ff7e63cc0ebb2038ce5822d19fdc8f4be27': {
+    address: '0x56c47ff7e63cc0ebb2038ce5822d19fdc8f4be27',
+    name: 'MEV Bot (Uniswap V4 #2)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0x964bd4f472882d0d4120a4b3c859e43ffb459291': {
+    address: '0x964bd4f472882d0d4120a4b3c859e43ffb459291',
+    name: 'MEV Bot (CAPY holder)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
 };
 
 // Protocol slug mapping for linking to dApp pages (canonical slug per protocol)
@@ -1483,6 +1545,8 @@ export const PROTOCOL_SLUGS: Record<string, string> = {
   // Infrastructure
   'Chaos Labs': 'chaos-labs',
   'Chainlink': 'chainlink',
+  // Gaming
+  'AvaxPixel': 'avaxpixel',
 };
 
 // Map alternative DefiLlama slugs to canonical protocol names
@@ -1629,6 +1693,9 @@ export const SLUG_ALIASES: Record<string, string> = {
   // Infrastructure
   'chaos-labs': 'Chaos Labs',
   'chainlink': 'Chainlink',
+  // Gaming
+  'avaxpixel': 'AvaxPixel',
+  'apix': 'AvaxPixel',
 };
 
 // Get contract info by address
