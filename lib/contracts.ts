@@ -1112,6 +1112,13 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
   },
 
   // ============ BLACKHOLE DEX ============
+  '0xeac562811cc6abdbb2c9ee88719eca4ee79ad763': {
+    address: '0xeac562811cc6abdbb2c9ee88719eca4ee79ad763',
+    name: 'VotingEscrow',
+    protocol: 'Blackhole DEX',
+    category: 'dex',
+    type: 'staking',
+  },
   '0xe6e554b14892d5cf91df9ce9cd7fe936d2194441': {
     address: '0xe6e554b14892d5cf91df9ce9cd7fe936d2194441',
     name: 'Liquidity Manager Bot',
@@ -1200,6 +1207,84 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     type: 'other',
   },
 
+  // Round 2 MEV bots
+  '0xd1f6ca075b345c3532ee3957f0a32a0a0c881449': {
+    address: '0xd1f6ca075b345c3532ee3957f0a32a0a0c881449',
+    name: 'MEV Bot (flash loan arb)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0x5d6d9811919598981367ac45134f9586d4f04bff': {
+    address: '0x5d6d9811919598981367ac45134f9586d4f04bff',
+    name: 'MEV Bot (pausable trading)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0x278d858f05b94576c1e6f73285886876ff6ef8d2': {
+    address: '0x278d858f05b94576c1e6f73285886876ff6ef8d2',
+    name: 'MEV Bot (SafeProxy arb)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0x42104e66a93da581dd06ebd434ff1c47176ff2d7': {
+    address: '0x42104e66a93da581dd06ebd434ff1c47176ff2d7',
+    name: 'MEV Bot (JIT liquidity)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0x5b05e50f8d2942cbc7f89dd5b07cc2fa610caf9d': {
+    address: '0x5b05e50f8d2942cbc7f89dd5b07cc2fa610caf9d',
+    name: 'MEV Bot (Coinbase funded #1)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0xf163ca4c6931141ee115db0b192ed6c37d491714': {
+    address: '0xf163ca4c6931141ee115db0b192ed6c37d491714',
+    name: 'MEV Bot (Coinbase funded #2)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+
+  // ============ PHARAOH EXCHANGE (Additional) ============
+  '0x0b4478e810d48b5882d4019d435a2f864bab4f39': {
+    address: '0x0b4478e810d48b5882d4019d435a2f864bab4f39',
+    name: 'RamsesV3PositionManager',
+    protocol: 'Pharaoh',
+    category: 'dex',
+    type: 'router',
+  },
+  '0xd0175063773f80910c87c4a69663a00e622b0745': {
+    address: '0xd0175063773f80910c87c4a69663a00e622b0745',
+    name: 'ALM Vault (Liquidity Manager)',
+    protocol: 'Pharaoh',
+    category: 'dex',
+    type: 'vault',
+  },
+
+  // ============ ODOS (Additional V2 deployment) ============
+  '0x88de50b233052e4fb783d4f6db78cc34fea3e9fc': {
+    address: '0x88de50b233052e4fb783d4f6db78cc34fea3e9fc',
+    name: 'Odos Router V2 (alt)',
+    protocol: 'Odos',
+    category: 'dex',
+    type: 'router',
+  },
+
+  // ============ GAMING ============
+  '0x8ab13fda47bf057205ca1299acebff26a07cec56': {
+    address: '0x8ab13fda47bf057205ca1299acebff26a07cec56',
+    name: 'CapyVault Proxy',
+    protocol: 'CapyVault',
+    category: 'gaming',
+    type: 'other',
+  },
+
   // ============ RWA / LENDING (from PR #3839) ============
   '0xe25cb545bdd47a8ec2d08001cb5661b00d47621a': {
     address: '0xe25cb545bdd47a8ec2d08001cb5661b00d47621a',
@@ -1282,6 +1367,8 @@ export const PROTOCOL_SLUGS: Record<string, string> = {
   'vfat.io': 'vfat',
   // Gaming
   'MoveQuest': 'movequest',
+  // Gaming
+  'CapyVault': 'capyvault',
   // MEV
   'MEV / Arbitrage': 'mev-arbitrage',
   // RWA / Lending
@@ -1412,6 +1499,8 @@ export const SLUG_ALIASES: Record<string, string> = {
   // Gaming
   'movequest': 'MoveQuest',
   'getfit-mining': 'MoveQuest',
+  // Gaming
+  'capyvault': 'CapyVault',
   // MEV
   'mev-arbitrage': 'MEV / Arbitrage',
   'mev': 'MEV / Arbitrage',
