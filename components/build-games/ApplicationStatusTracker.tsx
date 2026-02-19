@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import ReferralButton from "./ReferralButton";
-import { ApplyButton } from "./ApplyButton";
 
 interface ApplicationData {
   id: string;
@@ -167,7 +166,7 @@ function StatusTracker({ application }: { application: ApplicationData }) {
           Stay connected and invite others join.
           </span>
           <div className="flex flex-row flex-wrap gap-[10px] items-center justify-center">
-            <ReferralButton />
+            <ReferralButton label="Refer your teammates" />
             <a
               href="https://t.me/avaxbuildgames"
               target="_blank"
@@ -179,26 +178,6 @@ function StatusTracker({ application }: { application: ApplicationData }) {
               </span>
             </a>
           </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function OriginalCTA() {
-  return (
-    <div className="get-involved-cta relative shrink-0 w-full py-[40px]" data-name="GetInvolvedCTA">
-      <div className="flex flex-row flex-nowrap items-center justify-center gap-[16px] px-[16px]">
-        <div className="font-['Aeonik:Medium',sans-serif] font-medium text-[64px] text-nowrap text-white leading-[80px]">
-          Get Involved
-        </div>
-        <div className="flex flex-row flex-nowrap gap-[10px] items-center">
-          <ReferralButton />
-          <ApplyButton className="shrink-0 bg-[#66acd6] flex h-[52px] items-center justify-center px-[36px] py-[12px] rounded-[3.35544e+07px] cursor-pointer hover:bg-[#7bbde3] transition-colors shadow-[0px_0px_20px_4px_rgba(102,172,214,0.5)]">
-            <span className="font-['Aeonik:Medium',sans-serif] font-medium text-[#152d44] text-[18px] text-center text-nowrap leading-[28px]">
-              Apply
-            </span>
-          </ApplyButton>
         </div>
       </div>
     </div>
@@ -232,12 +211,8 @@ export default function ApplicationStatusTracker() {
       });
   }, [status]);
 
-  if (status === "loading" || status === "unauthenticated" || isLoading) {
-    return <OriginalCTA />;
-  }
-
-  if (!application) {
-    return <OriginalCTA />;
+  if (status === "loading" || status === "unauthenticated" || isLoading || !application) {
+    return null;
   }
 
   return <StatusTracker application={application} />;
