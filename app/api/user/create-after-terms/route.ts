@@ -48,7 +48,7 @@ export const POST = withAuth(async (
         last_login: new Date(),
         notifications: notifications,
         notification_means: getDefaultNotificationMeans(),
-      } as any,
+      }
     });
 
     // Sync user data to HubSpot (after terms acceptance)

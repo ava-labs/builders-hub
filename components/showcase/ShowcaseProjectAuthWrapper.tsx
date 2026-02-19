@@ -6,10 +6,11 @@ import { useRouter } from "next/navigation";
 import { useLoginModalTrigger } from "@/hooks/useLoginModal";
 import ProjectOverview from "./ProjectOverview";
 import { Project } from "@/types/showcase";
+import { UserBadge } from "@/types/badge";
 
 interface ShowcaseProjectAuthWrapperProps {
   project: Project;
-  badges: any[];
+  badges: UserBadge[];
   projectId: string;
 }
 

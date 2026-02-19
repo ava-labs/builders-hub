@@ -9,6 +9,7 @@ import type { VerifyOTPResult } from '@/types/verifyOTPResult';
 import { upsertUser } from '@/server/services/auth';
 import { badgeAssignmentService } from '@/server/services/badgeAssignmentService';
 import { BadgeCategory } from '@/server/services/badge';
+import type { User as PrismaUser } from '@prisma/client';
 
 
 declare module 'next-auth' {
@@ -111,16 +112,14 @@ export const AuthOptions: NextAuthOptions = {
 
         let user = await prisma.user.findUnique({ where: { email } });
         if (!user) {
-          // user = await prisma.user.create({
-          //   data: {
-          //     email, notification_email: email, name: '', image: '', last_login: null
-          //   },
-          // }
           user = {
             email, notification_email: email, name: '', image: '', last_login: new Date(), authentication_mode: '', bio: '',
             custom_attributes: [], id: '', integration: '', notifications: null, profile_privacy: null, social_media: [], telegram_user: '', user_name: '', created_at: new Date(),
-            country: null, user_type: null, github: null, wallet: [], skills: [], noun_avatar_seed: null, noun_avatar_enabled: false, settings: []
-          } as any
+            country: null, user_type: null, github: null, wallet: [], skills: [], noun_avatar_seed: null, noun_avatar_enabled: false,
+            notification_means: null,
+            chatConversations: [], consoleLog: [], faucetClaims: [], hackathons: [], updated_hackathons: [], memberships: [],
+            managedTestnetNodes: [], Notification: [], registrations: [], Repository: [], statsPlaygrounds: [], statsPlaygroundFavorites: [], badges: []
+          } as PrismaUser
         }
 
         return user;

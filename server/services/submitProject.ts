@@ -9,6 +9,7 @@ import { ValidationError } from "./hackathons";
 import { prisma } from "@/prisma/prisma";
 import { Project } from "@/types/project";
 import { Prisma, User } from "@prisma/client";
+import { NotificationMeans } from "@/lib/notificationDefaults";
 
 export const projectValidations: Validation[] = [
   {
@@ -39,6 +40,16 @@ function normalizeCategories(categories: string | string[] | undefined): string[
   }
   return [];
 }
+
+// Type guard to check if a value is a non-empty object
+const isNonEmptyObject = (value: unknown): value is Record<string, unknown> => {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    !Array.isArray(value) &&
+    Object.keys(value).length > 0
+  );
+};
 
 // Helper function to normalize deployed_addresses from JsonValue[] to Array<{ address: string; tag?: string }>
 function normalizeDeployedAddresses(
@@ -159,10 +170,10 @@ export async function createProject(
           categories: normalizeCategories(projectData.categories),
           other_category: projectData.other_category ?? null,
           deployed_addresses: normalizeDeployedAddresses(projectData.deployed_addresses),
-          website: (projectData.website && typeof projectData.website === 'object' && !Array.isArray(projectData.website) && Object.keys(projectData.website).length > 0)
+          website: isNonEmptyObject(projectData.website)
             ? projectData.website
             : Prisma.JsonNull,
-          socials: (projectData.socials && typeof projectData.socials === 'object' && !Array.isArray(projectData.socials) && Object.keys(projectData.socials).length > 0)
+          socials: isNonEmptyObject(projectData.socials)
             ? projectData.socials
             : Prisma.JsonNull,
         },
@@ -189,10 +200,10 @@ export async function createProject(
         categories: normalizeCategories(projectData.categories),
         other_category: projectData.other_category ?? null,
         deployed_addresses: normalizeDeployedAddresses(projectData.deployed_addresses),
-        website: (projectData.website && typeof projectData.website === 'object' && !Array.isArray(projectData.website) && Object.keys(projectData.website).length > 0)
+        website: isNonEmptyObject(projectData.website)
           ? projectData.website
           : Prisma.JsonNull,
-        socials: (projectData.socials && typeof projectData.socials === 'object' && !Array.isArray(projectData.socials) && Object.keys(projectData.socials).length > 0)
+        socials: isNonEmptyObject(projectData.socials)
           ? projectData.socials
           : Prisma.JsonNull,
         explanation: projectData.explanation ?? "",
@@ -258,7 +269,7 @@ function normalizeUser(user: Partial<User>): User {
     skills: user.skills ?? [],
     noun_avatar_seed: user.noun_avatar_seed ?? null,
     noun_avatar_enabled: user.noun_avatar_enabled ?? false,
-    notification_means: (user as any).notification_means ?? null,
+    notification_means: (user.notification_means as unknown as NotificationMeans) ?? null,
   } as unknown as User;
 }
 export async function getProject(projectId: string): Promise<Project | null> {

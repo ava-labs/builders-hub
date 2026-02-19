@@ -26,9 +26,18 @@ export const PUT = withAuthRole("badge_admin", async (req: NextRequest, _context
     return NextResponse.json(result, { status: 200 });
   } catch (error) {
     console.error("Error setting project winner:", error);
-    const errorMessage = error instanceof Error ? error.message : "Internal server error";
+    
+    // Handle known, safe errors that can be exposed to the client
+    if (error instanceof Error && error.message === "Project not found") {
+      return NextResponse.json(
+        { success: false, error: "Project not found" },
+        { status: 404 }
+      );
+    }
+    
+    // For all other errors, return a generic message to avoid leaking internal details
     return NextResponse.json(
-      { success: false, error: errorMessage, message: errorMessage },
+      { success: false, error: "Failed to update project winner status" },
       { status: 500 }
     );
   }
