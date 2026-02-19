@@ -2,6 +2,7 @@
 import { Banner } from "fumadocs-ui/components/banner";
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 
 interface TimeUnit {
   days: number;
@@ -10,55 +11,11 @@ interface TimeUnit {
   seconds: number;
 }
 
-function RollingDigit({ value, isHydrated }: { value: number; isHydrated: boolean }) {
-  const [displayValue, setDisplayValue] = useState(value);
-
-  useEffect(() => {
-    if (value !== displayValue) {
-      const timeout = setTimeout(() => {setDisplayValue(value)}, 500);
-      return () => clearTimeout(timeout);
-    }
-  }, [value, displayValue]);
-
-  // Show placeholder during SSR to avoid hydration mismatch
-  if (!isHydrated) {
-    return (
-      <span className="relative inline-block w-[0.6em] h-[1.2em] overflow-hidden">
-        <span className="absolute inset-0 flex items-center justify-center">-</span>
-      </span>
-    );
-  }
-
+function CountdownSegment({ value, label }: { value: string; label: string }) {
   return (
-    <span className="relative inline-block w-[0.6em] h-[1.2em] overflow-hidden">
-      <span key={displayValue} className="absolute inset-0 flex items-center justify-center animate-[slideUp_0.5s_ease-out]">{displayValue}</span>
-      <style jsx>{`
-        @keyframes slideUp {
-          from {
-            transform: translateY(100%);
-            opacity: 0;
-          }
-          to {
-            transform: translateY(0);
-            opacity: 1;
-          }
-        }
-      `}</style>
-    </span>
-  );
-}
-
-function TimeDisplay({ label, value, isHydrated }: { label: string; value: number; isHydrated: boolean }) {
-  const digits = String(value).padStart(2, "0").split("");
-
-  return (
-    <span className="inline-flex items-center gap-0.5">
-      <span className="inline-flex">
-        {digits.map((digit, index) => (
-          <RollingDigit key={`${label}-${index}`} value={parseInt(digit)} isHydrated={isHydrated} />
-        ))}
-      </span>
-      <span className="text-xs ml-0.5">{label}</span>
+    <span className="inline-flex flex-col items-center leading-none">
+      <span className="tabular-nums text-[13px] font-semibold tracking-tight">{value}</span>
+      <span className="text-[9px] uppercase tracking-wider text-white/50">{label}</span>
     </span>
   );
 }
@@ -66,32 +23,25 @@ function TimeDisplay({ label, value, isHydrated }: { label: string; value: numbe
 function CountdownTimer({ targetDate, onComplete }: { targetDate: string; onComplete?: () => void }) {
   function calculateTimeLeft(): TimeUnit {
     const difference = +new Date(targetDate) - +new Date();
-    let timeLeft: TimeUnit = { days: 0, hours: 0, minutes: 0, seconds: 0 };
-    if (difference > 0) {
-      timeLeft = {
-        days: Math.floor(difference / (1000 * 60 * 60 * 24)),
-        hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
-        minutes: Math.floor((difference / (1000 * 60)) % 60),
-        seconds: Math.floor((difference / 1000) % 60),
-      };
-    }
-    return timeLeft;
+    if (difference <= 0) return { days: 0, hours: 0, minutes: 0, seconds: 0 };
+    return {
+      days: Math.floor(difference / (1000 * 60 * 60 * 24)),
+      hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
+      minutes: Math.floor((difference / (1000 * 60)) % 60),
+      seconds: Math.floor((difference / 1000) % 60),
+    };
   }
 
-  // Initialize with zeros to avoid hydration mismatch
   const [timeLeft, setTimeLeft] = useState<TimeUnit>({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   const [isHydrated, setIsHydrated] = useState(false);
   const completedRef = useRef(false);
 
   useEffect(() => {
-    // Mark as hydrated after mount
     setIsHydrated(true);
-
     const tick = () => {
       const next = calculateTimeLeft();
       setTimeLeft(next);
-      const remainingMs = +new Date(targetDate) - +new Date();
-      if (remainingMs <= 0 && !completedRef.current) {
+      if (+new Date(targetDate) - +new Date() <= 0 && !completedRef.current) {
         completedRef.current = true;
         onComplete?.();
       }
@@ -101,15 +51,25 @@ function CountdownTimer({ targetDate, onComplete }: { targetDate: string; onComp
     return () => clearInterval(timer);
   }, [targetDate, onComplete]);
 
+  if (!isHydrated) {
+    return (
+      <span className="inline-flex items-center gap-1.5 font-mono bg-white/[0.06] border border-white/[0.08] backdrop-blur-md px-3 py-1 rounded-full text-white/70">
+        <span className="tabular-nums text-[13px]">--:--:--:--</span>
+      </span>
+    );
+  }
+
+  const pad = (n: number) => String(n).padStart(2, "0");
+
   return (
-    <span className="font-semibold font-mono bg-black/10 px-3 py-1 rounded-md backdrop-blur-sm inline-flex items-center gap-0.5">
-      <TimeDisplay label="d" value={timeLeft.days} isHydrated={isHydrated} />
-      <span className="opacity-50">:</span>
-      <TimeDisplay label="h" value={timeLeft.hours} isHydrated={isHydrated} />
-      <span className="opacity-50">:</span>
-      <TimeDisplay label="m" value={timeLeft.minutes} isHydrated={isHydrated} />
-      <span className="opacity-50">:</span>
-      <TimeDisplay label="s" value={timeLeft.seconds} isHydrated={isHydrated} />
+    <span className="inline-flex items-center gap-2 font-mono bg-white/[0.06] border border-white/[0.08] backdrop-blur-md px-3 py-1.5 rounded-full">
+      <CountdownSegment value={pad(timeLeft.days)} label="days" />
+      <span className="text-white/25 text-xs">:</span>
+      <CountdownSegment value={pad(timeLeft.hours)} label="hrs" />
+      <span className="text-white/25 text-xs">:</span>
+      <CountdownSegment value={pad(timeLeft.minutes)} label="min" />
+      <span className="text-white/25 text-xs">:</span>
+      <CountdownSegment value={pad(timeLeft.seconds)} label="sec" />
     </span>
   );
 }
@@ -117,40 +77,56 @@ function CountdownTimer({ targetDate, onComplete }: { targetDate: string; onComp
 export function CustomCountdownBanner() {
   const deadlineDate = "2026-02-19T23:59:59-05:00";
   const [deadlinePassed, setDeadlinePassed] = useState(false);
+
   useEffect(() => {
     const bannerKey = "nd-banner-build-games-banner";
     localStorage.removeItem(bannerKey);
     document.documentElement.classList.remove("nd-banner-build-games-banner");
   }, []);
 
-  // check if deadline has already passed
   useEffect(() => {
-    const isPassed = +new Date() >= +new Date(deadlineDate);
-    if (isPassed) { setDeadlinePassed(true) }
+    if (+new Date() >= +new Date(deadlineDate)) setDeadlinePassed(true);
   }, []);
 
-  // don't show banner after deadline
-  if (deadlinePassed) { return null }
+  if (deadlinePassed) return null;
 
   return (
     <div className="sticky top-0 z-50">
       <Banner
         id="build-games-banner"
-        variant="rainbow"
-        style={{background: "linear-gradient(90deg, #0b1e30 0%, #1a3a5c 50%, #0b1e30 100%)", color: "#fff",}}
+        variant="normal"
+        className="!bg-gradient-to-r !from-zinc-950 !via-zinc-900 !to-zinc-950 !text-white border-b border-white/[0.06]"
       >
-        <Link href="/build-games" className="md:hidden inline-flex items-center gap-1 flex-wrap justify-center">
-          <span>Don't miss <strong className="text-[#66acd6]">Build Games</strong> — <strong className="text-[#66acd6]">$1M</strong> Builder Competition</span>
+        {/* Mobile */}
+        <Link
+          href="/build-games"
+          className="md:hidden inline-flex items-center gap-2 text-[13px] tracking-tight"
+        >
+          <span className="font-medium">
+            <strong className="text-red-400">Build Games</strong> — $1M Competition
+          </span>
+          <ArrowRight className="size-3.5 text-white/50" />
         </Link>
 
-        <div className="hidden md:flex flex-row items-center justify-center gap-2 text-center">
-          <span>Don't miss <strong className="text-[#66acd6]">Build Games</strong>, A <strong className="text-[#66acd6]">$1,000,000</strong> Builder Competition on Avalanche</span>
-          <span className="flex items-center gap-2">
-            <span>•</span>
-            <CountdownTimer targetDate={deadlineDate} onComplete={() => setDeadlinePassed(true)} />
-            <span className="hidden md:inline">•</span>
-            <Link href="/build-games" className="underline underline-offset-4 hover:text-[#66acd6] transition-colors">Apply Now</Link>
+        {/* Desktop */}
+        <div className="hidden md:flex flex-row items-center justify-center gap-3 text-[13px] tracking-tight">
+          <span className="font-medium">
+            <strong className="text-red-400">Build Games</strong>
+            <span className="text-white/60 mx-1.5">—</span>
+            <strong className="italic text-white">$1,000,000</strong> <span className="text-white/90">Builder Competition on Avalanche</span>
           </span>
+
+          <span className="text-white/20">|</span>
+
+          <CountdownTimer targetDate={deadlineDate} onComplete={() => setDeadlinePassed(true)} />
+
+          <Link
+            href="/build-games"
+            className="inline-flex items-center gap-1.5 bg-white/[0.08] hover:bg-white/[0.14] border border-white/[0.1] backdrop-blur-sm px-3 py-1 rounded-full text-[12px] font-medium transition-all duration-200"
+          >
+            Apply Now
+            <ArrowRight className="size-3" />
+          </Link>
         </div>
       </Banner>
     </div>
