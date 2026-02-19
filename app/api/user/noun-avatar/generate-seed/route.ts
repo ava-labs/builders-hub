@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Session } from 'next-auth';
 import { withAuth } from '@/lib/protectedRoute';
 import { keccak_256 } from '@noble/hashes/sha3';
 import { bytesToHex } from '@noble/hashes/utils';
@@ -118,8 +119,8 @@ function generateAvatarSeed(identifier: string, random: boolean = false): Avatar
 
 export const GET = withAuth(async (
   req: NextRequest,
-  context: any,
-  session: any
+  _context: unknown,
+  session: Session
 ) => {
   try {
     const { searchParams } = new URL(req.url);

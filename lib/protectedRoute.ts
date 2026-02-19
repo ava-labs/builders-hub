@@ -1,9 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Session } from 'next-auth';
 import { getAuthSession } from './auth/authSession';
 
+/**
+ * Helper type for route handlers with params.
+ * Usage: withAuth<RouteParams<{ id: string }>>(...)
+ */
+export type RouteParams<T extends Record<string, string>> = {
+  params: Promise<T>;
+};
 
-export function withAuth(handler: (request: NextRequest, context: any, session: any) => Promise<NextResponse>) {
-  return async function (request: NextRequest, context: any) {
+export function withAuth<TContext = unknown>(
+  handler: (request: NextRequest, context: TContext, session: Session) => Promise<NextResponse>
+) {
+  return async function (request: NextRequest, context: TContext) {
     const session = await getAuthSession();
     if (!session) {
       return NextResponse.json({ 
@@ -14,8 +24,11 @@ export function withAuth(handler: (request: NextRequest, context: any, session: 
     return handler(request, context, session); 
   };
 }
-export function withAuthRole(role: string, handler: (request: NextRequest, context: any, session: any) => Promise<NextResponse>) {
-  return async function (request: NextRequest, context: any) {
+export function withAuthRole<TContext = unknown>(
+  role: string,
+  handler: (request: NextRequest, context: TContext, session: Session) => Promise<NextResponse>
+) {
+  return async function (request: NextRequest, context: TContext) {
     const session = await getAuthSession();
     
     // Check if user is authenticated

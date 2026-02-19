@@ -78,7 +78,7 @@ export function ShowcaseProjectAuthWrapper({
   // Render the project overview if authenticated and authorized
   return (
     <main className="container relative max-w-[1400px] pb-16">
-      <ProjectOverview project={project as unknown as Project} badges={badges} />
+      <ProjectOverview project={project} badges={badges} />
     </main>
   );
 }
