@@ -5,7 +5,7 @@ export interface ContractInfo {
   address: string;
   name: string;
   protocol: string;
-  category: 'dex' | 'lending' | 'derivatives' | 'bridge' | 'nft' | 'yield' | 'gaming' | 'token' | 'infrastructure' | 'icm' | 'other';
+  category: 'dex' | 'lending' | 'derivatives' | 'bridge' | 'nft' | 'yield' | 'gaming' | 'token' | 'infrastructure' | 'icm' | 'mev' | 'other';
   type: 'router' | 'factory' | 'pool' | 'vault' | 'token' | 'staking' | 'rewards' | 'orderbook' | 'controller' | 'other';
 }
 
@@ -913,14 +913,14 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     address: '0x0000000071727de22e5e9d8baf0edac6f37da032',
     name: 'EntryPoint v0.7',
     protocol: 'ERC-4337',
-    category: 'other',
+    category: 'infrastructure',
     type: 'router',
   },
   '0x5ff137d4b0fdcd49dca30c7cf57e578a026d2789': {
     address: '0x5ff137d4b0fdcd49dca30c7cf57e578a026d2789',
     name: 'EntryPoint v0.6',
     protocol: 'ERC-4337',
-    category: 'other',
+    category: 'infrastructure',
     type: 'router',
   },
 
@@ -1146,6 +1146,89 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     category: 'yield',
     type: 'other',
   },
+
+  // ============ MEV / ARBITRAGE BOTS ============
+  // Note: MEV bots are ephemeral and get redeployed frequently.
+  // These are the top gas-consuming bots as of Feb 2026.
+  '0x0b622725625d7b6bf6fe2d66755d75033e26008c': {
+    address: '0x0b622725625d7b6bf6fe2d66755d75033e26008c',
+    name: 'MEV Bot (0x977a deployer)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0x922135e61c07c650dc406dc9d7722f403cf4935b': {
+    address: '0x922135e61c07c650dc406dc9d7722f403cf4935b',
+    name: 'MEV Bot (0x2222 deployer)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0x10922755586c35180cdec7a1a38e2b60c800d3c8': {
+    address: '0x10922755586c35180cdec7a1a38e2b60c800d3c8',
+    name: 'MEV Bot (failed ops)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0x99b69659f70470bbd32ae59ddf952f157a598a44': {
+    address: '0x99b69659f70470bbd32ae59ddf952f157a598a44',
+    name: 'MEV Bot (multi-protocol)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0x612a722ac5eff60004a0d8e83fbe768690540176': {
+    address: '0x612a722ac5eff60004a0d8e83fbe768690540176',
+    name: 'MEV Bot (0x977a deployer #2)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0x07d25044cbe0524c0617267d6bfaf2fa6a0a0efe': {
+    address: '0x07d25044cbe0524c0617267d6bfaf2fa6a0a0efe',
+    name: 'MEV Bot (Gnosis Safe backed)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0x25090cd3c1f3dd6377348f58408d2ddc96acf201': {
+    address: '0x25090cd3c1f3dd6377348f58408d2ddc96acf201',
+    name: 'MEV Bot (0x977a deployer #3)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+
+  // ============ RWA / LENDING (from PR #3839) ============
+  '0xe25cb545bdd47a8ec2d08001cb5661b00d47621a': {
+    address: '0xe25cb545bdd47a8ec2d08001cb5661b00d47621a',
+    name: 'OatFi Tranche Pool',
+    protocol: 'OatFi',
+    category: 'lending',
+    type: 'pool',
+  },
+  '0x41d9569610dae2b6696797382fb26b5156db426f': {
+    address: '0x41d9569610dae2b6696797382fb26b5156db426f',
+    name: 'OatFi Borrower Operating',
+    protocol: 'OatFi',
+    category: 'lending',
+    type: 'other',
+  },
+  '0xe3cde6f051872e67d0a7c2124e9a024d80e2733f': {
+    address: '0xe3cde6f051872e67d0a7c2124e9a024d80e2733f',
+    name: 'Valinor Lender',
+    protocol: 'Valinor',
+    category: 'lending',
+    type: 'vault',
+  },
+  '0x7a75539cd0647625217ef93302855ddeb02f7093': {
+    address: '0x7a75539cd0647625217ef93302855ddeb02f7093',
+    name: 'Avalanche Foundation Lender',
+    protocol: 'OatFi',
+    category: 'lending',
+    type: 'vault',
+  },
 };
 
 // Protocol slug mapping for linking to dApp pages (canonical slug per protocol)
@@ -1199,6 +1282,11 @@ export const PROTOCOL_SLUGS: Record<string, string> = {
   'vfat.io': 'vfat',
   // Gaming
   'MoveQuest': 'movequest',
+  // MEV
+  'MEV / Arbitrage': 'mev-arbitrage',
+  // RWA / Lending
+  'OatFi': 'oatfi',
+  'Valinor': 'valinor',
   // Other
   'Big Ads': 'big-ads',
   'Red Cast': 'red-cast',
@@ -1324,6 +1412,12 @@ export const SLUG_ALIASES: Record<string, string> = {
   // Gaming
   'movequest': 'MoveQuest',
   'getfit-mining': 'MoveQuest',
+  // MEV
+  'mev-arbitrage': 'MEV / Arbitrage',
+  'mev': 'MEV / Arbitrage',
+  // RWA / Lending
+  'oatfi': 'OatFi',
+  'valinor': 'Valinor',
   // Other
   'big-ads': 'Big Ads',
   'red-cast': 'Red Cast',

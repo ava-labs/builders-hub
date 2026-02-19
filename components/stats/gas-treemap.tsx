@@ -46,6 +46,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   infrastructure: "Infrastructure",
   gaming: "Gaming",
   token: "Token",
+  mev: "MEV Bots",
   native: "Native Transfers",
   other: "Other",
 };
