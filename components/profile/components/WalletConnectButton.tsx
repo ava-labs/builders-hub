@@ -37,9 +37,44 @@ interface EIP6963ProviderInfo {
   rdns: string;
 }
 
+// Common interface for Ethereum providers that support the request method (EIP-1193)
+// Using generic type parameter to allow type-safe return values
+interface EthereumProviderRequest {
+  request<T = unknown>(args: { method: string; params?: unknown[] }): Promise<T>;
+}
+
 interface EIP6963ProviderDetail {
   info: EIP6963ProviderInfo;
-  provider: any;
+  provider: EthereumProviderRequest;
+}
+
+// Local type for window with wallet provider properties (avoids modifying global types)
+// Not extending Window to prevent conflicts with global ethereum type; used only for assertion.
+interface WindowWithWalletProviders {
+  ethereum?: EthereumProviderRequest & {
+    isMetaMask?: boolean;
+    isBraveWallet?: boolean;
+    isRainbow?: boolean;
+    on?(event: string, callback: (...args: unknown[]) => void): void;
+    removeListener?(event: string, callback: (...args: unknown[]) => void): void;
+  };
+  coinbaseWalletExtension?: EthereumProviderRequest;
+  // Core Wallet (Avalanche wallet) - uses window.avalanche
+  // Use the same type as global.d.ts for avalanche to maintain compatibility
+  avalanche?: {
+    request: <T>(args: {
+      method: string;
+      params?: Record<string, unknown> | unknown[];
+      id?: number;
+    }) => Promise<T>;
+    on?: <T>(event: string, callback: (data: T) => void) => void;
+    removeListener?: (event: string, callback: () => void) => void;
+  };
+  zerion?: EthereumProviderRequest;
+}
+
+function getWalletWindow(): WindowWithWalletProviders {
+  return typeof window === "undefined" ? ({} as WindowWithWalletProviders) : (window as unknown as WindowWithWalletProviders);
 }
 
 // Known wallet identifiers and their metadata
@@ -98,9 +133,10 @@ export function WalletConnectButton({
   }, [onWalletConnected]);
 
   // Request accounts; wallet_revokePermissions was tried but Zerion returns 403, so we call eth_requestAccounts only
-  const requestAccountsWithPicker = useCallback(async (provider: unknown): Promise<string[]> => {
-    const accounts = await (provider as any).request({ method: "eth_requestAccounts" }) as string[];
-    return accounts ?? [];
+  // eth_requestAccounts returns string[] according to EIP-1193
+  const requestAccountsWithPicker = useCallback(async (provider: EthereumProviderRequest): Promise<string[]> => {
+    const accounts = await provider.request<string[]>({ method: "eth_requestAccounts" });
+    return Array.isArray(accounts) ? accounts.filter((account): account is string => typeof account === "string") : [];
   }, []);
 
   // Initialize WalletConnect Provider with singleton pattern
@@ -318,13 +354,14 @@ export function WalletConnectButton({
         if (info.rdns) {
           detectedIds.add(info.rdns);
           detectedIds.add(rdnsKeyNormalized);
-        }
+        } 
         detectedIds.add(nameKey);
       }
     });
 
     // Legacy detection: MetaMask (check isMetaMask flag first to avoid duplicates)
-    if ((window.ethereum as any)?.isMetaMask && !detectedIds.has("metamask")) {
+    const win = getWalletWindow();
+    if (win.ethereum?.isMetaMask && !detectedIds.has("metamask")) {
       wallets.push({
         name: "MetaMask",
         icon: "🦊",
@@ -333,7 +370,7 @@ export function WalletConnectButton({
         type: "extension",
         connect: async () => {
           try {
-            const accounts = await requestAccountsWithPicker((window as any).ethereum);
+            const accounts = await requestAccountsWithPicker(win.ethereum!);
             return accounts?.[0] || null;
           } catch (error: any) {
             if (error.code === 4001) {
@@ -348,7 +385,7 @@ export function WalletConnectButton({
 
     // Zerion Wallet detection (window.zerion)
     // Check both window.zerion and if it's already detected via EIP-6963
-    if (window.zerion && 
+    if (win.zerion && 
         !detectedIds.has("zerion") && 
         !detectedIds.has("io.zerion") && 
         !detectedIds.has("io_zerion")) {
@@ -360,7 +397,7 @@ export function WalletConnectButton({
         type: "extension",
         connect: async () => {
           try {
-            const accounts = await requestAccountsWithPicker(window.zerion!);
+            const accounts = await requestAccountsWithPicker(win.zerion!);
             return accounts?.[0] || null;
           } catch (error: any) {
             if (error.code === 4001) {
@@ -376,7 +413,7 @@ export function WalletConnectButton({
     }
 
     // Coinbase Wallet detection (window.coinbaseWalletExtension)
-    if ((window as any).coinbaseWalletExtension && !detectedIds.has("coinbase")) {
+    if (win.coinbaseWalletExtension && !detectedIds.has("coinbase")) {
       wallets.push({
         name: "Coinbase Wallet",
         icon: "🔵",
@@ -385,7 +422,7 @@ export function WalletConnectButton({
         type: "extension",
         connect: async () => {
           try {
-            const accounts = await requestAccountsWithPicker((window as any).coinbaseWalletExtension);
+            const accounts = await requestAccountsWithPicker(win.coinbaseWalletExtension!);
             return accounts?.[0] || null;
           } catch (error: any) {
             if (error.code === 4001) {
@@ -400,7 +437,7 @@ export function WalletConnectButton({
 
     // Core Wallet (Avalanche wallet) - Always show, even if not installed
     if (!detectedIds.has("core")) {
-      const isCoreInstalled = !!(window as any).avalanche?.request;
+      const isCoreInstalled = !!win.avalanche?.request;
       wallets.push({
         name: "Core Wallet",
         icon: "🔷",
@@ -413,7 +450,7 @@ export function WalletConnectButton({
             throw new Error("Please install Core Wallet extension to connect.");
           }
           try {
-            const accounts = await requestAccountsWithPicker(window.avalanche!);
+            const accounts = await requestAccountsWithPicker(win.avalanche!);
             return accounts?.[0] || null;
           } catch (error: any) {
             if (error.code === 4001) {
@@ -427,7 +464,7 @@ export function WalletConnectButton({
     }
 
     // Brave Wallet detection
-    if ((window.ethereum as any)?.isBraveWallet && !detectedIds.has("brave")) {
+    if (win.ethereum?.isBraveWallet && !detectedIds.has("brave")) {
       wallets.push({
         name: "Brave Wallet",
         icon: "🦁",
@@ -436,7 +473,7 @@ export function WalletConnectButton({
         type: "extension",
         connect: async () => {
           try {
-            const accounts = await requestAccountsWithPicker((window as any).ethereum);
+            const accounts = await requestAccountsWithPicker(win.ethereum!);
             return accounts?.[0] || null;
           } catch (error: any) {
             if (error.code === 4001) {
@@ -450,7 +487,7 @@ export function WalletConnectButton({
     }
 
     // Rainbow Wallet detection
-    if ((window.ethereum as any)?.isRainbow && !detectedIds.has("rainbow")) {
+    if (win.ethereum?.isRainbow && !detectedIds.has("rainbow")) {
       wallets.push({
         name: "Rainbow",
         icon: "🌈",
@@ -459,7 +496,7 @@ export function WalletConnectButton({
         type: "extension",
         connect: async () => {
           try {
-            const accounts = await requestAccountsWithPicker((window as any).ethereum);
+            const accounts = await requestAccountsWithPicker(win.ethereum!);
             return accounts?.[0] || null;
           } catch (error: any) {
             if (error.code === 4001) {
@@ -474,10 +511,10 @@ export function WalletConnectButton({
 
     // Other EIP-1193 providers (fallback for unknown wallets)
     if (
-      window.ethereum &&
-      !(window.ethereum as any).isMetaMask &&
-      !(window.ethereum as any).isBraveWallet &&
-      !(window.ethereum as any).isRainbow &&
+      win.ethereum &&
+      !win.ethereum.isMetaMask &&
+      !win.ethereum.isBraveWallet &&
+      !win.ethereum.isRainbow &&
       !detectedIds.has("other")
     ) {
       wallets.push({
@@ -488,7 +525,7 @@ export function WalletConnectButton({
         type: "extension",
         connect: async () => {
           try {
-            const accounts = await requestAccountsWithPicker((window as any).ethereum);
+            const accounts = await requestAccountsWithPicker(win.ethereum!);
             return accounts?.[0] || null;
           } catch (error: any) {
             if (error.code === 4001) {
@@ -514,20 +551,21 @@ export function WalletConnectButton({
 
   // Listen for account changes in MetaMask
   useEffect(() => {
-    if (typeof window === "undefined" || !window.ethereum || !currentAddress) {
+    const win = getWalletWindow();
+    if (typeof window === "undefined" || !win.ethereum || !currentAddress) {
       return;
     }
 
-    const handleAccountsChanged = (accounts: string[]) => {
+    const handleAccountsChanged = (...args: unknown[]) => {
+      const accounts = Array.isArray(args[0]) ? (args[0] as string[]) : [];
       if (accounts.length > 0 && currentAddress) {
-        // Use stable reference instead of the function directly
         onWalletConnectedRef.current(accounts[0]);
       }
     };
 
-    const ethereum = window.ethereum as any;
+    const ethereum = win.ethereum;
     ethereum.on?.("accountsChanged", handleAccountsChanged);
-    
+
     return () => {
       ethereum.removeListener?.("accountsChanged", handleAccountsChanged);
     };
