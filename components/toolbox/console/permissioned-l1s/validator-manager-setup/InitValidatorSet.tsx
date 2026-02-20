@@ -5,8 +5,9 @@ import Link from "next/link";
 import { useSelectedL1 } from "@/components/toolbox/stores/l1ListStore";
 import { useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
+import { useChainPublicClient } from "@/components/toolbox/hooks/useChainPublicClient";
 import { useWalletClient } from 'wagmi';
-import { hexToBytes, decodeErrorResult, Abi, encodeAbiParameters } from "viem";
+import { hexToBytes, decodeErrorResult, Abi, encodeFunctionData } from "viem";
 import { packWarpIntoAccessList } from "../ValidatorManager/packWarp";
 import ValidatorManagerABI from "@/contracts/icm-contracts/compiled/ValidatorManager.json";
 import { Button } from "@/components/toolbox/components/Button";
@@ -37,7 +38,8 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
   const [conversionTxID, setConversionTxID] = useState<string>("");
   const [L1ConversionSignature, setL1ConversionSignature] = useState<string>("");
   const viemChain = useViemChainStore();
-  const { publicClient, walletEVMAddress, isTestnet } = useWalletStore();
+  const { walletEVMAddress, isTestnet } = useWalletStore();
+  const chainPublicClient = useChainPublicClient();
   const { data: walletClient } = useWalletClient();
   const walletType = useWalletStore((s) => s.walletType);
   const isCoreWallet = walletType === "core";
@@ -52,6 +54,8 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
   const [txSuccess, setTxSuccess] = useState(false);
   const [managerAddress, setManagerAddress] = useState<string>("");
   const [conversionResult, setConversionResult] = useState<ConversionData | null>(null);
+  const [isValidatorSetInit, setIsValidatorSetInit] = useState<boolean | null>(null);
+  const [isCheckingInit, setIsCheckingInit] = useState(false);
 
   const { notify } = useConsoleNotifications();
 
@@ -105,6 +109,23 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
         setConversionTxIDError((error as Error)?.message || "Unknown error");
       });
   }, [selectedL1?.subnetId]);
+
+  // Check on-chain whether initializeValidatorSet has already been called
+  useEffect(() => {
+    if (!managerAddress || !chainPublicClient) return;
+    setIsCheckingInit(true);
+    chainPublicClient.readContract({
+      address: managerAddress as `0x${string}`,
+      abi: ValidatorManagerABI.abi,
+      functionName: "isValidatorSetInitialized",
+    }).then((result) => {
+      setIsValidatorSetInit(result as boolean);
+    }).catch(() => {
+      setIsValidatorSetInit(null);
+    }).finally(() => {
+      setIsCheckingInit(false);
+    });
+  }, [managerAddress, chainPublicClient]);
 
   // Build the transaction args from conversion data
   function buildTxArgs(data: ConversionData) {
@@ -168,7 +189,7 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
       notify({ type: "call", name: "Initialize Validator Set" }, initPromise, viemChain ?? undefined);
 
       const hash = await initPromise;
-      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      const receipt = await chainPublicClient!.waitForTransactionReceipt({ hash });
 
       const evmChainRpcUrl = selectedL1?.rpcUrl;
       if (receipt.status !== "success") {
@@ -193,51 +214,16 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
     const addr = conversionResult.managerAddress || managerAddress || "<VALIDATOR_MANAGER_ADDRESS>";
 
     const txArgs = buildTxArgs(conversionResult);
-    const conversionData = txArgs[0] as {
-      subnetID: `0x${string}`;
-      validatorManagerBlockchainID: `0x${string}`;
-      validatorManagerAddress: `0x${string}`;
-      initialValidators: { nodeID: string; blsPublicKey: string; weight: number }[];
-    };
 
-    // ABI-encode the ConversionData struct + uint32
-    const encodedArgs = encodeAbiParameters(
-      [
-        {
-          type: "tuple",
-          components: [
-            { name: "subnetID", type: "bytes32" },
-            { name: "validatorManagerBlockchainID", type: "bytes32" },
-            { name: "validatorManagerAddress", type: "address" },
-            {
-              name: "initialValidators",
-              type: "tuple[]",
-              components: [
-                { name: "nodeID", type: "bytes" },
-                { name: "blsPublicKey", type: "bytes" },
-                { name: "weight", type: "uint64" },
-              ],
-            },
-          ],
-        },
-        { type: "uint32" },
-      ],
-      [
-        {
-          subnetID: conversionData.subnetID,
-          validatorManagerBlockchainID: conversionData.validatorManagerBlockchainID,
-          validatorManagerAddress: conversionData.validatorManagerAddress,
-          initialValidators: conversionData.initialValidators.map((v) => ({
-            nodeID: v.nodeID as `0x${string}`,
-            blsPublicKey: v.blsPublicKey as `0x${string}`,
-            weight: BigInt(v.weight),
-          })),
-        },
-        0,
-      ]
-    );
+    // Encode full calldata (4-byte selector + ABI-encoded args).
+    // Passing raw calldata avoids cast trying to re-encode the args.
+    const calldata = encodeFunctionData({
+      abi: ValidatorManagerABI.abi as Abi,
+      functionName: "initializeValidatorSet",
+      args: txArgs,
+    });
 
-    // Build the access list JSON
+    // Build the access list JSON for the Warp precompile
     let accessListJson = '"<ACCESS_LIST>"';
     try {
       const signatureBytes = hexToBytes(add0x(L1ConversionSignature));
@@ -248,9 +234,9 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
     }
 
     return [
+      `# Requires Foundry ≥ 2024-09-16 (run foundryup to update)`,
       `cast send ${addr} \\`,
-      `  "initializeValidatorSet((bytes32,bytes32,address,(bytes,bytes,uint64)[]),uint32)" \\`,
-      `  ${encodedArgs} \\`,
+      `  ${calldata} \\`,
       `  --access-list ${accessListJson} \\`,
       `  --gas-limit 2000000 \\`,
       `  --rpc-url ${rpcUrl} \\`,
@@ -259,7 +245,7 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
   }
 
   const step1Complete = !!L1ConversionSignature;
-  const step2Complete = txSuccess;
+  const step2Complete = txSuccess || isValidatorSetInit === true;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -382,14 +368,16 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
                   access list
                 </p>
 
-                {step1Complete && (
-                  <div className="mt-2 space-y-2">
-                    {step2Complete ? (
-                      <div className="flex items-center gap-1.5 text-green-600 dark:text-green-400">
-                        <Check className="w-3.5 h-3.5" />
-                        <span className="text-xs font-medium">Validator set initialized</span>
-                      </div>
-                    ) : isCoreWallet ? (
+                <div className="mt-2 space-y-2">
+                  {step2Complete ? (
+                    <div className="flex items-center gap-1.5 text-green-600 dark:text-green-400">
+                      <Check className="w-3.5 h-3.5" />
+                      <span className="text-xs font-medium">Validator set initialized</span>
+                    </div>
+                  ) : isCheckingInit ? (
+                    <p className="text-xs text-zinc-400">Checking on-chain status...</p>
+                  ) : step1Complete ? (
+                    isCoreWallet ? (
                       <Button
                         variant="primary"
                         onClick={onInitialize}
@@ -401,9 +389,9 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
                       </Button>
                     ) : (
                       <DynamicCodeBlock lang="bash" code={generateCastCommand()} />
-                    )}
-                  </div>
-                )}
+                    )
+                  ) : null}
+                </div>
               </div>
             </div>
           </div>

@@ -239,6 +239,7 @@ function CreateChain({ onSuccess, embedded = false }: CreateChainProps) {
                             disabled={!canCreateChain}
                             className="w-full"
                             cliCommand={`platform chain create --subnet-id ${subnetId || "<subnet-id>"} --genesis ./genesis.json --name "${localChainName}"${vmId !== SUBNET_EVM_VM_ID ? ` --vm-id ${vmId}` : ""} --network ${isTestnet ? "fuji" : "mainnet"}`}
+                            downloadFile={genesisData ? { data: genesisData, filename: "genesis.json" } : undefined}
                         >
                             Create Chain
                         </CoreWalletTransactionButton>

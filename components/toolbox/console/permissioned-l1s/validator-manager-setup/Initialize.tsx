@@ -1,6 +1,7 @@
 "use client";
 
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
+import { useChainPublicClient } from "@/components/toolbox/hooks/useChainPublicClient";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/toolbox/components/Button";
 import { AbiEvent } from "viem";
@@ -30,7 +31,7 @@ const metadata: ConsoleToolMetadata = {
 };
 
 function Initialize({ onSuccess }: BaseConsoleToolProps) {
-  const { walletEVMAddress, publicClient } = useWalletStore();
+  const { walletEVMAddress } = useWalletStore();
   const { data: walletClient } = useWalletClient();
   const [isChecking, setIsChecking] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
@@ -39,6 +40,8 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
   const [maximumChurnPercentage, setMaximumChurnPercentage] = useState("20");
   const [adminAddress, setAdminAddress] = useState("");
   const viemChain = useViemChainStore();
+
+  const chainPublicClient = useChainPublicClient();
   const selectedL1 = useSelectedL1()();
   const [subnetId, setSubnetId] = useState("");
   const createChainStoreSubnetId = useCreateChainStore()((state) => state.subnetId);
@@ -69,7 +72,7 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
   }
 
   async function checkIfInitialized() {
-    if (!managerAddress || !walletClient) return;
+    if (!managerAddress || !walletClient || !chainPublicClient) return;
 
     setIsChecking(true);
     try {
@@ -82,7 +85,7 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
       }
 
       try {
-        await publicClient.readContract({
+        await chainPublicClient.readContract({
           address: managerAddress as `0x${string}`,
           abi: ValidatorManagerABI.abi,
           functionName: "admin",
@@ -96,10 +99,10 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
         }
       }
 
-      const latestBlock = await publicClient.getBlockNumber();
+      const latestBlock = await chainPublicClient.getBlockNumber();
       const fromBlock = latestBlock > 2000n ? latestBlock - 2000n : 0n;
 
-      const logs = await publicClient.getLogs({
+      const logs = await chainPublicClient.getLogs({
         address: managerAddress as `0x${string}`,
         event: initializedEvent as AbiEvent,
         fromBlock: fromBlock,
@@ -141,7 +144,7 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
 
     try {
       const hash = await initPromise;
-      await publicClient.waitForTransactionReceipt({ hash });
+      await chainPublicClient!.waitForTransactionReceipt({ hash });
       await checkIfInitialized();
       onSuccess?.();
     } finally {

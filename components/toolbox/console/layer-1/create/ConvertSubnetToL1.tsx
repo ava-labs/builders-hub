@@ -62,12 +62,14 @@ function ConvertToL1({ onSuccess }: BaseConsoleToolProps) {
             const nodeIds = validators.map(v => v.nodeID || "<node-id>").join(",");
             const blsKeys = validators.map(v => v.nodePOP.publicKey || "<bls-key>").join(",");
             const blsPops = validators.map(v => v.nodePOP.proofOfPossession || "<bls-pop>").join(",");
+            const weights = validators.map(v => v.validatorWeight.toString()).join(",");
             const balanceAvax = validators[0]?.validatorBalance
                 ? (Number(validators[0].validatorBalance) / 1e9).toString()
                 : "1.0";
             parts.push(`--validator-node-ids ${nodeIds}`);
             parts.push(`--validator-bls-public-keys ${blsKeys}`);
             parts.push(`--validator-bls-pops ${blsPops}`);
+            parts.push(`--validator-weights ${weights}`);
             parts.push(`--validator-balance ${balanceAvax}`);
         } else {
             parts.push(`--mock-validator`);
