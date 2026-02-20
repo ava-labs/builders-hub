@@ -27,6 +27,7 @@ import {
   Lock,
 } from "lucide-react";
 import { MultiSelect } from "@/components/ui/multi-select";
+import { MultiLinkInput } from "@/components/hackathons/project-submission/components/MultiLinkInput";
 import MembersComponent from "@/components/hackathons/project-submission/components/Members";
 import { Toaster } from "@/components/ui/toaster";
 import type { Track } from "@/types/hackathons";
@@ -49,13 +50,20 @@ const STAGE_SHORT_NAMES: Record<number, string> = {
 };
 
 const STAGE_DESCRIPTIONS: Record<number, string> = {
-  1: "Submit your 1-minute pitch video explaining your project idea, target problem, solution approach, and value proposition.",
+  1: "Submit your project idea, team information, problem statement, and proposed solution.",
   2: "Share your GitHub repository, technical documentation, and a product walkthrough video demonstrating your key features.",
   3: "Submit your go-to-market plan, growth strategy, target user personas, competitive analysis, and long-term product vision.",
   4: "Provide your pitch deck, demo links, and complete project documentation for the final live presentation.",
 };
 
+// ── Zod Schema ────────────────────────────────────────────────────────────────
+//
+// Fields prefixed with bg_ are Build Games-specific and are stored in the
+// FormData table under the { build_games: { ... } } JSON key.
+// All other fields map to the Project table.
+//
 const FormSchema = z.object({
+  // ── Project table fields ──────────────────────────────────────────────────
   project_name: z
     .string()
     .min(2, "Project name must be at least 2 characters")
@@ -69,18 +77,21 @@ const FormSchema = z.object({
     .or(z.literal("")),
   full_description: z.string().optional().or(z.literal("")),
   tech_stack: z.string().optional().or(z.literal("")),
-  github_repository: z.string().optional().or(z.literal("")),
-  demo_link: z
-    .string()
-    .url("Please enter a valid URL")
-    .optional()
-    .or(z.literal("")),
-  demo_video_link: z
-    .string()
-    .url("Please enter a valid URL")
-    .optional()
-    .or(z.literal("")),
+  github_repository: z.array(z.string()).optional(),
+  demo_link: z.array(z.string()).optional(),
+  demo_video_link: z.array(z.string()).optional(),
   tracks: z.array(z.string()).optional(),
+
+  // ── Stage 1 — Problem Identification ─────────────────────────────────────
+  bg_problem_statement: z.string().optional().or(z.literal("")),
+  bg_user_persona: z.string().optional().or(z.literal("")),
+  bg_current_solutions: z.string().optional().or(z.literal("")),
+  bg_proposed_solution: z.string().optional().or(z.literal("")),
+
+  // ── Stage 1 — Proposed Solution ──────────────────────────────────────────
+  bg_architecture_overview: z.string().optional().or(z.literal("")),
+  bg_user_journey: z.string().optional().or(z.literal("")),
+  bg_moscow_framework: z.string().optional().or(z.literal("")),
 });
 
 type FormData = z.infer<typeof FormSchema>;
@@ -104,7 +115,6 @@ export default function BuildGamesSubmitForm({
     { label: string; value: string }[]
   >([]);
   const [hackathonTracks, setHackathonTracks] = useState<Track[]>([]);
-  // Current stage open by default; previous stages collapsed
   const [openStages, setOpenStages] = useState<Set<number>>(
     () => new Set([stage])
   );
@@ -116,21 +126,28 @@ export default function BuildGamesSubmitForm({
       short_description: "",
       full_description: "",
       tech_stack: "",
-      github_repository: "",
-      demo_link: "",
-      demo_video_link: "",
+      github_repository: [],
+      demo_link: [],
+      demo_video_link: [],
       tracks: [],
+      bg_problem_statement: "",
+      bg_user_persona: "",
+      bg_current_solutions: "",
+      bg_proposed_solution: "",
+      bg_architecture_overview: "",
+      bg_user_journey: "",
+      bg_moscow_framework: "",
     },
   });
 
-  // Redirect unauthenticated users
+  // ── Effects ────────────────────────────────────────────────────────────────
+
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/build-games");
     }
   }, [status, router]);
 
-  // Check application status
   useEffect(() => {
     if (status !== "authenticated") return;
     axios
@@ -140,7 +157,6 @@ export default function BuildGamesSubmitForm({
       .finally(() => setLoadingStatus(false));
   }, [status]);
 
-  // Fetch hackathon tracks for Integration Partners
   useEffect(() => {
     axios
       .get(`/api/hackathons/${HACKATHON_ID}`)
@@ -154,44 +170,71 @@ export default function BuildGamesSubmitForm({
       .catch(() => {});
   }, []);
 
-  // Load existing project to pre-populate the form
+  // Load existing Project + FormData to pre-populate the form
   useEffect(() => {
     if (!session?.user?.id || hasApplied !== true) return;
+
     axios
       .get("/api/project", {
         params: { hackathon_id: HACKATHON_ID, user_id: session.user.id },
       })
-      .then((res) => {
-        if (res.data.project) {
-          const p = res.data.project;
-          setProjectId(p.id ?? "");
-          form.reset({
-            project_name: p.project_name ?? "",
-            short_description: p.short_description ?? "",
-            full_description: p.full_description ?? "",
-            tech_stack: p.tech_stack ?? "",
-            github_repository: p.github_repository ?? "",
-            demo_link: p.demo_link ? p.demo_link.split(",")[0] : "",
-            demo_video_link: p.demo_video_link ?? "",
-            tracks: Array.isArray(p.tracks) ? p.tracks : [],
+      .then(async (res) => {
+        if (!res.data.project) return;
+        const p = res.data.project;
+        const pid = p.id ?? "";
+        setProjectId(pid);
+
+        // Populate Project-table fields
+        const projectValues: Partial<FormData> = {
+          project_name: p.project_name ?? "",
+          short_description: p.short_description ?? "",
+          full_description: p.full_description ?? "",
+          tech_stack: p.tech_stack ?? "",
+          github_repository: p.github_repository ? p.github_repository.split(",").filter(Boolean) : [],
+          demo_link: p.demo_link ? p.demo_link.split(",").filter(Boolean) : [],
+          demo_video_link: p.demo_video_link ? p.demo_video_link.split(",").filter(Boolean) : [],
+          tracks: Array.isArray(p.tracks) ? p.tracks : [],
+        };
+
+        // Fetch and populate build_games FormData fields
+        try {
+          const fdRes = await axios.get("/api/build-games/stage-data", {
+            params: { project_id: pid },
           });
+          const bg = fdRes.data.form_data?.build_games ?? {};
+          form.reset({
+            ...projectValues,
+            bg_problem_statement: bg.problem_statement ?? "",
+            bg_user_persona: bg.user_persona ?? "",
+            bg_current_solutions: bg.current_solutions ?? "",
+            bg_proposed_solution: bg.proposed_solution ?? "",
+            bg_architecture_overview: bg.architecture_overview ?? "",
+            bg_user_journey: bg.user_journey ?? "",
+            bg_moscow_framework: bg.moscow_framework ?? "",
+          });
+        } catch {
+          // FormData doesn't exist yet — still apply project values
+          form.reset(projectValues);
         }
       })
       .catch(() => {});
   }, [hasApplied, session?.user?.id]);
 
-  // Shared save logic (used by submit button and MembersComponent.onHandleSave)
+  // ── Save logic ─────────────────────────────────────────────────────────────
+
   const saveCurrentForm = useCallback(async () => {
     if (!session?.user?.id) return;
     const data = form.getValues();
-    const payload = {
+
+    // 1. Save Project-table fields
+    const projectPayload = {
       project_name: data.project_name ?? "",
       short_description: data.short_description ?? "",
       full_description: data.full_description ?? "",
       tech_stack: data.tech_stack ?? "",
-      github_repository: data.github_repository ?? "",
-      demo_link: data.demo_link ?? "",
-      demo_video_link: data.demo_video_link ?? "",
+      github_repository: (data.github_repository ?? []).join(","),
+      demo_link: (data.demo_link ?? []).join(","),
+      demo_video_link: (data.demo_video_link ?? []).join(","),
       tracks: data.tracks ?? [],
       hackaton_id: HACKATHON_ID,
       user_id: session.user.id,
@@ -202,9 +245,31 @@ export default function BuildGamesSubmitForm({
       screenshots: [],
       isDraft: true,
     };
-    const res = await axios.post("/api/project/", payload);
-    const savedId = res.data.project?.id ?? res.data.id ?? projectId;
+
+    const projectRes = await axios.post("/api/project/", projectPayload);
+    const savedId =
+      projectRes.data.project?.id ?? projectRes.data.id ?? projectId;
     if (savedId) setProjectId(savedId);
+
+    // 2. Save build_games FormData fields (only if we have a project ID)
+    if (savedId) {
+      const buildGamesPayload = {
+        project_id: savedId,
+        form_data: {
+          build_games: {
+            problem_statement: data.bg_problem_statement ?? "",
+            user_persona: data.bg_user_persona ?? "",
+            current_solutions: data.bg_current_solutions ?? "",
+            proposed_solution: data.bg_proposed_solution ?? "",
+            architecture_overview: data.bg_architecture_overview ?? "",
+            user_journey: data.bg_user_journey ?? "",
+            moscow_framework: data.bg_moscow_framework ?? "",
+          },
+        },
+      };
+      await axios.post("/api/build-games/stage-data", buildGamesPayload);
+    }
+
     return savedId;
   }, [session?.user?.id, form, projectId]);
 
@@ -225,7 +290,7 @@ export default function BuildGamesSubmitForm({
   };
 
   const toggleStage = (n: number) => {
-    if (n > stage) return; // future stages are locked
+    if (n > stage) return;
     setOpenStages((prev) => {
       const next = new Set(prev);
       if (next.has(n)) {
@@ -239,7 +304,8 @@ export default function BuildGamesSubmitForm({
 
   const stageName = STAGE_NAMES[stage] ?? `Stage ${stage}`;
 
-  // ── Loading state ──────────────────────────────────────────────────────────
+  // ── Loading / gate states ──────────────────────────────────────────────────
+
   if (status === "loading" || (status === "authenticated" && loadingStatus)) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -248,7 +314,6 @@ export default function BuildGamesSubmitForm({
     );
   }
 
-  // ── Access gate ────────────────────────────────────────────────────────────
   if (hasApplied === false) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] text-center gap-4 px-4">
@@ -274,7 +339,6 @@ export default function BuildGamesSubmitForm({
     );
   }
 
-  // ── Success state ──────────────────────────────────────────────────────────
   if (success) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] text-center gap-4 px-4">
@@ -302,21 +366,39 @@ export default function BuildGamesSubmitForm({
     );
   }
 
+  // ── Section divider helper ─────────────────────────────────────────────────
+
+  const SectionDivider = ({
+    label,
+    icon,
+  }: {
+    label: string;
+    icon?: string;
+  }) => (
+    <div className="flex items-center gap-3 pt-3">
+      <span className="text-xs font-semibold uppercase tracking-widest text-zinc-500 whitespace-nowrap">
+        {icon} {label}
+      </span>
+      <div className="flex-1 h-px bg-zinc-800" />
+    </div>
+  );
+
   // ── Stage content renderers ────────────────────────────────────────────────
 
-  const renderStageContent = (n: number, isOpen: boolean) => {
-    if (!isOpen) return null;
-
+  const renderStageContent = (n: number) => {
     if (n === 1) {
       return (
         <div className="space-y-5">
+          {/* ── Project Overview ── */}
+          <SectionDivider label="Project Overview" />
+
           <FormField
             control={form.control}
             name="project_name"
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-white font-medium">
-                  Project Name
+                  Project Name <span className="text-[#66acd6]">*</span>
                 </FormLabel>
                 <FormControl>
                   <Input
@@ -336,15 +418,66 @@ export default function BuildGamesSubmitForm({
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-white font-medium">
-                  Idea &amp; Problem Statement
+                  One-sentence description{" "}
+                  <span className="text-[#66acd6]">*</span>
                 </FormLabel>
                 <p className="text-zinc-400 text-sm -mt-1">
-                  Describe your idea, the problem it solves, and your value
-                  proposition (max 280 characters).
+                  Summarize your project in one sentence (max 280 characters).
                 </p>
                 <FormControl>
                   <Textarea
-                    placeholder="What is your idea? What problem does it solve? What is the value proposition?"
+                    placeholder="e.g. A decentralized lending protocol that lets users borrow against their NFTs without selling them."
+                    className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6] min-h-[80px] resize-none"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* ── Problem Identification ── */}
+          <SectionDivider label="‼️ Problem Identification" />
+
+          <FormField
+            control={form.control}
+            name="bg_problem_statement"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-white font-medium">
+                  What problem are you addressing?{" "}
+                  <span className="text-[#66acd6]">*</span>
+                </FormLabel>
+                <p className="text-zinc-400 text-sm -mt-1">
+                  Describe the pain point or need your project aims to solve.
+                </p>
+                <FormControl>
+                  <Textarea
+                    placeholder="Describe the core problem, its scope, and why it matters..."
+                    className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6] min-h-[140px] resize-none"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="bg_user_persona"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-white font-medium">
+                  Who experiences this problem?
+                </FormLabel>
+                <p className="text-zinc-400 text-sm -mt-1">
+                  Describe your primary user persona. What needs do they have?
+                  Is it B2B or B2C?
+                </p>
+                <FormControl>
+                  <Textarea
+                    placeholder="Who is your target user? What are their goals, frustrations, and context?..."
                     className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6] min-h-[120px] resize-none"
                     {...field}
                   />
@@ -356,26 +489,140 @@ export default function BuildGamesSubmitForm({
 
           <FormField
             control={form.control}
-            name="demo_video_link"
+            name="bg_current_solutions"
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-white font-medium">
-                  1-Minute Pitch Video
+                  How is the problem currently solved (if at all)?
                 </FormLabel>
                 <p className="text-zinc-400 text-sm -mt-1">
-                  Link to your YouTube or Loom video explaining your project
-                  idea.
+                  Describe existing workarounds or solutions before your
+                  project.
                 </p>
                 <FormControl>
-                  <Input
-                    placeholder="https://loom.com/share/... or https://youtube.com/..."
-                    className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6]"
+                  <Textarea
+                    placeholder="What alternatives exist today? Why are they insufficient?..."
+                    className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6] min-h-[120px] resize-none"
                     {...field}
                   />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
+          />
+
+          <FormField
+            control={form.control}
+            name="bg_proposed_solution"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-white font-medium">
+                  What is your proposed solution?
+                </FormLabel>
+                <p className="text-zinc-400 text-sm -mt-1">
+                  Explain how your project solves the problem better than
+                  current solutions.
+                </p>
+                <FormControl>
+                  <Textarea
+                    placeholder="How does your solution work and what makes it better?..."
+                    className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6] min-h-[140px] resize-none"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* ── Proposed Solution ── */}
+          <SectionDivider label="💡 Proposed Solution" />
+
+          <FormField
+            control={form.control}
+            name="bg_architecture_overview"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-white font-medium">
+                  Architecture design overview
+                </FormLabel>
+                <p className="text-zinc-400 text-sm -mt-1">
+                  Outline the main components, workflows, and technical
+                  structure of your solution.
+                </p>
+                <FormControl>
+                  <Textarea
+                    placeholder="Describe your system architecture: key components, data flow, integrations, on-chain vs off-chain logic..."
+                    className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6] min-h-[160px] resize-none"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="bg_user_journey"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-white font-medium">
+                  How does a user interact with your solution from start to
+                  finish?
+                </FormLabel>
+                <p className="text-zinc-400 text-sm -mt-1">
+                  Walk us through the full user journey step by step.
+                </p>
+                <FormControl>
+                  <Textarea
+                    placeholder="Step 1: User lands on... Step 2: User connects wallet... Step 3:..."
+                    className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6] min-h-[140px] resize-none"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="bg_moscow_framework"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-white font-medium">
+                  MoSCoW Framework — Feature Prioritization
+                </FormLabel>
+                <p className="text-zinc-400 text-sm -mt-1">
+                  Analyze the most important features to build using the MoSCoW
+                  framework: <strong className="text-zinc-300">Must Have</strong>,{" "}
+                  <strong className="text-zinc-300">Should Have</strong>,{" "}
+                  <strong className="text-zinc-300">Could Have</strong>,{" "}
+                  <strong className="text-zinc-300">Won&apos;t Have</strong>.
+                  Describe each category clearly.
+                </p>
+                <FormControl>
+                  <Textarea
+                    placeholder={`Must Have:\n- ...\n\nShould Have:\n- ...\n\nCould Have:\n- ...\n\nWon't Have:\n- ...`}
+                    className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6] min-h-[220px] resize-none font-mono text-sm"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* ── Video & Partnerships ── */}
+          <SectionDivider label="Video & Partnerships" />
+
+          <MultiLinkInput
+            name="demo_video_link"
+            label="1-Minute Pitch Video"
+            placeholder="https://loom.com/share/... or https://youtube.com/..."
+            validationMessage="Link to your YouTube or Loom video explaining your project idea."
+            plainLabel
           />
 
           <FormField
@@ -404,17 +651,14 @@ export default function BuildGamesSubmitForm({
             )}
           />
 
-          {/* Team & Collaboration — always shown when Stage 1 is open */}
-          <div className="pt-2">
-            <div className="mb-4">
-              <h3 className="text-white font-medium text-base">
-                Team &amp; Collaboration
-              </h3>
-              <p className="text-zinc-400 text-sm mt-1">
-                Invite teammates to join your project. They will receive an
-                email invitation.
-              </p>
-            </div>
+          {/* ── Team & Collaboration ── */}
+          <SectionDivider label="Team & Collaboration" />
+
+          <div>
+            <p className="text-zinc-400 text-sm mb-4">
+              Invite teammates to join your project. They will receive an email
+              invitation.
+            </p>
             <MembersComponent
               project_id={projectId}
               hackaton_id={HACKATHON_ID}
@@ -439,6 +683,7 @@ export default function BuildGamesSubmitForm({
               openCurrentProject={false}
               setOpenCurrentProject={() => {}}
               teamName={form.watch("project_name") || "My Project"}
+              invite_stage={stage}
             />
           </div>
         </div>
@@ -448,27 +693,12 @@ export default function BuildGamesSubmitForm({
     if (n === 2) {
       return (
         <div className="space-y-5">
-          <FormField
-            control={form.control}
+          <MultiLinkInput
             name="github_repository"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-white font-medium">
-                  GitHub Repository
-                </FormLabel>
-                <p className="text-zinc-400 text-sm -mt-1">
-                  Link to your project&apos;s GitHub repository.
-                </p>
-                <FormControl>
-                  <Input
-                    placeholder="https://github.com/username/repo"
-                    className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6]"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+            label="GitHub Repository"
+            placeholder="https://github.com/username/repo"
+            validationMessage="Link to your project's GitHub repository."
+            plainLabel
           />
 
           <FormField
@@ -495,51 +725,19 @@ export default function BuildGamesSubmitForm({
             )}
           />
 
-          <FormField
-            control={form.control}
+          <MultiLinkInput
             name="demo_video_link"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-white font-medium">
-                  Walkthrough Video
-                </FormLabel>
-                <p className="text-zinc-400 text-sm -mt-1">
-                  Link to a product walkthrough video demonstrating your key
-                  features. This replaces your Stage 1 pitch video.
-                </p>
-                <FormControl>
-                  <Input
-                    placeholder="https://loom.com/share/... or https://youtube.com/..."
-                    className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6]"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+            label="Walkthrough Video"
+            placeholder="https://loom.com/share/... or https://youtube.com/..."
+            validationMessage="Link to a product walkthrough video demonstrating your key features. This replaces your Stage 1 pitch video."
+            plainLabel
           />
 
-          <FormField
-            control={form.control}
+          <MultiLinkInput
             name="demo_link"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-white font-medium">
-                  Live Prototype Link
-                </FormLabel>
-                <p className="text-zinc-400 text-sm -mt-1">
-                  Link to your live prototype or deployed app.
-                </p>
-                <FormControl>
-                  <Input
-                    placeholder="https://your-app.com"
-                    className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6]"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+            label="Live Prototype Links"
+            placeholder="https://your-app.com"
+            plainLabel
           />
         </div>
       );
@@ -572,28 +770,11 @@ export default function BuildGamesSubmitForm({
             )}
           />
 
-          <FormField
-            control={form.control}
+          <MultiLinkInput
             name="demo_link"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-white font-medium">
-                  Supporting Documents / Links
-                </FormLabel>
-                <p className="text-zinc-400 text-sm -mt-1">
-                  Link to supporting documents, presentations, or other
-                  resources.
-                </p>
-                <FormControl>
-                  <Input
-                    placeholder="https://docs.google.com/..."
-                    className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6]"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+            label="Supporting Documents / Links"
+            placeholder="https://docs.google.com/..."
+            plainLabel
           />
         </div>
       );
@@ -602,27 +783,11 @@ export default function BuildGamesSubmitForm({
     if (n === 4) {
       return (
         <div className="space-y-5">
-          <FormField
-            control={form.control}
+          <MultiLinkInput
             name="demo_link"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-white font-medium">
-                  Pitch Deck &amp; Demo Links
-                </FormLabel>
-                <p className="text-zinc-400 text-sm -mt-1">
-                  Link to your pitch deck and live demo.
-                </p>
-                <FormControl>
-                  <Input
-                    placeholder="https://docs.google.com/presentation/..."
-                    className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6]"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+            label="Pitch Deck & Demo Links"
+            placeholder="https://docs.google.com/presentation/..."
+            plainLabel
           />
 
           <FormField
@@ -686,7 +851,6 @@ export default function BuildGamesSubmitForm({
           )}
         >
           <div className="flex items-center gap-3">
-            {/* Stage number circle */}
             <span
               className={cn(
                 "flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold shrink-0",
@@ -749,7 +913,7 @@ export default function BuildGamesSubmitForm({
               isCurrent ? "border-[#66acd6]/20" : "border-zinc-700/30"
             )}
           >
-            {renderStageContent(n, isOpen)}
+            {renderStageContent(n)}
           </div>
         )}
       </div>
