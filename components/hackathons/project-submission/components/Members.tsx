@@ -50,6 +50,7 @@ export default function MembersComponent({
   currentUserName,
   openCurrentProject,
   setOpenCurrentProject,
+  invite_stage,
 }: projectProps) {
   const [members, setMembers] = useState<any[]>([]);
   const [openModal, setOpenModal] = useState(false); // State for modal
@@ -111,6 +112,7 @@ export default function MembersComponent({
         hackathon_id: hackaton_id,
         project_id: project_id,
         user_id: user_id,
+        ...(invite_stage !== undefined ? { stage: invite_stage } : {}),
       });
       setInvitationResult(invitationResult.data?.result);
       if (invitationResult.data?.result?.Success) {
