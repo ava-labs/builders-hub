@@ -86,6 +86,7 @@ const FormSchema = z.object({
   bg_user_persona: z.string().optional().or(z.literal("")),
   bg_current_solutions: z.string().optional().or(z.literal("")),
   bg_proposed_solution: z.string().optional().or(z.literal("")),
+  bg_onchain_trigger: z.string().optional().or(z.literal("")),
 
   // ── Stage 1 — Proposed Solution ──────────────────────────────────────────
   bg_architecture_overview: z.string().optional().or(z.literal("")),
@@ -131,6 +132,7 @@ export default function BuildGamesSubmitForm({
       bg_user_persona: "",
       bg_current_solutions: "",
       bg_proposed_solution: "",
+      bg_onchain_trigger: "",
       bg_architecture_overview: "",
       bg_user_journey: "",
       bg_moscow_framework: "",
@@ -196,6 +198,7 @@ export default function BuildGamesSubmitForm({
             bg_user_persona: bg.user_persona ?? "",
             bg_current_solutions: bg.current_solutions ?? "",
             bg_proposed_solution: bg.proposed_solution ?? "",
+            bg_onchain_trigger: bg.onchain_trigger ?? "",
             bg_architecture_overview: bg.architecture_overview ?? "",
             bg_user_journey: bg.user_journey ?? "",
             bg_moscow_framework: bg.moscow_framework ?? "",
@@ -249,6 +252,7 @@ export default function BuildGamesSubmitForm({
             user_persona: data.bg_user_persona ?? "",
             current_solutions: data.bg_current_solutions ?? "",
             proposed_solution: data.bg_proposed_solution ?? "",
+            onchain_trigger: data.bg_onchain_trigger ?? "",
             architecture_overview: data.bg_architecture_overview ?? "",
             user_journey: data.bg_user_journey ?? "",
             moscow_framework: data.bg_moscow_framework ?? "",
@@ -490,6 +494,29 @@ export default function BuildGamesSubmitForm({
                   <Textarea
                     placeholder="How does your solution work and what makes it better?..."
                     className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6] min-h-[140px] resize-none"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="bg_onchain_trigger"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-white font-medium">
+                  What triggers an on-chain transaction in your project?
+                </FormLabel>
+                <p className="text-zinc-400 text-sm -mt-1">
+                  Describe the key blockchain interactions in your solution.
+                </p>
+                <FormControl>
+                  <Textarea
+                    placeholder={`e.g. "Each time a user places a bid, a smart contract records the escrow on-chain. Each time a loan is repaid, the collateral is released automatically."`}
+                    className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6] min-h-[120px] resize-none"
                     {...field}
                   />
                 </FormControl>
