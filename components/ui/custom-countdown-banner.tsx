@@ -2,8 +2,7 @@
 import { Banner } from "fumadocs-ui/components/banner";
 import Link from "next/link";
 
-const ACP_267_URL =
-  "https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/267-uptime-requirement-increase/README.md";
+const ACP_267_URL = "/docs/acps/267-uptime-requirement-increase";
 
 export function CustomCountdownBanner() {
   return (
@@ -23,8 +22,6 @@ export function CustomCountdownBanner() {
         </span>
         <Link
           href={ACP_267_URL}
-          target="_blank"
-          rel="noreferrer"
           className="underline underline-offset-4 hover:text-[#66acd6] transition-colors"
         >
           Read the proposal
