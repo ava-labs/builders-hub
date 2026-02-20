@@ -22,7 +22,6 @@ import { Button } from "@/components/ui/button";
 import {
   CheckCircle2,
   Loader2,
-  AlertCircle,
   ChevronDown,
   Lock,
 } from "lucide-react";
@@ -106,11 +105,9 @@ export default function BuildGamesSubmitForm({
   const { data: session, status } = useSession();
   const router = useRouter();
   const { toast } = useToast();
-  const [hasApplied, setHasApplied] = useState<boolean | null>(null);
   const [projectId, setProjectId] = useState<string>("");
   const [isSaving, setIsSaving] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [loadingStatus, setLoadingStatus] = useState(true);
   const [availableTracks, setAvailableTracks] = useState<
     { label: string; value: string }[]
   >([]);
@@ -149,15 +146,6 @@ export default function BuildGamesSubmitForm({
   }, [status, router]);
 
   useEffect(() => {
-    if (status !== "authenticated") return;
-    axios
-      .get("/api/build-games/status")
-      .then((res) => setHasApplied(res.data.hasApplied))
-      .catch(() => setHasApplied(false))
-      .finally(() => setLoadingStatus(false));
-  }, [status]);
-
-  useEffect(() => {
     axios
       .get(`/api/hackathons/${HACKATHON_ID}`)
       .then((res) => {
@@ -172,7 +160,7 @@ export default function BuildGamesSubmitForm({
 
   // Load existing Project + FormData to pre-populate the form
   useEffect(() => {
-    if (!session?.user?.id || hasApplied !== true) return;
+    if (!session?.user?.id) return;
 
     axios
       .get("/api/project", {
@@ -218,7 +206,7 @@ export default function BuildGamesSubmitForm({
         }
       })
       .catch(() => {});
-  }, [hasApplied, session?.user?.id]);
+  }, [session?.user?.id]);
 
   // ── Save logic ─────────────────────────────────────────────────────────────
 
@@ -306,35 +294,10 @@ export default function BuildGamesSubmitForm({
 
   // ── Loading / gate states ──────────────────────────────────────────────────
 
-  if (status === "loading" || (status === "authenticated" && loadingStatus)) {
+  if (status === "loading") {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <Loader2 className="w-8 h-8 animate-spin text-[#66acd6]" />
-      </div>
-    );
-  }
-
-  if (hasApplied === false) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] text-center gap-4 px-4">
-        <AlertCircle className="w-12 h-12 text-yellow-400" />
-        <h2 className="text-2xl font-semibold text-white">Access Restricted</h2>
-        <p className="text-white/70 max-w-md">
-          You must be an accepted Build Games participant to submit. If you
-          haven&apos;t applied yet, please{" "}
-          <a href="/build-games/apply" className="text-[#66acd6] underline">
-            apply here
-          </a>
-          .
-        </p>
-        <a href="/build-games">
-          <Button
-            variant="outline"
-            className="border-[#66acd6]/30 text-white hover:bg-[#66acd6]/10 mt-2"
-          >
-            Back to Build Games
-          </Button>
-        </a>
       </div>
     );
   }
