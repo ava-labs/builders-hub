@@ -368,7 +368,7 @@ export default function ProgramTimeline() {
       date: "Feb 25",
       details: {
         deadline: "February 25, 2026 at 11:59 PM EST",
-        requirements: "Create a 1-minute video clearly explaining your project idea, target problem, solution approach, and value proposition.",
+        requirements: "Create a 2-minute video clearly explaining your project idea, target problem, solution approach, and value proposition.",
         criteria: "Clarity of idea, problem-solution fit, innovation, presentation quality, and potential market impact.",
         support: (
           <>

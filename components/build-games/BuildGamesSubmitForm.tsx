@@ -1027,7 +1027,7 @@ export default function BuildGamesSubmitForm({
 
           <MultiLinkInput
             name="demo_video_link"
-            label="1-Minute Pitch Video"
+            label="2-Minute Pitch Video"
             placeholder="https://loom.com/share/... or https://youtube.com/..."
             validationMessage="Link to your YouTube or Loom video explaining your project idea."
             plainLabel
