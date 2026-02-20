@@ -559,9 +559,7 @@ export default function ProgramTimeline() {
                 </div>
               ) : (
                 <a
-                  href="/hackathons/project-submission?hackathon=249d2911-7931-4aa0-a696-37d8370b79f9"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  href={`/build-games/submit?stage=${selectedPhaseIndex}`}
                   className="group relative inline-flex"
                 >
                   <div className="absolute -inset-1 bg-gradient-to-r from-[#66acd6] via-[#38bdf8] to-[#66acd6] rounded-xl blur-sm opacity-40 group-hover:opacity-70 transition duration-500 animate-pulse" />
