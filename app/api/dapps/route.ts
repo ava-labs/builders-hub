@@ -8,6 +8,7 @@ import type {
 } from '@/types/dapps';
 import { mapDefiLlamaCategory } from '@/types/dapps';
 import { SLUG_ALIASES, PROTOCOL_SLUGS, CONTRACT_REGISTRY, getProtocolContracts } from '@/lib/contracts';
+import { getAllRWAProjects } from '@/lib/rwa/projects';
 
 const DEFILLAMA_API = 'https://api.llama.fi';
 const COINGECKO_API = 'https://api.coingecko.com/api/v3';
@@ -221,11 +222,37 @@ export async function GET() {
     ]);
 
     const localOnlyProtocols: DAppStats[] = [];
+
+    // Add RWA projects as separate leaderboard entries
+    const rwaProjects = getAllRWAProjects();
+    const rwaSlugs = new Set(rwaProjects.map(p => p.slug));
+    for (const project of rwaProjects) {
+      if (!existingSlugs.has(project.slug)) {
+        localOnlyProtocols.push({
+          id: `local-${project.slug}`,
+          name: project.name,
+          slug: project.slug,
+          logo: project.icon,
+          category: 'rwa' as DAppCategory,
+          tvl: 0,
+          change_1d: null,
+          change_7d: null,
+          description: project.description,
+          darkInvert: project.darkInvert ?? true,
+        });
+        existingSlugs.add(project.slug);
+      }
+    }
+
     for (const protocolName of localProtocols) {
       const slug = PROTOCOL_SLUGS[protocolName];
       if (slug && !existingSlugs.has(slug)) {
-        // This protocol is in our registry but not in DefiLlama
+        // Skip the combined Valinor OatFi entry since we added individual RWA projects above
         const contracts = getProtocolContracts(protocolName);
+        if (contracts.length > 0 && contracts[0].category === 'rwa') {
+          continue;
+        }
+        // This protocol is in our registry but not in DefiLlama
         if (contracts.length > 0) {
           const category = contracts[0].category as DAppCategory;
           localOnlyProtocols.push({

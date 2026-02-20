@@ -8,6 +8,7 @@ export type DAppCategory =
   | 'yield'
   | 'derivatives'
   | 'launchpad'
+  | 'rwa'
   | 'other';
 
 // Sub-protocol TVL breakdown (for consolidated protocols)
@@ -36,6 +37,7 @@ export interface DAppStats {
   description?: string;
   rank?: number;
   subProtocols?: SubProtocolTVL[];  // TVL breakdown by sub-protocol
+  darkInvert?: boolean;
 }
 
 // Aggregated metrics for the overview page
@@ -117,6 +119,7 @@ export const DAPP_CATEGORIES: Record<DAppCategory, { name: string; color: string
   yield: { name: 'Yield', color: '#06b6d4' },
   derivatives: { name: 'Derivatives', color: '#ef4444' },
   launchpad: { name: 'Launchpad', color: '#84cc16' },
+  rwa: { name: 'RWA', color: '#f97316' },
   other: { name: 'Other', color: '#6b7280' },
 };
 
@@ -152,7 +155,7 @@ export function mapDefiLlamaCategory(defiLlamaCategory: string): DAppCategory {
     'Staking': 'yield',
     'Services': 'other',
     'Oracle': 'other',
-    'RWA': 'other',
+    'RWA': 'rwa',
     'Restaking': 'yield',
   };
   return mapping[defiLlamaCategory] || 'other';
