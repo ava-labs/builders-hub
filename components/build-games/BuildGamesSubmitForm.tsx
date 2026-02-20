@@ -80,6 +80,11 @@ const FormSchema = z.object({
   demo_link: z.array(z.string()).optional(),
   demo_video_link: z.array(z.string()).optional(),
   tracks: z.array(z.string()).optional(),
+  is_preexisting_idea: z.boolean().optional(),
+
+  // ── Stage 1 — Existing project follow-ups (→ FormData.build_games) ────────
+  bg_existing_project_plan: z.string().optional().or(z.literal("")),
+  bg_existing_achievements: z.string().optional().or(z.literal("")),
 
   // ── Stage 1 — Problem Identification ─────────────────────────────────────
   bg_problem_statement: z.string().optional().or(z.literal("")),
@@ -128,6 +133,9 @@ export default function BuildGamesSubmitForm({
       demo_link: [],
       demo_video_link: [],
       tracks: [],
+      is_preexisting_idea: false,
+      bg_existing_project_plan: "",
+      bg_existing_achievements: "",
       bg_problem_statement: "",
       bg_user_persona: "",
       bg_current_solutions: "",
@@ -184,6 +192,7 @@ export default function BuildGamesSubmitForm({
           demo_link: p.demo_link ? p.demo_link.split(",").filter(Boolean) : [],
           demo_video_link: p.demo_video_link ? p.demo_video_link.split(",").filter(Boolean) : [],
           tracks: Array.isArray(p.tracks) ? p.tracks : [],
+          is_preexisting_idea: p.is_preexisting_idea ?? false,
         };
 
         // Fetch and populate build_games FormData fields
@@ -199,6 +208,8 @@ export default function BuildGamesSubmitForm({
             bg_current_solutions: bg.current_solutions ?? "",
             bg_proposed_solution: bg.proposed_solution ?? "",
             bg_onchain_trigger: bg.onchain_trigger ?? "",
+            bg_existing_project_plan: bg.existing_project_plan ?? "",
+            bg_existing_achievements: bg.existing_achievements ?? "",
             bg_architecture_overview: bg.architecture_overview ?? "",
             bg_user_journey: bg.user_journey ?? "",
             bg_moscow_framework: bg.moscow_framework ?? "",
@@ -227,6 +238,7 @@ export default function BuildGamesSubmitForm({
       demo_link: (data.demo_link ?? []).join(","),
       demo_video_link: (data.demo_video_link ?? []).join(","),
       tracks: data.tracks ?? [],
+      is_preexisting_idea: data.is_preexisting_idea ?? false,
       hackaton_id: HACKATHON_ID,
       user_id: session.user.id,
       is_winner: false,
@@ -253,6 +265,8 @@ export default function BuildGamesSubmitForm({
             current_solutions: data.bg_current_solutions ?? "",
             proposed_solution: data.bg_proposed_solution ?? "",
             onchain_trigger: data.bg_onchain_trigger ?? "",
+            existing_project_plan: data.bg_existing_project_plan ?? "",
+            existing_achievements: data.bg_existing_achievements ?? "",
             architecture_overview: data.bg_architecture_overview ?? "",
             user_journey: data.bg_user_journey ?? "",
             moscow_framework: data.bg_moscow_framework ?? "",
@@ -402,6 +416,94 @@ export default function BuildGamesSubmitForm({
               </FormItem>
             )}
           />
+
+          {/* ── Existing Project ── */}
+          <FormField
+            control={form.control}
+            name="is_preexisting_idea"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-white font-medium">
+                  Is this an existing project?
+                </FormLabel>
+                <p className="text-zinc-400 text-sm -mt-1">
+                  Did you start working on this idea before Build Games?
+                </p>
+                <FormControl>
+                  <div className="flex gap-3 mt-1">
+                    {[
+                      { label: "No — new idea", value: false },
+                      { label: "Yes — existing project", value: true },
+                    ].map(({ label, value }) => (
+                      <button
+                        key={String(value)}
+                        type="button"
+                        onClick={() => field.onChange(value)}
+                        className={`px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                          field.value === value
+                            ? "bg-[#66acd6]/15 border-[#66acd6] text-[#66acd6]"
+                            : "bg-zinc-900/80 border-zinc-700 text-zinc-400 hover:border-zinc-500"
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {form.watch("is_preexisting_idea") === true && (
+            <>
+              <FormField
+                control={form.control}
+                name="bg_existing_project_plan"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-white font-medium">
+                      What do you plan to work on during this program?
+                    </FormLabel>
+                    <p className="text-zinc-400 text-sm -mt-1">
+                      Describe what you intend to build or improve over the course of Build Games.
+                    </p>
+                    <FormControl>
+                      <Textarea
+                        placeholder="e.g. We plan to build the core smart contract layer and launch a beta with our first 100 users..."
+                        className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6] min-h-[120px] resize-none"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="bg_existing_achievements"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-white font-medium">
+                      What are your achievements so far?
+                    </FormLabel>
+                    <p className="text-zinc-400 text-sm -mt-1">
+                      Share any traction, milestones, or progress you&apos;ve already made.
+                    </p>
+                    <FormControl>
+                      <Textarea
+                        placeholder="e.g. Deployed on testnet, 500 waitlist signups, completed audit, raised a pre-seed round..."
+                        className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6] min-h-[120px] resize-none"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </>
+          )}
 
           {/* ── Problem Identification ── */}
           <SectionDivider label="‼️ Problem Identification" />
