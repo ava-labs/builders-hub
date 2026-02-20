@@ -498,85 +498,6 @@ export default function BuildGamesSubmitForm({
             )}
           />
 
-          {/* ── Proposed Solution ── */}
-          <SectionDivider label="💡 Proposed Solution" />
-
-          <FormField
-            control={form.control}
-            name="bg_architecture_overview"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-white font-medium">
-                  Architecture design overview
-                </FormLabel>
-                <p className="text-zinc-400 text-sm -mt-1">
-                  Outline the main components, workflows, and technical
-                  structure of your solution.
-                </p>
-                <FormControl>
-                  <Textarea
-                    placeholder="Describe your system architecture: key components, data flow, integrations, on-chain vs off-chain logic..."
-                    className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6] min-h-[160px] resize-none"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="bg_user_journey"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-white font-medium">
-                  How does a user interact with your solution from start to
-                  finish?
-                </FormLabel>
-                <p className="text-zinc-400 text-sm -mt-1">
-                  Walk us through the full user journey step by step.
-                </p>
-                <FormControl>
-                  <Textarea
-                    placeholder="Step 1: User lands on... Step 2: User connects wallet... Step 3:..."
-                    className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6] min-h-[140px] resize-none"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="bg_moscow_framework"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-white font-medium">
-                  MoSCoW Framework — Feature Prioritization
-                </FormLabel>
-                <p className="text-zinc-400 text-sm -mt-1">
-                  Analyze the most important features to build using the MoSCoW
-                  framework: <strong className="text-zinc-300">Must Have</strong>,{" "}
-                  <strong className="text-zinc-300">Should Have</strong>,{" "}
-                  <strong className="text-zinc-300">Could Have</strong>,{" "}
-                  <strong className="text-zinc-300">Won&apos;t Have</strong>.
-                  Describe each category clearly.
-                </p>
-                <FormControl>
-                  <Textarea
-                    placeholder={`Must Have:\n- ...\n\nShould Have:\n- ...\n\nCould Have:\n- ...\n\nWon't Have:\n- ...`}
-                    className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6] min-h-[220px] resize-none font-mono text-sm"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
           {/* ── Video & Partnerships ── */}
           <SectionDivider label="Video & Partnerships" />
 
@@ -680,6 +601,81 @@ export default function BuildGamesSubmitForm({
                   <Textarea
                     placeholder="Describe your technical stack, architecture decisions, and implementation approach..."
                     className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6] min-h-[150px] resize-none"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="bg_architecture_overview"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-white font-medium">
+                  Architecture design overview
+                </FormLabel>
+                <p className="text-zinc-400 text-sm -mt-1">
+                  Outline the main components, workflows, and technical
+                  structure of your solution.
+                </p>
+                <FormControl>
+                  <Textarea
+                    placeholder="Describe your system architecture: key components, data flow, integrations, on-chain vs off-chain logic..."
+                    className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6] min-h-[160px] resize-none"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="bg_user_journey"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-white font-medium">
+                  How does a user interact with your solution from start to finish?
+                </FormLabel>
+                <p className="text-zinc-400 text-sm -mt-1">
+                  Walk us through the full user journey step by step.
+                </p>
+                <FormControl>
+                  <Textarea
+                    placeholder="Step 1: User lands on... Step 2: User connects wallet... Step 3:..."
+                    className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6] min-h-[140px] resize-none"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="bg_moscow_framework"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-white font-medium">
+                  MoSCoW Framework — Feature Prioritization
+                </FormLabel>
+                <p className="text-zinc-400 text-sm -mt-1">
+                  Analyze the most important features to build using the MoSCoW
+                  framework: <strong className="text-zinc-300">Must Have</strong>,{" "}
+                  <strong className="text-zinc-300">Should Have</strong>,{" "}
+                  <strong className="text-zinc-300">Could Have</strong>,{" "}
+                  <strong className="text-zinc-300">Won&apos;t Have</strong>.
+                  Describe each category clearly.
+                </p>
+                <FormControl>
+                  <Textarea
+                    placeholder={`Must Have:\n- ...\n\nShould Have:\n- ...\n\nCould Have:\n- ...\n\nWon't Have:\n- ...`}
+                    className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6] min-h-[220px] resize-none font-mono text-sm"
                     {...field}
                   />
                 </FormControl>
