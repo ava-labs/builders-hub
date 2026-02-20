@@ -20,6 +20,7 @@ import { toPng } from "html-to-image";
 import { ChartWatermark } from "@/components/stats/ChartWatermark";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import { ImageExportStudio } from "@/components/stats/image-export";
+import type { PlaygroundChartData } from "@/components/stats/image-export";
 import { parseDateString, calculateDateRangeDays, formatXAxisLabel, generateXAxisTicks } from "@/components/stats/chart-axis-utils";
 
 // Types
@@ -98,6 +99,12 @@ export interface ChartDataPoint {
   [key: string]: string | number;
 }
 
+// Data structure for exposing chart data to parent components
+export interface ChartDataExport {
+  data: ChartDataPoint[];
+  seriesInfo: { id: string; name: string; color: string; yAxis?: string }[];
+}
+
 export interface ConfigurableChartProps {
   title?: string;
   initialDataSeries?: Partial<DataSeries>[];
@@ -118,6 +125,10 @@ export interface ConfigurableChartProps {
   initialBrushStartIndex?: number | null;
   initialBrushEndIndex?: number | null;
   onBrushChange?: (startIndex: number | null, endIndex: number | null) => void;
+  // Callback to expose chart data for external use (e.g., playground collage)
+  onChartDataReady?: (data: ChartDataExport) => void;
+  // Playground charts for collage mode in Image Export Studio
+  playgroundCharts?: PlaygroundChartData[];
 }
 
 const DEFAULT_COLORS = [
@@ -203,6 +214,8 @@ export default function ConfigurableChart({
   initialBrushStartIndex,
   initialBrushEndIndex,
   onBrushChange,
+  onChartDataReady,
+  playgroundCharts,
 }: ConfigurableChartProps) {
   const { resolvedTheme } = useTheme();
   const [isMounted, setIsMounted] = useState(false);
@@ -284,6 +297,11 @@ export default function ConfigurableChart({
   const prevDataSeriesRef = useRef<DataSeries[]>(dataSeries);
   const onDataSeriesChangeRef = useRef(onDataSeriesChange);
   onDataSeriesChangeRef.current = onDataSeriesChange;
+
+  // Store onChartDataReady in a ref to avoid infinite re-render loops
+  // (parent may pass inline arrow function that changes on every render)
+  const onChartDataReadyRef = useRef(onChartDataReady);
+  onChartDataReadyRef.current = onChartDataReady;
 
   useEffect(() => {
     // Only call callback if dataSeries actually changed
@@ -660,6 +678,21 @@ export default function ConfigurableChart({
       .sort((a, b) => a.zIndex - b.zIndex); // Sort by z-index: lower values render first (behind)
   }, [dataSeries]);
 
+  // Notify parent when chart data is ready for export (e.g., playground collage)
+  useEffect(() => {
+    if (onChartDataReadyRef.current && aggregatedData.length > 0 && visibleSeries.length > 0) {
+      onChartDataReadyRef.current({
+        data: aggregatedData,
+        seriesInfo: visibleSeries.map((s) => ({
+          id: s.id,
+          name: s.name,
+          color: s.color,
+          yAxis: s.yAxis,
+        })),
+      });
+    }
+  }, [aggregatedData, visibleSeries]);
+
   // Group series by metricKey for stacking
   const seriesByMetric = useMemo(() => {
     const grouped: Record<string, DataSeries[]> = {};
@@ -1027,6 +1060,30 @@ export default function ConfigurableChart({
     }
   };
 
+  // CSV download function
+  const downloadCSV = () => {
+    if (displayData.length === 0 || visibleSeries.length === 0) return;
+
+    const headers = ["Date", ...visibleSeries.map((s) => s.name)];
+    const rows = displayData.map((point) => {
+      const values = [point.date];
+      visibleSeries.forEach((series) => {
+        const value = (point as Record<string, string | number>)[series.id];
+        values.push(value !== undefined ? String(value) : "");
+      });
+      return values.join(",");
+    });
+
+    const csvContent = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${chartTitle || "chart"}_${resolution}_${new Date().toISOString().split("T")[0]}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   const toggleColSpan = () => {
     if (onColSpanChange) {
       onColSpanChange(colSpan === 12 ? 6 : 12);
@@ -1293,54 +1350,58 @@ export default function ConfigurableChart({
           </div>
 
           {/* Configuration Controls */}
-          {!disableControls && (
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="stack-same-metrics"
-                  checked={stackSameMetrics}
-                  onChange={(e) => {
-                    const newValue = e.target.checked;
-                    setStackSameMetrics(newValue);
-                    if (onStackSameMetricsChange) {
-                      onStackSameMetricsChange(newValue);
-                    }
-                  }}
-                  className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 dark:focus:ring-blue-400 cursor-pointer"
-                />
-                <label
-                  htmlFor="stack-same-metrics"
-                  className="text-xs text-gray-700 dark:text-gray-300 cursor-pointer flex items-center gap-1.5"
-                >
-                  <Layers className="h-3.5 w-3.5" />
-                  <span>Stack all series</span>
-                </label>
-              </div>
+          <div className="flex flex-wrap items-center gap-3">
+            {!disableControls && (
+              <>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="stack-same-metrics"
+                    checked={stackSameMetrics}
+                    onChange={(e) => {
+                      const newValue = e.target.checked;
+                      setStackSameMetrics(newValue);
+                      if (onStackSameMetricsChange) {
+                        onStackSameMetricsChange(newValue);
+                      }
+                    }}
+                    className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 dark:focus:ring-blue-400 cursor-pointer"
+                  />
+                  <label
+                    htmlFor="stack-same-metrics"
+                    className="text-xs text-gray-700 dark:text-gray-300 cursor-pointer flex items-center gap-1.5"
+                  >
+                    <Layers className="h-3.5 w-3.5" />
+                    <span>Stack all series</span>
+                  </label>
+                </div>
 
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="abbreviate-numbers"
-                  checked={abbreviateNumbers}
-                  onChange={(e) => {
-                    const newValue = e.target.checked;
-                    setAbbreviateNumbers(newValue);
-                    if (onAbbreviateNumbersChange) {
-                      onAbbreviateNumbersChange(newValue);
-                    }
-                  }}
-                  className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 dark:focus:ring-blue-400 cursor-pointer"
-                />
-                <label
-                  htmlFor="abbreviate-numbers"
-                  className="text-xs text-gray-700 dark:text-gray-300 cursor-pointer"
-                >
-                  <span>Abbreviate numbers</span>
-                </label>
-              </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="abbreviate-numbers"
+                    checked={abbreviateNumbers}
+                    onChange={(e) => {
+                      const newValue = e.target.checked;
+                      setAbbreviateNumbers(newValue);
+                      if (onAbbreviateNumbersChange) {
+                        onAbbreviateNumbersChange(newValue);
+                      }
+                    }}
+                    className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 dark:focus:ring-blue-400 cursor-pointer"
+                  />
+                  <label
+                    htmlFor="abbreviate-numbers"
+                    className="text-xs text-gray-700 dark:text-gray-300 cursor-pointer"
+                  >
+                    <span>Abbreviate numbers</span>
+                  </label>
+                </div>
+              </>
+            )}
 
-              <div className="ml-auto flex items-center gap-2">
+            <div className="ml-auto flex items-center gap-2">
+              {!disableControls && (
                 <div className="relative">
                   <button
                     onClick={() => {
@@ -1431,7 +1492,7 @@ export default function ConfigurableChart({
                         const isLastAllChains = isAllChains && index < filteredChains.length - 1 && filteredChains[index + 1].chainId !== "all";
                         
                         return (
-                          <div key={chain.chainId}>
+                          <div key={`${chain.chainId}-${index}`}>
                             <button
                               onClick={() =>
                                 handleChainSelect(chain.chainId, chain.chainName)
@@ -1471,7 +1532,8 @@ export default function ConfigurableChart({
                   </div>
                 )}
                 </div>
-                <DropdownMenu>
+              )}
+              <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button
                       className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
@@ -1491,6 +1553,13 @@ export default function ConfigurableChart({
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
+              <button
+                onClick={downloadCSV}
+                className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
+                title="Download CSV"
+              >
+                <Download className="h-4 w-4" />
+              </button>
                 {onTimeFilterChange && !disableControls && (
                   <Popover open={showTimeFilterPopover} onOpenChange={setShowTimeFilterPopover}>
                     <PopoverTrigger asChild>
@@ -1662,7 +1731,6 @@ export default function ConfigurableChart({
                 )}
               </div>
             </div>
-          )}
         </div>
 
 
@@ -1828,6 +1896,7 @@ export default function ConfigurableChart({
           metricLabel: "Latest",
           pageUrl: typeof window !== "undefined" ? window.location.href : undefined,
         }}
+        playgroundCharts={playgroundCharts}
       />
     </Card>
   );

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Modal from "../ui/Modal";
 import { Project } from "@/types/showcase";
 import { MultiSelect } from "../ui/multi-select";
@@ -24,24 +24,37 @@ export const AssignBadge = ({
   const { toast } = useToast();
   const [selectedBadges, setSelectedBadges] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Memoize badge IDs to prevent unnecessary re-fetches
+  const assignedBadgeIds = useMemo(
+    () => project.badges?.map(b => b.badge_id) || [],
+    [project.badges]
+  );
+
   useEffect(() => {
+    // Only fetch badges when modal is opened
+    if (!isOpen) return;
+
     const fetchBadges = async () => {
-      // COMMENTED OUT: Hackathon badges feature disabled
-      // const response = await axios.get("/api/badge/get-all");
-      // const filteredBadges = response.data.filter(
-      //   (badge: Badge) => badge.category == "hackathon"
-      // );
-      // setOptionsWithLabel(
-      //   filteredBadges.map((option: Badge) => ({
-      //     label: option.name,
-      //     value: option.id,
-      //   }))
-      // );
-      // Return empty array since hackathon badges are disabled
-      setOptionsWithLabel([]);
+      const response = await axios.get("/api/badge/get-all");
+      const filteredBadges = response.data.filter(
+        (badge: Badge) => badge.category == "hackathon"
+      );
+
+      // Filter out badges that are already assigned
+      const availableBadges = filteredBadges.filter(
+        (badge: Badge) => !assignedBadgeIds.includes(badge.id)
+      );
+
+      setOptionsWithLabel(
+        availableBadges.map((option: Badge) => ({
+          label: option.name,
+          value: option.id,
+        }))
+      );
     };
     fetchBadges();
-  }, []);
+  }, [isOpen, project.id, assignedBadgeIds]);
 
   const handleClose = () => {
     setSelectedBadges([]);

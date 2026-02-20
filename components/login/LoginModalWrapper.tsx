@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from 'react';
-import { useSession, signOut, getSession } from 'next-auth/react';
+import { useSession, signOut } from 'next-auth/react';
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import { Dialog, DialogOverlay, DialogContent, DialogTitle } from '../toolbox/components/ui/dialog';
 import { LoginModal } from './LoginModal';
@@ -28,24 +28,23 @@ export function LoginModalWrapper() {
 
   // Function to check and show terms modal
   const checkAndShowTerms = useCallback(async () => {
-
-    // Fetch fresh session directly
-    const freshSession = await getSession();
-
-    if (!freshSession?.user?.id) {
+    // Use existing session from context instead of fetching
+    if (!session?.user?.id) {
+      // If no session yet, update and wait for it
+      await update();
       return;
     }
 
-    const termsKey = `shouldShowTerms_${freshSession.user.id}`;
+    const termsKey = `shouldShowTerms_${session.user.id}`;
     const termsKeyValue = localStorage.getItem(termsKey);
 
-    if (freshSession.user.is_new_user && termsKeyValue !== "false") {
-      // Store the user ID from fresh session so we can render the modal
-      setTermsUserId(freshSession.user.id);
+    if (session.user.is_new_user && termsKeyValue !== "false") {
+      // Store the user ID from session so we can render the modal
+      setTermsUserId(session.user.id);
       setShowTerms(true);
       localStorage.setItem(termsKey, "true");
     }
-  }, []);
+  }, [session, update]);
 
   // Listen for new user login events from VerifyEmail
   useNewUserLoginListener(checkAndShowTerms);
@@ -87,16 +86,17 @@ export function LoginModalWrapper() {
   }, [showTerms, isOpen, closeLoginModal]);
 
   const handleTermsSuccess = async () => {
-    // Fetch fresh session to get the real user ID (user was just created in DB)
-    // Try multiple times if needed to ensure we get the real ID
-    let freshSession = await getSession();
-    let realUserId = freshSession?.user?.id;
+    // Update session to get latest data
+    await update();
 
-    // If still pending, try again after a delay
+    // Use session from context instead of fetching directly
+    let realUserId = session?.user?.id;
+
+    // If still pending, update again after a delay
     if (realUserId?.startsWith("pending_")) {
       await new Promise(resolve => setTimeout(resolve, 300));
-      freshSession = await getSession();
-      realUserId = freshSession?.user?.id;
+      await update();
+      realUserId = session?.user?.id;
     }
 
     // Mark as completed in localStorage to prevent re-showing

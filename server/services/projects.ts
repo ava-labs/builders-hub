@@ -36,6 +36,7 @@ export const getFilteredProjects = async (options: GetProjectOptions) => {
   const offset = (page - 1) * pageSize;
 
   let filters: any = {};
+
   if (options.event) {
     filters.hackaton_id = options.event;
   }
@@ -88,6 +89,14 @@ export const getFilteredProjects = async (options: GetProjectOptions) => {
       members: true,
       hackathon: true,
       prizes: true,
+      badges: {
+        where: {
+          status: 1, // BadgeAwardStatus.approved
+        },
+        include: {
+          badge: true,
+        },
+      },
     },
     where: filters,
     skip: offset,
@@ -106,6 +115,11 @@ export const getFilteredProjects = async (options: GetProjectOptions) => {
         ...project.hackathon,
         content: project.hackathon.content as any,
       } : null,
+      badges: project.badges?.map((projectBadge: any) => ({
+        ...projectBadge,
+        name: projectBadge.badge.name,
+        image_path: projectBadge.badge.image_path,
+      })),
     })),
     total: totalProjects,
     page,
@@ -302,6 +316,7 @@ export async function CheckInvitation(invitationId: string, user_id: string) {
       project_name:
         existingConfirmedProject?.project_name ?? member?.project?.project_name,
       confirmed_project_name: existingConfirmedProject?.project_name ?? "",
+      hackathon_id: member?.project?.hackaton_id ?? "",
     },
   };
 }
@@ -355,8 +370,9 @@ export async function GetProjectByHackathonAndUser(
   });
 
   if (!project) {
-    throw new ValidationError("project not found", []);
+    console.log(`No project found for hackathon ${hackaton_id} and user ${user_id} - valid for new project creation`);
   }
+
   return project;
 }
 

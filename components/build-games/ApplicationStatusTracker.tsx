@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import ReferralButton from "./ReferralButton";
-import { ApplyButton } from "./ApplyButton";
 
 interface ApplicationData {
   id: string;
@@ -19,10 +18,10 @@ interface TimelineStep {
 }
 
 const timelineSteps: TimelineStep[] = [
-  { label: "Application Complete", status: "completed" },
-  { label: "Review in Progress", status: "current" },
-  { label: "Decision", status: "upcoming" },
-  { label: "Competition Begins", status: "upcoming", date: "Feb 2026" },
+  { label: "Application Complete", status: "completed", date: "" },
+  { label: "Review in Progress", status: "completed", date: "" },
+  { label: "Decision", status: "completed", date: "(Accepted)" },
+  { label: "Competition Begins", status: "current", date: "Feb 20, 2026" },
 ];
 
 function TimelineStepIcon({ status }: { status: TimelineStep["status"] }) {
@@ -64,11 +63,11 @@ function DesktopTimeline({ steps }: { steps: TimelineStep[] }) {
               >
                 {step.label}
               </span>
-              {step.date && (
-                <span className="font-['Aeonik:Regular',sans-serif] text-[12px] text-[rgba(255,255,255,0.5)]">
-                  {step.date}
-                </span>
-              )}
+              <span className={`font-['Aeonik:Regular',sans-serif] text-[12px] h-[18px] ${
+                step.date === "(Accepted)" ? "text-[#22c55e]" : step.date ? "text-[rgba(255,255,255,0.5)]" : "opacity-0"
+              }`}>
+                {step.date || "\u00A0"}
+              </span>
             </div>
           </div>
           {index < steps.length - 1 && (
@@ -107,11 +106,11 @@ function MobileTimeline({ steps }: { steps: TimelineStep[] }) {
             >
               {step.label}
             </span>
-            {step.date && (
-              <span className="font-['Aeonik:Regular',sans-serif] text-[12px] text-[rgba(255,255,255,0.5)]">
-                {step.date}
-              </span>
-            )}
+            <span className={`font-['Aeonik:Regular',sans-serif] text-[12px] h-[18px] ${
+              step.date === "(Accepted)" ? "text-[#22c55e]" : step.date ? "text-[rgba(255,255,255,0.5)]" : "opacity-0"
+            }`}>
+              {step.date || "\u00A0"}
+            </span>
           </div>
         </div>
       ))}
@@ -164,29 +163,21 @@ function StatusTracker({ application }: { application: ApplicationData }) {
 
         <div className="flex flex-col items-center gap-3 mt-2">
           <span className="font-['Aeonik:Regular',sans-serif] text-[16px] text-[rgba(255,255,255,0.8)]">
-            Know someone who should apply?
+          Stay connected and invite others join.
           </span>
-          <ReferralButton />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function OriginalCTA() {
-  return (
-    <div className="get-involved-cta relative shrink-0 w-full py-[40px]" data-name="GetInvolvedCTA">
-      <div className="flex flex-row flex-nowrap items-center justify-center gap-[16px] px-[16px]">
-        <div className="font-['Aeonik:Medium',sans-serif] font-medium text-[64px] text-nowrap text-white leading-[80px]">
-          Get Involved
-        </div>
-        <div className="flex flex-row flex-nowrap gap-[10px] items-center">
-          <ReferralButton />
-          <ApplyButton className="shrink-0 bg-[#66acd6] flex h-[52px] items-center justify-center px-[36px] py-[12px] rounded-[3.35544e+07px] cursor-pointer hover:bg-[#7bbde3] transition-colors shadow-[0px_0px_20px_4px_rgba(102,172,214,0.5)]">
-            <span className="font-['Aeonik:Medium',sans-serif] font-medium text-[#152d44] text-[18px] text-center text-nowrap leading-[28px]">
-              Apply
-            </span>
-          </ApplyButton>
+          <div className="flex flex-row flex-wrap gap-[10px] items-center justify-center">
+            <ReferralButton label="Refer your teammates" />
+            <a
+              href="https://t.me/avaxbuildgames"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="shrink-0 bg-[#66acd6] flex h-[52px] items-center justify-center px-[36px] py-[12px] rounded-[3.35544e+07px] cursor-pointer hover:bg-[#7bbde3] transition-colors shadow-[0px_0px_20px_4px_rgba(102,172,214,0.5)]"
+            >
+              <span className="font-['Aeonik:Medium',sans-serif] font-medium text-[#152d44] text-[18px] text-center text-nowrap leading-[28px]">
+                Join the Build Games chat
+              </span>
+            </a>
+          </div>
         </div>
       </div>
     </div>
@@ -220,12 +211,8 @@ export default function ApplicationStatusTracker() {
       });
   }, [status]);
 
-  if (status === "loading" || status === "unauthenticated" || isLoading) {
-    return <OriginalCTA />;
-  }
-
-  if (!application) {
-    return <OriginalCTA />;
+  if (status === "loading" || status === "unauthenticated" || isLoading || !application) {
+    return null;
   }
 
   return <StatusTracker application={application} />;

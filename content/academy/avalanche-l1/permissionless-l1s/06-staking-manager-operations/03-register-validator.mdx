@@ -1,0 +1,119 @@
+---
+title: Register Validator
+description: Theory walkthrough of registering a PoS validator with token staking
+updated: 2025-03-19
+authors: [nicolasarnedo]
+icon: BookOpen
+---
+
+## Registering a PoS Validator
+
+In a Permissionless L1, **anyone** can register a validator by staking the required minimum amount of tokens. Unlike the PoA model where only the contract owner can add validators, the PoS model is open to all participants.
+
+The process follows the same three-phase pattern as the permissioned L1 flow but with key differences around token staking and delegation parameters.
+
+### Phase 1: Initiation (L1)
+
+The validator calls [`initiateValidatorRegistration`](https://github.com/ava-labs/icm-contracts/blob/main/contracts/validator-manager/NativeTokenStakingManager.sol) on the Staking Manager contract.
+
+For `NativeTokenStakingManager`, this is a `payable` function — the validator sends native tokens as `msg.value`:
+
+```solidity
+function initiateValidatorRegistration(
+    ValidatorRegistrationInput calldata registrationInput,
+    uint16 delegationFeeBips,
+    uint64 minStakeDuration
+) external payable returns (bytes32 validationID)
+```
+
+Under the hood, the contract:
+- Validates the stake amount meets the minimum requirements
+- **Locks the staked tokens** in the contract
+- Converts the token amount to a validator weight using `valueToWeight()`
+- Validates BLS keys, nodeID, churn limits
+- Builds a `RegisterL1ValidatorMessage` with a bounded expiry
+- Computes a unique `validationID`
+- Stores the validation period with PoS-specific data (delegation fee, min stake duration)
+- Sends a Warp message to the P-Chain
+
+**Key PoS parameters:**
+- **`delegationFeeBips`** - The percentage fee (in basis points) that this validator charges delegators. For example, `1000` = 10% fee on delegation rewards.
+- **`minStakeDuration`** - The minimum time the validator must stake before they can withdraw. This also applies to delegators.
+
+### Phase 2: P-Chain Processing
+
+The Warp message from Phase 1 must be signed by the network and submitted to the P-Chain as a `RegisterL1ValidatorTx`. This is identical to the permissioned L1 flow:
+
+1. Aggregate signatures from 67% of the stake-weighted validator set
+2. Submit the signed message to the P-Chain
+3. The P-Chain validates and processes the registration
+4. The P-Chain signs a response `L1ValidatorRegistrationMessage`
+
+### Phase 3: Completion (L1)
+
+Call [`completeValidatorRegistration(messageIndex)`](https://github.com/ava-labs/icm-contracts/blob/main/contracts/validator-manager/ValidatorManager.sol#L425) with the P-Chain's signed response:
+
+- Verifies the Warp message signature
+- Activates the validator (status → Active)
+- Sets the start time (important for reward calculations)
+- Emits `CompletedValidatorRegistration`
+
+Anyone can call this function with the signed message.
+
+## Weight and Stake Conversion
+
+In PoS, validator weight is derived from the staked token amount:
+
+- `valueToWeight(tokenAmount)` - Converts tokens to weight (used during registration)
+- `weightToValue(weight)` - Converts weight back to tokens (used for display)
+
+The weight determines the validator's influence in consensus proportional to their stake.
+
+## Registration Expiry
+
+Just like in permissioned L1s, validator registrations expire after **24 hours** by default. If the registration is not completed within this window, it becomes invalid and must be cleaned up.
+
+## Appendix: PoS Validator Registration Flow
+
+<Mermaid
+  chart="
+sequenceDiagram
+    participant Staker as Staker (Anyone)
+    participant StakingManager as StakingManager
+    participant WarpMessenger as WarpMessenger (precompile)
+    participant PChain as P-Chain
+
+    %% Phase 1: Initiation
+    Staker->>StakingManager: initiateValidatorRegistration{value: stakeAmount}(registrationInput, delegationFeeBips, minStakeDuration)
+
+    StakingManager->>StakingManager: Validate stake >= minimum
+
+    StakingManager->>StakingManager: Lock tokens in contract
+
+    StakingManager->>StakingManager: Convert valueToWeight(stakeAmount)
+
+    StakingManager->>StakingManager: Validate params + churn limits
+
+    StakingManager->>StakingManager: Create RegisterL1ValidatorMessage
+
+    StakingManager->>StakingManager: Store validation period + PoS data<br/>(delegationFeeBips, minStakeDuration)
+
+    StakingManager->>WarpMessenger: sendWarpMessage(message)
+
+    %% Phase 2: P-Chain Processing
+    WarpMessenger->>PChain: Deliver RegisterL1ValidatorMessage
+
+    PChain-->>WarpMessenger: L1ValidatorRegistrationMessage (signed)
+
+    %% Phase 3: Completion
+    participant AnyCaller as Any Caller
+
+    AnyCaller->>StakingManager: completeValidatorRegistration(message)
+
+    StakingManager->>StakingManager: Verify Warp message signature
+
+    StakingManager->>StakingManager: Activate validator + set start time
+
+    StakingManager-->>AnyCaller: emit CompletedValidatorRegistration
+"
+/>

@@ -30,13 +30,16 @@ export interface projectProps {
   onProjectCreated?: () => void;
   onHandleSave?: () => Promise<void>;
   availableTracks: HackathonTrack[];
-  
+
   openjoinTeamDialog?: boolean;
   onOpenChange: (open: boolean) => void;
   teamName?: string;
   currentEmail?: string;
+  currentUserName?: string;
   openCurrentProject: boolean;
   setOpenCurrentProject: (open: boolean) => void;
+  /** When set, the invite link will use this stage number (Build Games specific). */
+  invite_stage?: number;
 }
 
 const SubmitStep1: FC<projectProps> = (project) => {
