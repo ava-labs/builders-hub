@@ -15,17 +15,20 @@ export function WelcomeModal() {
   const { hasSeenWelcome, hasCompletedTour, startTour, markWelcomeSeen, endTour } = useOnboardingTour();
   const [isOpen, setIsOpen] = React.useState(false);
   const [dontShowAgain, setDontShowAgain] = React.useState(true);
-  const [isHydrated, setIsHydrated] = React.useState(
-    useOnboardingTour.persist.hasHydrated()
-  );
+  const [isHydrated, setIsHydrated] = React.useState(false);
 
   // Wait for Zustand persist to finish loading from localStorage
+  // Note: .persist.hasHydrated() is only safe to call client-side;
+  // during SSR/prerendering the persist API may not be attached yet.
   React.useEffect(() => {
-    if (isHydrated) return;
-    return useOnboardingTour.persist.onFinishHydration(() => {
+    if (useOnboardingTour.persist?.hasHydrated()) {
       setIsHydrated(true);
-    });
-  }, [isHydrated]);
+    } else {
+      return useOnboardingTour.persist?.onFinishHydration(() => {
+        setIsHydrated(true);
+      });
+    }
+  }, []);
 
   React.useEffect(() => {
     if (!isHydrated) return;
