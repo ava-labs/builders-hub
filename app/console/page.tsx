@@ -3,7 +3,7 @@
 import { useSession } from "next-auth/react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, Suspense } from "react";
-import { ChevronRight, Layers, Users, MessagesSquare, ArrowUpDown, Settings, Droplets } from "lucide-react";
+import { ChevronRight, Layers, Users, MessagesSquare, ArrowUpDown, Settings, Droplets, Wrench } from "lucide-react";
 import Link from "next/link";
 
 function RedirectLogic() {
@@ -233,6 +233,21 @@ function ConsoleDashboard() {
             <h3 className="font-semibold text-foreground mb-2">Get Test Tokens</h3>
             <p className="text-sm text-muted-foreground mb-4">Access the testnet faucet to get AVAX for development and testing</p>
             <div className="text-xs text-muted-foreground font-medium">Get Tokens →</div>
+          </div>
+        </Link>
+
+        {/* Upgrade L1 Precompiles */}
+        <Link href="/console/layer-1/upgrade" className="group block">
+          <div className="p-6 rounded-lg border bg-card hover:bg-accent/50 transition-all duration-200 cursor-pointer h-full">
+            <div className="flex items-start justify-between mb-4">
+              <div className="p-2 rounded-lg bg-muted">
+                <Wrench className="w-5 h-5 text-muted-foreground" />
+              </div>
+              <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+            </div>
+            <h3 className="font-semibold text-foreground mb-2">Upgrade L1 Precompiles</h3>
+            <p className="text-sm text-muted-foreground mb-4">Generate an upgrade.json file to enable, configure, or disable EVM precompiles</p>
+            <div className="text-xs text-muted-foreground font-medium">Generate upgrade.json →</div>
           </div>
         </Link>
       </div>
