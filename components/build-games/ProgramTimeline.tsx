@@ -310,7 +310,7 @@ function PhaseDetailsCards({ phase }: { phase: TimelinePhase }) {
   );
 }
 
-export default function ProgramTimeline() {
+export default function ProgramTimeline({ isParticipant = false }: { isParticipant?: boolean }) {
   // Reactive date — updates every minute so the timeline advances automatically
   // at end of day without requiring a page reload.
   const [todayDate, setTodayDate] = useState<Date>(() => {
@@ -368,7 +368,7 @@ export default function ProgramTimeline() {
       date: "Feb 25",
       details: {
         deadline: "February 25, 2026 at 11:59 PM EST",
-        requirements: "Create a 1-minute video clearly explaining your project idea, target problem, solution approach, and value proposition.",
+        requirements: "Create a 2-minute video clearly explaining your project idea, target problem, solution approach, and value proposition.",
         criteria: "Clarity of idea, problem-solution fit, innovation, presentation quality, and potential market impact.",
         support: (
           <>
@@ -548,8 +548,6 @@ export default function ProgramTimeline() {
         {/* Submit Button - Only show for stages 1-4 (not Kick Off) */}
         {selectedPhaseIndex >= 1 && (() => {
           const selectedStatus = competitionPhases[selectedPhaseIndex].status;
-          // Disabled when the selected stage hasn't started yet (upcoming)
-          // or before the kick-off date has been reached.
           const isBeforeKickOff = todayDate < phaseDeadlines[0];
           const isUpcoming = selectedStatus === "upcoming";
           const isDisabled = isBeforeKickOff || isUpcoming;
@@ -557,6 +555,25 @@ export default function ProgramTimeline() {
           const disabledReason = isBeforeKickOff
             ? "Submission forms open after the Kick Off on February 20, 2026"
             : `${competitionPhases[selectedPhaseIndex].label} hasn't started yet`;
+
+          // Non-participants (logged out or not in the program) see a prompt
+          if (!isParticipant) {
+            return (
+              <div className="flex flex-col items-center w-full pt-4 gap-3">
+                <div className="group relative inline-flex opacity-60 cursor-not-allowed">
+                  <div className="relative flex items-center gap-3 px-10 py-5 bg-gray-700 rounded-xl font-['Aeonik:Medium',sans-serif] font-medium text-gray-400">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                    <span className="text-[17px]">Submit {competitionPhases[selectedPhaseIndex].label}</span>
+                  </div>
+                </div>
+                <p className="text-[13px] font-['Aeonik:Regular',sans-serif] text-white/50 text-center">
+                  Log into a participant account to submit
+                </p>
+              </div>
+            );
+          }
 
           return (
             <div className="flex flex-col items-center w-full pt-4 gap-3">
