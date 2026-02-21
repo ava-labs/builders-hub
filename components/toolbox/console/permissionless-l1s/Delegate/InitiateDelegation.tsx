@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
+import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
 import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { Button } from '@/components/toolbox/components/Button';
 import { Input } from '@/components/toolbox/components/Input';
@@ -37,7 +38,8 @@ const InitiateDelegation: React.FC<InitiateDelegationProps> = ({
     onSuccess,
     onError,
 }) => {
-    const { publicClient, walletEVMAddress } = useWalletStore();
+    const { walletEVMAddress } = useWalletStore();
+    const chainPublicClient = useChainPublicClient();
     const { data: walletClient } = useWalletClient();
     const viemChain = useViemChainStore();
 
@@ -64,10 +66,10 @@ const InitiateDelegation: React.FC<InitiateDelegationProps> = ({
     // Fetch contract settings to show minimum delegation amount
     useEffect(() => {
         const fetchSettings = async () => {
-            if (!publicClient || !stakingManagerAddress) return;
+            if (!chainPublicClient || !stakingManagerAddress) return;
             
             try {
-                const settings = await publicClient.readContract({
+                const settings = await chainPublicClient.readContract({
                     address: stakingManagerAddress as `0x${string}`,
                     abi: contractAbi,
                     functionName: 'getStakingManagerSettings',
@@ -94,10 +96,10 @@ const InitiateDelegation: React.FC<InitiateDelegationProps> = ({
         };
 
         fetchSettings();
-    }, [publicClient, stakingManagerAddress, contractAbi]);
+    }, [chainPublicClient, stakingManagerAddress, contractAbi]);
 
     const handleApproveERC20 = async () => {
-        if (!erc20TokenAddress || !walletClient || !publicClient || !viemChain) {
+        if (!erc20TokenAddress || !walletClient || !chainPublicClient || !viemChain) {
             setErrorState("ERC20 token address or wallet not available");
             return;
         }
@@ -109,7 +111,7 @@ const InitiateDelegation: React.FC<InitiateDelegationProps> = ({
             const amountWei = parseEther(delegationAmount);
 
             const hash = await erc20Token.approve(stakingManagerAddress as `0x${string}`, amountWei.toString());
-            await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
+            await chainPublicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
 
             setErrorState(null);
         } catch (err: any) {
@@ -125,7 +127,7 @@ const InitiateDelegation: React.FC<InitiateDelegationProps> = ({
         setTxHash(null);
         setDelegationID(null);
 
-        if (!walletClient || !publicClient || !viemChain) {
+        if (!walletClient || !chainPublicClient || !viemChain) {
             setErrorState("Wallet or chain configuration is not properly initialized.");
             onError("Wallet or chain configuration is not properly initialized.");
             return;
@@ -157,7 +159,7 @@ const InitiateDelegation: React.FC<InitiateDelegationProps> = ({
             // Pre-transaction validation: Check validator status and PoS eligibility
             try {
                 // Get the underlying ValidatorManager address from StakingManager settings
-                const settings = await publicClient.readContract({
+                const settings = await chainPublicClient.readContract({
                     address: stakingManagerAddress as `0x${string}`,
                     abi: contractAbi,
                     functionName: 'getStakingManagerSettings',
@@ -186,7 +188,7 @@ const InitiateDelegation: React.FC<InitiateDelegationProps> = ({
                 ];
 
                 // Check if validator exists and get its status
-                const validator = await publicClient.readContract({
+                const validator = await chainPublicClient.readContract({
                     address: settings.manager as `0x${string}`,
                     abi: validatorManagerAbi,
                     functionName: 'getValidator',
@@ -204,7 +206,7 @@ const InitiateDelegation: React.FC<InitiateDelegationProps> = ({
                 }
 
                 // Check if this is a PoS validator
-                const posValidator = await publicClient.readContract({
+                const posValidator = await chainPublicClient.readContract({
                     address: stakingManagerAddress as `0x${string}`,
                     abi: contractAbi,
                     functionName: 'getStakingValidator',
@@ -267,7 +269,7 @@ const InitiateDelegation: React.FC<InitiateDelegationProps> = ({
             setTxHash(hash);
 
             // Wait for confirmation
-            const receipt = await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
+            const receipt = await chainPublicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
             if (receipt.status !== 'success') {
                 throw new Error(`Transaction failed with status: ${receipt.status}`);
             }

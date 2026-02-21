@@ -1,7 +1,6 @@
 "use client";
 
 import { useToolboxStore, useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
-import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/toolbox/components/Button";
 import { Input } from "@/components/toolbox/components/Input";
@@ -21,6 +20,7 @@ import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } fr
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 import { useContractDeployer } from "@/components/toolbox/hooks/contracts";
 import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
+import { useChainPublicClient } from "@/components/toolbox/hooks/useChainPublicClient";
 
 const metadata: ConsoleToolMetadata = {
     title: "Deploy PoA Manager",
@@ -37,7 +37,7 @@ function DeployPoAManager({ onSuccess }: BaseConsoleToolProps) {
         poaManagerAddress,
         setPoaManagerAddress
     } = useToolboxStore();
-    const { publicClient } = useWalletStore();
+    const chainPublicClient = useChainPublicClient();
     const { walletClient } = useConnectedWallet();
     const createChainStoreSubnetId = useCreateChainStore()(state => state.subnetId);
     const [subnetIdL1, setSubnetIdL1] = useState<string>(createChainStoreSubnetId || "");
@@ -120,7 +120,7 @@ function DeployPoAManager({ onSuccess }: BaseConsoleToolProps) {
 
         setIsChecking(true);
         try {
-            const owner = await publicClient.readContract({
+            const owner = await chainPublicClient!.readContract({
                 address: poaManagerAddress as `0x${string}`,
                 abi: PoAManagerABI.abi,
                 functionName: 'owner'

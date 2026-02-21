@@ -5,15 +5,19 @@ import { Input } from '@/components/toolbox/components/Input';
 import { Success } from '@/components/toolbox/components/Success';
 import { Alert } from '@/components/toolbox/components/Alert';
 import { packWarpIntoAccessList } from '@/components/toolbox/console/permissioned-l1s/ValidatorManager/packWarp';
-import { hexToBytes, bytesToHex } from 'viem';
+import { hexToBytes, bytesToHex, encodeFunctionData, Abi } from 'viem';
 import NativeTokenStakingManager from '@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json';
 import ERC20TokenStakingManager from '@/contracts/icm-contracts/compiled/ERC20TokenStakingManager.json';
+import ValidatorManagerABI from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
 import { GetRegistrationJustification } from '@/components/toolbox/console/permissioned-l1s/ValidatorManager/justification';
 import { packL1ValidatorWeightMessage } from '@/components/toolbox/coreViem/utils/convertWarp';
 import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { useValidatorManager, usePoAManager, useNativeTokenStakingManager, useERC20TokenStakingManager } from '@/components/toolbox/hooks/contracts';
 import { fetchL1ValidatorWeightData } from './fetchL1ValidatorWeightData';
+import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
+import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
+import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 
 export type WeightUpdateType = 'ChangeWeight' | 'Delegation';
 export type OwnerType = 'PoAManager' | 'StakingManager' | 'EOA' | null;
@@ -64,7 +68,11 @@ const CompletePChainWeightUpdate: React.FC<CompletePChainWeightUpdateProps> = ({
     isLoadingOwnership,
     ownerType,
 }) => {
-    const { publicClient, avalancheNetworkID, isTestnet } = useWalletStore();
+    const { avalancheNetworkID, isTestnet } = useWalletStore();
+    const walletType = useWalletStore((s) => s.walletType);
+    const isCoreWallet = walletType === 'core';
+    const chainPublicClient = useChainPublicClient();
+    const viemChain = useViemChainStore();
     const { aggregateSignature } = useAvalancheSDKChainkit();
     const { notify } = useConsoleNotifications();
     const [pChainTxIdState, setPChainTxIdState] = useState(pChainTxId || '');
@@ -79,6 +87,7 @@ const CompletePChainWeightUpdate: React.FC<CompletePChainWeightUpdateProps> = ({
         nonce: bigint;
         weight: bigint;
     } | null>(null);
+    const [castAccessList, setCastAccessList] = useState<any[] | null>(null);
 
     // Configuration based on update type
     const isDelegation = updateType === 'Delegation';
@@ -132,7 +141,7 @@ const CompletePChainWeightUpdate: React.FC<CompletePChainWeightUpdateProps> = ({
             onError("Manager address is required.");
             return false;
         }
-        if (!publicClient) {
+        if (!chainPublicClient) {
             setErrorState("Wallet or chain configuration is not properly initialized.");
             onError("Wallet or chain configuration is not properly initialized.");
             return false;
@@ -200,7 +209,7 @@ const CompletePChainWeightUpdate: React.FC<CompletePChainWeightUpdateProps> = ({
                 const fetchedJustification = await GetRegistrationJustification(
                     weightMessageData.validationID,
                     subnetIdL1,
-                    publicClient!
+                    chainPublicClient!
                 );
 
                 if (!fetchedJustification) {
@@ -228,6 +237,12 @@ const CompletePChainWeightUpdate: React.FC<CompletePChainWeightUpdateProps> = ({
             // Step 5: Complete the weight update on EVM
             const signedPChainWarpMsgBytes = hexToBytes(`0x${signature.signedMessage}`);
             const accessList = packWarpIntoAccessList(signedPChainWarpMsgBytes);
+            setCastAccessList(accessList);
+
+            // Non-Core wallet: stop here and show cast command
+            if (!isCoreWallet) {
+                return;
+            }
 
             // Call appropriate hook based on update type
             let hash: string;
@@ -244,7 +259,7 @@ const CompletePChainWeightUpdate: React.FC<CompletePChainWeightUpdateProps> = ({
 
             setTxHash(hash);
 
-            const receipt = await publicClient!.waitForTransactionReceipt({ hash: hash as `0x${string}` });
+            const receipt = await chainPublicClient!.waitForTransactionReceipt({ hash: hash as `0x${string}` });
             if (receipt.status !== 'success') {
                 throw new Error(`Transaction failed with status: ${receipt.status}`);
             }
@@ -277,6 +292,45 @@ const CompletePChainWeightUpdate: React.FC<CompletePChainWeightUpdateProps> = ({
         }
     };
 
+    // Determine the target contract address for cast command
+    const castTargetAddress = (() => {
+        if (isDelegation) return managerAddress;
+        if (useMultisig && contractOwner) return contractOwner;
+        return managerAddress;
+    })();
+
+    function generateCastCommand(): string {
+        if (!pChainSignature || !castAccessList) return '';
+        const rpcUrl = viemChain?.rpcUrls?.default?.http?.[0] || '<L1_RPC_URL>';
+        const addr = castTargetAddress || '<CONTRACT_ADDRESS>';
+
+        let calldata: string;
+        if (isDelegation) {
+            calldata = encodeFunctionData({
+                abi: NativeTokenStakingManager.abi as Abi,
+                functionName: 'completeDelegatorRegistration',
+                args: [delegationIDState as `0x${string}`, 0],
+            });
+        } else {
+            calldata = encodeFunctionData({
+                abi: ValidatorManagerABI.abi as Abi,
+                functionName: 'completeValidatorWeightUpdate',
+                args: [0],
+            });
+        }
+
+        const accessListJson = JSON.stringify(castAccessList);
+
+        return [
+            `cast send ${addr} \\`,
+            `  ${calldata} \\`,
+            `  --access-list '${accessListJson}' \\`,
+            `  --gas-limit 2000000 \\`,
+            `  --rpc-url ${rpcUrl} \\`,
+            `  --private-key $PRIVATE_KEY`,
+        ].join('\n');
+    }
+
     if (!subnetIdL1) {
         return (
             <div className="text-sm text-zinc-500 dark:text-zinc-400">
@@ -285,12 +339,13 @@ const CompletePChainWeightUpdate: React.FC<CompletePChainWeightUpdateProps> = ({
         );
     }
 
-    const isButtonDisabled = isProcessing || 
-        !!txHash || 
-        !pChainTxIdState.trim() || 
+    const isButtonDisabled = isProcessing ||
+        !!txHash ||
+        !pChainTxIdState.trim() ||
         (isDelegation && !delegationIDState.trim()) ||
         isLoadingOwnership ||
-        (isChangeWeight && isContractOwner === false && !useMultisig);
+        (isChangeWeight && isContractOwner === false && !useMultisig) ||
+        (!isCoreWallet && !!pChainSignature);
 
     return (
         <div className="space-y-4">
@@ -362,8 +417,19 @@ const CompletePChainWeightUpdate: React.FC<CompletePChainWeightUpdateProps> = ({
                 disabled={isButtonDisabled}
                 loading={isProcessing}
             >
-                {isLoadingOwnership ? 'Checking ownership...' : (isProcessing ? 'Processing...' : `Complete ${isDelegation ? 'Delegation' : 'Weight Change'}`)}
+                {isLoadingOwnership ? 'Checking ownership...' : (isProcessing ? 'Processing...' : (isCoreWallet ? `Complete ${isDelegation ? 'Delegation' : 'Weight Change'}` : 'Aggregate Signatures'))}
             </Button>
+
+            {!isCoreWallet && pChainSignature && !txHash && (
+                <div className="space-y-3">
+                    <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 border border-blue-200 dark:border-blue-800">
+                        <p className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                            Signatures aggregated. Run this command to complete the {isDelegation ? 'delegation' : 'weight change'}:
+                        </p>
+                    </div>
+                    <DynamicCodeBlock lang="bash" code={generateCastCommand()} />
+                </div>
+            )}
 
             {txHash && (
                 <>

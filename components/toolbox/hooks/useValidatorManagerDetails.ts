@@ -5,6 +5,7 @@ import { useWalletStore } from "../stores/walletStore";
 import { useViemChainStore } from "../stores/toolboxStore";
 import { useValidatorManager } from "./contracts/core/useValidatorManager";
 import { usePoAManager } from "./contracts/governance/usePoAManager";
+import { useChainPublicClient } from "./useChainPublicClient";
 
 interface ValidatorManagerDetails {
     validatorManagerAddress: string;
@@ -28,9 +29,9 @@ interface UseValidatorManagerDetailsProps {
 }
 
 export function useValidatorManagerDetails({ subnetId }: UseValidatorManagerDetailsProps): ValidatorManagerDetails {
-    const { avalancheNetworkID, publicClient } = useWalletStore();
+    const { avalancheNetworkID } = useWalletStore();
     const viemChain = useViemChainStore();
-    const getChainIdFn = publicClient?.getChainId;
+    const chainPublicClient = useChainPublicClient();
 
     const [validatorManagerAddress, setValidatorManagerAddress] = useState("");
     const [blockchainId, setBlockchainId] = useState("");
@@ -123,20 +124,7 @@ export function useValidatorManagerDetails({ subnetId }: UseValidatorManagerDeta
                 const expectedChainIdForVMC = blockchainInfoForVMC.evmChainId;
 
                 if (viemChain && viemChain.id !== expectedChainIdForVMC) {
-                    setError(`Please use chain ID ${expectedChainIdForVMC} in your wallet. Current selected chain ID: ${viemChain.id}`);
-                    setIsLoading(false);
-                    return;
-                }
-
-                if (!publicClient) {
-                    setError("Public client not available. Please ensure your wallet is connected.");
-                    setIsLoading(false);
-                    return;
-                }
-
-                const connectedChainId = await publicClient.getChainId();
-                if (connectedChainId !== expectedChainIdForVMC) {
-                    setError(`Please connect to chain ID ${expectedChainIdForVMC} to use this L1\'s Validator Manager. Connected: ${connectedChainId}`);
+                    setError(`Please switch to chain ID ${expectedChainIdForVMC} to use this L1's Validator Manager. Current: ${viemChain.id}`);
                     setIsLoading(false);
                     return;
                 }
@@ -168,12 +156,12 @@ export function useValidatorManagerDetails({ subnetId }: UseValidatorManagerDeta
         };
 
         fetchDetails();
-    }, [subnetId, getChainIdFn, viemChain?.id, avalancheNetworkID]);
+    }, [subnetId, viemChain?.id, avalancheNetworkID]);
 
     // Fetch L1 total weight
     useEffect(() => {
         const fetchL1TotalWeight = async () => {
-            if (!publicClient) {
+            if (!chainPublicClient) {
                 setContractTotalWeight(0n);
                 setL1WeightError(null);
                 setIsLoadingL1Weight(false);
@@ -222,12 +210,12 @@ export function useValidatorManagerDetails({ subnetId }: UseValidatorManagerDeta
         };
 
         fetchL1TotalWeight();
-    }, [validatorManagerAddress, publicClient]); // Re-run if VMC address or publicClient changes
+    }, [validatorManagerAddress, chainPublicClient]);
 
     // Fetch contract owner (no ownership verification, just fetch the owner address)
     useEffect(() => {
         const fetchContractOwner = async () => {
-            if (!publicClient || !validatorManagerAddress) {
+            if (!chainPublicClient || !validatorManagerAddress) {
                 setContractOwner(null);
                 setOwnershipError(null);
                 setIsLoadingOwnership(false);
@@ -253,7 +241,7 @@ export function useValidatorManagerDetails({ subnetId }: UseValidatorManagerDeta
                 // Check if the owner is a contract by checking if it has bytecode
                 if (owner) {
                     try {
-                        const bytecode = await publicClient.getBytecode({ address: owner });
+                        const bytecode = await chainPublicClient!.getBytecode({ address: owner });
                         const isContract = !!bytecode && bytecode !== '0x';
                         setIsOwnerContract(isContract);
 
@@ -278,12 +266,12 @@ export function useValidatorManagerDetails({ subnetId }: UseValidatorManagerDeta
         };
 
         fetchContractOwner();
-    }, [validatorManagerAddress, publicClient]);
+    }, [validatorManagerAddress, chainPublicClient]);
 
     // Detect owner contract type when owner is a contract
     useEffect(() => {
         const detectOwnerType = async () => {
-            if (!isOwnerContract || !contractOwner || !publicClient) {
+            if (!isOwnerContract || !contractOwner || !chainPublicClient) {
                 setIsDetectingOwnerType(false);
                 return;
             }
@@ -314,7 +302,7 @@ export function useValidatorManagerDetails({ subnetId }: UseValidatorManagerDeta
         };
 
         detectOwnerType();
-    }, [isOwnerContract, contractOwner, publicClient]);
+    }, [isOwnerContract, contractOwner, chainPublicClient]);
 
     return {
         validatorManagerAddress,

@@ -15,13 +15,25 @@ export function WelcomeModal() {
   const { hasSeenWelcome, hasCompletedTour, startTour, markWelcomeSeen, endTour } = useOnboardingTour();
   const [isOpen, setIsOpen] = React.useState(false);
   const [dontShowAgain, setDontShowAgain] = React.useState(true);
+  const [isHydrated, setIsHydrated] = React.useState(
+    useOnboardingTour.persist.hasHydrated()
+  );
+
+  // Wait for Zustand persist to finish loading from localStorage
+  React.useEffect(() => {
+    if (isHydrated) return;
+    return useOnboardingTour.persist.onFinishHydration(() => {
+      setIsHydrated(true);
+    });
+  }, [isHydrated]);
 
   React.useEffect(() => {
+    if (!isHydrated) return;
     if (!hasSeenWelcome && !hasCompletedTour) {
       const timer = setTimeout(() => setIsOpen(true), 800);
       return () => clearTimeout(timer);
     }
-  }, [hasSeenWelcome, hasCompletedTour]);
+  }, [isHydrated, hasSeenWelcome, hasCompletedTour]);
 
   const handleStartTour = () => {
     setIsOpen(false);
@@ -37,7 +49,7 @@ export function WelcomeModal() {
     }
   };
 
-  if (hasSeenWelcome || hasCompletedTour) return null;
+  if (!isHydrated || hasSeenWelcome || hasCompletedTour) return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleSkip()}>

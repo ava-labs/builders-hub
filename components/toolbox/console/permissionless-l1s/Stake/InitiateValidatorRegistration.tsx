@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
+import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
 import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { Button } from '@/components/toolbox/components/Button';
 import { Input } from '@/components/toolbox/components/Input';
@@ -46,7 +47,8 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
     onSuccess,
     onError,
 }) => {
-    const { publicClient, walletEVMAddress, pChainAddress } = useWalletStore();
+    const { walletEVMAddress, pChainAddress } = useWalletStore();
+    const chainPublicClient = useChainPublicClient();
     const { data: walletClient } = useWalletClient();
     const viemChain = useViemChainStore();
 
@@ -74,11 +76,11 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
     // Fetch contract settings to help with debugging
     useEffect(() => {
         const fetchSettings = async () => {
-            if (!publicClient || !stakingManagerAddress) return;
+            if (!chainPublicClient || !stakingManagerAddress) return;
 
             try {
                 // Use getStakingManagerSettings which returns all settings in one call
-                const settings = await publicClient.readContract({
+                const settings = await chainPublicClient.readContract({
                     address: stakingManagerAddress as `0x${string}`,
                     abi: contractAbi,
                     functionName: 'getStakingManagerSettings',
@@ -108,10 +110,10 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
         };
 
         fetchSettings();
-    }, [publicClient, stakingManagerAddress, contractAbi]);
+    }, [chainPublicClient, stakingManagerAddress, contractAbi]);
 
     const handleApproveERC20 = async () => {
-        if (!erc20TokenAddress || !walletClient || !publicClient || !viemChain) {
+        if (!erc20TokenAddress || !walletClient || !chainPublicClient || !viemChain) {
             setErrorState("ERC20 token address or wallet not available");
             return;
         }
@@ -123,7 +125,7 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
             const amountWei = parseEther(stakeAmount);
 
             const hash = await erc20Token.approve(stakingManagerAddress as `0x${string}`, amountWei.toString());
-            await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
+            await chainPublicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
 
             setErrorState(null);
         } catch (err: any) {
@@ -139,7 +141,7 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
         setTxHash(null);
         setValidationID(null);
 
-        if (!walletClient || !publicClient || !viemChain) {
+        if (!walletClient || !chainPublicClient || !viemChain) {
             setErrorState("Wallet or chain configuration is not properly initialized.");
             onError("Wallet or chain configuration is not properly initialized.");
             return;
@@ -278,7 +280,7 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
             setTxHash(hash);
 
             // Wait for confirmation
-            const receipt = await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
+            const receipt = await chainPublicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
             if (receipt.status !== 'success') {
                 throw new Error(`Transaction failed with status: ${receipt.status}`);
             }

@@ -10,6 +10,7 @@ import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } fr
 import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 import { Alert } from "../../../components/Alert";
+import { ensureCoreNetworkMode, restoreCoreChain } from "@/components/toolbox/coreViem";
 import { useDisableL1Validator, ValidatorData } from "./DisableL1ValidatorContext";
 import ValidatorSelector from "./ValidatorSelector";
 import { formatAvaxBalance } from "@/components/toolbox/coreViem/utils/format";
@@ -137,11 +138,16 @@ function DisableValidator({ onSuccess }: BaseConsoleToolProps) {
     setError(null);
 
     try {
+      // Ensure Core Wallet is in the correct network mode for P-Chain ops
+      const previousChainId = await ensureCoreNetworkMode(isTestnet);
+
       // Pass validation ID as-is - the SDK expects CB58 format from the P-Chain
       const hash = await coreWalletClient.disableL1Validator({
         validationId: selectedValidator.validationId,
         disableAuth: [authIndex],
       });
+
+      if (previousChainId) await restoreCoreChain(previousChainId);
 
       setTxHash(hash);
       setOperationSuccessful(true);

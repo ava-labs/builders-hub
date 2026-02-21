@@ -33,14 +33,29 @@ export function WalletBootstrap() {
         const numericId = typeof chainId === 'string' ? Number.parseInt(chainId, 16) : chainId
         setWalletChainId(numericId)
 
+        // Only primary-network chain IDs definitively toggle testnet.
+        // Custom L1 chains preserve the current state — Core Wallet's
+        // wallet_getEthereumChain unreliably reports isTestnet for L1s.
+        const testnet = numericId === 43113 ? true
+          : numericId === 43114 ? false
+          : useWalletStore.getState().isTestnet
+
         try {
-          const client = await createCoreWalletClient(useWalletStore.getState().walletEVMAddress as `0x${string}`)
+          const client = await createCoreWalletClient(
+            useWalletStore.getState().walletEVMAddress as `0x${string}`,
+            testnet,
+          )
           if (client) {
-            const data = await client.getEthereumChain()
-            const { isTestnet, chainName } = data
-            setAvalancheNetworkID(isTestnet ? networkIDs.FujiID : networkIDs.MainnetID)
-            setIsTestnet(isTestnet)
-            setEvmChainName(chainName)
+            setCoreWalletClient(client)
+            // Re-fetch P-Chain address — bech32 HRP changes between networks
+            const [data, pAddr] = await Promise.all([
+              client.getEthereumChain().catch(() => ({ chainName: '' } as any)),
+              client.getPChainAddress().catch(() => ''),
+            ])
+            if (pAddr) setPChainAddress(pAddr)
+            setAvalancheNetworkID(testnet ? networkIDs.FujiID : networkIDs.MainnetID)
+            setIsTestnet(testnet)
+            setEvmChainName(data.chainName)
           }
         } catch { }
 
@@ -131,9 +146,12 @@ export function WalletBootstrap() {
         const numericId = typeof chainIdHex === 'string' ? Number.parseInt(chainIdHex, 16) : chainIdHex
         setWalletChainId(numericId)
 
-        const isTestnet = numericId === 43113
-        setIsTestnet(isTestnet)
-        setAvalancheNetworkID(isTestnet ? networkIDs.FujiID : networkIDs.MainnetID)
+        // Same logic: only C-Chain IDs toggle testnet; L1s preserve state
+        const testnet = numericId === 43113 ? true
+          : numericId === 43114 ? false
+          : useWalletStore.getState().isTestnet
+        setIsTestnet(testnet)
+        setAvalancheNetworkID(testnet ? networkIDs.FujiID : networkIDs.MainnetID)
 
         try { updateAllBalances() } catch { }
       }

@@ -6,6 +6,7 @@ import { Success } from '@/components/toolbox/components/Success';
 import { Alert } from '@/components/toolbox/components/Alert';
 import { MultisigOption } from '@/components/toolbox/components/MultisigOption';
 import { useValidatorManager } from '@/components/toolbox/hooks/contracts';
+import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
 
 interface InitiateValidatorRemovalProps {
   subnetId: string;
@@ -32,7 +33,8 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
   initialValidationId,
   ownershipState,
 }) => {
-  const { walletEVMAddress: connectedAddress, publicClient } = useWalletStore();
+  const { walletEVMAddress: connectedAddress } = useWalletStore();
+  const chainPublicClient = useChainPublicClient();
   const [validation, setValidation] = useState<ValidationSelection>({
     validationId: initialValidationId || '',
     nodeId: initialNodeId || ''
@@ -108,7 +110,7 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
         hash = await validatorManager.initiateValidatorRemoval(validation.validationId);
 
         // Wait for transaction receipt to check if it was successful
-        receipt = await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
+        receipt = await chainPublicClient!.waitForTransactionReceipt({ hash: hash as `0x${string}` });
 
         if (receipt.status === 'reverted') {
           setErrorState(`Transaction reverted. Hash: ${hash}`);
@@ -127,7 +129,7 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
         // Use resendValidatorRemovalMessage as fallback
         try {
           const fallbackHash = await validatorManager.resendValidatorRemovalMessage(validation.validationId);
-          const fallbackReceipt = await publicClient.waitForTransactionReceipt({ hash: fallbackHash as `0x${string}` });
+          const fallbackReceipt = await chainPublicClient!.waitForTransactionReceipt({ hash: fallbackHash as `0x${string}` });
 
           if (fallbackReceipt.status === 'reverted') {
             setErrorState(`Fallback transaction reverted. Hash: ${fallbackHash}`);

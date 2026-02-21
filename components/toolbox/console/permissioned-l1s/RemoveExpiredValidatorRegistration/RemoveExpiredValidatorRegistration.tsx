@@ -24,6 +24,7 @@ import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalle
 import { ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 import { ContractFunctionViewer } from "@/components/console/contract-function-viewer";
+import { useChainPublicClient } from "@/components/toolbox/hooks/useChainPublicClient";
 import versions from "@/scripts/versions.json";
 import {
   Search,
@@ -57,7 +58,8 @@ const metadata: ConsoleToolMetadata = {
 
 function RemoveExpiredValidatorRegistration() {
   const [subnetId, setSubnetId] = useState<string>(useCreateChainStore()((s) => s.subnetId) || "");
-  const { publicClient, avalancheNetworkID } = useWalletStore();
+  const { avalancheNetworkID } = useWalletStore();
+  const chainPublicClient = useChainPublicClient();
   const { data: walletClient } = useWalletClient();
   const viemChain = useViemChainStore();
   const { notify } = useConsoleNotifications();
@@ -112,7 +114,7 @@ function RemoveExpiredValidatorRegistration() {
     let cancelled = false;
     const bootstrapFromBlock = async () => {
       try {
-        const latest = await publicClient.getBlockNumber();
+        const latest = await chainPublicClient!.getBlockNumber();
         const suggested = latest > 100000n ? (latest - 100000n).toString() : "0";
         if (!cancelled) setFromBlock((prev) => (prev ? prev : suggested));
       } catch {
@@ -123,7 +125,7 @@ function RemoveExpiredValidatorRegistration() {
     return () => {
       cancelled = true;
     };
-  }, [publicClient]);
+  }, [chainPublicClient]);
 
   // Fetch current validators for the subnet
   useEffect(() => {
@@ -180,7 +182,7 @@ function RemoveExpiredValidatorRegistration() {
     setFetchProgress(null);
     try {
       const startBlock = fromBlock && fromBlock.trim().length > 0 ? BigInt(fromBlock) : 0n;
-      const latest = await publicClient.getBlockNumber();
+      const latest = await chainPublicClient!.getBlockNumber();
       if (startBlock > latest) {
         setEvents([]);
         return;
@@ -197,7 +199,7 @@ function RemoveExpiredValidatorRegistration() {
         currentChunk++;
         setFetchProgress({ current: currentChunk, total: totalChunks });
 
-        const chunkLogs = await publicClient.getLogs({
+        const chunkLogs = await chainPublicClient!.getLogs({
           address: validatorManagerAddress as Address,
           event: initiatedEventAbi,
           fromBlock: cursor,
@@ -240,7 +242,7 @@ function RemoveExpiredValidatorRegistration() {
         const entries = await Promise.all(
           uniqueIds.map(async (id) => {
             try {
-              const res: any = await publicClient.readContract({
+              const res: any = await chainPublicClient!.readContract({
                 address: validatorManagerAddress as `0x${string}`,
                 abi: ValidatorManagerABI.abi as Abi,
                 functionName: "getValidator",
@@ -265,7 +267,7 @@ function RemoveExpiredValidatorRegistration() {
     return () => {
       cancelled = true;
     };
-  }, [validatorManagerAddress, events, publicClient]);
+  }, [validatorManagerAddress, events, chainPublicClient]);
 
   const formatExpiry = (expiry: bigint) => {
     try {
@@ -360,7 +362,7 @@ function RemoveExpiredValidatorRegistration() {
       const targetContractAddress = useMultisig ? contractOwner : validatorManagerAddress;
       const targetAbi = useMultisig ? (PoAManagerABI.abi as Abi) : (ValidatorManagerABI.abi as Abi);
 
-      const justification = await GetRegistrationJustification(validationId, subnetId, publicClient);
+      const justification = await GetRegistrationJustification(validationId, subnetId, chainPublicClient!);
       if (!justification) throw new Error("Could not build justification for this validation ID");
 
       const validationIDBytes = hexToBytes(validationId as `0x${string}`);

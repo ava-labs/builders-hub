@@ -9,6 +9,7 @@ import { Success } from '@/components/toolbox/components/Success';
 import { Alert } from '@/components/toolbox/components/Alert';
 import { MultisigOption } from '@/components/toolbox/components/MultisigOption';
 import { useValidatorManager } from '@/components/toolbox/hooks/contracts';
+import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
 
 interface InitiateChangeWeightProps {
   subnetId: string;
@@ -40,7 +41,8 @@ const InitiateChangeWeight: React.FC<InitiateChangeWeightProps> = ({
   ownershipState,
   contractTotalWeight,
 }) => {
-  const { walletEVMAddress: connectedAddress, publicClient } = useWalletStore();
+  const { walletEVMAddress: connectedAddress } = useWalletStore();
+  const chainPublicClient = useChainPublicClient();
   const [validation, setValidation] = useState<ValidationSelection>({
     validationId: initialValidationId || '',
     nodeId: initialNodeId || ''
@@ -102,7 +104,7 @@ const InitiateChangeWeight: React.FC<InitiateChangeWeightProps> = ({
       let validatorCurrentWeight: bigint | null = null;
       if (validation.validationId) {
         validatorCurrentWeight = await getValidatorWeight(
-          publicClient,
+          chainPublicClient!,
           validatorManagerAddress as `0x${string}`,
           validation.validationId
         );
@@ -130,7 +132,7 @@ const InitiateChangeWeight: React.FC<InitiateChangeWeightProps> = ({
       const hash = await validatorManager.initiateValidatorWeightUpdate(validation.validationId, weightBigInt);
 
       // Wait for transaction receipt to check if it was successful
-      const receipt = await publicClient.waitForTransactionReceipt({
+      const receipt = await chainPublicClient!.waitForTransactionReceipt({
         hash: hash as `0x${string}`
       });
 

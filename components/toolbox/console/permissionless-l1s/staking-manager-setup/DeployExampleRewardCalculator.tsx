@@ -2,6 +2,7 @@
 
 import { useToolboxStore, useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
+import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
 import { useState } from "react";
 import { Button } from "@/components/toolbox/components/Button";
 import { Input } from "@/components/toolbox/components/Input";
@@ -43,7 +44,8 @@ const metadata: ConsoleToolMetadata = {
 
 function DeployExampleRewardCalculator({ onSuccess }: BaseConsoleToolProps) {
   const { rewardCalculatorAddress, setRewardCalculatorAddress } = useToolboxStore();
-  const { publicClient, walletEVMAddress } = useWalletStore();
+  const { walletEVMAddress } = useWalletStore();
+  const chainPublicClient = useChainPublicClient();
   const { walletClient } = useConnectedWallet();
   const [isDeploying, setIsDeploying] = useState(false);
   const [rewardBasisPoints, setRewardBasisPoints] = useState<string>("500"); // Default 5% APR
@@ -69,7 +71,7 @@ function DeployExampleRewardCalculator({ onSuccess }: BaseConsoleToolProps) {
     notify({ type: "deploy", name: "ExampleRewardCalculator" }, deployPromise, viemChain ?? undefined);
 
     const hash = await deployPromise;
-    const receipt = await publicClient.waitForTransactionReceipt({ hash });
+    const receipt = await chainPublicClient!.waitForTransactionReceipt({ hash });
     if (!receipt.contractAddress) {
       throw new Error("No contract address in receipt");
     }

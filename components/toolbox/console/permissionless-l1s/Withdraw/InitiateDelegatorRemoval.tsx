@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
+import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
 import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { Button } from '@/components/toolbox/components/Button';
 import { Input } from '@/components/toolbox/components/Input';
@@ -29,7 +30,8 @@ const InitiateDelegatorRemoval: React.FC<InitiateDelegatorRemovalProps> = ({
     onSuccess,
     onError,
 }) => {
-    const { publicClient, walletEVMAddress } = useWalletStore();
+    const { walletEVMAddress } = useWalletStore();
+    const chainPublicClient = useChainPublicClient();
     const { data: walletClient } = useWalletClient();
     const viemChain = useViemChainStore();
 
@@ -53,13 +55,13 @@ const InitiateDelegatorRemoval: React.FC<InitiateDelegatorRemovalProps> = ({
     // Fetch delegation info when component mounts or delegationID changes
     useEffect(() => {
         const fetchDelegationInfo = async () => {
-            if (!publicClient || !stakingManagerAddress || !delegationID) {
+            if (!chainPublicClient || !stakingManagerAddress || !delegationID) {
                 setDelegationInfo(null);
                 return;
             }
 
             try {
-                const info = await publicClient.readContract({
+                const info = await chainPublicClient.readContract({
                     address: stakingManagerAddress as `0x${string}`,
                     abi: contractAbi,
                     functionName: 'getDelegatorInfo',
@@ -78,13 +80,13 @@ const InitiateDelegatorRemoval: React.FC<InitiateDelegatorRemovalProps> = ({
         };
 
         fetchDelegationInfo();
-    }, [publicClient, stakingManagerAddress, delegationID, contractAbi]);
+    }, [chainPublicClient, stakingManagerAddress, delegationID, contractAbi]);
 
     const handleInitiateRemoval = async () => {
         setErrorState(null);
         setTxHash(null);
 
-        if (!walletClient || !publicClient || !viemChain) {
+        if (!walletClient || !chainPublicClient || !viemChain) {
             const msg = "Wallet or chain configuration is not properly initialized.";
             setErrorState(msg);
             onError(msg);
@@ -116,7 +118,7 @@ const InitiateDelegatorRemoval: React.FC<InitiateDelegatorRemovalProps> = ({
         setIsProcessing(true);
         try {
             // Pre-check delegation status
-            const fullDelegationInfo = await publicClient.readContract({
+            const fullDelegationInfo = await chainPublicClient.readContract({
                 address: stakingManagerAddress as `0x${string}`,
                 abi: contractAbi,
                 functionName: 'getDelegatorInfo',
@@ -154,7 +156,7 @@ const InitiateDelegatorRemoval: React.FC<InitiateDelegatorRemovalProps> = ({
             // Check minimum stake duration
             if (fullDelegationInfo.startTime > 0n) {
                 try {
-                    const stakingSettings = await publicClient.readContract({
+                    const stakingSettings = await chainPublicClient.readContract({
                         address: stakingManagerAddress as `0x${string}`,
                         abi: contractAbi,
                         functionName: 'getStakingManagerSettings',
@@ -191,7 +193,7 @@ const InitiateDelegatorRemoval: React.FC<InitiateDelegatorRemovalProps> = ({
             setTxHash(hash);
 
             // Wait for confirmation
-            const receipt = await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
+            const receipt = await chainPublicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
             if (receipt.status !== 'success') {
                 throw new Error(`Transaction failed with status: ${receipt.status}`);
             }

@@ -38,7 +38,7 @@ function DeployStakingManager({ initialTokenType = 'native' }: DeployStakingMana
     const [tokenType, setTokenType] = useState<TokenType>(initialTokenType);
     const { setCriticalError } = useCriticalError();
 
-    const { publicClient, walletEVMAddress } = useWalletStore();
+    const { walletEVMAddress } = useWalletStore();
     const { data: walletClient } = useWalletClient();
     const viemChain = useViemChainStore();
     const {

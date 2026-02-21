@@ -9,6 +9,7 @@ import { MultisigOption } from '@/components/toolbox/components/MultisigOption';
 import { getValidationIdHex } from '@/components/toolbox/coreViem/hooks/getValidationID';
 import { Alert } from '@/components/toolbox/components/Alert';
 import { useValidatorManager } from '@/components/toolbox/hooks/contracts';
+import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
 
 interface InitiateValidatorRegistrationProps {
   subnetId: string;
@@ -38,7 +39,8 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
   ownershipState,
   contractTotalWeight,
 }) => {
-  const { walletEVMAddress: connectedAddress, publicClient } = useWalletStore();
+  const { walletEVMAddress: connectedAddress } = useWalletStore();
+  const chainPublicClient = useChainPublicClient();
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setErrorState] = useState<string | null>(null);
   const [txSuccess, setTxSuccess] = useState<string | null>(null);
@@ -138,7 +140,7 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
         });
 
         // Get receipt to extract warp message and validation ID
-        receipt = await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
+        receipt = await chainPublicClient!.waitForTransactionReceipt({ hash: hash as `0x${string}` });
 
         if (receipt.status === 'reverted') {
           setErrorState(`Transaction reverted. Hash: ${hash}`);
@@ -165,7 +167,7 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
         try {
           const nodeIdBytes = parseNodeID(validator.nodeID);
           const validationId = await getValidationIdHex(
-            publicClient,
+            chainPublicClient!,
             validatorManagerAddress as `0x${string}`,
             nodeIdBytes
           );
@@ -180,7 +182,7 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
           // Use resendRegisterValidatorMessage as fallback
           const fallbackHash = await validatorManager.resendRegisterValidatorMessage(validationId);
 
-          const fallbackReceipt = await publicClient.waitForTransactionReceipt({ hash: fallbackHash as `0x${string}` });
+          const fallbackReceipt = await chainPublicClient!.waitForTransactionReceipt({ hash: fallbackHash as `0x${string}` });
 
           if (fallbackReceipt.status === 'reverted') {
             setErrorState(`Fallback transaction reverted. Hash: ${fallbackHash}`);

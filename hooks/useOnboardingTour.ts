@@ -40,7 +40,7 @@ export const useOnboardingTour = create<OnboardingTourStore>()(
 
       // Actions
       startTour: () => {
-        set({ isActive: true, currentStepIndex: 0 });
+        set({ isActive: true, currentStepIndex: 0, hasSeenWelcome: true });
       },
 
       endTour: () => {

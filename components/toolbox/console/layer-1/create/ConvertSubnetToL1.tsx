@@ -16,6 +16,7 @@ import { Step, Steps } from 'fumadocs-ui/components/steps';
 import Link from "next/link";
 import { AlertTriangle } from "lucide-react";
 import { CoreWalletTransactionButton } from "@/components/toolbox/components/CoreWalletTransactionButton";
+import { ensureCoreNetworkMode, restoreCoreChain } from "@/components/toolbox/coreViem";
 
 const metadata: ConsoleToolMetadata = {
     title: "Convert Subnet to L1",
@@ -85,18 +86,24 @@ function ConvertToL1({ onSuccess }: BaseConsoleToolProps) {
         setConvertToL1TxId("");
         setIsConverting(true);
 
-        const convertSubnetToL1Tx = coreWalletClient.convertToL1({
-            subnetId: selection.subnetId,
-            chainId: validatorManagerChainID,
-            managerAddress: validatorManagerAddress,
-            subnetAuth: [0],
-            validators
-        });
-
-        notify('convertToL1', convertSubnetToL1Tx);
-
         try {
+            // Ensure Core Wallet is in the correct network mode for P-Chain ops
+            const previousChainId = await ensureCoreNetworkMode(isTestnet);
+
+            const convertSubnetToL1Tx = coreWalletClient.convertToL1({
+                subnetId: selection.subnetId,
+                chainId: validatorManagerChainID,
+                managerAddress: validatorManagerAddress,
+                subnetAuth: [0],
+                validators
+            });
+
+            notify('convertToL1', convertSubnetToL1Tx);
+
             const txID = await convertSubnetToL1Tx;
+
+            if (previousChainId) await restoreCoreChain(previousChainId);
+
             setConvertToL1TxId(txID);
             onSuccess?.();
         } finally {

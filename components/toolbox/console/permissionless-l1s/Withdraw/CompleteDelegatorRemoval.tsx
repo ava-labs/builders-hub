@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
+import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
 import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { Button } from '@/components/toolbox/components/Button';
 import { Input } from '@/components/toolbox/components/Input';
@@ -38,7 +39,8 @@ const CompleteDelegatorRemoval: React.FC<CompleteDelegatorRemovalProps> = ({
     onSuccess,
     onError,
 }) => {
-    const { coreWalletClient, publicClient, walletEVMAddress, avalancheNetworkID } = useWalletStore();
+    const { coreWalletClient, walletEVMAddress, avalancheNetworkID } = useWalletStore();
+    const chainPublicClient = useChainPublicClient();
     const { data: walletClient } = useWalletClient();
     const { aggregateSignature } = useAvalancheSDKChainkit();
     const viemChain = useViemChainStore();
@@ -80,7 +82,7 @@ const CompleteDelegatorRemoval: React.FC<CompleteDelegatorRemovalProps> = ({
         setPChainSignature(null);
         setExtractedData(null);
 
-        if (!walletClient || !publicClient || !viemChain) {
+        if (!walletClient || !chainPublicClient || !viemChain) {
             setErrorState("Wallet or chain configuration is not properly initialized.");
             onError("Wallet or chain configuration is not properly initialized.");
             return;
@@ -122,7 +124,7 @@ const CompleteDelegatorRemoval: React.FC<CompleteDelegatorRemovalProps> = ({
             // Get delegation info before removal to show stake amount
             let delegationWeight = '0';
             try {
-                const delegatorInfo = await publicClient.readContract({
+                const delegatorInfo = await chainPublicClient.readContract({
                     address: stakingManagerAddress as `0x${string}`,
                     abi: contractAbi,
                     functionName: 'getDelegatorInfo',
@@ -193,7 +195,7 @@ const CompleteDelegatorRemoval: React.FC<CompleteDelegatorRemovalProps> = ({
             setTxHash(hash);
 
             // Wait for confirmation
-            const receipt = await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
+            const receipt = await chainPublicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
             if (receipt.status !== 'success') {
                 throw new Error(`Transaction failed with status: ${receipt.status}`);
             }

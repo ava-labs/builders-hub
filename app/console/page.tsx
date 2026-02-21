@@ -93,9 +93,17 @@ function BentoCard({
   className?: string;
   children: React.ReactNode;
 }) {
+  const router = useRouter();
+
   return (
     <motion.div variants={itemVariants}>
-      <Link href={href} className="block h-full">
+      <div
+        onClick={() => router.push(href)}
+        className="block h-full cursor-pointer"
+        role="link"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") router.push(href); }}
+      >
         <motion.div
           whileHover={{ y: -2 }}
           transition={{ type: "spring" as const, stiffness: 400, damping: 25 }}
@@ -106,7 +114,7 @@ function BentoCard({
         >
           {children}
         </motion.div>
-      </Link>
+      </div>
     </motion.div>
   );
 }

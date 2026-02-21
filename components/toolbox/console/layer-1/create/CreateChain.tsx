@@ -13,6 +13,7 @@ import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-
 import { AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { CoreWalletTransactionButton } from "@/components/toolbox/components/CoreWalletTransactionButton";
+import { ensureCoreNetworkMode, restoreCoreChain } from "@/components/toolbox/coreViem";
 
 // Import Genesis Wizard components
 import { GenesisWizard } from "@/components/toolbox/components/genesis/GenesisWizard";
@@ -62,23 +63,28 @@ function CreateChain({ onSuccess, embedded = false }: CreateChainProps) {
 
         setIsCreatingChain(true);
 
-        const createChainTx = coreWalletClient.createChain({
-            chainName: localChainName,
-            subnetId: subnetId,
-            vmId,
-            fxIds: [],
-            genesisData: genesisData,
-            subnetAuth: [0],
-        })
-
-        notify('createChain', createChainTx);
-
         try {
+            // Ensure Core Wallet is in the correct network mode for P-Chain ops
+            const previousChainId = await ensureCoreNetworkMode(isTestnet);
+
+            const createChainTx = coreWalletClient.createChain({
+                chainName: localChainName,
+                subnetId: subnetId,
+                vmId,
+                fxIds: [],
+                genesisData: genesisData,
+                subnetAuth: [0],
+            })
+
+            notify('createChain', createChainTx);
+
             const txID = await createChainTx;
+
+            if (previousChainId) await restoreCoreChain(previousChainId);
+
             setChainID(txID);
             setChainName(localChainName);
             setLocalChainName(generateRandomChainName());
-
         } finally {
             setIsCreatingChain(false);
         }
