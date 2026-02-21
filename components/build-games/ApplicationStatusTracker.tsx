@@ -4,9 +4,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import ReferralButton from "./ReferralButton";
 
-interface ApplicationData {
-  id: string;
-  firstName: string;
+interface ParticipantData {
   projectName: string;
   createdAt: string;
 }
@@ -118,7 +116,7 @@ function MobileTimeline({ steps }: { steps: TimelineStep[] }) {
   );
 }
 
-function StatusTracker({ application }: { application: ApplicationData }) {
+function StatusTracker({ application }: { application: ParticipantData }) {
   const formattedDate = new Date(application.createdAt).toLocaleDateString(
     "en-US",
     {
@@ -186,11 +184,10 @@ function StatusTracker({ application }: { application: ApplicationData }) {
 
 export default function ApplicationStatusTracker() {
   const { status } = useSession();
-  const [application, setApplication] = useState<ApplicationData | null>(null);
+  const [participant, setParticipant] = useState<ParticipantData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    // Only fetch when authenticated
     if (status !== "authenticated") {
       return;
     }
@@ -199,8 +196,8 @@ export default function ApplicationStatusTracker() {
     fetch("/api/build-games/status")
       .then((res) => res.json())
       .then((data) => {
-        if (data.hasApplied && data.application) {
-          setApplication(data.application);
+        if (data.isParticipant && data.participant) {
+          setParticipant(data.participant);
         }
       })
       .catch((error) => {
@@ -211,9 +208,9 @@ export default function ApplicationStatusTracker() {
       });
   }, [status]);
 
-  if (status === "loading" || status === "unauthenticated" || isLoading || !application) {
+  if (status === "loading" || status === "unauthenticated" || isLoading || !participant) {
     return null;
   }
 
-  return <StatusTracker application={application} />;
+  return <StatusTracker application={participant} />;
 }

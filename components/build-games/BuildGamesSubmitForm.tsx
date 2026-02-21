@@ -81,6 +81,18 @@ const FormSchema = z.object({
   demo_video_link: z.array(z.string()).optional(),
   tracks: z.array(z.string()).optional(),
   is_preexisting_idea: z.boolean().optional(),
+  project_category: z.string().optional().or(z.literal("")),
+  other_category: z.string().optional().or(z.literal("")),
+
+  // ── Stage 1 — Gaming (→ FormData.build_games) ────────────────────────────
+  bg_game_type: z.string().optional().or(z.literal("")),
+  bg_game_genre: z.string().optional().or(z.literal("")),
+  bg_game_genre_other: z.string().optional().or(z.literal("")),
+  bg_game_loop: z.string().optional().or(z.literal("")),
+  bg_web3_gaming_integration: z.string().optional().or(z.literal("")),
+  bg_player_motivation: z.string().optional().or(z.literal("")),
+  bg_game_economy: z.string().optional().or(z.literal("")),
+  bg_target_player: z.string().optional().or(z.literal("")),
 
   // ── Stage 1 — Existing project follow-ups (→ FormData.build_games) ────────
   bg_existing_project_plan: z.string().optional().or(z.literal("")),
@@ -97,6 +109,22 @@ const FormSchema = z.object({
   bg_architecture_overview: z.string().optional().or(z.literal("")),
   bg_user_journey: z.string().optional().or(z.literal("")),
   bg_moscow_framework: z.string().optional().or(z.literal("")),
+
+  // ── Stage 2 — Gaming MVP ──────────────────────────────────────────────────
+  bg_game_playable_state: z.string().optional().or(z.literal("")),
+  bg_game_smart_contracts: z.string().optional().or(z.literal("")),
+  bg_game_onboarding: z.string().optional().or(z.literal("")),
+  bg_game_playtesting: z.string().optional().or(z.literal("")),
+
+  // ── Stage 3 — Gaming GTM ──────────────────────────────────────────────────
+  bg_game_acquisition: z.string().optional().or(z.literal("")),
+  bg_game_community: z.string().optional().or(z.literal("")),
+  bg_game_monetization: z.string().optional().or(z.literal("")),
+  bg_game_competitors: z.string().optional().or(z.literal("")),
+
+  // ── Stage 4 — Gaming Finals ───────────────────────────────────────────────
+  bg_game_metrics: z.string().optional().or(z.literal("")),
+  bg_game_vision: z.string().optional().or(z.literal("")),
 });
 
 type FormData = z.infer<typeof FormSchema>;
@@ -134,6 +162,16 @@ export default function BuildGamesSubmitForm({
       demo_video_link: [],
       tracks: [],
       is_preexisting_idea: false,
+      project_category: "",
+      other_category: "",
+      bg_game_type: "",
+      bg_game_genre: "",
+      bg_game_genre_other: "",
+      bg_game_loop: "",
+      bg_web3_gaming_integration: "",
+      bg_player_motivation: "",
+      bg_game_economy: "",
+      bg_target_player: "",
       bg_existing_project_plan: "",
       bg_existing_achievements: "",
       bg_problem_statement: "",
@@ -144,6 +182,16 @@ export default function BuildGamesSubmitForm({
       bg_architecture_overview: "",
       bg_user_journey: "",
       bg_moscow_framework: "",
+      bg_game_playable_state: "",
+      bg_game_smart_contracts: "",
+      bg_game_onboarding: "",
+      bg_game_playtesting: "",
+      bg_game_acquisition: "",
+      bg_game_community: "",
+      bg_game_monetization: "",
+      bg_game_competitors: "",
+      bg_game_metrics: "",
+      bg_game_vision: "",
     },
   });
 
@@ -193,6 +241,8 @@ export default function BuildGamesSubmitForm({
           demo_video_link: p.demo_video_link ? p.demo_video_link.split(",").filter(Boolean) : [],
           tracks: Array.isArray(p.tracks) ? p.tracks : [],
           is_preexisting_idea: p.is_preexisting_idea ?? false,
+          project_category: Array.isArray(p.categories) && p.categories.length > 0 ? p.categories[0] : "",
+          other_category: p.other_category ?? "",
         };
 
         // Fetch and populate build_games FormData fields
@@ -208,11 +258,29 @@ export default function BuildGamesSubmitForm({
             bg_current_solutions: bg.current_solutions ?? "",
             bg_proposed_solution: bg.proposed_solution ?? "",
             bg_onchain_trigger: bg.onchain_trigger ?? "",
+            bg_game_type: bg.game_type ?? "",
+            bg_game_genre: bg.game_genre ?? "",
+            bg_game_genre_other: bg.game_genre_other ?? "",
+            bg_game_loop: bg.game_loop ?? "",
+            bg_web3_gaming_integration: bg.web3_gaming_integration ?? "",
+            bg_player_motivation: bg.player_motivation ?? "",
+            bg_game_economy: bg.game_economy ?? "",
+            bg_target_player: bg.target_player ?? "",
             bg_existing_project_plan: bg.existing_project_plan ?? "",
             bg_existing_achievements: bg.existing_achievements ?? "",
             bg_architecture_overview: bg.architecture_overview ?? "",
             bg_user_journey: bg.user_journey ?? "",
             bg_moscow_framework: bg.moscow_framework ?? "",
+            bg_game_playable_state: bg.game_playable_state ?? "",
+            bg_game_smart_contracts: bg.game_smart_contracts ?? "",
+            bg_game_onboarding: bg.game_onboarding ?? "",
+            bg_game_playtesting: bg.game_playtesting ?? "",
+            bg_game_acquisition: bg.game_acquisition ?? "",
+            bg_game_community: bg.game_community ?? "",
+            bg_game_monetization: bg.game_monetization ?? "",
+            bg_game_competitors: bg.game_competitors ?? "",
+            bg_game_metrics: bg.game_metrics ?? "",
+            bg_game_vision: bg.game_vision ?? "",
           });
         } catch {
           // FormData doesn't exist yet — still apply project values
@@ -238,6 +306,8 @@ export default function BuildGamesSubmitForm({
       demo_link: (data.demo_link ?? []).join(","),
       demo_video_link: (data.demo_video_link ?? []).join(","),
       tracks: data.tracks ?? [],
+      categories: data.project_category ? [data.project_category] : [],
+      other_category: data.other_category ?? "",
       is_preexisting_idea: data.is_preexisting_idea ?? false,
       hackaton_id: HACKATHON_ID,
       user_id: session.user.id,
@@ -265,11 +335,29 @@ export default function BuildGamesSubmitForm({
             current_solutions: data.bg_current_solutions ?? "",
             proposed_solution: data.bg_proposed_solution ?? "",
             onchain_trigger: data.bg_onchain_trigger ?? "",
+            game_type: data.bg_game_type ?? "",
+            game_genre: data.bg_game_genre ?? "",
+            game_genre_other: data.bg_game_genre_other ?? "",
+            game_loop: data.bg_game_loop ?? "",
+            web3_gaming_integration: data.bg_web3_gaming_integration ?? "",
+            player_motivation: data.bg_player_motivation ?? "",
+            game_economy: data.bg_game_economy ?? "",
+            target_player: data.bg_target_player ?? "",
             existing_project_plan: data.bg_existing_project_plan ?? "",
             existing_achievements: data.bg_existing_achievements ?? "",
             architecture_overview: data.bg_architecture_overview ?? "",
             user_journey: data.bg_user_journey ?? "",
             moscow_framework: data.bg_moscow_framework ?? "",
+            game_playable_state: data.bg_game_playable_state ?? "",
+            game_smart_contracts: data.bg_game_smart_contracts ?? "",
+            game_onboarding: data.bg_game_onboarding ?? "",
+            game_playtesting: data.bg_game_playtesting ?? "",
+            game_acquisition: data.bg_game_acquisition ?? "",
+            game_community: data.bg_game_community ?? "",
+            game_monetization: data.bg_game_monetization ?? "",
+            game_competitors: data.bg_game_competitors ?? "",
+            game_metrics: data.bg_game_metrics ?? "",
+            game_vision: data.bg_game_vision ?? "",
           },
         },
       };
@@ -417,6 +505,72 @@ export default function BuildGamesSubmitForm({
             )}
           />
 
+          {/* ── Project Category ── */}
+          <FormField
+            control={form.control}
+            name="project_category"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-white font-medium">
+                  Project Category
+                </FormLabel>
+                <p className="text-zinc-400 text-sm -mt-1">
+                  Select the category that best describes your project. This determines which evaluation questions you'll answer.
+                </p>
+                <FormControl>
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {[
+                      "DeFi",
+                      "Gaming",
+                      "NFT / Digital Assets",
+                      "Infrastructure",
+                      "Social",
+                      "DAO / Governance",
+                      "Identity",
+                      "Other",
+                    ].map((cat) => (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => field.onChange(cat)}
+                        className={`px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                          field.value === cat
+                            ? "bg-[#66acd6]/15 border-[#66acd6] text-[#66acd6]"
+                            : "bg-zinc-900/80 border-zinc-700 text-zinc-400 hover:border-zinc-500"
+                        }`}
+                      >
+                        {cat}
+                      </button>
+                    ))}
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {form.watch("project_category") === "Other" && (
+            <FormField
+              control={form.control}
+              name="other_category"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-white font-medium">
+                    Please specify your category
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="Describe your project category..."
+                      className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6]"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
+
           {/* ── Existing Project ── */}
           <FormField
             control={form.control}
@@ -505,134 +659,375 @@ export default function BuildGamesSubmitForm({
             </>
           )}
 
-          {/* ── Problem Identification ── */}
-          <SectionDivider label="‼️ Problem Identification" />
+          {/* ── Gaming — only shown when category is Gaming ── */}
+          {form.watch("project_category") === "Gaming" && (
+            <>
+              <SectionDivider label="🎮 Gaming" />
 
-          <FormField
-            control={form.control}
-            name="bg_problem_statement"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-white font-medium">
-                  What problem are you addressing?{" "}
-                  <span className="text-[#66acd6]">*</span>
-                </FormLabel>
-                <p className="text-zinc-400 text-sm -mt-1">
-                  Describe the pain point or need your project aims to solve.
-                </p>
-                <FormControl>
-                  <Textarea
-                    placeholder="Describe the core problem, its scope, and why it matters..."
-                    className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6] min-h-[140px] resize-none"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+              <FormField
+                control={form.control}
+                name="bg_game_type"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-white font-medium">
+                      What type of gaming project is this?
+                    </FormLabel>
+                    <p className="text-zinc-400 text-sm -mt-1">
+                      This determines which evaluation questions apply to your submission.
+                    </p>
+                    <FormControl>
+                      <div className="flex flex-wrap gap-3 mt-1">
+                        {[
+                          {
+                            value: "Consumer Game",
+                            description: "You're building a game players will play",
+                          },
+                          {
+                            value: "Gaming Infrastructure / Tooling",
+                            description: "You're building tools, SDKs, or protocols for the gaming industry",
+                          },
+                        ].map(({ value, description }) => (
+                          <button
+                            key={value}
+                            type="button"
+                            onClick={() => field.onChange(value)}
+                            className={`flex-1 min-w-[200px] px-4 py-3 rounded-lg border text-left transition-colors ${
+                              field.value === value
+                                ? "bg-[#66acd6]/15 border-[#66acd6]"
+                                : "bg-zinc-900/80 border-zinc-700 hover:border-zinc-500"
+                            }`}
+                          >
+                            <p className={`text-sm font-medium ${field.value === value ? "text-[#66acd6]" : "text-zinc-300"}`}>
+                              {value}
+                            </p>
+                            <p className="text-xs text-zinc-500 mt-0.5">{description}</p>
+                          </button>
+                        ))}
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-          <FormField
-            control={form.control}
-            name="bg_user_persona"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-white font-medium">
-                  Who experiences this problem?
-                </FormLabel>
-                <p className="text-zinc-400 text-sm -mt-1">
-                  Describe your primary user persona. What needs do they have?
-                  Is it B2B or B2C?
-                </p>
-                <FormControl>
-                  <Textarea
-                    placeholder="Who is your target user? What are their goals, frustrations, and context?..."
-                    className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6] min-h-[120px] resize-none"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+              {form.watch("bg_game_type") === "Consumer Game" && (<>
+              <FormField
+                control={form.control}
+                name="bg_game_genre"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-white font-medium">
+                      Game genre
+                    </FormLabel>
+                    <p className="text-zinc-400 text-sm -mt-1">
+                      Select the genre that best fits your game.
+                    </p>
+                    <FormControl>
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        {[
+                          "Action / Adventure",
+                          "RPG",
+                          "Strategy",
+                          "Puzzle",
+                          "Card Game",
+                          "Simulation",
+                          "Sports",
+                          "Multiplayer / Social",
+                          "Other",
+                        ].map((genre) => (
+                          <button
+                            key={genre}
+                            type="button"
+                            onClick={() => field.onChange(genre)}
+                            className={`px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                              field.value === genre
+                                ? "bg-[#66acd6]/15 border-[#66acd6] text-[#66acd6]"
+                                : "bg-zinc-900/80 border-zinc-700 text-zinc-400 hover:border-zinc-500"
+                            }`}
+                          >
+                            {genre}
+                          </button>
+                        ))}
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-          <FormField
-            control={form.control}
-            name="bg_current_solutions"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-white font-medium">
-                  How is the problem currently solved (if at all)?
-                </FormLabel>
-                <p className="text-zinc-400 text-sm -mt-1">
-                  Describe existing workarounds or solutions before your
-                  project.
-                </p>
-                <FormControl>
-                  <Textarea
-                    placeholder="What alternatives exist today? Why are they insufficient?..."
-                    className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6] min-h-[120px] resize-none"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+              {form.watch("bg_game_genre") === "Other" && (
+                <FormField
+                  control={form.control}
+                  name="bg_game_genre_other"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-white font-medium">
+                        Please specify your genre
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Describe your game genre..."
+                          className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6]"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
 
-          <FormField
-            control={form.control}
-            name="bg_proposed_solution"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-white font-medium">
-                  What is your proposed solution?
-                </FormLabel>
-                <p className="text-zinc-400 text-sm -mt-1">
-                  Explain how your project solves the problem better than
-                  current solutions.
-                </p>
-                <FormControl>
-                  <Textarea
-                    placeholder="How does your solution work and what makes it better?..."
-                    className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6] min-h-[140px] resize-none"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+              <FormField
+                control={form.control}
+                name="bg_game_loop"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-white font-medium">
+                      Core gameplay loop
+                    </FormLabel>
+                    <p className="text-zinc-400 text-sm -mt-1">
+                      What does a player do in a typical session? Walk us through the actions from launch to end of session.
+                    </p>
+                    <FormControl>
+                      <Textarea
+                        placeholder="e.g. Player enters a dungeon → fights enemies to earn loot → crafts items using on-chain resources → trades or equips them before the next run..."
+                        className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6] min-h-[140px] resize-none"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-          <FormField
-            control={form.control}
-            name="bg_onchain_trigger"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-white font-medium">
-                  What triggers an on-chain transaction in your project?
-                </FormLabel>
-                <p className="text-zinc-400 text-sm -mt-1">
-                  Describe the key blockchain interactions in your solution.
-                </p>
-                <FormControl>
-                  <Textarea
-                    placeholder={`e.g. "Each time a user places a bid, a smart contract records the escrow on-chain. Each time a loan is repaid, the collateral is released automatically."`}
-                    className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6] min-h-[120px] resize-none"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+              <FormField
+                control={form.control}
+                name="bg_web3_gaming_integration"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-white font-medium">
+                      Why does this game need to be on-chain?
+                    </FormLabel>
+                    <p className="text-zinc-400 text-sm -mt-1">
+                      What does blockchain add that a traditional game server can&apos;t? Describe the specific on-chain mechanics and why they matter for the player experience.
+                    </p>
+                    <FormControl>
+                      <Textarea
+                        placeholder="e.g. Item ownership is verifiable and tradeable between players without a central intermediary. Each match outcome is recorded on-chain to prevent score manipulation..."
+                        className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6] min-h-[140px] resize-none"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="bg_player_motivation"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-white font-medium">
+                      Player retention &amp; motivation
+                    </FormLabel>
+                    <p className="text-zinc-400 text-sm -mt-1">
+                      What keeps players coming back? Describe your engagement hook — progression systems, competition, social mechanics, collection, or other drivers.
+                    </p>
+                    <FormControl>
+                      <Textarea
+                        placeholder="e.g. Players level up characters with persistent on-chain stats, compete in weekly ranked seasons with token prizes, and collect rare NFT skins with provable scarcity..."
+                        className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6] min-h-[130px] resize-none"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="bg_game_economy"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-white font-medium">
+                      In-game economy &amp; sustainability
+                    </FormLabel>
+                    <p className="text-zinc-400 text-sm -mt-1">
+                      Describe your in-game economy. If you use tokens or NFTs, how do you control inflation and ensure the economy stays healthy long-term?
+                    </p>
+                    <FormControl>
+                      <Textarea
+                        placeholder="e.g. Tokens are earned through gameplay and burned on crafting and upgrades, creating a deflationary sink. NFT supply is fixed at 10,000. No pay-to-win mechanics..."
+                        className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6] min-h-[140px] resize-none"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="bg_target_player"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-white font-medium">
+                      Target player profile
+                    </FormLabel>
+                    <p className="text-zinc-400 text-sm -mt-1">
+                      Who is your primary player? Are you targeting crypto-native gamers or onboarding traditional gamers to Web3? How does your UX reflect that?
+                    </p>
+                    <FormControl>
+                      <Textarea
+                        placeholder="e.g. Targeting traditional mobile gamers aged 18–35 who are new to crypto. Wallet creation is abstracted — players sign up with email and never see a seed phrase..."
+                        className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6] min-h-[120px] resize-none"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              </>)}
+            </>
+          )}
+
+          {/* ── Problem Identification — hidden for consumer games ── */}
+          {(form.watch("project_category") !== "Gaming" ||
+            form.watch("bg_game_type") === "Gaming Infrastructure / Tooling") && (
+            <>
+              <SectionDivider label="‼️ Problem Identification" />
+
+              <FormField
+                control={form.control}
+                name="bg_problem_statement"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-white font-medium">
+                      What problem are you addressing?{" "}
+                      <span className="text-[#66acd6]">*</span>
+                    </FormLabel>
+                    <p className="text-zinc-400 text-sm -mt-1">
+                      Describe the pain point or need your project aims to solve.
+                    </p>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Describe the core problem, its scope, and why it matters..."
+                        className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6] min-h-[140px] resize-none"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="bg_user_persona"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-white font-medium">
+                      Who experiences this problem?
+                    </FormLabel>
+                    <p className="text-zinc-400 text-sm -mt-1">
+                      Describe your primary user persona. What needs do they have?
+                      Is it B2B or B2C?
+                    </p>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Who is your target user? What are their goals, frustrations, and context?..."
+                        className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6] min-h-[120px] resize-none"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="bg_current_solutions"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-white font-medium">
+                      How is the problem currently solved (if at all)?
+                    </FormLabel>
+                    <p className="text-zinc-400 text-sm -mt-1">
+                      Describe existing workarounds or solutions before your
+                      project.
+                    </p>
+                    <FormControl>
+                      <Textarea
+                        placeholder="What alternatives exist today? Why are they insufficient?..."
+                        className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6] min-h-[120px] resize-none"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="bg_proposed_solution"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-white font-medium">
+                      What is your proposed solution?
+                    </FormLabel>
+                    <p className="text-zinc-400 text-sm -mt-1">
+                      Explain how your project solves the problem better than
+                      current solutions.
+                    </p>
+                    <FormControl>
+                      <Textarea
+                        placeholder="How does your solution work and what makes it better?..."
+                        className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6] min-h-[140px] resize-none"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="bg_onchain_trigger"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-white font-medium">
+                      What triggers an on-chain transaction in your project?
+                    </FormLabel>
+                    <p className="text-zinc-400 text-sm -mt-1">
+                      Describe the key blockchain interactions in your solution.
+                    </p>
+                    <FormControl>
+                      <Textarea
+                        placeholder={`e.g. "Each time a user places a bid, a smart contract records the escrow on-chain. Each time a loan is repaid, the collateral is released automatically."`}
+                        className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6] min-h-[120px] resize-none"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </>
+          )}
 
           {/* ── Video & Partnerships ── */}
           <SectionDivider label="Video & Partnerships" />
 
           <MultiLinkInput
             name="demo_video_link"
-            label="1-Minute Pitch Video"
+            label="2-Minute Pitch Video"
             placeholder="https://loom.com/share/... or https://youtube.com/..."
             validationMessage="Link to your YouTube or Loom video explaining your project idea."
             plainLabel
@@ -827,6 +1222,106 @@ export default function BuildGamesSubmitForm({
             placeholder="https://your-app.com"
             plainLabel
           />
+
+          {/* ── Gaming MVP — only for consumer games ── */}
+          {form.watch("project_category") === "Gaming" &&
+            form.watch("bg_game_type") === "Consumer Game" && (
+            <>
+              <SectionDivider label="🎮 Gaming MVP" />
+
+              <FormField
+                control={form.control}
+                name="bg_game_playable_state"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-white font-medium">
+                      What is currently playable?
+                    </FormLabel>
+                    <p className="text-zinc-400 text-sm -mt-1">
+                      Describe the state of your MVP. Which core mechanics can a player experience right now?
+                    </p>
+                    <FormControl>
+                      <Textarea
+                        placeholder="e.g. Players can connect a wallet, enter a dungeon, fight enemies, and collect loot. The crafting system is mocked but not yet on-chain..."
+                        className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6] min-h-[130px] resize-none"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="bg_game_smart_contracts"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-white font-medium">
+                      Smart contracts deployed
+                    </FormLabel>
+                    <p className="text-zinc-400 text-sm -mt-1">
+                      Which contracts are live? Are they on testnet or mainnet? Link to the explorer if available.
+                    </p>
+                    <FormControl>
+                      <Textarea
+                        placeholder="e.g. Item ownership contract deployed on Fuji testnet (0x...). Loot drop randomness contract in progress. Explorer: snowtrace.io/..."
+                        className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6] min-h-[120px] resize-none"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="bg_game_onboarding"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-white font-medium">
+                      New player onboarding flow
+                    </FormLabel>
+                    <p className="text-zinc-400 text-sm -mt-1">
+                      Walk us through how a brand-new player gets started. How do you handle wallet setup and the first session?
+                    </p>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Step 1: Player visits the site and clicks Play. Step 2: Social login creates an embedded wallet automatically. Step 3: A tutorial dungeon runs them through core mechanics before any on-chain action..."
+                        className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6] min-h-[140px] resize-none"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="bg_game_playtesting"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-white font-medium">
+                      Playtesting results
+                    </FormLabel>
+                    <p className="text-zinc-400 text-sm -mt-1">
+                      Have you tested with real players? Share the top things they loved and the top friction points you discovered.
+                    </p>
+                    <FormControl>
+                      <Textarea
+                        placeholder="e.g. Tested with 12 players. Loved: combat feel, loot randomness. Struggled with: wallet prompt mid-session felt jarring, tutorial too long. We're now implementing session keys to remove mid-session signing..."
+                        className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6] min-h-[130px] resize-none"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </>
+          )}
         </div>
       );
     }
@@ -864,6 +1359,106 @@ export default function BuildGamesSubmitForm({
             placeholder="https://docs.google.com/..."
             plainLabel
           />
+
+          {/* ── Gaming GTM — only for consumer games ── */}
+          {form.watch("project_category") === "Gaming" &&
+            form.watch("bg_game_type") === "Consumer Game" && (
+            <>
+              <SectionDivider label="🎮 Gaming GTM" />
+
+              <FormField
+                control={form.control}
+                name="bg_game_acquisition"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-white font-medium">
+                      Player acquisition strategy
+                    </FormLabel>
+                    <p className="text-zinc-400 text-sm -mt-1">
+                      How do you acquire your first 1,000 active players? Which channels — content, influencers, guilds, tournaments, referrals?
+                    </p>
+                    <FormControl>
+                      <Textarea
+                        placeholder="e.g. Partner with 5 gaming guilds on Avalanche for a launch tournament with a $5k prize pool. Micro-influencer campaign on TikTok targeting Web3 gamers. Referral bonus: invite 3 friends → earn a rare NFT item..."
+                        className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6] min-h-[140px] resize-none"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="bg_game_community"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-white font-medium">
+                      Community &amp; guild strategy
+                    </FormLabel>
+                    <p className="text-zinc-400 text-sm -mt-1">
+                      How are you building your player community? Discord, tournaments, ambassador programs, DAO governance for in-game decisions?
+                    </p>
+                    <FormControl>
+                      <Textarea
+                        placeholder="e.g. Weekly tournaments streamed on Twitch. Discord with 2,000 members and active guild channels. Community votes on new game modes each season via snapshot..."
+                        className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6] min-h-[130px] resize-none"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="bg_game_monetization"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-white font-medium">
+                      Monetization model
+                    </FormLabel>
+                    <p className="text-zinc-400 text-sm -mt-1">
+                      How does the game generate sustainable revenue? Describe primary and secondary market mechanics without compromising gameplay fairness.
+                    </p>
+                    <FormControl>
+                      <Textarea
+                        placeholder="e.g. Free-to-play with cosmetic NFT sales (no pay-to-win). 2.5% marketplace fee on player-to-player trades. Season pass ($9.99) for early access to new content. No token required to play..."
+                        className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6] min-h-[130px] resize-none"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="bg_game_competitors"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-white font-medium">
+                      Competitive landscape
+                    </FormLabel>
+                    <p className="text-zinc-400 text-sm -mt-1">
+                      Name 2–3 games you compete with directly. What makes players choose yours over them?
+                    </p>
+                    <FormControl>
+                      <Textarea
+                        placeholder="e.g. Gods Unchained (card game, larger player base but Ethereum fees). Pixels (farming game, similar audience but no combat). We differ by combining real-time combat with fully on-chain item ownership at near-zero gas on Avalanche..."
+                        className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6] min-h-[130px] resize-none"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </>
+          )}
         </div>
       );
     }
@@ -901,6 +1496,60 @@ export default function BuildGamesSubmitForm({
               </FormItem>
             )}
           />
+
+          {/* ── Gaming Finals — only for consumer games ── */}
+          {form.watch("project_category") === "Gaming" &&
+            form.watch("bg_game_type") === "Consumer Game" && (
+            <>
+              <SectionDivider label="🎮 Gaming Finals" />
+
+              <FormField
+                control={form.control}
+                name="bg_game_metrics"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-white font-medium">
+                      Live player metrics &amp; traction
+                    </FormLabel>
+                    <p className="text-zinc-400 text-sm -mt-1">
+                      Share your current numbers: daily active players, average session length, Day-1 / Day-7 / Day-30 retention, on-chain transaction volume.
+                    </p>
+                    <FormControl>
+                      <Textarea
+                        placeholder="e.g. 340 DAU, avg session 22 min, D1 retention 61% / D7 38% / D30 18%. 12,400 on-chain transactions in the last 30 days. 1,800 unique wallet addresses..."
+                        className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6] min-h-[130px] resize-none"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="bg_game_vision"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-white font-medium">
+                      12-month vision
+                    </FormLabel>
+                    <p className="text-zinc-400 text-sm -mt-1">
+                      Where do you want the game to be in 12 months? Set targets for player count, revenue, content expansion, and ecosystem integrations.
+                    </p>
+                    <FormControl>
+                      <Textarea
+                        placeholder="e.g. 50k MAU by Q1 2027. Launch Season 2 with PvP ranked mode. Integrate with 2 Avalanche ecosystem protocols for in-game rewards. Mobile port in Q3. $500k ARR from marketplace fees and season passes..."
+                        className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6] min-h-[140px] resize-none"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </>
+          )}
         </div>
       );
     }
