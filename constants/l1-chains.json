@@ -1025,28 +1025,6 @@
     ]
   },
   {
-    "chainId": "379",
-    "chainName": "Koroshi",
-    "isActive": true,
-    "description": "Dynamic Web3 gaming project and decentralized studio powered by Avalanche L1. Features 2,000 upgradeable NFTs representing young warriors progressing through three life stages: Kid, Adolescent, and Adult. Combines competitive community with gaming development.",
-    "website": "https://www.thekoroshi.com/",
-    "socials": {
-      "twitter": "TheKoroshi"
-    },
-    "chainLogoURI": "",
-    "subnetId": "pchqewRRQHwx1B3XJEq9p2HGSdjrHsyv48YzVUWXZbrmH4TM6",
-    "blockchainId": "26Ee4Lm4R1bQbQLQU66exLiWgSC9qdDPJCvFpzVsd3raLrHBGZ",
-    "slug": "koroshi",
-    "color": "#E57373",
-    "category": "General",
-    "explorers": [
-      {
-        "name": "Snowtrace",
-        "link": "https://379.snowtrace.io"
-      }
-    ]
-  },
-  {
     "chainId": "10849",
     "chainName": "Lamina1",
     "isActive": true,

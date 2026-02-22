@@ -101,12 +101,6 @@ function ConsoleDashboard() {
       type: "Gaming"
     },
     {
-      name: "KOROSHI Gaming",
-      image: "https://images.ctfassets.net/gcj8jwzm6086/1cZxf8usDbuJng9iB3fkFd/1bc34bc28a2c825612eb697a4b72d29d/2025-03-30_07.28.32.jpg",
-      link: "https://www.thekoroshi.com/",
-      type: "Gaming"
-    },
-    {
       name: "Gunzilla Games",
       image: "https://images.ctfassets.net/gcj8jwzm6086/3z2BVey3D1mak361p87Vu/ca7191fec2aa23dfa845da59d4544784/unnamed.png",
       link: "https://gunzillagames.com/en/",
