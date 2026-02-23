@@ -312,22 +312,18 @@ function PhaseDetailsCards({ phase }: { phase: TimelinePhase }) {
 
 export default function ProgramTimeline({ isParticipant = false }: { isParticipant?: boolean }) {
   // Reactive date — updates every minute so the timeline advances automatically
-  // at end of day without requiring a page reload.
-  const [todayDate, setTodayDate] = useState<Date>(() => {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    return d;
-  });
+  // without requiring a page reload.
+  const [todayDate, setTodayDate] = useState<Date>(() => new Date());
 
-  // Define phase deadlines using local-time date constructors.
-  // new Date("YYYY-MM-DD") parses as UTC midnight which shifts the day in
-  // timezones behind UTC (e.g. EST); new Date(year, month, day) uses local time. Dates are 0-indexed
+  // Phase deadlines at 11:59 PM NYC time.
+  // Feb dates use EST (UTC-5) = 04:59Z next day.
+  // Mar dates use EDT (UTC-4, DST starts Mar 8) = 03:59Z next day.
   const phaseDeadlines = [
-    new Date(2026, 1, 20), // Kick Off   — Feb 20
-    new Date(2026, 1, 25), // Stage 1    — Feb 25
-    new Date(2026, 2,  9), // Stage 2    — Mar 9
-    new Date(2026, 2, 19), // Stage 3    — Mar 19
-    new Date(2026, 2, 27), // Stage 4    — Mar 27
+    new Date("2026-02-21T04:59:00Z"), // Kick Off — Feb 20 11:59 PM EST
+    new Date("2026-02-26T04:59:00Z"), // Stage 1  — Feb 25 11:59 PM EST
+    new Date("2026-03-10T03:59:00Z"), // Stage 2  — Mar  9 11:59 PM EDT
+    new Date("2026-03-20T03:59:00Z"), // Stage 3  — Mar 19 11:59 PM EDT
+    new Date("2026-03-28T03:59:00Z"), // Stage 4  — Mar 27 11:59 PM EDT
   ];
 
   // Compute statuses based on todayDate so re-renders from the interval pick
@@ -419,9 +415,7 @@ export default function ProgramTimeline({ isParticipant = false }: { isParticipa
   // Advance todayDate at midnight without requiring a page reload.
   useEffect(() => {
     const interval = setInterval(() => {
-      const d = new Date();
-      d.setHours(0, 0, 0, 0);
-      setTodayDate((prev) => (prev.getTime() === d.getTime() ? prev : d));
+      setTodayDate(new Date());
     }, 60_000);
     return () => clearInterval(interval);
   }, []);

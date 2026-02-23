@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import ReferralButton from "./ReferralButton";
 
 interface ParticipantData {
   projectName: string;
@@ -161,21 +160,18 @@ function StatusTracker({ application }: { application: ParticipantData }) {
 
         <div className="flex flex-col items-center gap-3 mt-2">
           <span className="font-['Aeonik:Regular',sans-serif] text-[16px] text-[rgba(255,255,255,0.8)]">
-          Stay connected and invite others join.
+            Stay connected with the community.
           </span>
-          <div className="flex flex-row flex-wrap gap-[10px] items-center justify-center">
-            <ReferralButton label="Refer your teammates" />
-            <a
-              href="https://t.me/avaxbuildgames"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="shrink-0 bg-[#66acd6] flex h-[52px] items-center justify-center px-[36px] py-[12px] rounded-[3.35544e+07px] cursor-pointer hover:bg-[#7bbde3] transition-colors shadow-[0px_0px_20px_4px_rgba(102,172,214,0.5)]"
-            >
-              <span className="font-['Aeonik:Medium',sans-serif] font-medium text-[#152d44] text-[18px] text-center text-nowrap leading-[28px]">
-                Join the Build Games chat
-              </span>
-            </a>
-          </div>
+          <a
+            href="https://t.me/avaxbuildgames"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="shrink-0 bg-[#66acd6] flex h-[52px] items-center justify-center px-[36px] py-[12px] rounded-[3.35544e+07px] cursor-pointer hover:bg-[#7bbde3] transition-colors shadow-[0px_0px_20px_4px_rgba(102,172,214,0.5)]"
+          >
+            <span className="font-['Aeonik:Medium',sans-serif] font-medium text-[#152d44] text-[18px] text-center text-nowrap leading-[28px]">
+              Join the Build Games chat
+            </span>
+          </a>
         </div>
       </div>
     </div>
