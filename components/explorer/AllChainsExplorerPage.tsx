@@ -166,8 +166,8 @@ const supportedChains = (l1ChainsData as L1Chain[]).filter(c => c.rpcUrl && c.is
 const BLOCK_LIMIT = supportedChains.length * 10 * 2;
 const TRANSACTION_LIMIT = 100;
 const ICM_MESSAGE_LIMIT = 100;
-const NORMAL_INTERVAL = 3000;
-const STAGGER_DELAY = 200; // Stagger fetches to avoid overwhelming the API
+// 15s polling: reduces steady-state external API load vs the previous 3s/chain approach
+const NORMAL_INTERVAL = 15000;
 
 // Wait for this many blocks before showing blocks/sec
 const MIN_BLOCKS_FOR_CALCULATION = supportedChains.length * 10 * 2;
@@ -191,288 +191,241 @@ export default function AllChainsExplorerPage() {
   
   // Refs
   const isMountedRef = useRef(true);
-  const fetchingChainsRef = useRef<Set<string>>(new Set());
+  const isFetchingRef = useRef(false);
+  const isFirstFetchRef = useRef(true);
   const lastFetchedBlocksRef = useRef<Map<string, string>>(new Map());
-  const refreshTimeoutsRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
-  const isFirstLoadRef = useRef<Map<string, boolean>>(new Map());
-  const retryCountRef = useRef<Map<string, number>>(new Map());
-  const passiveChainsRef = useRef<Set<string>>(new Set());
-  
+  const pollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   // Track active chains count for UI
   const [activeChainCount, setActiveChainCount] = useState(supportedChains.length);
   // Track how many chains have completed their initial load
   const [completedInitialLoads, setCompletedInitialLoads] = useState(0);
 
-  // Initialize first load tracking for each chain
-  useEffect(() => {
-    supportedChains.forEach(chain => {
-      isFirstLoadRef.current.set(chain.chainId, true);
-      retryCountRef.current.set(chain.chainId, 0);
-    });
-  }, []);
+  // Fetch all chains in a single aggregated request
+  const fetchAllChainsData = useCallback(async () => {
+    if (!isMountedRef.current || isFetchingRef.current) return;
+    isFetchingRef.current = true;
 
-  // Fetch data for a single chain
-  const fetchChainData = useCallback(async (chain: L1Chain) => {
-    const chainId = chain.chainId;
-    
-    // Skip passive chains (failed 3+ times on initial load)
-    if (passiveChainsRef.current.has(chainId)) {
-      return;
-    }
-    
-    // Prevent overlapping fetches for the same chain
-    if (fetchingChainsRef.current.has(chainId) || !isMountedRef.current) {
-      return;
-    }
-    
-    // Clear pending timeout for this chain
-    const existingTimeout = refreshTimeoutsRef.current.get(chainId);
-    if (existingTimeout) {
-      clearTimeout(existingTimeout);
-      refreshTimeoutsRef.current.delete(chainId);
-    }
-    
-    fetchingChainsRef.current.add(chainId);
-    
     try {
+      const isFirstFetch = isFirstFetchRef.current;
       const params = new URLSearchParams();
-      const isFirstLoad = isFirstLoadRef.current.get(chainId) ?? true;
-      
-      if (isFirstLoad) {
+
+      if (isFirstFetch) {
         params.set('initialLoad', 'true');
       } else {
-        const lastBlock = lastFetchedBlocksRef.current.get(chainId);
-        if (lastBlock) {
-          params.set('lastFetchedBlock', lastBlock);
+        // Send last-fetched block numbers so the server only returns new blocks
+        const blockMap: Record<string, string> = {};
+        lastFetchedBlocksRef.current.forEach((block, chainId) => {
+          blockMap[chainId] = block;
+        });
+        if (Object.keys(blockMap).length > 0) {
+          params.set('lastFetchedBlocks', JSON.stringify(blockMap));
         }
       }
-      
-      const url = `/api/explorer/${chainId}${params.toString() ? `?${params.toString()}` : ''}`;
-      
-      const response = await fetch(url, { 
-        signal: AbortSignal.timeout(10000) // 10s timeout
+
+      const url = `/api/explorer/all-chains${params.toString() ? `?${params.toString()}` : ''}`;
+      const response = await fetch(url, {
+        // 30s client timeout — the server batches all chains, so give it ample time
+        signal: AbortSignal.timeout(30000),
       });
-      
+
       if (!response.ok) {
-        throw new Error(`Failed to fetch ${chain.chainName}`);
+        throw new Error(`all-chains API returned ${response.status}`);
       }
-      
-      const result = await response.json();
 
-      // Get tokenSymbol from API response (which may come from CoinGecko) or fall back to static data
-      const tokenSymbol = result.tokenSymbol || chain.networkToken?.symbol || 'N/A';
-
-      const chainInfo: ChainInfo = {
-        chainId: chain.chainId,
-        chainName: chain.chainName,
-        chainSlug: chain.slug,
-        chainLogoURI: chain.chainLogoURI || '',
-        color: chain.color || '#6B7280',
-        tokenSymbol: tokenSymbol,
+      const result = await response.json() as {
+        chains: Record<string, {
+          stats: ChainStats;
+          blocks: Block[];
+          transactions: Transaction[];
+          icmMessages: Transaction[];
+          transactionHistory?: TransactionHistoryPoint[];
+          tokenSymbol?: string;
+          error?: string;
+        }>;
+        lastUpdated: number;
       };
-      
-      // Update last fetched block
-      if (result.blocks && result.blocks.length > 0) {
-        const highestBlock = result.blocks.reduce((max: string, b: Block) => 
-          parseInt(b.number) > parseInt(max) ? b.number : max, 
-          result.blocks[0].number
-        );
-        lastFetchedBlocksRef.current.set(chainId, highestBlock);
-      }
-      
-      // Accumulate blocks with chain info
-      if (result.blocks && result.blocks.length > 0) {
-        const blocksWithChain = result.blocks.map((b: Block) => ({
-          ...b,
-          chain: chainInfo,
-        }));
-        
-        setAccumulatedBlocks(prev => {
-          // Create unique key for each block (chainId + blockNumber)
-          const existingKeys = new Set(prev.map(b => `${b.chain?.chainId}-${b.number}`));
-          const newBlocks = blocksWithChain.filter((b: Block) => 
-            !existingKeys.has(`${b.chain?.chainId}-${b.number}`)
+
+      // Collect new items across all chains before updating state
+      const allNewBlocks: (Block & { chain: ChainInfo })[] = [];
+      const allNewTxs: (Transaction & { chain: ChainInfo })[] = [];
+      const allNewIcm: (Transaction & { chain: ChainInfo })[] = [];
+      const statsUpdates: Array<{ chainId: string; stats: ChainStats; isFirst: boolean }> = [];
+      const historyUpdates: Array<{ chainId: string; history: TransactionHistoryPoint[] }> = [];
+      let respondingChains = 0;
+
+      for (const [chainId, chainData] of Object.entries(result.chains)) {
+        if (!chainData.error) respondingChains++;
+
+        const chain = supportedChains.find(c => c.chainId === chainId);
+        if (!chain) continue;
+
+        const tokenSymbol = chainData.tokenSymbol || chain.networkToken?.symbol || 'N/A';
+        const chainInfo: ChainInfo = {
+          chainId: chain.chainId,
+          chainName: chain.chainName,
+          chainSlug: chain.slug,
+          chainLogoURI: chain.chainLogoURI || '',
+          color: chain.color || '#6B7280',
+          tokenSymbol,
+        };
+
+        // Track highest fetched block per chain
+        if (chainData.blocks?.length > 0) {
+          const highestBlock = chainData.blocks.reduce((max, b) =>
+            parseInt(b.number) > parseInt(max) ? b.number : max,
+            chainData.blocks[0].number
           );
-          
-          if (newBlocks.length > 0) {
-            setNewBlockIds(new Set(newBlocks.map((b: Block) => `${b.chain?.chainId}-${b.number}`)));
+          lastFetchedBlocksRef.current.set(chainId, highestBlock);
+          chainData.blocks.forEach(b => allNewBlocks.push({ ...b, chain: chainInfo }));
+        }
+
+        if (chainData.transactions?.length > 0) {
+          chainData.transactions.forEach(tx => allNewTxs.push({ ...tx, chain: chainInfo }));
+        }
+
+        if (chainData.icmMessages?.length > 0) {
+          chainData.icmMessages.forEach(tx => allNewIcm.push({ ...tx, chain: chainInfo }));
+        }
+
+        if (chainData.stats) {
+          statsUpdates.push({ chainId, stats: chainData.stats, isFirst: isFirstFetch });
+        }
+
+        if (isFirstFetch && chainData.transactionHistory?.length) {
+          historyUpdates.push({ chainId, history: chainData.transactionHistory });
+        }
+      }
+
+      // Apply accumulated blocks — single state update
+      if (allNewBlocks.length > 0) {
+        setAccumulatedBlocks(prev => {
+          const existingKeys = new Set(prev.map(b => `${b.chain?.chainId}-${b.number}`));
+          const deduped = allNewBlocks.filter(
+            b => !existingKeys.has(`${b.chain?.chainId}-${b.number}`)
+          );
+          if (deduped.length > 0) {
+            setNewBlockIds(new Set(deduped.map(b => `${b.chain?.chainId}-${b.number}`)));
             setTimeout(() => setNewBlockIds(new Set()), 1000);
           }
-          
-          // Merge and sort by timestamp (most recent first)
-          const merged = [...newBlocks, ...prev]
-            .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-          
-          return merged.slice(0, BLOCK_LIMIT);
+          return [...deduped, ...prev]
+            .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+            .slice(0, BLOCK_LIMIT);
         });
       }
-      
-      // Accumulate transactions with chain info
-      if (result.transactions && result.transactions.length > 0) {
-        const txsWithChain = result.transactions.map((tx: Transaction) => ({
-          ...tx,
-          chain: chainInfo,
-        }));
-        
+
+      // Apply accumulated transactions — single state update
+      if (allNewTxs.length > 0) {
         setAccumulatedTransactions(prev => {
           const existingHashes = new Set(prev.map(tx => tx.hash));
-          const newTxs = txsWithChain.filter((tx: Transaction) => !existingHashes.has(tx.hash));
-          
-          if (newTxs.length > 0) {
+          const deduped = allNewTxs.filter(tx => !existingHashes.has(tx.hash));
+          if (deduped.length > 0) {
             setNewTxHashes(prevHashes => {
               const updated = new Set(prevHashes);
-              newTxs.forEach((tx: Transaction) => updated.add(tx.hash));
+              deduped.forEach(tx => updated.add(tx.hash));
               return updated;
             });
             setTimeout(() => {
               setNewTxHashes(prevHashes => {
                 const updated = new Set(prevHashes);
-                newTxs.forEach((tx: Transaction) => updated.delete(tx.hash));
+                deduped.forEach(tx => updated.delete(tx.hash));
                 return updated;
               });
             }, 1000);
           }
-          
-          const merged = [...newTxs, ...prev]
-            .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-          
-          return merged.slice(0, TRANSACTION_LIMIT);
+          return [...deduped, ...prev]
+            .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+            .slice(0, TRANSACTION_LIMIT);
         });
       }
-      
-      // Accumulate ICM messages with chain info
-      if (result.icmMessages && result.icmMessages.length > 0) {
-        const icmWithChain = result.icmMessages.map((tx: Transaction) => ({
-          ...tx,
-          chain: chainInfo,
-        }));
-        
+
+      // Apply accumulated ICM messages — single state update
+      if (allNewIcm.length > 0) {
         setIcmMessages(prev => {
           const existingHashes = new Set(prev.map(tx => tx.hash));
-          const newIcm = icmWithChain.filter((tx: Transaction) => !existingHashes.has(tx.hash));
-          
-          if (newIcm.length > 0) {
+          const deduped = allNewIcm.filter(tx => !existingHashes.has(tx.hash));
+          if (deduped.length > 0) {
             setNewTxHashes(prevHashes => {
               const updated = new Set(prevHashes);
-              newIcm.forEach((tx: Transaction) => updated.add(tx.hash));
+              deduped.forEach(tx => updated.add(tx.hash));
               return updated;
             });
             setTimeout(() => {
               setNewTxHashes(prevHashes => {
                 const updated = new Set(prevHashes);
-                newIcm.forEach((tx: Transaction) => updated.delete(tx.hash));
+                deduped.forEach(tx => updated.delete(tx.hash));
                 return updated;
               });
             }, 1000);
           }
-          
-          const merged = [...newIcm, ...prev]
-            .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-          
-          return merged.slice(0, ICM_MESSAGE_LIMIT);
+          return [...deduped, ...prev]
+            .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+            .slice(0, ICM_MESSAGE_LIMIT);
         });
       }
-      
-      // Update chain stats - only store totalTransactions on initial load
-      // because subsequent fetches don't return the correct total
-      if (result.stats) {
+
+      // Apply chain stats
+      if (statsUpdates.length > 0) {
         setChainStats(prev => {
           const updated = new Map(prev);
-          if (isFirstLoad) {
-            // Initial load - store all stats including totalTransactions
-            updated.set(chainId, result.stats);
-          } else {
-            // Subsequent fetches - preserve totalTransactions from initial load
-            const existingStats = prev.get(chainId);
-            if (existingStats) {
-              updated.set(chainId, {
-                ...result.stats,
-                totalTransactions: existingStats.totalTransactions, // Keep original total
-              });
+          for (const { chainId, stats, isFirst } of statsUpdates) {
+            if (isFirst) {
+              // Initial load: store totalTransactions from the indexer
+              updated.set(chainId, stats);
+            } else {
+              // Subsequent polls: preserve totalTransactions from initial load
+              const existing = prev.get(chainId);
+              if (existing) {
+                updated.set(chainId, { ...stats, totalTransactions: existing.totalTransactions });
+              } else {
+                updated.set(chainId, stats);
+              }
             }
           }
           return updated;
         });
       }
-      
-      // Store/replace transaction history for this chain (not accumulate)
-      // Only on initial load since history is static
-      if (isFirstLoad && result.transactionHistory && result.transactionHistory.length > 0) {
+
+      // Apply transaction histories (initial load only)
+      if (historyUpdates.length > 0) {
         setChainTransactionHistories(prev => {
           const updated = new Map(prev);
-          // Replace this chain's history (don't add to it)
-          updated.set(chainId, result.transactionHistory);
+          historyUpdates.forEach(({ chainId, history }) => updated.set(chainId, history));
           return updated;
         });
       }
-      
-      // Mark first load complete and reset retry count on success
-      if (isFirstLoad) {
-        isFirstLoadRef.current.set(chainId, false);
-        retryCountRef.current.set(chainId, 0);
-        setCompletedInitialLoads(prev => prev + 1);
+
+      // Update active chain count on every poll so it reflects reality
+      setActiveChainCount(respondingChains || supportedChains.length);
+
+      // After first successful fetch, mark as loaded
+      if (isFirstFetch) {
+        isFirstFetchRef.current = false;
+        setCompletedInitialLoads(supportedChains.length);
       }
-      
+
     } catch (error) {
-      // Silently handle errors - other chains will continue to work
-      console.warn(`Error fetching ${chain.chainName}:`, error);
-      
-      const isFirstLoad = isFirstLoadRef.current.get(chainId) ?? true;
-      
-      // Track retry count for initial load failures
-      if (isFirstLoad) {
-        const currentRetries = retryCountRef.current.get(chainId) || 0;
-        const newRetries = currentRetries + 1;
-        retryCountRef.current.set(chainId, newRetries);
-        
-        // After 3 failed attempts on initial load, mark chain as passive
-        if (newRetries >= 3) {
-          console.warn(`Marking ${chain.chainName} as passive after ${newRetries} failed attempts`);
-          passiveChainsRef.current.add(chainId);
-          setActiveChainCount(supportedChains.length - passiveChainsRef.current.size);
-          setCompletedInitialLoads(prev => prev + 1); // Count as "completed" even though it failed
-          fetchingChainsRef.current.delete(chainId);
-          setLoading(false);
-          return; // Don't schedule retry for passive chains
-        }
-      }
+      console.warn('[AllChains] Error fetching all-chains data:', error);
     } finally {
-      fetchingChainsRef.current.delete(chainId);
+      isFetchingRef.current = false;
       setLoading(false);
-      
-      // Schedule next fetch for this chain (unless passive)
-      if (isMountedRef.current && !passiveChainsRef.current.has(chainId)) {
-        const timeout = setTimeout(() => {
-          if (isMountedRef.current) {
-            fetchChainData(chain);
-          }
-        }, NORMAL_INTERVAL);
-        refreshTimeoutsRef.current.set(chainId, timeout);
+      // Schedule next poll
+      if (isMountedRef.current) {
+        pollTimeoutRef.current = setTimeout(fetchAllChainsData, NORMAL_INTERVAL);
       }
     }
   }, []);
 
-  // Start fetching data from all chains with staggered delays
+  // Start the single aggregated fetch on mount
   useEffect(() => {
     isMountedRef.current = true;
-    
-    // Stagger initial fetches to avoid overwhelming APIs
-    supportedChains.forEach((chain, index) => {
-      setTimeout(() => {
-        if (isMountedRef.current) {
-          fetchChainData(chain);
-        }
-      }, index * STAGGER_DELAY);
-    });
-    
+    fetchAllChainsData();
+
     return () => {
       isMountedRef.current = false;
-      // Clear all timeouts
-      refreshTimeoutsRef.current.forEach(timeout => clearTimeout(timeout));
-      refreshTimeoutsRef.current.clear();
-      fetchingChainsRef.current.clear();
+      if (pollTimeoutRef.current) clearTimeout(pollTimeoutRef.current);
     };
-  }, [fetchChainData]);
+  }, [fetchAllChainsData]);
 
   // Aggregate stats across all chains (per-chain totals stored in chainStats Map)
   const aggregatedStats = useMemo(() => {
@@ -687,8 +640,8 @@ export default function AllChainsExplorerPage() {
                       </TooltipTrigger>
                       <TooltipContent>
                         <p>{activeChainCount} of {supportedChains.length} chains responding</p>
-                        {passiveChainsRef.current.size > 0 && (
-                          <p className="text-zinc-400">{passiveChainsRef.current.size} chains unavailable</p>
+                        {activeChainCount < supportedChains.length && (
+                          <p className="text-zinc-400">{supportedChains.length - activeChainCount} chains unavailable</p>
                         )}
                       </TooltipContent>
                     </Tooltip>
