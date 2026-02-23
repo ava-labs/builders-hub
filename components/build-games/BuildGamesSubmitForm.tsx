@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import axios from "axios";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -138,10 +138,14 @@ export default function BuildGamesSubmitForm({
 }: BuildGamesSubmitFormProps) {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
   const [projectId, setProjectId] = useState<string>("");
   const [isSaving, setIsSaving] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [openJoinTeamDialog, setOpenJoinTeamDialog] = useState(false);
+  const [openCurrentProject, setOpenCurrentProject] = useState(false);
+  const [joinTeamName, setJoinTeamName] = useState("");
   const [availableTracks, setAvailableTracks] = useState<
     { label: string; value: string }[]
   >([]);
@@ -202,6 +206,28 @@ export default function BuildGamesSubmitForm({
       router.push("/build-games");
     }
   }, [status, router]);
+
+  // Check for ?invitation= param once authenticated and trigger the join dialog
+  useEffect(() => {
+    const invitationId = searchParams.get("invitation");
+    if (!invitationId || !session?.user?.id) return;
+
+    axios
+      .get("/api/project/check-invitation", {
+        params: { invitation: invitationId, user_id: session.user.id },
+      })
+      .then((res) => {
+        if (res.data?.invitation?.exists) {
+          const invitation = res.data.invitation;
+          const project = res.data.project;
+          setJoinTeamName(project?.project_name || "");
+          if (project?.id) setProjectId(project.id);
+          setOpenCurrentProject(invitation.hasConfirmedProject ?? false);
+          setOpenJoinTeamDialog(invitation.isConfirming ?? false);
+        }
+      })
+      .catch(() => {});
+  }, [session?.user?.id, searchParams]);
 
   useEffect(() => {
     axios
@@ -1086,11 +1112,11 @@ export default function BuildGamesSubmitForm({
                 if (res.data.project?.id)
                   setProjectId(res.data.project.id);
               }}
-              openjoinTeamDialog={false}
-              onOpenChange={() => {}}
-              openCurrentProject={false}
-              setOpenCurrentProject={() => {}}
-              teamName={form.watch("project_name") || "My Project"}
+              openjoinTeamDialog={openJoinTeamDialog}
+              onOpenChange={setOpenJoinTeamDialog}
+              openCurrentProject={openCurrentProject}
+              setOpenCurrentProject={setOpenCurrentProject}
+              teamName={joinTeamName || form.watch("project_name") || "My Project"}
               invite_stage={stage}
             />
           </div>
