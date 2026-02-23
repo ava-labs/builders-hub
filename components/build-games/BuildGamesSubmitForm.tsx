@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useLoginModalTrigger } from "@/hooks/useLoginModal";
 import axios from "axios";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -28,6 +29,7 @@ import {
 import { MultiSelect } from "@/components/ui/multi-select";
 import { MultiLinkInput } from "@/components/hackathons/project-submission/components/MultiLinkInput";
 import MembersComponent from "@/components/hackathons/project-submission/components/Members";
+import InvalidInvitationComponent from "@/components/hackathons/project-submission/components/InvalidInvitationDialog";
 import { Toaster } from "@/components/ui/toaster";
 import type { Track } from "@/types/hackathons";
 import { cn } from "@/utils/cn";
@@ -139,6 +141,7 @@ export default function BuildGamesSubmitForm({
   const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { openLoginModal } = useLoginModalTrigger();
   const { toast } = useToast();
   const [projectId, setProjectId] = useState<string>("");
   const [isSaving, setIsSaving] = useState(false);
@@ -146,6 +149,7 @@ export default function BuildGamesSubmitForm({
   const [openJoinTeamDialog, setOpenJoinTeamDialog] = useState(false);
   const [openCurrentProject, setOpenCurrentProject] = useState(false);
   const [joinTeamName, setJoinTeamName] = useState("");
+  const [openInvalidInvitation, setOpenInvalidInvitation] = useState(false);
   const [availableTracks, setAvailableTracks] = useState<
     { label: string; value: string }[]
   >([]);
@@ -203,9 +207,15 @@ export default function BuildGamesSubmitForm({
 
   useEffect(() => {
     if (status === "unauthenticated") {
-      router.push("/build-games");
+      const invitationId = searchParams.get("invitation");
+      if (invitationId) {
+        // Prompt login so we can validate the invitation after auth
+        openLoginModal(window.location.href);
+      } else {
+        router.push("/build-games");
+      }
     }
-  }, [status, router]);
+  }, [status, router, searchParams, openLoginModal]);
 
   // Check for ?invitation= param once authenticated and trigger the join dialog
   useEffect(() => {
@@ -217,16 +227,20 @@ export default function BuildGamesSubmitForm({
         params: { invitation: invitationId, user_id: session.user.id },
       })
       .then((res) => {
-        if (res.data?.invitation?.exists) {
-          const invitation = res.data.invitation;
-          const project = res.data.project;
-          setJoinTeamName(project?.project_name || "");
-          if (project?.id) setProjectId(project.id);
-          setOpenCurrentProject(invitation.hasConfirmedProject ?? false);
-          setOpenJoinTeamDialog(invitation.isConfirming ?? false);
+        if (!res.data?.invitation?.exists) {
+          setOpenInvalidInvitation(true);
+          return;
         }
+        const invitation = res.data.invitation;
+        const project = res.data.project;
+        setJoinTeamName(project?.project_name || "");
+        if (project?.id) setProjectId(project.id);
+        setOpenCurrentProject(invitation.hasConfirmedProject ?? false);
+        setOpenJoinTeamDialog(invitation.isConfirming ?? false);
       })
-      .catch(() => {});
+      .catch(() => {
+        setOpenInvalidInvitation(true);
+      });
   }, [session?.user?.id, searchParams]);
 
   useEffect(() => {
@@ -1688,6 +1702,11 @@ export default function BuildGamesSubmitForm({
   return (
     <div className="w-full max-w-2xl mx-auto">
       <Toaster />
+      <InvalidInvitationComponent
+        open={openInvalidInvitation}
+        hackathonId={HACKATHON_ID}
+        onOpenChange={setOpenInvalidInvitation}
+      />
 
       {/* Page header */}
       <div className="mb-8">
