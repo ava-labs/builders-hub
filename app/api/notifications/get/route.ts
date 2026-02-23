@@ -6,21 +6,19 @@ type GetNotificationsBody = {
 };
 export const runtime: "nodejs" = "nodejs";
 
-const baseUrl: string | undefined = process.env.AVALANCHE_METRICS_URL;
+const baseUrl: string | undefined = process.env.NEXT_PUBLIC_AVALANCHE_WORKERS_URL;
+const avalancheWokersApiKey: string | undefined =
+  process.env.AVALANCHE_WORKERS_API_KEY;
 
 export async function POST(req: any): Promise<Response> {
-  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET ?? '' })
+  const token = await getToken({
+    req,
+    secret: process.env.NEXTAUTH_SECRET ?? "",
+  });
   if (!token) return new Response("Unauthorized", { status: 401 });
-  const encodedToken = await encode({token: token, secret: process.env.NEXTAUTH_SECRET ?? ''})
-  if (!encodedToken) return new Response("Error at get notifications", { status: 500});
-
   try {
-    // If base URL is not configured (workers not deployed), return empty notifications
-    if (!baseUrl) {
-      if (process.env.NODE_ENV === 'development') {
-        console.warn('Notifications service not configured - AVALANCHE_METRICS_URL missing');
-      }
-      return NextResponse.json({}, { status: 200 });
+    if (!baseUrl || !avalancheWokersApiKey) {
+      return NextResponse.json({ error: "Failed" }, { status: 500 });
     }
 
     const upstream: Response = await fetch(
@@ -29,10 +27,11 @@ export async function POST(req: any): Promise<Response> {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "authorization": encodedToken
+          "x-api-key": avalancheWokersApiKey,
         },
+        body: JSON.stringify({ authUser: token.id }),
         cache: "no-store",
-      }
+      },
     );
 
     if (!upstream.ok) {
@@ -47,7 +46,7 @@ export async function POST(req: any): Promise<Response> {
       const text: string = await upstream.text();
       return NextResponse.json(
         { error: text || "Failed to fetch notifications" },
-        { status: upstream.status }
+        { status: upstream.status },
       );
     }
 

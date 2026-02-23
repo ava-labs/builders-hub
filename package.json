@@ -140,6 +140,7 @@
     "react-error-boundary": "^5.0.0",
     "react-hook-form": "^7.62.0",
     "react-leaflet": "^5.0.0",
+    "react-markdown": "^10.1.0",
     "react-resizable-panels": "^2.1.9",
     "recharts": "^2.15.4",
     "redis": "^5.10.0",

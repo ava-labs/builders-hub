@@ -1,7 +1,4 @@
-import { NextResponse } from 'next/server';
-
-// Use nodejs runtime for access to all env vars (edge has restrictions)
-export const runtime = 'nodejs';
+import type { ToolDomain, ToolResult } from '../types';
 
 const GITHUB_API = 'https://api.github.com';
 const ALLOWED_REPOS = ['ava-labs/avalanchego', 'ava-labs/icm-services', 'ava-labs/builders-hub'];
@@ -14,8 +11,7 @@ interface SearchCodeParams {
 }
 
 interface GetFileParams {
-  owner: string;
-  repo: string;
+  repo: 'avalanchego' | 'icm-services' | 'builders-hub';
   path: string;
   ref?: string;
 }
@@ -52,7 +48,6 @@ async function searchCode(params: SearchCodeParams) {
 
   // Add auth token if available for higher rate limits
   const token = process.env.GITHUB_TOKEN;
-  console.log('GitHub token present:', !!token, token ? `(${token.substring(0, 10)}...)` : '(missing)');
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
@@ -108,7 +103,8 @@ async function searchCode(params: SearchCodeParams) {
 }
 
 async function getFileContents(params: GetFileParams) {
-  const { owner, repo, path, ref = 'HEAD' } = params;
+  const { repo, path, ref = 'HEAD' } = params;
+  const owner = 'ava-labs';
 
   // Validate repo is in allowed list
   const fullRepo = `${owner}/${repo}`;
@@ -174,41 +170,92 @@ async function getFileContents(params: GetFileParams) {
   return data;
 }
 
-export async function POST(req: Request) {
-  try {
-    const { tool, params } = await req.json();
-
-    switch (tool) {
-      case 'search_code': {
-        const results = await searchCode(params as SearchCodeParams);
-        return NextResponse.json({ success: true, data: results });
+export const githubTools: ToolDomain = {
+  tools: [
+    {
+      name: 'github_search_code',
+      description: 'Search for code across Avalanche GitHub repositories (avalanchego, icm-services, builders-hub).',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          query: {
+            type: 'string',
+            description: 'The search query string to find relevant code.',
+          },
+          repo: {
+            type: 'string',
+            enum: ['avalanchego', 'icm-services', 'builders-hub', 'all'],
+            description: 'The repository to search in. Defaults to "all".',
+          },
+          language: {
+            type: 'string',
+            enum: ['go', 'solidity', 'typescript', 'any'],
+            description: 'Filter results by programming language. Defaults to "any".',
+          },
+        },
+        required: ['query'],
+      },
+    },
+    {
+      name: 'github_get_file',
+      description: 'Retrieve the contents of a specific file from an Avalanche GitHub repository.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          repo: {
+            type: 'string',
+            enum: ['avalanchego', 'icm-services', 'builders-hub'],
+            description: 'The repository to fetch the file from (owner is always ava-labs).',
+          },
+          path: {
+            type: 'string',
+            description: 'The path to the file within the repository.',
+          },
+          ref: {
+            type: 'string',
+            description: 'The git ref (branch, tag, or commit SHA) to fetch from. Defaults to "HEAD".',
+          },
+        },
+        required: ['repo', 'path'],
+      },
+    },
+  ],
+  handlers: {
+    github_search_code: async (args): Promise<ToolResult> => {
+      try {
+        const result = await searchCode({
+          query: args.query as string,
+          repo: args.repo as SearchCodeParams['repo'],
+          language: args.language as SearchCodeParams['language'],
+        });
+        return {
+          content: [{ type: 'text', text: JSON.stringify(result) }],
+        };
+      } catch (error) {
+        console.error('github_search_code error:', error);
+        return {
+          content: [{ type: 'text', text: JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }) }],
+          isError: true,
+        };
       }
-
-      case 'get_file_contents': {
-        const contents = await getFileContents(params as GetFileParams);
-        return NextResponse.json({ success: true, data: contents });
+    },
+    github_get_file: async (args): Promise<ToolResult> => {
+      try {
+        const result = await getFileContents({
+          repo: args.repo as GetFileParams['repo'],
+          path: args.path as string,
+          ref: args.ref as string | undefined,
+        });
+        return {
+          content: [{ type: 'text', text: JSON.stringify(result) }],
+        };
+      } catch (error) {
+        console.error('github_get_file error:', error);
+        return {
+          content: [{ type: 'text', text: JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }) }],
+          isError: true,
+        };
       }
-
-      default:
-        return NextResponse.json(
-          { success: false, error: `Unknown tool: ${tool}` },
-          { status: 400 }
-        );
-    }
-  } catch (error) {
-    console.error('GitHub MCP error:', error);
-    return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    );
-  }
-}
-
-// Health check
-export async function GET() {
-  return NextResponse.json({
-    status: 'ok',
-    tools: ['search_code', 'get_file_contents'],
-    repos: ALLOWED_REPOS,
-  });
-}
+    },
+  },
+};

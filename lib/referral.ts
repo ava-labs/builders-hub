@@ -42,7 +42,7 @@ export function captureReferrerFromUrl(): string | null {
   return getReferrer();
 }
 
-const BASE_URL = 'https://build.avax.network/build-games';
+const BASE_URL = 'https://build.avax.network/build-games/apply';
 
 /**
  * Generates a referral link with the given X handle and optional user ID

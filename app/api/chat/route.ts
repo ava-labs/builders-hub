@@ -12,6 +12,7 @@ import {
   formatResetTime,
 } from '@/lib/chat/rateLimit';
 import { searchTools, getToolsContextForPrompt, formatToolsForContext } from '@/lib/chat/tools-search';
+import { docsTools, githubTools, blockchainTools } from '@/lib/mcp/tools';
 
 // Helper to extract text from v6 UIMessage
 function getTextFromMessage(message: any): string {
@@ -118,42 +119,12 @@ async function getValidUrls(): Promise<string[]> {
   }
 }
 
-// Use MCP server for better search quality
+// Use MCP server for better search quality — calls the handler directly (no HTTP round-trip)
 async function searchDocsViaMcp(query: string): Promise<Array<{ url: string; title: string; description?: string; source: string }>> {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ||
-                   process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` :
-                   'http://localhost:3000';
+    const toolResult = await docsTools.handlers.docs_search({ query, limit: 10 });
+    const text = toolResult.content?.[0]?.text || '';
 
-    const response = await fetch(`${baseUrl}/api/mcp`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        jsonrpc: '2.0',
-        id: Date.now(),
-        method: 'tools/call',
-        params: {
-          name: 'avalanche_docs_search',
-          arguments: { query, limit: 10 }
-        }
-      })
-    });
-
-    if (!response.ok) {
-      console.error('MCP search failed:', response.status);
-      return [];
-    }
-
-    const result = await response.json();
-    if (result.error) {
-      console.error('MCP search error:', result.error);
-      return [];
-    }
-
-    // Parse the text response from MCP
-    const text = result.result?.content?.[0]?.text || '';
-
-    // Extract results from the formatted text
     const results: Array<{ url: string; title: string; description?: string; source: string }> = [];
     const lines = text.split('\n').filter((l: string) => l.startsWith('- ['));
 
@@ -177,33 +148,11 @@ async function searchDocsViaMcp(query: string): Promise<Array<{ url: string; tit
   }
 }
 
-// Fetch specific pages from search results
+// Fetch specific pages from search results — calls the handler directly (no HTTP round-trip)
 async function fetchPageContent(url: string): Promise<string | null> {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ||
-                   process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` :
-                   'http://localhost:3000';
-
-    const response = await fetch(`${baseUrl}/api/mcp`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        jsonrpc: '2.0',
-        id: Date.now(),
-        method: 'tools/call',
-        params: {
-          name: 'avalanche_docs_fetch',
-          arguments: { url }
-        }
-      })
-    });
-
-    if (!response.ok) return null;
-
-    const result = await response.json();
-    if (result.error) return null;
-
-    return result.result?.content?.[0]?.text || null;
+    const toolResult = await docsTools.handlers.docs_fetch({ url });
+    return toolResult.content?.[0]?.text || null;
   } catch (error) {
     console.error('Page fetch error:', error);
     return null;
@@ -826,25 +775,9 @@ export async function POST(req: Request) {
         execute: async (input) => {
           const { query, repo, language } = input;
           try {
-            const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ||
-                           process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` :
-                           'http://localhost:3000';
-
-            const response = await fetch(`${baseUrl}/api/mcp/github`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                tool: 'search_code',
-                params: { query, repo, language, perPage: 10 }
-              })
-            });
-
-            if (!response.ok) {
-              return { error: 'GitHub search failed', status: response.status };
-            }
-
-            const result = await response.json();
-            return result.data || result;
+            const toolResult = await githubTools.handlers.github_search_code({ query, repo, language, perPage: 10 });
+            const text = toolResult.content?.[0]?.text;
+            return text ? JSON.parse(text) : { error: 'No result' };
           } catch (error) {
             return { error: 'Failed to search GitHub', details: String(error) };
           }
@@ -860,34 +793,19 @@ export async function POST(req: Request) {
         execute: async (input) => {
           const { repo, path } = input;
           try {
-            const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ||
-                           process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` :
-                           'http://localhost:3000';
-
-            const response = await fetch(`${baseUrl}/api/mcp/github`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                tool: 'get_file_contents',
-                params: { owner: 'ava-labs', repo, path }
-              })
-            });
-
-            if (!response.ok) {
-              return { error: 'Failed to fetch file', status: response.status };
-            }
-
-            const result = await response.json();
-            if (result.data?.content && result.data.content.length > 15000) {
-              // Truncate very large files but keep first and last parts
-              const content = result.data.content;
+            const toolResult = await githubTools.handlers.github_get_file({ repo, path, owner: 'ava-labs' });
+            const text = toolResult.content?.[0]?.text;
+            if (!text) return { error: 'No result' };
+            const data = JSON.parse(text);
+            if (data?.content && data.content.length > 15000) {
+              const content = data.content;
               return {
-                ...result.data,
+                ...data,
                 content: content.slice(0, 10000) + '\n\n... [truncated] ...\n\n' + content.slice(-5000),
                 truncated: true,
               };
             }
-            return result.data || result;
+            return data;
           } catch (error) {
             return { error: 'Failed to fetch file', details: String(error) };
           }
@@ -1283,71 +1201,10 @@ export async function POST(req: Request) {
         execute: async (input) => {
           const { address, chainId } = input;
           try {
-            const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ||
-                           process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` :
-                           'http://localhost:3000';
-
-            // Get balance
-            const balanceResponse = await fetch(`${baseUrl}/api/mcp/blockchain`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                jsonrpc: '2.0',
-                id: Date.now(),
-                method: 'tools/call',
-                params: {
-                  name: 'blockchain_get_native_balance',
-                  arguments: { address, chainId }
-                }
-              })
-            });
-
-            let balance = null;
-            if (balanceResponse.ok) {
-              const balanceResult = await balanceResponse.json();
-              if (balanceResult.result?.content?.[0]?.text) {
-                balance = JSON.parse(balanceResult.result.content[0].text);
-              }
-            }
-
-            // Check if contract
-            const contractResponse = await fetch(`${baseUrl}/api/mcp/blockchain`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                jsonrpc: '2.0',
-                id: Date.now(),
-                method: 'tools/call',
-                params: {
-                  name: 'blockchain_get_contract_info',
-                  arguments: { address, chainId }
-                }
-              })
-            });
-
-            let contractInfo = null;
-            if (contractResponse.ok) {
-              const contractResult = await contractResponse.json();
-              if (contractResult.result?.content?.[0]?.text) {
-                contractInfo = JSON.parse(contractResult.result.content[0].text);
-              }
-            }
-
-            return {
-              address,
-              chainId,
-              network: chainId === '43113' ? 'Fuji Testnet' : 'C-Chain Mainnet',
-              balance: balance?.balanceFormatted ? `${balance.balanceFormatted} ${balance.symbol}` : 'unknown',
-              isContract: contractInfo?.isContract || false,
-              contractInfo: contractInfo?.isContract ? {
-                name: contractInfo.name,
-                symbol: contractInfo.symbol,
-                ercType: contractInfo.ercType,
-              } : null,
-              explorerUrl: chainId === '43113'
-                ? `https://testnet.snowtrace.io/address/${address}`
-                : `https://snowtrace.io/address/${address}`,
-            };
+            // Call handler directly — fixes previously broken HTTP round-trip to non-existent /api/mcp/blockchain
+            const toolResult = await blockchainTools.handlers.blockchain_lookup_address({ address, chainId });
+            const text = toolResult.content?.[0]?.text;
+            return text ? JSON.parse(text) : { error: 'No result' };
           } catch (error) {
             return { error: 'Failed to lookup address', details: String(error) };
           }
