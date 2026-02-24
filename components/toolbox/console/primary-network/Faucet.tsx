@@ -1,4 +1,5 @@
 "use client";
+import { useState, useCallback } from "react";
 import { EVMFaucetButton } from "@/components/toolbox/components/ConnectWallet/EVMFaucetButton";
 import { PChainFaucetButton } from "@/components/toolbox/components/ConnectWallet/PChainFaucetButton";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
@@ -16,6 +17,7 @@ import { useFaucetRateLimit } from "@/hooks/useFaucetRateLimit";
 import { useFaucetBalance } from "@/hooks/useFaucetBalance";
 import { Check, Droplets, ExternalLink, Clock, Wallet, RefreshCw, Loader2 } from "lucide-react";
 import Link from "next/link";
+import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 
 function FaucetBalanceDisplay({
   balance,
@@ -117,6 +119,99 @@ function EVMFaucetCard({ chain }: { chain: L1ListItem }) {
       >
         Drip
       </EVMFaucetButton>
+    </div>
+  );
+}
+
+function ManualPChainFaucetInput() {
+  const [address, setAddress] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [isClaiming, setIsClaiming] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const { notify } = useConsoleNotifications();
+
+  const handleClaim = useCallback(async () => {
+    const trimmed = address.trim();
+    if (!trimmed) return;
+
+    // Auto-prepend P-chain prefix if user pasted bare address from CLI
+    const normalizedAddress = trimmed.startsWith("P-")
+      ? trimmed
+      : `P-fuji1${trimmed}`;
+
+    setError(null);
+    setIsClaiming(true);
+    setSuccess(false);
+
+    try {
+      const faucetRequest = async () => {
+        const response = await fetch(`/api/pchain-faucet?address=${encodeURIComponent(normalizedAddress)}`);
+        const data = await response.json();
+
+        if (!response.ok) {
+          if (response.status === 429) {
+            throw new Error(data.message || "Rate limit exceeded. Please try again later.");
+          }
+          throw new Error(data.message || `Error ${response.status}: Failed to get tokens`);
+        }
+
+        if (!data.success) {
+          throw new Error(data.message || "Failed to get tokens");
+        }
+
+        return data;
+      };
+
+      const faucetPromise = faucetRequest();
+      notify({ type: "local", name: "P-Chain Manual Faucet Claim" }, faucetPromise);
+
+      await faucetPromise;
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 5000);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to claim tokens");
+    } finally {
+      setIsClaiming(false);
+    }
+  }, [address, notify]);
+
+  return (
+    <div className="mt-3 pt-3 border-t border-zinc-200/80 dark:border-zinc-800">
+      <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-2">
+        Using platform-cli? Paste your address from{" "}
+        <code className="bg-zinc-100 dark:bg-zinc-800 px-1 py-0.5 rounded text-[10px] font-mono">
+          platform wallet balance
+        </code>
+        {" "}&mdash; the <code className="bg-zinc-100 dark:bg-zinc-800 px-1 py-0.5 rounded text-[10px] font-mono">P-fuji1</code> prefix is added automatically.
+      </p>
+      <div className="flex gap-2">
+        <input
+          type="text"
+          value={address}
+          onChange={(e) => {
+            setAddress(e.target.value);
+            setError(null);
+            setSuccess(false);
+          }}
+          placeholder="P-fuji1..."
+          className="flex-1 px-3 py-2 text-xs font-mono rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-500/20"
+        />
+        <button
+          onClick={handleClaim}
+          disabled={isClaiming || !address}
+          className="shrink-0 px-4 py-2 text-xs font-medium bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed rounded-lg"
+        >
+          {isClaiming ? "Claiming..." : success ? "Claimed!" : "Claim"}
+        </button>
+      </div>
+      {error && (
+        <p className="mt-1.5 text-xs text-red-500">{error}</p>
+      )}
+      {success && (
+        <p className="mt-1.5 text-xs text-green-600 dark:text-green-400">
+          Tokens sent successfully!
+        </p>
+      )}
     </div>
   );
 }
@@ -306,6 +401,7 @@ function Faucet({ onSuccess }: BaseConsoleToolProps) {
             <PChainFaucetButton className="w-full px-4 py-2.5 text-sm font-medium bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed rounded-lg">
               Request Tokens
             </PChainFaucetButton>
+            <ManualPChainFaucetInput />
           </div>
         </div>
       </div>
