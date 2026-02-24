@@ -1902,6 +1902,832 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     category: 'mev',
     type: 'other',
   },
+
+  // ============ AUTO-CLASSIFIED (Round 7) ============
+
+  // --- ERC-4337 ---
+  '0x40ac2e93d1257196a418fce7d6edacde65aaf2ba': {
+    address: '0x40ac2e93d1257196a418fce7d6edacde65aaf2ba',
+    name: 'EntryPoint',
+    protocol: 'ERC-4337',
+    category: 'infrastructure',
+    type: 'other',
+  },
+
+  // --- Chainlink (CCIP / VRF / Infrastructure) ---
+  '0xf0f791901854fab16adebd60f0639b960b6ea0cf': {
+    address: '0xf0f791901854fab16adebd60f0639b960b6ea0cf',
+    name: 'CommitStore',
+    protocol: 'Chainlink',
+    category: 'infrastructure',
+    type: 'other',
+  },
+  '0x23e23958d220b774680f91c2c91a6f2b2f610d7e': {
+    address: '0x23e23958d220b774680f91c2c91a6f2b2f610d7e',
+    name: 'CommitStore',
+    protocol: 'Chainlink',
+    category: 'infrastructure',
+    type: 'other',
+  },
+  '0xe72d25add538e8ef9cef85622ea8912a6cb98be6': {
+    address: '0xe72d25add538e8ef9cef85622ea8912a6cb98be6',
+    name: 'OffRamp',
+    protocol: 'Chainlink',
+    category: 'infrastructure',
+    type: 'other',
+  },
+  '0x78b69899c8cd252126cbb1a50171ec37286c3877': {
+    address: '0x78b69899c8cd252126cbb1a50171ec37286c3877',
+    name: 'BlockhashStore',
+    protocol: 'Chainlink',
+    category: 'infrastructure',
+    type: 'other',
+  },
+  '0x76c9cf548b4179f8901cda1f8623568b58215e62': {
+    address: '0x76c9cf548b4179f8901cda1f8623568b58215e62',
+    name: 'KeystoneForwarder',
+    protocol: 'Chainlink',
+    category: 'infrastructure',
+    type: 'other',
+  },
+  '0xb8ce5e56972b53ed20887a43d49e01b4842848b9': {
+    address: '0xb8ce5e56972b53ed20887a43d49e01b4842848b9',
+    name: 'AuthorizedForwarder',
+    protocol: 'Chainlink',
+    category: 'infrastructure',
+    type: 'other',
+  },
+  '0x311efd3602f91436384d5f879588fe9ac99ca43c': {
+    address: '0x311efd3602f91436384d5f879588fe9ac99ca43c',
+    name: 'KeystoneForwarder',
+    protocol: 'Chainlink',
+    category: 'infrastructure',
+    type: 'other',
+  },
+
+  // --- Pharaoh (Gauges + ve helpers) ---
+  '0x19d860b389260f3ff31ca77b1c91c92f2236429b': {
+    address: '0x19d860b389260f3ff31ca77b1c91c92f2236429b',
+    name: 'GaugeCL',
+    protocol: 'Pharaoh',
+    category: 'dex',
+    type: 'staking',
+  },
+  '0xe384f4bd5a482f301d9caf0038a06625a81296c5': {
+    address: '0xe384f4bd5a482f301d9caf0038a06625a81296c5',
+    name: 'GaugeCL',
+    protocol: 'Pharaoh',
+    category: 'dex',
+    type: 'staking',
+  },
+  '0x014d8de7fa79320c1750c4702b7830c3987f8b51': {
+    address: '0x014d8de7fa79320c1750c4702b7830c3987f8b51',
+    name: 'GaugeCL',
+    protocol: 'Pharaoh',
+    category: 'dex',
+    type: 'staking',
+  },
+  '0x5b5f9c34409ff4b5af47a4373c8dc5a49866a20f': {
+    address: '0x5b5f9c34409ff4b5af47a4373c8dc5a49866a20f',
+    name: 'GaugeCL',
+    protocol: 'Pharaoh',
+    category: 'dex',
+    type: 'staking',
+  },
+  '0xe5214c3ccb4b7a832601ec108096b7e0d6787771': {
+    address: '0xe5214c3ccb4b7a832601ec108096b7e0d6787771',
+    name: 'GaugeCL',
+    protocol: 'Pharaoh',
+    category: 'dex',
+    type: 'staking',
+  },
+  '0x033562d55e6229ac3e37de8fe4d5df178f268e0b': {
+    address: '0x033562d55e6229ac3e37de8fe4d5df178f268e0b',
+    name: 'GaugeCL',
+    protocol: 'Pharaoh',
+    category: 'dex',
+    type: 'staking',
+  },
+  '0x060a9038133745d281934f82ae0f4bd92a065af1': {
+    address: '0x060a9038133745d281934f82ae0f4bd92a065af1',
+    name: 'GaugeCL',
+    protocol: 'Pharaoh',
+    category: 'dex',
+    type: 'staking',
+  },
+  '0x1d67c7729135583f2ee11fd34c7921a8ae500e6f': {
+    address: '0x1d67c7729135583f2ee11fd34c7921a8ae500e6f',
+    name: 'VotingEscrowSplitHelper',
+    protocol: 'Pharaoh',
+    category: 'dex',
+    type: 'other',
+  },
+
+  // --- Blackhole DEX (Strategy vaults) ---
+  '0xe3c3d89b47f32c0c442cb3c8dae053ecec484cde': {
+    address: '0xe3c3d89b47f32c0c442cb3c8dae053ecec484cde',
+    name: 'BlackholeStrategy',
+    protocol: 'Blackhole DEX',
+    category: 'dex',
+    type: 'vault',
+  },
+  '0xa0b7996b22b37c5bbffcaaf56e60dc4e9df2b7eb': {
+    address: '0xa0b7996b22b37c5bbffcaaf56e60dc4e9df2b7eb',
+    name: 'BlackholeStrategy',
+    protocol: 'Blackhole DEX',
+    category: 'dex',
+    type: 'vault',
+  },
+  '0x5f75b397c63efa31302aa7fa155ddec4f1253437': {
+    address: '0x5f75b397c63efa31302aa7fa155ddec4f1253437',
+    name: 'BlackholeStrategy',
+    protocol: 'Blackhole DEX',
+    category: 'dex',
+    type: 'vault',
+  },
+  '0x7ff774af8c9bf8cf43a0d92e6a052f17e5f604db': {
+    address: '0x7ff774af8c9bf8cf43a0d92e6a052f17e5f604db',
+    name: 'BlackholeStrategy',
+    protocol: 'Blackhole DEX',
+    category: 'dex',
+    type: 'vault',
+  },
+  '0x1188bcefbfd37e4f5b775d3add2101cfa00ebf4a': {
+    address: '0x1188bcefbfd37e4f5b775d3add2101cfa00ebf4a',
+    name: 'BlackholeStrategy',
+    protocol: 'Blackhole DEX',
+    category: 'dex',
+    type: 'vault',
+  },
+  '0x1b0d20acf582ab9b1063c71dc8eb8d1573ddaf34': {
+    address: '0x1b0d20acf582ab9b1063c71dc8eb8d1573ddaf34',
+    name: 'BlackholeStrategy',
+    protocol: 'Blackhole DEX',
+    category: 'dex',
+    type: 'vault',
+  },
+  '0xedb267c865dcaf4c84dc9797d87841c7994c56c3': {
+    address: '0xedb267c865dcaf4c84dc9797d87841c7994c56c3',
+    name: 'BlackholeStrategy',
+    protocol: 'Blackhole DEX',
+    category: 'dex',
+    type: 'vault',
+  },
+  '0xa369fa24c4fff56b92d729aa024d728f05cf76a8': {
+    address: '0xa369fa24c4fff56b92d729aa024d728f05cf76a8',
+    name: 'BlackholeStrategy',
+    protocol: 'Blackhole DEX',
+    category: 'dex',
+    type: 'vault',
+  },
+
+  // --- GMX (V2 handlers) ---
+  '0x441541167b041ec507b5308b7005075a13a28aa7': {
+    address: '0x441541167b041ec507b5308b7005075a13a28aa7',
+    name: 'GlvShiftHandler',
+    protocol: 'GMX',
+    category: 'derivatives',
+    type: 'controller',
+  },
+  '0xfabeb65bb877600be3a2c2a03aa56a95f9f845b9': {
+    address: '0xfabeb65bb877600be3a2c2a03aa56a95f9f845b9',
+    name: 'SubaccountGelatoRelayRouter',
+    protocol: 'GMX',
+    category: 'derivatives',
+    type: 'controller',
+  },
+  '0xad7f00b4080bacffaae7f44d67560c818d8e5468': {
+    address: '0xad7f00b4080bacffaae7f44d67560c818d8e5468',
+    name: 'LiquidationHandler',
+    protocol: 'GMX',
+    category: 'derivatives',
+    type: 'controller',
+  },
+  '0x334237f7d75497a22b1443f44ddccf95e72904a0': {
+    address: '0x334237f7d75497a22b1443f44ddccf95e72904a0',
+    name: 'WithdrawalHandler',
+    protocol: 'GMX',
+    category: 'derivatives',
+    type: 'controller',
+  },
+
+  // --- DODO (Private Pools) ---
+  '0x6203c968ae2c15a562c53e0258fcb62e8139bd3e': {
+    address: '0x6203c968ae2c15a562c53e0258fcb62e8139bd3e',
+    name: 'DPPAdvancedAdmin',
+    protocol: 'DODO',
+    category: 'dex',
+    type: 'pool',
+  },
+  '0x7b3ef1b432b016d9a0ba354fa01672f91ca27ba4': {
+    address: '0x7b3ef1b432b016d9a0ba354fa01672f91ca27ba4',
+    name: 'DPPAdvancedAdmin',
+    protocol: 'DODO',
+    category: 'dex',
+    type: 'pool',
+  },
+
+  // --- Relay (Bridge routers) ---
+  '0xb92fe925dc43a0ecde6c8b1a2709c170ec4fff4f': {
+    address: '0xb92fe925dc43a0ecde6c8b1a2709c170ec4fff4f',
+    name: 'RelayRouterV3',
+    protocol: 'Relay',
+    category: 'bridge',
+    type: 'router',
+  },
+  '0xf5042e6ffac5a625d4e7848e0b01373d8eb9e222': {
+    address: '0xf5042e6ffac5a625d4e7848e0b01373d8eb9e222',
+    name: 'RelayRouter',
+    protocol: 'Relay',
+    category: 'bridge',
+    type: 'router',
+  },
+
+  // --- Aave (V3 periphery) ---
+  '0x9e82583414771b593a1d730c94f828d23f922f81': {
+    address: '0x9e82583414771b593a1d730c94f828d23f922f81',
+    name: 'RiskOracle',
+    protocol: 'Aave',
+    category: 'lending',
+    type: 'other',
+  },
+  '0x2825ce5921538d17cc15ae00a8b24ff759c6cdae': {
+    address: '0x2825ce5921538d17cc15ae00a8b24ff759c6cdae',
+    name: 'WrappedTokenGatewayV3',
+    protocol: 'Aave',
+    category: 'lending',
+    type: 'other',
+  },
+
+  // --- Uniswap ---
+  '0x655c406ebfa14ee2006250925e54ec43ad184f8b': {
+    address: '0x655c406ebfa14ee2006250925e54ec43ad184f8b',
+    name: 'NonfungiblePositionManager',
+    protocol: 'Uniswap',
+    category: 'dex',
+    type: 'other',
+  },
+
+  // --- Yield Yak ---
+  '0xc4729e56b831d74bbc18797e0e17a295fa77488c': {
+    address: '0xc4729e56b831d74bbc18797e0e17a295fa77488c',
+    name: 'YakRouter',
+    protocol: 'Yield Yak',
+    category: 'yield',
+    type: 'router',
+  },
+
+  // --- Silo Finance (NEW protocol) ---
+  '0xf8c100ab4b2d416609b0ef18105ebf601b2ec84a': {
+    address: '0xf8c100ab4b2d416609b0ef18105ebf601b2ec84a',
+    name: 'SiloVault',
+    protocol: 'Silo Finance',
+    category: 'lending',
+    type: 'vault',
+  },
+
+  // --- OpenSea ---
+  '0x0000000000000068f116a894984e2db1123eb395': {
+    address: '0x0000000000000068f116a894984e2db1123eb395',
+    name: 'Seaport',
+    protocol: 'OpenSea',
+    category: 'nft',
+    type: 'other',
+  },
+
+  // --- Rango (NEW protocol) ---
+  '0x69460570c93f9de5e2edbc3052bf10125f0ca22d': {
+    address: '0x69460570c93f9de5e2edbc3052bf10125f0ca22d',
+    name: 'RangoDiamond',
+    protocol: 'Rango',
+    category: 'bridge',
+    type: 'router',
+  },
+
+  // --- LayerZero (V2) ---
+  '0xbf3521d309642fa9b1c91a08609505ba09752c61': {
+    address: '0xbf3521d309642fa9b1c91a08609505ba09752c61',
+    name: 'ReceiveUln302',
+    protocol: 'LayerZero',
+    category: 'bridge',
+    type: 'other',
+  },
+
+  // ============ AUTO-CLASSIFIED — MEDIUM CONFIDENCE (Round 7) ============
+  // Tag: REVIEW: — verify protocol assignment before removing tag
+
+  // --- Deployer-clustered: OKX DEX (same deployer as known OKX DEX contracts) ---
+  // REVIEW: deployer-clustered — not verified on Routescan
+  '0xe9f3c2da88b75ba4ac7cbe2da884b911ee200784': {
+    address: '0xe9f3c2da88b75ba4ac7cbe2da884b911ee200784',
+    name: 'Unknown (OKX DEX deployer)',
+    protocol: 'OKX DEX',
+    category: 'dex',
+    type: 'other',
+  },
+
+  // --- Deployer-clustered: Pharaoh (same deployer as known Pharaoh contracts) ---
+  // REVIEW: deployer-clustered — TransparentUpgradeableProxy, check implementation
+  '0xe30d0c8532721551a51a9fec7fb233759964d9e3': {
+    address: '0xe30d0c8532721551a51a9fec7fb233759964d9e3',
+    name: 'TransparentUpgradeableProxy (Pharaoh deployer)',
+    protocol: 'Pharaoh',
+    category: 'dex',
+    type: 'other',
+  },
+  // REVIEW: deployer-clustered — not verified on Routescan
+  '0x64963852966aa7ff2258434f361ec933bf0eaf03': {
+    address: '0x64963852966aa7ff2258434f361ec933bf0eaf03',
+    name: 'Unknown (Pharaoh deployer)',
+    protocol: 'Pharaoh',
+    category: 'dex',
+    type: 'other',
+  },
+
+  // --- Deployer-clustered: MoveQuest (same deployer as known MoveQuest contracts) ---
+  // REVIEW: deployer-clustered — contract name "BOOSTS"
+  '0x929f7fa7a248293f3e9914f117678e24b143813b': {
+    address: '0x929f7fa7a248293f3e9914f117678e24b143813b',
+    name: 'BOOSTS (MoveQuest deployer)',
+    protocol: 'MoveQuest',
+    category: 'gaming',
+    type: 'other',
+  },
+  // REVIEW: deployer-clustered — contract name "Nest"
+  '0x6e07eb8066d59440d9dc36a5d33ab8a70a9f969d': {
+    address: '0x6e07eb8066d59440d9dc36a5d33ab8a70a9f969d',
+    name: 'Nest (MoveQuest deployer)',
+    protocol: 'MoveQuest',
+    category: 'gaming',
+    type: 'other',
+  },
+
+  // --- Deployer-clustered: ERC-4337 (same deployer as known ERC-4337 contracts) ---
+  // REVIEW: deployer-clustered — not verified on Routescan
+  '0xa05405b6340a7f43dc5835351bfc4f5b1f028359': {
+    address: '0xa05405b6340a7f43dc5835351bfc4f5b1f028359',
+    name: 'Unknown (ERC-4337 deployer)',
+    protocol: 'ERC-4337',
+    category: 'infrastructure',
+    type: 'other',
+  },
+  // REVIEW: deployer-clustered — not verified on Routescan
+  '0xcbcd511ccf92da77245c4ae936e574b630ff0001': {
+    address: '0xcbcd511ccf92da77245c4ae936e574b630ff0001',
+    name: 'Unknown (ERC-4337 deployer)',
+    protocol: 'ERC-4337',
+    category: 'infrastructure',
+    type: 'other',
+  },
+
+  // --- Deployer-clustered: Chikn (same deployer as known Chikn contracts) ---
+  // REVIEW: deployer-clustered — not verified on Routescan
+  '0x159cfd38deac6bb7b95abff3aa42063651c3c6f9': {
+    address: '0x159cfd38deac6bb7b95abff3aa42063651c3c6f9',
+    name: 'Unknown (Chikn deployer)',
+    protocol: 'Chikn',
+    category: 'gaming',
+    type: 'other',
+  },
+
+  // --- Deployer-clustered: MEV / Arbitrage (same deployer as known MEV bots) ---
+  // REVIEW: deployer-clustered
+  '0xddc03487658954ee4dbaf16015d423bc29c68f52': {
+    address: '0xddc03487658954ee4dbaf16015d423bc29c68f52',
+    name: 'MEV Bot (deployer 0xf69e0b)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0x7773c694fddf850089b00f23d8ab466f00000000': {
+    address: '0x7773c694fddf850089b00f23d8ab466f00000000',
+    name: 'MEV Bot (deployer 0xa34ec9)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0x40335a68bd5dcc8cee4b93916c1f4b7af6554cdc': {
+    address: '0x40335a68bd5dcc8cee4b93916c1f4b7af6554cdc',
+    name: 'MEV Bot (deployer 0x977a8a)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0xdd8ea833cd3c5360cf3c3b8e26520893549d60d7': {
+    address: '0xdd8ea833cd3c5360cf3c3b8e26520893549d60d7',
+    name: 'MEV Bot (deployer 0x977a8a)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0x723a11d37743eeaa2029974ea7c0a030f150867d': {
+    address: '0x723a11d37743eeaa2029974ea7c0a030f150867d',
+    name: 'MEV Bot (deployer 0x25b395)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+
+  // --- Named contracts: name-based classification (REVIEW protocol) ---
+  // REVIEW: name-based — "SwapHelper", unknown protocol, 0.10% gas
+  '0xde9d7290959b6060860b983b32f2d65b2701ebc2': {
+    address: '0xde9d7290959b6060860b983b32f2d65b2701ebc2',
+    name: 'SwapHelper',
+    protocol: 'Infrastructure',
+    category: 'infrastructure',
+    type: 'other',
+  },
+  // REVIEW: name-based — "MassTokenTransferOptimized", likely airdrop/batch tool, 0.07% gas
+  '0x6c70f11a949ca1241ed77048067d60bbb935e379': {
+    address: '0x6c70f11a949ca1241ed77048067d60bbb935e379',
+    name: 'MassTokenTransferOptimized',
+    protocol: 'Infrastructure',
+    category: 'infrastructure',
+    type: 'other',
+  },
+  // REVIEW: name-based — "SettlementRouter", likely DEX aggregator/solver, 0.05% gas
+  '0xf38709cfd3f89734c231dd8e59ff1d44cacddee8': {
+    address: '0xf38709cfd3f89734c231dd8e59ff1d44cacddee8',
+    name: 'SettlementRouter',
+    protocol: 'Infrastructure',
+    category: 'dex',
+    type: 'router',
+  },
+  // REVIEW: name-based — "DestinationBridge", likely Ondo/USDY bridge, 0.04% gas
+  '0xa8baad3115a133b101ef935cb2e198fd04f1c659': {
+    address: '0xa8baad3115a133b101ef935cb2e198fd04f1c659',
+    name: 'DestinationBridge',
+    protocol: 'Infrastructure',
+    category: 'bridge',
+    type: 'router',
+  },
+  // REVIEW: name-based — "AgoraDollarErc1967Proxy", Agora stablecoin (AUSD), 0.04% gas
+  '0x00000000efe302beaa2b3e6e1b18d08d69a9012a': {
+    address: '0x00000000efe302beaa2b3e6e1b18d08d69a9012a',
+    name: 'AgoraDollarErc1967Proxy',
+    protocol: 'Infrastructure',
+    category: 'token',
+    type: 'token',
+  },
+  // REVIEW: name-based — "ERC20BridgeToken", likely Avalanche Bridge wrapped token, 0.03% gas
+  '0x5e0e90e268bc247cc850c789a0db0d5c7621fb59': {
+    address: '0x5e0e90e268bc247cc850c789a0db0d5c7621fb59',
+    name: 'ERC20BridgeToken',
+    protocol: 'Avalanche Bridge',
+    category: 'bridge',
+    type: 'token',
+  },
+  // REVIEW: name-based — "MetaBridge", likely Synapse or similar bridge aggregator, 0.03% gas
+  '0x29106d08382d3c73bf477a94333c61db1142e1b6': {
+    address: '0x29106d08382d3c73bf477a94333c61db1142e1b6',
+    name: 'MetaBridge',
+    protocol: 'Infrastructure',
+    category: 'bridge',
+    type: 'router',
+  },
+  // REVIEW: name-based — "FlashLoanRouter", 0.03% gas
+  '0x9da8b48441583a2b93e2ef8213aad0ec0b392c69': {
+    address: '0x9da8b48441583a2b93e2ef8213aad0ec0b392c69',
+    name: 'FlashLoanRouter',
+    protocol: 'Infrastructure',
+    category: 'lending',
+    type: 'router',
+  },
+  // REVIEW: name-based — "TradingVault", 0.02% gas
+  '0x34768891c11032d6fcc4afbec34b408e6a24442f': {
+    address: '0x34768891c11032d6fcc4afbec34b408e6a24442f',
+    name: 'TradingVault',
+    protocol: 'Infrastructure',
+    category: 'derivatives',
+    type: 'vault',
+  },
+  // REVIEW: name-based — "SwapRouter", unknown DEX, 0.02% gas
+  '0x5485a0751a249225d3ba2f6f296551507e22547f': {
+    address: '0x5485a0751a249225d3ba2f6f296551507e22547f',
+    name: 'SwapRouter',
+    protocol: 'Infrastructure',
+    category: 'dex',
+    type: 'router',
+  },
+  // REVIEW: name-based — "Diamond" (EIP-2535 diamond proxy), 0.02% gas
+  '0xb300000b72deaeb607a12d5f54773d1c19c7028d': {
+    address: '0xb300000b72deaeb607a12d5f54773d1c19c7028d',
+    name: 'Diamond',
+    protocol: 'Infrastructure',
+    category: 'infrastructure',
+    type: 'controller',
+  },
+  // REVIEW: name-based — "UniversalRouter", likely Uniswap Universal Router, 0.02% gas
+  '0x94b75331ae8d42c1b61065089b7d48fe14aa73b7': {
+    address: '0x94b75331ae8d42c1b61065089b7d48fe14aa73b7',
+    name: 'UniversalRouter',
+    protocol: 'Uniswap',
+    category: 'dex',
+    type: 'router',
+  },
+  // REVIEW: name-based — "Router", unknown protocol, 0.01% gas
+  '0x757121c9a8259c4d6b6956c283355b2902a6baa2': {
+    address: '0x757121c9a8259c4d6b6956c283355b2902a6baa2',
+    name: 'Router',
+    protocol: 'Infrastructure',
+    category: 'dex',
+    type: 'router',
+  },
+
+  // --- Proxy contracts: protocol unknown, need implementation lookup ---
+  // REVIEW: proxy — check implementation contract on Routescan, 0.06% gas
+  '0x236088b6a190d8b0471d5ef53c5ca90461645dc3': {
+    address: '0x236088b6a190d8b0471d5ef53c5ca90461645dc3',
+    name: 'TransparentUpgradeableProxy',
+    protocol: 'Infrastructure',
+    category: 'infrastructure',
+    type: 'controller',
+  },
+  // REVIEW: proxy — 0.06% gas
+  '0xf739bd12e31e9c61040c3d7a1f69065b6cdd4699': {
+    address: '0xf739bd12e31e9c61040c3d7a1f69065b6cdd4699',
+    name: 'TransparentUpgradeableProxy',
+    protocol: 'Infrastructure',
+    category: 'infrastructure',
+    type: 'controller',
+  },
+  // REVIEW: proxy — 0.05% gas
+  '0x38a07152ee64c7067feeba904d72abc9a9da0c77': {
+    address: '0x38a07152ee64c7067feeba904d72abc9a9da0c77',
+    name: 'TransparentUpgradeableProxy',
+    protocol: 'Infrastructure',
+    category: 'infrastructure',
+    type: 'controller',
+  },
+  // REVIEW: proxy — 0.04% gas
+  '0xc40da05d24e09a2906fbea2147e6a670aa659939': {
+    address: '0xc40da05d24e09a2906fbea2147e6a670aa659939',
+    name: 'ERC1967Proxy',
+    protocol: 'Infrastructure',
+    category: 'infrastructure',
+    type: 'controller',
+  },
+  // REVIEW: proxy — 0.04% gas
+  '0x2196e106af476f57618373ec028924767c758464': {
+    address: '0x2196e106af476f57618373ec028924767c758464',
+    name: 'UUPSProxy',
+    protocol: 'Infrastructure',
+    category: 'infrastructure',
+    type: 'controller',
+  },
+  // REVIEW: proxy — 0.04% gas
+  '0x76e3bc265307c8dd654bcac3c001f66f3ddb6583': {
+    address: '0x76e3bc265307c8dd654bcac3c001f66f3ddb6583',
+    name: 'ERC1967Proxy',
+    protocol: 'Infrastructure',
+    category: 'infrastructure',
+    type: 'controller',
+  },
+  // REVIEW: proxy — 0.04% gas
+  '0x27428dd2d3dd32a4d7f7c497eaaa23130d894911': {
+    address: '0x27428dd2d3dd32a4d7f7c497eaaa23130d894911',
+    name: 'SimpleProxy',
+    protocol: 'Infrastructure',
+    category: 'infrastructure',
+    type: 'controller',
+  },
+  // REVIEW: proxy — 0.03% gas
+  '0x10ac9b7eb034fab1f3bc446e81479d7dc089be83': {
+    address: '0x10ac9b7eb034fab1f3bc446e81479d7dc089be83',
+    name: 'OptimizedTransparentUpgradeableProxy',
+    protocol: 'Infrastructure',
+    category: 'infrastructure',
+    type: 'controller',
+  },
+  // REVIEW: proxy — 0.03% gas
+  '0xc605c2cf66ee98ea925b1bb4fea584b71c00cc4c': {
+    address: '0xc605c2cf66ee98ea925b1bb4fea584b71c00cc4c',
+    name: 'TransparentUpgradeableProxy',
+    protocol: 'Infrastructure',
+    category: 'infrastructure',
+    type: 'controller',
+  },
+  // REVIEW: proxy — ApprovalProxy, likely DEX aggregator, 0.03% gas
+  '0xbbbfd134e9b44bfb5123898ba36b01de7ab93d98': {
+    address: '0xbbbfd134e9b44bfb5123898ba36b01de7ab93d98',
+    name: 'ApprovalProxy',
+    protocol: 'Infrastructure',
+    category: 'infrastructure',
+    type: 'controller',
+  },
+  // REVIEW: proxy — 0.03% gas
+  '0x8315f1eb449dd4b779495c3a0b05e5d194446c6e': {
+    address: '0x8315f1eb449dd4b779495c3a0b05e5d194446c6e',
+    name: 'UUPSProxy',
+    protocol: 'Infrastructure',
+    category: 'infrastructure',
+    type: 'controller',
+  },
+  // REVIEW: proxy — 0.03% gas
+  '0x3176f6e4be2448c53edd59c27651edfaa74bf483': {
+    address: '0x3176f6e4be2448c53edd59c27651edfaa74bf483',
+    name: 'TransparentUpgradeableProxy',
+    protocol: 'Infrastructure',
+    category: 'infrastructure',
+    type: 'controller',
+  },
+  // REVIEW: proxy — RebalanceProxy, 0.02% gas
+  '0xd57f0bb9ed6cbbad0b2bdd470fd496db852aeb76': {
+    address: '0xd57f0bb9ed6cbbad0b2bdd470fd496db852aeb76',
+    name: 'RebalanceProxy',
+    protocol: 'Infrastructure',
+    category: 'infrastructure',
+    type: 'controller',
+  },
+  // REVIEW: proxy — 0.02% gas
+  '0x93676a067566ec92a5b16aa741b9d4b45649711e': {
+    address: '0x93676a067566ec92a5b16aa741b9d4b45649711e',
+    name: 'ERC1967Proxy',
+    protocol: 'Infrastructure',
+    category: 'infrastructure',
+    type: 'controller',
+  },
+  // REVIEW: proxy — 0.02% gas
+  '0x3a7ad40286540fc7e666adec44e679c59c34dd00': {
+    address: '0x3a7ad40286540fc7e666adec44e679c59c34dd00',
+    name: 'ERC1967Proxy',
+    protocol: 'Infrastructure',
+    category: 'infrastructure',
+    type: 'controller',
+  },
+  // REVIEW: proxy — 0.02% gas
+  '0x81d40f21f12a8f0e3252bccb954d722d4c464b64': {
+    address: '0x81d40f21f12a8f0e3252bccb954d722d4c464b64',
+    name: 'AdminUpgradableProxy',
+    protocol: 'Infrastructure',
+    category: 'infrastructure',
+    type: 'controller',
+  },
+  // REVIEW: proxy — 0.02% gas
+  '0x09c1e991870cbc01009a4b49397a4f2a127d3784': {
+    address: '0x09c1e991870cbc01009a4b49397a4f2a127d3784',
+    name: 'TransparentUpgradeableProxy',
+    protocol: 'Infrastructure',
+    category: 'infrastructure',
+    type: 'controller',
+  },
+  // REVIEW: proxy — 0.02% gas
+  '0xde12e956aa65e0581e9c470ace2a8194987a8935': {
+    address: '0xde12e956aa65e0581e9c470ace2a8194987a8935',
+    name: 'ERC1967Proxy',
+    protocol: 'Infrastructure',
+    category: 'infrastructure',
+    type: 'controller',
+  },
+  // REVIEW: proxy — 0.02% gas
+  '0xc104debc37806421cb3b3d7e075e61f566efb583': {
+    address: '0xc104debc37806421cb3b3d7e075e61f566efb583',
+    name: 'UUPSProxy',
+    protocol: 'Infrastructure',
+    category: 'infrastructure',
+    type: 'controller',
+  },
+  // REVIEW: proxy — 0.02% gas
+  '0xaaa45c8f5ef92a000a121d102f4e89278a711faa': {
+    address: '0xaaa45c8f5ef92a000a121d102f4e89278a711faa',
+    name: 'TransparentUpgradeableProxy',
+    protocol: 'Infrastructure',
+    category: 'infrastructure',
+    type: 'controller',
+  },
+  // REVIEW: proxy — 0.02% gas
+  '0x66a8cb6c4230b044378ac3676d47ed4fe18e3cfb': {
+    address: '0x66a8cb6c4230b044378ac3676d47ed4fe18e3cfb',
+    name: 'ERC1967Proxy',
+    protocol: 'Infrastructure',
+    category: 'infrastructure',
+    type: 'controller',
+  },
+  // REVIEW: proxy — 0.02% gas
+  '0x6a5b3ab3274b738eab25205af6e2d4dd77812924': {
+    address: '0x6a5b3ab3274b738eab25205af6e2d4dd77812924',
+    name: 'ERC1967Proxy',
+    protocol: 'Infrastructure',
+    category: 'infrastructure',
+    type: 'controller',
+  },
+  // REVIEW: proxy — 0.02% gas
+  '0x90e595783e43eb89ff07f63d27b8430e6b44bd9c': {
+    address: '0x90e595783e43eb89ff07f63d27b8430e6b44bd9c',
+    name: 'OptimizedTransparentUpgradeableProxy',
+    protocol: 'Infrastructure',
+    category: 'infrastructure',
+    type: 'controller',
+  },
+  // REVIEW: proxy — 0.02% gas
+  '0x8a92294ffcfe469a3df4a85c76a0b0d2b3292119': {
+    address: '0x8a92294ffcfe469a3df4a85c76a0b0d2b3292119',
+    name: 'AMTransparentUpgradeableProxy',
+    protocol: 'Infrastructure',
+    category: 'infrastructure',
+    type: 'controller',
+  },
+  // REVIEW: proxy — 0.02% gas
+  '0xee7ae85f2fe2239e27d9c1e23fffe168d63b4055': {
+    address: '0xee7ae85f2fe2239e27d9c1e23fffe168d63b4055',
+    name: 'ERC1967Proxy',
+    protocol: 'Infrastructure',
+    category: 'infrastructure',
+    type: 'controller',
+  },
+  // REVIEW: proxy — 0.01% gas
+  '0x297ac6b26ad11691474e370a65cb4b26f3bf0a20': {
+    address: '0x297ac6b26ad11691474e370a65cb4b26f3bf0a20',
+    name: 'BeaconProxy',
+    protocol: 'Infrastructure',
+    category: 'infrastructure',
+    type: 'controller',
+  },
+  // REVIEW: proxy — 0.01% gas
+  '0x2e581710e811e785b5e11f064aede3eec0bd5c70': {
+    address: '0x2e581710e811e785b5e11f064aede3eec0bd5c70',
+    name: 'ERC1967Proxy',
+    protocol: 'Infrastructure',
+    category: 'infrastructure',
+    type: 'controller',
+  },
+  // REVIEW: proxy — 0.01% gas
+  '0x922b9ca8e2207bfb850b6ff647c054d4b58a2aa7': {
+    address: '0x922b9ca8e2207bfb850b6ff647c054d4b58a2aa7',
+    name: 'TransparentUpgradeableProxy',
+    protocol: 'Infrastructure',
+    category: 'infrastructure',
+    type: 'controller',
+  },
+  // REVIEW: proxy — 0.01% gas
+  '0x936385b7aaaf73e089360c571f11e3d39561372f': {
+    address: '0x936385b7aaaf73e089360c571f11e3d39561372f',
+    name: 'TransparentUpgradeableProxy',
+    protocol: 'Infrastructure',
+    category: 'infrastructure',
+    type: 'controller',
+  },
+  // REVIEW: proxy — 0.01% gas
+  '0x21e539a5b00b4d0ab4a603889f01fd4a431af103': {
+    address: '0x21e539a5b00b4d0ab4a603889f01fd4a431af103',
+    name: 'TransparentUpgradeableProxy',
+    protocol: 'Infrastructure',
+    category: 'infrastructure',
+    type: 'controller',
+  },
+  // REVIEW: proxy — 0.01% gas
+  '0x154f97554eaa9ecca7b75fc3daca021613f9ac95': {
+    address: '0x154f97554eaa9ecca7b75fc3daca021613f9ac95',
+    name: 'TransparentUpgradeableProxy',
+    protocol: 'Infrastructure',
+    category: 'infrastructure',
+    type: 'controller',
+  },
+  // REVIEW: proxy — 0.01% gas
+  '0x663dc15d3c1ac63ff12e45ab68fea3f0a883c251': {
+    address: '0x663dc15d3c1ac63ff12e45ab68fea3f0a883c251',
+    name: 'TransparentUpgradeableProxy',
+    protocol: 'Infrastructure',
+    category: 'infrastructure',
+    type: 'controller',
+  },
+  // REVIEW: proxy — 0.01% gas
+  '0xeffb809d99142ce3b51c1796c096f5b01b4aaec4': {
+    address: '0xeffb809d99142ce3b51c1796c096f5b01b4aaec4',
+    name: 'UUPSProxy',
+    protocol: 'Infrastructure',
+    category: 'infrastructure',
+    type: 'controller',
+  },
+  // REVIEW: proxy — 0.01% gas
+  '0x829a0c4654cdbf899e35762e1fe9ab5aa80c5999': {
+    address: '0x829a0c4654cdbf899e35762e1fe9ab5aa80c5999',
+    name: 'ERC1967Proxy',
+    protocol: 'Infrastructure',
+    category: 'infrastructure',
+    type: 'controller',
+  },
+
+  // ============ AUTO-CLASSIFIED — LOW CONFIDENCE (Round 7) ============
+  // Verified contracts with unknown protocol. Uncomment after manual review.
+  // Search on https://routescan.io/address/{addr} for details.
+  //
+  // '0x105fecae0c48d683da63620de1f2d1582de9e98a': { address: '0x105fecae0c48d683da63620de1f2d1582de9e98a', name: 'Main', protocol: '???', category: 'other', type: 'other' },                                                 // 0.07% — generic name, unidentified
+  // '0xfe6bdb87e59484db1494a467cdba7c051fb2a604': { address: '0xfe6bdb87e59484db1494a467cdba7c051fb2a604', name: 'ConfigSyncer', protocol: '???', category: 'infrastructure', type: 'other' },                                   // 0.05% — config syncer, likely CCIP/oracle infra
+  // '0x03f1a18519abedbef210fa44e13b71fec01b8dfa': { address: '0x03f1a18519abedbef210fa44e13b71fec01b8dfa', name: 'AvaxHelper', protocol: '???', category: 'infrastructure', type: 'other' },                                     // 0.04% — AVAX helper utility
+  // '0x6228947dab1ec28a3106600abaa223cfd01a6f9c': { address: '0x6228947dab1ec28a3106600abaa223cfd01a6f9c', name: 'DexFiKeeper', protocol: '???', category: 'dex', type: 'other' },                                               // 0.04% — DeFi keeper/automation bot
+  // '0x05c4d94aee184498b24335e9913b9d01d08df89a': { address: '0x05c4d94aee184498b24335e9913b9d01d08df89a', name: 'MindFlow', protocol: '???', category: 'other', type: 'other' },                                                // 0.04% — unknown dApp
+  // '0x7eb212519818c7deb8c8da4423bcec3370b7e83d': { address: '0x7eb212519818c7deb8c8da4423bcec3370b7e83d', name: 'WalletLockAction', protocol: '???', category: 'infrastructure', type: 'other' },                               // 0.03% — wallet security module
+  // '0xaa4d2931a9fe14c3dec8ac3f12923cbb535c0e5f': { address: '0xaa4d2931a9fe14c3dec8ac3f12923cbb535c0e5f', name: 'Dice', protocol: '???', category: 'gaming', type: 'other' },                                                   // 0.02% — gambling/gaming
+  // '0xae68b7117be0026cbd4366303f74eecbb19e4042': { address: '0xae68b7117be0026cbd4366303f74eecbb19e4042', name: 'Solver', protocol: '???', category: 'dex', type: 'other' },                                                    // 0.02% — intent-based DEX solver
+  // '0x8719309bdb1df086948a5ca52982fbcb4184056e': { address: '0x8719309bdb1df086948a5ca52982fbcb4184056e', name: 'GoldenHatchery', protocol: '???', category: 'gaming', type: 'other' },                                         // 0.02% — NFT/gaming hatchery
+  // '0x12d0d71342071effb0e77a408f23ed985026ad94': { address: '0x12d0d71342071effb0e77a408f23ed985026ad94', name: 'ArenaMultiSend', protocol: '???', category: 'other', type: 'other' },                                          // 0.02% — batch send utility
+  // '0xa75d3edbc3ac10ebc6ad965e6e8a42a118f100d7': { address: '0xa75d3edbc3ac10ebc6ad965e6e8a42a118f100d7', name: 'Incubator', protocol: '???', category: 'other', type: 'other' },                                               // 0.02% — project incubator/launchpad
+  // '0x6c14c1898c843ff66ca51e87244690bbc28df215': { address: '0x6c14c1898c843ff66ca51e87244690bbc28df215', name: 'Orange', protocol: '???', category: 'other', type: 'other' },                                                  // 0.02% — unknown dApp
+  // '0x233c5370ccfb3cd7409d9a3fb98ab94de94cb4cd': { address: '0x233c5370ccfb3cd7409d9a3fb98ab94de94cb4cd', name: 'MetaWallet', protocol: '???', category: 'infrastructure', type: 'other' },                                     // 0.02% — smart wallet
+  // '0xc03094c4690f3844ea17ef5272bf6376e0cf2ac6': { address: '0xc03094c4690f3844ea17ef5272bf6376e0cf2ac6', name: 'SpokeCommon', protocol: '???', category: 'bridge', type: 'other' },                                            // 0.01% — likely Across Protocol spoke
+  // '0x665be7a6a226c6bb35e3ce243d2d1b3593d08abd': { address: '0x665be7a6a226c6bb35e3ce243d2d1b3593d08abd', name: 'BarebonesManagerWithMerkleVerification', protocol: '???', category: 'yield', type: 'vault' },                  // 0.01% — vault/manager
+  // '0xac4c6e212a361c968f1725b4d055b47e63f80b75': { address: '0xac4c6e212a361c968f1725b4d055b47e63f80b75', name: 'RedSnwapper', protocol: '???', category: 'dex', type: 'other' },                                              // 0.01% — swap helper
 };
 
 // Protocol slug mapping for linking to dApp pages (canonical slug per protocol)
@@ -1993,6 +2819,9 @@ export const PROTOCOL_SLUGS: Record<string, string> = {
   'CoW Protocol': 'cow-protocol',
   'Pyth': 'pyth',
   'Mayan Finance': 'mayan-finance',
+  // Round 7
+  'Silo Finance': 'silo-finance',
+  'Rango': 'rango',
 };
 
 // Map alternative DefiLlama slugs to canonical protocol names
@@ -2172,6 +3001,12 @@ export const SLUG_ALIASES: Record<string, string> = {
   'pyth-network': 'Pyth',
   'mayan-finance': 'Mayan Finance',
   'mayan': 'Mayan Finance',
+  // Round 7
+  'silo-finance': 'Silo Finance',
+  'silo': 'Silo Finance',
+  'silo-v2': 'Silo Finance',
+  'rango': 'Rango',
+  'rango-exchange': 'Rango',
 };
 
 // Get contract info by address
