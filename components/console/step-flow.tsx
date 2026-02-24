@@ -83,6 +83,15 @@ type StepFlowProps = {
    * Custom actions for the completion modal footer
    */
   completionActions?: FlowCompletionAction[];
+  /**
+   * When provided, navigate via callback instead of URL <Link>.
+   * Enables in-memory step navigation for inline chat rendering.
+   */
+  onNavigate?: (stepKey: string) => void;
+  /**
+   * Compact mode — tighter spacing for embedding in chat messages.
+   */
+  compact?: boolean;
 };
 
 export default function StepFlow({
@@ -96,6 +105,8 @@ export default function StepFlow({
   transactionHash,
   explorerUrl,
   completionActions,
+  onNavigate,
+  compact,
 }: StepFlowProps) {
   const router = useRouter();
   const [isCompletionModalOpen, setIsCompletionModalOpen] = useState(false);
@@ -111,13 +122,15 @@ export default function StepFlow({
     if (onFinish) {
       onFinish();
     }
+    // When onNavigate is provided (inline chat mode), skip URL navigation
+    if (onNavigate) return;
     if (showCompletionModal && flowMetadata) {
       setIsCompletionModalOpen(true);
     } else {
       // Fallback: navigate to console home if no modal configured
       router.push("/console");
     }
-  }, [onFinish, showCompletionModal, flowMetadata, router]);
+  }, [onFinish, onNavigate, showCompletionModal, flowMetadata, router]);
 
   // Find which step we're on - could be a single step or a branch option
   const { currentIndex, currentStep, selectedBranchOption } = useMemo(() => {
@@ -190,6 +203,23 @@ export default function StepFlow({
     }
   }, [atLast, currentIndex, steps, basePath]);
 
+  // Helper: renders Link or button depending on onNavigate mode
+  const NavEl = useMemo(() => {
+    if (onNavigate) {
+      return ({ stepKey, className: cls, children }: { stepKey: string; className?: string; children: React.ReactNode }) => (
+        <button type="button" onClick={() => onNavigate(stepKey)} className={cls}>{children}</button>
+      );
+    }
+    return ({ stepKey, className: cls, children }: { stepKey: string; className?: string; children: React.ReactNode }) => (
+      <Link href={`${basePath}/${stepKey}`} className={cls}>{children}</Link>
+    );
+  }, [onNavigate, basePath]);
+
+  // Extract step key for navigation (handles branch steps)
+  const getStepNavKey = (step: StepDefinition): string => {
+    return step.type === "single" ? step.key : step.options[0].key;
+  };
+
   return (
     <motion.div
       className={className}
@@ -197,7 +227,7 @@ export default function StepFlow({
       initial="hidden"
       animate="visible"
     >
-      <motion.nav className="mb-6" variants={flowItemVariants}>
+      <motion.nav className={compact ? "mb-3" : "mb-6"} variants={flowItemVariants}>
         <ol className="flex flex-wrap items-center justify-center gap-3 text-sm">
           {steps.map((s, stepIdx) => {
             const isDoneStep = stepIdx < currentIndex;
@@ -206,8 +236,8 @@ export default function StepFlow({
             if (s.type === "single") {
               return (
                 <li key={s.key} className="flex items-center gap-3">
-                  <Link
-                    href={`${basePath}/${s.key}`}
+                  <NavEl
+                    stepKey={s.key}
                     className={cn(
                       "inline-flex items-center gap-2 rounded-lg px-3 py-1.5 border transition-colors",
                       isActiveStep
@@ -231,7 +261,7 @@ export default function StepFlow({
                       {isDoneStep ? <Check className="h-3.5 w-3.5" /> : stepIdx + 1}
                     </span>
                     <span>{s.title}</span>
-                  </Link>
+                  </NavEl>
                   {stepIdx < steps.length - 1 && (
                     <span className="text-muted-foreground/50 ml-3">→</span>
                   )}
@@ -246,8 +276,8 @@ export default function StepFlow({
                       const isOptionActive = isActiveStep && selectedBranchOption?.key === opt.key;
                       return (
                         <React.Fragment key={opt.key}>
-                          <Link
-                            href={`${basePath}/${opt.key}`}
+                          <NavEl
+                            stepKey={opt.key}
                             className={cn(
                               "inline-flex items-center gap-2 rounded-lg px-3 py-1.5 border transition-colors",
                               isOptionActive
@@ -273,7 +303,7 @@ export default function StepFlow({
                               {isDoneStep ? <Check className="h-3.5 w-3.5" /> : stepIdx + 1}
                             </span>
                             <span>{opt.label}</span>
-                          </Link>
+                          </NavEl>
                           {optIdx < s.options.length - 1 && (
                             <span className="text-xs uppercase tracking-wide text-muted-foreground">
                               or
@@ -293,19 +323,32 @@ export default function StepFlow({
         </ol>
       </motion.nav>
 
-      <motion.div className="border-t border-border py-8" variants={flowItemVariants}>
-        <div className="min-h-[200px]">
+      <motion.div className={cn("border-t border-border", compact ? "py-4" : "py-8")} variants={flowItemVariants}>
+        <div className={compact ? "min-h-[150px]" : "min-h-[200px]"}>
           <CurrentComponent />
         </div>
 
         <div className="mt-6 flex items-center justify-between">
           {prevLink ? (
-            <Link
-              href={prevLink}
-              className="rounded-lg border border-border px-4 py-2 text-sm font-medium transition-colors"
-            >
-              Back
-            </Link>
+            onNavigate ? (
+              <button
+                type="button"
+                onClick={() => {
+                  const prevStep = steps[currentIndex - 1];
+                  onNavigate(getStepNavKey(prevStep));
+                }}
+                className="rounded-lg border border-border px-4 py-2 text-sm font-medium transition-colors"
+              >
+                Back
+              </button>
+            ) : (
+              <Link
+                href={prevLink}
+                className="rounded-lg border border-border px-4 py-2 text-sm font-medium transition-colors"
+              >
+                Back
+              </Link>
+            )
           ) : (
             <button
               type="button"
@@ -318,12 +361,25 @@ export default function StepFlow({
 
           <div className="flex items-center gap-2">
             {"optional" in currentStep && currentStep.optional && nextLink && (
-              <Link
-                href={nextLink}
-                className="rounded-lg border border-border px-4 py-2 text-sm font-medium transition-colors"
-              >
-                Skip
-              </Link>
+              onNavigate ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const nextStep = steps[currentIndex + 1];
+                    onNavigate(getStepNavKey(nextStep));
+                  }}
+                  className="rounded-lg border border-border px-4 py-2 text-sm font-medium transition-colors"
+                >
+                  Skip
+                </button>
+              ) : (
+                <Link
+                  href={nextLink}
+                  className="rounded-lg border border-border px-4 py-2 text-sm font-medium transition-colors"
+                >
+                  Skip
+                </Link>
+              )
             )}
             {atLast ? (
               <button
@@ -335,12 +391,25 @@ export default function StepFlow({
               </button>
             ) : (
               nextLink && (
-                <Link
-                  href={nextLink}
-                  className="rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 text-sm font-medium transition-colors"
-                >
-                  Next
-                </Link>
+                onNavigate ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const nextStep = steps[currentIndex + 1];
+                      onNavigate(getStepNavKey(nextStep));
+                    }}
+                    className="rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 text-sm font-medium transition-colors"
+                  >
+                    Next
+                  </button>
+                ) : (
+                  <Link
+                    href={nextLink}
+                    className="rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 text-sm font-medium transition-colors"
+                  >
+                    Next
+                  </Link>
+                )
               )
             )}
           </div>

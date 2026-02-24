@@ -11,6 +11,8 @@ export interface ConsoleTool {
   category: string;
   description: string;
   keywords: string[];
+  /** If set, the AI should call render_component(componentName) instead of linking */
+  componentName?: string;
 }
 
 // Flattened list of all console tools with metadata for searching
@@ -43,6 +45,7 @@ export const consoleTools: ConsoleTool[] = [
     category: 'Primary Network',
     description: 'Get free testnet AVAX tokens for development and testing',
     keywords: ['faucet', 'testnet', 'fuji', 'test', 'tokens', 'free', 'avax', 'drip'],
+    componentName: 'Faucet',
   },
   {
     title: 'C/P-Chain Bridge',
@@ -50,6 +53,7 @@ export const consoleTools: ConsoleTool[] = [
     category: 'Primary Network',
     description: 'Transfer AVAX between C-Chain and P-Chain',
     keywords: ['bridge', 'transfer', 'c-chain', 'p-chain', 'cross-chain', 'move', 'avax'],
+    componentName: 'CPBridge',
   },
   {
     title: 'AVAX Unit Converter',
@@ -57,6 +61,7 @@ export const consoleTools: ConsoleTool[] = [
     category: 'Primary Network',
     description: 'Convert between AVAX denominations (nAVAX, AVAX, gwei)',
     keywords: ['convert', 'unit', 'navax', 'gwei', 'wei', 'denomination', 'calculator'],
+    componentName: 'UnitConverter',
   },
 
   // Layer 1
@@ -66,6 +71,7 @@ export const consoleTools: ConsoleTool[] = [
     category: 'Layer 1',
     description: 'Launch a new custom L1 blockchain on Avalanche',
     keywords: ['create', 'l1', 'layer1', 'blockchain', 'subnet', 'launch', 'new', 'deploy', 'chain'],
+    componentName: 'CreateL1Flow',
   },
   {
     title: 'L1 Node Setup',
@@ -119,6 +125,7 @@ export const consoleTools: ConsoleTool[] = [
     category: 'L1 Tokenomics',
     description: 'Configure gas fees and fee parameters for your L1',
     keywords: ['fee', 'gas', 'transaction', 'parameters', 'configure', 'tokenomics', 'cost'],
+    componentName: 'FeeManager',
   },
   {
     title: 'Fee Distributions',
@@ -126,6 +133,7 @@ export const consoleTools: ConsoleTool[] = [
     category: 'L1 Tokenomics',
     description: 'Configure how transaction fees are distributed on your L1',
     keywords: ['fee', 'distribution', 'reward', 'burn', 'tokenomics', 'revenue'],
+    componentName: 'RewardManager',
   },
   {
     title: 'Mint Native Coins',
@@ -133,6 +141,7 @@ export const consoleTools: ConsoleTool[] = [
     category: 'L1 Tokenomics',
     description: 'Mint native tokens on your L1 blockchain',
     keywords: ['mint', 'native', 'token', 'coin', 'create', 'supply', 'tokenomics'],
+    componentName: 'NativeMinter',
   },
 
   // Permissioned L1s
@@ -142,6 +151,7 @@ export const consoleTools: ConsoleTool[] = [
     category: 'Permissioned L1s',
     description: 'Deploy the validator manager contract for your permissioned L1',
     keywords: ['validator', 'manager', 'setup', 'deploy', 'contract', 'permissioned', 'poa'],
+    componentName: 'ValidatorManagerSetup',
   },
   {
     title: 'Multisig Setup',
@@ -149,6 +159,7 @@ export const consoleTools: ConsoleTool[] = [
     category: 'Permissioned L1s',
     description: 'Configure multisig for validator management',
     keywords: ['multisig', 'multi-sig', 'setup', 'governance', 'safe', 'gnosis'],
+    componentName: 'MultisigSetup',
   },
   {
     title: 'Query Validator Set',
@@ -193,6 +204,7 @@ export const consoleTools: ConsoleTool[] = [
     category: 'L1 Access Restrictions',
     description: 'Control who can deploy smart contracts on your L1',
     keywords: ['deployer', 'allowlist', 'whitelist', 'contract', 'deploy', 'permission', 'restrict'],
+    componentName: 'DeployerAllowList',
   },
   {
     title: 'Transactor Allowlist',
@@ -200,6 +212,7 @@ export const consoleTools: ConsoleTool[] = [
     category: 'L1 Access Restrictions',
     description: 'Control who can send transactions on your L1',
     keywords: ['transactor', 'allowlist', 'whitelist', 'transaction', 'permission', 'restrict', 'access'],
+    componentName: 'TransactorAllowList',
   },
 
   // Permissionless L1s
@@ -209,6 +222,7 @@ export const consoleTools: ConsoleTool[] = [
     category: 'Permissionless L1s',
     description: 'Set up staking for permissionless L1 validators',
     keywords: ['staking', 'manager', 'permissionless', 'pos', 'proof-of-stake', 'validator'],
+    componentName: 'StakingManagerSetup',
   },
 
   // Interchain Messaging
@@ -218,6 +232,7 @@ export const consoleTools: ConsoleTool[] = [
     category: 'Interchain Messaging',
     description: 'Configure Interchain Messaging (Teleporter) for cross-chain communication',
     keywords: ['icm', 'teleporter', 'cross-chain', 'messaging', 'setup', 'configure', 'interchain'],
+    componentName: 'ICMSetup',
   },
   {
     title: 'Test ICM Connection',
@@ -225,6 +240,7 @@ export const consoleTools: ConsoleTool[] = [
     category: 'Interchain Messaging',
     description: 'Test cross-chain messaging between your L1 and other chains',
     keywords: ['test', 'icm', 'connection', 'messaging', 'cross-chain', 'verify', 'teleporter'],
+    componentName: 'ICMTestConnection',
   },
 
   // Interchain Token Transfer
@@ -234,6 +250,7 @@ export const consoleTools: ConsoleTool[] = [
     category: 'Interchain Token Transfer',
     description: 'Set up token bridges using Interchain Token Transfer',
     keywords: ['ictt', 'bridge', 'token', 'transfer', 'setup', 'cross-chain', 'erc20'],
+    componentName: 'ICTTSetup',
   },
   {
     title: 'Token Transfer',
@@ -241,6 +258,7 @@ export const consoleTools: ConsoleTool[] = [
     category: 'Interchain Token Transfer',
     description: 'Transfer tokens between chains using ICTT',
     keywords: ['token', 'transfer', 'bridge', 'ictt', 'cross-chain', 'send', 'move'],
+    componentName: 'ICTTTokenTransfer',
   },
 
   // Utilities
@@ -345,14 +363,19 @@ export function getToolsContextForPrompt(): string {
 }
 
 /**
- * Format search results for AI context
+ * Format search results for AI context.
+ * Tools with componentName instruct the AI to use render_component;
+ * tools without one fall back to a link.
  */
 export function formatToolsForContext(tools: ConsoleTool[]): string {
   if (tools.length === 0) {
     return '';
   }
 
-  return tools.map(tool =>
-    `- [${tool.title}](https://build.avax.network${tool.url}) (${tool.category}): ${tool.description}`
-  ).join('\n');
+  return tools.map(tool => {
+    if (tool.componentName) {
+      return `- **${tool.title}** → RENDER INLINE with render_component("${tool.componentName}"). ${tool.description}. Fallback URL: https://build.avax.network${tool.url}`;
+    }
+    return `- [${tool.title}](https://build.avax.network${tool.url}) (${tool.category}): ${tool.description}`;
+  }).join('\n');
 }
