@@ -136,6 +136,13 @@ export const mediaComponents = {
     }),
     description: "Embed a YouTube video inline. Use when recommending Avalanche tutorial or explainer videos.",
   },
+  DocImage: {
+    props: z.object({
+      src: z.string().describe("Image path from docs (e.g. '/images/avalanche-consensus1.png' or full https URL)"),
+      alt: z.string().optional().describe("Image description / caption"),
+    }),
+    description: "Show a diagram or screenshot from the documentation inline. Use when the doc context contains images (![alt](/images/...)) that help illustrate the answer — architecture diagrams, flow charts, UI screenshots.",
+  },
 } as const;
 
 // ─── Full Catalog ───────────────────────────────────────────────────────────

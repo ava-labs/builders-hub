@@ -219,6 +219,24 @@ function Pre(props: ComponentProps<'pre'>) {
   return <DynamicCodeBlock lang={lang} code={(codeProps.children ?? '') as string} />;
 }
 
+// Chat image — renders doc/blog images inline with nice styling
+function ChatImage(props: ComponentProps<'img'>) {
+  const { src, alt, ...rest } = props;
+  if (!src) return null;
+  return (
+    <span className="block my-4">
+      <img
+        src={src}
+        alt={alt || ''}
+        loading="lazy"
+        className="rounded-lg border border-zinc-200 dark:border-zinc-700 max-w-full h-auto shadow-sm"
+        {...rest}
+      />
+      {alt && <span className="block text-xs text-muted-foreground mt-1.5">{alt}</span>}
+    </span>
+  );
+}
+
 function Markdown({ text }: { text: string }) {
   const [rendered, setRendered] = useState<ReactNode>(null);
   useEffect(() => {
@@ -228,7 +246,7 @@ function Markdown({ text }: { text: string }) {
       if (!result && text) {
         processor ??= createProcessor();
         result = await processor
-          .process(text, { ...defaultMdxComponents, pre: Pre, a: Link, img: undefined })
+          .process(text, { ...defaultMdxComponents, pre: Pre, a: Link, img: ChatImage })
           .catch(() => text);
         markdownCache.set(text, result);
       }

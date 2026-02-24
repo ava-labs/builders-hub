@@ -79,4 +79,5 @@ export const componentRegistry: Record<ComponentName, React.LazyExoticComponent<
 
   // Media
   YouTubeEmbed: lazyTool(() => import("@/components/chat/youtube-embed")),
+  DocImage: lazyTool(() => import("@/components/chat/doc-image")),
 };

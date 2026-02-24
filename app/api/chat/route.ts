@@ -382,7 +382,8 @@ export async function POST(req: Request) {
         relevantContext += 'Here are the most relevant pages from the Avalanche documentation:\n\n';
         relevantContext += contents.join('\n\n---\n\n');
         relevantContext += '\n\n=== END DOCUMENTATION ===\n';
-        console.log(`Using MCP search results: ${contents.length} pages`);
+        const imgCount = (relevantContext.match(/!\[/g) || []).length;
+        console.log(`Using MCP search results: ${contents.length} pages, ${imgCount} images found`);
       }
     }
 
@@ -420,6 +421,17 @@ export async function POST(req: Request) {
   // Add valid URLs list
   const validUrlsList = validUrls.length > 0 
     ? `\n\n=== VALID DOCUMENTATION URLS ===\nThese are ALL the valid URLs on the site. ONLY use URLs from this list:\n${validUrls.map(url => `https://build.avax.network${url}`).join('\n')}\n=== END VALID URLS ===\n`
+    : '';
+
+  // Extract images from documentation context so the AI can embed them
+  const imageMatches = relevantContext.match(/!\[[^\]]*\]\([^)]+\)/g) || [];
+  // Format extracted images as render_component hints
+  const uniqueImages = [...new Set(imageMatches)].slice(0, 6);
+  const imagesContext = uniqueImages.length > 0
+    ? `\n\n=== EMBEDDABLE IMAGES ===\nThese images are from the docs above. Show them with render_component("DocImage", { src, alt }):\n${uniqueImages.map(img => {
+        const match = img.match(/!\[([^\]]*)\]\(([^)]+)\)/);
+        return match ? `- render_component("DocImage", { src: "${match[2]}", alt: "${match[1]}" })` : '';
+      }).filter(Boolean).join('\n')}\n=== END IMAGES ===\n`
     : '';
 
   // Build the full input for analytics
@@ -601,6 +613,7 @@ export async function POST(req: Request) {
 - **blockchain_lookup_***: For tx hashes, addresses, validators, subnets, chains. Follow up on \`_lookupHints\` in results.
 - **github_search_code / github_get_file**: Search avalanchego, icm-services, builders-hub. Check pre-indexed code context below first.
 - **suggest_followups**: ALWAYS call this after answering. Suggest 2-3 relevant follow-up questions specific to the conversation.
+- **DocImage**: When documentation context contains images like \`![alt](/images/...)\`, call \`render_component("DocImage", { src: "/images/...", alt: "..." })\` to show them inline. Diagrams and screenshots help developers understand faster.
 
 ## URL Rules
 - Documentation: \`/docs/...\` | Academy: \`/academy/...\` (NEVER \`/docs/academy/\`) | Console: \`/console/...\`
@@ -615,6 +628,8 @@ ${toolsContext}
 ${youtubeContext}
 
 ${relevantContext}
+
+${imagesContext}
 
 ${codeContext}
 
