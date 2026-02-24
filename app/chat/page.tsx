@@ -62,7 +62,6 @@ import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import dynamic from 'next/dynamic';
 import React, { useMemo } from 'react';
 import 'katex/dist/katex.min.css';
-import { marked } from 'marked';
 import posthog from 'posthog-js';
 import { useTheme } from 'next-themes';
 import { useSession } from 'next-auth/react';
@@ -258,29 +257,15 @@ function Markdown({ text }: { text: string }) {
   return <>{rendered || text}</>;
 }
 
-// Configure marked for streaming - synchronous and fast
-marked.setOptions({
-  gfm: true,
-  breaks: true,
-});
-
-// Fast streaming markdown using marked (synchronous)
-function StreamingMarkdown({ text }: { text: string }) {
-  // Simple direct parsing - no deferred values or throttling
-  const html = useMemo(() => {
-    if (!text) return '';
-    try {
-      return marked.parse(text, { async: false }) as string;
-    } catch {
-      return text;
-    }
-  }, [text]);
-
+// Streaming text — renders raw text during streaming, fades in smoothly.
+// No markdown parsing (marked chokes on incomplete syntax causing visual breaks).
+// Full markdown rendering happens via <Markdown> after streaming completes.
+function StreamingText({ text }: { text: string }) {
   return (
-    <div
-      className="streaming-markdown"
-      dangerouslySetInnerHTML={{ __html: html }}
-    />
+    <div className="streaming-text whitespace-pre-wrap break-words leading-relaxed">
+      {text}
+      <span className="inline-block w-1.5 h-4 ml-0.5 align-middle bg-zinc-400 dark:bg-zinc-500 rounded-sm animate-pulse" />
+    </div>
   );
 }
 
@@ -375,13 +360,16 @@ function ChatMessage({ message, isLast, isStreaming }: {
             // Text part
             if (part.type === 'text' && typeof part.text === 'string' && part.text.trim()) {
               const text = isStreaming ? part.text : removeThinkingPatterns(part.text);
+              if (isStreaming) {
+                return (
+                  <div key={idx} className="text-sm text-foreground">
+                    <StreamingText text={text} />
+                  </div>
+                );
+              }
               return (
-                <div key={idx} className="prose prose-sm prose-zinc dark:prose-invert max-w-none prose-p:leading-relaxed prose-pre:bg-zinc-900 prose-pre:border prose-pre:border-zinc-800 [&_.katex-display]:overflow-x-auto [&_.katex]:text-sm">
-                  {isStreaming ? (
-                    <StreamingMarkdown text={text} />
-                  ) : (
-                    <Markdown text={text} />
-                  )}
+                <div key={idx} className="prose prose-sm prose-zinc dark:prose-invert max-w-none prose-p:leading-relaxed prose-pre:bg-zinc-900 prose-pre:border prose-pre:border-zinc-800 [&_.katex-display]:overflow-x-auto [&_.katex]:text-sm animate-in fade-in duration-300">
+                  <Markdown text={text} />
                 </div>
               );
             }
@@ -414,13 +402,15 @@ function ChatMessage({ message, isLast, isStreaming }: {
 
           {/* Fallback: if no parts rendered text, show cleanContent */}
           {parts.length === 0 && cleanContent && (
-            <div className="prose prose-sm prose-zinc dark:prose-invert max-w-none prose-p:leading-relaxed prose-pre:bg-zinc-900 prose-pre:border prose-pre:border-zinc-800 [&_.katex-display]:overflow-x-auto [&_.katex]:text-sm">
-              {isStreaming ? (
-                <StreamingMarkdown text={cleanContent} />
-              ) : (
+            isStreaming ? (
+              <div className="text-sm text-foreground">
+                <StreamingText text={cleanContent} />
+              </div>
+            ) : (
+              <div className="prose prose-sm prose-zinc dark:prose-invert max-w-none prose-p:leading-relaxed prose-pre:bg-zinc-900 prose-pre:border prose-pre:border-zinc-800 [&_.katex-display]:overflow-x-auto [&_.katex]:text-sm animate-in fade-in duration-300">
                 <Markdown text={cleanContent} />
-              )}
-            </div>
+              </div>
+            )
           )}
 
           {/* Action buttons - show after streaming completes */}

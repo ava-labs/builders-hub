@@ -272,68 +272,20 @@ svg.lucide.lucide-folder-open {
 }
 
 /* Smooth streaming text rendering */
-.streaming-markdown {
-  /* Smooth font rendering */
+/* Streaming text — plain text with smooth fade-in */
+.streaming-text {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  animation: streamFadeIn 0.3s ease-out;
 }
 
-/* Images during streaming */
-.streaming-markdown img {
-  max-width: 100%;
-  height: auto;
-  border-radius: 0.5rem;
-  border: 1px solid #e4e4e7;
-  margin: 1rem 0;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-}
-
-.dark .streaming-markdown img {
-  border-color: #3f3f46;
-}
-
-/* Code block styling during streaming (before syntax highlighting kicks in) */
-.streaming-markdown pre {
-  background-color: #18181b;
-  border: 1px solid #27272a;
-  border-radius: 0.5rem;
-  padding: 1rem;
-  overflow-x: auto;
-  margin: 1rem 0;
-}
-
-.streaming-markdown pre code {
-  background: transparent;
-  padding: 0;
-  font-size: 0.875rem;
-  line-height: 1.7;
-  color: #e4e4e7;
-  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
-}
-
-/* Inline code during streaming */
-.streaming-markdown code:not(pre code) {
-  background-color: #27272a;
-  padding: 0.2em 0.4em;
-  border-radius: 0.25rem;
-  font-size: 0.875em;
-  color: #e4e4e7;
-  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
-}
-
-/* Light mode streaming code blocks */
-:root:not(.dark) .streaming-markdown pre {
-  background-color: #fafafa;
-  border-color: #e4e4e7;
-}
-
-:root:not(.dark) .streaming-markdown pre code {
-  color: #18181b;
-}
-
-:root:not(.dark) .streaming-markdown code:not(pre code) {
-  background-color: #f4f4f5;
-  color: #18181b;
+@keyframes streamFadeIn {
+  from {
+    opacity: 0.4;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .bg-fd-foreground\/25 {
