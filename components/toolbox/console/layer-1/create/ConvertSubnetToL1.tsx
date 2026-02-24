@@ -14,7 +14,7 @@ import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 import { Step, Steps } from 'fumadocs-ui/components/steps';
 import Link from "next/link";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, ChevronRight } from "lucide-react";
 import { CoreWalletTransactionButton } from "@/components/toolbox/components/CoreWalletTransactionButton";
 import { ensureCoreNetworkMode, restoreCoreChain } from "@/components/toolbox/coreViem";
 
@@ -63,14 +63,12 @@ function ConvertToL1({ onSuccess }: BaseConsoleToolProps) {
             const nodeIds = validators.map(v => v.nodeID || "<node-id>").join(",");
             const blsKeys = validators.map(v => v.nodePOP.publicKey || "<bls-key>").join(",");
             const blsPops = validators.map(v => v.nodePOP.proofOfPossession || "<bls-pop>").join(",");
-            const weights = validators.map(v => v.validatorWeight.toString()).join(",");
             const balanceAvax = validators[0]?.validatorBalance
                 ? (Number(validators[0].validatorBalance) / 1e9).toString()
                 : "1.0";
             parts.push(`--validator-node-ids ${nodeIds}`);
             parts.push(`--validator-bls-public-keys ${blsKeys}`);
             parts.push(`--validator-bls-pops ${blsPops}`);
-            parts.push(`--validator-weights ${weights}`);
             parts.push(`--validator-balance ${balanceAvax}`);
         } else {
             parts.push(`--mock-validator`);
@@ -170,6 +168,31 @@ function ConvertToL1({ onSuccess }: BaseConsoleToolProps) {
                         selectedSubnetId={selection.subnetId}
                         isTestnet={isTestnet}
                     />
+                </Step>
+
+                <Step>
+                    <h3 className="text-sm font-semibold mb-3">Claim Test Tokens</h3>
+                    <p className="text-sm text-muted-foreground mb-3">
+                        Ensure you have enough P-Chain AVAX for the conversion. Check your balance with:
+                    </p>
+                    <div className="rounded-lg bg-muted/50 border border-border px-4 py-3 mb-3">
+                        <pre className="text-xs font-mono leading-relaxed whitespace-pre-wrap break-all">
+                            <span className="text-muted-foreground/50 select-none">$ </span>
+                            <span className="text-foreground">
+                                {`platform wallet balance --key-name mykey --network ${isTestnet ? "fuji" : "mainnet"}`}
+                            </span>
+                        </pre>
+                    </div>
+                    <p className="text-xs text-muted-foreground mb-3">
+                        You need approximately <strong>{(validators.length * 0.1 + 0.05).toFixed(2)} AVAX</strong> on P-Chain ({validators.length} validator{validators.length !== 1 ? "s" : ""} &times; 0.1 AVAX + 0.05 gas).
+                    </p>
+                    <Link
+                        href="/console/primary-network/faucet"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-primary border border-primary/30 rounded-lg hover:bg-primary/10 transition-colors"
+                    >
+                        Open Faucet
+                        <ChevronRight className="w-3 h-3" />
+                    </Link>
                 </Step>
 
                 <Step>
