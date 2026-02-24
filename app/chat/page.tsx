@@ -318,7 +318,7 @@ function AIAvatar({ size = 'md' }: { size?: 'sm' | 'md' }) {
   const imgClasses = size === 'sm' ? 'h-4' : 'h-5';
 
   return (
-    <div className={cn(sizeClasses, "rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center")}>
+    <div className={cn(sizeClasses, "flex items-center justify-center")}>
       <img
         src="/small-logo.png"
         alt="AI"
