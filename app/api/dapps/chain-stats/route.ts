@@ -23,7 +23,7 @@ export interface ChainStatsResponse {
   latestBlock: number;
   latestBlockTime: string;
 
-  // Protocol breakdown (top 30)
+  // Protocol breakdown
   protocolBreakdown: {
     protocol: string;
     slug: string | null;
@@ -32,6 +32,7 @@ export interface ChainStatsResponse {
     gasUsed: number;
     avaxBurned: number;
     gasShare: number;
+    delta: number;
   }[];
 
   // Category breakdown with deltas (for treemap)
@@ -317,20 +318,27 @@ export async function GET(request: Request) {
 
     const totalChainGas = totalChainStats.totalGas;
 
-    // Create sorted protocol breakdown
+    // Create sorted protocol breakdown (with deltas for treemap nesting)
     const protocolBreakdown = Array.from(currentProtocolStats.entries())
-      .map(([protocol, stats]) => ({
-        protocol,
-        slug: PROTOCOL_SLUGS[protocol] || null,
-        category: protocolCategory.get(protocol) || 'other',
-        txCount: stats.txCount,
-        gasUsed: stats.gasUsed,
-        avaxBurned: stats.avaxBurned,
-        gasShare: totalChainGas > 0 ? (stats.gasUsed / totalChainGas) * 100 : 0,
-      }))
+      .map(([protocol, stats]) => {
+        const prevStats = prevProtocolStats.get(protocol);
+        const prevGas = prevStats?.gasUsed || 0;
+        const currGas = stats.gasUsed;
+        const delta = prevGas > 0 ? ((currGas - prevGas) / prevGas) * 100 : (currGas > 0 ? 100 : 0);
+
+        return {
+          protocol,
+          slug: PROTOCOL_SLUGS[protocol] || null,
+          category: protocolCategory.get(protocol) || 'other',
+          txCount: stats.txCount,
+          gasUsed: stats.gasUsed,
+          avaxBurned: stats.avaxBurned,
+          gasShare: totalChainGas > 0 ? (stats.gasUsed / totalChainGas) * 100 : 0,
+          delta,
+        };
+      })
       .filter(p => p.txCount > 0)
-      .sort((a, b) => b.gasUsed - a.gasUsed)
-      .slice(0, 30);
+      .sort((a, b) => b.gasUsed - a.gasUsed);
 
     // Build category breakdown with deltas
     const categoryMap = new Map<string, { current: { txCount: number; gasUsed: number; avaxBurned: number }; prev: { gasUsed: number } }>();

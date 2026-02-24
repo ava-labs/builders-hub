@@ -5,7 +5,7 @@ export interface ContractInfo {
   address: string;
   name: string;
   protocol: string;
-  category: 'dex' | 'lending' | 'derivatives' | 'bridge' | 'nft' | 'yield' | 'gaming' | 'rwa' | 'token' | 'infrastructure' | 'icm' | 'other';
+  category: 'dex' | 'lending' | 'derivatives' | 'bridge' | 'nft' | 'yield' | 'gaming' | 'rwa' | 'token' | 'infrastructure' | 'icm' | 'mev' | 'other';
   type: 'router' | 'factory' | 'pool' | 'vault' | 'token' | 'staking' | 'rewards' | 'orderbook' | 'controller' | 'other';
 }
 
@@ -913,14 +913,14 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     address: '0x0000000071727de22e5e9d8baf0edac6f37da032',
     name: 'EntryPoint v0.7',
     protocol: 'ERC-4337',
-    category: 'other',
+    category: 'infrastructure',
     type: 'router',
   },
   '0x5ff137d4b0fdcd49dca30c7cf57e578a026d2789': {
     address: '0x5ff137d4b0fdcd49dca30c7cf57e578a026d2789',
     name: 'EntryPoint v0.6',
     protocol: 'ERC-4337',
-    category: 'other',
+    category: 'infrastructure',
     type: 'router',
   },
 
@@ -1064,6 +1064,417 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     category: 'rwa',
     type: 'other',
   },
+
+  // ============ XEN CRYPTO ============
+  '0x18ae1a33044b9b4ccc85dc44da8bb03b86f06600': {
+    address: '0x18ae1a33044b9b4ccc85dc44da8bb03b86f06600',
+    name: 'MCT XenProxy',
+    protocol: 'XEN Crypto',
+    category: 'token',
+    type: 'other',
+  },
+  '0x9ec1c3dcf667f2035fb4cd2eb42a1566fd54d2b7': {
+    address: '0x9ec1c3dcf667f2035fb4cd2eb42a1566fd54d2b7',
+    name: 'CoinTool XEN Batch Minter',
+    protocol: 'XEN Crypto',
+    category: 'token',
+    type: 'other',
+  },
+  '0x94d9e02d115646dfc407abde75fa45256d66e043': {
+    address: '0x94d9e02d115646dfc407abde75fa45256d66e043',
+    name: 'XENTorrent (aXENT)',
+    protocol: 'XEN Crypto',
+    category: 'token',
+    type: 'token',
+  },
+  '0x0000000000771a79d0fc7f3b7fe270eb4498f20b': {
+    address: '0x0000000000771a79d0fc7f3b7fe270eb4498f20b',
+    name: 'MCT MctXenft',
+    protocol: 'XEN Crypto',
+    category: 'token',
+    type: 'other',
+  },
+
+  // ============ MOVEQUEST ============
+  '0xd14f01bfa5999e65780167a0ea530ecf3d0aa24d': {
+    address: '0xd14f01bfa5999e65780167a0ea530ecf3d0aa24d',
+    name: 'MINING',
+    protocol: 'MoveQuest',
+    category: 'gaming',
+    type: 'other',
+  },
+  '0x26dd09be22676a6905c27ea8fac7c7eee59c893f': {
+    address: '0x26dd09be22676a6905c27ea8fac7c7eee59c893f',
+    name: 'MINING V2',
+    protocol: 'MoveQuest',
+    category: 'gaming',
+    type: 'other',
+  },
+
+  // ============ PHARAOH EXCHANGE ============
+  '0x3fed017ec0f5517cdf2e8a9a4156c64d74252146': {
+    address: '0x3fed017ec0f5517cdf2e8a9a4156c64d74252146',
+    name: 'NonfungiblePositionManager',
+    protocol: 'Pharaoh',
+    category: 'dex',
+    type: 'router',
+  },
+  '0xa47ad2c95fae476a73b85a355a5855adb4b3a449': {
+    address: '0xa47ad2c95fae476a73b85a355a5855adb4b3a449',
+    name: 'FarmingCenter',
+    protocol: 'Pharaoh',
+    category: 'dex',
+    type: 'staking',
+  },
+
+  // ============ BLACKHOLE DEX ============
+  '0xeac562811cc6abdbb2c9ee88719eca4ee79ad763': {
+    address: '0xeac562811cc6abdbb2c9ee88719eca4ee79ad763',
+    name: 'VotingEscrow',
+    protocol: 'Blackhole DEX',
+    category: 'dex',
+    type: 'staking',
+  },
+  '0xe6e554b14892d5cf91df9ce9cd7fe936d2194441': {
+    address: '0xe6e554b14892d5cf91df9ce9cd7fe936d2194441',
+    name: 'Liquidity Manager Bot',
+    protocol: 'Blackhole DEX',
+    category: 'dex',
+    type: 'other',
+  },
+
+  // ============ ODOS (V3) ============
+  '0x0d05a7d3448512b78fa8a9e46c4872c88c4a0d05': {
+    address: '0x0d05a7d3448512b78fa8a9e46c4872c88c4a0d05',
+    name: 'Odos Router V3',
+    protocol: 'Odos',
+    category: 'dex',
+    type: 'router',
+  },
+
+  // ============ GMX V2 (Additional) ============
+  '0x823b558b4bc0a2c4974a0d8d7885aa1102d15dec': {
+    address: '0x823b558b4bc0a2c4974a0d8d7885aa1102d15dec',
+    name: 'GMX V2 OrderHandler',
+    protocol: 'GMX',
+    category: 'derivatives',
+    type: 'orderbook',
+  },
+
+  // ============ VFAT / SICKLE ============
+  '0x5fe05d2c877670ad1fca8f1f8482fd9ded2c9279': {
+    address: '0x5fe05d2c877670ad1fca8f1f8482fd9ded2c9279',
+    name: 'Sickle Automation',
+    protocol: 'vfat.io',
+    category: 'yield',
+    type: 'other',
+  },
+
+  // ============ MEV / ARBITRAGE BOTS ============
+  // Note: MEV bots are ephemeral and get redeployed frequently.
+  // These are the top gas-consuming bots as of Feb 2026.
+  '0x0b622725625d7b6bf6fe2d66755d75033e26008c': {
+    address: '0x0b622725625d7b6bf6fe2d66755d75033e26008c',
+    name: 'MEV Bot (0x977a deployer)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0x922135e61c07c650dc406dc9d7722f403cf4935b': {
+    address: '0x922135e61c07c650dc406dc9d7722f403cf4935b',
+    name: 'MEV Bot (0x2222 deployer)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0x10922755586c35180cdec7a1a38e2b60c800d3c8': {
+    address: '0x10922755586c35180cdec7a1a38e2b60c800d3c8',
+    name: 'MEV Bot (failed ops)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0x99b69659f70470bbd32ae59ddf952f157a598a44': {
+    address: '0x99b69659f70470bbd32ae59ddf952f157a598a44',
+    name: 'MEV Bot (multi-protocol)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0x612a722ac5eff60004a0d8e83fbe768690540176': {
+    address: '0x612a722ac5eff60004a0d8e83fbe768690540176',
+    name: 'MEV Bot (0x977a deployer #2)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0x07d25044cbe0524c0617267d6bfaf2fa6a0a0efe': {
+    address: '0x07d25044cbe0524c0617267d6bfaf2fa6a0a0efe',
+    name: 'MEV Bot (Gnosis Safe backed)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0x25090cd3c1f3dd6377348f58408d2ddc96acf201': {
+    address: '0x25090cd3c1f3dd6377348f58408d2ddc96acf201',
+    name: 'MEV Bot (0x977a deployer #3)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+
+  // Round 2 MEV bots
+  '0xd1f6ca075b345c3532ee3957f0a32a0a0c881449': {
+    address: '0xd1f6ca075b345c3532ee3957f0a32a0a0c881449',
+    name: 'MEV Bot (flash loan arb)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0x5d6d9811919598981367ac45134f9586d4f04bff': {
+    address: '0x5d6d9811919598981367ac45134f9586d4f04bff',
+    name: 'MEV Bot (pausable trading)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0x278d858f05b94576c1e6f73285886876ff6ef8d2': {
+    address: '0x278d858f05b94576c1e6f73285886876ff6ef8d2',
+    name: 'MEV Bot (SafeProxy arb)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0x42104e66a93da581dd06ebd434ff1c47176ff2d7': {
+    address: '0x42104e66a93da581dd06ebd434ff1c47176ff2d7',
+    name: 'MEV Bot (JIT liquidity)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0x5b05e50f8d2942cbc7f89dd5b07cc2fa610caf9d': {
+    address: '0x5b05e50f8d2942cbc7f89dd5b07cc2fa610caf9d',
+    name: 'MEV Bot (Coinbase funded #1)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0xf163ca4c6931141ee115db0b192ed6c37d491714': {
+    address: '0xf163ca4c6931141ee115db0b192ed6c37d491714',
+    name: 'MEV Bot (Coinbase funded #2)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+
+  // ============ PHARAOH EXCHANGE (Additional) ============
+  '0x0b4478e810d48b5882d4019d435a2f864bab4f39': {
+    address: '0x0b4478e810d48b5882d4019d435a2f864bab4f39',
+    name: 'RamsesV3PositionManager',
+    protocol: 'Pharaoh',
+    category: 'dex',
+    type: 'router',
+  },
+  '0xd0175063773f80910c87c4a69663a00e622b0745': {
+    address: '0xd0175063773f80910c87c4a69663a00e622b0745',
+    name: 'ALM Vault (Liquidity Manager)',
+    protocol: 'Pharaoh',
+    category: 'dex',
+    type: 'vault',
+  },
+
+  // ============ ODOS (Additional V2 deployment) ============
+  '0x88de50b233052e4fb783d4f6db78cc34fea3e9fc': {
+    address: '0x88de50b233052e4fb783d4f6db78cc34fea3e9fc',
+    name: 'Odos Router V2 (alt)',
+    protocol: 'Odos',
+    category: 'dex',
+    type: 'router',
+  },
+
+  // ============ GAMING ============
+  '0x8ab13fda47bf057205ca1299acebff26a07cec56': {
+    address: '0x8ab13fda47bf057205ca1299acebff26a07cec56',
+    name: 'CapyVault Proxy',
+    protocol: 'CapyVault',
+    category: 'gaming',
+    type: 'other',
+  },
+
+  // (Valinor OatFi additional addresses — main entries in VALINOR-OATFI section above)
+  '0xe3cde6f051872e67d0a7c2124e9a024d80e2733f': {
+    address: '0xe3cde6f051872e67d0a7c2124e9a024d80e2733f',
+    name: 'Valinor Lender',
+    protocol: 'Valinor OatFi',
+    category: 'rwa',
+    type: 'vault',
+  },
+  '0x7a75539cd0647625217ef93302855ddeb02f7093': {
+    address: '0x7a75539cd0647625217ef93302855ddeb02f7093',
+    name: 'Avalanche Foundation Lender',
+    protocol: 'Valinor OatFi',
+    category: 'rwa',
+    type: 'vault',
+  },
+
+  // ============ FLY.TRADE (prev. MAGPIE PROTOCOL) ============
+  '0x3611b82c7b13e72b26eb0e9be0613bee7a45ac7c': {
+    address: '0x3611b82c7b13e72b26eb0e9be0613bee7a45ac7c',
+    name: 'MagpieRouterV3_1',
+    protocol: 'Fly.trade',
+    category: 'dex',
+    type: 'router',
+  },
+
+  // ============ DODO ============
+  '0xd4e8db2e3e4fa8dff01244d89d5b593b0a03f74b': {
+    address: '0xd4e8db2e3e4fa8dff01244d89d5b593b0a03f74b',
+    name: 'DPPOneShotSwap',
+    protocol: 'DODO',
+    category: 'dex',
+    type: 'pool',
+  },
+
+  // ============ 0x PROTOCOL ============
+  '0x0000000000001ff3684f28c67538d4d072c22734': {
+    address: '0x0000000000001ff3684f28c67538d4d072c22734',
+    name: 'AllowanceHolder',
+    protocol: '0x Protocol',
+    category: 'dex',
+    type: 'router',
+  },
+
+  // ============ PARASWAP V6 ============
+  '0x6a000f20005980200259b80c5102003040001068': {
+    address: '0x6a000f20005980200259b80c5102003040001068',
+    name: 'AugustusV6',
+    protocol: 'ParaSwap',
+    category: 'dex',
+    type: 'router',
+  },
+
+  // ============ CHAOS LABS ============
+  '0x0efb5a96ed1b33308a73355c56aa1bc1aa7e4a8e': {
+    address: '0x0efb5a96ed1b33308a73355c56aa1bc1aa7e4a8e',
+    name: 'Risk Oracle',
+    protocol: 'Chaos Labs',
+    category: 'infrastructure',
+    type: 'other',
+  },
+
+  // ============ CHAINLINK ============
+  '0x4fa197129e3260e3cc514b68011c5b23bab7475d': {
+    address: '0x4fa197129e3260e3cc514b68011c5b23bab7475d',
+    name: 'Batch VRF Coordinator V2 Plus',
+    protocol: 'Chainlink',
+    category: 'infrastructure',
+    type: 'other',
+  },
+
+  // ============ DEX ROUTER (unbranded aggregator) ============
+  '0x8adfb0d24cdb09c6eb6b001a41820ece98831b91': {
+    address: '0x8adfb0d24cdb09c6eb6b001a41820ece98831b91',
+    name: 'DexRouter',
+    protocol: 'DexRouter',
+    category: 'dex',
+    type: 'router',
+  },
+
+  // ============ PHARAOH (Additional) ============
+  '0xc8b8fcbdb5c019d7802ffb0b39603395d7d3915c': {
+    address: '0xc8b8fcbdb5c019d7802ffb0b39603395d7d3915c',
+    name: 'Ramses V3 SwapRouter',
+    protocol: 'Pharaoh',
+    category: 'dex',
+    type: 'router',
+  },
+
+  // ============ VFAT / SICKLE (Additional) ============
+  '0x0bf0f966a8c1676d2d76c1863cbd84170b949d53': {
+    address: '0x0bf0f966a8c1676d2d76c1863cbd84170b949d53',
+    name: 'NftFarmStrategy',
+    protocol: 'vfat.io',
+    category: 'yield',
+    type: 'other',
+  },
+
+  // ============ MEV / ARBITRAGE BOTS (Round 3) ============
+  '0x8b1bc05128f49af0562998ce7bbdffb26bb0e421': {
+    address: '0x8b1bc05128f49af0562998ce7bbdffb26bb0e421',
+    name: 'MEV Bot (0x2222 deployer #3)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0x31e05ba0fca0a9447a2eb1065c1cc57cb722a924': {
+    address: '0x31e05ba0fca0a9447a2eb1065c1cc57cb722a924',
+    name: 'MEV Bot (0x2222 deployer #4)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+
+  // ============ AVAXPIXEL ============
+  '0x1edf79e77693561e80072becbcce1e16dc356aca': {
+    address: '0x1edf79e77693561e80072becbcce1e16dc356aca',
+    name: 'APIX Token',
+    protocol: 'AvaxPixel',
+    category: 'gaming',
+    type: 'token',
+  },
+
+  // ============ MEV / ARBITRAGE BOTS (Round 4 — deployer 0x2d75) ============
+  '0x10604ec3d66bd86db80d1782d4df3396902f67f3': {
+    address: '0x10604ec3d66bd86db80d1782d4df3396902f67f3',
+    name: 'MEV Bot (0x2d75 deployer #1)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0xf7a9af4b028448a78aefc589aaa41d1728dc7421': {
+    address: '0xf7a9af4b028448a78aefc589aaa41d1728dc7421',
+    name: 'MEV Bot (0x2d75 deployer #2)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0xc0bbe7e1ea440600cadcbee83640bb60b8f985fb': {
+    address: '0xc0bbe7e1ea440600cadcbee83640bb60b8f985fb',
+    name: 'MEV Bot (0x2d75 deployer #3)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+
+  // ============ MEV / ARBITRAGE BOTS (Round 4 — misc) ============
+  '0x04e1dee021cd12bba022a72806441b43d8212fec': {
+    address: '0x04e1dee021cd12bba022a72806441b43d8212fec',
+    name: 'MEV Bot (swap router pattern)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0x0ac011eb02a44d3fd7ad2e837a9f5a330913af13': {
+    address: '0x0ac011eb02a44d3fd7ad2e837a9f5a330913af13',
+    name: 'MEV Bot (Uniswap V4 #1)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0x56c47ff7e63cc0ebb2038ce5822d19fdc8f4be27': {
+    address: '0x56c47ff7e63cc0ebb2038ce5822d19fdc8f4be27',
+    name: 'MEV Bot (Uniswap V4 #2)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0x964bd4f472882d0d4120a4b3c859e43ffb459291': {
+    address: '0x964bd4f472882d0d4120a4b3c859e43ffb459291',
+    name: 'MEV Bot (CAPY holder)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
 };
 
 // Protocol slug mapping for linking to dApp pages (canonical slug per protocol)
@@ -1108,10 +1519,33 @@ export const PROTOCOL_SLUGS: Record<string, string> = {
   'Joepegs': 'joepegs',
   'Salvor': 'salvor',
   'Kalao': 'kalao',
+  // Token
+  'XEN Crypto': 'xen-crypto',
+  // DEX
+  'Pharaoh': 'pharaoh',
+  'Blackhole DEX': 'blackhole-dex',
+  // Yield
+  'vfat.io': 'vfat',
+  // Gaming
+  'MoveQuest': 'movequest',
+  // Gaming
+  'CapyVault': 'capyvault',
+  // MEV
+  'MEV / Arbitrage': 'mev-arbitrage',
   // Other
   'Big Ads': 'big-ads',
   'Red Cast': 'red-cast',
   'Banza': 'banza',
+  // DEX Aggregators
+  'Fly.trade': 'fly-trade',
+  'DODO': 'dodo',
+  '0x Protocol': '0x-protocol',
+  'DexRouter': 'dexrouter',
+  // Infrastructure
+  'Chaos Labs': 'chaos-labs',
+  'Chainlink': 'chainlink',
+  // Gaming
+  'AvaxPixel': 'avaxpixel',
   // RWA
   'Valinor OatFi': 'valinor-oatfi',
 };
@@ -1220,10 +1654,46 @@ export const SLUG_ALIASES: Record<string, string> = {
   'joepegs': 'Joepegs',
   'salvor': 'Salvor',
   'kalao': 'Kalao',
+  // Token
+  'xen-crypto': 'XEN Crypto',
+  'xen': 'XEN Crypto',
+  // DEX
+  'pharaoh': 'Pharaoh',
+  'pharaoh-exchange': 'Pharaoh',
+  'blackhole-dex': 'Blackhole DEX',
+  'blackhole': 'Blackhole DEX',
+  // Yield
+  'vfat': 'vfat.io',
+  'vfat-io': 'vfat.io',
+  'sickle': 'vfat.io',
+  // Gaming
+  'movequest': 'MoveQuest',
+  'getfit-mining': 'MoveQuest',
+  // Gaming
+  'capyvault': 'CapyVault',
+  // MEV
+  'mev-arbitrage': 'MEV / Arbitrage',
+  'mev': 'MEV / Arbitrage',
   // Other
   'big-ads': 'Big Ads',
   'red-cast': 'Red Cast',
   'banza': 'Banza',
+  // DEX Aggregators
+  'fly-trade': 'Fly.trade',
+  'fly': 'Fly.trade',
+  'magpie-protocol': 'Fly.trade',
+  'magpie': 'Fly.trade',
+  'dodo': 'DODO',
+  'dodo-exchange': 'DODO',
+  '0x-protocol': '0x Protocol',
+  '0x': '0x Protocol',
+  'dexrouter': 'DexRouter',
+  // Infrastructure
+  'chaos-labs': 'Chaos Labs',
+  'chainlink': 'Chainlink',
+  // Gaming
+  'avaxpixel': 'AvaxPixel',
+  'apix': 'AvaxPixel',
   // RWA
   'valinor': 'Valinor OatFi',
   'oatfi': 'Valinor OatFi',
