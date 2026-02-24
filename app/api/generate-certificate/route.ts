@@ -3,6 +3,7 @@ import { PDFDocument } from 'pdf-lib';
 import { getServerSession } from 'next-auth';
 import { AuthOptions } from '@/lib/auth/authOptions';
 import { triggerCertificateWebhook } from '@/server/services/hubspotCertificateWebhook';
+import { getCompletedCourseSlugs } from '@/server/services/userBadge';
 import { getCourseConfig } from '@/content/courses';
 
 export async function POST(req: NextRequest) {
@@ -95,11 +96,18 @@ export async function POST(req: NextRequest) {
     
     // Trigger HubSpot webhook for certificate completion
     // At this point we know email exists due to the check above
+    // Include the current courseId since badge assignment may not have persisted yet
+    const completedCourses = await getCompletedCourseSlugs(session.user.id);
+    if (!completedCourses.includes(courseId)) {
+      completedCourses.push(courseId);
+    }
+
     await triggerCertificateWebhook(
       session.user.id,
       session.user.email!,
       userName,
-      courseId
+      courseId,
+      completedCourses
     );
     
     return new NextResponse(Buffer.from(pdfBytes), {
