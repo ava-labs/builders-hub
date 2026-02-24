@@ -1,0 +1,110 @@
+---
+title: "Playing Defense: Spam Prevention on Avalanche C-Chain"
+description: How we're protecting the C-Chain from state bloat and validators from being flooded with expensive spam transactions.
+date: 2026-02-20
+authors: [AvaxDevelopers]
+topics: [C-Chain, Network Security, State Management, Gas Economics]
+comments: true
+---
+
+## The Anomaly
+
+We watch a lot of dashboards, and few months back, we noticed something odd: when gas prices fell to near-zero levels, we'd see sustained floods of transactions that looked like... nothing useful.
+
+Not an attack. Not MEV. Just relentless, trivial transactions exploiting cheap gas to pile up state changes. Let's call it what it is: **spam**.
+
+## Why Spam Matters
+
+You might think: "They're paying gas fees. Protocol's working as intended."
+
+Technically true. But spam compounds over time:
+
+**State Bloat**: Every transaction grows the state trie. Validators and RPC nodes need more storage, more memory, more everything. "Just a few extra gigabytes" becomes "why is my node falling behind?"
+
+**Validator Performance**: Nodes on-spec hardware struggle during spam bursts. Processing slows. Uptime dips.
+
+**Economic Pressure**: Validators with poor uptime risk losing rewards. Spam penalizes honest validators just trying to keep up.
+
+**Rising Costs**: State growth raises the barrier for new validators. That 500GB SSD? Now you need 2TB.
+
+## Why Does Spam Happen?
+
+When gas drops to rock-bottom levels, flooding the network becomes economically trivial. Some spam is just strange: contracts that do nothing, transactions that accomplish nothing. But they're cheap, so why not?
+
+## The Solution
+
+We implemented a countermeasure that activates during abnormally low gas periods:
+
+**We issue transactions that intentionally fail.**
+
+Here's how:
+
+### Detect Low-Fee Conditions
+
+When gas prices drop below thresholds, our monitoring triggers the anti-spam mechanism.
+
+### Issue Failing Transactions
+
+We send transactions calling the `INVALID` opcode. These:
+
+- **Consume gas** (raising base fee)
+- **Execute no state changes** (fail immediately)
+- **Displace spam** by competing for block space
+
+If spammers flood blocks at 1 Gwei, we use that gas ourselves. Base fee rises, spam gets expensive, spammers back off.
+
+### Pay for Gas
+
+No admin privilege. We pay for every transaction. This is economic action, not protocol bypass.
+
+## The Metrics Question
+
+**"Are you gaming metrics?"**
+
+Nope. Here's exactly how our approach affects key metrics:
+
+**Gas Used**: We're displacing spam, not inflating usage. The network consumes that gas either way.
+*Net effect: ~0% change*
+
+**TPS**: Our transactions fail immediately and are issued sparingly. TPS looks nearly identical.
+*Net effect: ~0% change*
+
+**Active Accounts**: We use one account. Spam creates thousands.
+*Net effect: +1 account*
+
+**Application Metrics**: No contract interactions. No DeFi, USDC, or native transfers. If you're tracking real usage, we're invisible.
+*Net effect: 0% change*
+
+## Results
+
+Since implementing:
+
+- State growth rate during spam periods decreased
+- Validator uptime variance stabilized
+- Gas price floor stays healthy (spam becomes uneconomical faster)
+
+The network doesn't look busier. It's just healthier under the hood.
+
+## What's Next?
+
+This is temporary while we explore protocol-level improvements:
+
+- Dynamic minimum gas pricing
+- State rent mechanisms
+- Enhanced fee market designs
+- Independent OPCODE gas pricing
+- Validator spec optimizations
+
+The goal: build a protocol where spam isn't worth attempting.
+
+## Wrapping Up
+
+Running a blockchain means making trade-offs. We chose economic intervention that's transparent, metrics-neutral, and immediately effective. We're paying for gas to keep the network healthy while longer-term improvements ship.
+
+The C-Chain belongs to its community: developers, validators, users, and builders. When we make moves like this, we believe in showing our work.
+
+Questions? Find us in the [Avalanche Discord](https://discord.gg/RwXY7P6) or open an issue on [GitHub](https://github.com/ava-labs/avalanchego).
+
+---
+
+*Building in public. Always.*
