@@ -19,7 +19,7 @@ import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput
 import { createPublicClient, http } from "viem";
 import { Note } from "@/components/toolbox/components/Note";
 import ERC20TokenHomeABI from "@/contracts/icm-contracts/compiled/ERC20TokenHome.json";
-import { cb58ToHex } from '@/components/toolbox/console/utilities/format-converter/FormatConverter';
+import { cb58ToHex } from '@/components/tools/common/utils/cb58';
 import ExampleERC20 from "@/contracts/icm-contracts/compiled/ExampleERC20.json";
 import SelectBlockchainId from "@/components/toolbox/components/SelectBlockchainId";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
