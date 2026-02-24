@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useLoginModalTrigger } from "@/hooks/useLoginModal";
@@ -145,6 +145,7 @@ export default function BuildGamesSubmitForm({
   const { toast } = useToast();
   const [projectId, setProjectId] = useState<string>("");
   const [isSaving, setIsSaving] = useState(false);
+  const isSavingRef = useRef(false); // synchronous lock — blocks concurrent calls from any source
   const [success, setSuccess] = useState(false);
   const [openJoinTeamDialog, setOpenJoinTeamDialog] = useState(false);
   const [openCurrentProject, setOpenCurrentProject] = useState(false);
@@ -334,6 +335,9 @@ export default function BuildGamesSubmitForm({
 
   const saveCurrentForm = useCallback(async () => {
     if (!session?.user?.id) return;
+    if (isSavingRef.current) return null; // block concurrent invocations (button + MembersComponent)
+    isSavingRef.current = true;
+    try {
     const data = form.getValues();
 
     // 1. Save Project-table fields
@@ -405,6 +409,9 @@ export default function BuildGamesSubmitForm({
     }
 
     return savedId;
+  } finally {
+    isSavingRef.current = false;
+  }
   }, [session?.user?.id, form, projectId]);
 
   const onSubmit = async () => {
