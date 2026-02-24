@@ -1662,6 +1662,105 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     type: 'token',
   },
 
+  // ============ BLACKHOLE DEX (Round 6) ============
+  '0x246c186f20b8a9b7847ff2c66b32405cac6b52fd': {
+    address: '0x246c186f20b8a9b7847ff2c66b32405cac6b52fd',
+    name: 'Blackhole Proxy (BLACK holder)',
+    protocol: 'Blackhole DEX',
+    category: 'dex',
+    type: 'other',
+  },
+
+  // ============ TRESR ============
+  '0x5926b1979f6603f8675a15392417835133f1697c': {
+    address: '0x5926b1979f6603f8675a15392417835133f1697c',
+    name: 'Tresr Key Rewards Pool',
+    protocol: 'Tresr',
+    category: 'gaming',
+    type: 'rewards',
+  },
+
+  // ============ UNISWAP (Additional) ============
+  '0xbb00ff08d01d300023c629e8ffffcb65a5a578ce': {
+    address: '0xbb00ff08d01d300023c629e8ffffcb65a5a578ce',
+    name: 'SwapRouter02',
+    protocol: 'Uniswap',
+    category: 'dex',
+    type: 'router',
+  },
+
+  // ============ LI.FI (Additional) ============
+  '0x89c6340b1a1f4b25d36cd8b063d49045caf3f818': {
+    address: '0x89c6340b1a1f4b25d36cd8b063d49045caf3f818',
+    name: 'Permit2Proxy',
+    protocol: 'LI.FI',
+    category: 'bridge',
+    type: 'router',
+  },
+
+  // ============ WOOFI (Additional) ============
+  '0x2a375567f5e13f6bd74fda7627df3b1af6bfa5a6': {
+    address: '0x2a375567f5e13f6bd74fda7627df3b1af6bfa5a6',
+    name: 'Wooracle v2.2.1',
+    protocol: 'WOOFi',
+    category: 'dex',
+    type: 'other',
+  },
+
+  // ============ YIELD YAK (Additional Round 6) ============
+  '0x3bc36a0ea51b95597174bce8b05025d1a5c0df9e': {
+    address: '0x3bc36a0ea51b95597174bce8b05025d1a5c0df9e',
+    name: 'Yield Yak: Black (YRT)',
+    protocol: 'Yield Yak',
+    category: 'yield',
+    type: 'vault',
+  },
+
+  // ============ COW PROTOCOL ============
+  '0x9008d19f58aabd9ed0d60971565aa8510560ab41': {
+    address: '0x9008d19f58aabd9ed0d60971565aa8510560ab41',
+    name: 'GPv2Settlement',
+    protocol: 'CoW Protocol',
+    category: 'dex',
+    type: 'router',
+  },
+
+  // ============ PYTH ============
+  '0x4305fb66699c3b2702d4d05cf36551390a4c69c6': {
+    address: '0x4305fb66699c3b2702d4d05cf36551390a4c69c6',
+    name: 'Pyth Price Feed Proxy',
+    protocol: 'Pyth',
+    category: 'infrastructure',
+    type: 'other',
+  },
+
+  // ============ MAYAN FINANCE ============
+  '0xbc0663ef63add180609944c58ba7d4851890ca45': {
+    address: '0xbc0663ef63add180609944c58ba7d4851890ca45',
+    name: 'Mayan Fulfill Helper',
+    protocol: 'Mayan Finance',
+    category: 'bridge',
+    type: 'router',
+  },
+
+  // ============ SALVOR (Additional) ============
+  '0x05c1813ec7beb8bf744ac43fea25cafb650ac966': {
+    address: '0x05c1813ec7beb8bf744ac43fea25cafb650ac966',
+    name: 'Salvor NFT Lending V2',
+    protocol: 'Salvor',
+    category: 'lending',
+    type: 'pool',
+  },
+
+  // ============ DODO (Additional) ============
+  '0xde5c314a604b3445349222156c6ec9d83880270f': {
+    address: '0xde5c314a604b3445349222156c6ec9d83880270f',
+    name: 'DPPAdvancedAdmin',
+    protocol: 'DODO',
+    category: 'dex',
+    type: 'controller',
+  },
+
   // ============ MEV / ARBITRAGE BOTS (Round 5) ============
   '0x127e15568359a6f549039a567ecb8a7396151ca5': {
     address: '0x127e15568359a6f549039a567ecb8a7396151ca5',
@@ -1888,6 +1987,12 @@ export const PROTOCOL_SLUGS: Record<string, string> = {
   'Sealfi': 'sealfi',
   // NFT
   'FestivalGreetings': 'festivalgreetings',
+  // Round 6
+  'Tresr': 'tresr',
+  'Uniswap': 'uniswap',
+  'CoW Protocol': 'cow-protocol',
+  'Pyth': 'pyth',
+  'Mayan Finance': 'mayan-finance',
 };
 
 // Map alternative DefiLlama slugs to canonical protocol names
@@ -2055,6 +2160,18 @@ export const SLUG_ALIASES: Record<string, string> = {
   'sealfi': 'Sealfi',
   // NFT
   'festivalgreetings': 'FestivalGreetings',
+  // Round 6
+  'tresr': 'Tresr',
+  'nftreasure': 'Tresr',
+  'uniswap': 'Uniswap',
+  'uniswap-v3': 'Uniswap',
+  'cow-protocol': 'CoW Protocol',
+  'cow-swap': 'CoW Protocol',
+  'cowswap': 'CoW Protocol',
+  'pyth': 'Pyth',
+  'pyth-network': 'Pyth',
+  'mayan-finance': 'Mayan Finance',
+  'mayan': 'Mayan Finance',
 };
 
 // Get contract info by address
