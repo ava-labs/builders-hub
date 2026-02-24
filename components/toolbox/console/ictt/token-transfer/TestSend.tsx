@@ -11,6 +11,7 @@ import { Success } from "@/components/toolbox/components/Success";
 import ERC20TokenHomeABI from "@/contracts/icm-contracts/compiled/ERC20TokenHome.json";
 import NativeTokenHomeABI from "@/contracts/icm-contracts/compiled/NativeTokenHome.json";
 import NativeTokenRemoteABI from "@/contracts/icm-contracts/compiled/NativeTokenRemote.json";
+import ERC20TokenRemoteABI from "@/contracts/icm-contracts/compiled/ERC20TokenRemote.json";
 import ExampleERC20ABI from "@/contracts/icm-contracts/compiled/ExampleERC20.json";
 import ITeleporterMessenger from "@/contracts/example-contracts/compiled/ITeleporterMessenger.json";
 import { createPublicClient, http, formatUnits, parseUnits, Address, zeroAddress, decodeEventLog, AbiEvent } from "viem";
@@ -39,7 +40,7 @@ export default function TokenBridge() {
     // Contract addresses
     const [sourceContractAddress, setSourceContractAddress] = useState<Address | "">("");
     const [sourceToken, setSourceToken] = useState<any | null>(null);
-    const [sourceTransferrerType, setSourceTransferrerType] = useState<"unknown" | "home" | "nativeRemote">("unknown");
+    const [sourceTransferrerType, setSourceTransferrerType] = useState<"unknown" | "home" | "nativeRemote" | "erc20Remote">("unknown");
     const [destinationContractAddress, setDestinationContractAddress] = useState<Address | "">("");
     const [destinationToken, setDestinationToken] = useState<any | null>(null);
 
@@ -195,7 +196,7 @@ export default function TokenBridge() {
 
 
             let tokenAddress = address;
-            let detectedSourceType: "unknown" | "home" | "nativeRemote" = "unknown";
+            let detectedSourceType: "unknown" | "home" | "nativeRemote" | "erc20Remote" = "unknown";
             let forceNativeBalance = false;
             let tokenName: string | null = null;
             let tokenSymbol: string | null = null;
@@ -221,18 +222,30 @@ export default function TokenBridge() {
                     }).catch(() => null) as Address | null;
 
                     if (tokenHomeAddr) {
-                        detectedSourceType = "nativeRemote";
-                        forceNativeBalance = true;
-                        const [d, n, s] = await Promise.all([
-                            publicClient.readContract({ address, abi: NativeTokenRemoteABI.abi, functionName: 'decimals' }).catch(() => null),
-                            publicClient.readContract({ address, abi: NativeTokenRemoteABI.abi, functionName: 'name' }).catch(() => null),
-                            publicClient.readContract({ address, abi: NativeTokenRemoteABI.abi, functionName: 'symbol' }).catch(() => null),
-                        ]);
-                        tokenDecimalsLocal = d !== null ? Number(d as number) : 18;
-                        tokenName = (n as string | null) ?? selectedL1?.coinName ?? "Native Token";
-                        tokenSymbol = (s as string | null) ?? selectedL1?.coinName ?? "NATIVE";
-                        // Use a non-empty address so the UI enables inputs; for native balance we won't use ERC20 reads.
-                        tokenAddress = zeroAddress;
+                        // Both NativeTokenRemote and ERC20TokenRemote expose getTokenHomeAddress().
+                        // Distinguish by checking for WETH-like deposit/withdraw selectors in bytecode.
+                        const remoteCode = await publicClient.getCode({ address }).catch(() => null);
+                        const isNativeRemote = remoteCode?.includes('d0e30db0') && remoteCode.includes('2e1a7d4d');
+
+                        if (isNativeRemote) {
+                            detectedSourceType = "nativeRemote";
+                            forceNativeBalance = true;
+                            const [d, n, s] = await Promise.all([
+                                publicClient.readContract({ address, abi: NativeTokenRemoteABI.abi, functionName: 'decimals' }).catch(() => null),
+                                publicClient.readContract({ address, abi: NativeTokenRemoteABI.abi, functionName: 'name' }).catch(() => null),
+                                publicClient.readContract({ address, abi: NativeTokenRemoteABI.abi, functionName: 'symbol' }).catch(() => null),
+                            ]);
+                            tokenDecimalsLocal = d !== null ? Number(d as number) : 18;
+                            tokenName = (n as string | null) ?? selectedL1?.coinName ?? "Native Token";
+                            tokenSymbol = (s as string | null) ?? selectedL1?.coinName ?? "NATIVE";
+                            // Use a non-empty address so the UI enables inputs; for native balance we won't use ERC20 reads.
+                            tokenAddress = zeroAddress;
+                        } else {
+                            // ERC20TokenRemote: the contract itself IS the ERC20 token.
+                            // send(SendTokensInput, uint256) burns tokens directly — no approval needed.
+                            detectedSourceType = "erc20Remote";
+                            tokenAddress = address;
+                        }
                     } else {
                         detectedSourceType = "unknown";
                     }
@@ -394,7 +407,7 @@ export default function TokenBridge() {
             const amountParsed = parseUnits(amount, tokenDecimals);
             const gasLimitParsed = BigInt(requiredGasLimit);
 
-            if (sourceToken.isNative === false && (tokenAllowance === null || tokenAllowance < amountParsed)) {
+            if (sourceToken.isNative === false && sourceTransferrerType !== "erc20Remote" && (tokenAllowance === null || tokenAllowance < amountParsed)) {
                 setLocalError(`Insufficient allowance. Please approve at least ${amount} ${tokenSymbol || 'tokens'}.`);
                 setIsProcessingSend(false);
                 return;
@@ -421,10 +434,14 @@ export default function TokenBridge() {
                 address: sourceContractAddress as Address,
                 abi: sourceTransferrerType === "nativeRemote"
                     ? NativeTokenRemoteABI.abi
+                    : sourceTransferrerType === "erc20Remote"
+                    ? ERC20TokenRemoteABI.abi
                     : (isNativeValueTransfer ? NativeTokenHomeABI.abi : ERC20TokenHomeABI.abi),
                 functionName: 'send',
                 args: sourceTransferrerType === "nativeRemote"
                     ? [sendInput]
+                    : sourceTransferrerType === "erc20Remote"
+                    ? [sendInput, amountParsed]
                     : (isNativeValueTransfer ? [sendInput] : [sendInput, amountParsed]),
                 value: (sourceTransferrerType === "nativeRemote" || isNativeValueTransfer) ? amountParsed : 0n,
                 account: walletClient!.account,
@@ -514,10 +531,10 @@ export default function TokenBridge() {
     }, [amount, tokenDecimals]);
 
     const hasSufficientAllowance = useMemo(() => {
-        if (sourceToken?.isNative === true) return true;
+        if (sourceToken?.isNative === true || sourceTransferrerType === "erc20Remote") return true;
         if (tokenAllowance === null || amountParsed === 0n) return false;
         return tokenAllowance >= amountParsed;
-    }, [tokenAllowance, amountParsed]);
+    }, [tokenAllowance, amountParsed, sourceTransferrerType]);
 
     const hasSufficientBalance = useMemo(() => {
         if (tokenBalance === null || amountParsed === 0n) return false;
