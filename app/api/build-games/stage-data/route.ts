@@ -96,32 +96,29 @@ export const POST = withAuth(
         );
       }
 
-      const existing = await prisma.formData.findFirst({
-        where: { project_id, origin: "build_games" },
-      });
-
-      let result;
-
-      if (existing) {
-        // Deep-merge: preserve existing build_games keys, overwrite with new values
-        const existingBuildGames =
-          (existing.form_data as Record<string, unknown>)?.build_games ?? {};
-        const mergedData: Prisma.InputJsonValue = {
-          build_games: {
-            ...(existingBuildGames as Record<string, Prisma.InputJsonValue>),
-            ...(form_data.build_games as Record<string, Prisma.InputJsonValue>),
-          },
-        };
-
-        result = await prisma.formData.update({
-          where: { id: existing.id },
-          data: {
-            form_data: mergedData,
-            timestamp: new Date(),
-          },
+      const result = await prisma.$transaction(async (tx) => {
+        const existing = await tx.formData.findFirst({
+          where: { project_id, origin: "build_games" },
         });
-      } else {
-        result = await prisma.formData.create({
+
+        if (existing) {
+          // Deep-merge: preserve existing build_games keys, overwrite with new values
+          const existingBuildGames =
+            (existing.form_data as Record<string, unknown>)?.build_games ?? {};
+          const mergedData: Prisma.InputJsonValue = {
+            build_games: {
+              ...(existingBuildGames as Record<string, Prisma.InputJsonValue>),
+              ...(form_data.build_games as Record<string, Prisma.InputJsonValue>),
+            },
+          };
+
+          return tx.formData.update({
+            where: { id: existing.id },
+            data: { form_data: mergedData, timestamp: new Date() },
+          });
+        }
+
+        return tx.formData.create({
           data: {
             project_id,
             origin: "build_games",
@@ -129,7 +126,7 @@ export const POST = withAuth(
             timestamp: new Date(),
           },
         });
-      }
+      });
 
       return NextResponse.json({ form_data: result.form_data });
     } catch (error: any) {
