@@ -1475,6 +1475,334 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     category: 'mev',
     type: 'other',
   },
+
+  // ============ BLACKHOLE DEX (Round 5) ============
+  '0x5862cfede966e4f34fc42026214ebeddb0298b00': {
+    address: '0x5862cfede966e4f34fc42026214ebeddb0298b00',
+    name: 'CL Position Manager',
+    protocol: 'Blackhole DEX',
+    category: 'dex',
+    type: 'controller',
+  },
+  '0xff29b2a3fdea7528e3015e7673736a8fb0e2a777': {
+    address: '0xff29b2a3fdea7528e3015e7673736a8fb0e2a777',
+    name: 'Core Proxy',
+    protocol: 'Blackhole DEX',
+    category: 'dex',
+    type: 'other',
+  },
+  '0x84a6df8cf36799ad5d46f466a7d24798dee3c116': {
+    address: '0x84a6df8cf36799ad5d46f466a7d24798dee3c116',
+    name: 'Core Proxy (Voter/Gauge)',
+    protocol: 'Blackhole DEX',
+    category: 'dex',
+    type: 'controller',
+  },
+  '0x3ade52f9779c07471f4b6d5997444c3c2124c1c0': {
+    address: '0x3ade52f9779c07471f4b6d5997444c3c2124c1c0',
+    name: 'GaugeV2 Deposit',
+    protocol: 'Blackhole DEX',
+    category: 'dex',
+    type: 'staking',
+  },
+  '0x5122f5154df20e5f29df53e633ce1ac5b6623558': {
+    address: '0x5122f5154df20e5f29df53e633ce1ac5b6623558',
+    name: 'BlackholeLoanV2',
+    protocol: 'Blackhole DEX',
+    category: 'lending',
+    type: 'pool',
+  },
+  '0xb5e5a51e176f91e089185885d6f36382bd47bb12': {
+    address: '0xb5e5a51e176f91e089185885d6f36382bd47bb12',
+    name: 'Blackhole Contract',
+    protocol: 'Blackhole DEX',
+    category: 'dex',
+    type: 'other',
+  },
+  '0xabfc48e8bed7b26762745f3139555f320119709d': {
+    address: '0xabfc48e8bed7b26762745f3139555f320119709d',
+    name: 'Algebra SwapRouter',
+    protocol: 'Blackhole DEX',
+    category: 'dex',
+    type: 'router',
+  },
+  '0x6eb07c70a96fa912ba34a3c3fa9382b799808876': {
+    address: '0x6eb07c70a96fa912ba34a3c3fa9382b799808876',
+    name: 'Blackhole Contract',
+    protocol: 'Blackhole DEX',
+    category: 'dex',
+    type: 'other',
+  },
+  '0x25723828ed32916e24b662ec481c8444232613ab': {
+    address: '0x25723828ed32916e24b662ec481c8444232613ab',
+    name: 'Blackhole Gauge/Staking',
+    protocol: 'Blackhole DEX',
+    category: 'dex',
+    type: 'staking',
+  },
+  '0x12e3f95ed406ca77519bcd70ef2c3ac9ac5484e4': {
+    address: '0x12e3f95ed406ca77519bcd70ef2c3ac9ac5484e4',
+    name: 'Blackhole Gauge/Staking',
+    protocol: 'Blackhole DEX',
+    category: 'dex',
+    type: 'staking',
+  },
+  '0x59aa177312ff6bdf39c8af6f46dae217bf76cbf6': {
+    address: '0x59aa177312ff6bdf39c8af6f46dae217bf76cbf6',
+    name: 'GaugeManager v1.0.2',
+    protocol: 'Blackhole DEX',
+    category: 'dex',
+    type: 'controller',
+  },
+  '0x367a1b456a4d25d83f1a6c1855b0217c473fe3a8': {
+    address: '0x367a1b456a4d25d83f1a6c1855b0217c473fe3a8',
+    name: 'Blackhole Proxy',
+    protocol: 'Blackhole DEX',
+    category: 'dex',
+    type: 'other',
+  },
+  '0x7c7bd86baf240db3dbcc3f7a22b35c5baa83ba28': {
+    address: '0x7c7bd86baf240db3dbcc3f7a22b35c5baa83ba28',
+    name: 'RewardsDistributor',
+    protocol: 'Blackhole DEX',
+    category: 'dex',
+    type: 'rewards',
+  },
+
+  // ============ OKX DEX ============
+  '0xe81e61cbc5ab6184f33cde9d9ff54411b1fd0899': {
+    address: '0xe81e61cbc5ab6184f33cde9d9ff54411b1fd0899',
+    name: 'OKX Swap Bot',
+    protocol: 'OKX DEX',
+    category: 'dex',
+    type: 'router',
+  },
+
+  // ============ GMX (Round 5) ============
+  '0x8f550e53dfe96c055d5bdb267c21f268fcaf63b2': {
+    address: '0x8f550e53dfe96c055d5bdb267c21f268fcaf63b2',
+    name: 'GMX V2 ExchangeRouter',
+    protocol: 'GMX',
+    category: 'derivatives',
+    type: 'router',
+  },
+  '0xee2d3339cbce7a42573c96acc1298a79a5c996df': {
+    address: '0xee2d3339cbce7a42573c96acc1298a79a5c996df',
+    name: 'GelatoRelayRouter',
+    protocol: 'GMX',
+    category: 'derivatives',
+    type: 'router',
+  },
+
+  // ============ RAIN (Payments) ============
+  '0x5bbb435ec20154f016ee96041c3fdfe46354603a': {
+    address: '0x5bbb435ec20154f016ee96041c3fdfe46354603a',
+    name: 'Coordinator',
+    protocol: 'Rain',
+    category: 'infrastructure',
+    type: 'other',
+  },
+
+  // ============ RELAY (Bridge) ============
+  '0xccc88a9d1b4ed6b0eaba998850414b24f1c315be': {
+    address: '0xccc88a9d1b4ed6b0eaba998850414b24f1c315be',
+    name: 'RelayApprovalProxyV3',
+    protocol: 'Relay',
+    category: 'bridge',
+    type: 'router',
+  },
+
+  // ============ METAMASK SWAPS ============
+  '0x1a1ec25dc08e98e5e93f1104b5e5cdd298707d31': {
+    address: '0x1a1ec25dc08e98e5e93f1104b5e5cdd298707d31',
+    name: 'MetaMask Swap Router',
+    protocol: 'MetaMask Swaps',
+    category: 'infrastructure',
+    type: 'router',
+  },
+
+  // ============ AQUASPACE ============
+  '0xee9d947e164b459ea1abb0d49dfaadb20d6fca06': {
+    address: '0xee9d947e164b459ea1abb0d49dfaadb20d6fca06',
+    name: 'AquaSpace Position NFT',
+    protocol: 'AquaSpace',
+    category: 'dex',
+    type: 'other',
+  },
+  '0x00f8a3b9395b4b02d12ee26536046c3c52459674': {
+    address: '0x00f8a3b9395b4b02d12ee26536046c3c52459674',
+    name: 'AquaSpace Pool/Vault',
+    protocol: 'AquaSpace',
+    category: 'dex',
+    type: 'pool',
+  },
+  '0xadcae606ada101d6c20b6df57954eef00f370a8e': {
+    address: '0xadcae606ada101d6c20b6df57954eef00f370a8e',
+    name: 'AquaSpace Pool/Vault',
+    protocol: 'AquaSpace',
+    category: 'dex',
+    type: 'pool',
+  },
+
+  // ============ SEALFI ============
+  '0xb32d01e1a7cc2220fcf4c354f7c83cf1c309b7bc': {
+    address: '0xb32d01e1a7cc2220fcf4c354f7c83cf1c309b7bc',
+    name: 'Sealfi',
+    protocol: 'Sealfi',
+    category: 'gaming',
+    type: 'other',
+  },
+
+  // ============ FESTIVAL GREETINGS ============
+  '0x822f7cb652beff262ec5ae9f4203dd066e3174cd': {
+    address: '0x822f7cb652beff262ec5ae9f4203dd066e3174cd',
+    name: 'FestivalGreetings (FGRT)',
+    protocol: 'FestivalGreetings',
+    category: 'nft',
+    type: 'token',
+  },
+
+  // ============ MEV / ARBITRAGE BOTS (Round 5) ============
+  '0x127e15568359a6f549039a567ecb8a7396151ca5': {
+    address: '0x127e15568359a6f549039a567ecb8a7396151ca5',
+    name: 'MEV Bot (WAVAX arb)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0x777c18ca58845793701db19845b5f70086000000': {
+    address: '0x777c18ca58845793701db19845b5f70086000000',
+    name: 'MEV Bot (vanity 0x777)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0x31775b7cf5e046cb47c3d5336ce3f3e34066a96b': {
+    address: '0x31775b7cf5e046cb47c3d5336ce3f3e34066a96b',
+    name: 'MEV Bot (batch executor)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0x62f9016c97ef9255c8ba16dda7f531656015daea': {
+    address: '0x62f9016c97ef9255c8ba16dda7f531656015daea',
+    name: 'MEV Bot (factory/router)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0xef114c8710330751ae2cd84066cfd85412b6d30d': {
+    address: '0xef114c8710330751ae2cd84066cfd85412b6d30d',
+    name: 'MEV Bot (Aave flash loan arb)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0x9cde401c8f19fd7648c1fca95438062ee3600bbd': {
+    address: '0x9cde401c8f19fd7648c1fca95438062ee3600bbd',
+    name: 'MEV Bot (Uniswap V4 #3)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0xc8e0d6ddec98078bf0a12c6e445631f02727cd22': {
+    address: '0xc8e0d6ddec98078bf0a12c6e445631f02727cd22',
+    name: 'MEV Bot (multi-DEX arb)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0x92fc2e2c2a672bf8c88119c75832104440802b18': {
+    address: '0x92fc2e2c2a672bf8c88119c75832104440802b18',
+    name: 'MEV Bot (Uniswap V4 #4)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0xc208d89afaf82722138c890774cdd4cc4137b55a': {
+    address: '0xc208d89afaf82722138c890774cdd4cc4137b55a',
+    name: 'MEV Bot (Uniswap V4 #5)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0x53c4bcbebf25cc4243e1640cf76ed4411d640e55': {
+    address: '0x53c4bcbebf25cc4243e1640cf76ed4411d640e55',
+    name: 'MEV Bot (Uniswap V4 #6)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0x4f9647f643f547c553b27e611ba97d12d681566b': {
+    address: '0x4f9647f643f547c553b27e611ba97d12d681566b',
+    name: 'MEV Bot (multi-protocol arb)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0x337cdbcc3c5756e75bfe0326deb067a901bdd1ca': {
+    address: '0x337cdbcc3c5756e75bfe0326deb067a901bdd1ca',
+    name: 'MEV Bot (JIT liquidity)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0x38aa1b1c65531fde294d2ada1af94c9d3fb30e54': {
+    address: '0x38aa1b1c65531fde294d2ada1af94c9d3fb30e54',
+    name: 'MEV Bot (deposit/withdraw)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0x99ca040580837a2158bfd0c8d84fcd4b85b6393b': {
+    address: '0x99ca040580837a2158bfd0c8d84fcd4b85b6393b',
+    name: 'MEV Bot (multi-pool arb)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0xd1448508f221b53ea26c74d384f123e085f9ab2d': {
+    address: '0xd1448508f221b53ea26c74d384f123e085f9ab2d',
+    name: 'MEV Bot (cross-protocol arb)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0x14843971c9918b5f762c309ac21bc2554981ec9d': {
+    address: '0x14843971c9918b5f762c309ac21bc2554981ec9d',
+    name: 'MEV Bot (SushiSwap arb)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0xdcd54f57d21e73c8bb197ee0fb207690b408dad7': {
+    address: '0xdcd54f57d21e73c8bb197ee0fb207690b408dad7',
+    name: 'MEV Bot (single-method arb)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0xf3d455d5e756efcec05c49e5721b539265466bbb': {
+    address: '0xf3d455d5e756efcec05c49e5721b539265466bbb',
+    name: 'MEV Bot (swap bot)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0x5eba459213546091e74e1fb6d2e7ae05fb65ec0f': {
+    address: '0x5eba459213546091e74e1fb6d2e7ae05fb65ec0f',
+    name: 'MEV Bot (multi-asset trader)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0xb9b75851b729cebd6f7c0d98fc564395449cba73': {
+    address: '0xb9b75851b729cebd6f7c0d98fc564395449cba73',
+    name: 'MEV Bot (automated deposits)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
 };
 
 // Protocol slug mapping for linking to dApp pages (canonical slug per protocol)
@@ -1548,6 +1876,18 @@ export const PROTOCOL_SLUGS: Record<string, string> = {
   'AvaxPixel': 'avaxpixel',
   // RWA
   'Valinor OatFi': 'valinor-oatfi',
+  // DEX (Round 5)
+  'OKX DEX': 'okx-dex',
+  'AquaSpace': 'aquaspace',
+  // Bridge
+  'Relay': 'relay',
+  // Infrastructure
+  'Rain': 'rain',
+  'MetaMask Swaps': 'metamask-swaps',
+  // Gaming
+  'Sealfi': 'sealfi',
+  // NFT
+  'FestivalGreetings': 'festivalgreetings',
 };
 
 // Map alternative DefiLlama slugs to canonical protocol names
@@ -1699,6 +2039,22 @@ export const SLUG_ALIASES: Record<string, string> = {
   'oatfi': 'Valinor OatFi',
   'fence': 'Valinor OatFi',
   'valinor-oatfi': 'Valinor OatFi',
+  // DEX (Round 5)
+  'okx-dex': 'OKX DEX',
+  'okx': 'OKX DEX',
+  'aquaspace': 'AquaSpace',
+  // Bridge
+  'relay': 'Relay',
+  'relay-bridge': 'Relay',
+  // Infrastructure
+  'rain': 'Rain',
+  'rain-payments': 'Rain',
+  'metamask-swaps': 'MetaMask Swaps',
+  'metamask': 'MetaMask Swaps',
+  // Gaming
+  'sealfi': 'Sealfi',
+  // NFT
+  'festivalgreetings': 'FestivalGreetings',
 };
 
 // Get contract info by address
