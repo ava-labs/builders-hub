@@ -36,35 +36,35 @@ const avalancheShortcuts: Shortcut[] = [
     title: "Create an L1",
     description: "Build your own blockchain using the Builder Console",
     icon: Layers,
-    href: "/academy/avalanche-l1/avalanche-fundamentals/creating-an-l1"
+    href: "/academy/avalanche-l1/avalanche-fundamentals/04-creating-an-l1/01-creating-an-l1"
   },
   {
     id: "custom-token",
     title: "Create your Native Token",
     description: "Design custom tokenomics for your L1",
     icon: Coins,
-    href: "/academy/avalanche-l1/l1-native-tokenomics/custom-tokens"
+    href: "/academy/avalanche-l1/l1-native-tokenomics/02-custom-tokens/02-custom-native-vs-erc20-native"
   },
   {
     id: "interchain-messaging",
     title: "Send Cross-Chain Messages",
     description: "Learn how ICM enables communication between chains",
     icon: MessageSquare,
-    href: "/academy/avalanche-l1/interchain-messaging/icm-basics"
+    href: "/academy/avalanche-l1/interchain-messaging/04-icm-basics/01-icm-basics"
   },
   {
     id: "bridge-tokens",
     title: "Bridge Tokens",
     description: "Transfer assets between Avalanche blockchains",
     icon: ArrowLeftRight,
-    href: "/academy/avalanche-l1/interchain-token-transfer"
+    href: "/academy/avalanche-l1/erc20-bridge"
   },
   {
     id: "permissioned-l1",
     title: "Permissioned Validators",
     description: "Set up Proof of Authority validation",
     icon: Shield,
-    href: "/academy/avalanche-l1/permissioned-l1s"
+    href: "/academy/avalanche-l1/permissioned-l1s/01-introduction/01-pchain-review"
   },
 ];
 
@@ -75,21 +75,21 @@ const blockchainShortcuts: Shortcut[] = [
     title: "What is a Blockchain?",
     description: "Understand the fundamentals of distributed ledgers",
     icon: Blocks,
-    href: "/academy/blockchain/blockchain-fundamentals/what-is-a-blockchain"
+    href: "/academy/blockchain/blockchain-fundamentals/02-what-is-a-blockchain/01-what-is-a-blockchain"
   },
   {
     id: "smart-contracts",
     title: "Write Smart Contracts",
     description: "Learn Solidity basics with Foundry",
     icon: FileCode,
-    href: "/academy/blockchain/solidity-foundry/smart-contracts"
+    href: "/academy/blockchain/solidity-foundry/03-smart-contracts/01-building-programs-on-blockchain"
   },
   {
     id: "erc20-tokens",
     title: "Deploy ERC-20 Tokens",
     description: "Create and deploy your own token",
     icon: Coins,
-    href: "/academy/blockchain/solidity-foundry/erc20-smart-contracts"
+    href: "/academy/blockchain/solidity-foundry/07-erc20-smart-contracts/01-erc20-intro"
   },
   {
     id: "x402-payments",
