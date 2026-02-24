@@ -42,8 +42,13 @@ export const useBadgeAward = (courseId: string) => {
           category: BadgeCategory.academy,
         }),
       });
+      if (!response.ok) {
+        throw new Error(`Badge assignment failed: ${response.status}`);
+      }
       const data = await response.json();
-      setIsAwarded(true);
+      if (data.result?.success) {
+        setIsAwarded(true);
+      }
       return data;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");

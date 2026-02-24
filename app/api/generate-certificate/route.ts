@@ -6,6 +6,21 @@ import { triggerCertificateWebhook } from '@/server/services/hubspotCertificateW
 import { getCompletedCourseSlugs } from '@/server/services/userBadge';
 import { getCourseConfig } from '@/content/courses';
 
+async function fetchWithRetry(
+  url: string,
+  maxRetries = 3,
+  delayMs = 500
+): Promise<Response> {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    const response = await fetch(url);
+    if (response.ok || response.status < 500) return response;
+    if (attempt < maxRetries) {
+      await new Promise((resolve) => setTimeout(resolve, delayMs * attempt));
+    }
+  }
+  return fetch(url);
+}
+
 export async function POST(req: NextRequest) {
   try {
     // Require auth and derive the user's name from the connected BuilderHub account
@@ -43,7 +58,7 @@ export async function POST(req: NextRequest) {
     const userName = session.user.name || session.user.email || 'BuilderHub User';
     const { name: courseName, template: templateUrl } = course;
 
-    const templateResponse = await fetch(templateUrl);
+    const templateResponse = await fetchWithRetry(templateUrl);
     if (!templateResponse.ok) {
       throw new Error(`Failed to fetch template: ${templateUrl}`);
     }
@@ -102,14 +117,17 @@ export async function POST(req: NextRequest) {
       completedCourses.push(courseId);
     }
 
-    await triggerCertificateWebhook(
+    // Fire-and-forget: don't block PDF delivery on webhook
+    triggerCertificateWebhook(
       session.user.id,
       session.user.email!,
       userName,
       courseId,
       completedCourses
+    ).catch((err) =>
+      console.error('HubSpot webhook failed (non-blocking):', err)
     );
-    
+
     return new NextResponse(Buffer.from(pdfBytes), {
       status: 200,
       headers: {
