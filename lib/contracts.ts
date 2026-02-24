@@ -1301,33 +1301,19 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     type: 'other',
   },
 
-  // ============ RWA / LENDING (from PR #3839) ============
-  '0xe25cb545bdd47a8ec2d08001cb5661b00d47621a': {
-    address: '0xe25cb545bdd47a8ec2d08001cb5661b00d47621a',
-    name: 'OatFi Tranche Pool',
-    protocol: 'OatFi',
-    category: 'lending',
-    type: 'pool',
-  },
-  '0x41d9569610dae2b6696797382fb26b5156db426f': {
-    address: '0x41d9569610dae2b6696797382fb26b5156db426f',
-    name: 'OatFi Borrower Operating',
-    protocol: 'OatFi',
-    category: 'lending',
-    type: 'other',
-  },
+  // (Valinor OatFi additional addresses — main entries in VALINOR-OATFI section above)
   '0xe3cde6f051872e67d0a7c2124e9a024d80e2733f': {
     address: '0xe3cde6f051872e67d0a7c2124e9a024d80e2733f',
     name: 'Valinor Lender',
-    protocol: 'Valinor',
-    category: 'lending',
+    protocol: 'Valinor OatFi',
+    category: 'rwa',
     type: 'vault',
   },
   '0x7a75539cd0647625217ef93302855ddeb02f7093': {
     address: '0x7a75539cd0647625217ef93302855ddeb02f7093',
     name: 'Avalanche Foundation Lender',
-    protocol: 'OatFi',
-    category: 'lending',
+    protocol: 'Valinor OatFi',
+    category: 'rwa',
     type: 'vault',
   },
 
@@ -1546,9 +1532,6 @@ export const PROTOCOL_SLUGS: Record<string, string> = {
   'CapyVault': 'capyvault',
   // MEV
   'MEV / Arbitrage': 'mev-arbitrage',
-  // RWA / Lending
-  'OatFi': 'oatfi',
-  'Valinor': 'valinor',
   // Other
   'Big Ads': 'big-ads',
   'Red Cast': 'red-cast',
@@ -1691,9 +1674,6 @@ export const SLUG_ALIASES: Record<string, string> = {
   // MEV
   'mev-arbitrage': 'MEV / Arbitrage',
   'mev': 'MEV / Arbitrage',
-  // RWA / Lending
-  'oatfi': 'OatFi',
-  'valinor': 'Valinor',
   // Other
   'big-ads': 'Big Ads',
   'red-cast': 'Red Cast',
