@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
+import { getRWAProject } from "@/lib/rwa/projects";
 import {
   ChartContainer,
   ChartTooltip,
@@ -107,6 +108,13 @@ export default function DAppDetailPage() {
   const [onChainLoading, setOnChainLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState<TimeRangeKey>("30d");
+
+  // Redirect RWA slugs to the dedicated RWA dashboard
+  useEffect(() => {
+    if (slug && getRWAProject(slug)) {
+      router.replace(`/stats/dapps/rwa/${slug}`);
+    }
+  }, [slug, router]);
 
   // Fetch DeFiLlama data
   useEffect(() => {

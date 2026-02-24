@@ -485,7 +485,8 @@ export default function DAppsPage() {
                         alt={dapp.name}
                         width={56}
                         height={56}
-                        className="w-full h-full object-cover"
+                        unoptimized={dapp.logo?.endsWith('.svg')}
+                        className={`w-full h-full object-cover ${dapp.darkInvert ? 'dark:invert' : ''}`}
                         onError={(e) => {
                           (e.target as HTMLImageElement).style.display = "none";
                         }}
@@ -876,7 +877,8 @@ export default function DAppsPage() {
                                 alt={dapp.name}
                                 width={40}
                                 height={40}
-                                className="h-full w-full rounded-full object-cover"
+                                unoptimized={dapp.logo?.endsWith('.svg')}
+                                className={`h-full w-full rounded-full object-cover ${dapp.darkInvert ? 'dark:invert' : ''}`}
                                 onError={(e) => {
                                   (e.target as HTMLImageElement).style.display = "none";
                                 }}

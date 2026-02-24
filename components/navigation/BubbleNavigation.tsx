@@ -182,11 +182,11 @@ export default function BubbleNavigation({
     return (
       <nav
         ref={navRef}
-        className="fixed left-1/2 transform -translate-x-1/2 z-50 transition-all duration-300 ease-in-out"
+        className="fixed left-1/2 z-50 w-max max-w-[calc(100vw-0.75rem)] transform -translate-x-1/2 transition-all duration-300 ease-in-out"
         style={{ bottom: `${bottomOffset}px` }}
       >
-        <div className="bg-white/90 dark:bg-zinc-900/90 backdrop-blur-sm rounded-full px-2.5 py-2.5 sm:px-3 sm:py-3 shadow-md border border-gray-200/50 dark:border-zinc-800/50">
-          <div className="flex items-center gap-2.5 sm:gap-4">
+        <div className="w-full overflow-x-auto scrollbar-hide bg-white/90 dark:bg-zinc-900/90 backdrop-blur-sm rounded-full px-2.5 py-2.5 sm:px-3 sm:py-3 shadow-md border border-gray-200/50 dark:border-zinc-800/50">
+          <div className="flex min-w-max items-center gap-2.5 sm:gap-4">
             {config.items.map((item) => {
               const Icon = item.icon;
               const isActive = resolvedActiveItem === item.id;
@@ -233,18 +233,18 @@ export default function BubbleNavigation({
   // Legacy text-based navigation style (for backwards compatibility)
   return (
     <div
-      className="fixed left-1/2 transform -translate-x-1/2 z-50 transition-all duration-300 ease-in-out"
+      className="fixed left-1/2 z-50 w-max max-w-[calc(100vw-0.75rem)] transform -translate-x-1/2 transition-all duration-300 ease-in-out"
       style={{ bottom: `${bottomOffset}px` }}
     >
       <nav
         className={cn(
-          "bg-white/90 dark:bg-gray-900/90 backdrop-blur-lg border border-gray-200 dark:border-gray-700 rounded-full p-3 shadow-lg",
+          "w-full overflow-x-auto scrollbar-hide bg-white/90 dark:bg-gray-900/90 backdrop-blur-lg border border-gray-200 dark:border-gray-700 rounded-full p-3 shadow-lg",
           config.buttonScale
         )}
       >
         <div
           className={cn(
-            "flex items-center justify-center",
+            "flex min-w-max items-center justify-center",
             config.buttonSpacing || "space-x-2"
           )}
         >

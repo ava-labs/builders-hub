@@ -5,7 +5,7 @@ export interface ContractInfo {
   address: string;
   name: string;
   protocol: string;
-  category: 'dex' | 'lending' | 'derivatives' | 'bridge' | 'nft' | 'yield' | 'gaming' | 'token' | 'infrastructure' | 'icm' | 'mev' | 'other';
+  category: 'dex' | 'lending' | 'derivatives' | 'bridge' | 'nft' | 'yield' | 'gaming' | 'rwa' | 'token' | 'infrastructure' | 'icm' | 'mev' | 'other';
   type: 'router' | 'factory' | 'pool' | 'vault' | 'token' | 'staking' | 'rewards' | 'orderbook' | 'controller' | 'other';
 }
 
@@ -1049,6 +1049,22 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     type: 'token',
   },
 
+  // ============ VALINOR-OATFI (RWA) ============
+  '0xe25cb545bdd47a8ec2d08001cb5661b00d47621a': {
+    address: '0xe25cb545bdd47a8ec2d08001cb5661b00d47621a',
+    name: 'Tranche Pool',
+    protocol: 'Valinor OatFi',
+    category: 'rwa',
+    type: 'vault',
+  },
+  '0x41d9569610dae2b6696797382fb26b5156db426f': {
+    address: '0x41d9569610dae2b6696797382fb26b5156db426f',
+    name: 'Borrower Operating',
+    protocol: 'Valinor OatFi',
+    category: 'rwa',
+    type: 'other',
+  },
+
   // ============ XEN CRYPTO ============
   '0x18ae1a33044b9b4ccc85dc44da8bb03b86f06600': {
     address: '0x18ae1a33044b9b4ccc85dc44da8bb03b86f06600',
@@ -1547,6 +1563,8 @@ export const PROTOCOL_SLUGS: Record<string, string> = {
   'Chainlink': 'chainlink',
   // Gaming
   'AvaxPixel': 'avaxpixel',
+  // RWA
+  'Valinor OatFi': 'valinor-oatfi',
 };
 
 // Map alternative DefiLlama slugs to canonical protocol names
@@ -1696,6 +1714,11 @@ export const SLUG_ALIASES: Record<string, string> = {
   // Gaming
   'avaxpixel': 'AvaxPixel',
   'apix': 'AvaxPixel',
+  // RWA
+  'valinor': 'Valinor OatFi',
+  'oatfi': 'Valinor OatFi',
+  'fence': 'Valinor OatFi',
+  'valinor-oatfi': 'Valinor OatFi',
 };
 
 // Get contract info by address
