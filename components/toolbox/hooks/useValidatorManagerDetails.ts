@@ -214,19 +214,34 @@ export function useValidatorManagerDetails({ subnetId }: UseValidatorManagerDeta
 
     // Fetch contract owner (no ownership verification, just fetch the owner address)
     useEffect(() => {
+        let cancelled = false;
+
         const fetchContractOwner = async () => {
             if (!chainPublicClient || !validatorManagerAddress) {
-                setContractOwner(null);
-                setOwnershipError(null);
-                setIsLoadingOwnership(false);
-                setIsOwnerContract(false);
+                if (!cancelled) {
+                    setContractOwner(null);
+                    setOwnershipError(null);
+                    setIsLoadingOwnership(false);
+                    setIsOwnerContract(false);
+                }
                 return;
             }
 
-            setIsLoadingOwnership(true);
-            setOwnershipError(null);
-            setIsOwnerContract(false);
-            setOwnerType(null);
+            if (!cancelled) {
+                setIsLoadingOwnership(true);
+                setOwnershipError(null);
+                setIsOwnerContract(false);
+                setOwnerType(null);
+            }
+
+            const timeoutId = setTimeout(() => {
+                if (!cancelled) {
+                    setContractOwner(null);
+                    setOwnershipError("Ownership check timed out.");
+                    setIsOwnerContract(false);
+                    setIsLoadingOwnership(false);
+                }
+            }, 15000);
 
             try {
                 if (!validatorManager.isReady) {
@@ -235,73 +250,109 @@ export function useValidatorManagerDetails({ subnetId }: UseValidatorManagerDeta
 
                 // Fetch contract owner address using the hook
                 const owner = await validatorManager.owner() as `0x${string}`;
+                clearTimeout(timeoutId);
 
-                setContractOwner(owner);
+                if (!cancelled) {
+                    setContractOwner(owner);
+                }
 
                 // Check if the owner is a contract by checking if it has bytecode
                 if (owner) {
                     try {
                         const bytecode = await chainPublicClient!.getBytecode({ address: owner });
                         const isContract = !!bytecode && bytecode !== '0x';
-                        setIsOwnerContract(isContract);
+                        if (!cancelled) {
+                            setIsOwnerContract(isContract);
 
-                        // If it's not a contract, set it as EOA immediately
-                        if (!isContract) {
-                            setOwnerType('EOA');
+                            // If it's not a contract, set it as EOA immediately
+                            if (!isContract) {
+                                setOwnerType('EOA');
+                            }
                         }
                     } catch (e) {
-                        console.warn("Could not check if owner is a contract:", e);
-                        setIsOwnerContract(false);
-                        setOwnerType('EOA'); // Default to EOA if we can't determine
+                        if (!cancelled) {
+                            setIsOwnerContract(false);
+                            setOwnerType('EOA'); // Default to EOA if we can't determine
+                        }
                     }
                 }
 
             } catch (e: any) {
-                setContractOwner(null);
-                setOwnershipError(e.message || "Failed to fetch contract owner information.");
-                setIsOwnerContract(false);
+                if (!cancelled) {
+                    setContractOwner(null);
+                    setOwnershipError(e.message || "Failed to fetch contract owner information.");
+                    setIsOwnerContract(false);
+                }
             } finally {
-                setIsLoadingOwnership(false);
+                clearTimeout(timeoutId);
+                if (!cancelled) {
+                    setIsLoadingOwnership(false);
+                }
             }
         };
 
         fetchContractOwner();
+        return () => { cancelled = true; };
     }, [validatorManagerAddress, chainPublicClient]);
 
     // Detect owner contract type when owner is a contract
     useEffect(() => {
+        let cancelled = false;
+
         const detectOwnerType = async () => {
             if (!isOwnerContract || !contractOwner || !chainPublicClient) {
-                setIsDetectingOwnerType(false);
+                if (!cancelled) {
+                    setIsDetectingOwnerType(false);
+                }
                 return;
             }
 
-            setIsDetectingOwnerType(true);
+            if (!cancelled) {
+                setIsDetectingOwnerType(true);
+            }
+
+            const timeoutId = setTimeout(() => {
+                if (!cancelled) {
+                    setOwnerType('StakingManager');
+                    setIsDetectingOwnerType(false);
+                }
+            }, 10000);
+
             try {
                 if (!poaManager.isReady) {
                     // If PoA Manager hook is not ready, can't detect
-                    setOwnerType('StakingManager');
+                    if (!cancelled) {
+                        setOwnerType('StakingManager');
+                    }
                     return;
                 }
 
                 // Try to call owner() function using PoAManager hook to detect if it's a PoAManager
                 const ownerAddress = await poaManager.owner();
+                clearTimeout(timeoutId);
 
                 // If we can successfully call owner() with PoAManager ABI, it's a PoAManager
-                if (ownerAddress) {
-                    setOwnerType('PoAManager');
-                } else {
-                    setOwnerType('StakingManager');
+                if (!cancelled) {
+                    if (ownerAddress) {
+                        setOwnerType('PoAManager');
+                    } else {
+                        setOwnerType('StakingManager');
+                    }
                 }
             } catch (error) {
-                console.log('Owner contract does not have PoAManager ABI structure, likely StakingManager');
-                setOwnerType('StakingManager');
+                if (!cancelled) {
+                    setOwnerType('StakingManager');
+                }
             } finally {
-                setIsDetectingOwnerType(false);
+                clearTimeout(timeoutId);
+                if (!cancelled) {
+                    setIsDetectingOwnerType(false);
+                }
             }
         };
 
         detectOwnerType();
+        return () => { cancelled = true; };
     }, [isOwnerContract, contractOwner, chainPublicClient]);
 
     return {

@@ -16,6 +16,7 @@ import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-
 import { getLinkedBytecode } from "@/components/toolbox/utils/contract-deployment";
 import { ContractDeployViewer, type ContractSource } from "@/components/console/contract-deploy-viewer";
 import { Check, BookOpen, GraduationCap } from "lucide-react";
+import { ManualAddressInput } from "./ManualAddressInput";
 import Link from "next/link";
 
 const ICM_COMMIT = versions["ava-labs/icm-contracts"];
@@ -173,10 +174,27 @@ function DeployValidatorContracts({ onSuccess }: BaseConsoleToolProps) {
                 </p>
 
                 {step1Complete ? (
-                  <div className="mt-3 flex items-center gap-2">
-                    <code className="px-2 py-1 rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 font-mono text-xs">
-                      {validatorMessagesLibAddress.slice(0, 10)}...{validatorMessagesLibAddress.slice(-6)}
-                    </code>
+                  <div className="mt-3 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <code className="px-2 py-1 rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 font-mono text-xs">
+                        {validatorMessagesLibAddress.slice(0, 10)}...{validatorMessagesLibAddress.slice(-6)}
+                      </code>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setValidatorMessagesLibAddress("");
+                          setValidatorManagerAddress("");
+                        }}
+                        className="px-2 py-1 text-xs font-medium text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 border border-zinc-200 dark:border-zinc-700 rounded-md hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors"
+                      >
+                        Redeploy
+                      </button>
+                    </div>
+                    <ManualAddressInput
+                      value={validatorMessagesLibAddress}
+                      onChange={setValidatorMessagesLibAddress}
+                      label="Or enter existing address"
+                    />
                   </div>
                 ) : (
                   <Button
@@ -246,10 +264,26 @@ function DeployValidatorContracts({ onSuccess }: BaseConsoleToolProps) {
                 </p>
 
                 {step2Complete ? (
-                  <div className="mt-3 flex items-center gap-2">
-                    <code className="px-2 py-1 rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 font-mono text-xs">
-                      {validatorManagerAddress.slice(0, 10)}...{validatorManagerAddress.slice(-6)}
-                    </code>
+                  <div className="mt-3 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <code className="px-2 py-1 rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 font-mono text-xs">
+                        {validatorManagerAddress.slice(0, 10)}...{validatorManagerAddress.slice(-6)}
+                      </code>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setValidatorManagerAddress("");
+                        }}
+                        className="px-2 py-1 text-xs font-medium text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 border border-zinc-200 dark:border-zinc-700 rounded-md hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors"
+                      >
+                        Redeploy
+                      </button>
+                    </div>
+                    <ManualAddressInput
+                      value={validatorManagerAddress}
+                      onChange={setValidatorManagerAddress}
+                      label="Or enter existing address"
+                    />
                   </div>
                 ) : (
                   <Button
