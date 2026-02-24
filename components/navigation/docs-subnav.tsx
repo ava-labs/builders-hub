@@ -118,8 +118,18 @@ export function DocsSubNav() {
                           {item.icon}
                         </div>
                         <div className="grid gap-0.5">
-                          <p className="text-sm font-medium leading-none">
+                          <p className="text-sm font-medium leading-none flex items-center gap-1.5">
                             {item.title}
+                            {item.badge && (
+                              <span className={cn(
+                                "inline-flex items-center rounded-sm px-1.5 py-0.5 text-[10px] font-bold uppercase leading-none tracking-wide text-white ring-1",
+                                item.badge === 'Deprecated'
+                                  ? "bg-zinc-500 shadow-[0_1px_3px_rgba(113,113,122,0.4)] ring-zinc-400/50"
+                                  : "bg-red-500 shadow-[0_1px_3px_rgba(239,68,68,0.4)] ring-red-400/50"
+                              )} style={{ fontStyle: 'italic', letterSpacing: '0.05em' }}>
+                                {item.badge}
+                              </span>
+                            )}
                           </p>
                           <p className="text-xs text-muted-foreground line-clamp-2">
                             {item.description}

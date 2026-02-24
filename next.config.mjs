@@ -15,9 +15,6 @@ const config = {
   outputFileTracingIncludes: {
     '/*': ['./tsconfig.json'],
   },
-  env: {
-    APIKEY: process.env.APIKEY,
-  },
   transpilePackages: ["next-mdx-remote"],
   images: {
     remotePatterns: [
@@ -482,12 +479,13 @@ const config = {
       },
       {
         source: '/hackathon',
-        destination: '/hackathons/26bfce9b-4d44-4d40-8fbe-7903e76d48fa',
+        destination: '/hackathons',
         permanent: true,
       },
+      // Build Games hackathon redirect
       {
-        source: '/events',
-        destination: '/hackathons',
+        source: '/hackathons/249d2911-7931-4aa0-a696-37d8370b79f9',
+        destination: '/build-games',
         permanent: true,
       },
       {
@@ -1250,11 +1248,6 @@ const config = {
         permanent: true,
       },
       {
-        source: "/docs/nodes/run-a-node",
-        destination: "/docs/nodes",
-        permanent: true,
-      },
-      {
         source: "/docs/reference/avalanchego/c-chain/txn-format",
         destination: "/docs/rpcs/c-chain/txn-format",
         permanent: true,
@@ -1848,6 +1841,27 @@ const config = {
         destination: "/academy/entrepreneur",
         permanent: true,
       }
+    ];
+  },
+  async rewrites() {
+    return [
+      // Rewrite .md requests to serve raw markdown content
+      {
+        source: '/docs/:path*.md',
+        destination: '/api/raw/docs/:path*',
+      },
+      {
+        source: '/academy/:path*.md',
+        destination: '/api/raw/academy/:path*',
+      },
+      {
+        source: '/blog/:path*.md',
+        destination: '/api/raw/blog/:path*',
+      },
+      {
+        source: '/integrations/:path*.md',
+        destination: '/api/raw/integrations/:path*',
+      },
     ];
   },
 };

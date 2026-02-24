@@ -1,0 +1,1013 @@
+{
+  "title": "Native Token Bridge",
+  "quizzes": {
+    "4037": {
+      "question": "What is the ERC-20 to Native bridge pattern in ICTT?",
+      "options": [
+        "Creating two identical blockchains",
+        "Eliminating the need for bridges",
+        "Locking an ERC-20 token on the source chain and minting it as the native gas token on the destination L1 using Native Minter precompile",
+        "Converting all tokens to Bitcoin, though further analysis shows this reasoning is flawed and involves additional complexity and involves additional complexity"
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "Think about making an ERC-20 become the gas token of another chain.",
+      "explanation": "The ERC-20 to Native pattern involves locking an ERC-20 token on the source chain (like C-Chain) and representing it as the native gas token on a destination L1. This uses the Native Minter precompile to mint the native currency. For example, you could lock USDC (an ERC-20) on C-Chain and have it become the native gas token on your L1, so users pay gas in USDC. This requires the destination L1 to have the Native Minter precompile enabled and properly configured.",
+      "chapter": "Native Token Bridge",
+      "alternates": [
+        {
+          "question": "What is a practical use case for the ERC-20 to Native bridge pattern in ICTT?",
+          "options": [
+            "Locking an ERC-20 token on the source chain and minting it as the native gas token on the destination L1 using the Native Minter precompile",
+            "Converting all tokens on the C-Chain to a single unified token",
+            "Eliminating the need for any gas token on the destination chain",
+            "A gaming L1 could lock USDC on C-Chain and use it as the native gas token on their chain, so players pay gas in USDC for predictable transaction costs"
+          ],
+          "correctAnswers": [
+            3
+          ],
+          "hint": "Think about application-specific chains that want a well-known token as their native currency.",
+          "explanation": "The ERC-20 to Native pattern is particularly useful for application-specific L1s that want to use a well-known ERC-20 token as their native gas currency. For example, a gaming chain could use USDC as its native token for predictable gas costs, a DeFi chain could use a major DeFi token, or an enterprise chain could use a custom ERC-20 already used in their ecosystem. Users lock the ERC-20 on C-Chain, and it becomes the native gas token on the destination L1 through the Native Minter precompile."
+        },
+        {
+          "question": "In the ERC-20 to Native bridge pattern, what contract type is deployed on the source chain versus the destination chain?",
+          "options": [
+            "ERC20TokenHome on the source chain locks ERC-20 tokens, while NativeTokenRemote on the destination chain mints native gas tokens via the Native Minter precompile",
+            "NativeTokenHome on both chains for symmetry",
+            "ERC20TokenRemote on the source and ERC20TokenHome on the destination",
+            "A single bridge contract that handles locking an ERC-20 and minting it as native token simultaneously"
+          ],
+          "correctAnswers": [
+            0
+          ],
+          "hint": "Think about which side locks ERC-20 tokens and which side mints native tokens.",
+          "explanation": "The source chain (e.g., C-Chain) deploys an ERC20TokenHome contract that locks the original ERC-20 tokens as collateral when users initiate a bridge. The destination L1 deploys a NativeTokenRemote contract that uses the Native Minter precompile to mint the chain's native gas token when it receives the cross-chain message. This pairing (ERC20TokenHome + NativeTokenRemote) is what enables the transformation from an ERC-20 token on one chain to a native gas token on another."
+        }
+      ]
+    },
+    "4038": {
+      "question": "When creating an L1 for ERC-20 to Native bridging, what precompile must be enabled?",
+      "options": [
+        "The Native Minter precompile must be enabled to allow the TokenRemote contract to mint the native token",
+        "No precompiles are needed",
+        "All precompiles must be enabled, despite appearing correct based on incomplete information and involves additional complexity",
+        "Only the Fee Config precompile"
+      ],
+      "correctAnswers": [
+        0
+      ],
+      "hint": "Think about what capability is needed to create native tokens on demand.",
+      "explanation": "The Native Minter precompile must be enabled when creating an L1 for ERC-20 to Native bridging. This precompile allows authorized addresses (specifically the NativeTokenRemote contract) to mint the native gas token when users bridge tokens from the source chain. During L1 creation, you configure which addresses have minting permissions. Without the Native Minter precompile, the destination chain cannot create native tokens in response to bridge operations.",
+      "chapter": "Native Token Bridge",
+      "alternates": [
+        {
+          "question": "What happens if you try to deploy a NativeTokenRemote contract on an L1 without the Native Minter precompile enabled?",
+          "options": [
+            "The precompile is automatically enabled during deployment",
+            "The Native Minter precompile must be enabled to allow the TokenRemote contract to mint the native token",
+            "The contract falls back to minting ERC-20 tokens instead",
+            "The contract deploys successfully but cannot mint native tokens, making the bridge non-functional for incoming transfers"
+          ],
+          "correctAnswers": [
+            3
+          ],
+          "hint": "Think about what the contract needs to do when it receives a bridge message but lacks minting permission.",
+          "explanation": "If the Native Minter precompile is not enabled in the chain's genesis configuration, the NativeTokenRemote contract can still be deployed as a smart contract, but it will fail when attempting to mint native tokens. When a bridge transfer arrives and the contract tries to call the Native Minter to create native tokens, the call will revert because the precompile is not active. Users' tokens would be locked on the source chain with no corresponding native tokens minted on the destination."
+        },
+        {
+          "question": "Besides enabling the Native Minter precompile, what must be configured for the NativeTokenRemote contract? (Select all that apply)",
+          "options": [
+            "All precompiles must be enabled in the genesis to support native token operations",
+            "The NativeTokenRemote contract address must be added to the Native Minter's allow list with at least the Enabled role",
+            "This permission is typically configured in the chain's genesis before launch",
+            "The contract needs approval from the P-Chain validators"
+          ],
+          "correctAnswers": [
+            1,
+            2
+          ],
+          "hint": "Think about the role-based access model of precompiles and when permissions are set.",
+          "explanation": "The Native Minter precompile uses a role-based access model. Simply enabling the precompile is not sufficient; the specific address where the NativeTokenRemote contract will be deployed must be added to the precompile's allow list with at least the Enabled role. This is typically configured in the chain's genesis configuration before launch, specifying the contract address in the Native Minter's allowed addresses. Without this explicit permission, the contract's mint calls will be rejected by the precompile's access control."
+        }
+      ]
+    },
+    "4039": {
+      "question": "Why is a relayer necessary for the native token bridge to function? (Select all that apply)",
+      "options": [
+        "To store tokens permanently, but this does not accurately reflect the underlying architecture and involves additional complexity and involves additional complexity",
+        "To validate transactions on both chains",
+        "To mint new tokens on the source chain",
+        "To observe the source chain for ICM messages and deliver them to the destination chain, enabling the actual cross-chain token movement"
+      ],
+      "correctAnswers": [
+        1,
+        3
+      ],
+      "hint": "Think about the message delivery mechanism.",
+      "explanation": "A relayer is necessary because it provides the transport layer for cross-chain messages. When tokens are locked on the source chain, an ICM message is created, but this message doesn't automatically appear on the destination chain. The relayer observes the source chain for these messages and physically delivers them to the destination chain, where the remote contract can process them and mint tokens. Without a relayer, messages would be created but never delivered, and the bridge would not function.",
+      "chapter": "Native Token Bridge",
+      "alternates": [
+        {
+          "question": "Can a cross-chain token bridge function without a relayer, and why or why not?",
+          "options": [
+            "Yes, AWM messages are automatically delivered to the destination chain by the P-Chain",
+            "Yes, smart contracts can pull messages directly from other chains",
+            "To observe the source chain for ICM messages and deliver them to the destination chain, enabling cross-chain token movement",
+            "No, because while AWM handles message signing, the relayer provides the physical transport by submitting the signed message as a transaction on the destination chain"
+          ],
+          "correctAnswers": [
+            3
+          ],
+          "hint": "Think about who actually submits the transaction on the destination chain.",
+          "explanation": "A bridge cannot function without a relayer. When tokens are locked on the source chain, the source L1's validators sign an AWM message confirming the action. However, this signed message exists only on the source chain. Someone must aggregate these validator signatures, construct a transaction containing the signed message, and submit it on the destination chain, paying the gas fee there. The relayer performs this critical delivery function. Without it, the message would be signed and valid but never reach the destination."
+        },
+        {
+          "question": "What costs does a relayer incur when delivering a cross-chain bridge message? (Select all that apply)",
+          "options": [
+            "The relayer must pay gas fees on the destination chain to submit the delivery transaction",
+            "The relayer must pay for querying and aggregating BLS signatures from the source L1's validators",
+            "The relayer must store tokens permanently on both chains",
+            "The relayer must validate transactions on both chains using its own validator stake"
+          ],
+          "correctAnswers": [
+            0,
+            1
+          ],
+          "hint": "Think about the computational and transaction costs involved in picking up and delivering a message.",
+          "explanation": "Relayers incur two main categories of costs: they must pay gas fees on the destination chain to submit the transaction that delivers the cross-chain message, and they must cover the computational costs of running infrastructure to monitor the source chain, query validators for BLS signatures, and aggregate those signatures into a valid proof. This is why relayers need economic incentives, either through message fees attached by senders or through the L1 operator subsidizing relay operations."
+        }
+      ]
+    },
+    "4040": {
+      "question": "What is the role of the ERC20TokenHome contract in an ERC-20 to Native bridge?",
+      "options": [
+        "To store user passwords, despite what many developers initially assume about the system and involves additional complexity and involves additional complexity",
+        "To pay validators",
+        "To create new ERC-20 tokens",
+        "To lock the source ERC-20 tokens as collateral and coordinate with the remote contract to mint native tokens on the destination"
+      ],
+      "correctAnswers": [
+        3
+      ],
+      "hint": "Think about what happens to the ERC-20 tokens on the source chain.",
+      "explanation": "The ERC20TokenHome contract manages the ERC-20 tokens on the source chain by locking them as collateral when users initiate a bridge transaction. It coordinates with the NativeTokenRemote contract on the destination through ICM messages, triggering the minting of equivalent native tokens on the destination L1. It also tracks how many tokens are locked for each remote and handles unlocking when tokens are bridged back.",
+      "chapter": "Native Token Bridge",
+      "alternates": [
+        {
+          "question": "How does the ERC20TokenHome contract differ in an ERC-20 to Native bridge versus an ERC-20 to ERC-20 bridge?",
+          "options": [
+            "It locks ERC-20 tokens as collateral and coordinates with the remote to mint native tokens on the destination",
+            "It must use a different contract version for native bridges",
+            "It mints new ERC-20 tokens instead of locking them in the native bridge pattern",
+            "The ERC20TokenHome contract functions identically in both cases; the difference is entirely in which remote contract is deployed on the destination"
+          ],
+          "correctAnswers": [
+            3
+          ],
+          "hint": "Think about whether the home contract's behavior changes based on the remote contract type.",
+          "explanation": "The ERC20TokenHome contract behaves identically regardless of whether the destination uses ERC20TokenRemote or NativeTokenRemote. Its job is always the same: lock ERC-20 tokens as collateral, track per-remote balances, and send Interchain Messages about the locked amounts. The difference lies entirely on the destination side: an ERC20TokenRemote mints wrapped ERC-20 tokens, while a NativeTokenRemote uses the Native Minter precompile to mint native gas tokens. The home contract is agnostic to this distinction."
+        },
+        {
+          "question": "What happens at the ERC20TokenHome contract when a user bridges native tokens back from the destination L1?",
+          "options": [
+            "It creates new ERC-20 tokens to replace the returning native tokens",
+            "It stores the password and authentication for the returning user's wallet",
+            "It receives the Interchain Message confirming the burn on the destination chain, then unlocks and transfers the equivalent locked ERC-20 tokens back to the user",
+            "It forwards the native tokens to the P-Chain for validation"
+          ],
+          "correctAnswers": [
+            2
+          ],
+          "hint": "Think about the reverse of the lock process when tokens return.",
+          "explanation": "When native tokens are burned on the destination L1 to bridge back, the NativeTokenRemote sends an Interchain Message to the ERC20TokenHome. The home contract processes this message by verifying the burn amount, updating its internal collateral accounting (reducing the allocation for that remote), and then transferring the equivalent amount of the original locked ERC-20 tokens back to the user's address on the source chain. The user receives back the same ERC-20 tokens they originally bridged."
+        }
+      ]
+    },
+    "4041": {
+      "question": "What is unique about the NativeTokenRemote contract compared to ERC20TokenRemote?",
+      "options": [
+        "It's easier to deploy",
+        "It's more expensive to use",
+        "It uses the Native Minter precompile to mint and burn the destination chain's native gas token rather than ERC-20 tokens",
+        "It doesn't require registration, although some early documentation may have suggested otherwise and involves additional complexity"
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "Think about what type of token is being created on the destination.",
+      "explanation": "NativeTokenRemote is unique because it mints and burns the destination chain's native gas token using the Native Minter precompile, rather than minting ERC-20 tokens like ERC20TokenRemote does. This means bridged tokens become the actual native currency that users pay for gas. The contract must be granted Native Minter permissions during L1 setup. It implements the IWrappedNativeToken interface and always uses 18 decimals (standard for native EVM tokens).",
+      "chapter": "Native Token Bridge",
+      "alternates": [
+        {
+          "question": "What interface does NativeTokenRemote implement that ERC20TokenRemote does not, and why?",
+          "options": [
+            "NativeTokenRemote is easier to deploy and does not need any special interfaces",
+            "It uses the Native Minter precompile to mint and burn the destination chain's native gas token rather than ERC-20 tokens",
+            "NativeTokenRemote implements IERC721 to support non-fungible token bridging",
+            "NativeTokenRemote implements IWrappedNativeToken, allowing users to wrap and unwrap the native asset, similar to how WETH works on Ethereum"
+          ],
+          "correctAnswers": [
+            3
+          ],
+          "hint": "Think about the need to convert between native tokens and an ERC-20 representation on the same chain.",
+          "explanation": "NativeTokenRemote implements the IWrappedNativeToken interface, similar to WETH (Wrapped Ether) on Ethereum. This is necessary because the contract mints native gas tokens, but DeFi applications on the destination chain may still need an ERC-20 representation. The IWrappedNativeToken interface allows users to deposit native tokens to receive an ERC-20 version and withdraw to convert back, providing compatibility with both native operations (gas fees) and ERC-20 operations (DeFi protocols)."
+        },
+        {
+          "question": "Why does NativeTokenRemote always enforce 18 decimals, and what implications does this have for bridging tokens with different decimal configurations?",
+          "options": [
+            "It does not require registration, making decimal configuration unnecessary",
+            "NativeTokenRemote is more expensive to use because 18 decimals requires more storage",
+            "All ERC-20 tokens already use 18 decimals, so no conversion is needed",
+            "18 decimals is the EVM native asset standard; if the source ERC-20 has different decimals (e.g., USDC with 6), the ICTT system handles decimal conversion during bridging"
+          ],
+          "correctAnswers": [
+            3
+          ],
+          "hint": "Think about what happens when a 6-decimal token becomes an 18-decimal native asset.",
+          "explanation": "Native EVM assets universally use 18 decimals (1 token = 10^18 wei), so NativeTokenRemote enforces this standard. When bridging an ERC-20 with different decimals (like USDC with 6 decimals), the ICTT system must handle decimal scaling during the bridging process. The token amounts are scaled up or down to maintain the correct value representation. This decimal conversion is built into the ICTT protocol to ensure that the native token on the destination chain correctly represents the locked collateral value on the source chain."
+        }
+      ]
+    },
+    "4042": {
+      "question": "Why must you add collateral to the ERC20TokenHome contract before bridging tokens?",
+      "options": [
+        "To ensure the home contract has tokens available to lock when users bridge, maintaining the 1:1 backing between locked source tokens and minted destination tokens",
+        "To pay the developers",
+        "Collateral is not actually necessary, but this does not accurately reflect the underlying architecture and involves additional complexity and involves additional complexity",
+        "To increase gas fees"
+      ],
+      "correctAnswers": [
+        0
+      ],
+      "hint": "Think about what backs the native tokens minted on the destination.",
+      "explanation": "Adding collateral to the ERC20TokenHome contract ensures there are tokens available to lock when users initiate bridge transactions. This maintains the fundamental 1:1 backing guarantee—for every native token minted on the destination L1, there must be an equivalent ERC-20 token locked as collateral on the source chain. Without sufficient collateral, bridge operations would fail or the peg would break. Collateral must be approved and transferred to the home contract before bridge operations can begin.",
+      "chapter": "Native Token Bridge",
+      "alternates": [
+        {
+          "question": "What happens if a user attempts to bridge tokens before the ERC20TokenHome contract is fully collateralized?",
+          "options": [
+            "The bridge mints unbacked tokens on the destination L1",
+            "The bridge transaction will fail because the NativeTokenRemote requires full collateralization before minting is enabled",
+            "The home contract has tokens available to lock, maintaining the 1:1 backing between locked source tokens and minted destination tokens",
+            "The relayer automatically adds collateral from the user's wallet"
+          ],
+          "correctAnswers": [
+            1
+          ],
+          "hint": "Think about the collateralization requirement and when minting becomes enabled.",
+          "explanation": "The NativeTokenRemote contract requires full collateralization before it enables minting of native tokens. If a user tries to bridge before the required collateral (equal to the initialReserveImbalance) has been deposited, the transaction will fail. This safeguard ensures every native token minted on the destination is backed 1:1 by locked ERC-20 tokens on the source chain."
+        },
+        {
+          "question": "In the ERC-20 to Native bridge, what determines the amount of collateral that must be deposited to the ERC20TokenHome contract?",
+          "options": [
+            "The total gas fees paid on the destination L1",
+            "The number of validators on the destination chain",
+            "It ensures tokens are available to lock when bridging, maintaining the 1:1 backing guarantee",
+            "The initialReserveImbalance value set during NativeTokenRemote deployment, representing the pre-existing native token supply that needs backing"
+          ],
+          "correctAnswers": [
+            3
+          ],
+          "hint": "Think about what value is configured when deploying the remote contract.",
+          "explanation": "The collateral amount is determined by the initialReserveImbalance parameter set during NativeTokenRemote deployment. This value represents any pre-existing native token supply on the destination L1 that needs to be backed by locked ERC-20 tokens. If initialReserveImbalance is set to 0, no collateral deposit may be needed. The collateral must be fully deposited before the bridge enables minting operations."
+        }
+      ]
+    },
+    "4043": {
+      "question": "What happens during the complete bridge process when transferring ERC-20 tokens to become native tokens on the destination L1? (Select all that apply)",
+      "options": [
+        "Tokens are destroyed on the source chain",
+        "ERC-20 tokens are locked in TokenHome, an ICM message is relayed, and NativeTokenRemote mints equivalent native tokens to the user's address",
+        "Tokens are duplicated on both chains",
+        "The user must manually move tokens, even though this sounds plausible at first glance and involves additional complexity and involves additional complexity"
+      ],
+      "correctAnswers": [
+        0,
+        1
+      ],
+      "hint": "Think about the lock, relay, and mint sequence.",
+      "explanation": "The complete bridge process involves: 1) User approves and calls the ERC20TokenHome contract to lock their ERC-20 tokens as collateral, 2) TokenHome emits an ICM message about the transfer, 3) A relayer picks up this message and delivers it to the destination L1, 4) NativeTokenRemote receives the message and uses the Native Minter precompile to mint equivalent native tokens to the user's address. The bridged tokens are now the native gas token on the destination L1. To bridge back, the process reverses—native tokens are burned and ERC-20s are unlocked.",
+      "chapter": "Native Token Bridge",
+      "alternates": [
+        {
+          "question": "What role does the relayer play in the ERC-20 to Native token bridge process?",
+          "options": [
+            "It locks ERC-20 tokens in TokenHome and mints native tokens on the destination",
+            "It validates blocks on both the source and destination chains",
+            "It converts ERC-20 tokens directly into native tokens through a swap mechanism",
+            "It observes the source chain for ICM messages and submits them to the destination chain, enabling the bridge transaction to complete"
+          ],
+          "correctAnswers": [
+            3
+          ],
+          "hint": "Think about how messages physically move from one chain to another.",
+          "explanation": "The relayer is a critical transport layer in the bridge process. After ERC-20 tokens are locked in TokenHome and an ICM message is emitted, the relayer observes the source chain, detects the message, and submits it to the destination chain. Without the relayer, the ICM message would never reach the NativeTokenRemote contract, and no native tokens would be minted. The relayer must be funded with gas tokens on both chains."
+        },
+        {
+          "question": "In the ERC-20 to Native bridge, what must happen before a user can initiate a bridge transaction? (Select all that apply)",
+          "options": [
+            "The NativeTokenRemote must be registered with the ERC20TokenHome via registerWithHome",
+            "ERC-20 tokens are locked in TokenHome and an ICM message is relayed to mint native tokens",
+            "The user must approve the ERC20TokenHome contract to spend their ERC-20 tokens",
+            "The destination L1 must disable the Native Minter precompile"
+          ],
+          "correctAnswers": [
+            0,
+            2
+          ],
+          "hint": "Think about both the bridge setup requirements and the ERC-20 token approval pattern.",
+          "explanation": "Two things must happen before bridging: (1) The NativeTokenRemote contract must be registered with the ERC20TokenHome by calling registerWithHome, which establishes the authorized bridge route via ICM. (2) The user must approve the ERC20TokenHome contract to spend their ERC-20 tokens, since ERC-20 transfers require explicit approval before a contract can move tokens on the user's behalf."
+        }
+      ]
+    },
+    "4044": {
+      "question": "What is the Native to ERC-20 bridge pattern?",
+      "options": [
+        "Creating new blockchains automatically, although some early documentation may have suggested otherwise and involves additional complexity and involves additional complexity",
+        "Locking native tokens on the source L1 and minting them as ERC-20 tokens on the destination chain, reversing the ERC-20 to Native pattern",
+        "Converting Bitcoin to Ethereum",
+        "Mining cryptocurrency"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Think about the opposite direction from ERC-20 to Native.",
+      "explanation": "The Native to ERC-20 pattern is the reverse of ERC-20 to Native bridging. It involves locking the native gas token on a source L1 and minting wrapped versions as ERC-20 tokens on the destination chain (often C-Chain or another L1). For example, if your L1 has a custom native token, you can bridge it to C-Chain as an ERC-20. This makes the native token of your L1 tradeable and usable in DeFi applications on other chains. The NativeTokenHome contract manages locking, while ERC20TokenRemote handles minting.",
+      "chapter": "Native Token Bridge",
+      "alternates": [
+        {
+          "question": "Which contracts are involved in the Native to ERC-20 bridge and what chain are they deployed on?",
+          "options": [
+            "Both NativeTokenHome and ERC20TokenRemote are deployed on the same chain",
+            "Only a single bridge contract is needed on the destination chain",
+            "ERC20TokenHome on C-Chain locks ERC-20 tokens when bridging out",
+            "NativeTokenHome on the source L1 wraps and locks native tokens, while ERC20TokenRemote on the destination chain mints ERC-20 representations"
+          ],
+          "correctAnswers": [
+            3
+          ],
+          "hint": "Think about which contract handles the source chain's native tokens and which mints tokens on the destination.",
+          "explanation": "The Native to ERC-20 bridge uses NativeTokenHome deployed on the source L1 (where the native token lives) and ERC20TokenRemote deployed on the destination chain (e.g., C-Chain). NativeTokenHome wraps native tokens to their ERC-20 wrapper (like WTEST) and locks them. ERC20TokenRemote receives ICM messages and mints ERC-20 representations of the native token on the destination chain."
+        },
+        {
+          "question": "What is a key difference between the Native to ERC-20 bridge pattern and the ERC-20 to Native pattern regarding precompile requirements?",
+          "options": [
+            "Native to ERC-20 requires the Native Minter precompile on the destination chain",
+            "Both patterns require identical precompile configurations",
+            "It locks native tokens on the source and mints ERC-20 tokens on the destination, reversing the ERC-20 to Native pattern",
+            "Native to ERC-20 does not require the Native Minter precompile since it mints ERC-20 tokens via a smart contract rather than native tokens"
+          ],
+          "correctAnswers": [
+            3
+          ],
+          "hint": "Think about what type of token is being created on the destination and whether a precompile is needed for that.",
+          "explanation": "The Native to ERC-20 pattern does not require the Native Minter precompile on the destination chain because it mints ERC-20 tokens through a smart contract (ERC20TokenRemote), not native tokens. In contrast, the ERC-20 to Native and Native to Native patterns require the Native Minter precompile because they mint native gas tokens on the destination, which can only be done at the protocol level through the precompile."
+        }
+      ]
+    },
+    "4045": {
+      "question": "Why deploy a wrapped ERC-20 token contract on the destination chain in Native to ERC-20 bridging?",
+      "options": [
+        "To make transactions faster",
+        "To provide the ERC-20 representation that will be minted when users bridge native tokens from the source L1",
+        "Wrapped tokens are not needed",
+        "To pay validators, although some early documentation may have suggested otherwise and involves additional complexity"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Think about what token standard users need on the destination.",
+      "explanation": "Deploying a wrapped ERC-20 token contract on the destination chain provides the token that will represent the source L1's native token. When users bridge native tokens from the source L1, the ERC20TokenRemote contract mints these wrapped ERC-20 tokens on the destination. This makes the source L1's native token compatible with the ERC-20 ecosystem, allowing it to be used in DeFi, traded on DEXes, or integrated with wallets that expect ERC-20 tokens. Users can later burn these wrapped tokens to redeem their native tokens on the source L1.",
+      "chapter": "Native Token Bridge",
+      "alternates": [
+        {
+          "question": "In the Native to ERC-20 bridge, why does the NativeTokenHome contract need a wrapped token (like WTEST)?",
+          "options": [
+            "To increase the value of the native token through wrapping",
+            "To allow the Native Minter precompile to mint tokens",
+            "To provide the ERC-20 representation that will be minted when users bridge native tokens from the source L1",
+            "Because native tokens cannot be directly handled by smart contracts that use the ERC-20 interface for locking and tracking collateral"
+          ],
+          "correctAnswers": [
+            3
+          ],
+          "hint": "Think about why native tokens need to be converted to an ERC-20 format before being locked.",
+          "explanation": "NativeTokenHome requires a wrapped token because native tokens do not conform to the ERC-20 standard. Smart contracts that manage collateral use ERC-20 functions like transferFrom and balanceOf for locking and tracking. By wrapping native tokens into an ERC-20 format (e.g., TEST becomes WTEST), the contract can properly lock, track, and release the collateral using standard token interfaces."
+        },
+        {
+          "question": "What happens to the wrapped ERC-20 tokens on the destination chain when a user wants to bridge back to the source L1?",
+          "options": [
+            "The wrapped tokens are transferred to a governance multisig for safekeeping",
+            "The ERC-20 tokens on the destination are burned, triggering an ICM message that causes NativeTokenHome to release the locked native tokens on the source L1",
+            "The ERC-20 tokens on the destination are converted to provide ERC-20 representation for bridging",
+            "The wrapped tokens remain on the destination and new tokens are minted on the source"
+          ],
+          "correctAnswers": [
+            1
+          ],
+          "hint": "Think about the reverse process: what must happen to destination tokens to unlock source tokens.",
+          "explanation": "When bridging back, the user's ERC-20 tokens on the destination chain are burned by the ERC20TokenRemote contract. This burn triggers an ICM message that is relayed to the source L1, where NativeTokenHome receives it and releases (unwraps and sends) the equivalent native tokens back to the user. This ensures the total supply across both chains remains consistent."
+        }
+      ]
+    },
+    "4046": {
+      "question": "When creating an L1 for Native to ERC-20 bridging, what special configuration is needed?",
+      "options": [
+        "The L1 must use AVAX as gas token",
+        "All validators must be replaced",
+        "No special configuration is needed, which would actually introduce several security vulnerabilities and involves additional complexity",
+        "The source L1 needs Native Minter precompile enabled so the NativeTokenHome contract can manage native token locking and unlocking"
+      ],
+      "correctAnswers": [
+        3
+      ],
+      "hint": "Think about what permissions the home contract needs.",
+      "explanation": "The source L1 needs to have the Native Minter precompile enabled and the NativeTokenHome contract must be granted appropriate permissions. While the contract locks native tokens received from users (rather than actively minting), having Native Minter permissions may be necessary for certain operations and ensures the contract can properly interact with the native token system. The L1's VM must be configured to allow the TokenHome contract to handle native token operations.",
+      "chapter": "Native Token Bridge",
+      "alternates": [
+        {
+          "question": "What is the address of the Native Minter precompile on Avalanche L1s, and how is it configured?",
+          "options": [
+            "It is deployed at any arbitrary address by the chain creator",
+            "It uses the same address as the ERC20TokenHome contract",
+            "The source L1 needs Native Minter precompile enabled so NativeTokenHome can manage native token locking and unlocking",
+            "It is at address 0x0200000000000000000000000000000000000001 and must be configured in the chain's genesis with authorized contract addresses"
+          ],
+          "correctAnswers": [
+            3
+          ],
+          "hint": "Think about where built-in precompiles live and how permissions are granted.",
+          "explanation": "The Native Minter precompile is located at the fixed address 0x0200000000000000000000000000000000000001 on all Avalanche L1s. It must be enabled in the chain's genesis configuration, and specific contract addresses must be granted permission (added to the allowlist) to call its minting functions. Without proper configuration in the genesis, contracts cannot mint native tokens."
+        },
+        {
+          "question": "For the ERC-20 to Native bridge pattern, why must the NativeTokenRemote contract specifically be granted permissions on the Native Minter precompile? (Select all that apply)",
+          "options": [
+            "So it can mint native gas tokens when it receives ICM bridge messages from the source chain",
+            "So it can validate transactions on the destination L1",
+            "The source L1 needs this configuration to manage native token locking and unlocking",
+            "Because only explicitly authorized addresses can call the precompile's mintNativeCoin function"
+          ],
+          "correctAnswers": [
+            0,
+            3
+          ],
+          "hint": "Think about who creates the native tokens and what permission model the precompile uses.",
+          "explanation": "NativeTokenRemote needs Native Minter permissions for two reasons: (1) It is the contract responsible for minting native gas tokens when bridge messages arrive from the source chain via ICM, and (2) the Native Minter precompile uses an allowlist model where only explicitly authorized addresses can call mintNativeCoin. Without these permissions, the remote contract would receive bridge messages but be unable to mint the corresponding native tokens."
+        }
+      ]
+    },
+    "4047": {
+      "question": "How does the relayer setup for Native to ERC-20 bridging differ from ERC-20 to Native? (Select all that apply)",
+      "options": [
+        "No relayer is needed for Native to ERC-20",
+        "Relayers work automatically without configuration",
+        "The relayer configuration is essentially the same—it needs to observe both chains and deliver ICM messages in both directions",
+        "Native to ERC-20 requires three relayers, though this reasoning fails to account for key constraints and involves additional complexity"
+      ],
+      "correctAnswers": [
+        1,
+        2
+      ],
+      "hint": "Think about bidirectional message delivery.",
+      "explanation": "The relayer setup for Native to ERC-20 bridging is essentially the same as ERC-20 to Native—a relayer must observe both chains and deliver ICM messages in both directions. When native tokens are locked on the source L1, the relayer delivers messages to the destination to trigger ERC-20 minting. When users bridge back, it delivers messages to unlock native tokens. The relayer must be funded with gas tokens on both chains to pay for message delivery transactions.",
+      "chapter": "Native Token Bridge",
+      "alternates": [
+        {
+          "question": "What does a relayer need to operate in a cross-chain token bridge? (Select all that apply)",
+          "options": [
+            "Gas tokens on both the source and destination chains to pay for message delivery transactions",
+            "The relayer configuration is essentially the same for all bridge patterns, observing both chains and delivering ICM messages",
+            "The ability to observe both chains and detect ICM messages emitted by bridge contracts",
+            "Special validator permissions granted by the P-Chain"
+          ],
+          "correctAnswers": [
+            0,
+            2
+          ],
+          "hint": "Think about what a relayer needs to detect and deliver messages across chains.",
+          "explanation": "Relayers need two things to operate: (1) Gas tokens on both chains, since delivering an ICM message requires submitting a transaction on the destination chain (and on the source chain for bidirectional bridging), which costs gas. (2) The ability to observe both chains to detect ICM messages emitted by bridge contracts. Relayers do not need validator permissions; they operate at the application layer, independently from consensus."
+        },
+        {
+          "question": "What happens if the relayer goes offline during a token bridge operation?",
+          "options": [
+            "The ICM message remains pending; tokens stay locked on the source chain until a relayer delivers the message to the destination chain",
+            "The tokens are automatically refunded to the sender",
+            "The bridge contract automatically handles message delivery without a relayer",
+            "Relayers work automatically without configuration, so this scenario cannot occur"
+          ],
+          "correctAnswers": [
+            0
+          ],
+          "hint": "Think about what happens to the locked tokens and the undelivered ICM message.",
+          "explanation": "If the relayer goes offline, the ICM message created by the source chain contract sits undelivered. The tokens remain locked in the home contract on the source chain, but no native or ERC-20 tokens are minted on the destination because the message never arrives. Once a relayer comes back online (or another relayer picks up the message), it can still be delivered and the bridge completes. The tokens are not lost, just delayed."
+        }
+      ]
+    },
+    "4048": {
+      "question": "What is the role of NativeTokenHome in the Native to ERC-20 bridge?",
+      "options": [
+        "To validate all transactions",
+        "To set gas prices, but in reality the system operates quite differently and involves additional complexity and involves additional complexity",
+        "To lock native tokens received from users and coordinate with ERC20TokenRemote to mint equivalent ERC-20 tokens on the destination",
+        "To create new native tokens"
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "Think about what happens to native tokens when bridging.",
+      "explanation": "NativeTokenHome manages the locking of native tokens on the source L1. When users send native tokens to the contract (via a payable function), it locks them as collateral and sends an ICM message to the destination chain. This triggers the ERC20TokenRemote to mint equivalent ERC-20 tokens. The contract tracks how many native tokens are locked for each remote and handles releasing them when ERC-20 tokens are burned and bridged back.",
+      "chapter": "Native Token Bridge",
+      "alternates": [
+        {
+          "question": "How does NativeTokenHome handle native tokens differently from ERC20TokenHome when locking collateral? (Select all that apply)",
+          "options": [
+            "NativeTokenHome accepts native tokens via payable functions, while ERC20TokenHome requires users to pre-approve ERC-20 token transfers",
+            "NativeTokenHome locks native tokens to coordinate with ERC20TokenRemote for minting equivalent ERC-20 tokens on the destination",
+            "NativeTokenHome must internally wrap native tokens to an ERC-20 format before locking, while ERC20TokenHome receives tokens already in ERC-20 format",
+            "NativeTokenHome requires the Native Minter precompile while ERC20TokenHome does not need any precompile"
+          ],
+          "correctAnswers": [
+            0,
+            2
+          ],
+          "hint": "Think about how native tokens vs ERC-20 tokens are received and processed by smart contracts.",
+          "explanation": "NativeTokenHome differs from ERC20TokenHome in two key ways: (1) It uses Solidity's payable keyword to receive native tokens directly via msg.value, while ERC20TokenHome requires users to approve the contract to spend their ERC-20 tokens via the approve/transferFrom pattern. (2) NativeTokenHome must internally wrap native tokens to an ERC-20 format (e.g., AVAX to WAVAX) because the contract needs ERC-20 interfaces for locking and tracking. ERC20TokenHome receives tokens already in ERC-20 format, so no wrapping is needed."
+        },
+        {
+          "question": "In the Native to ERC-20 bridge, what is WAVAX and why is it used by NativeTokenHome on Fuji C-Chain?",
+          "options": [
+            "WAVAX is a governance token used to vote on bridge parameters",
+            "WAVAX is the ERC-20 wrapped version of native AVAX, used because NativeTokenHome needs an ERC-20 interface to lock and track collateral internally",
+            "WAVAX is a separate token that replaces AVAX for bridging purposes",
+            "NativeTokenHome locks native tokens and coordinates ICM messages for ERC-20 minting on the destination"
+          ],
+          "correctAnswers": [
+            1
+          ],
+          "hint": "Think about why native tokens need to be converted to an ERC-20 format for the home contract.",
+          "explanation": "WAVAX (Wrapped AVAX) is the ERC-20 representation of native AVAX. NativeTokenHome uses WAVAX because native tokens don't conform to the ERC-20 standard that the contract uses internally for locking and tracking collateral. When a user sends native AVAX to NativeTokenHome, the contract automatically wraps it to WAVAX, locks it, and then sends an ICM message to the destination chain. Fuji C-Chain already has a deployed WAVAX contract that the bridge tooling automatically detects."
+        }
+      ]
+    },
+    "4049": {
+      "question": "Why does the ERC20TokenRemote contract need to inherit both token transfer and ERC-20 functionality?",
+      "options": [
+        "To handle cross-chain message receiving while also implementing the standard ERC-20 interface for compatibility with wallets and dApps",
+        "This is not necessary",
+        "To reduce gas costs",
+        "To make it more complex, despite being a frequently cited but incorrect explanation and involves additional complexity and involves additional complexity"
+      ],
+      "correctAnswers": [
+        0
+      ],
+      "hint": "Think about what the contract needs to do and what other contracts expect.",
+      "explanation": "ERC20TokenRemote must inherit both token transfer functionality (to receive and process ICM messages from the TokenHome) and ERC-20 functionality (to provide the standard transfer, approve, balanceOf, etc. functions). This dual inheritance ensures the contract can receive cross-chain messages to mint/burn tokens while also being compatible with wallets, DEXes, and dApps that expect the standard ERC-20 interface. Users can interact with the bridged token just like any other ERC-20 token.",
+      "chapter": "Native Token Bridge",
+      "alternates": [
+        {
+          "question": "What standard ERC-20 functions does the ERC20TokenRemote contract expose, and why are they important?",
+          "options": [
+            "It only exposes mint and burn functions since it is a bridge contract",
+            "It handles cross-chain message receiving while implementing the standard ERC-20 interface for wallet and dApp compatibility",
+            "It exposes only the transferFrom function since that is all wallets need",
+            "It exposes transfer, approve, balanceOf, and other standard ERC-20 functions so bridged tokens are compatible with DEXes, wallets, and DeFi protocols"
+          ],
+          "correctAnswers": [
+            3
+          ],
+          "hint": "Think about what functions wallets and DeFi protocols expect when interacting with a token.",
+          "explanation": "ERC20TokenRemote exposes the full standard ERC-20 interface including transfer, approve, transferFrom, balanceOf, totalSupply, and allowance functions. This is critical because wallets, DEXes, lending protocols, and other DeFi applications expect tokens to implement this standard interface. Without these functions, bridged tokens would be unusable in the broader ecosystem even though they represent real value backed by locked tokens on the source chain."
+        },
+        {
+          "question": "How does ERC20TokenRemote know when to mint or burn tokens?",
+          "options": [
+            "It polls the source chain periodically for new bridge transactions",
+            "Validators on the destination chain trigger minting automatically",
+            "It receives ICM messages from the TokenHome contract via the relayer, which contain instructions to mint tokens for bridge-in or trigger burns for bridge-back operations",
+            "It relies on the cross-chain message receiving and ERC-20 functionality it inherits from both parent contracts"
+          ],
+          "correctAnswers": [
+            2
+          ],
+          "hint": "Think about the communication mechanism between the source and destination contracts.",
+          "explanation": "ERC20TokenRemote processes ICM (Interchain Messaging) messages delivered by relayers from the source chain. When a user bridges tokens, the TokenHome contract on the source chain emits an ICM message containing the recipient address and amount. The relayer picks up this message and submits it to the destination chain, where ERC20TokenRemote decodes it and mints the corresponding ERC-20 tokens. For bridge-back operations, the remote burns tokens and sends an ICM message to the home contract to release locked collateral."
+        }
+      ]
+    },
+    "4050": {
+      "question": "After deploying the ERC20TokenRemote contract, what must be done before tokens can be bridged?",
+      "options": [
+        "Register the remote contract with the NativeTokenHome contract by calling registerWithHome, which sends an ICM message to establish the connection",
+        "Nothing, it works immediately, but in reality the system operates quite differently and involves additional complexity and involves additional complexity",
+        "Deploy a new blockchain",
+        "Wait 24 hours"
+      ],
+      "correctAnswers": [
+        0
+      ],
+      "hint": "Think about how the home contract knows about valid remotes.",
+      "explanation": "Before tokens can be bridged, the ERC20TokenRemote must be registered with the NativeTokenHome contract. This is done by calling the registerWithHome function on the remote contract, which sends an ICM message to the home contract containing the remote's information. The home contract processes this registration and adds the remote to its list of valid destinations. This prevents tokens from being sent to invalid or malicious remote addresses and establishes the authorized bridge route.",
+      "chapter": "Native Token Bridge",
+      "alternates": [
+        {
+          "question": "What information does the registerWithHome function send to the NativeTokenHome contract?",
+          "options": [
+            "It sends the user's wallet address for KYC verification",
+            "Registering the remote contract by calling registerWithHome establishes the connection via ICM",
+            "It sends the total supply of native tokens on the destination chain",
+            "It sends the remote contract's blockchain ID and address via an ICM message so the home contract can validate future bridge requests from that remote"
+          ],
+          "correctAnswers": [
+            3
+          ],
+          "hint": "Think about what the home contract needs to know to accept bridge messages from a specific remote.",
+          "explanation": "The registerWithHome function sends an ICM message containing the remote contract's blockchain ID and contract address to the home contract. This information allows the home contract to validate that future bridge requests come from an authorized remote. Without this registration, the home contract would reject incoming messages since it has no way to verify the legitimacy of the remote, preventing unauthorized contracts from claiming locked tokens."
+        },
+        {
+          "question": "What security risk would exist if bridge tokens could be sent without prior registration of the remote contract? (Select all that apply)",
+          "options": [
+            "A malicious contract could send fake bridge messages to trick the home contract into releasing locked tokens",
+            "Gas fees on the destination chain would increase significantly",
+            "Registration just establishes the connection by sending an ICM message from the remote to the home",
+            "Users could bridge tokens to unauthorized or malicious remote addresses that don't properly back the minted tokens"
+          ],
+          "correctAnswers": [
+            0,
+            3
+          ],
+          "hint": "Think about what could happen if anyone could claim to be a valid bridge endpoint.",
+          "explanation": "Without registration, two critical security risks emerge: (1) A malicious contract could forge bridge messages to the home contract, potentially tricking it into releasing locked tokens to unauthorized recipients. (2) Users could accidentally or maliciously bridge tokens to unregistered remote addresses that might not properly implement the bridge protocol, resulting in tokens that are locked on the source but never properly minted or backed on the destination. Registration creates a whitelist of authorized bridge routes."
+        }
+      ]
+    },
+    "4051": {
+      "question": "What happens during a complete Native to ERC-20 bridge transaction? (Select all that apply)",
+      "options": [
+        "User sends native tokens to NativeTokenHome which locks them, ICM message is relayed, and ERC20TokenRemote mints equivalent ERC-20 tokens",
+        "Native tokens disappear and reappear as ERC-20",
+        "Tokens are copied to both chains",
+        "The blockchain merges, despite what many developers initially assume about the system and involves additional complexity and involves additional complexity"
+      ],
+      "correctAnswers": [
+        0,
+        1
+      ],
+      "hint": "Think about the lock, relay, mint sequence.",
+      "explanation": "The complete Native to ERC-20 bridge process: 1) User sends native tokens to the NativeTokenHome contract (payable transaction), 2) NativeTokenHome locks these native tokens as collateral and creates an ICM message, 3) Relayer delivers the ICM message to the destination chain, 4) ERC20TokenRemote receives the message and mints equivalent ERC-20 tokens to the user's address. The user now has ERC-20 representations of their native tokens. To bridge back, they burn the ERC-20s, triggering the native tokens to be released.",
+      "chapter": "Native Token Bridge",
+      "alternates": [
+        {
+          "question": "In the Native to ERC-20 bridge, how does a user bridge ERC-20 tokens back to recover their native tokens on the source L1?",
+          "options": [
+            "The user sends ERC-20 tokens to a burn address manually",
+            "The user calls the ERC20TokenRemote contract to burn their ERC-20 tokens, which sends an ICM message to NativeTokenHome, which releases the locked native tokens",
+            "User sends native tokens to NativeTokenHome which locks them, ICM message is relayed, and ERC20TokenRemote mints equivalent ERC-20 tokens",
+            "The native tokens are automatically sent back after a timeout period"
+          ],
+          "correctAnswers": [
+            1
+          ],
+          "hint": "Think about the reverse bridge process and what triggers the release of locked tokens.",
+          "explanation": "To bridge back, the user interacts with the ERC20TokenRemote contract on the destination chain to burn their ERC-20 tokens. This triggers an ICM message that the relayer delivers to the source L1. The NativeTokenHome contract receives this message and releases (unlocks) the equivalent native tokens, sending them back to the user's address on the source L1. This reverse process maintains the 1:1 backing by reducing both the destination supply and the locked source collateral."
+        },
+        {
+          "question": "What is the role of the Native Minter precompile in the Native to ERC-20 bridge flow?",
+          "options": [
+            "User sends native tokens to NativeTokenHome, they are locked, an ICM message is relayed, and ERC20TokenRemote mints ERC-20 tokens",
+            "It mints native tokens on the destination chain when bridge messages arrive",
+            "It validates all cross-chain bridge transactions before they are processed",
+            "The Native Minter precompile is not required for Native to ERC-20 bridging since only ERC-20 tokens are minted on the destination"
+          ],
+          "correctAnswers": [
+            3
+          ],
+          "hint": "Think about what type of token is created on the destination chain in this specific bridge pattern.",
+          "explanation": "The Native Minter precompile is not needed for the Native to ERC-20 bridge pattern. In this direction, the destination chain mints ERC-20 tokens through the ERC20TokenRemote smart contract, which is a regular Solidity contract that handles minting without needing protocol-level precompile access. The Native Minter precompile is only required when the destination needs to create native gas tokens, as in the ERC-20 to Native and Native to Native patterns."
+        }
+      ]
+    },
+    "4052": {
+      "question": "What is the Native to Native bridge pattern?",
+      "options": [
+        "Bridging native tokens from one L1 to become native tokens on another L1, where both chains use native tokens as gas",
+        "This pattern doesn't exist, which is an oversimplification of the actual process and involves additional complexity and involves additional complexity",
+        "Connecting two identical blockchains",
+        "Converting native tokens to fiat currency"
+      ],
+      "correctAnswers": [
+        0
+      ],
+      "hint": "Think about both source and destination using native tokens.",
+      "explanation": "The Native to Native pattern involves bridging the native gas token from one L1 to become the native gas token on another L1. Both chains use native tokens for gas fees. For example, you could bridge your custom L1's native token to another L1 where it also becomes the native gas token. This requires NativeTokenHome on the source L1 to lock native tokens and NativeTokenRemote on the destination L1 (with Native Minter precompile) to mint them as native tokens.",
+      "chapter": "Native Token Bridge",
+      "alternates": [
+        {
+          "question": "In the Native to Native bridge, what wrapped token does NativeTokenHome use on Fuji C-Chain and why?",
+          "options": [
+            "It uses USDC as a stablecoin intermediary for the bridge",
+            "Bridging native tokens from one L1 to become native tokens on another L1, where both chains use native tokens as gas",
+            "It uses WAVAX (Wrapped AVAX) because native AVAX is not an ERC-20, and the contract needs an ERC-20 interface to lock and track collateral internally",
+            "No wrapping is needed since both chains use native tokens"
+          ],
+          "correctAnswers": [
+            2
+          ],
+          "hint": "Think about the technical limitation of native tokens and what the contract needs internally.",
+          "explanation": "NativeTokenHome on Fuji C-Chain uses WAVAX (Wrapped AVAX) because native AVAX does not implement the ERC-20 standard. The home contract internally wraps AVAX to WAVAX to leverage ERC-20 functions for locking and tracking collateral. When a user sends native AVAX, the contract automatically wraps it, locks the WAVAX, and sends an ICM message to the destination. Fuji C-Chain has an existing WAVAX contract that the tooling automatically detects and uses."
+        },
+        {
+          "question": "How does the Native to Native bridge pattern differ from the ERC-20 to Native pattern in terms of the home contract? (Select all that apply)",
+          "options": [
+            "Native to Native uses NativeTokenHome which accepts native tokens via payable functions, while ERC-20 to Native uses ERC20TokenHome which requires ERC-20 token approval",
+            "Both patterns use identical home contracts with the same configuration",
+            "The home contract bridges native tokens from one L1 to become native tokens on another L1",
+            "In Native to Native, the home contract must internally wrap the native token to an ERC-20 format before locking, which is not needed in ERC-20 to Native"
+          ],
+          "correctAnswers": [
+            0,
+            3
+          ],
+          "hint": "Think about the differences in how the source tokens are received and processed.",
+          "explanation": "The key differences are: (1) NativeTokenHome accepts native tokens through payable functions (msg.value), while ERC20TokenHome uses the approve/transferFrom pattern for ERC-20 tokens. (2) NativeTokenHome must internally wrap native tokens to an ERC-20 format (e.g., AVAX to WAVAX) before locking, because the contract needs ERC-20 functions for collateral management. ERC20TokenHome doesn't need wrapping since it already receives ERC-20 tokens."
+        }
+      ]
+    },
+    "4053": {
+      "question": "When creating an L1 for Native to Native bridging, what precompile configuration is required on the destination L1?",
+      "options": [
+        "The Native Minter precompile must be enabled and the NativeTokenRemote contract must be granted minting permissions",
+        "No precompiles are needed, but this fails to consider the consensus requirements involved and involves additional complexity",
+        "Only Fee Config precompile is needed",
+        "All precompiles must be disabled"
+      ],
+      "correctAnswers": [
+        0
+      ],
+      "hint": "Think about what's needed to create native tokens on demand.",
+      "explanation": "The destination L1 must have the Native Minter precompile enabled, and the NativeTokenRemote contract must be explicitly granted minting permissions in the L1's configuration. This allows the remote contract to mint native tokens when it receives bridge messages. During L1 creation with Avalanche CLI, you specify which addresses have Native Minter permissions. Without this configuration, the remote contract cannot create native tokens and the bridge will not function.",
+      "chapter": "Native Token Bridge",
+      "alternates": [
+        {
+          "question": "How are Native Minter permissions granted to the NativeTokenRemote contract during L1 creation?",
+          "options": [
+            "Permissions are granted automatically to any contract deployed on the L1",
+            "The Native Minter precompile must be enabled and NativeTokenRemote must be granted minting permissions",
+            "During L1 creation with Avalanche CLI, the NativeTokenRemote address is specified in the genesis configuration as an authorized minter address on the Native Minter precompile",
+            "Permissions are granted by validators through a voting process"
+          ],
+          "correctAnswers": [
+            2
+          ],
+          "hint": "Think about when and how the L1's genesis configuration is set up.",
+          "explanation": "During L1 creation using the Avalanche CLI, the genesis configuration specifies which addresses have permission to call the Native Minter precompile at 0x0200000000000000000000000000000000000001. The NativeTokenRemote contract address must be included in this configuration. This is done at chain creation time because the precompile's allowlist is part of the genesis. Alternatively, permissions can be updated later via a network upgrade if the precompile supports dynamic allowlist changes."
+        },
+        {
+          "question": "What would happen if the Native Minter precompile is enabled on the destination L1 but the NativeTokenRemote contract is NOT granted minting permissions?",
+          "options": [
+            "The bridge would work normally since the precompile is enabled",
+            "The NativeTokenRemote contract would receive ICM bridge messages but fail when attempting to call mintNativeCoin, causing bridge transactions to revert",
+            "Native tokens would be minted but sent to the wrong address",
+            "The precompile must be enabled and the NativeTokenRemote contract must be granted minting permissions for the bridge to function"
+          ],
+          "correctAnswers": [
+            1
+          ],
+          "hint": "Think about what happens when a contract without permission tries to call a restricted precompile function.",
+          "explanation": "The Native Minter precompile uses an allowlist to control which addresses can call its mintNativeCoin function. If NativeTokenRemote is not on this allowlist, it would successfully receive ICM messages from the relayer but fail at the minting step. The call to the precompile would revert with a permissions error, meaning no native tokens would be created. The user's tokens would remain locked on the source chain until the issue is resolved and the bridge transaction can be retried."
+        }
+      ]
+    },
+    "4054": {
+      "question": "Why is relayer setup critical for the Native to Native bridge?",
+      "options": [
+        "Only validators can serve as relayers, despite what many developers initially assume about the system and involves additional complexity",
+        "Relayers provide the only mechanism to deliver ICM messages between L1s, enabling the bridge to actually transfer tokens",
+        "Relayers increase gas fees unnecessarily",
+        "Relayers are optional"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Think about how messages physically move between chains.",
+      "explanation": "Relayers are critical because they provide the transport layer for cross-chain messages. When native tokens are locked on the source L1, an ICM message is created but doesn't automatically appear on the destination. The relayer observes the source chain, detects these messages, and submits them to the destination chain where they can be processed. Without relayers, messages would be created but never delivered, and no tokens would be minted on the destination. Relayers must be funded with gas on both chains.",
+      "chapter": "Native Token Bridge",
+      "alternates": [
+        {
+          "question": "What happens to locked source tokens if the relayer permanently goes offline in a Native to Native bridge? (Select all that apply)",
+          "options": [
+            "The tokens are automatically burned after a timeout",
+            "Relayers provide the only mechanism to deliver ICM messages, enabling the bridge to transfer tokens",
+            "The tokens remain safely locked in NativeTokenHome and are not lost",
+            "A new relayer can be configured and deployed to deliver the pending ICM messages and complete the bridge"
+          ],
+          "correctAnswers": [
+            2,
+            3
+          ],
+          "hint": "Think about whether ICM messages expire and whether new relayers can pick up pending work.",
+          "explanation": "If a relayer goes offline, ICM messages are not lost; they remain available on the source chain. The tokens stay locked in NativeTokenHome, and no native tokens are minted on the destination until the messages are delivered. A new relayer can be configured and deployed to observe the source chain and deliver any pending messages to the destination. This is why the relayer setup is critical but not a single point of failure, as the role can be filled by any properly configured service."
+        },
+        {
+          "question": "Why must relayers be separate from validators in the Avalanche bridge architecture? (Select all that apply)",
+          "options": [
+            "Delivering ICM messages requires submitting EVM transactions to destination chains, which is an application-layer concern separate from consensus validation",
+            "Only validators can serve as relayers in the bridge architecture",
+            "Bridge contracts operate on EVM-based L1 chains, and relayers must observe these chains and submit transactions to them",
+            "Relayers are not separate; validators automatically serve as relayers for all ICM messages"
+          ],
+          "correctAnswers": [
+            0,
+            2
+          ],
+          "hint": "Think about what chain validators operate on versus where bridge contracts live.",
+          "explanation": "Relayers operate at the application layer, observing EVM-based L1 chains for ICM messages and submitting transactions to deliver them. Validators, on the other hand, participate in consensus on the P-Chain or their specific L1. Bridge contracts are deployed on EVM chains, and delivering ICM messages requires submitting EVM transactions to the destination chain. This application-layer message passing is a separate concern from consensus validation, which is why dedicated relayer services are needed."
+        }
+      ]
+    },
+    "4055": {
+      "question": "What is the function of NativeTokenHome in a Native to Native bridge? (Select all that apply)",
+      "options": [
+        "To increase blockchain security",
+        "To receive and lock native tokens from users, then coordinate via ICM messages for native token minting on the destination L1",
+        "To store private keys, although it might seem logical based on surface-level analysis and involves additional complexity and involves additional complexity",
+        "To validate consensus"
+      ],
+      "correctAnswers": [
+        0,
+        1
+      ],
+      "hint": "Think about managing native tokens on the source chain.",
+      "explanation": "NativeTokenHome on the source L1 manages the native token locking process. When users send native tokens to the contract, it locks them as collateral and emits an ICM message. This message is relayed to the NativeTokenRemote on the destination L1, triggering native token minting there. The home contract tracks collateral for each registered remote and handles releasing native tokens when they are bridged back (when destination native tokens are burned).",
+      "chapter": "Native Token Bridge",
+      "alternates": [
+        {
+          "question": "How does NativeTokenHome track collateral across multiple registered remote contracts in a Native to Native bridge?",
+          "options": [
+            "It uses a single global counter for all remotes",
+            "It maintains separate collateral balances for each registered remote, tracking how many native tokens are locked for each destination L1",
+            "It receives and locks native tokens, then coordinates via ICM messages for minting on the destination L1",
+            "It delegates collateral tracking to the P-Chain validators"
+          ],
+          "correctAnswers": [
+            1
+          ],
+          "hint": "Think about what happens when one home contract serves multiple destination chains.",
+          "explanation": "NativeTokenHome maintains per-remote accounting, tracking the amount of native tokens locked as collateral for each registered NativeTokenRemote contract. This is essential because a single home contract can serve multiple destination L1s. Each remote has its own collateral balance, registration status, and minting relationship. When tokens are bridged back from a specific remote, only that remote's collateral balance is reduced, ensuring accurate accounting across all bridge routes."
+        },
+        {
+          "question": "What happens when NativeTokenHome receives native tokens from a user during a bridge operation? (Select all that apply)",
+          "options": [
+            "It wraps the native tokens into their ERC-20 equivalent (e.g., AVAX to WAVAX) for internal tracking",
+            "It locks the wrapped tokens as collateral in the contract",
+            "It coordinates ICM messages for native token minting on the destination",
+            "It immediately burns the native tokens to reduce the source chain supply"
+          ],
+          "correctAnswers": [
+            0,
+            1
+          ],
+          "hint": "Think about the two-step process of wrapping and locking that happens internally.",
+          "explanation": "When NativeTokenHome receives native tokens via a payable function, it performs two internal steps: (1) wraps the native tokens into their ERC-20 equivalent (e.g., AVAX becomes WAVAX) because the contract needs ERC-20 interfaces for collateral management, and (2) locks these wrapped tokens as collateral within the contract. After locking, an ICM message is emitted for the relayer to pick up. The native tokens are not burned; they are preserved as locked collateral that can be released when users bridge back."
+        }
+      ]
+    },
+    "4056": {
+      "question": "How does NativeTokenRemote work in the Native to Native bridge?",
+      "options": [
+        "It validates transactions on both chains",
+        "It only stores data",
+        "It receives ICM messages and uses the Native Minter precompile to mint native tokens on the destination L1 for users",
+        "It creates new blockchains, despite being a frequently cited but incorrect explanation and involves additional complexity"
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "Think about creating native tokens on the destination.",
+      "explanation": "NativeTokenRemote receives ICM messages from the NativeTokenHome on the source L1. When it receives a bridge message, it uses the Native Minter precompile to mint native tokens and send them to the user's address on the destination L1. These minted tokens are actual native tokens that can be used to pay gas fees. When users bridge back, the remote contract burns the native tokens and sends a message to the home to unlock collateral. The contract must have Native Minter permissions configured during L1 setup.",
+      "chapter": "Native Token Bridge",
+      "alternates": [
+        {
+          "question": "What specific precompile function does NativeTokenRemote call to create native tokens on the destination L1?",
+          "options": [
+            "It calls createNativeToken() on the chain's genesis contract",
+            "It receives ICM messages and uses the Native Minter precompile to mint native tokens on the destination L1",
+            "It calls transferNativeTokens() on the P-Chain",
+            "It calls mintNativeCoin(recipient, amount) on the Native Minter precompile at address 0x0200000000000000000000000000000000000001"
+          ],
+          "correctAnswers": [
+            3
+          ],
+          "hint": "Think about the specific function signature and the precompile's fixed address.",
+          "explanation": "NativeTokenRemote calls the mintNativeCoin(address, uint256) function on the Native Minter precompile at the fixed address 0x0200000000000000000000000000000000000001. This precompile is a built-in system contract on Avalanche L1s that operates at the protocol level, allowing authorized contracts to create new native tokens. The minted tokens appear in the recipient's balance as real native gas tokens, identical to tokens that existed at genesis."
+        },
+        {
+          "question": "How does the Native to Native bridge-back process work when a user wants to return native tokens from the destination L1? (Select all that apply)",
+          "options": [
+            "The user transfers native tokens to a burn address, and NativeTokenHome automatically detects the burn",
+            "NativeTokenRemote burns the user's native tokens on the destination L1 and emits an ICM message",
+            "NativeTokenRemote uses the Native Minter precompile to mint native tokens when receiving bridge messages",
+            "NativeTokenHome receives the relayed ICM message and releases equivalent locked native tokens to the user on the source chain"
+          ],
+          "correctAnswers": [
+            1,
+            3
+          ],
+          "hint": "Think about the reverse flow: what happens on the destination and then on the source.",
+          "explanation": "The bridge-back involves two key steps: (1) NativeTokenRemote burns the user's native tokens on the destination L1, reducing the supply, and emits an ICM message. (2) The relayer delivers this message to NativeTokenHome on the source chain, which releases the equivalent locked native tokens (unwrapping WAVAX back to AVAX, for example) and sends them to the user. This reverse process maintains the 1:1 backing invariant."
+        }
+      ]
+    },
+    "4057": {
+      "question": "In Native to Native bridging, why must you register the remote and add collateral before bridging?",
+      "options": [
+        "This step is optional",
+        "To make the process slower, despite appearing correct based on incomplete information and involves additional complexity and involves additional complexity",
+        "To pay developers",
+        "Registration authorizes the bridge route and collateral ensures tokens are available to lock, maintaining the security and 1:1 backing model"
+      ],
+      "correctAnswers": [
+        3
+      ],
+      "hint": "Think about security and token backing.",
+      "explanation": "Registration is necessary to establish the authorized bridge route—the TokenHome needs to know which remotes are valid destinations to prevent tokens being sent to malicious addresses. Adding collateral ensures the home contract has native tokens available to lock when users bridge, maintaining the fundamental 1:1 backing between locked source tokens and minted destination tokens. Without collateral, there would be nothing to back the minted destination tokens, breaking the bridge's security model and potentially creating unbacked tokens.",
+      "chapter": "Native Token Bridge",
+      "alternates": [
+        {
+          "question": "What is the difference between registering a remote and adding collateral in the Native to Native bridge setup?",
+          "options": [
+            "Collateral is deposited first, then registration happens automatically",
+            "They are the same operation performed in a single transaction",
+            "Registration authorizes the bridge route and collateral ensures 1:1 backing; these are the security and economic foundations of the model",
+            "Registration establishes the authorized bridge route by having NativeTokenHome recognize the remote, while collateral deposits the native tokens needed to back any pre-existing supply on the destination"
+          ],
+          "correctAnswers": [
+            3
+          ],
+          "hint": "Think about the distinct purposes of each step in the setup process.",
+          "explanation": "Registration and collateralization serve different purposes: Registration calls registerWithHome on the remote contract, which sends an ICM message to NativeTokenHome so it recognizes the remote as a valid bridge destination. This is a security measure that prevents unauthorized contracts from interacting with the home. Collateral is a separate step that deposits native tokens into the home contract to back any pre-existing native token supply (initialReserveImbalance) on the destination L1. Both must be completed before bridging is enabled."
+        },
+        {
+          "question": "What is the initialReserveImbalance parameter and when does it matter in the Native to Native bridge?",
+          "options": [
+            "It specifies the maximum number of tokens that can be bridged per transaction",
+            "It represents the amount of pre-existing native tokens on the destination L1 that must be backed by collateral in NativeTokenHome before bridging is enabled",
+            "It is the gas fee multiplier for cross-chain transactions",
+            "Registration authorizes the bridge route and collateral ensures tokens are available, maintaining the security and 1:1 backing model"
+          ],
+          "correctAnswers": [
+            1
+          ],
+          "hint": "Think about what happens if the destination L1 already has native tokens in circulation before the bridge is set up.",
+          "explanation": "The initialReserveImbalance is set during NativeTokenRemote deployment and represents the amount of native tokens that already exist on the destination L1 (from the genesis allocation or prior minting). These tokens need to be backed by locked collateral on the source chain to maintain the 1:1 peg. The bridge will not enable minting until collateral equal to the initialReserveImbalance is deposited in NativeTokenHome. If set to 0, no initial collateral deposit is needed."
+        }
+      ]
+    },
+    "4058": {
+      "question": "What is the complete flow when bridging native tokens from L1-A to L1-B in a Native to Native bridge?",
+      "options": [
+        "Tokens are copied to both chains",
+        "The chains merge temporarily",
+        "Tokens teleport instantly, although it might seem logical based on surface-level analysis and involves additional complexity and involves additional complexity",
+        "User sends native tokens to NativeTokenHome on L1-A (locked), relayer delivers ICM message to L1-B, and NativeTokenRemote mints native tokens for user on L1-B"
+      ],
+      "correctAnswers": [
+        3
+      ],
+      "hint": "Think about the complete lock, relay, mint sequence.",
+      "explanation": "The complete Native to Native bridge flow: 1) User sends native tokens to NativeTokenHome contract on L1-A, which locks them as collateral, 2) TokenHome emits an ICM message about the transfer, 3) Relayer observes L1-A, picks up the message, and submits it to L1-B, 4) NativeTokenRemote on L1-B receives the message and uses Native Minter precompile to mint equivalent native tokens to the user's address. The user now has native tokens on L1-B that can be used for gas. To bridge back, the process reverses—native tokens are burned on L1-B and unlocked on L1-A.",
+      "chapter": "Native Token Bridge",
+      "alternates": [
+        {
+          "question": "In the Native to Native bridge, what verification does NativeTokenHome perform when it receives an ICM message from a remote requesting token release? (Select all that apply)",
+          "options": [
+            "It verifies the message came from a registered NativeTokenRemote contract address",
+            "User sends native tokens to NativeTokenHome on L1-A, relayer delivers ICM message, and NativeTokenRemote mints native tokens on L1-B",
+            "It verifies the message originated from a known blockchain ID that matches a registered remote",
+            "It does not verify anything; all ICM messages are trusted automatically"
+          ],
+          "correctAnswers": [
+            0,
+            2
+          ],
+          "hint": "Think about what prevents unauthorized contracts from tricking the home into releasing tokens.",
+          "explanation": "When NativeTokenHome receives an ICM message requesting token release (for a bridge-back operation), it verifies that the message originated from a registered remote contract on a recognized blockchain ID. This verification prevents malicious contracts from sending fake messages to steal locked tokens. The registration step creates this trust relationship by recording the remote's contract address and blockchain ID, which are checked against every incoming message."
+        },
+        {
+          "question": "How many ICM messages are involved in a complete round-trip (bridge out and bridge back) in the Native to Native bridge?",
+          "options": [
+            "One message handles both directions",
+            "User sends native tokens to NativeTokenHome which locks them, relayer delivers ICM message, and NativeTokenRemote mints native tokens",
+            "At least three: one for registration, one for the bridge-out (lock and mint), and one for the bridge-back (burn and release)",
+            "Two: one from NativeTokenHome to NativeTokenRemote for bridge-out, and one from NativeTokenRemote to NativeTokenHome for bridge-back"
+          ],
+          "correctAnswers": [
+            3
+          ],
+          "hint": "Think about each direction of the bridge requiring its own cross-chain message.",
+          "explanation": "A complete round-trip involves two ICM messages (not counting the initial registration): (1) Bridge-out: NativeTokenHome locks tokens and emits an ICM message delivered to NativeTokenRemote, which mints native tokens. (2) Bridge-back: NativeTokenRemote burns native tokens and emits an ICM message delivered to NativeTokenHome, which releases the locked tokens. Registration is a separate one-time setup message. Each ICM message requires a relayer to physically deliver it across chains."
+        }
+      ]
+    }
+  }
+}

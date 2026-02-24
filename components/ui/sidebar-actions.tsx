@@ -28,14 +28,15 @@ export function SidebarActions({
   const [isCopyingMarkdown, setIsCopyingMarkdown] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
 
+  // Ensure pagePath includes the pageType prefix (e.g. /docs or /academy)
+  const fullPath = pagePath.startsWith(`/${pageType}`) ? pagePath : `/${pageType}${pagePath}`;
+
   const handleCopyMarkdown = async () => {
     setIsCopyingMarkdown(true);
     setIsCopied(false);
 
     try {
-      // Construct the full path with the correct prefix for the API
-      const fullPath = pagePath.startsWith(`/${pageType}`) ? pagePath : `/${pageType}${pagePath}`;
-      const apiUrl = `${window.location.origin}/api/llms/page?path=${encodeURIComponent(fullPath)}`;
+      const apiUrl = `${window.location.origin}${fullPath}.md`;
       const response = await fetch(apiUrl);
 
       if (!response.ok) {
@@ -67,15 +68,15 @@ export function SidebarActions({
   };
 
   const openInChatGPT = () => {
-    const mdxUrl = `${typeof window !== 'undefined' ? window.location.origin : 'https://build.avax.network'}${pagePath}`;
-    const prompt = `Read ${mdxUrl}, I want to ask questions about it.`;
+    const mdUrl = `${typeof window !== 'undefined' ? window.location.origin : 'https://build.avax.network'}${fullPath}.md`;
+    const prompt = `Read ${mdUrl}, I want to ask questions about it.`;
     const chatGPTUrl = `https://chat.openai.com/?q=${encodeURIComponent(prompt)}`;
     window.open(chatGPTUrl, '_blank', 'noopener,noreferrer');
   };
 
   const openInClaude = () => {
-    const mdxUrl = `${typeof window !== 'undefined' ? window.location.origin : 'https://build.avax.network'}${pagePath}`;
-    const prompt = `Read ${mdxUrl}, I want to ask questions about it.`;
+    const mdUrl = `${typeof window !== 'undefined' ? window.location.origin : 'https://build.avax.network'}${fullPath}.md`;
+    const prompt = `Read ${mdUrl}, I want to ask questions about it.`;
     const claudeUrl = `https://claude.ai/new?q=${encodeURIComponent(prompt)}`;
     window.open(claudeUrl, '_blank', 'noopener,noreferrer');
   };

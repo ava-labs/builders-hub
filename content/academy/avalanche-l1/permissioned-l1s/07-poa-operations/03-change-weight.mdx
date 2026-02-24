@@ -1,0 +1,185 @@
+---
+title: Change Weight via Multi-Sig
+description: Change a validator's weight using Safe wallet multi-sig approval
+updated: 2025-03-19
+authors: [nicolasarnedo]
+icon: Terminal
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Callout } from 'fumadocs-ui/components/callout';
+
+Changing a validator's weight adjusts their influence in consensus. This operation follows the same two-phase pattern as adding a validator, with multi-sig approval required for each phase.
+
+## When to Change Weight
+
+Common reasons to adjust validator weights:
+
+- **Performance-based**: Reward well-performing validators with higher weight
+- **Governance adjustments**: Rebalance influence among validators
+- **Scaling**: Increase weight as a validator proves reliable
+- **Temporary reduction**: Lower weight during maintenance or issues
+
+## Prerequisites
+
+- ✅ The validator must be in **Active** status
+- ✅ New weight must respect churn limits
+- ✅ Access to your Safe wallet with required signers
+
+## Phase 1: Initiate Weight Change
+
+<Steps>
+<Step>
+
+### Identify the Validator
+
+You'll need the **Validation ID** of the validator whose weight you want to change. 
+
+Get this from:
+- The [Query Validator Set tool](/academy/permissioned-l1s/05-validator-manager-operations/02-query-validator-set)
+- Previous transaction records
+- Your validator management documentation
+
+</Step>
+<Step>
+
+### Access Your Safe Wallet
+
+1. Go to [wallet.ash.center](https://wallet.ash.center/)
+2. Connect and select your Safe
+3. Navigate to **"New Transaction"** → **"Transaction Builder"**
+
+</Step>
+<Step>
+
+### Configure the Transaction
+
+| Field | Value |
+|-------|-------|
+| **To Address** | Your PoA Manager address |
+| **Value** | 0 |
+| **Contract Method** | `changeValidatorWeight` |
+
+**Parameters:**
+- **Validation ID**: The unique identifier of the validator
+- **New Weight**: The desired new weight value
+
+</Step>
+<Step>
+
+### Submit and Collect Approvals
+
+1. Review the transaction parameters
+2. Submit the transaction
+3. Coordinate with signers for approvals
+4. Wait for threshold to be reached
+
+</Step>
+<Step>
+
+### Execute the Transaction
+
+Once approved:
+
+1. Execute the transaction
+2. Wait for confirmation
+3. A Warp message is sent to the P-Chain
+
+</Step>
+</Steps>
+
+## Phase 2: Complete Weight Change
+
+<Steps>
+<Step>
+
+### Wait for P-Chain Processing
+
+The P-Chain processes the weight update and returns a signed acknowledgment.
+
+</Step>
+<Step>
+
+### Prepare Completion Transaction
+
+In your Safe wallet:
+
+1. Create a new transaction
+2. Target your PoA Manager
+3. Call `completeValidatorWeightUpdate`
+4. Provide the message index
+
+</Step>
+<Step>
+
+### Collect Approvals and Execute
+
+Same approval process:
+
+1. Submit the transaction
+2. Collect signer approvals
+3. Execute when threshold is reached
+
+</Step>
+</Steps>
+
+## Churn Limits
+
+<Callout type="warning">
+Weight changes are subject to **churn limits** set during VMC initialization. You cannot change more than the maximum churn percentage of total weight within the churn period.
+</Callout>
+
+### Understanding Churn
+
+| Setting | Description | Typical Value |
+|---------|-------------|---------------|
+| **Churn Period** | Time window for tracking changes | 24 hours (86400 seconds) |
+| **Max Churn %** | Maximum weight change allowed per period | 20% |
+
+**Example**: If total weight is 1000 and max churn is 20%, you can only change up to 200 weight units per period.
+
+### Handling Churn Errors
+
+If your weight change exceeds churn limits:
+
+1. **Wait**: The churn period will reset
+2. **Smaller Changes**: Break into multiple smaller changes
+3. **Plan Ahead**: Schedule large changes across multiple periods
+
+## Verification
+
+After completion:
+
+1. Query the validator set to confirm the new weight
+2. Verify in block explorer or contract read
+3. Monitor consensus participation with new weight
+
+## Diagram: Complete Weight Change Flow
+
+<Mermaid
+  chart="
+sequenceDiagram
+    participant S1 as Signer 1
+    participant S2 as Signer 2
+    participant Safe as Safe Wallet
+    participant PoA as PoA Manager
+    participant VM as Validator Manager
+    participant PC as P-Chain
+
+    Note over S1,PC: Phase 1: Initiate
+    S1->>Safe: Propose weight change
+    S2->>Safe: Approve
+    Safe->>PoA: Execute changeWeight()
+    PoA->>VM: initiateValidatorWeightUpdate()
+    VM->>PC: Warp Message
+
+    Note over S1,PC: Phase 2: Complete
+    PC-->>VM: Signed acknowledgment
+    S1->>Safe: Propose completion
+    S2->>Safe: Approve
+    Safe->>PoA: Execute completeWeightUpdate()
+    PoA->>VM: completeValidatorWeightUpdate()
+    VM->>VM: Update validator weight
+"
+/>
+

@@ -28,6 +28,7 @@ export interface ChartStats {
   seriesName?: string;
   seriesColor?: string;
   allSeries?: SeriesStats[];
+  cumulativeTotal?: number;
 }
 
 interface ImagePreviewProps {
@@ -405,6 +406,15 @@ export const ImagePreview = forwardRef<HTMLDivElement, ImagePreviewProps>(
                             <span className="font-medium">Avg:</span> {formatStatNumber(stats.avg)}
                           </div>
                         </>
+                      )}
+                      {/* Total cumulative value */}
+                      {chartDisplay.showTotalLine && stats.cumulativeTotal !== undefined && (
+                        <div className="text-xs flex items-center gap-1.5">
+                          <span className="w-3 h-0.5 rounded" style={{ backgroundColor: "#a855f7" }} />
+                          <span style={{ color: "#a855f7" }}>
+                            <span className="font-medium">Total:</span> {formatStatNumber(stats.cumulativeTotal)}
+                          </span>
+                        </div>
                       )}
                     </div>
                   )}
