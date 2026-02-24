@@ -334,7 +334,7 @@ function ValidatorBalanceIncrease({ onSuccess }: BaseConsoleToolProps) {
                     Increase Balance
                   </Button>
 
-                  <CliAlternative command={`avalanche validator increase-balance --validation-id ${validatorSelection.validationId || "<validation-id>"} --balance ${amount || "<amount>"} --network ${isTestnet ? "fuji" : "mainnet"}`} />
+                  <CliAlternative command={`platform l1 add-balance --validation-id ${validatorSelection.validationId || "<validation-id>"} --balance ${amount || "<amount>"} --network ${isTestnet ? "fuji" : "mainnet"} --key-name <your-key-name>`} />
                 </div>
               </Step>
             </Steps>
