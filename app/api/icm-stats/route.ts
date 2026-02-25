@@ -29,7 +29,7 @@ export async function GET(request: Request) {
       case '30d': days = 30; break;
       case '90d': days = 90; break;
       case '1y': days = 365; break;
-      case 'all': days = 365; break;
+      case 'all': days = 730; break;
       default: days = 30;
     }
 

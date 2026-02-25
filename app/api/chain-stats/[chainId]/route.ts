@@ -500,7 +500,7 @@ async function getICMData(
           case '7d': return 7;
           case '30d': return 30;
           case '90d': return 90;
-          case 'all': return 365;
+          case 'all': return 730;
           default: return 30;
         }
       };
