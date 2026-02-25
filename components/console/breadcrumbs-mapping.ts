@@ -27,11 +27,11 @@ export const pathToBreadcrumb = {
   "/console/permissioned-l1s/validator-manager-setup": ["Console", "Permissioned L1s", "Validator Manager Setup"],
 
   // ICM (Interchain Messaging)
-  "/console/icm/setup": ["Console", "Cross-Chain", "Messaging Setup"],
+  "/console/icm/setup": ["Console", "Interchain Messaging", "ICM Setup"],
 
   // ICTT (Interchain Token Transfer)
-  "/console/ictt/setup": ["Console", "Cross-Chain", "Token Transfer Setup"],
-  "/console/ictt/token-transfer": ["Console", "Cross-Chain", "Token Transfer Test"],
+  "/console/ictt/setup": ["Console", "Interchain Messaging", "ICTT (Token Transfer) Setup"],
+  "/console/ictt/token-transfer": ["Console", "Interchain Messaging", "Token Transfer Test"],
 
   // Utilities
   "/console/utilities/format-converter": ["Console", "Utilities", "Format Converter"],

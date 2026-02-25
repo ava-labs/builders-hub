@@ -343,19 +343,19 @@ const data = {
         },
       ],
     },
-    // Cross-Chain
+    // Interchain Messaging
     {
       id: "cross-chain",
-      title: "Cross-Chain",
+      title: "Interchain Messaging",
       icon: ArrowLeftRight,
       items: [
         {
-          title: "Cross-Chain Messaging Setup",
+          title: "ICM Setup",
           url: "/console/icm/setup",
           icon: MessagesSquare,
         },
         {
-          title: "Cross-Chain Token Transfer Setup",
+          title: "ICTT (Token Transfer) Setup",
           url: "/console/ictt/setup",
           icon: Workflow,
         },
