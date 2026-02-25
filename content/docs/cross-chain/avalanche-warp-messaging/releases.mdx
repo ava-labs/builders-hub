@@ -1,0 +1,303 @@
+---
+title: ICM Services Releases
+description: Track ICM Relayer and Signature Aggregator releases, version compatibility, and download binaries.
+---
+
+This page is automatically generated from the [ICM Services GitHub releases](https://github.com/ava-labs/icm-services/releases).
+
+## Current Recommended Versions
+
+| Component | Version | Released | Type |
+|-----------|---------|----------|------|
+| **ICM Relayer** | v1.7.5 | January 28, 2026 | Stable |
+| **Signature Aggregator** | v0.5.4 | January 28, 2026 | Stable |
+
+<Callout type="warn">
+**Important:** ICM Services must be compatible with your AvalancheGo version. Always check the release notes for network upgrade compatibility requirements.
+</Callout>
+
+## Quick Installation
+
+### ICM Relayer
+
+```bash
+# Download the latest release (Linux AMD64)
+curl -sL -o icm-relayer.tar.gz https://github.com/ava-labs/icm-services/releases/download/icm-relayer-v1.7.5/icm-relayer_1.7.5_linux_amd64.tar.gz
+
+# Extract and install
+tar -xzf icm-relayer.tar.gz
+sudo install icm-relayer /usr/local/bin
+```
+
+### Signature Aggregator
+
+```bash
+# Download the latest release (Linux AMD64)
+curl -sL -o signature-aggregator.tar.gz https://github.com/ava-labs/icm-services/releases/download/signature-aggregator-v0.5.4/signature-aggregator_0.5.4_linux_amd64.tar.gz
+
+# Extract and install
+tar -xzf signature-aggregator.tar.gz
+sudo install signature-aggregator /usr/local/bin
+```
+
+### Docker
+
+Both components are available as Docker images:
+
+```bash
+# ICM Relayer
+docker pull avaplatform/icm-relayer:latest
+
+# Signature Aggregator
+docker pull avaplatform/signature-aggregator:latest
+```
+
+## ICM Relayer Releases
+
+The ICM Relayer listens for Warp message events on source blockchains and constructs transactions to relay messages to destination blockchains.
+
+
+### v1.7.5
+
+**Released:** January 28, 2026 | [View on GitHub](https://github.com/ava-labs/icm-services/releases/tag/icm-relayer-v1.7.5)
+
+## Overview
+
+> [!IMPORTANT]  
+> This version is incompatible with previously used configs. All references to `vm` fields in `source-blockchain` and `destination-blockchain` config blocks must be removed
+
+This release includes a bugfix for an issue that could cause messages sent around relayer startup to be missed by both the catch-up as well as the live chain processing. It also adds new chec...
+
+
+<Accordions>
+<Accordion title="Download Assets">
+
+| Platform | File | Size |
+|----------|------|------|
+| Linux (AMD64) | [icm-relayer_1.7.5_linux_amd64.tar.gz](https://github.com/ava-labs/icm-services/releases/download/icm-relayer-v1.7.5/icm-relayer_1.7.5_linux_amd64.tar.gz) | 18.7 MB |
+| Linux (ARM64) | [icm-relayer_1.7.5_linux_arm64.tar.gz](https://github.com/ava-labs/icm-services/releases/download/icm-relayer-v1.7.5/icm-relayer_1.7.5_linux_arm64.tar.gz) | 17.4 MB |
+| macOS (AMD64) | [icm-relayer_1.7.5_darwin_amd64.tar.gz](https://github.com/ava-labs/icm-services/releases/download/icm-relayer-v1.7.5/icm-relayer_1.7.5_darwin_amd64.tar.gz) | 18.7 MB |
+| macOS (ARM64) | [icm-relayer_1.7.5_darwin_arm64.tar.gz](https://github.com/ava-labs/icm-services/releases/download/icm-relayer-v1.7.5/icm-relayer_1.7.5_darwin_arm64.tar.gz) | 17.7 MB |
+
+</Accordion>
+</Accordions>
+
+
+### v1.7.4
+
+**Released:** November 13, 2025 | [View on GitHub](https://github.com/ava-labs/icm-services/releases/tag/icm-relayer-v1.7.4)
+
+## Overview
+
+This version is compatible with Granite on both Fuji and Mainnet. 
+
+**All Mainnet nodes must upgrade before 11 AM ET, November 19th 2025.**
+
+This version reduces the frequency of validator set fetching from [v1.7.3](https://github.com/ava-labs/icm-services/releases/tag/icm-relayer-v1.7.3) which can help in resource constrained deployments. 
+
+It also includes a work-around for ...
+
+
+<Accordions>
+<Accordion title="Download Assets">
+
+| Platform | File | Size |
+|----------|------|------|
+| Linux (AMD64) | [icm-relayer_1.7.4_linux_amd64.tar.gz](https://github.com/ava-labs/icm-services/releases/download/icm-relayer-v1.7.4/icm-relayer_1.7.4_linux_amd64.tar.gz) | 18.2 MB |
+| Linux (ARM64) | [icm-relayer_1.7.4_linux_arm64.tar.gz](https://github.com/ava-labs/icm-services/releases/download/icm-relayer-v1.7.4/icm-relayer_1.7.4_linux_arm64.tar.gz) | 16.8 MB |
+| macOS (AMD64) | [icm-relayer_1.7.4_darwin_amd64.tar.gz](https://github.com/ava-labs/icm-services/releases/download/icm-relayer-v1.7.4/icm-relayer_1.7.4_darwin_amd64.tar.gz) | 18.2 MB |
+| macOS (ARM64) | [icm-relayer_1.7.4_darwin_arm64.tar.gz](https://github.com/ava-labs/icm-services/releases/download/icm-relayer-v1.7.4/icm-relayer_1.7.4_darwin_arm64.tar.gz) | 17.1 MB |
+
+</Accordion>
+</Accordions>
+
+
+### v1.7.3
+
+**Released:** November 6, 2025 | [View on GitHub](https://github.com/ava-labs/icm-services/releases/tag/icm-relayer-v1.7.3)
+
+This version is compatible with Avalanche Granite upgrade. **All mainnet ICM relayer instances must be update before November 19th at 11:00 AM ET.**
+
+
+<Accordions>
+<Accordion title="Download Assets">
+
+| Platform | File | Size |
+|----------|------|------|
+| Linux (AMD64) | [icm-relayer_1.7.3_linux_amd64.tar.gz](https://github.com/ava-labs/icm-services/releases/download/icm-relayer-v1.7.3/icm-relayer_1.7.3_linux_amd64.tar.gz) | 18.3 MB |
+| Linux (ARM64) | [icm-relayer_1.7.3_linux_arm64.tar.gz](https://github.com/ava-labs/icm-services/releases/download/icm-relayer-v1.7.3/icm-relayer_1.7.3_linux_arm64.tar.gz) | 16.9 MB |
+| macOS (AMD64) | [icm-relayer_1.7.3_darwin_amd64.tar.gz](https://github.com/ava-labs/icm-services/releases/download/icm-relayer-v1.7.3/icm-relayer_1.7.3_darwin_amd64.tar.gz) | 18.3 MB |
+| macOS (ARM64) | [icm-relayer_1.7.3_darwin_arm64.tar.gz](https://github.com/ava-labs/icm-services/releases/download/icm-relayer-v1.7.3/icm-relayer_1.7.3_darwin_arm64.tar.gz) | 17.2 MB |
+
+</Accordion>
+</Accordions>
+
+
+### v1.6.7
+
+**Released:** October 14, 2025 | [View on GitHub](https://github.com/ava-labs/icm-services/releases/tag/icm-relayer-v1.6.7)
+
+## Overview
+
+The most significant change from the previous release is a new configuration option to set a `suggested-priority-fee-buffer` which gets added to the suggested tip returned by the RPC
+
+
+<Accordions>
+<Accordion title="Download Assets">
+
+| Platform | File | Size |
+|----------|------|------|
+| Linux (AMD64) | [icm-relayer_1.6.7_linux_amd64.tar.gz](https://github.com/ava-labs/icm-services/releases/download/icm-relayer-v1.6.7/icm-relayer_1.6.7_linux_amd64.tar.gz) | 13.1 MB |
+| Linux (ARM64) | [icm-relayer_1.6.7_linux_arm64.tar.gz](https://github.com/ava-labs/icm-services/releases/download/icm-relayer-v1.6.7/icm-relayer_1.6.7_linux_arm64.tar.gz) | 12.1 MB |
+| macOS (AMD64) | [icm-relayer_1.6.7_darwin_amd64.tar.gz](https://github.com/ava-labs/icm-services/releases/download/icm-relayer-v1.6.7/icm-relayer_1.6.7_darwin_amd64.tar.gz) | 13.2 MB |
+| macOS (ARM64) | [icm-relayer_1.6.7_darwin_arm64.tar.gz](https://github.com/ava-labs/icm-services/releases/download/icm-relayer-v1.6.7/icm-relayer_1.6.7_darwin_arm64.tar.gz) | 12.5 MB |
+
+</Accordion>
+</Accordions>
+
+
+### v1.6.6
+
+**Released:** July 31, 2025 | [View on GitHub](https://github.com/ava-labs/icm-services/releases/tag/icm-relayer-v1.6.6)
+
+
+
+
+<Accordions>
+<Accordion title="Download Assets">
+
+| Platform | File | Size |
+|----------|------|------|
+| Linux (AMD64) | [icm-relayer_1.6.6_linux_amd64.tar.gz](https://github.com/ava-labs/icm-services/releases/download/icm-relayer-v1.6.6/icm-relayer_1.6.6_linux_amd64.tar.gz) | 11.4 MB |
+| Linux (ARM64) | [icm-relayer_1.6.6_linux_arm64.tar.gz](https://github.com/ava-labs/icm-services/releases/download/icm-relayer-v1.6.6/icm-relayer_1.6.6_linux_arm64.tar.gz) | 10.6 MB |
+| macOS (AMD64) | [icm-relayer_1.6.6_darwin_amd64.tar.gz](https://github.com/ava-labs/icm-services/releases/download/icm-relayer-v1.6.6/icm-relayer_1.6.6_darwin_amd64.tar.gz) | 11.4 MB |
+| macOS (ARM64) | [icm-relayer_1.6.6_darwin_arm64.tar.gz](https://github.com/ava-labs/icm-services/releases/download/icm-relayer-v1.6.6/icm-relayer_1.6.6_darwin_arm64.tar.gz) | 10.8 MB |
+
+</Accordion>
+</Accordions>
+
+
+## Signature Aggregator Releases
+
+The Signature Aggregator collects and aggregates BLS signatures from validators to create valid Warp message proofs.
+
+
+### v0.5.4
+
+**Released:** January 28, 2026 | [View on GitHub](https://github.com/ava-labs/icm-services/releases/tag/signature-aggregator-v0.5.4)
+
+
+
+
+<Accordions>
+<Accordion title="Download Assets">
+
+| Platform | File | Size |
+|----------|------|------|
+| Linux (AMD64) | [signature-aggregator_0.5.4_linux_amd64.tar.gz](https://github.com/ava-labs/icm-services/releases/download/signature-aggregator-v0.5.4/signature-aggregator_0.5.4_linux_amd64.tar.gz) | 16.0 MB |
+| Linux (ARM64) | [signature-aggregator_0.5.4_linux_arm64.tar.gz](https://github.com/ava-labs/icm-services/releases/download/signature-aggregator-v0.5.4/signature-aggregator_0.5.4_linux_arm64.tar.gz) | 15.0 MB |
+| macOS (AMD64) | [signature-aggregator_0.5.4_darwin_amd64.tar.gz](https://github.com/ava-labs/icm-services/releases/download/signature-aggregator-v0.5.4/signature-aggregator_0.5.4_darwin_amd64.tar.gz) | 16.0 MB |
+| macOS (ARM64) | [signature-aggregator_0.5.4_darwin_arm64.tar.gz](https://github.com/ava-labs/icm-services/releases/download/signature-aggregator-v0.5.4/signature-aggregator_0.5.4_darwin_arm64.tar.gz) | 15.2 MB |
+
+</Accordion>
+</Accordions>
+
+
+### v0.5.3
+
+**Released:** November 13, 2025 | [View on GitHub](https://github.com/ava-labs/icm-services/releases/tag/signature-aggregator-v0.5.3)
+
+## Overview
+This version is compatible with Granite on both Fuji and Mainnet.
+
+**All Mainnet nodes must upgrade before 11 AM ET, November 19th 2025.**
+
+This version reduces the frequency of validator set fetching from [v0.5.2](https://github.com/ava-labs/icm-services/releases/tag/signature-aggregator-v0.5.3) which can help in resource constrained deployments.
+
+
+<Accordions>
+<Accordion title="Download Assets">
+
+| Platform | File | Size |
+|----------|------|------|
+| Linux (AMD64) | [signature-aggregator_0.5.3_linux_amd64.tar.gz](https://github.com/ava-labs/icm-services/releases/download/signature-aggregator-v0.5.3/signature-aggregator_0.5.3_linux_amd64.tar.gz) | 15.6 MB |
+| Linux (ARM64) | [signature-aggregator_0.5.3_linux_arm64.tar.gz](https://github.com/ava-labs/icm-services/releases/download/signature-aggregator-v0.5.3/signature-aggregator_0.5.3_linux_arm64.tar.gz) | 14.6 MB |
+| macOS (AMD64) | [signature-aggregator_0.5.3_darwin_amd64.tar.gz](https://github.com/ava-labs/icm-services/releases/download/signature-aggregator-v0.5.3/signature-aggregator_0.5.3_darwin_amd64.tar.gz) | 15.7 MB |
+| macOS (ARM64) | [signature-aggregator_0.5.3_darwin_arm64.tar.gz](https://github.com/ava-labs/icm-services/releases/download/signature-aggregator-v0.5.3/signature-aggregator_0.5.3_darwin_arm64.tar.gz) | 14.9 MB |
+
+</Accordion>
+</Accordions>
+
+
+### v0.5.2
+
+**Released:** November 6, 2025 | [View on GitHub](https://github.com/ava-labs/icm-services/releases/tag/signature-aggregator-v0.5.2)
+
+This version is compatible with Avalanche Granite upgrade. **All mainnet signature aggregator instances must be update before November 19th at 11:00 AM ET.**
+
+
+<Accordions>
+<Accordion title="Download Assets">
+
+| Platform | File | Size |
+|----------|------|------|
+| Linux (AMD64) | [signature-aggregator_0.5.2_linux_amd64.tar.gz](https://github.com/ava-labs/icm-services/releases/download/signature-aggregator-v0.5.2/signature-aggregator_0.5.2_linux_amd64.tar.gz) | 15.6 MB |
+| Linux (ARM64) | [signature-aggregator_0.5.2_linux_arm64.tar.gz](https://github.com/ava-labs/icm-services/releases/download/signature-aggregator-v0.5.2/signature-aggregator_0.5.2_linux_arm64.tar.gz) | 14.6 MB |
+| macOS (AMD64) | [signature-aggregator_0.5.2_darwin_amd64.tar.gz](https://github.com/ava-labs/icm-services/releases/download/signature-aggregator-v0.5.2/signature-aggregator_0.5.2_darwin_amd64.tar.gz) | 15.7 MB |
+| macOS (ARM64) | [signature-aggregator_0.5.2_darwin_arm64.tar.gz](https://github.com/ava-labs/icm-services/releases/download/signature-aggregator-v0.5.2/signature-aggregator_0.5.2_darwin_arm64.tar.gz) | 14.9 MB |
+
+</Accordion>
+</Accordions>
+
+
+### v0.4.5
+
+**Released:** July 31, 2025 | [View on GitHub](https://github.com/ava-labs/icm-services/releases/tag/signature-aggregator-v0.4.5)
+
+
+
+
+<Accordions>
+<Accordion title="Download Assets">
+
+| Platform | File | Size |
+|----------|------|------|
+| Linux (AMD64) | [signature-aggregator_0.4.5_linux_amd64.tar.gz](https://github.com/ava-labs/icm-services/releases/download/signature-aggregator-v0.4.5/signature-aggregator_0.4.5_linux_amd64.tar.gz) | 9.2 MB |
+| Linux (ARM64) | [signature-aggregator_0.4.5_linux_arm64.tar.gz](https://github.com/ava-labs/icm-services/releases/download/signature-aggregator-v0.4.5/signature-aggregator_0.4.5_linux_arm64.tar.gz) | 8.6 MB |
+| macOS (AMD64) | [signature-aggregator_0.4.5_darwin_amd64.tar.gz](https://github.com/ava-labs/icm-services/releases/download/signature-aggregator-v0.4.5/signature-aggregator_0.4.5_darwin_amd64.tar.gz) | 9.4 MB |
+| macOS (ARM64) | [signature-aggregator_0.4.5_darwin_arm64.tar.gz](https://github.com/ava-labs/icm-services/releases/download/signature-aggregator-v0.4.5/signature-aggregator_0.4.5_darwin_arm64.tar.gz) | 8.9 MB |
+
+</Accordion>
+</Accordions>
+
+
+### v0.4.4
+
+**Released:** July 11, 2025 | [View on GitHub](https://github.com/ava-labs/icm-services/releases/tag/signature-aggregator-v0.4.4)
+
+
+
+
+<Accordions>
+<Accordion title="Download Assets">
+
+| Platform | File | Size |
+|----------|------|------|
+| Linux (AMD64) | [signature-aggregator_0.4.4_linux_amd64.tar.gz](https://github.com/ava-labs/icm-services/releases/download/signature-aggregator-v0.4.4/signature-aggregator_0.4.4_linux_amd64.tar.gz) | 9.2 MB |
+| Linux (ARM64) | [signature-aggregator_0.4.4_linux_arm64.tar.gz](https://github.com/ava-labs/icm-services/releases/download/signature-aggregator-v0.4.4/signature-aggregator_0.4.4_linux_arm64.tar.gz) | 8.6 MB |
+| macOS (AMD64) | [signature-aggregator_0.4.4_darwin_amd64.tar.gz](https://github.com/ava-labs/icm-services/releases/download/signature-aggregator-v0.4.4/signature-aggregator_0.4.4_darwin_amd64.tar.gz) | 9.4 MB |
+| macOS (ARM64) | [signature-aggregator_0.4.4_darwin_arm64.tar.gz](https://github.com/ava-labs/icm-services/releases/download/signature-aggregator-v0.4.4/signature-aggregator_0.4.4_darwin_arm64.tar.gz) | 8.9 MB |
+
+</Accordion>
+</Accordions>
+
+
+## All Releases
+
+For a complete list of all ICM Services releases including pre-releases, visit the official [GitHub Releases page](https://github.com/ava-labs/icm-services/releases).
+
+## Related Resources
+
+- [Run a Relayer](/docs/cross-chain/avalanche-warp-messaging/run-relayer) - Detailed relayer setup guide
+- [Avalanche Warp Messaging Overview](/docs/cross-chain/avalanche-warp-messaging/overview) - Understanding AWM
+- [ICM Contracts](/docs/cross-chain/icm-contracts/overview) - Smart contract integration

@@ -6,12 +6,7 @@ authors: [martineckardt]
 icon: Terminal
 ---
 
-import { Step, Steps } from 'fumadocs-ui/components/steps';
-
-On the Dispatch test L1, we need to create the receiver part of our cross-chain calculator. It will receive two numbers and store the result. 
-
-<Steps>
-<Step>
+On the Dispatch test L1, we need to create the receiver part of our cross-chain calculator. It will receive two numbers and store the result.
 
 ### Create Receiver Contract
 
@@ -43,37 +38,3 @@ contract SimpleCalculatorReceiverOnDispatch is ITeleporterReceiver {
 }
 
 ```
-
-</Step>
-<Step>
-
-### Deploy the Receiver Contract
-
-Deploy the receiver contract on the Dispatch test L1:
-
-```bash
-forge create --rpc-url fuji-dispatch --private-key $PK contracts/interchain-messaging/invoking-functions/SimpleCalculatorReceiverOnDispatch.sol:SimpleCalculatorReceiverOnDispatch --broadcast
-```
-
-```
-[⠊] Compiling...
-[⠒] Compiling 1 files with Solc 0.8.18
-[⠢] Solc 0.8.18 finished in 44.12ms
-Compiler run successful!
-Deployer: 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC // [$FUNDED_ADDRESS]
-Deployed to: 0x5DB9A7629912EBF95876228C24A848de0bfB43A9 // [$RECEIVER_ADDRESS]
-Transaction hash: 0x2d40c53b493556463a28c458e40bc455a248df69a10679bef84145974b7424f3
-```
-
-</Step>
-<Step>
-
-### Save the Receiver Contract Address
-
-Overwrite the `RECEIVER_ADDRESS` environment variable with the new address:
-
-```bash
-export RECEIVER_ADDRESS={your-receiver-address}
-```
-</Step>
-</Steps>
