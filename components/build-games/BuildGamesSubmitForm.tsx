@@ -222,6 +222,8 @@ export default function BuildGamesSubmitForm({
   useEffect(() => {
     const invitationId = searchParams.get("invitation");
     if (!invitationId || !session?.user?.id) return;
+    // OTP new users have a pending_ ID and no DB record yet — skip until profile is complete
+    if (session.user.id.startsWith("pending_")) return;
 
     axios
       .get("/api/project/check-invitation", {
@@ -236,8 +238,16 @@ export default function BuildGamesSubmitForm({
         const project = res.data.project;
         setJoinTeamName(project?.project_name || "");
         if (project?.id) setProjectId(project.id);
-        setOpenCurrentProject(invitation.hasConfirmedProject ?? false);
-        setOpenJoinTeamDialog(invitation.isConfirming ?? false);
+        if (invitation.hasConfirmedProject) {
+          // User already has a confirmed project — warning dialog handles cleanup
+          setOpenCurrentProject(true);
+        } else if (invitation.isConfirming) {
+          // Fresh invitation, no existing project to clean up
+          setOpenJoinTeamDialog(true);
+        } else {
+          // Invitation exists but is stale/already used
+          setOpenInvalidInvitation(true);
+        }
       })
       .catch(() => {
         setOpenInvalidInvitation(true);
