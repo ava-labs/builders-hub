@@ -11,7 +11,7 @@ documentation: https://developers.zerion.io/
 
 ## Overview
 
-[Zerion API](https://zerion.io/api) is a REST API that provides indexed, human-readable blockchain data across 38+ networks, including Avalanche's C-Chain. Instead of running your own indexing infrastructure, a single API call retrieves enriched wallet portfolios, parsed transaction histories, DeFi positions, NFT holdings, and profit-and-loss calculations. Zerion's Atomic Transaction Parsing engine labels complex transactions (swaps, approvals, bridging, batched operations) with structured metadata, making raw on-chain data immediately usable in your application.
+[Zerion API](https://zerion.io/api) is a REST API that provides indexed, human-readable blockchain data across 38+ networks, including Avalanche's C-Chain. Instead of running your own indexing infrastructure, a single API call retrieves enriched wallet portfolios, parsed transaction histories, DeFi positions, NFT holdings, and profit-and-loss calculations. Zerion API labels complex transactions (swaps, approvals, bridging, batched operations) with structured metadata, making onchain data immediately usable in your application.
 
 ## Features
 
@@ -19,22 +19,13 @@ documentation: https://developers.zerion.io/
 - **Parsed Transaction History**: Get human-readable transaction feeds with automatic labeling for swaps, transfers, approvals, contract interactions, and bridging operations.
 - **DeFi Position Tracking**: Access detailed DeFi positions across 8,000+ protocols with reward accrual and underlying asset breakdowns.
 - **Profit & Loss Calculations**: Query historical PnL at the wallet or per-position level without building your own accounting logic.
-- **Real-Time Webhooks**: Subscribe to wallet activity and receive push notifications for on-chain transactions as they happen.
+- **Real-Time Webhooks**: Subscribe to wallet activity and receive push notifications for onchain transactions as they happen.
 - **NFT Enrichment**: Fetch NFT metadata, floor pricing, collection stats, and ownership history.
-- **EIP-7702 & Account Abstraction Support**: Correctly parse batched transactions and smart-account operations via Atomic Transaction Parsing.
 
 ## Getting Started
 
-1. **Create an API Key**: Sign up at the [Zerion API Dashboard](https://dashboard.zerion.io/) — no credit card required for the free tier.
-2. **Authenticate**: Zerion uses Basic Authentication. Append a colon to your API key and Base64-encode the result:
-
-```bash
-# Replace YOUR_API_KEY with your actual key
-curl -X GET "https://api.zerion.io/v1/wallets/0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045/portfolio" \
-  -H "Authorization: Basic $(echo -n 'YOUR_API_KEY:' | base64)" \
-  -H "Accept: application/json"
-```
-
+1. **Create an API Key**: Sign up at the [Zerion API Dashboard](https://dashboard.zerion.io/).
+2. **Authenticate**: Zerion uses Basic Authentication. Append a colon to your API key and Base64-encode the result.
 3. **Explore Endpoints**: Use the interactive API reference to test calls directly in your browser at [developers.zerion.io](https://developers.zerion.io/).
 4. **Integrate**: Add portfolio views, transaction feeds, or DeFi dashboards to your Avalanche application using the unified JSON responses.
 
