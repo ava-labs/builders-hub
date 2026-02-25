@@ -31,6 +31,8 @@ interface ICMFlowResponse {
   failedChainIds: string[];
 }
 
+const CACHE_CONTROL_HEADER = 'public, max-age=14400, s-maxage=14400, stale-while-revalidate=86400';
+
 // Cache for flow data - keyed by days parameter
 const cachedFlowData: Map<number, { data: ICMFlowResponse; timestamp: number }> = new Map();
 const CACHE_DURATION = 4 * 60 * 60 * 1000; // 4 hours
@@ -46,6 +48,7 @@ export async function GET(request: Request) {
     if (!clearCache && cached && Date.now() - cached.timestamp < CACHE_DURATION) {
       return NextResponse.json(cached.data, {
         headers: {
+          'Cache-Control': CACHE_CONTROL_HEADER,
           'X-Data-Source': 'cache',
           'X-Cache-Timestamp': new Date(cached.timestamp).toISOString(),
           'X-Days': days.toString(),
@@ -111,6 +114,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json(response, {
       headers: {
+        'Cache-Control': CACHE_CONTROL_HEADER,
         'X-Data-Source': 'fresh',
         'X-Total-Flows': flows.length.toString(),
         'X-Days': days.toString(),
