@@ -1,45 +1,40 @@
 import { getCourseNameMapping } from '@/content/courses';
 
-const HUBSPOT_PORTAL_ID = '7522520';
-const HUBSPOT_WEBHOOK_BASE = `https://api-na1.hubapi.com/automation/v4/webhook-triggers/${HUBSPOT_PORTAL_ID}`;
-
 // Each course has its own HubSpot webhook trigger for its specific email notification.
-// Entrepreneur academy uses a single env var (legacy setup).
-// Blockchain and Avalanche L1 academies have per-course triggers configured in HubSpot.
-const courseWebhookTriggers: Record<string, string | (() => string | undefined)> = {
+// All webhook URLs are configured via environment variables.
+const courseWebhookTriggers: Record<string, () => string | undefined> = {
   // ============ ENTREPRENEUR ACADEMY ============
-  // Uses a single webhook URL from env var (existing setup)
   'foundations-web3-venture': () => process.env.ENTREPRENEUR_ACADEMY_HUBSPOT_WEBHOOK || process.env.CODEBASE_CERTIFICATE_HUBSPOT_WEBHOOK,
   'go-to-market': () => process.env.ENTREPRENEUR_ACADEMY_HUBSPOT_WEBHOOK || process.env.CODEBASE_CERTIFICATE_HUBSPOT_WEBHOOK,
   'web3-community-architect': () => process.env.ENTREPRENEUR_ACADEMY_HUBSPOT_WEBHOOK || process.env.CODEBASE_CERTIFICATE_HUBSPOT_WEBHOOK,
   'fundraising-finance': () => process.env.ENTREPRENEUR_ACADEMY_HUBSPOT_WEBHOOK || process.env.CODEBASE_CERTIFICATE_HUBSPOT_WEBHOOK,
 
   // ============ AVALANCHE L1 ACADEMY ============
-  'avalanche-fundamentals': `${HUBSPOT_WEBHOOK_BASE}/TuyFFUJ`,
-  'permissioned-l1s': `${HUBSPOT_WEBHOOK_BASE}/sKDDMBB`,
-  'l1-native-tokenomics': `${HUBSPOT_WEBHOOK_BASE}/GuYqenD`,
-  'permissionless-l1s': `${HUBSPOT_WEBHOOK_BASE}/QPJMz91`,
-  'interchain-messaging': `${HUBSPOT_WEBHOOK_BASE}/mGseHO6`,
-  'erc20-bridge': `${HUBSPOT_WEBHOOK_BASE}/N89Q354`,
-  'native-token-bridge': `${HUBSPOT_WEBHOOK_BASE}/I3LlRdL`,
-  'customizing-evm': `${HUBSPOT_WEBHOOK_BASE}/W40ZomG`,
-  'access-restriction-fundamentals': `${HUBSPOT_WEBHOOK_BASE}/QqKjSIN`,
-  'access-restriction-advanced': `${HUBSPOT_WEBHOOK_BASE}/K7nyUjr`,
+  'avalanche-fundamentals': () => process.env.HUBSPOT_WEBHOOK_AVALANCHE_FUNDAMENTALS,
+  'permissioned-l1s': () => process.env.HUBSPOT_WEBHOOK_PERMISSIONED_L1S,
+  'l1-native-tokenomics': () => process.env.HUBSPOT_WEBHOOK_L1_NATIVE_TOKENOMICS,
+  'permissionless-l1s': () => process.env.HUBSPOT_WEBHOOK_PERMISSIONLESS_L1S,
+  'interchain-messaging': () => process.env.HUBSPOT_WEBHOOK_INTERCHAIN_MESSAGING,
+  'erc20-bridge': () => process.env.HUBSPOT_WEBHOOK_ERC20_BRIDGE,
+  'native-token-bridge': () => process.env.HUBSPOT_WEBHOOK_NATIVE_TOKEN_BRIDGE,
+  'customizing-evm': () => process.env.HUBSPOT_WEBHOOK_CUSTOMIZING_EVM,
+  'access-restriction-fundamentals': () => process.env.HUBSPOT_WEBHOOK_ACCESS_RESTRICTION_FUNDAMENTALS,
+  'access-restriction-advanced': () => process.env.HUBSPOT_WEBHOOK_ACCESS_RESTRICTION_ADVANCED,
 
   // ============ BLOCKCHAIN ACADEMY ============
-  'blockchain-fundamentals': `${HUBSPOT_WEBHOOK_BASE}/uGqmSUS`,
-  'solidity-foundry': `${HUBSPOT_WEBHOOK_BASE}/DM95DwX`,
-  'nft-deployment': `${HUBSPOT_WEBHOOK_BASE}/EGFz4c0`,
-  'encrypted-erc': `${HUBSPOT_WEBHOOK_BASE}/iK7ZVk4`,
-  'x402-payment-infrastructure': `${HUBSPOT_WEBHOOK_BASE}/qbSaOMv`,
+  'blockchain-fundamentals': () => process.env.HUBSPOT_WEBHOOK_BLOCKCHAIN_FUNDAMENTALS,
+  'solidity-foundry': () => process.env.HUBSPOT_WEBHOOK_SOLIDITY_FOUNDRY,
+  'nft-deployment': () => process.env.HUBSPOT_WEBHOOK_NFT_DEPLOYMENT,
+  'encrypted-erc': () => process.env.HUBSPOT_WEBHOOK_ENCRYPTED_ERC,
+  'x402-payment-infrastructure': () => process.env.HUBSPOT_WEBHOOK_X402_PAYMENT_INFRASTRUCTURE,
 };
 
 // Academy completion webhooks — triggered when a student completes ALL courses in an academy
 type Academy = 'avalanche-l1' | 'blockchain';
 
-const academyCompletionWebhooks: Record<Academy, string> = {
-  'avalanche-l1': `${HUBSPOT_WEBHOOK_BASE}/fuZ0WyV`,
-  'blockchain': `${HUBSPOT_WEBHOOK_BASE}/QZXbYnP`,
+const academyCompletionWebhookEnvVars: Record<Academy, string> = {
+  'avalanche-l1': 'HUBSPOT_WEBHOOK_AVALANCHE_L1_GRADUATION',
+  'blockchain': 'HUBSPOT_WEBHOOK_BLOCKCHAIN_GRADUATION',
 };
 
 // Maps course slugs to their academy for graduation tracking
@@ -88,8 +83,7 @@ const academyRequiredCourses: Record<Academy, string[]> = {
 function getWebhookUrl(courseId: string): string | undefined {
   const entry = courseWebhookTriggers[courseId];
   if (!entry) return undefined;
-  if (typeof entry === 'function') return entry();
-  return entry;
+  return entry();
 }
 
 async function sendWebhook(url: string, data: Record<string, string>, label: string) {
@@ -146,7 +140,12 @@ export async function triggerCertificateWebhook(
         const allCompleted = required.every(slug => completedCourses.includes(slug));
 
         if (allCompleted) {
-          const graduationUrl = academyCompletionWebhooks[academy];
+          const envVar = academyCompletionWebhookEnvVars[academy];
+          const graduationUrl = process.env[envVar];
+          if (!graduationUrl) {
+            console.log(`No HubSpot graduation webhook configured (${envVar}), skipping`);
+            return;
+          }
           await sendWebhook(graduationUrl, {
             ...webhookData,
             courseName: `${academy === 'blockchain' ? 'Blockchain' : 'Avalanche L1'} Academy Graduate`,
