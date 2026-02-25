@@ -52,6 +52,7 @@ export const useBadgeAward = (courseId: string) => {
       return data;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
+      throw err;
     } finally {
       setIsLoading(false);
     }

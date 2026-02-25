@@ -11,14 +11,15 @@ async function fetchWithRetry(
   maxRetries = 3,
   delayMs = 500
 ): Promise<Response> {
+  let lastResponse: Response | undefined;
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    const response = await fetch(url);
-    if (response.ok || response.status < 500) return response;
+    lastResponse = await fetch(url);
+    if (lastResponse.ok || lastResponse.status < 500) return lastResponse;
     if (attempt < maxRetries) {
       await new Promise((resolve) => setTimeout(resolve, delayMs * attempt));
     }
   }
-  return fetch(url);
+  return lastResponse!;
 }
 
 export async function POST(req: NextRequest) {
@@ -112,18 +113,21 @@ export async function POST(req: NextRequest) {
     // Trigger HubSpot webhook for certificate completion
     // At this point we know email exists due to the check above
     // Include the current courseId since badge assignment may not have persisted yet
-    const completedCourses = await getCompletedCourseSlugs(session.user.id);
-    if (!completedCourses.includes(courseId)) {
+    const completedBefore = await getCompletedCourseSlugs(session.user.id);
+    const isNewCompletion = !completedBefore.includes(courseId);
+    const completedCourses = [...completedBefore];
+    if (isNewCompletion) {
       completedCourses.push(courseId);
     }
 
     // Fire-and-forget: don't block PDF delivery on webhook
+    // Only pass completedCourses for graduation check on new completions
     triggerCertificateWebhook(
       session.user.id,
       session.user.email!,
       userName,
       courseId,
-      completedCourses
+      isNewCompletion ? completedCourses : undefined
     ).catch((err) =>
       console.error('HubSpot webhook failed (non-blocking):', err)
     );
