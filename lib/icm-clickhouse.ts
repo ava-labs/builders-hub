@@ -334,9 +334,11 @@ export async function getICMStatsData(days: number): Promise<{
     let totalOutgoing = 0;
 
     for (const [chainName, counts] of chains.entries()) {
-      const mc = counts.incoming + counts.outgoing;
-      chainBreakdown[chainName] = mc;
-      totalMessageCount += mc;
+      // Use only incoming (RECEIVE events) to avoid double-counting.
+      // Each cross-chain message generates one SEND on the source chain and
+      // one RECEIVE on the destination chain; counting both would double the total.
+      chainBreakdown[chainName] = counts.incoming;
+      totalMessageCount += counts.incoming;
       totalIncoming += counts.incoming;
       totalOutgoing += counts.outgoing;
     }
@@ -460,7 +462,8 @@ export async function getChainICMData(
     result.push({
       timestamp: dayToTimestamp(day),
       date: day,
-      messageCount: counts.incoming + counts.outgoing,
+      // Use only incoming (RECEIVE events) to deduplicate cross-chain messages.
+      messageCount: counts.incoming,
       incomingCount: counts.incoming,
       outgoingCount: counts.outgoing,
     });
