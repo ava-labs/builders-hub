@@ -156,7 +156,11 @@ export const ProjectOptions = ({
               onSelect={(e) => {
                 e.stopPropagation();
                 setIsDropdownOpen(false);
-                router.push(`/hackathons/project-submission?project=${project.id}`);
+                const isBuildGames = project.hackaton_id === "249d2911-7931-4aa0-a696-37d8370b79f9";
+                router.push(isBuildGames
+                  ? `/build-games/submit?stage=1`
+                  : `/hackathons/project-submission?project=${project.id}`
+                );
               }}
             >
               Edit

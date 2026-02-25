@@ -1,10 +1,13 @@
 import clsx from "clsx";
 import Link from "next/link";
 import "./styles.css";
-import ReferralButton from "@/components/build-games/ReferralButton";
 import ReferralLink from "@/components/build-games/ReferralLink";
-import { ApplyButton } from "@/components/build-games/ApplyButton";
 import ApplicationStatusTracker from "@/components/build-games/ApplicationStatusTracker";
+import ProgramTimelineWrapper from "@/components/build-games/ProgramTimelineWrapper";
+import BuildGamesResourcesWrapper from "@/components/build-games/BuildGamesResourcesWrapper";
+import HowItWorksWrapper from "@/components/build-games/HowItWorksWrapper";
+import BuildGamesMentors from "@/components/build-games/BuildGamesMentors";
+import BuildGamesPartners from "@/components/build-games/BuildGamesPartners";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import type { Metadata } from "next";
 
@@ -623,7 +626,7 @@ function HeroTilesSection() {
             <div className="content-stretch flex gap-[10px] h-full items-center relative shrink-0 w-[1068px]">
               <HeroTile title="$1,000,000" subtitle="Prize Pool" />
               <HeroTile title="6 Weeks" subtitle="Duration" />
-              <HeroTile title="Jan 2026" subtitle="Applications Open" />
+              <HeroTile title="Feb 20th " subtitle="Kick Off" />
             </div>
           </div>
         </div>
@@ -635,18 +638,13 @@ function HeroTilesSection() {
 function ApplyTodayCTA() {
   return (
     <div className="get-involved-cta relative shrink-0 w-full py-[40px]" data-name="GetInvolvedCTA">
-      <div className="flex flex-row flex-nowrap items-center justify-center gap-[16px] px-[16px]">
+      <div className="flex flex-col items-center justify-center gap-[8px] px-[16px]">
         <div className="font-['Aeonik:Medium',sans-serif] font-medium text-[64px] text-nowrap text-white leading-[80px]">
-          Get Involved
+          Applications Closed
         </div>
-        <div className="flex flex-row flex-nowrap gap-[10px] items-center">
-          <ReferralButton />
-          <ApplyButton className="shrink-0 bg-[#66acd6] flex h-[52px] items-center justify-center px-[36px] py-[12px] rounded-[3.35544e+07px] cursor-pointer hover:bg-[#7bbde3] transition-colors shadow-[0px_0px_20px_4px_rgba(102,172,214,0.5)]">
-            <span className="font-['Aeonik:Medium',sans-serif] font-medium text-[#152d44] text-[18px] text-center text-nowrap leading-[28px]">
-              Apply
-            </span>
-          </ApplyButton>
-        </div>
+        <p className="font-['Aeonik:Regular',sans-serif] text-[16px] text-[rgba(255,255,255,0.7)]">
+          Log into a participant account to refer teammates
+        </p>
       </div>
     </div>
   );
@@ -1021,55 +1019,6 @@ The remainder of winning projects will be awarded on a case-by-case basis, with 
   );
 }
 
-function FinalCTASection() {
-  return (
-    <div className="gradient-border-section bg-[rgba(102,172,214,0.25)] relative rounded-[16px] shrink-0 w-full">
-      <div className="content-stretch flex flex-col gap-[16px] items-start pb-[36px] pt-[24px] px-[24px] relative w-full">
-        <div className="content-stretch flex flex-col items-center relative shrink-0 w-full">
-          <div className="relative shrink-0 w-full">
-            <div className="flex flex-col items-center overflow-clip rounded-[inherit] size-full">
-              <div className="content-stretch flex flex-col gap-[10px] p-[10px] relative w-full items-center">
-                <div className="flex flex-col font-['Aeonik:Medium',sans-serif] font-medium justify-center leading-[0] not-italic relative shrink-0 text-[64px] text-nowrap text-white">
-                  <p className="leading-[80px]">Get Involved</p>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="content-stretch flex items-start justify-between relative shrink-0 w-full">
-            <div className="content-stretch flex gap-[10px] items-center justify-center relative shrink-0 w-[1068px]">
-              <InfoBanner>
-                <div aria-hidden="true" className="absolute border-[#66acd6] border-[0px_0px_0px_4px] border-solid inset-0 pointer-events-none" />
-                <p className="font-['Aeonik:Regular',sans-serif] leading-[1.25] not-italic relative shrink-0 text-[18px] text-white w-[401.336px]">
-                  Spots are limited and reviewed on a rolling basis.
-                </p>
-              </InfoBanner>
-              <InfoBanner>
-                <div aria-hidden="true" className="absolute border-[#66acd6] border-[0px_0px_0px_4px] border-solid inset-0 pointer-events-none" />
-                <p className="font-['Aeonik:Regular',sans-serif] leading-[1.25] not-italic relative shrink-0 text-[18px] text-nowrap text-white">
-                  Start your next chapter on Avalanche
-                </p>
-              </InfoBanner>
-            </div>
-          </div>
-          <div className="h-[77px] relative shrink-0 w-full">
-            <div className="flex flex-row items-center justify-center overflow-clip rounded-[inherit] size-full">
-              <div className="content-stretch flex items-center justify-center relative size-full py-0">
-                <div className="content-stretch flex gap-[10px] items-center relative shrink-0">
-                  <ReferralButton />
-                  <ApplyButton className="content-stretch flex flex-col items-center relative shrink-0 bg-[#66acd6] h-[52px] justify-center px-[36px] py-[12px] rounded-[3.35544e+07px] cursor-pointer hover:bg-[#7bbde3] transition-colors shadow-[0px_0px_20px_4px_rgba(102,172,214,0.5)]">
-                    <span className="flex flex-col font-['Aeonik:Medium',sans-serif] font-medium justify-center leading-[0] relative shrink-0 text-[#152d44] text-[18px] text-center text-nowrap">
-                      <span className="leading-[28px]">Apply</span>
-                    </span>
-                  </ApplyButton>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function MainContent() {
   return (
@@ -1080,14 +1029,20 @@ function MainContent() {
       <div className="relative shrink-0 w-full" data-name="CTA">
         <div className="flex flex-col justify-center size-full">
           <div className="content-stretch flex flex-col gap-[16px] items-start justify-center px-[186px] py-0 relative w-full">
+            <ProgramTimelineWrapper />
+            <BuildGamesResourcesWrapper />
+            <ApplyTodayCTA />
             <WhatIsBuildGamesSection />
             <WhoShouldApplySection />
-            <HowItWorksSection />
             <PrizesSection />
+            <HowItWorksWrapper>
+              <HowItWorksSection />
+            </HowItWorksWrapper>
             <div className="h-[24px] shrink-0 w-[197px]" data-name="Spacer" />
             <WhatWereLookingForSection />
+            {<BuildGamesMentors />}
+            {<BuildGamesPartners />}
             <FAQsSection />
-            <FinalCTASection />
           </div>
         </div>
       </div>

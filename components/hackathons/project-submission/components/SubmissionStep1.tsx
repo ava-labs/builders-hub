@@ -38,6 +38,8 @@ export interface projectProps {
   currentUserName?: string;
   openCurrentProject: boolean;
   setOpenCurrentProject: (open: boolean) => void;
+  /** When set, the invite link will use this stage number (Build Games specific). */
+  invite_stage?: number;
 }
 
 const SubmitStep1: FC<projectProps> = (project) => {

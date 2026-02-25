@@ -2,18 +2,18 @@
 
 import { useState } from "react";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
-import { useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
 import { Button } from "@/components/toolbox/components/Button";
 import { Input } from "@/components/toolbox/components/Input";
 import { ResultField } from "@/components/toolbox/components/ResultField";
 import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput";
-import nativeMinterAbi from "@/contracts/precompiles/NativeMinter.json";
 import { AllowlistComponent } from "@/components/toolbox/components/AllowListComponents";
 import { CheckPrecompile } from "@/components/toolbox/components/CheckPrecompile";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../components/WithConsoleToolMetadata";
 import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
+import { usePrecompiles } from "@/components/toolbox/hooks/contracts";
+import { parseEther } from "viem";
 
 // Default Native Minter address
 const DEFAULT_NATIVE_MINTER_ADDRESS =
@@ -31,7 +31,7 @@ const metadata: ConsoleToolMetadata = {
 function NativeMinter({ onSuccess }: BaseConsoleToolProps) {
   const { publicClient, walletEVMAddress } = useWalletStore();
   const { coreWalletClient } = useConnectedWallet();
-  const viemChain = useViemChainStore();
+  const precompiles = usePrecompiles();
   const [amount, setAmount] = useState<string>("");
   const [recipient, setRecipient] = useState<string>("");
   const [isMinting, setIsMinting] = useState(false);
@@ -41,22 +41,12 @@ function NativeMinter({ onSuccess }: BaseConsoleToolProps) {
     setIsMinting(true);
 
     try {
-      // Convert amount to Wei
-      const amountInWei = BigInt(amount) * BigInt(10 ** 18);
+      const amountInWei = parseEther(amount);
 
-      // Call the mintNativeCoin function using the contract ABI
-      const hash = await coreWalletClient.writeContract({
-        address: DEFAULT_NATIVE_MINTER_ADDRESS as `0x${string}`,
-        abi: nativeMinterAbi.abi,
-        functionName: "mintNativeCoin",
-        args: [recipient, amountInWei],
-        account: walletEVMAddress as `0x${string}`,
-        chain: viemChain,
-        gas: BigInt(1_000_000),
-      });
+      const hash = await precompiles.nativeMinter.mintNativeCoin(recipient, amountInWei);
 
       // Wait for transaction confirmation
-      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      const receipt = await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
 
       if (receipt.status === "success") {
         setTxHash(hash);
@@ -69,8 +59,10 @@ function NativeMinter({ onSuccess }: BaseConsoleToolProps) {
     }
   };
 
-  const isValidAmount = amount && Number(amount) > 0;
-  const canMint = Boolean(recipient && isValidAmount && walletEVMAddress && coreWalletClient && !isMinting);
+  const numAmount = Number(amount);
+  const isValidAmount = amount !== "" && !isNaN(numAmount) && numAmount > 0;
+  const hasTooManyDecimals = amount.includes(".") && (amount.split(".")[1]?.length ?? 0) > 18;
+  const canMint = Boolean(recipient && isValidAmount && !hasTooManyDecimals && walletEVMAddress && coreWalletClient && !isMinting);
 
   return (
     <CheckPrecompile
@@ -87,14 +79,17 @@ function NativeMinter({ onSuccess }: BaseConsoleToolProps) {
               disabled={isMinting}
             />
             <Input
-              label="Amount"
+              label="Amount (supports decimals, e.g. 3.5)"
               value={amount}
               onChange={(value) => setAmount(value)}
               type="number"
               min="0"
-              step="0.000000000000000001"
+              step="any"
               disabled={isMinting}
             />
+            {hasTooManyDecimals && (
+              <p className="text-sm text-red-500">Maximum 18 decimal places allowed</p>
+            )}
           </div>
 
           {txHash && (

@@ -134,6 +134,21 @@ export async function createProject(
     }
     // If no ID and no hackathon_id, existingProject remains null and we create a new project
 
+    // Re-check immediately before creating to narrow the concurrent-read race window.
+    // Two transactions can both reach here having found no existing project; the
+    // second findFirst after both reads closes the window before the write.
+    if (!existingProject && projectData.hackaton_id) {
+      existingProject = await tx.project.findFirst({
+        where: {
+          hackaton_id: projectData.hackaton_id,
+          members: {
+            some: { user_id: projectData.user_id, status: "Confirmed" },
+          },
+        },
+        include: { members: true },
+      });
+    }
+
     if (existingProject) {
       // Update existing project
       const updatedProject = await tx.project.update({

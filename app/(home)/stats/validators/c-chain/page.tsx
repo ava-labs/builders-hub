@@ -27,6 +27,7 @@ import { AddToWalletButton } from "@/components/ui/add-to-wallet-button";
 import { VersionBreakdownCard, calculateVersionStats, type VersionBreakdownData } from "@/components/stats/VersionBreakdown";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { getMAConfig } from "@/utils/chart-utils";
+import { calculateDateRangeDays, formatXAxisLabel, generateXAxisTicks } from "@/components/stats/chart-axis-utils";
 import { useTheme } from "next-themes";
 import { toPng } from "html-to-image";
 
@@ -2540,6 +2541,22 @@ function ValidatorChartCard({
   const displayData = brushIndexes
     ? aggregatedData.slice(brushIndexes.startIndex, brushIndexes.endIndex + 1)
     : aggregatedData;
+
+  const brushRangeDays = useMemo(() => {
+    return calculateDateRangeDays(displayData, "day");
+  }, [displayData]);
+
+  const totalDataDays = useMemo(() => {
+    return calculateDateRangeDays(aggregatedData, "day");
+  }, [aggregatedData]);
+
+  const formatXAxis = (value: string) => formatXAxisLabel(value, brushRangeDays);
+  const formatBrushXAxis = (value: string) => formatXAxisLabel(value, totalDataDays);
+
+  const xAxisTicks = useMemo(() => {
+    return generateXAxisTicks(displayData, brushRangeDays, "day");
+  }, [displayData, brushRangeDays]);
+
   const dynamicChange = useMemo(() => {
     if (!displayData || displayData.length < 2) {
       return { change: 0, isPositive: true };
@@ -2573,41 +2590,6 @@ function ValidatorChartCard({
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-  };
-
-  const formatXAxis = (value: string) => {
-    if (period === "Q") {
-      const parts = value.split("-");
-      if (parts.length === 2) {
-        return `${parts[1]} '${parts[0].slice(-2)}`;
-      }
-      return value;
-    }
-    if (period === "Y") return value;
-    const date = new Date(value);
-    if (period === "M") {
-      return date.toLocaleDateString("en-US", {
-        month: "short",
-        year: "2-digit",
-      });
-    }
-    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-  };
-
-  const formatBrushXAxis = (value: string) => {
-    if (period === "Q") {
-      const parts = value.split("-");
-      if (parts.length === 2) {
-        return `${parts[1]} ${parts[0]}`;
-      }
-      return value;
-    }
-    if (period === "Y") return value;
-    const date = new Date(value);
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      year: "numeric",
-    });
   };
 
   const formatTooltipDate = (value: string) => {
@@ -2761,8 +2743,8 @@ function ValidatorChartCard({
                     tickFormatter={formatXAxis}
                     className="text-xs text-gray-600 dark:text-gray-400"
                     tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
-                    minTickGap={80}
-                    interval="preserveStartEnd"
+                    ticks={xAxisTicks}
+                    interval={0}
                   />
                   <YAxis
                     tickFormatter={formatYAxisValue}
@@ -2831,8 +2813,8 @@ function ValidatorChartCard({
                     tickFormatter={formatXAxis}
                     className="text-xs text-gray-600 dark:text-gray-400"
                     tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
-                    minTickGap={80}
-                    interval="preserveStartEnd"
+                    ticks={xAxisTicks}
+                    interval={0}
                   />
                   <YAxis
                     tickFormatter={formatYAxisValue}
@@ -3114,25 +3096,26 @@ function DailyRewardsChartCard({
     URL.revokeObjectURL(url);
   };
 
+  const brushRangeDays = useMemo(() => {
+    return calculateDateRangeDays(displayData, "day");
+  }, [displayData]);
+
+  const totalDataDays = useMemo(() => {
+    return calculateDateRangeDays(aggregatedData, "day");
+  }, [aggregatedData]);
+
+  const formatXAxis = (value: string) => formatXAxisLabel(value, brushRangeDays);
+  const formatBrushXAxis = (value: string) => formatXAxisLabel(value, totalDataDays);
+
+  const xAxisTicks = useMemo(() => {
+    return generateXAxisTicks(displayData, brushRangeDays, "day");
+  }, [displayData, brushRangeDays]);
+
   const formatValue = (value: number): string => {
     if (value >= 1e9) return `${(value / 1e9).toFixed(2)}B`;
     if (value >= 1e6) return `${(value / 1e6).toFixed(2)}M`;
     if (value >= 1e3) return `${(value / 1e3).toFixed(2)}K`;
     return value.toFixed(2);
-  };
-
-  const formatXAxis = (value: string) => {
-    if (period === "Q") {
-      const parts = value.split("-");
-      if (parts.length === 2) return `${parts[1]} '${parts[0].slice(-2)}`;
-      return value;
-    }
-    if (period === "Y") return value;
-    const date = new Date(value);
-    if (period === "M") {
-      return date.toLocaleDateString("en-US", { month: "short", year: "2-digit" });
-    }
-    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
   };
 
   const formatTooltipDate = (value: string) => {
@@ -3152,12 +3135,6 @@ function DailyRewardsChartCard({
       return `${date.toLocaleDateString("en-US", { month: "short", day: "numeric" })} - ${endDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
     }
     return date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
-  };
-
-  const formatBrushXAxis = (value: string) => {
-    if (period === "Q" || period === "Y") return value;
-    const date = new Date(value);
-    return date.toLocaleDateString("en-US", { month: "short", year: "numeric" });
   };
 
   return (
@@ -3268,8 +3245,8 @@ function DailyRewardsChartCard({
                     tickFormatter={formatXAxis}
                     className="text-xs text-gray-600 dark:text-gray-400"
                     tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
-                    minTickGap={80}
-                    interval="preserveStartEnd"
+                    ticks={xAxisTicks}
+                    interval={0}
                   />
                   <YAxis
                     yAxisId="left"
@@ -3498,19 +3475,20 @@ function StakingAPYChartCard({
     URL.revokeObjectURL(url);
   };
 
-  const formatXAxis = (value: string) => {
-    if (period === "Q") {
-      const parts = value.split("-");
-      if (parts.length === 2) return `${parts[1]} '${parts[0].slice(-2)}`;
-      return value;
-    }
-    if (period === "Y") return value;
-    const date = new Date(value);
-    if (period === "M") {
-      return date.toLocaleDateString("en-US", { month: "short", year: "2-digit" });
-    }
-    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-  };
+  const brushRangeDays = useMemo(() => {
+    return calculateDateRangeDays(displayData, "day");
+  }, [displayData]);
+
+  const totalDataDays = useMemo(() => {
+    return calculateDateRangeDays(aggregatedData, "day");
+  }, [aggregatedData]);
+
+  const formatXAxis = (value: string) => formatXAxisLabel(value, brushRangeDays);
+  const formatBrushXAxis = (value: string) => formatXAxisLabel(value, totalDataDays);
+
+  const xAxisTicks = useMemo(() => {
+    return generateXAxisTicks(displayData, brushRangeDays, "day");
+  }, [displayData, brushRangeDays]);
 
   const formatTooltipDate = (value: string) => {
     if (period === "Y") return value;
@@ -3529,12 +3507,6 @@ function StakingAPYChartCard({
       return `${date.toLocaleDateString("en-US", { month: "short", day: "numeric" })} - ${endDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
     }
     return date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
-  };
-
-  const formatBrushXAxis = (value: string) => {
-    if (period === "Q" || period === "Y") return value;
-    const date = new Date(value);
-    return date.toLocaleDateString("en-US", { month: "short", year: "numeric" });
   };
 
   const maxAPYColor = "#10B981"; // Emerald for max APY (1 year)
@@ -3656,8 +3628,8 @@ function StakingAPYChartCard({
                     tickFormatter={formatXAxis}
                     className="text-xs text-gray-600 dark:text-gray-400"
                     tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
-                    minTickGap={80}
-                    interval="preserveStartEnd"
+                    ticks={xAxisTicks}
+                    interval={0}
                   />
                   <YAxis
                     tickLine={false}
@@ -3964,19 +3936,20 @@ function TotalWeightStackedChartCard({
     return `${avaxValue.toFixed(2)} AVAX`;
   };
 
-  const formatXAxis = (value: string) => {
-    if (period === "Q") {
-      const parts = value.split("-");
-      if (parts.length === 2) return `${parts[1]} '${parts[0].slice(-2)}`;
-      return value;
-    }
-    if (period === "Y") return value;
-    const date = new Date(value);
-    if (period === "M") {
-      return date.toLocaleDateString("en-US", { month: "short", year: "2-digit" });
-    }
-    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-  };
+  const brushRangeDays = useMemo(() => {
+    return calculateDateRangeDays(displayData, "day");
+  }, [displayData]);
+
+  const totalDataDays = useMemo(() => {
+    return calculateDateRangeDays(mergedData, "day");
+  }, [mergedData]);
+
+  const formatXAxis = (value: string) => formatXAxisLabel(value, brushRangeDays);
+  const formatBrushXAxis = (value: string) => formatXAxisLabel(value, totalDataDays);
+
+  const xAxisTicks = useMemo(() => {
+    return generateXAxisTicks(displayData, brushRangeDays, "day");
+  }, [displayData, brushRangeDays]);
 
   const formatTooltipDate = (value: string) => {
     if (period === "Y") return value;
@@ -3995,12 +3968,6 @@ function TotalWeightStackedChartCard({
       return `${date.toLocaleDateString("en-US", { month: "short", day: "numeric" })} - ${endDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
     }
     return date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
-  };
-
-  const formatBrushXAxis = (value: string) => {
-    if (period === "Q" || period === "Y") return value;
-    const date = new Date(value);
-    return date.toLocaleDateString("en-US", { month: "short", year: "numeric" });
   };
 
   const stakedColor = color;
@@ -4120,8 +4087,8 @@ function TotalWeightStackedChartCard({
                     tickFormatter={formatXAxis}
                     className="text-xs text-gray-600 dark:text-gray-400"
                     tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
-                    minTickGap={80}
-                    interval="preserveStartEnd"
+                    ticks={xAxisTicks}
+                    interval={0}
                   />
                   <YAxis
                     tickFormatter={formatWeight}
@@ -4348,19 +4315,20 @@ function CumulativeRewardsChartCard({
     return value.toFixed(2);
   };
 
-  const formatXAxis = (value: string) => {
-    if (period === "Q") {
-      const parts = value.split("-");
-      if (parts.length === 2) return `${parts[1]} '${parts[0].slice(-2)}`;
-      return value;
-    }
-    if (period === "Y") return value;
-    const date = new Date(value);
-    if (period === "M") {
-      return date.toLocaleDateString("en-US", { month: "short", year: "2-digit" });
-    }
-    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-  };
+  const brushRangeDays = useMemo(() => {
+    return calculateDateRangeDays(displayData, "day");
+  }, [displayData]);
+
+  const totalDataDays = useMemo(() => {
+    return calculateDateRangeDays(aggregatedData, "day");
+  }, [aggregatedData]);
+
+  const formatXAxis = (value: string) => formatXAxisLabel(value, brushRangeDays);
+  const formatBrushXAxis = (value: string) => formatXAxisLabel(value, totalDataDays);
+
+  const xAxisTicks = useMemo(() => {
+    return generateXAxisTicks(displayData, brushRangeDays, "day");
+  }, [displayData, brushRangeDays]);
 
   const formatTooltipDate = (value: string) => {
     if (period === "Y") return value;
@@ -4379,12 +4347,6 @@ function CumulativeRewardsChartCard({
       return `${date.toLocaleDateString("en-US", { month: "short", day: "numeric" })} - ${endDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
     }
     return date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
-  };
-
-  const formatBrushXAxis = (value: string) => {
-    if (period === "Q" || period === "Y") return value;
-    const date = new Date(value);
-    return date.toLocaleDateString("en-US", { month: "short", year: "numeric" });
   };
 
   return (
@@ -4472,8 +4434,8 @@ function CumulativeRewardsChartCard({
                     tickFormatter={formatXAxis}
                     className="text-xs text-gray-600 dark:text-gray-400"
                     tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
-                    minTickGap={80}
-                    interval="preserveStartEnd"
+                    ticks={xAxisTicks}
+                    interval={0}
                   />
                   <YAxis
                     tickFormatter={formatValue}

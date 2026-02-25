@@ -1,0 +1,64 @@
+---
+title: L1 Validators
+description: Register, manage, and disable validators on L1 blockchains
+---
+
+Once a subnet is converted to an L1, manage its validators with the `l1` commands. These operations use hex-encoded Warp messages for authorization.
+
+## Register Validator
+
+```bash
+platform l1 register-validator \
+  --balance 1.0 \
+  --pop 0xabc123... \
+  --message 0xdef456... \
+  --key-name mykey
+```
+
+| Flag | Description |
+|------|-------------|
+| `--balance` | Initial balance in AVAX (required) |
+| `--pop` | BLS proof of possession hex (required) |
+| `--message` | Warp message hex (required) |
+
+## Set Validator Weight
+
+```bash
+platform l1 set-weight \
+  --message 0xabc123... \
+  --key-name mykey
+```
+
+| Flag | Description |
+|------|-------------|
+| `--message` | Warp message authorizing weight change (required) |
+
+## Add Validator Balance
+
+Top up a validator's balance for continuous fee payments:
+
+```bash
+platform l1 add-balance \
+  --validation-id 2QYfFcfZ9... \
+  --balance 5.0 \
+  --key-name mykey
+```
+
+| Flag | Description |
+|------|-------------|
+| `--validation-id` | Validation ID (required) |
+| `--balance` | AVAX to add (required) |
+
+## Disable Validator
+
+Disable a validator and return remaining funds:
+
+```bash
+platform l1 disable-validator \
+  --validation-id 2QYfFcfZ9... \
+  --key-name mykey
+```
+
+| Flag | Description |
+|------|-------------|
+| `--validation-id` | Validation ID to disable (required) |
