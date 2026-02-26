@@ -6,13 +6,12 @@ import { Input } from '@/components/toolbox/components/Input';
 import { Success } from '@/components/toolbox/components/Success';
 import { Alert } from '@/components/toolbox/components/Alert';
 import { bytesToHex, hexToBytes } from 'viem';
-import validatorManagerAbi from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
-import poaManagerAbi from '@/contracts/icm-contracts/compiled/PoAManager.json';
 import { GetRegistrationJustification } from '../ValidatorManager/justification';
 import { packL1ValidatorRegistration } from '@/components/toolbox/coreViem/utils/convertWarp';
 import { packWarpIntoAccessList } from '../ValidatorManager/packWarp';
 import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
+import { useValidatorManager, usePoAManager } from '@/components/toolbox/hooks/contracts';
 
 interface CompleteValidatorRemovalProps {
   subnetIdL1: string;
@@ -51,6 +50,14 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
   const viemChain = useViemChainStore();
   const [pChainTxId, setPChainTxId] = useState(initialPChainTxId || '');
   const { notify } = useConsoleNotifications();
+
+  // Determine target contract and ABI based on ownerType
+  const useMultisig = ownerType === 'PoAManager';
+  const targetContractAddress = useMultisig ? contractOwner : validatorManagerAddress;
+
+  const validatorManager = useValidatorManager(!useMultisig ? validatorManagerAddress : null);
+  const poaManager = usePoAManager(useMultisig ? contractOwner : null);
+
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setErrorState] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -61,11 +68,6 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
     nonce: bigint;
     weight: bigint;
   } | null>(null);
-
-  // Determine target contract and ABI based on ownerType
-  const useMultisig = ownerType === 'PoAManager';
-  const targetContractAddress = useMultisig ? contractOwner : validatorManagerAddress;
-  const targetAbi = useMultisig ? poaManagerAbi.abi : validatorManagerAbi.abi;
 
   // Update pChainTxId when the prop changes
   useEffect(() => {
@@ -160,22 +162,12 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
       const signedPChainWarpMsgBytes = hexToBytes(`0x${signature.signedMessage}`);
       const accessList = packWarpIntoAccessList(signedPChainWarpMsgBytes);
 
-      const writePromise = coreWalletClient.writeContract({
-        address: targetContractAddress as `0x${string}`,
-        abi: targetAbi,
-        functionName: "completeValidatorRemoval",
-        args: [0], // As per original, arg is 0
-        accessList,
-        account: walletEVMAddress as `0x${string}`,
-        chain: viemChain,
-      });
-      notify({
-        type: 'call',
-        name: 'Complete Validator Removal'
-      }, writePromise, viemChain ?? undefined);
+      // Use appropriate hook based on ownerType
+      const hash = useMultisig
+        ? await poaManager.completeValidatorRemoval(0, accessList)
+        : await validatorManager.completeValidatorRemoval(0, accessList);
 
-      const hash = await writePromise;
-      const finalReceipt = await publicClient.waitForTransactionReceipt({ hash });
+      const finalReceipt = await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
       if (finalReceipt.status !== 'success') {
         throw new Error(`Transaction failed with status: ${finalReceipt.status}`);
       }

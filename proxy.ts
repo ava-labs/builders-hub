@@ -24,12 +24,14 @@ export async function proxy(req: NextRequest) {
   const isAuthenticated = !!token;
   const isLoginPage = pathname === "/login";
   const isShowCase = pathname.startsWith("/showcase");
+  const isSendNotifications = pathname.startsWith("/send-notifications");
   const custom_attributes = token?.custom_attributes as string[] ?? []
 
   const protectedPaths = [
     "/hackathons/registration-form",
     "/hackathons/project-submission",
     "/showcase",
+    "/send-notifications",
     "/profile",
     "/student-launchpad",
     "/grants/"
@@ -53,6 +55,9 @@ export async function proxy(req: NextRequest) {
 
     if (isShowCase && !custom_attributes.includes('showcase'))
       return NextResponse.redirect(new URL("/hackathons", req.url))
+
+    if (isSendNotifications && !(custom_attributes.includes('devrel') || custom_attributes.includes('notify_event')))
+      return NextResponse.redirect(new URL("/", req.url))
 
     // Protect hackathons/edit route - only team1-admin and hackathonCreator can access
     if (pathname.startsWith("/hackathons/edit")) {
@@ -92,6 +97,7 @@ export const config = {
     "/hackathons/project-submission/:path*",
     "/hackathons/edit/:path*",
     "/showcase/:path*",
+    "/send-notifications/:path*",
     "/login/:path*",
     "/profile/:path*",
     "/academy/:path*/get-certificate",
