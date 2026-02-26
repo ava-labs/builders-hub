@@ -11,7 +11,7 @@ const CONSOLE_TIER_LABELS: Record<string, string> = {
   "1": "Bronze",
   "2": "Silver",
   "3": "Gold",
-  "4": "Legendary",
+  "4": "Secret",
 };
 
 const LEGENDARY_TIER = "4";
