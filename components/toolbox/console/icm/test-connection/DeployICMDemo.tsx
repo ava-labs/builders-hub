@@ -389,7 +389,7 @@ function DeployICMDemo({ onSuccess }: BaseConsoleToolProps) {
       {/* Footer */}
       <div className="shrink-0 px-4 py-2.5 border-t border-zinc-200/80 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 flex items-center justify-between">
         <a
-          href="https://build.avax.network/academy/interchain-messaging/04-icm-basics/06-create-receiver-contract"
+          href="https://build.avax.network/academy/avalanche-l1/interchain-messaging/03-icm-protocol/04-receiving-a-message"
           target="_blank"
           rel="noopener noreferrer"
           className="text-xs text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 flex items-center gap-1 transition-colors"
@@ -398,7 +398,7 @@ function DeployICMDemo({ onSuccess }: BaseConsoleToolProps) {
           ICM Basics Tutorial
         </a>
         <span className="text-[11px] text-zinc-400">
-          avalanche-starter-kit
+          ICM Demo
         </span>
       </div>
     </div>

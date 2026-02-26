@@ -54,7 +54,7 @@ contract MessageReceiver is ITeleporterReceiver {
         address sender;
         string message;
     }
-  
+
   	mapping(bytes32 => Message) private _messages;
 
     ITeleporterMessenger public immutable teleporterMessenger;
@@ -80,7 +80,7 @@ contract MessageReceiver is ITeleporterReceiver {
         if (msg.sender != address(teleporterMessenger)) {
             revert Unauthorized();
         }
-      
+
         string memory messageString = abi.decode(message, (string));
         _messages[originChainID] = Message(originSenderAddress, messageString);
     }
@@ -88,6 +88,6 @@ contract MessageReceiver is ITeleporterReceiver {
 }
 ```
 
-This contract stores the last `Message` and it's sender of each chain it has received. When it is instantiated, the address of the Interchain Messaging contract is supplied to the constructor. The contract implements the `ITelepoterReceiver` interface and therefore we also implement the `receiveTeleporterMessage` function. 
+This contract stores the last `Message` and it's sender of each chain it has received. When it is instantiated, the address of the Interchain Messaging contract is supplied to the constructor. The contract implements the `ITelepoterReceiver` interface and therefore we also implement the `receiveTeleporterMessage` function.
 
 <Quiz quizId="305"/>
