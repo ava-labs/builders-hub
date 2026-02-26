@@ -50,7 +50,7 @@ const avalancheShortcuts: Shortcut[] = [
     title: "Send Cross-Chain Messages",
     description: "Learn how ICM enables communication between chains",
     icon: MessageSquare,
-    href: "/academy/avalanche-l1/interchain-messaging/04-icm-basics/01-icm-basics"
+    href: "/academy/avalanche-l1/interchain-messaging/03-icm-protocol/01-what-is-icm"
   },
   {
     id: "bridge-tokens",
