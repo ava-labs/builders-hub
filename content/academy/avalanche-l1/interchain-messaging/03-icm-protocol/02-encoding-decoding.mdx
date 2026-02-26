@@ -6,11 +6,11 @@ authors: [martineckardt]
 icon: BookOpen
 ---
 
-When we send an interchain message, we are just sending a single value of type bytes. This value can contain multiple values of various types (e.g. string, uint & address) using encoding and decoding. 
+When we send an interchain message, we are just sending a single value of type bytes. This value can contain multiple values of various types (e.g. string, uint & address) using encoding and decoding.
 
 In this section we will recap these topics:
 
-- **Bytes:** What is this data type and why are we using it? 
+- **Bytes:** What is this data type and why are we using it?
 - **Encoding:** How do we turn values into bytes?
 - **Decoding:** How can we turn the bytes back into the values?
 
@@ -43,7 +43,7 @@ This single value message here we can now use as a message for Teleporter.
 When we decode data, we convert it from a byte array back into its original form. This is useful when we receive data from another contract. We can decode the byte array into its original values.
 
 ```solidity
-( 
+(
   string memory someString,
   uint someNumber
 ) = abi.decode(message, (string, uint));

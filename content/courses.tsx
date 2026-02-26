@@ -68,11 +68,11 @@ const officialCourses: Course[] = [
     },
     {
         name: "Interchain Messaging",
-        description: "Utilize Avalanche Interchain Messaging to build cross-chain dApps in the Avalanche network",
+        description: "Learn the fundamentals of Avalanche Interchain Messaging and set up cross-chain communication infrastructure",
         slug: "interchain-messaging",
         icon: <MailIcon />,
         status: "featured",
-        duration: "3 hours",
+        duration: "2 hours",
         tools: ["Console"],
         languages: ["Solidity"],
         instructors: ["Martin Eckardt", "Andrea Vargas", "Ash", "Nicolas Arnedo"], // + Usman
