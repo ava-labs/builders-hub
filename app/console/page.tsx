@@ -314,25 +314,19 @@ function ConsoleDashboard() {
           </motion.div>
 
           <motion.div className="md:col-span-2" variants={itemVariants}>
-            <Link href="/console/blueprints" className="block h-full">
+            <div className="block h-full cursor-not-allowed">
               <motion.div
-                whileHover={{ y: -2 }}
-                transition={{ type: "spring" as const, stiffness: 400, damping: 25 }}
-                className="group h-full rounded-2xl border border-zinc-200/80 dark:border-zinc-700 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm p-5 transition-all duration-200 hover:border-zinc-300 dark:hover:border-zinc-600"
+                className="group h-full rounded-2xl border border-zinc-200/80 dark:border-zinc-700 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm p-5 opacity-50 pointer-events-none select-none"
                 style={{
                   boxShadow: "0 1px 2px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.03)",
-                  outline: "2px solid transparent",
-                  animation: "cardPulse 1.0s ease-in-out 2.9s 1",
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "0 2px 4px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.06)"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "0 1px 2px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.03)"; }}
               >
                 <div className="flex items-center gap-2.5 mb-3">
-                  <div className="w-9 h-9 rounded-xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center transition-colors group-hover:bg-zinc-200/80 dark:group-hover:bg-zinc-700/80">
+                  <div className="w-9 h-9 rounded-xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
                     <Sparkles className="w-4.5 h-4.5 text-zinc-600 dark:text-zinc-400" />
                   </div>
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-2 py-0.5 rounded-full">
-                    New
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded-full">
+                    Coming Soon
                   </span>
                 </div>
                 <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-1.5">
@@ -342,7 +336,7 @@ function ConsoleDashboard() {
                   Pre-configured L1 templates for gaming, DeFi, and enterprise
                 </p>
               </motion.div>
-            </Link>
+            </div>
           </motion.div>
 
           {/* Row 2: Faucet (3) + API Keys (3) */}

@@ -138,6 +138,7 @@ const data = {
           title: "Blueprints",
           url: "/console/blueprints",
           icon: Sparkles,
+          comingSoon: true,
         },
         {
           title: "Create L1",
