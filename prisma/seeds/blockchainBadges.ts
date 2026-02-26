@@ -2,32 +2,22 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-/**
- * Blockchain Academy Badges
- *
- * One badge per course, hexagon badge shape.
- * Courses:
- *   - blockchain-fundamentals
- *   - solidity-foundry
- *   - nft-deployment
- *   - x402-payment-infrastructure
- *   - encrypted-erc
- */
+interface BlockchainBadgeSeed {
+  name: string;
+  description: string;
+  image_path: string;
+  category: string;
+  requirements: { id: string; course_id: string; type: string; description: string; unlocked: boolean }[];
+}
 
-export const blockchainBadges = [
+const blockchainBadges: BlockchainBadgeSeed[] = [
   {
     name: "Blockchain Fundamentals",
     description: "Completed the Blockchain Fundamentals course",
     image_path: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/academy_badges/Blockchain_Fundamentals_Badge.png",
     category: "academy",
     requirements: [
-      {
-        id: "blockchain-fundamentals-complete",
-        course_id: "blockchain-fundamentals",
-        type: "course",
-        description: "Complete Blockchain Fundamentals",
-        unlocked: false,
-      },
+      { id: "blockchain-fundamentals-complete", course_id: "blockchain-fundamentals", type: "course", description: "Complete Blockchain Fundamentals", unlocked: false },
     ],
   },
   {
@@ -36,13 +26,7 @@ export const blockchainBadges = [
     image_path: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/academy_badges/Intro_Solidity_Badge.png",
     category: "academy",
     requirements: [
-      {
-        id: "solidity-foundry-complete",
-        course_id: "solidity-foundry",
-        type: "course",
-        description: "Complete Intro to Solidity",
-        unlocked: false,
-      },
+      { id: "solidity-foundry-complete", course_id: "solidity-foundry", type: "course", description: "Complete Intro to Solidity", unlocked: false },
     ],
   },
   {
@@ -51,13 +35,7 @@ export const blockchainBadges = [
     image_path: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/academy_badges/NFT_Deployment_Badge.png",
     category: "academy",
     requirements: [
-      {
-        id: "nft-deployment-complete",
-        course_id: "nft-deployment",
-        type: "course",
-        description: "Complete NFT Deployment",
-        unlocked: false,
-      },
+      { id: "nft-deployment-complete", course_id: "nft-deployment", type: "course", description: "Complete NFT Deployment", unlocked: false },
     ],
   },
   {
@@ -66,13 +44,7 @@ export const blockchainBadges = [
     image_path: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/academy_badges/x402_Badge.png",
     category: "academy",
     requirements: [
-      {
-        id: "x402-payment-infrastructure-complete",
-        course_id: "x402-payment-infrastructure",
-        type: "course",
-        description: "Complete x402 Payment Infrastructure",
-        unlocked: false,
-      },
+      { id: "x402-payment-infrastructure-complete", course_id: "x402-payment-infrastructure", type: "course", description: "Complete x402 Payment Infrastructure", unlocked: false },
     ],
   },
   {
@@ -81,13 +53,7 @@ export const blockchainBadges = [
     image_path: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/academy_badges/Encrypted_ERC_Badge.png",
     category: "academy",
     requirements: [
-      {
-        id: "encrypted-erc-complete",
-        course_id: "encrypted-erc",
-        type: "course",
-        description: "Complete Encrypted ERC",
-        unlocked: false,
-      },
+      { id: "encrypted-erc-complete", course_id: "encrypted-erc", type: "course", description: "Complete Encrypted ERC", unlocked: false },
     ],
   },
 ];
@@ -97,14 +63,10 @@ async function seedBlockchainBadges() {
 
   for (const badge of blockchainBadges) {
     const existing = await prisma.badge.findFirst({
-      where: {
-        name: badge.name,
-        category: "academy",
-      },
+      where: { name: badge.name, category: "academy" },
     });
 
     if (existing) {
-      console.log(`  Badge "${badge.name}" already exists, updating...`);
       await prisma.badge.update({
         where: { id: existing.id },
         data: {
@@ -113,8 +75,8 @@ async function seedBlockchainBadges() {
           requirements: badge.requirements,
         },
       });
+      console.log(`  Updated: ${badge.name}`);
     } else {
-      console.log(`  Creating badge "${badge.name}"...`);
       await prisma.badge.create({
         data: {
           name: badge.name,
@@ -124,21 +86,18 @@ async function seedBlockchainBadges() {
           requirements: badge.requirements,
         },
       });
+      console.log(`  Created: ${badge.name}`);
     }
   }
 
-  console.log(`Seeded ${blockchainBadges.length} blockchain academy badges.`);
+  console.log(`Done. ${blockchainBadges.length} blockchain academy badges seeded.`);
 }
 
-export default seedBlockchainBadges;
-
-// Allow direct execution
-if (require.main === module) {
-  seedBlockchainBadges()
-    .then(() => prisma.$disconnect())
-    .catch((e) => {
-      console.error(e);
-      prisma.$disconnect();
-      process.exit(1);
-    });
-}
+seedBlockchainBadges()
+  .catch((e) => {
+    console.error("Error seeding blockchain badges:", e);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });
