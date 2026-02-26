@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useLoginModalTrigger } from "@/hooks/useLoginModal";
 import axios from "axios";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -160,7 +160,7 @@ export default function BuildGamesSubmitForm({
   );
 
   const form = useForm<FormData>({
-    resolver: zodResolver(FormSchema),
+    resolver: standardSchemaResolver(FormSchema),
     defaultValues: {
       project_name: "",
       short_description: "",
