@@ -3651,6 +3651,33 @@
     ]
   },
   {
+  "chainId": "15135",
+  "chainName": "Paradise Chain",
+  "isActive": true,
+  "description": "Paradise Chain is an Avalanche L1 built for large-scale multiplayer games with active player economies. It powers Paradise Tycoon and future Paradise games through shared assets, shared gameplay features, player progression, and a player-driven in-game economy centered around $MOANI",
+  "website": "https://paradise.cloud",
+  "chainLogoURI": "https://paradise.cloud/paradise-chain-logo.png",
+  "blockchainId": "0xe483efca9e95116021fe5f2eb6417009898c1a45d93a1688c355737ff64d7264",
+  "subnetId": "HusPFVgi8tADbk7LQmuQktL3rEQYHaXG7BKGKzX6AVmFyx6NJ",
+  "slug": "paradise",
+  "color": "#10B981",
+  "category": "Gaming",
+  "explorers": [
+    {
+      "name": "Paradise Explorer",
+      "link": "https://explorer.paradise.cloud"
+    }
+  ],
+  "rpcUrl": "https://rpc.paradise.cloud",
+  "networkToken": {
+    "name": "MOANI",
+    "symbol": "MOANI",
+    "decimals": 18,
+    "logoUri": "https://paradise.cloud/paradise-chain-logo.png"
+  },
+  "isTestnet": false
+  },
+  {
     "chainId": "99812",
     "chainName": "Pindora",
     "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
