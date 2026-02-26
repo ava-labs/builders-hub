@@ -17,6 +17,7 @@ export const RewardCard = ({
   className,
   image,
   is_unlocked,
+  isSecret,
   requirements,
 }: BadgeCardProps) => {
   const [open, setOpen] = useState(false);
@@ -43,7 +44,7 @@ export const RewardCard = ({
             <img
               src={image || "/wolfie/wolfie-hack.png"}
               alt={name}
-              className={`w-full h-full object-cover ${!is_unlocked ? "grayscale opacity-50" : ""}`}
+              className={`w-full h-full object-cover ${isSecret ? "brightness-0" : !is_unlocked ? "grayscale opacity-50" : ""}`}
               loading="lazy"
             />
           </div>

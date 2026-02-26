@@ -7,28 +7,36 @@ import { Badge, UserBadge } from "@/types/badge";
 import { getAllBadges } from "@/server/services/badge";
 import Link from "next/link";
 
-const TIER_LABELS: Record<string, string> = {
+const CONSOLE_TIER_LABELS: Record<string, string> = {
   "1": "Bronze",
   "2": "Silver",
   "3": "Gold",
-  "4": "Secret",
+  "4": "Legendary",
 };
 
-function getAcademySubcategory(badge: Badge): "blockchain" | "avalanche-l1" | "entrepreneur" {
-  const idLower = badge.id.toLowerCase();
-  if (idLower.includes("blockchainacademy")) return "blockchain";
-  if (idLower.includes("entrepreneuracademy")) return "entrepreneur";
-  if (idLower.includes("avalanchel1academy")) return "avalanche-l1";
-  return "avalanche-l1";
+const LEGENDARY_TIER = "4";
+
+type BadgeGroup = "console" | "blockchain" | "avalanche-l1" | "entrepreneur" | "hackathon" | "unknown";
+
+function getBadgeGroup(badge: Badge): BadgeGroup {
+  const id = badge.id.toLowerCase();
+  if (id.includes("console")) return "console";
+  if (id.includes("blockchainacademy")) return "blockchain";
+  if (id.includes("entrepreneuracademy")) return "entrepreneur";
+  if (id.includes("avalanchel1academy")) return "avalanche-l1";
+  if (id.includes("hackathon")) return "hackathon";
+  return "unknown";
 }
 
 function getConsoleTier(badge: Badge): string {
-  const match = badge.id.match(/console-(\d+)tier/i);
+  const id = badge.id.toLowerCase();
+  // Match patterns: console-1tier, console-2tier, etc.
+  const match = id.match(/(\d+)tier/);
   return match ? match[1] : "0";
 }
 
 function resolveUnlockStatus(badge: Badge, userBadges: UserBadge[]) {
-  const userBadge = userBadges.find((ub) => ub.badge_id == badge.id);
+  const userBadge = userBadges.find((ub) => ub.badge_id === badge.id);
 
   if (!userBadge) {
     return {
@@ -56,7 +64,7 @@ function sortUnlockedFirst<T extends { is_unlocked: boolean; name: string }>(ite
   });
 }
 
-function renderBadgeGrid(badges: ReturnType<typeof resolveUnlockStatus>[]) {
+function renderBadgeGrid(badges: ReturnType<typeof resolveUnlockStatus>[], isSecret = false) {
   return badges.map((reward) => (
     <RewardCard
       key={reward.id}
@@ -68,11 +76,12 @@ function renderBadgeGrid(badges: ReturnType<typeof resolveUnlockStatus>[]) {
       requirements={reward.requirements}
       id={reward.id}
       is_unlocked={reward.is_unlocked}
+      isSecret={isSecret}
     />
   ));
 }
 
-function renderBadgeSection(
+function renderAcademySection(
   title: string,
   badges: ReturnType<typeof resolveUnlockStatus>[],
   emptyLink: string,
@@ -112,9 +121,22 @@ export default async function RewardBoardTab() {
   const userBadges: UserBadge[] = await getRewardBoard(user_id);
   const badges = await getAllBadges();
 
-  // Split by category
-  const consoleBadges = badges.filter((b) => b.category === "console").sort((a, b) => a.id.localeCompare(b.id));
-  const academyBadges = badges.filter((b) => b.category === "academy").sort((a, b) => a.id.localeCompare(b.id));
+  // Group ALL badges by ID pattern (not by category field)
+  const consoleBadges: Badge[] = [];
+  const blockchainBadges: Badge[] = [];
+  const avalancheL1Badges: Badge[] = [];
+  const entrepreneurBadges: Badge[] = [];
+
+  for (const badge of badges) {
+    const group = getBadgeGroup(badge);
+    switch (group) {
+      case "console": consoleBadges.push(badge); break;
+      case "blockchain": blockchainBadges.push(badge); break;
+      case "avalanche-l1": avalancheL1Badges.push(badge); break;
+      case "entrepreneur": entrepreneurBadges.push(badge); break;
+      // hackathon and unknown badges are not displayed for now
+    }
+  }
 
   // Console: group by tier
   const consoleTierMap = new Map<string, ReturnType<typeof resolveUnlockStatus>[]>();
@@ -126,16 +148,10 @@ export default async function RewardBoardTab() {
   }
   const sortedTiers = [...consoleTierMap.keys()].sort((a, b) => Number(a) - Number(b));
 
-  // Academy: group by sub-academy
-  const blockchainBadges = sortUnlockedFirst(
-    academyBadges.filter((b) => getAcademySubcategory(b) === "blockchain").map((b) => resolveUnlockStatus(b, userBadges))
-  );
-  const avalancheL1Badges = sortUnlockedFirst(
-    academyBadges.filter((b) => getAcademySubcategory(b) === "avalanche-l1").map((b) => resolveUnlockStatus(b, userBadges))
-  );
-  const entrepreneurBadges = sortUnlockedFirst(
-    academyBadges.filter((b) => getAcademySubcategory(b) === "entrepreneur").map((b) => resolveUnlockStatus(b, userBadges))
-  );
+  // Academy: resolve unlock status and sort
+  const blockchainResolved = sortUnlockedFirst(blockchainBadges.map((b) => resolveUnlockStatus(b, userBadges)));
+  const avalancheL1Resolved = sortUnlockedFirst(avalancheL1Badges.map((b) => resolveUnlockStatus(b, userBadges)));
+  const entrepreneurResolved = sortUnlockedFirst(entrepreneurBadges.map((b) => resolveUnlockStatus(b, userBadges)));
 
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
@@ -158,14 +174,15 @@ export default async function RewardBoardTab() {
         <div className="flex flex-col gap-8">
           {sortedTiers.map((tier) => {
             const tierBadges = sortUnlockedFirst(consoleTierMap.get(tier)!);
-            const label = TIER_LABELS[tier] || `Tier ${tier}`;
+            const label = CONSOLE_TIER_LABELS[tier] || `Tier ${tier}`;
+            const isLegendary = tier === LEGENDARY_TIER;
             return (
               <div key={tier}>
                 <h2 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">
                   {label}
                 </h2>
                 <div className="grid gap-6 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-                  {renderBadgeGrid(tierBadges)}
+                  {renderBadgeGrid(tierBadges, isLegendary)}
                 </div>
               </div>
             );
@@ -174,23 +191,23 @@ export default async function RewardBoardTab() {
       )}
 
       {/* Academy Badges - grouped by sub-academy */}
-      {renderBadgeSection(
+      {renderAcademySection(
         "Blockchain Academy Badges",
-        blockchainBadges,
+        blockchainResolved,
         "/academy/blockchain",
         "Start the Blockchain Academy to earn badges",
       )}
 
-      {renderBadgeSection(
+      {renderAcademySection(
         "Avalanche L1 Academy Badges",
-        avalancheL1Badges,
+        avalancheL1Resolved,
         "/academy/avalanche-l1",
         "Start the Avalanche L1 Academy to earn badges",
       )}
 
-      {renderBadgeSection(
+      {renderAcademySection(
         "Entrepreneur Academy Badges",
-        entrepreneurBadges,
+        entrepreneurResolved,
         "/academy/entrepreneur",
         "Start the Entrepreneur Academy to earn badges",
       )}
