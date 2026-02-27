@@ -278,7 +278,7 @@ function Faucet({ onSuccess }: BaseConsoleToolProps) {
                 <img
                   src={
                     cChain?.logoUrl ||
-                    "https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/3e4b8ff10b69bfa31e70080a4b142caa/cchain-square.svg"
+                    "https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/3e4b8ff10b69bfa31e70080a4b142cd0/avalanche-avax-logo.svg"
                   }
                   alt="C-Chain"
                   className="w-12 h-12 rounded-lg"
