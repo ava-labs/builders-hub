@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useLoginModalTrigger } from "@/hooks/useLoginModal";
 import axios from "axios";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -52,7 +52,7 @@ const STAGE_SHORT_NAMES: Record<number, string> = {
 
 const STAGE_DESCRIPTIONS: Record<number, string> = {
   1: "Submit your project idea, team information, problem statement, and proposed solution.",
-  2: "Share your GitHub repository, technical documentation, and a product walkthrough video demonstrating your key features.",
+  2: "Functional prototype, GitHub repository with code, technical implementaiton details, and product walkthrough video (max 5 minutes) demonstrating key features.",
   3: "Submit your go-to-market plan, growth strategy, target user personas, competitive analysis, and long-term product vision.",
   4: "Provide your pitch deck, demo links, and complete project documentation for the final live presentation.",
 };
@@ -160,7 +160,7 @@ export default function BuildGamesSubmitForm({
   );
 
   const form = useForm<FormData>({
-    resolver: zodResolver(FormSchema),
+    resolver: standardSchemaResolver(FormSchema),
     defaultValues: {
       project_name: "",
       short_description: "",
@@ -222,6 +222,8 @@ export default function BuildGamesSubmitForm({
   useEffect(() => {
     const invitationId = searchParams.get("invitation");
     if (!invitationId || !session?.user?.id) return;
+    // OTP new users have a pending_ ID and no DB record yet — skip until profile is complete
+    if (session.user.id.startsWith("pending_")) return;
 
     axios
       .get("/api/project/check-invitation", {
@@ -236,8 +238,16 @@ export default function BuildGamesSubmitForm({
         const project = res.data.project;
         setJoinTeamName(project?.project_name || "");
         if (project?.id) setProjectId(project.id);
-        setOpenCurrentProject(invitation.hasConfirmedProject ?? false);
-        setOpenJoinTeamDialog(invitation.isConfirming ?? false);
+        if (invitation.hasConfirmedProject) {
+          // User already has a confirmed project — warning dialog handles cleanup
+          setOpenCurrentProject(true);
+        } else if (invitation.isConfirming) {
+          // Fresh invitation, no existing project to clean up
+          setOpenJoinTeamDialog(true);
+        } else {
+          // Invitation exists but is stale/already used
+          setOpenInvalidInvitation(true);
+        }
       })
       .catch(() => {
         setOpenInvalidInvitation(true);
@@ -1259,7 +1269,7 @@ export default function BuildGamesSubmitForm({
             name="demo_video_link"
             label="Walkthrough Video"
             placeholder="https://loom.com/share/... or https://youtube.com/..."
-            validationMessage="Link to a product walkthrough video demonstrating your key features. This replaces your Stage 1 pitch video."
+            validationMessage="Link to a product walkthrough video (max 5 minutes) demonstrating your key features. This replaces your Stage 1 pitch video."
             plainLabel
           />
 

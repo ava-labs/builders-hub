@@ -246,7 +246,7 @@ export default function CustomSubmission({ hackathon }: { hackathon: HackathonHe
       date: "Feb 25",
       details: {
         deadline: "February 25, 2026 at 11:59 PM EST",
-        requirements: "Create a 1-minute video clearly explaining your project idea, target problem, solution approach, and value proposition.",
+        requirements: "Create a 2-minute video clearly explaining your project idea, target problem, solution approach, and value proposition.",
         criteria: "Clarity of idea, problem-solution fit, innovation, presentation quality, and potential market impact.",
         support: "Video creation tips, pitch feedback sessions, and storytelling guidance from mentors.",
       },
@@ -257,7 +257,7 @@ export default function CustomSubmission({ hackathon }: { hackathon: HackathonHe
       date: "March 9",
       details: {
         deadline: "March 9, 2026 at 11:59 PM EST",
-        requirements: "Functional prototype, GitHub repository with code, technical documentation, and product walkthrough video demonstrating key features.",
+        requirements: "Functional prototype, GitHub repository with code, technical implementaiton details, and product walkthrough video (max 5 minutes) demonstrating key features.",
         criteria: "Technical implementation quality, use of Avalanche technologies, code structure, feature completeness, and UX design.",
         support: "Technical mentorship, code reviews, Avalanche integration help, and development best practices guidance.",
       },
