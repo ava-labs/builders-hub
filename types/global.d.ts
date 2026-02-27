@@ -33,4 +33,12 @@ declare global {
     }
 }
 
-export { }; 
+declare module 'bs58' {
+    const bs58: {
+        encode(source: Uint8Array): string;
+        decode(string: string): Uint8Array;
+    };
+    export default bs58;
+}
+
+export { };
