@@ -15,7 +15,9 @@ import { useTestnetFaucet } from "@/hooks/useTestnetFaucet";
 import { AccountRequirementsConfigKey } from "../../hooks/useAccountRequirements";
 import { useFaucetRateLimit } from "@/hooks/useFaucetRateLimit";
 import { useFaucetBalance } from "@/hooks/useFaucetBalance";
-import { Check, Droplets, ExternalLink, Clock, Wallet, RefreshCw, Loader2 } from "lucide-react";
+import { Check, Droplets, ExternalLink, Clock, Wallet, RefreshCw, Loader2, AlertTriangle } from "lucide-react";
+import { useWalletStore } from "../../stores/walletStore";
+import { useWallet } from "../../hooks/useWallet";
 import Link from "next/link";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 
@@ -227,10 +229,39 @@ const metadata: ConsoleToolMetadata = {
 };
 
 function Faucet({ onSuccess }: BaseConsoleToolProps) {
+  const isTestnet = useWalletStore((s) => s.isTestnet);
+  const { switchChain } = useWallet();
   const l1List = useL1List();
   const { getChainsWithFaucet } = useTestnetFaucet();
   const EVMChainsWithBuilderHubFaucet = getChainsWithFaucet();
   const { balances, isLoading: balancesLoading, error: balancesError, refetch } = useFaucetBalance();
+
+  if (!isTestnet) {
+    return (
+      <div className="max-w-4xl mx-auto not-prose">
+        <div className="rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-8 text-center">
+          <div className="flex justify-center mb-4">
+            <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+              <AlertTriangle className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+            </div>
+          </div>
+          <h3 className="text-lg font-medium text-zinc-900 dark:text-zinc-100 mb-2">
+            Faucet is only available on testnet
+          </h3>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-6">
+            Switch to Fuji testnet to request free test tokens.
+          </p>
+          <button
+            onClick={() => switchChain(43113, true)}
+            className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors rounded-lg"
+          >
+            <Droplets className="w-4 h-4" />
+            Switch to Fuji Testnet
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const cChain = EVMChainsWithBuilderHubFaucet.find(
     (chain) => chain.evmChainId === 43113
