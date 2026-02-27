@@ -379,7 +379,7 @@ export default function ProgramTimeline({ isParticipant = false }: { isParticipa
       date: "March 9",
       details: {
         deadline: "March 9, 2026 at 11:59 PM EST",
-        requirements: "Functional prototype, GitHub repository with code, technical documentation, and product walkthrough video demonstrating key features.",
+        requirements: "Functional prototype, GitHub repository with code, technical implementaiton details, and product walkthrough video (max 5 mins) demonstrating key features.",
         criteria: "Technical implementation quality, use of Avalanche technologies, MVP architecture design, and UX design.",
         support: "Attend the Office Hours and get feedback from mentors and other builders. Schedule a time here: ",
       },

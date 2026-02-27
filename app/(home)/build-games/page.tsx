@@ -742,7 +742,7 @@ function HowItWorksSection() {
             <GridValue>Idea Pitch</GridValue>
             <GridHeader text="Deliverables" gridArea="1_/_2" />
             <GridHeader text="Support" gridArea="1_/_3" />
-            <GridContent text="1-min video pitching your concept" gridArea="2_/_2" />
+            <GridContent text="2-min video pitching your concept" gridArea="2_/_2" />
             <GridContent text="Video and pitch feedback" gridArea="2_/_3" />
           </ThreeColumnGrid>
         </TimelineRow>

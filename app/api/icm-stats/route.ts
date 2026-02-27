@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { ICMMetric, STATS_CONFIG, createICMMetric } from "@/types/stats";
 import { getICMStatsData } from "@/lib/icm-clickhouse";
 
+const CACHE_CONTROL_HEADER = 'public, max-age=14400, s-maxage=14400, stale-while-revalidate=86400';
+
 interface AggregatedICMDataPoint {
   timestamp: number;
   date: string;
@@ -41,7 +43,7 @@ export async function GET(request: Request) {
     if (cached && Date.now() - cached.timestamp < STATS_CONFIG.CACHE.SHORT_DURATION) {
       return NextResponse.json(cached.data, {
         headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Cache-Control': CACHE_CONTROL_HEADER,
           'X-Data-Source': 'cache',
           'X-Cache-Timestamp': new Date(cached.timestamp).toISOString(),
         }
@@ -68,7 +70,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json(metrics, {
       headers: {
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Cache-Control': CACHE_CONTROL_HEADER,
         'X-Data-Source': 'fresh',
         'X-Fetch-Time': `${fetchTime}ms`,
       }
