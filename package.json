@@ -116,6 +116,7 @@
     "input-otp": "^1.4.2",
     "isomorphic-dompurify": "^3.0.0-rc.2",
     "jsonwebtoken": "^9.0.3",
+    "jspdf": "^4.1.0",
     "jszip": "^3.10.1",
     "katex": "^0.16.22",
     "leaflet": "^1.9.4",
