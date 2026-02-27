@@ -17,6 +17,7 @@ import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalle
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 import { Alert } from "@/components/toolbox/components/Alert";
 import { useValidatorManager } from "@/components/toolbox/hooks/contracts";
+import { useChainPublicClient } from "@/components/toolbox/hooks/useChainPublicClient";
 
 const metadata: ConsoleToolMetadata = {
     title: "Transfer Validator Manager Ownership",
@@ -33,8 +34,9 @@ export interface TransferOwnershipProps extends BaseConsoleToolProps {
 
 function TransferOwnership({ onSuccess, defaultNewOwnerAddress }: TransferOwnershipProps) {
     const [criticalError, setCriticalError] = useState<Error | null>(null);
-    const { publicClient, walletEVMAddress } = useWalletStore();
-    const { coreWalletClient } = useConnectedWallet();
+    const { walletEVMAddress } = useWalletStore();
+    const chainPublicClient = useChainPublicClient();
+    const { walletClient } = useConnectedWallet();
     const [isTransferring, setIsTransferring] = useState(false);
     const [selectedSubnetId, setSelectedSubnetId] = useState<string>('');
     const [newOwnerAddress, setNewOwnerAddress] = useState<string>(defaultNewOwnerAddress || '');
@@ -81,7 +83,7 @@ function TransferOwnership({ onSuccess, defaultNewOwnerAddress }: TransferOwners
     // Check if new owner address is a contract
     useEffect(() => {
         const checkNewOwnerType = async () => {
-            if (!newOwnerAddress.trim() || !publicClient) {
+            if (!newOwnerAddress.trim() || !chainPublicClient) {
                 setIsNewOwnerContract(false);
                 setIsCheckingNewOwner(false);
                 return;
@@ -96,7 +98,7 @@ function TransferOwnership({ onSuccess, defaultNewOwnerAddress }: TransferOwners
 
             setIsCheckingNewOwner(true);
             try {
-                const bytecode = await publicClient.getBytecode({
+                const bytecode = await chainPublicClient.getBytecode({
                     address: newOwnerAddress as `0x${string}`
                 });
                 const isContract = !!bytecode && bytecode !== '0x';
@@ -111,16 +113,16 @@ function TransferOwnership({ onSuccess, defaultNewOwnerAddress }: TransferOwners
 
         const timeoutId = setTimeout(checkNewOwnerType, 500); // Debounce
         return () => clearTimeout(timeoutId);
-    }, [newOwnerAddress, publicClient]);
+    }, [newOwnerAddress, chainPublicClient]);
 
     async function handleTransferOwnership() {
         setIsTransferring(true);
-        if (!coreWalletClient.account) {
+        if (!walletClient.account) {
             throw new Error('No wallet account connected');
         }
         try {
             const hash = await validatorManager.transferOwnership(newOwnerAddress);
-            const receipt = await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
+            const receipt = await chainPublicClient!.waitForTransactionReceipt({ hash: hash as `0x${string}` });
 
             if (!receipt.status || receipt.status !== 'success') {
                 throw new Error('Transfer failed');

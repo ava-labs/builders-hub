@@ -67,8 +67,9 @@ class BalanceService {
       if (!this.callbacks) return;
       const state = this.callbacks.getState();
 
-      if (state.isLoading.pChain) return;
-
+      // Note: no isLoading guard here — the debounce already rate-limits calls,
+      // and the guard was silently dropping fetches after network switches
+      // (mainnet fetch still in-flight when testnet fetch fires).
       this.callbacks.setLoading('pChain', true);
       try {
         const balance = await this.fetchPChainBalance(state.isTestnet ?? false, state.pChainAddress);
@@ -115,8 +116,6 @@ class BalanceService {
     const debouncedCChainUpdate = debounce(async () => {
       if (!this.callbacks) return;
       const state = this.callbacks.getState();
-
-      if (state.isLoading.cChain) return;
 
       this.callbacks.setLoading('cChain', true);
       try {

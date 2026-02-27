@@ -41,7 +41,7 @@ export function WalletPChain() {
     return `${address.slice(0, leading)}...${address.slice(-trailing)}`
   };
 
-  if (!walletEVMAddress) return null;
+  if (!walletEVMAddress || !pChainAddress) return null;
 
   return (
     <DropdownMenu>

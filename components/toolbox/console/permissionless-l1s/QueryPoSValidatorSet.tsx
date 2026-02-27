@@ -1,6 +1,7 @@
 "use client"
 
 import { useWalletStore } from "@/components/toolbox/stores/walletStore"
+import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient'
 import { useState, useEffect, useMemo } from "react"
 import { Calendar, Clock, Users, Coins, Info, Copy, Check, Search, Timer, Percent, AlertCircle, Shield } from "lucide-react"
 import { Container } from "@/components/toolbox/components/Container"
@@ -93,7 +94,8 @@ const ValidatorStatusNames = ['Unknown', 'PendingAdded', 'Active', 'PendingRemov
 const DelegatorStatusNames = ['Unknown', 'PendingAdded', 'Active', 'PendingRemoved', 'Completed'];
 
 export default function QueryPoSValidatorSet() {
-  const { avalancheNetworkID, isTestnet, publicClient, walletEVMAddress } = useWalletStore()
+  const { avalancheNetworkID, isTestnet, walletEVMAddress } = useWalletStore()
+  const chainPublicClient = useChainPublicClient()
   const l1ListStore = useL1ListStore()
   
   // Use shared L1 subnet state
@@ -208,7 +210,7 @@ export default function QueryPoSValidatorSet() {
       setValidators(allValidators)
       
       // If this is a PoS L1, fetch additional info
-      if (isPoSL1 && stakingManagerAddress && publicClient) {
+      if (isPoSL1 && stakingManagerAddress && chainPublicClient) {
         await enrichValidatorsWithPoSInfo(allValidators)
       } else {
         // Just use the base validators

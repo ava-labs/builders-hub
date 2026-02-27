@@ -2,25 +2,27 @@
 
 import { useCreateChainStore } from "@/components/toolbox/stores/createChainStore";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
-import { useState, useEffect } from "react";
-import { Button } from "@/components/toolbox/components/Button";
+import { useState } from "react";
 import { type ConvertToL1Validator } from "@/components/toolbox/components/ValidatorListInput";
 import { ValidatorListInput } from "@/components/toolbox/components/ValidatorListInput";
 import InputChainId from "@/components/toolbox/components/InputChainId";
 import SelectSubnet, { SubnetSelection } from "@/components/toolbox/components/SelectSubnet";
-import { Callout } from "fumadocs-ui/components/callout";
 import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
-import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import Link from "next/link";
+import { AlertTriangle, ChevronRight } from "lucide-react";
+import { CoreWalletTransactionButton } from "@/components/toolbox/components/CoreWalletTransactionButton";
+import { ensureCoreNetworkMode, restoreCoreChain } from "@/components/toolbox/coreViem";
 
 const metadata: ConsoleToolMetadata = {
     title: "Convert Subnet to L1",
-    description: "Convert your existing Subnet to an L1 with validator management",
+    description: <>Converting a Subnet to an <Link href="/docs/avalanche-l1s" className="text-primary hover:underline">L1</Link> enables sovereign <Link href="/docs/avalanche-l1s/validator-manager/contract" className="text-primary hover:underline">validator management</Link> through a smart contract. This conversion is <strong>irreversible</strong>.</>,
     toolRequirements: [
-        WalletRequirementsConfigKey.PChainBalance
+        WalletRequirementsConfigKey.WalletConnected
     ],
     githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
 };
@@ -43,28 +45,63 @@ function ConvertToL1({ onSuccess }: BaseConsoleToolProps) {
 
     const { pChainAddress, isTestnet } = useWalletStore();
     const pChainBalance = useWalletStore((s) => s.balances.pChain);
-    const { coreWalletClient } = useConnectedWallet();
+    const coreWalletClient = useWalletStore((s) => s.coreWalletClient);
 
     const [isConverting, setIsConverting] = useState(false);
-    
-    const { sendCoreWalletNotSetNotification, notify } = useConsoleNotifications();
+
+    const { notify } = useConsoleNotifications();
+
+    function buildConvertCliCommand() {
+        const parts = [
+            `platform subnet convert-l1`,
+            `--subnet-id ${selection.subnetId || "<subnet-id>"}`,
+            `--chain-id ${validatorManagerChainID || "<chain-id>"}`,
+            `--manager ${validatorManagerAddress || "<address>"}`,
+        ];
+
+        if (validators.length > 0) {
+            const nodeIds = validators.map(v => v.nodeID || "<node-id>").join(",");
+            const blsKeys = validators.map(v => v.nodePOP.publicKey || "<bls-key>").join(",");
+            const blsPops = validators.map(v => v.nodePOP.proofOfPossession || "<bls-pop>").join(",");
+            const balanceAvax = validators[0]?.validatorBalance
+                ? (Number(validators[0].validatorBalance) / 1e9).toString()
+                : "1.0";
+            parts.push(`--validator-node-ids ${nodeIds}`);
+            parts.push(`--validator-bls-public-keys ${blsKeys}`);
+            parts.push(`--validator-bls-pops ${blsPops}`);
+            parts.push(`--validator-balance ${balanceAvax}`);
+        } else {
+            parts.push(`--mock-validator`);
+        }
+
+        parts.push(`--network ${isTestnet ? "fuji" : "mainnet"}`);
+        return parts.join(" ");
+    }
 
     async function handleConvertToL1() {
+        if (!coreWalletClient) return;
+
         setConvertToL1TxId("");
         setIsConverting(true);
 
-        const convertSubnetToL1Tx = coreWalletClient.convertToL1({
-            subnetId: selection.subnetId,
-            chainId: validatorManagerChainID,
-            managerAddress: validatorManagerAddress,
-            subnetAuth: [0],
-            validators
-        });
-
-        notify('convertToL1', convertSubnetToL1Tx);
-
         try {
+            // Ensure Core Wallet is in the correct network mode for P-Chain ops
+            const previousChainId = await ensureCoreNetworkMode(isTestnet);
+
+            const convertSubnetToL1Tx = coreWalletClient.convertToL1({
+                subnetId: selection.subnetId,
+                chainId: validatorManagerChainID,
+                managerAddress: validatorManagerAddress,
+                subnetAuth: [0],
+                validators
+            });
+
+            notify('convertToL1', convertSubnetToL1Tx);
+
             const txID = await convertSubnetToL1Tx;
+
+            if (previousChainId) await restoreCoreChain(previousChainId);
+
             setConvertToL1TxId(txID);
             onSuccess?.();
         } finally {
@@ -73,59 +110,118 @@ function ConvertToL1({ onSuccess }: BaseConsoleToolProps) {
     }
 
     return (
-        <>
-                <div className="space-y-4">
+        <div className="space-y-6">
+            <Steps>
+                <Step>
+                    <h3 className="text-sm font-semibold mb-3">Select Subnet</h3>
                     <SelectSubnet
                         value={selection.subnetId}
                         onChange={setSelection}
                         error={null}
                         onlyNotConverted={true}
                     />
+                </Step>
 
-                    <div>
-                        <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">Validator Manager</h2>
-                        <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">With the conversion of the Subnet to an L1, the validator set of the L1 will be managed by a validator manager contract. This contract can implement Proof-of-Authority, Proof-of-Stake or any custom logic to determine the validator set. The contract can be deployed on a blockchain of the L1, the C-Chain or any other blockchain in the Avalanche network.</p>
+                <Step>
+                    <h3 className="text-sm font-semibold mb-3">Validator Manager</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                        The validator manager contract controls your L1's validator set.
+                        If you used <strong>Console defaults</strong> for your L1 genesis, a proxy is pre-deployed at{" "}
+                        <code className="text-xs bg-muted px-1 py-0.5 rounded">0xfacade...</code>
+                    </p>
+
+                    <p className="text-xs text-muted-foreground mb-4 flex items-center gap-1.5">
+                        <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
+                        <span>These values are <strong>permanent</strong> and cannot be changed after conversion.</span>
+                    </p>
+
+                    <div className="space-y-4">
+                        <InputChainId
+                            value={validatorManagerChainID}
+                            onChange={setValidatorManagerChainID}
+                            error={null}
+                            label="Manager Chain ID"
+                            helperText="Chain where the manager contract is deployed"
+                        />
+                        <EVMAddressInput
+                            value={validatorManagerAddress}
+                            onChange={setValidatorManagerAddress}
+                            label="Manager Contract Address"
+                            disabled={isConverting}
+                            helperText="Address of the validator manager contract"
+                        />
                     </div>
-                    <InputChainId
-                        value={validatorManagerChainID}
-                        onChange={setValidatorManagerChainID}
-                        error={null}
-                        label="Validator Manager Blockchain ID"
-                        helperText="The ID of the blockchain where the validator manager contract is deployed. This can be a chain of the L1 itself, the C-Chain or any other blockchain in the Avalanche network."
-                    />
-                    <EVMAddressInput
-                        value={validatorManagerAddress}
-                        onChange={setValidatorManagerAddress}
-                        label="Validator Manager Contract Address"
-                        disabled={isConverting}
-                        helperText="The address of the validator manager contract (or a proxy pointing for it) on the blockchain. This contract will manage the validator set of the L1. A chain created with the Toolbox will have a pre-deployed proxy contract at the address 0xfacade0000000000000000000000000000000000. After the conversion you can point this proxy to a reference implementation of the validator manager contract or a custom version of it."
-                    />
-                    <Callout type="info">
-                        An <a href="https://docs.openzeppelin.com/contracts/4.x/api/proxy" target="_blank">OpenZeppelin TransparentUpgradeableProxy</a> contract is pre-deployed at the address <code>0xfacade...</code>. This proxy can be pointed to a reference implementation or customized version of the <a href="https://github.com/ava-labs/icm-contracts/tree/main/contracts/validator-manager" target="_blank">validator manager contract</a>.
-                    </Callout>
+                </Step>
 
+                <Step>
+                    <h3 className="text-sm font-semibold mb-3">Initial Validators</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                        Add at least one validator. Existing Subnet validators cannot be transferred.
+                    </p>
                     <ValidatorListInput
                         validators={validators}
                         onChange={setValidators}
                         defaultAddress={pChainAddress}
-                        label="Initial Validators"
-                        description="Specify the initial validator set for the L1 below. You need to add at least one validator. If converting a pre-existing Subnet with validators, you must establish a completely new validator set for the L1 conversion. The existing Subnet validators cannot be transferred. For each new validator, you need to specify NodeID, the consensus weight, the initial balance and an address or a multi-sig that can deactivate the validator and that receives its remaining balance. The sum of the initial balances of the validators needs to be paid when issuing this transaction."
+                        label=""
+                        description=""
                         userPChainBalanceNavax={BigInt(pChainBalance * 1e9)}
                         selectedSubnetId={selection.subnetId}
                         isTestnet={isTestnet}
                     />
+                </Step>
 
-                    <Button
+                <Step>
+                    <h3 className="text-sm font-semibold mb-3">Claim Test Tokens</h3>
+                    <p className="text-sm text-muted-foreground mb-3">
+                        Ensure you have enough P-Chain AVAX for the conversion. Check your balance with:
+                    </p>
+                    <div className="rounded-lg bg-muted/50 border border-border px-4 py-3 mb-3">
+                        <pre className="text-xs font-mono leading-relaxed whitespace-pre-wrap break-all">
+                            <span className="text-muted-foreground/50 select-none">$ </span>
+                            <span className="text-foreground">
+                                {`platform wallet balance --key-name mykey --network ${isTestnet ? "fuji" : "mainnet"}`}
+                            </span>
+                        </pre>
+                    </div>
+                    <p className="text-xs text-muted-foreground mb-3">
+                        You need approximately <strong>{(validators.length * 0.1 + 0.05).toFixed(2)} AVAX</strong> on P-Chain ({validators.length} validator{validators.length !== 1 ? "s" : ""} &times; 0.1 AVAX + 0.05 gas).
+                    </p>
+                    <Link
+                        href="/console/primary-network/faucet"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-primary border border-primary/30 rounded-lg hover:bg-primary/10 transition-colors"
+                    >
+                        Open Faucet
+                        <ChevronRight className="w-3 h-3" />
+                    </Link>
+                </Step>
+
+                <Step>
+                    <div>
+                        <h2 className="text-sm font-semibold mb-1">Convert to L1</h2>
+                        <p className="text-xs text-muted-foreground">
+                            Issues a{" "}
+                            <Link
+                                href="/docs/rpcs/p-chain/txn-format#unsigned-convert-subnet-to-l1-tx"
+                                className="text-primary hover:underline"
+                            >
+                                ConvertSubnetToL1Tx
+                            </Link>{" "}
+                            on the P-Chain.
+                        </p>
+                    </div>
+                    <CoreWalletTransactionButton
                         variant="primary"
                         onClick={handleConvertToL1}
                         disabled={!selection.subnetId || !validatorManagerAddress || validators.length === 0 || (selection.subnet?.isL1)}
                         loading={isConverting}
+                        className="w-full"
+                        cliCommand={buildConvertCliCommand()}
                     >
-                        {selection.subnet?.isL1 ? "Subnet Already Converted to L1" : "Convert to L1"}
-                    </Button>
-                </div>
-
-        </>
+                        {selection.subnet?.isL1 ? "Already Converted" : "Convert to L1"}
+                    </CoreWalletTransactionButton>
+                </Step>
+            </Steps>
+        </div>
     );
 }
 

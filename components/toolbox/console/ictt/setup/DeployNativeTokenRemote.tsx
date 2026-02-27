@@ -4,6 +4,7 @@ import NativeTokenRemote from "@/contracts/icm-contracts/compiled/NativeTokenRem
 import { useL1ByChainId, useSelectedL1 } from "@/components/toolbox/stores/l1ListStore";
 import { useToolboxStore, useViemChainStore, getToolboxStore } from "@/components/toolbox/stores/toolboxStore";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
+import { useWalletClient } from 'wagmi';
 import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/toolbox/components/Button";
 import { Success } from "@/components/toolbox/components/Success";
@@ -23,6 +24,19 @@ import { ConsoleToolMetadata, withConsoleToolMetadata } from "@/components/toolb
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 import { useContractDeployer } from "@/components/toolbox/hooks/contracts";
+import versions from "@/scripts/versions.json";
+import { ContractDeployViewer, type ContractSource } from "@/components/console/contract-deploy-viewer";
+
+const ICM_COMMIT = versions["ava-labs/icm-contracts"];
+
+const CONTRACT_SOURCES: ContractSource[] = [
+  {
+    name: "NativeTokenRemote",
+    filename: "NativeTokenRemote.sol",
+    url: `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/ictt/TokenRemote/NativeTokenRemote.sol`,
+    description: "Remote chain endpoint that mints native tokens for incoming bridged transfers via ICTT.",
+  },
+];
 
 const metadata: ConsoleToolMetadata = {
     title: "Deploy Native Token Remote Contract",
@@ -37,7 +51,8 @@ function DeployNativeTokenRemote() {
         setNativeTokenRemoteAddress,
     } = useToolboxStore();
     const [teleporterRegistryAddress, setTeleporterRegistryAddress] = useState("");
-    const { coreWalletClient, walletEVMAddress } = useWalletStore();
+    const { walletEVMAddress } = useWalletStore();
+    const { data: walletClient } = useWalletClient();
     const viemChain = useViemChainStore();
     const selectedL1 = useSelectedL1()();
     const { deploy, isDeploying } = useContractDeployer();
@@ -153,7 +168,7 @@ function DeployNativeTokenRemote() {
     }, [sourceChainId, sourceL1?.rpcUrl, tokenHomeAddress]);
 
     async function handleDeploy() {
-        if (!coreWalletClient) {
+        if (!walletClient) {
             setCriticalError(new Error('Core wallet not found'));
             return;
         }
@@ -218,7 +233,8 @@ function DeployNativeTokenRemote() {
             docsLink="https://build.avax.network/docs/avalanche-l1s/upgrade/customize-avalanche-l1#network-upgrades-enabledisable-precompiles"
             docsLinkText="Learn how to activate the Native Minter precompile"
         >
-
+            <ContractDeployViewer contracts={CONTRACT_SOURCES}>
+            <div className="space-y-4">
                 <div>
                     <p className="mt-2">
                         This deploys a `NativeTokenRemote` contract to the current network ({selectedL1?.name}).
@@ -374,6 +390,8 @@ function DeployNativeTokenRemote() {
                     {nativeTokenRemoteAddress ? "Re-Deploy Native Token Remote" : "Deploy Native Token Remote"}
                 </Button>
                 </LockedContent>
+            </div>
+            </ContractDeployViewer>
         </CheckPrecompile>
     );
 } 

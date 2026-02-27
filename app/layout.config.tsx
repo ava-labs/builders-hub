@@ -368,11 +368,11 @@ export const consoleMenu: LinkItemType = {
         banner: (
           <div className='-mx-3 -mt-3'>
             <Image
-              src="/builderhub-console.png"
-              alt='L1 Launcher Preview'
-              width={500}
-              height={140}
-              className='rounded-t-lg object-cover'
+              src="https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builder-console-megamenu"
+              alt='Builder Console Preview'
+              width={900}
+              height={400}
+              className='rounded-t-lg object-cover w-full h-auto'
               style={{
                 maskImage: 'linear-gradient(to bottom,white 60%,transparent)',
               }}

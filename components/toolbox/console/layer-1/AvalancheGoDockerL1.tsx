@@ -2,6 +2,7 @@
 
 // L1 Node Docker Setup
 import { useState, useEffect } from "react";
+import { useWalletStore } from "../../stores/walletStore";
 import { Container } from "../../components/Container";
 import { getBlockchainInfoForNetwork, getSubnetInfoForNetwork } from "../../coreViem/utils/glacier";
 import InputSubnetId from "../../components/InputSubnetId";
@@ -18,6 +19,9 @@ import { generateChainConfig, generateNodeConfig, generateDockerCommand } from "
 import { useNodeConfigHighlighting } from "./useNodeConfigHighlighting";
 import { DockerInstallation } from "../../components/DockerInstallation";
 import { AlertCircle } from "lucide-react";
+import { useAddToWallet } from "@/hooks/useAddToWallet";
+import { nipify } from "../../components/HostInput";
+import { useL1ListStore, type L1ListItem } from "../../stores/l1ListStore";
 
 function AvalanchegoDockerInner() {
     const { setHighlightPath, clearHighlight, highlightPath } = useGenesisHighlight();
@@ -78,9 +82,19 @@ function AvalanchegoDockerInner() {
     // Show advanced settings
     const [showAdvancedSettings, setShowAdvancedSettings] = useState<boolean>(false);
 
+    // Wallet integration for RPC nodes
+    const { addToWallet, isAdding: isAddingToWallet } = useAddToWallet();
+    const l1ListStore = useL1ListStore();
+
     // Network selection
     const [selectedNetwork, setSelectedNetwork] = useState<"mainnet" | "fuji">("mainnet");
     const [detectedIsTestnet, setDetectedIsTestnet] = useState<boolean | null>(null);
+
+    // Sync network selection with connected wallet
+    const { isTestnet: walletIsTestnet } = useWalletStore();
+    useEffect(() => {
+        setSelectedNetwork(walletIsTestnet ? "fuji" : "mainnet");
+    }, [walletIsTestnet]);
 
     // Use selected network for configuration (1 = mainnet, 5 = fuji)
     const effectiveNetworkID = selectedNetwork === "fuji" ? 5 : 1;
@@ -1083,6 +1097,73 @@ ls -la ~/avalanche-backup/staking/`} />
                                     chainId={selectedRPCBlockchainId || chainId}
                                     showHealthCheck={true}
                                 />
+                            </Step>
+                        )}
+
+                        {isRPC && (
+                            <Step>
+                                <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Add Network to Wallet</h3>
+                                <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
+                                    Add your L1&apos;s RPC endpoint to your browser wallet to start interacting with the network.
+                                </p>
+
+                                <div className="space-y-3">
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-lg p-3 border border-zinc-200 dark:border-zinc-800">
+                                            <div className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 mb-1">RPC Endpoint</div>
+                                            <code className="text-xs text-zinc-900 dark:text-zinc-100 break-all">
+                                                {domain
+                                                    ? `https://${nipify(domain)}/ext/bc/${selectedRPCBlockchainId || chainId}/rpc`
+                                                    : `http://localhost:9650/ext/bc/${selectedRPCBlockchainId || chainId}/rpc`
+                                                }
+                                            </code>
+                                        </div>
+                                        {blockchainInfo?.evmChainId && (
+                                            <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-lg p-3 border border-zinc-200 dark:border-zinc-800">
+                                                <div className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 mb-1">EVM Chain ID</div>
+                                                <code className="text-sm text-zinc-900 dark:text-zinc-100">{blockchainInfo.evmChainId}</code>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <Button
+                                        onClick={async () => {
+                                            const rpcUrl = domain
+                                                ? `https://${nipify(domain)}/ext/bc/${selectedRPCBlockchainId || chainId}/rpc`
+                                                : `http://localhost:9650/ext/bc/${selectedRPCBlockchainId || chainId}/rpc`;
+                                            const evmChainId = blockchainInfo?.evmChainId;
+                                            const name = blockchainInfo?.blockchainName || "Avalanche L1";
+
+                                            // Add to console's L1 list so the header picks it up
+                                            if (evmChainId) {
+                                                const existing = l1ListStore.getState().l1List;
+                                                if (!existing.find((l: L1ListItem) => l.evmChainId === evmChainId)) {
+                                                    l1ListStore.getState().addL1({
+                                                        id: selectedRPCBlockchainId || chainId,
+                                                        name,
+                                                        rpcUrl,
+                                                        evmChainId,
+                                                        coinName: "AVAX",
+                                                        isTestnet: selectedNetwork === "fuji",
+                                                        subnetId,
+                                                        wrappedTokenAddress: "",
+                                                        validatorManagerAddress: "",
+                                                        logoUrl: "",
+                                                    });
+                                                }
+                                            }
+
+                                            await addToWallet({ rpcUrl, chainName: name, chainId: evmChainId });
+                                        }}
+                                        disabled={isAddingToWallet}
+                                    >
+                                        {isAddingToWallet ? "Adding..." : "Add to Wallet"}
+                                    </Button>
+                                </div>
+
+                                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-3">
+                                    Works with Core, MetaMask, and other EVM wallets connected via RainbowKit.
+                                </p>
                             </Step>
                         )}
                     </>

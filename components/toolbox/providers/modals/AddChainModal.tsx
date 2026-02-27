@@ -31,7 +31,7 @@ interface AddChainFormData {
 
 export function AddChainModal() {
     const { isOpen, options, closeModal } = useModalState();
-    const { client: coreWalletClient } = useWallet();
+    const { client: walletClient } = useWallet();
     const { l1List } = useL1ListStore()();
     const { addL1 } = useL1ListStore()();
     const { anyChainId, setAnyChainId, error, isLookingUp, lookup } = useLookupChain();
@@ -183,7 +183,7 @@ export function AddChainModal() {
     }, [rpcUrl, setValue, form, trigger, checkChainExists]);
 
     const addChainDirect = async (chainData: ChainData): Promise<boolean> => {
-        if (!coreWalletClient) {
+        if (!walletClient) {
             toast.error('Wallet not connected', 'Please connect your wallet first');
             return false;
         }
@@ -202,11 +202,11 @@ export function AddChainModal() {
                 }
             };
 
-            await coreWalletClient.addChain({ 
-                chain: { ...viemChain, isTestnet: chainData.isTestnet } 
+            await walletClient.addChain({
+                chain: { ...viemChain, testnet: chainData.isTestnet }
             });
-            
-            await coreWalletClient.switchChain({
+
+            await walletClient.switchChain({
                 id: chainData.evmChainId
             });
 
@@ -286,7 +286,7 @@ export function AddChainModal() {
                                     onClick={() => setShowLookup(!showLookup)}
                                     className="text-blue-500 border-b border-dashed border-blue-500 hover:text-blue-700 focus:outline-none"
                                 >
-                                    {showLookup ? "Hide lookup form" : "Lookup from Core Wallet"}
+                                    {showLookup ? "Hide lookup form" : "Lookup by Chain ID"}
                                 </button>
 
                                 {showLookup && (

@@ -102,6 +102,10 @@ export class BadgeAssignmentService {
     }
 
     // Determine category based on provided IDs
+    if (body.consoleTrigger) {
+      return BadgeCategory.console;
+    }
+
     if (body.courseId) {
       return BadgeCategory.academy;
     }
@@ -138,7 +142,8 @@ export class BadgeAssignmentService {
         return !!(body.userId && body.courseId);
       case BadgeCategory.project:
         return !!(body.userId && body.projectId);
-
+      case BadgeCategory.console:
+        return !!(body.userId && body.consoleTrigger);
       default:
         return false;
     }
