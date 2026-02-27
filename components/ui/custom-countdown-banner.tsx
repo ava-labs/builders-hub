@@ -18,7 +18,7 @@ export function CustomCountdownBanner() {
           <strong>80%</strong> to <strong>90%</strong>.
         </span>
         <span className="hidden md:inline">
-          ACP-267 update: Primary Network validators must maintain at least{" "}
+          ACP-267 Update: Primary Network validators must maintain at least{" "}
           <strong>90% uptime</strong> (up from <strong>80%</strong>) to remain eligible for rewards.
         </span>
         <Link
