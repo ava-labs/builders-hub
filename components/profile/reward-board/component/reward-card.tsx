@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { Suspense, useState } from "react";
 import { Canvas } from "@react-three/fiber";
 import * as THREE from "three";
 import type { BadgeCardProps } from "../types/badgeCard";
@@ -10,6 +10,17 @@ import { StaticMedal } from "./static-metal";
 import { AutoRotateMedal } from "./auto-rotate-badge";
 
 const DISC = { radius: 1.3, segments: 200 };
+
+function MedalPlaceholder() {
+  return (
+    <group rotation={[0, 0, 0]}>
+      <mesh position={[0, 0, 0]}>
+        <circleGeometry args={[DISC.radius, DISC.segments]} />
+        <meshBasicMaterial color="#52525B" transparent opacity={0.6} />
+      </mesh>
+    </group>
+  );
+}
 
 export const RewardCard = ({
   name,
@@ -51,7 +62,9 @@ export const RewardCard = ({
             <ambientLight intensity={1} />
             <directionalLight position={[2.2, 3, 5]} intensity={1.15} />
             <directionalLight position={[-3, -2, -4]} intensity={0.45} />
-            <StaticMedal image={image} is_unlocked={is_unlocked} Disc={DISC} />
+            <Suspense fallback={<MedalPlaceholder />}>
+              <StaticMedal image={image} is_unlocked={is_unlocked} Disc={DISC} />
+            </Suspense>
           </Canvas>
         </div>
       </div>
@@ -84,14 +97,16 @@ export const RewardCard = ({
               <ambientLight intensity={0.9} />
               <directionalLight position={[2.5, 3, 5]} intensity={1.2} />
               <directionalLight position={[-3, -2, -4]} intensity={0.5} />
-              <AutoRotateMedal
-                name={name}
-                description={description}
-                image={image}
-                is_unlocked={is_unlocked}
-                speed={0.35}
-                Disc={DISC}
-              />
+              <Suspense fallback={<MedalPlaceholder />}>
+                <AutoRotateMedal
+                  name={name}
+                  description={description}
+                  image={image}
+                  is_unlocked={is_unlocked}
+                  speed={0.35}
+                  Disc={DISC}
+                />
+              </Suspense>
             </Canvas>
           </div>
 

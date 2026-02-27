@@ -1,13 +1,13 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { zodResolver } from "@/lib/zodResolver";
 import { z } from "zod";
 import { useSession } from "next-auth/react";
 import { useToast } from "@/hooks/use-toast";
 
-// Zod validation schema - no required fields, only format validations
+// Zod validation schema - name is required; rest are format validations
 export const profileSchema = z.object({
-  name: z.string().optional(),
+  name: z.string().trim().min(1, 'Name is required'),
   username: z.string().optional(),
   bio: z.string().max(250, "Bio must not exceed 250 characters").optional(),
   email: z.email("Invalid email").optional(), // Email from session, optional
@@ -40,6 +40,36 @@ export const profileSchema = z.object({
 
 export type ProfileFormValues = z.infer<typeof profileSchema>;
 
+/** Number of criteria used for profile completion (each counts 1). */
+const PROFILE_COMPLETION_CRITERIA = 9;
+
+/**
+ * Computes profile completion percentage (0–100) based on filled fields
+ * used in the profile form. Used for the circular progress around the avatar.
+ */
+export function getProfileCompletionPercentage(values: Partial<ProfileFormValues> | undefined): number {
+  if (!values) return 0;
+  const v = values;
+  const has = (s: string | undefined) => (s?.trim() ?? "") !== "";
+  const hasRole =
+    v.is_developer === true ||
+    v.is_enthusiast === true ||
+    (v.is_student === true && has(v.student_institution)) ||
+    (v.is_founder === true && has(v.founder_company_name)) ||
+    (v.is_employee === true && has(v.employee_company_name) && has(v.employee_role));
+  let completed = 0;
+  if (has(v.name)) completed++;
+  if (has(v.bio)) completed++;
+  if (has(v.country)) completed++;
+  if (hasRole) completed++;
+  if (has(v.github)) completed++;
+  if (Array.isArray(v.wallet) && v.wallet.filter((w) => has(w)).length > 0) completed++;
+  if (has(v.telegram_user)) completed++;
+  if (Array.isArray(v.socials) && v.socials.length > 0) completed++;
+  if (Array.isArray(v.skills) && v.skills.length > 0) completed++;
+  return Math.round((completed / PROFILE_COMPLETION_CRITERIA) * 100);
+}
+
 export function useProfileForm() {
   const { data: session } = useSession();
   const { toast } = useToast();
@@ -54,6 +84,7 @@ export function useProfileForm() {
   // Initialize form with react-hook-form and Zod
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
+    mode: "onChange",
     defaultValues: {
       name: "",
       username: "",
@@ -538,13 +569,14 @@ export function useProfileForm() {
   // Wallet handlers
   const handleAddWallet = (address: string) => {
     const currentWallets = watchedValues.wallet || [];
-    // Validar formato antes de agregar
-    if (address && address.trim() !== "" && /^0x[a-fA-F0-9]{40}$/.test(address.trim())) {
-      const trimmedAddress = address.trim();
-      // Evitar duplicados
-      if (!currentWallets.includes(trimmedAddress)) {
-        setValue("wallet", [...currentWallets, trimmedAddress], { shouldDirty: true });
-      }
+    const trimmedAddress = address?.trim() ?? "";
+    if (trimmedAddress === "" || !/^0x[a-fA-F0-9]{40}$/.test(trimmedAddress)) return;
+    // Evitar duplicados (comparación case-insensitive: las direcciones Ethereum son la misma con distinta capitalización)
+    const isDuplicate = currentWallets.some(
+      (w) => w.toLowerCase() === trimmedAddress.toLowerCase()
+    );
+    if (!isDuplicate) {
+      setValue("wallet", [...currentWallets, trimmedAddress], { shouldDirty: true });
     }
   };
 

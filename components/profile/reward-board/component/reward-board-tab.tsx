@@ -47,11 +47,11 @@ export default async function RewardBoardTab() {
     };
 
   }).sort((a, b) => {
-    // Sort: unlocked first, then by name
+    // Sort: unlocked first, then by badge_id
     if (a.is_unlocked !== b.is_unlocked) {
       return a.is_unlocked ? -1 : 1;
     }
-    return a.name.localeCompare(b.name);
+    return a.id.localeCompare(b.id);
   });
 
   const academyRewards = academyBadgesUnlocked.map((reward) => (

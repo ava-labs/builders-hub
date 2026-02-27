@@ -8,9 +8,10 @@ import { ProfileHeader } from "./ProfileHeader";
 import type { ReactNode } from "react";
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import { useProfileForm } from "./hooks/useProfileForm";
+import { useProfileForm, getProfileCompletionPercentage } from "./hooks/useProfileForm";
 import { AvatarSeed } from "./DiceBearAvatar";
 import { NounAvatarConfig } from "./NounAvatarConfig";
+import { useUserAvatar } from "@/components/context/UserAvatarContext";
 
 // Map hash values to tab values (case-insensitive)
 const hashToTabMap: Record<string, string> = {
@@ -29,34 +30,51 @@ interface ProfileTabProps {
 
 export default function ProfileTab({ achievements }: ProfileTabProps) {
   const { data: session } = useSession();
+  const avatarContext = useUserAvatar();
   const [isNounAvatarConfigOpen, setIsNounAvatarConfigOpen] = useState(false);
   const [nounAvatarSeed, setNounAvatarSeed] = useState<AvatarSeed | null>(null);
   const [nounAvatarEnabled, setNounAvatarEnabled] = useState(false);
 
-  // Get profile data using the hook
-  const { form, watchedValues, isLoading } = useProfileForm();
+  // Single form instance so header progress updates while editing (watchedValues shared)
+  const {
+    form,
+    watchedValues,
+    isLoading,
+    isSaving,
+    isAutoSaving,
+    handleRemoveSkill,
+    handleAddSocial,
+    handleRemoveSocial,
+    handleAddWallet,
+    handleRemoveWallet,
+    onSubmit,
+  } = useProfileForm();
 
-  // Load Noun avatar data
+  // Load Noun avatar data and sincronizar con contexto (para que UserButton lo muestre)
   useEffect(() => {
     async function loadNounAvatar() {
       try {
         const response = await fetch("/api/user/noun-avatar");
         if (response.ok) {
           const data = await response.json();
-          setNounAvatarSeed(data.seed);
-          setNounAvatarEnabled(data.enabled ?? false);
+          const seed = data.seed ?? null;
+          const enabled = data.enabled ?? false;
+          setNounAvatarSeed(seed);
+          setNounAvatarEnabled(enabled);
+          avatarContext?.setNounAvatar(seed, enabled);
         }
       } catch (error) {
         console.error("Error loading Noun avatar:", error);
       }
     }
     loadNounAvatar();
-  }, []);
+  }, [avatarContext?.setNounAvatar]);
 
-  // Handle avatar save
+  // Handle avatar save: actualizar estado local y contexto para que UserButton refleje el cambio
   const handleNounAvatarSave = async (seed: AvatarSeed, enabled: boolean) => {
     setNounAvatarSeed(seed);
     setNounAvatarEnabled(enabled);
+    avatarContext?.setNounAvatar(seed, enabled);
   };
 
   // Get initial tab from URL hash
@@ -133,6 +151,7 @@ export default function ProfileTab({ achievements }: ProfileTabProps) {
                 onEditAvatar={() => setIsNounAvatarConfigOpen(true)}
                 nounAvatarSeed={nounAvatarSeed}
                 nounAvatarEnabled={nounAvatarEnabled}
+                completionPercentage={getProfileCompletionPercentage(watchedValues)}
               />
 
               {/* Separator */}
@@ -171,7 +190,18 @@ export default function ProfileTab({ achievements }: ProfileTabProps) {
           {/* Right Content - Tab Content */}
           <div className="flex-1 min-w-0">
             <TabsContent value="personal" className="mt-1">
-              <Profile />
+              <Profile
+                form={form}
+                watchedValues={watchedValues}
+                isSaving={isSaving}
+                isAutoSaving={isAutoSaving}
+                handleRemoveSkill={handleRemoveSkill}
+                handleAddSocial={handleAddSocial}
+                handleRemoveSocial={handleRemoveSocial}
+                handleAddWallet={handleAddWallet}
+                handleRemoveWallet={handleRemoveWallet}
+                onSubmit={onSubmit}
+              />
             </TabsContent>
 
             <TabsContent value="projects" className="mt-1">

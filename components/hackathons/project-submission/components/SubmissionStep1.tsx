@@ -240,6 +240,158 @@ const SubmitStep1: FC<projectProps> = (project) => {
           />
         )}
 
+        {/* Website (Only for projects without hackathon) - key-value like Deployed Addresses */}
+        {!hasHackathon && (
+          <FormField
+            control={form.control}
+            name='website'
+            render={({ field }) => (
+              <FormItem>
+                <FormLabelWithCheck
+                  label='Website'
+                  checked={!!field.value && field.value.length > 0}
+                />
+                <div className='space-y-3'>
+                  {(field.value && field.value.length > 0) ? (
+                    <div className='space-y-3'>
+                      {field.value.map((item: { key: string; value: string }, index: number) => (
+                        <div key={index} className='flex gap-3 items-start'>
+                          <div className='w-32'>
+                            <Input
+                              placeholder='Tag'
+                              value={item.key || ''}
+                              onChange={(e) => {
+                                const newItems = [...(field.value || [])];
+                                newItems[index] = { ...newItems[index], key: e.target.value };
+                                field.onChange(newItems);
+                              }}
+                              className='w-full dark:bg-zinc-950'
+                            />
+                          </div>
+                          <div className='flex-1'>
+                            <Input
+                              placeholder='https://example.com'
+                              value={item.value || ''}
+                              onChange={(e) => {
+                                const newItems = [...(field.value || [])];
+                                newItems[index] = { ...newItems[index], value: e.target.value };
+                                field.onChange(newItems);
+                              }}
+                              className='w-full dark:bg-zinc-950'
+                            />
+                          </div>
+                          <Button
+                            type='button'
+                            variant='ghost'
+                            size='icon'
+                            onClick={() => {
+                              const newItems = field.value.filter(
+                                (_: { key: string; value: string }, i: number) => i !== index
+                              );
+                              field.onChange(newItems);
+                            }}
+                            className='h-10 w-10 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950'
+                          >
+                            ×
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+
+                  <Button
+                    type='button'
+                    onClick={() => {
+                      const newItems = [...(field.value || []), { key: '', value: '' }];
+                      field.onChange(newItems);
+                    }}
+                    className="bg-white text-black border border-gray-300 hover:text-black hover:bg-gray-100 cursor-pointer"
+                  >
+                    + new website
+                  </Button>
+                </div>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
+
+        {/* Socials (Only for projects without hackathon) - key-value like Deployed Addresses */}
+        {!hasHackathon && (
+          <FormField
+            control={form.control}
+            name='socials'
+            render={({ field }) => (
+              <FormItem>
+                <FormLabelWithCheck
+                  label='Socials'
+                  checked={!!field.value && field.value.length > 0}
+                />
+                <div className='space-y-3'>
+                  {(field.value && field.value.length > 0) ? (
+                    <div className='space-y-3'>
+                      {field.value.map((item: { key: string; value: string }, index: number) => (
+                        <div key={index} className='flex gap-3 items-start'>
+                          <div className='w-32'>
+                            <Input
+                              placeholder='Tag'
+                              value={item.key || ''}
+                              onChange={(e) => {
+                                const newItems = [...(field.value || [])];
+                                newItems[index] = { ...newItems[index], key: e.target.value };
+                                field.onChange(newItems);
+                              }}
+                              className='w-full dark:bg-zinc-950'
+                            />
+                          </div>
+                          <div className='flex-1'>
+                            <Input
+                              placeholder='URL or value'
+                              value={item.value || ''}
+                              onChange={(e) => {
+                                const newItems = [...(field.value || [])];
+                                newItems[index] = { ...newItems[index], value: e.target.value };
+                                field.onChange(newItems);
+                              }}
+                              className='w-full dark:bg-zinc-950'
+                            />
+                          </div>
+                          <Button
+                            type='button'
+                            variant='ghost'
+                            size='icon'
+                            onClick={() => {
+                              const newItems = field.value.filter(
+                                (_: { key: string; value: string }, i: number) => i !== index
+                              );
+                              field.onChange(newItems);
+                            }}
+                            className='h-10 w-10 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950'
+                          >
+                            ×
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+
+                  <Button
+                    type='button'
+                    onClick={() => {
+                      const newItems = [...(field.value || []), { key: '', value: '' }];
+                      field.onChange(newItems);
+                    }}
+                    className="bg-white text-black border border-gray-300 hover:text-black hover:bg-gray-100 cursor-pointer"
+                  >
+                    + new social
+                  </Button>
+                </div>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
+
         {/* Deployed Addresses (Only for projects without hackathon) */}
         {!hasHackathon && (
           <FormField

@@ -8,32 +8,34 @@ datasource db {
 }
 
 model Hackathon {
-  id              String         @id @default(uuid())
-  title           String
-  description     String
-  location        String
-  total_prizes    Int
-  tags            String[]
-  content         Json           @default("{}")
-  end_date        DateTime       @default(now()) @db.Timestamptz(3)
-  start_date      DateTime       @default(now()) @db.Timestamptz(3)
-  timezone        String         @default("UTC")
-  banner          String         @default("")
-  icon            String         @default("")
-  small_banner    String         @default("")
-  participants    Int
-  top_most        Boolean?       @default(false)
-  organizers      String?
-  custom_link     String?
-  created_by      String?
-  is_public       Boolean?
-  updated_by      String?
-  event           String?        @default("hackathon")
-  created_by_user User?          @relation(fields: [created_by], references: [id])
-  updated_by_user User?          @relation("HackathonUpdatedBy", fields: [updated_by], references: [id])
-  projects        Project[]
-  registrations   RegisterForm[]
-  cohosts         String[]       @default([])
+  id                 String         @id @default(uuid())
+  title              String
+  description        String
+  location           String
+  total_prizes       Int
+  tags               String[]
+  content            Json           @default("{}")
+  end_date           DateTime       @default(now()) @db.Timestamptz(3)
+  start_date         DateTime       @default(now()) @db.Timestamptz(3)
+  timezone           String         @default("UTC")
+  banner             String         @default("")
+  icon               String         @default("")
+  small_banner       String         @default("")
+  participants       Int
+  organizers         String?
+  top_most           Boolean?       @default(false)
+  custom_link        String?
+  created_by         String?
+  is_public          Boolean?
+  updated_by         String?
+  event              String?        @default("hackathon")
+  cohosts            String[]       @default([])
+  new_layout         Boolean?       @default(false)
+  google_calendar_id String?
+  created_by_user    User?          @relation(fields: [created_by], references: [id])
+  updated_by_user    User?          @relation("HackathonUpdatedBy", fields: [updated_by], references: [id])
+  projects           Project[]
+  registrations      RegisterForm[]
 }
 
 model User {
@@ -60,6 +62,7 @@ model User {
   skills                   String[]                  @default([])
   user_type                Json?
   wallet                   String[]                  @default([])
+  notification_means       Json?                     @default("{}")
   chatConversations        ChatConversation[]
   consoleLog               ConsoleLog[]
   faucetClaims             FaucetClaim[]
@@ -67,7 +70,9 @@ model User {
   updated_hackathons       Hackathon[]               @relation("HackathonUpdatedBy")
   memberships              Member[]
   managedTestnetNodes      NodeRegistration[]
+  Notification             Notification[]
   registrations            RegisterForm[]
+  Repository               Repository[]
   statsPlaygrounds         StatsPlayground[]
   statsPlaygroundFavorites StatsPlaygroundFavorite[] @relation("StatsPlaygroundFavorites")
   badges                   UserBadge[]
@@ -112,35 +117,38 @@ model RegisterForm {
 }
 
 model Project {
-  id                  String         @id @default(uuid())
+  id                  String              @id @default(uuid())
   hackaton_id         String?
   project_name        String
   short_description   String
-  full_description    String?        @default("")
-  tech_stack          String?        @default("")
-  github_repository   String?        @default("")
-  demo_link           String?        @default("")
-  logo_url            String?        @default("")
-  cover_url           String?        @default("")
-  demo_video_link     String?        @default("")
-  screenshots         String[]       @default([])
-  tracks              String[]       @default([])
-  created_at          DateTime       @default(now()) @db.Timestamptz(3)
-  updated_at          DateTime       @updatedAt @db.Timestamptz(3)
-  explanation         String?        @default("")
-  is_preexisting_idea Boolean        @default(false)
-  small_cover_url     String?        @default("")
-  tags                String[]       @default([])
-  is_winner           Boolean?       @default(false)
-  categories          String[]       @default([])
-  origin              String         @default("unknown")
+  full_description    String?             @default("")
+  tech_stack          String?             @default("")
+  github_repository   String?             @default("")
+  demo_link           String?             @default("")
+  logo_url            String?             @default("")
+  cover_url           String?             @default("")
+  demo_video_link     String?             @default("")
+  screenshots         String[]            @default([])
+  tracks              String[]            @default([])
+  created_at          DateTime            @default(now()) @db.Timestamptz(3)
+  updated_at          DateTime            @updatedAt @db.Timestamptz(3)
+  explanation         String?             @default("")
+  is_preexisting_idea Boolean             @default(false)
+  small_cover_url     String?             @default("")
+  tags                String[]            @default([])
+  is_winner           Boolean?            @default(false)
+  categories          String[]            @default([])
+  origin              String              @default("unknown")
   other_category      String?
-  deployed_addresses  Json[]         @default([])
+  deployed_addresses  Json[]              @default([])
+  website             Json?
+  socials             Json?
   formData            FormData[]
   members             Member[]
   prizes              Prize[]
-  hackathon           Hackathon?     @relation(fields: [hackaton_id], references: [id], onDelete: Cascade)
+  hackathon           Hackathon?          @relation(fields: [hackaton_id], references: [id], onDelete: Cascade)
   badges              ProjectBadge[]
+  ProjectRepository   ProjectRepository[]
 }
 
 model Prize {
@@ -403,4 +411,78 @@ model Retro9000ReturningApplication {
   @@index([project_name])
   @@index([project_vertical])
   @@index([requested_funding_range])
+}
+
+model Contract {
+  id               Int     @id
+  deployer_address String?
+  timestamp        String?
+  address          String? @unique
+  chain_id         Int?
+}
+
+model Notification {
+  id                     Int                      @id(map: "InboxNotification_pkey") @default(autoincrement())
+  audience               String
+  type                   String
+  title                  String
+  content                String?
+  content_type           String?
+  short_description      String?
+  template               String?
+  status                 String
+  send_date              DateTime?                @db.Date
+  creator                String
+  created_at             DateTime                 @db.Date
+  User                   User                     @relation(fields: [creator], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  NotificationEmailState NotificationEmailState[]
+  NotificationInboxState NotificationInboxState[]
+}
+
+model NotificationEmailState {
+  id              Int           @id(map: "NotificationEmail_pkey") @default(autoincrement())
+  status          String?
+  error           String?
+  attemps         Int?
+  notification_id Int?
+  audience        String?
+  send_date       DateTime?     @db.Date
+  Notification    Notification? @relation(fields: [notification_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "NotificationEmail_notification_id_fkey")
+}
+
+model NotificationInboxState {
+  id              Int          @id(map: "NotificationInbox_pkey") @default(autoincrement())
+  status          String?
+  notification_id Int
+  error           String?
+  send_date       DateTime?    @db.Date
+  attemps         Int?
+  audience        String?
+  Notification    Notification @relation(fields: [notification_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "NotificationInbox_notification_id_fkey")
+}
+
+model NotificationTemplate {
+  id       Int     @id
+  template String?
+}
+
+model ProjectRepository {
+  project_id    String
+  repository_id String
+  Project       Project    @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  Repository    Repository @relation(fields: [repository_id], references: [id], onDelete: Cascade)
+
+  @@id([project_id, repository_id])
+}
+
+model Repository {
+  id                 String              @id @default(dbgenerated("(gen_random_uuid())::text"))
+  repo_id            String?
+  repo_name          String?
+  user_id            String?
+  commits            Int?
+  first_contribution BigInt?
+  last_contribution  BigInt?
+  ProjectRepository  ProjectRepository[]
+  User               User?               @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }

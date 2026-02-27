@@ -43,6 +43,14 @@ export async function updateProfile(id: string, profileData: Partial<Profile>) {
         return profileData as Profile;
     }
 
+    // Name must not be empty when provided
+    if (profileData.name !== undefined) {
+        const trimmed = typeof profileData.name === 'string' ? profileData.name.trim() : '';
+        if (trimmed.length === 0) {
+            throw new Error('Name cannot be empty.');
+        }
+    }
+
     const data = { ...profileData }
     await prisma.user.update({
         where: { id: id },

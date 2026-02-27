@@ -268,7 +268,7 @@ export default function GeneralSecureComponent({
 
       {/* Header */}
       <div className="mb-4">
-        <h2 className="text-lg sm:text-xl font-semibold break-words">
+        <h2 className="text-lg sm:text-xl font-semibold wrap-break-words">
           {hackathon?.title ? `Submit Your Project - ${hackathon.title}` : "Create New Project"}
         </h2>
         <p className="text-xs sm:text-sm text-gray-400">

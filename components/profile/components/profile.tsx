@@ -27,40 +27,39 @@ import { hsEmploymentRoles } from "@/constants/hs_employment_role";
 import { X, Link2, Wallet, User, FileText, Zap } from "lucide-react";
 import { WalletConnectButton } from "./WalletConnectButton";
 import { SkillsAutocomplete } from "./SkillsAutocomplete";
-import { useProfileForm } from "./hooks/useProfileForm";
+import type { UseFormReturn } from "react-hook-form";
+import type { ProfileFormValues } from "./hooks/useProfileForm";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { Toaster } from "@/components/ui/toaster";
 import { ProfileChecklist } from "./ProfileChecklist";
 
-export default function Profile() {
+export interface ProfileProps {
+  form: UseFormReturn<ProfileFormValues>;
+  watchedValues: Partial<ProfileFormValues>;
+  isSaving: boolean;
+  isAutoSaving: boolean;
+  handleRemoveSkill: (skillToRemove: string) => void;
+  handleAddSocial: () => void;
+  handleRemoveSocial: (index: number) => void;
+  handleAddWallet: (address: string) => void;
+  handleRemoveWallet: (index: number) => void;
+  onSubmit: (e?: React.BaseSyntheticEvent) => Promise<void>;
+}
+
+export default function Profile({
+  form,
+  watchedValues,
+  isSaving,
+  isAutoSaving,
+  handleRemoveSkill,
+  handleAddSocial,
+  handleRemoveSocial,
+  handleAddWallet,
+  handleRemoveWallet,
+  onSubmit,
+}: ProfileProps) {
   const [newSkill, setNewSkill] = useState("");
   const [newSocial, setNewSocial] = useState("");
-
-  // Use custom hook for all profile logic
-  const {
-    form,
-    watchedValues,
-    isLoading,
-    isSaving,
-    isAutoSaving,
-    handleRemoveSkill,
-    handleAddSocial,
-    handleRemoveSocial,
-    handleAddWallet,
-    handleRemoveWallet,
-    onSubmit,
-  } = useProfileForm();
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 dark:border-white mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Loading profile...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <>
@@ -140,7 +139,7 @@ export default function Profile() {
                     name="country"
                     render={({ field }) => (
                       <FormItem className="flex flex-row items-center gap-4">
-                        <FormLabel className="w-32 shrink-0">City of Residence</FormLabel>
+                        <FormLabel className="w-32 shrink-0">Country</FormLabel>
                         <div className="flex-1">
                           <Select onValueChange={field.onChange} value={field.value}>
                             <FormControl>
@@ -165,7 +164,7 @@ export default function Profile() {
                   {/* Roles */}
                   <div className="space-y-4">
                     <div className="flex flex-row items-center gap-4">
-                      <FormLabel className="flex-shrink-0">Select all roles that apply.</FormLabel>
+                      <FormLabel className="shrink-0">Select all roles that apply.</FormLabel>
                     </div>
                     
                     {/* Student */}
@@ -425,7 +424,7 @@ export default function Profile() {
                   name="wallet"
                   render={({ field }) => (
                     <FormItem className="flex flex-row items-start gap-4">
-                      <FormLabel className="w-32 shrink-0 pt-2">Wallets</FormLabel>
+                      <FormLabel className="w-32 shrink-0 pt-2">EVM Wallet</FormLabel>
                       <div className="flex-1">
                         <FormControl>
                           <div className="space-y-2">
