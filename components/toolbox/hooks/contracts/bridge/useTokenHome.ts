@@ -3,6 +3,7 @@ import { useViemChainStore } from '../../../stores/toolboxStore';
 import { readContract } from 'viem/actions';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { useWallet } from '../../useWallet';
+import { useWalletClient } from 'wagmi';
 import ERC20TokenHomeAbi from '@/contracts/icm-contracts/compiled/ERC20TokenHome.json';
 import NativeTokenHomeAbi from '@/contracts/icm-contracts/compiled/NativeTokenHome.json';
 
@@ -68,10 +69,11 @@ export function useTokenHome(
   tokenType: TokenType,
   customAbi?: any
 ): TokenHomeHook {
-  const { coreWalletClient, walletEVMAddress } = useWalletStore();
+  const { walletEVMAddress } = useWalletStore();
   const viemChain = useViemChainStore();
   const { notify } = useConsoleNotifications();
   const { avalancheWalletClient } = useWallet();
+  const { data: walletClient } = useWalletClient();
 
   // Auto-select ABI based on token type if not provided
   const abi = customAbi ?? (
@@ -80,7 +82,7 @@ export function useTokenHome(
       : NativeTokenHomeAbi.abi
   );
 
-  const isReady = Boolean(contractAddress && avalancheWalletClient && viemChain);
+  const isReady = Boolean(contractAddress && walletClient && viemChain);
 
   // Read functions
   const getTokenAddress = async (): Promise<string> => {
@@ -164,7 +166,7 @@ export function useTokenHome(
 
   // Write functions
   const send = async (input: SendTokensInput, amount: bigint): Promise<string> => {
-    if (!coreWalletClient || !contractAddress || !walletEVMAddress || !viemChain) {
+    if (!walletClient || !contractAddress || !walletEVMAddress || !viemChain) {
       throw new Error('Wallet not connected or contract not ready');
     }
 
@@ -183,7 +185,7 @@ export function useTokenHome(
       config.value = amount;
     }
 
-    const writePromise = coreWalletClient.writeContract(config);
+    const writePromise = walletClient!.writeContract(config);
 
     notify({
       type: 'call',
@@ -194,7 +196,7 @@ export function useTokenHome(
   };
 
   const sendAndCall = async (input: any, amount: bigint): Promise<string> => {
-    if (!coreWalletClient || !contractAddress || !walletEVMAddress || !viemChain) {
+    if (!walletClient || !contractAddress || !walletEVMAddress || !viemChain) {
       throw new Error('Wallet not connected or contract not ready');
     }
 
@@ -212,7 +214,7 @@ export function useTokenHome(
       config.value = amount;
     }
 
-    const writePromise = coreWalletClient.writeContract(config);
+    const writePromise = walletClient!.writeContract(config);
 
     notify({
       type: 'call',
@@ -223,7 +225,7 @@ export function useTokenHome(
   };
 
   const addCollateral = async (blockchainID: string, remoteContractAddress: string, amount: bigint): Promise<string> => {
-    if (!coreWalletClient || !contractAddress || !walletEVMAddress || !viemChain) {
+    if (!walletClient || !contractAddress || !walletEVMAddress || !viemChain) {
       throw new Error('Wallet not connected or contract not ready');
     }
 
@@ -244,7 +246,7 @@ export function useTokenHome(
       txConfig.args = [blockchainID as `0x${string}`, remoteContractAddress as `0x${string}`, amount];
     }
 
-    const writePromise = coreWalletClient.writeContract(txConfig);
+    const writePromise = walletClient!.writeContract(txConfig);
 
     notify({
       type: 'call',
@@ -260,11 +262,11 @@ export function useTokenHome(
     tokenContractAddress: string,
     decimals: number
   ): Promise<string> => {
-    if (!coreWalletClient || !contractAddress || !walletEVMAddress || !viemChain) {
+    if (!walletClient || !contractAddress || !walletEVMAddress || !viemChain) {
       throw new Error('Wallet not connected or contract not ready');
     }
 
-    const writePromise = coreWalletClient.writeContract({
+    const writePromise = walletClient!.writeContract({
       address: contractAddress as `0x${string}`,
       abi: abi,
       functionName: 'initialize',
@@ -283,11 +285,11 @@ export function useTokenHome(
   };
 
   const transferOwnership = async (newOwner: string): Promise<string> => {
-    if (!coreWalletClient || !contractAddress || !walletEVMAddress || !viemChain) {
+    if (!walletClient || !contractAddress || !walletEVMAddress || !viemChain) {
       throw new Error('Wallet not connected or contract not ready');
     }
 
-    const writePromise = coreWalletClient.writeContract({
+    const writePromise = walletClient!.writeContract({
       address: contractAddress as `0x${string}`,
       abi: abi,
       functionName: 'transferOwnership',
@@ -306,11 +308,11 @@ export function useTokenHome(
   };
 
   const updateMinTeleporterVersion = async (minTeleporterVersion: bigint): Promise<string> => {
-    if (!coreWalletClient || !contractAddress || !walletEVMAddress || !viemChain) {
+    if (!walletClient || !contractAddress || !walletEVMAddress || !viemChain) {
       throw new Error('Wallet not connected or contract not ready');
     }
 
-    const writePromise = coreWalletClient.writeContract({
+    const writePromise = walletClient!.writeContract({
       address: contractAddress as `0x${string}`,
       abi: abi,
       functionName: 'updateMinTeleporterVersion',
@@ -329,11 +331,11 @@ export function useTokenHome(
   };
 
   const pauseTeleporterAddress = async (address: string): Promise<string> => {
-    if (!coreWalletClient || !contractAddress || !walletEVMAddress || !viemChain) {
+    if (!walletClient || !contractAddress || !walletEVMAddress || !viemChain) {
       throw new Error('Wallet not connected or contract not ready');
     }
 
-    const writePromise = coreWalletClient.writeContract({
+    const writePromise = walletClient!.writeContract({
       address: contractAddress as `0x${string}`,
       abi: abi,
       functionName: 'pauseTeleporterAddress',
@@ -352,11 +354,11 @@ export function useTokenHome(
   };
 
   const unpauseTeleporterAddress = async (address: string): Promise<string> => {
-    if (!coreWalletClient || !contractAddress || !walletEVMAddress || !viemChain) {
+    if (!walletClient || !contractAddress || !walletEVMAddress || !viemChain) {
       throw new Error('Wallet not connected or contract not ready');
     }
 
-    const writePromise = coreWalletClient.writeContract({
+    const writePromise = walletClient!.writeContract({
       address: contractAddress as `0x${string}`,
       abi: abi,
       functionName: 'unpauseTeleporterAddress',

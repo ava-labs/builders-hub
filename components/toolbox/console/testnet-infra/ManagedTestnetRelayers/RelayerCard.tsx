@@ -74,7 +74,7 @@ export default function RelayerCard({
     const [tokenAmounts, setTokenAmounts] = useState<Record<string, string>>({});
     const [isSending, setIsSending] = useState(false);
     
-    const { coreWalletClient } = useConnectedWallet();
+    const { walletClient } = useConnectedWallet();
     const { walletEVMAddress } = useWalletStore();
     const { l1List } = useL1ListStore()();
     const { notify } = useConsoleNotifications();
@@ -170,7 +170,7 @@ export default function RelayerCard({
             };
 
             // Switch chain in Core wallet
-            await coreWalletClient.switchChain({ id: evmChainId });
+            await walletClient.switchChain({ id: evmChainId });
 
             const publicClient = createPublicClient({
                 transport: http(config.rpcUrl),
@@ -181,7 +181,7 @@ export default function RelayerCard({
                 blockTag: 'pending',
             });
 
-            const transactionPromise = coreWalletClient.sendTransaction({
+            const transactionPromise = walletClient.sendTransaction({
                 to: relayer.relayerId as `0x${string}`,
                 value: parseEther(amount),
                 account: walletEVMAddress as `0x${string}`,

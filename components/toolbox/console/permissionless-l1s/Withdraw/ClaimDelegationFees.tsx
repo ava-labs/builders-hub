@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
+import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
 import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { Button } from '@/components/toolbox/components/Button';
 import { Success } from '@/components/toolbox/components/Success';
@@ -8,6 +9,7 @@ import NativeTokenStakingManager from '@/contracts/icm-contracts/compiled/Native
 import ERC20TokenStakingManager from '@/contracts/icm-contracts/compiled/ERC20TokenStakingManager.json';
 import { formatEther } from 'viem';
 import { useNativeTokenStakingManager, useERC20TokenStakingManager } from '@/components/toolbox/hooks/contracts';
+import { useWalletClient } from 'wagmi';
 
 type TokenType = 'native' | 'erc20';
 
@@ -26,7 +28,9 @@ const ClaimDelegationFees: React.FC<ClaimDelegationFeesProps> = ({
     onSuccess,
     onError,
 }) => {
-    const { coreWalletClient, publicClient, walletEVMAddress } = useWalletStore();
+    const { walletEVMAddress } = useWalletStore();
+    const chainPublicClient = useChainPublicClient();
+    const { data: walletClient } = useWalletClient();
     const viemChain = useViemChainStore();
 
     const nativeStakingManager = useNativeTokenStakingManager(tokenType === 'native' ? stakingManagerAddress : null);
@@ -44,14 +48,14 @@ const ClaimDelegationFees: React.FC<ClaimDelegationFeesProps> = ({
     // Check claimable fees when component mounts or validationID changes
     useEffect(() => {
         const checkClaimableFees = async () => {
-            if (!publicClient || !stakingManagerAddress || !validationID) {
+            if (!chainPublicClient || !stakingManagerAddress || !validationID) {
                 setClaimableAmount(null);
                 return;
             }
 
             setIsCheckingFees(true);
             try {
-                const amount = await publicClient.readContract({
+                const amount = await chainPublicClient.readContract({
                     address: stakingManagerAddress as `0x${string}`,
                     abi: contractAbi,
                     functionName: 'valueToClaim',
@@ -68,13 +72,13 @@ const ClaimDelegationFees: React.FC<ClaimDelegationFeesProps> = ({
         };
 
         checkClaimableFees();
-    }, [publicClient, stakingManagerAddress, validationID, contractAbi]);
+    }, [chainPublicClient, stakingManagerAddress, validationID, contractAbi]);
 
     const handleClaimFees = async () => {
         setErrorState(null);
         setTxHash(null);
 
-        if (!coreWalletClient || !publicClient || !viemChain) {
+        if (!walletClient || !chainPublicClient || !viemChain) {
             setErrorState("Wallet or chain configuration is not properly initialized.");
             onError("Wallet or chain configuration is not properly initialized.");
             return;
@@ -102,7 +106,7 @@ const ClaimDelegationFees: React.FC<ClaimDelegationFeesProps> = ({
             setTxHash(hash);
 
             // Wait for confirmation
-            const receipt = await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
+            const receipt = await chainPublicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
             if (receipt.status !== 'success') {
                 throw new Error(`Transaction failed with status: ${receipt.status}`);
             }

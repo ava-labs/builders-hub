@@ -6,8 +6,8 @@ import { Container } from './Container';
 export interface ConsoleToolMetadata {
     /** Display name of the tool */
     title: string;
-    /** Brief description of what the tool does */
-    description: string;
+    /** Brief description of what the tool does (supports ReactNode for links) */
+    description: React.ReactNode;
     /** Tool requirements (wallet and/or account requirements) */
     toolRequirements: RequirementsConfigKey[];
     /** GitHub URL for editing the tool source code */
@@ -42,7 +42,7 @@ type ConsoleToolComponent = BaseConsoleToolComponent & {
  *     {
  *         title: "Cross-Chain Transfer",
  *         description: "Transfer AVAX between Platform (P) and Contract (C) chains",
- *         toolRequirements: [WalletRequirementsConfigKey.CoreWalletConnected]
+ *         toolRequirements: [WalletRequirementsConfigKey.WalletConnected]
  *     }
  * );
  */

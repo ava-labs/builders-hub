@@ -7,6 +7,7 @@ import InitiateDelegatorRemoval from '@/components/toolbox/console/permissionles
 import CompleteDelegatorRemoval from '@/components/toolbox/console/permissionless-l1s/Withdraw/CompleteDelegatorRemoval';
 import SubmitPChainTxWeightUpdate from '@/components/toolbox/console/shared/SubmitPChainTxWeightUpdate';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
+import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
 import { BaseConsoleToolProps } from '../../../components/WithConsoleToolMetadata';
 import { Alert } from '@/components/toolbox/components/Alert';
 import { L1SubnetStep, StepFlowFooter, useL1SubnetState } from '../shared';
@@ -38,7 +39,8 @@ export default function RemoveDelegationBase({ tokenType, onSuccess }: RemoveDel
     }>>([]);
     const [isLoadingDelegations, setIsLoadingDelegations] = useState(false);
 
-    const { publicClient, walletEVMAddress } = useWalletStore();
+    const { walletEVMAddress } = useWalletStore();
+    const chainPublicClient = useChainPublicClient();
     const l1State = useL1SubnetState();
     const { validatorManagerDetails, viemChain } = l1State;
 
@@ -48,7 +50,7 @@ export default function RemoveDelegationBase({ tokenType, onSuccess }: RemoveDel
     // Fetch user's delegations when subnet, wallet changes
     useEffect(() => {
         const fetchUserDelegations = async () => {
-            if (!publicClient || !validatorManagerDetails.contractOwner || !walletEVMAddress) {
+            if (!chainPublicClient || !validatorManagerDetails.contractOwner || !walletEVMAddress) {
                 setAllDelegations([]);
                 return;
             }
@@ -56,7 +58,7 @@ export default function RemoveDelegationBase({ tokenType, onSuccess }: RemoveDel
             setIsLoadingDelegations(true);
             try {
                 // Query InitiatedDelegatorRegistration events for this user
-                const logs = await publicClient.getLogs({
+                const logs = await chainPublicClient.getLogs({
                     address: validatorManagerDetails.contractOwner as `0x${string}`,
                     event: {
                         type: 'event',
@@ -86,7 +88,7 @@ export default function RemoveDelegationBase({ tokenType, onSuccess }: RemoveDel
 
                         try {
                             // Get current delegation info using the appropriate ABI
-                            const info = await publicClient.readContract({
+                            const info = await chainPublicClient.readContract({
                                 address: validatorManagerDetails.contractOwner as `0x${string}`,
                                 abi: contractAbi,
                                 functionName: 'getDelegatorInfo',
@@ -126,7 +128,7 @@ export default function RemoveDelegationBase({ tokenType, onSuccess }: RemoveDel
         };
 
         fetchUserDelegations();
-    }, [publicClient, validatorManagerDetails.contractOwner, walletEVMAddress, contractAbi]);
+    }, [chainPublicClient, validatorManagerDetails.contractOwner, walletEVMAddress, contractAbi]);
 
     // Create suggestions for the delegation input (similar to SelectValidationID)
     const delegationSuggestions: Suggestion[] = useMemo(() => {

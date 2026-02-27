@@ -1,237 +1,140 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Copy, Check } from "lucide-react";
-import { Button } from "@/components/toolbox/components/Button";
-import { Container } from "@/components/toolbox/components/Container";
+import {
+  BaseConsoleToolProps,
+  ConsoleToolMetadata,
+  withConsoleToolMetadata,
+} from "../../components/WithConsoleToolMetadata";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
+import Link from "next/link";
 
-export default function UnitConverter() {
-  const [amount, setAmount] = useState<string>("1.00");
-  const [selectedUnit, setSelectedUnit] = useState<string>("AVAX");
-  const [results, setResults] = useState<Record<string, string>>({});
-  const [copied, setCopied] = useState<string | null>(null);
-  const [criticalError, setCriticalError] = useState<Error | null>(null);
+const metadata: ConsoleToolMetadata = {
+  title: "AVAX Unit Converter",
+  description: <>Convert between <Link href="/docs/rpcs/c-chain/api" className="text-primary hover:underline">C-Chain</Link> wei (10<sup>-18</sup>), <Link href="/docs/rpcs/p-chain/api" className="text-primary hover:underline">P-Chain</Link> nAVAX (10<sup>-9</sup>), and AVAX. Type in any field to convert.</>,
+  toolRequirements: [],
+  githubUrl: generateConsoleToolGitHubUrl(import.meta.url),
+};
 
-  // Throw critical errors during render to crash the component
-  // This pattern is necessary for Next.js because:
-  // 1. Error boundaries only catch errors during synchronous render
-  // 2. Async errors (in callbacks, promises) need to be captured in state
-  // 3. On next render, we throw synchronously so the error boundary catches it
-  // This ensures financial calculation errors properly crash the component
-  if (criticalError) {
-    throw criticalError;
+const units = [
+  { id: "AVAX", label: "AVAX", sublabel: "1", factor: BigInt("1000000000000000000"), step: "0.01" },
+  { id: "nAVAX", label: "nAVAX", sublabel: "P-Chain base unit", factor: BigInt("1000000000"), step: "1" },
+  { id: "wei", label: "Wei", sublabel: "C-Chain base unit", factor: BigInt("1"), step: "1" },
+] as const;
+
+function convertUnits(inputAmount: string, fromUnit: string): Record<string, string> | null {
+  if (!inputAmount || isNaN(Number(inputAmount))) return null;
+
+  const sourceUnit = units.find((u) => u.id === fromUnit);
+  if (!sourceUnit) return null;
+
+  let baseAmount: bigint;
+  try {
+    if (inputAmount.includes(".")) {
+      const [whole, decimal] = inputAmount.split(".");
+      const wholeValue = whole === "" ? BigInt(0) : BigInt(whole);
+      const wholeInWei = wholeValue * sourceUnit.factor;
+      const decimalPlaces = decimal.length;
+      const decimalValue = BigInt(decimal);
+      const decimalFactor = sourceUnit.factor / BigInt(10 ** decimalPlaces);
+      baseAmount = wholeInWei + decimalValue * decimalFactor;
+    } else {
+      baseAmount = BigInt(inputAmount) * sourceUnit.factor;
+    }
+  } catch {
+    return null;
   }
 
-  const units = [
-    {
-      id: "wei",
-      label: "Wei (C-Chain) 10⁻¹⁸",
-      factor: BigInt("1"),
-      exponent: -18,
-    },
-    {
-      id: "nAVAX",
-      label: "nAVAX (P-Chain) 10⁻⁹",
-      factor: BigInt("1000000000"),
-      exponent: -9,
-    },
-    {
-      id: "AVAX",
-      label: "AVAX",
-      factor: BigInt("1000000000000000000"),
-      exponent: 0,
-    },
-  ];
-
-  const convertUnits = (inputAmount: string, fromUnit: string) => {
-    try {
-      if (!inputAmount || isNaN(Number(inputAmount))) {
-        return {};
-      }
-
-      const sourceUnit = units.find((u) => u.id === fromUnit)!;
-
-      let baseAmount: bigint;
-      try {
-        if (inputAmount.includes(".")) {
-          const [whole, decimal] = inputAmount.split(".");
-          const wholeValue = whole === "" ? BigInt(0) : BigInt(whole);
-          const wholeInWei = wholeValue * sourceUnit.factor;
-
-          const decimalPlaces = decimal.length;
-          const decimalValue = BigInt(decimal);
-          const decimalFactor = sourceUnit.factor / BigInt(10 ** decimalPlaces);
-          const decimalInWei = decimalValue * decimalFactor;
-
-          baseAmount = wholeInWei + decimalInWei;
-        } else {
-          baseAmount = BigInt(inputAmount) * sourceUnit.factor;
-        }
-      } catch (error) {
-        throw new Error(
-          "Error converting: please verify that the number is valid"
-        );
-      }
-
-      const results: Record<string, string> = {};
-      units.forEach((unit) => {
-        if (baseAmount === BigInt(0)) {
-          results[unit.id] = "0";
-          return;
-        }
-
-        const quotient = baseAmount / unit.factor;
-        const remainder = baseAmount % unit.factor;
-
-        if (remainder === BigInt(0)) {
-          results[unit.id] = quotient.toString();
-        } else {
-          const decimalPart = remainder
-            .toString()
-            .padStart(unit.factor.toString().length - 1, "0");
-          const trimmedDecimal = decimalPart.replace(/0+$/, "");
-          results[unit.id] = `${quotient}.${trimmedDecimal}`;
-        }
-      });
-
-      return results;
-    } catch (error) {
-      // Critical conversion error - wrong values could lead to financial loss
-      // This will crash the component on next render
-      const err = new Error(
-        `Unit conversion failed: ${
-          error instanceof Error ? error.message : String(error)
-        }`
-      );
-      setCriticalError(err);
-      return {};
+  const results: Record<string, string> = {};
+  for (const unit of units) {
+    if (baseAmount === BigInt(0)) {
+      results[unit.id] = "0";
+      continue;
     }
-  };
+    const quotient = baseAmount / unit.factor;
+    const remainder = baseAmount % unit.factor;
+    if (remainder === BigInt(0)) {
+      results[unit.id] = quotient.toString();
+    } else {
+      const decimalPart = remainder.toString().padStart(unit.factor.toString().length - 1, "0");
+      results[unit.id] = `${quotient}.${decimalPart.replace(/0+$/, "")}`;
+    }
+  }
+  return results;
+}
 
-  const handleInputChange = (value: string, unit: string) => {
-    setAmount(value);
-    setSelectedUnit(unit);
-  };
+function UnitConverterInner(_props: BaseConsoleToolProps) {
+  const [amount, setAmount] = useState("1");
+  const [selectedUnit, setSelectedUnit] = useState("AVAX");
+  const [results, setResults] = useState<Record<string, string>>({});
+  const [copied, setCopied] = useState<string | null>(null);
 
-  const handleReset = () => {
-    setAmount("1.00");
-    setSelectedUnit("AVAX");
-  };
+  useEffect(() => {
+    const converted = convertUnits(amount, selectedUnit);
+    if (converted) setResults(converted);
+  }, [amount, selectedUnit]);
 
-  const handleCopy = (value: string, unitId: string) => {
+  const handleCopy = useCallback((value: string, unitId: string) => {
     navigator.clipboard.writeText(value);
     setCopied(unitId);
     setTimeout(() => setCopied(null), 2000);
-  };
-
-  useEffect(() => {
-    setResults(convertUnits(amount, selectedUnit));
-  }, [amount, selectedUnit]);
+  }, []);
 
   return (
-    <Container
-      title="AVAX Unit Converter"
-      description="Convert between AVAX, P-Chain nAVAX, and C-Chain wei"
-      githubUrl={generateConsoleToolGitHubUrl(import.meta.url)}
-    >
-      <div className="space-y-4">
-        <div className="p-4 bg-gray-50 dark:bg-zinc-800 rounded-lg space-y-2 border border-gray-100 dark:border-zinc-700">
-          <p className="text-sm text-gray-700 dark:text-zinc-300">
-            Avalanche has different chains that use different base units for
-            AVAX:
-          </p>
-          <ul className="text-sm text-gray-700 dark:text-zinc-300 list-disc pl-5 space-y-1">
-            <li>
-              <span className="text-blue-600 dark:text-blue-400 font-medium">
-                <strong>C-Chain</strong>
-              </span>
-              : Uses wei (10⁻¹⁸) as the base unit, similar to Ethereum
-            </li>
-            <li>
-              <span className="text-red-600 dark:text-red-400 font-medium">
-                <strong>P-Chain</strong>
-              </span>
-              : Uses nAVAX (10⁻⁹) as the base unit
-            </li>
-          </ul>
-          <p className="text-sm text-gray-700 dark:text-zinc-300 mt-2">
-            This converter helps you translate between these different
-            denominations when working across chains.
-          </p>
-        </div>
+    <div className="space-y-2">
+      {units.map((unit) => {
+        const value = unit.id === selectedUnit ? amount : (results[unit.id] ?? "");
+        const isSource = unit.id === selectedUnit;
 
-        <div className="space-y-4">
-          {units.map((unit) => (
-            <div key={unit.id} className="flex items-center">
-              <div className="w-44 flex-shrink-0 mr-3">
-                <span
-                  className={`text-sm font-medium ${
-                    unit.id === "nAVAX"
-                      ? "text-red-600 dark:text-red-400"
-                      : unit.id === "wei"
-                      ? "text-blue-600 dark:text-blue-400"
-                      : ""
-                  }`}
-                >
-                  {unit.label}
-                </span>
+        return (
+          <div key={unit.id} className="group">
+            <div className="flex items-center gap-3">
+              <div className="w-20 shrink-0">
+                <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{unit.label}</span>
+                <div className="text-[10px] text-zinc-400 dark:text-zinc-500">{unit.sublabel}</div>
               </div>
-              <div className="relative flex-grow flex">
+
+              <div className="flex-1 flex items-center rounded-lg border border-zinc-200/80 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 focus-within:border-zinc-400 dark:focus-within:border-zinc-600 transition-colors">
                 <input
-                  type="number"
-                  value={
-                    unit.id === selectedUnit ? amount : results[unit.id] || ""
-                  }
-                  onChange={(e) => handleInputChange(e.target.value, unit.id)}
+                  type="text"
+                  inputMode="decimal"
+                  value={value}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v === "" || /^[0-9]*\.?[0-9]*$/.test(v)) {
+                      setAmount(v);
+                      setSelectedUnit(unit.id);
+                    }
+                  }}
                   placeholder="0"
-                  step={unit.exponent < 0 ? 0.000000001 : 0.01}
-                  className={`w-full rounded-md px-3 py-2.5 bg-white dark:bg-zinc-900 border 
-                                        ${
-                                          unit.id === "nAVAX"
-                                            ? "border-red-300 dark:border-red-700"
-                                            : unit.id === "wei"
-                                            ? "border-blue-300 dark:border-blue-700"
-                                            : "border-zinc-300 dark:border-zinc-700"
-                                        } 
-                                        text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 
-                                        focus:ring-primary/30 focus:border-primary shadow-sm transition-colors 
-                                        duration-200 rounded-r-none border-r-0`}
+                  className="flex-1 bg-transparent px-3 py-2.5 text-sm font-mono text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-300 dark:placeholder:text-zinc-600 focus:outline-none min-w-0"
                 />
                 <button
-                  onClick={() =>
-                    handleCopy(
-                      unit.id === selectedUnit
-                        ? amount
-                        : results[unit.id] || "",
-                      unit.id
-                    )
-                  }
-                  className={`flex items-center justify-center px-2 bg-white dark:bg-zinc-900 border 
-                                        ${
-                                          unit.id === "nAVAX"
-                                            ? "border-red-300 dark:border-red-700"
-                                            : unit.id === "wei"
-                                            ? "border-blue-300 dark:border-blue-700"
-                                            : "border-zinc-300 dark:border-zinc-700"
-                                        } 
-                                        rounded-r-md hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors`}
+                  onClick={() => handleCopy(value, unit.id)}
+                  className="px-2.5 py-2.5 text-zinc-300 dark:text-zinc-600 hover:text-zinc-500 dark:hover:text-zinc-400 transition-colors"
+                  aria-label={`Copy ${unit.label} value`}
                 >
                   {copied === unit.id ? (
-                    <Check className="h-4 w-4 text-green-500" />
+                    <Check className="h-3.5 w-3.5 text-green-500" />
                   ) : (
-                    <Copy className="h-4 w-4 text-zinc-500" />
+                    <Copy className="h-3.5 w-3.5" />
                   )}
                 </button>
               </div>
             </div>
-          ))}
-        </div>
+          </div>
+        );
+      })}
 
-        <Button onClick={handleReset} variant="secondary" className="mt-4">
-          Reset
-        </Button>
+      <div className="pt-2 flex items-center gap-3">
+        <div className="w-20 shrink-0" />
+        <p className="text-[11px] text-zinc-400 dark:text-zinc-500">
+          1 AVAX = 10<sup>9</sup> nAVAX = 10<sup>18</sup> wei
+        </p>
       </div>
-    </Container>
+    </div>
   );
 }
+
+export default withConsoleToolMetadata(UnitConverterInner, metadata);
