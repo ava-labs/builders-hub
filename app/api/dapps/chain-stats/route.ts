@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { queryClickHouse, C_CHAIN_ID, buildAddressFilter, getTotalChainGas } from '@/lib/clickhouse';
+import { queryClickHouse, C_CHAIN_ID, buildAddressFilter, buildSwapPricesCTE, getTotalChainGas } from '@/lib/clickhouse';
 import { CONTRACT_REGISTRY, PROTOCOL_SLUGS } from '@/lib/contracts';
 
 // Cache for 10 minutes - heavy aggregation query
@@ -11,6 +11,9 @@ export interface CategoryBreakdown {
   txCount: number;
   gasUsed: number;
   avaxBurned: number;
+  gasCostUsd: number;
+  avaxBurnedUsd: number;
+  uniqueSenders: number;
   gasShare: number;
   delta: number; // % change vs previous period
 }
@@ -31,6 +34,9 @@ export interface ChainStatsResponse {
     txCount: number;
     gasUsed: number;
     avaxBurned: number;
+    gasCostUsd: number;
+    avaxBurnedUsd: number;
+    uniqueSenders: number;
     gasShare: number;
     delta: number;
   }[];
@@ -44,6 +50,7 @@ export interface ChainStatsResponse {
     txCount: number;
     gasUsed: number;
     avaxBurned: number;
+    avaxBurnedUsd: number;
   }[];
 
   // Coverage stats (vs total chain)
@@ -75,14 +82,21 @@ export async function GET(request: Request) {
 
     const allAddresses = Array.from(protocolAddresses.values()).flat();
     const addressFilter = buildAddressFilter(allAddresses);
+    const tAddressFilter = buildAddressFilter(allAddresses, 't.to');
 
     // Time filters: current period and previous period (for delta)
     const timeFilter = days > 0 ? `AND block_time >= now() - INTERVAL ${days} DAY` : '';
+    const tTimeFilter = days > 0 ? `AND t.block_time >= now() - INTERVAL ${days} DAY` : '';
     const prevTimeFilter = days > 0
       ? `AND block_time >= now() - INTERVAL ${days * 2} DAY AND block_time < now() - INTERVAL ${days} DAY`
       : '';
+    const tPrevTimeFilter = days > 0
+      ? `AND t.block_time >= now() - INTERVAL ${days * 2} DAY AND t.block_time < now() - INTERVAL ${days} DAY`
+      : '';
     // For daily stats, use 90 days if all-time, otherwise use the requested range
     const dailyDays = days > 0 ? days : 90;
+    const dailyTimeFilter = `AND block_time >= now() - INTERVAL ${dailyDays} DAY`;
+    const tDailyTimeFilter = `AND t.block_time >= now() - INTERVAL ${dailyDays} DAY`;
 
     // Run queries in parallel
     const [
@@ -112,17 +126,25 @@ export async function GET(request: Request) {
         tx_count: string;
         total_gas: string;
         avax_burned: number;
+        avax_burned_usd: number;
+        gas_cost_usd: number;
+        unique_senders: string;
       }>(`
+        WITH ${buildSwapPricesCTE(timeFilter)}
         SELECT
-          lower(concat('0x', hex(to))) as address,
+          lower(concat('0x', hex(t.to))) as address,
           count() as tx_count,
-          sum(gas_used) as total_gas,
-          sum(toFloat64(gas_used) * toFloat64(base_fee_per_gas)) / 1e18 as avax_burned
-        FROM raw_txs
-        WHERE chain_id = ${C_CHAIN_ID}
-          AND ${addressFilter}
-          ${timeFilter}
-        GROUP BY to
+          sum(t.gas_used) as total_gas,
+          sum(toFloat64(t.gas_used) * toFloat64(t.base_fee_per_gas)) / 1e18 as avax_burned,
+          sum(toFloat64(t.gas_used) * toFloat64(t.base_fee_per_gas) / 1e18 * coalesce(p.price_usd, 0)) as avax_burned_usd,
+          sum(toFloat64(t.gas_used) * toFloat64(t.gas_price) / 1e18 * coalesce(p.price_usd, 0)) as gas_cost_usd,
+          uniqExact(t.from) as unique_senders
+        FROM raw_txs t
+        LEFT JOIN swap_prices p ON toStartOfHour(t.block_time) = p.price_hour
+        WHERE t.chain_id = ${C_CHAIN_ID}
+          AND ${tAddressFilter}
+          ${tTimeFilter}
+        GROUP BY t.to
       `),
 
       // 3. Get per-contract stats for the PREVIOUS period (for delta)
@@ -132,17 +154,25 @@ export async function GET(request: Request) {
             tx_count: string;
             total_gas: string;
             avax_burned: number;
+            avax_burned_usd: number;
+            gas_cost_usd: number;
+            unique_senders: string;
           }>(`
+            WITH ${buildSwapPricesCTE(prevTimeFilter)}
             SELECT
-              lower(concat('0x', hex(to))) as address,
+              lower(concat('0x', hex(t.to))) as address,
               count() as tx_count,
-              sum(gas_used) as total_gas,
-              sum(toFloat64(gas_used) * toFloat64(base_fee_per_gas)) / 1e18 as avax_burned
-            FROM raw_txs
-            WHERE chain_id = ${C_CHAIN_ID}
-              AND ${addressFilter}
-              ${prevTimeFilter}
-            GROUP BY to
+              sum(t.gas_used) as total_gas,
+              sum(toFloat64(t.gas_used) * toFloat64(t.base_fee_per_gas)) / 1e18 as avax_burned,
+              sum(toFloat64(t.gas_used) * toFloat64(t.base_fee_per_gas) / 1e18 * coalesce(p.price_usd, 0)) as avax_burned_usd,
+              sum(toFloat64(t.gas_used) * toFloat64(t.gas_price) / 1e18 * coalesce(p.price_usd, 0)) as gas_cost_usd,
+              uniqExact(t.from) as unique_senders
+            FROM raw_txs t
+            LEFT JOIN swap_prices p ON toStartOfHour(t.block_time) = p.price_hour
+            WHERE t.chain_id = ${C_CHAIN_ID}
+              AND ${tAddressFilter}
+              ${tPrevTimeFilter}
+            GROUP BY t.to
           `)
         : Promise.resolve({ data: [], meta: [], rows: 0, statistics: { elapsed: 0, rows_read: 0, bytes_read: 0 } }),
 
@@ -152,16 +182,20 @@ export async function GET(request: Request) {
         tx_count: string;
         total_gas: string;
         avax_burned: number;
+        avax_burned_usd: number;
       }>(`
+        WITH ${buildSwapPricesCTE(dailyTimeFilter)}
         SELECT
-          toDate(block_time) as date,
+          toDate(t.block_time) as date,
           count() as tx_count,
-          sum(gas_used) as total_gas,
-          sum(toFloat64(gas_used) * toFloat64(base_fee_per_gas)) / 1e18 as avax_burned
-        FROM raw_txs
-        WHERE chain_id = ${C_CHAIN_ID}
-          AND ${addressFilter}
-          AND block_time >= now() - INTERVAL ${dailyDays} DAY
+          sum(t.gas_used) as total_gas,
+          sum(toFloat64(t.gas_used) * toFloat64(t.base_fee_per_gas)) / 1e18 as avax_burned,
+          sum(toFloat64(t.gas_used) * toFloat64(t.base_fee_per_gas) / 1e18 * coalesce(p.price_usd, 0)) as avax_burned_usd
+        FROM raw_txs t
+        LEFT JOIN swap_prices p ON toStartOfHour(t.block_time) = p.price_hour
+        WHERE t.chain_id = ${C_CHAIN_ID}
+          AND ${tAddressFilter}
+          ${tDailyTimeFilter}
         GROUP BY date
         ORDER BY date
       `),
@@ -174,16 +208,24 @@ export async function GET(request: Request) {
         tx_count: string;
         total_gas: string;
         avax_burned: number;
+        avax_burned_usd: number;
+        gas_cost_usd: number;
+        unique_senders: string;
       }>(`
+        WITH ${buildSwapPricesCTE(timeFilter)}
         SELECT
           count() as tx_count,
-          sum(gas_used) as total_gas,
-          sum(toFloat64(gas_used) * toFloat64(base_fee_per_gas)) / 1e18 as avax_burned
-        FROM raw_txs
-        WHERE chain_id = ${C_CHAIN_ID}
-          AND to IS NOT NULL
-          AND length(input) <= 1
-          ${timeFilter}
+          sum(t.gas_used) as total_gas,
+          sum(toFloat64(t.gas_used) * toFloat64(t.base_fee_per_gas)) / 1e18 as avax_burned,
+          sum(toFloat64(t.gas_used) * toFloat64(t.base_fee_per_gas) / 1e18 * coalesce(p.price_usd, 0)) as avax_burned_usd,
+          sum(toFloat64(t.gas_used) * toFloat64(t.gas_price) / 1e18 * coalesce(p.price_usd, 0)) as gas_cost_usd,
+          uniqExact(t.from) as unique_senders
+        FROM raw_txs t
+        LEFT JOIN swap_prices p ON toStartOfHour(t.block_time) = p.price_hour
+        WHERE t.chain_id = ${C_CHAIN_ID}
+          AND t.to IS NOT NULL
+          AND length(t.input) <= 1
+          ${tTimeFilter}
       `),
 
       // 7. Contract deploys: current period
@@ -191,15 +233,23 @@ export async function GET(request: Request) {
         tx_count: string;
         total_gas: string;
         avax_burned: number;
+        avax_burned_usd: number;
+        gas_cost_usd: number;
+        unique_senders: string;
       }>(`
+        WITH ${buildSwapPricesCTE(timeFilter)}
         SELECT
           count() as tx_count,
-          sum(gas_used) as total_gas,
-          sum(toFloat64(gas_used) * toFloat64(base_fee_per_gas)) / 1e18 as avax_burned
-        FROM raw_txs
-        WHERE chain_id = ${C_CHAIN_ID}
-          AND to IS NULL
-          ${timeFilter}
+          sum(t.gas_used) as total_gas,
+          sum(toFloat64(t.gas_used) * toFloat64(t.base_fee_per_gas)) / 1e18 as avax_burned,
+          sum(toFloat64(t.gas_used) * toFloat64(t.base_fee_per_gas) / 1e18 * coalesce(p.price_usd, 0)) as avax_burned_usd,
+          sum(toFloat64(t.gas_used) * toFloat64(t.gas_price) / 1e18 * coalesce(p.price_usd, 0)) as gas_cost_usd,
+          uniqExact(t.from) as unique_senders
+        FROM raw_txs t
+        LEFT JOIN swap_prices p ON toStartOfHour(t.block_time) = p.price_hour
+        WHERE t.chain_id = ${C_CHAIN_ID}
+          AND t.to IS NULL
+          ${tTimeFilter}
       `),
 
       // 8. Native transfers: previous period (for delta)
@@ -208,18 +258,26 @@ export async function GET(request: Request) {
             tx_count: string;
             total_gas: string;
             avax_burned: number;
+            avax_burned_usd: number;
+            gas_cost_usd: number;
+            unique_senders: string;
           }>(`
+            WITH ${buildSwapPricesCTE(prevTimeFilter)}
             SELECT
               count() as tx_count,
-              sum(gas_used) as total_gas,
-              sum(toFloat64(gas_used) * toFloat64(base_fee_per_gas)) / 1e18 as avax_burned
-            FROM raw_txs
-            WHERE chain_id = ${C_CHAIN_ID}
-              AND to IS NOT NULL
-              AND length(input) <= 1
-              ${prevTimeFilter}
+              sum(t.gas_used) as total_gas,
+              sum(toFloat64(t.gas_used) * toFloat64(t.base_fee_per_gas)) / 1e18 as avax_burned,
+              sum(toFloat64(t.gas_used) * toFloat64(t.base_fee_per_gas) / 1e18 * coalesce(p.price_usd, 0)) as avax_burned_usd,
+              sum(toFloat64(t.gas_used) * toFloat64(t.gas_price) / 1e18 * coalesce(p.price_usd, 0)) as gas_cost_usd,
+              uniqExact(t.from) as unique_senders
+            FROM raw_txs t
+            LEFT JOIN swap_prices p ON toStartOfHour(t.block_time) = p.price_hour
+            WHERE t.chain_id = ${C_CHAIN_ID}
+              AND t.to IS NOT NULL
+              AND length(t.input) <= 1
+              ${tPrevTimeFilter}
           `)
-        : Promise.resolve({ data: [{ tx_count: '0', total_gas: '0', avax_burned: 0 }], meta: [], rows: 1, statistics: { elapsed: 0, rows_read: 0, bytes_read: 0 } }),
+        : Promise.resolve({ data: [{ tx_count: '0', total_gas: '0', avax_burned: 0, avax_burned_usd: 0, gas_cost_usd: 0, unique_senders: '0' }], meta: [], rows: 1, statistics: { elapsed: 0, rows_read: 0, bytes_read: 0 } }),
 
       // 9. Contract deploys: previous period (for delta)
       days > 0
@@ -227,17 +285,25 @@ export async function GET(request: Request) {
             tx_count: string;
             total_gas: string;
             avax_burned: number;
+            avax_burned_usd: number;
+            gas_cost_usd: number;
+            unique_senders: string;
           }>(`
+            WITH ${buildSwapPricesCTE(prevTimeFilter)}
             SELECT
               count() as tx_count,
-              sum(gas_used) as total_gas,
-              sum(toFloat64(gas_used) * toFloat64(base_fee_per_gas)) / 1e18 as avax_burned
-            FROM raw_txs
-            WHERE chain_id = ${C_CHAIN_ID}
-              AND to IS NULL
-              ${prevTimeFilter}
+              sum(t.gas_used) as total_gas,
+              sum(toFloat64(t.gas_used) * toFloat64(t.base_fee_per_gas)) / 1e18 as avax_burned,
+              sum(toFloat64(t.gas_used) * toFloat64(t.base_fee_per_gas) / 1e18 * coalesce(p.price_usd, 0)) as avax_burned_usd,
+              sum(toFloat64(t.gas_used) * toFloat64(t.gas_price) / 1e18 * coalesce(p.price_usd, 0)) as gas_cost_usd,
+              uniqExact(t.from) as unique_senders
+            FROM raw_txs t
+            LEFT JOIN swap_prices p ON toStartOfHour(t.block_time) = p.price_hour
+            WHERE t.chain_id = ${C_CHAIN_ID}
+              AND t.to IS NULL
+              ${tPrevTimeFilter}
           `)
-        : Promise.resolve({ data: [{ tx_count: '0', total_gas: '0', avax_burned: 0 }], meta: [], rows: 1, statistics: { elapsed: 0, rows_read: 0, bytes_read: 0 } }),
+        : Promise.resolve({ data: [{ tx_count: '0', total_gas: '0', avax_burned: 0, avax_burned_usd: 0, gas_cost_usd: 0, unique_senders: '0' }], meta: [], rows: 1, statistics: { elapsed: 0, rows_read: 0, bytes_read: 0 } }),
     ]);
 
     // Build protocol category lookup
@@ -249,10 +315,10 @@ export async function GET(request: Request) {
     }
 
     // Helper: aggregate per-address rows into protocol stats
-    function aggregateByProtocol(rows: { address: string; tx_count: string; total_gas: string; avax_burned: number }[]) {
-      const stats = new Map<string, { txCount: number; gasUsed: number; avaxBurned: number }>();
+    function aggregateByProtocol(rows: { address: string; tx_count: string; total_gas: string; avax_burned: number; avax_burned_usd: number; gas_cost_usd: number; unique_senders: string }[]) {
+      const stats = new Map<string, { txCount: number; gasUsed: number; avaxBurned: number; gasCostUsd: number; avaxBurnedUsd: number; uniqueSenders: number }>();
       for (const [protocol] of protocolAddresses) {
-        stats.set(protocol, { txCount: 0, gasUsed: 0, avaxBurned: 0 });
+        stats.set(protocol, { txCount: 0, gasUsed: 0, avaxBurned: 0, gasCostUsd: 0, avaxBurnedUsd: 0, uniqueSenders: 0 });
       }
       for (const row of rows) {
         for (const [protocol, addresses] of protocolAddresses) {
@@ -261,6 +327,9 @@ export async function GET(request: Request) {
             s.txCount += parseInt(row.tx_count) || 0;
             s.gasUsed += parseInt(row.total_gas) || 0;
             s.avaxBurned += row.avax_burned || 0;
+            s.gasCostUsd += row.gas_cost_usd || 0;
+            s.avaxBurnedUsd += row.avax_burned_usd || 0;
+            s.uniqueSenders += parseInt(row.unique_senders) || 0;
             break;
           }
         }
@@ -278,7 +347,14 @@ export async function GET(request: Request) {
     const nativeGas = parseInt(nativeData?.total_gas) || 0;
     const nativeBurned = nativeData?.avax_burned || 0;
     if (nativeTxCount > 0) {
-      currentProtocolStats.set('Native Transfers', { txCount: nativeTxCount, gasUsed: nativeGas, avaxBurned: nativeBurned });
+      currentProtocolStats.set('Native Transfers', {
+        txCount: nativeTxCount,
+        gasUsed: nativeGas,
+        avaxBurned: nativeBurned,
+        gasCostUsd: nativeData?.gas_cost_usd || 0,
+        avaxBurnedUsd: nativeData?.avax_burned_usd || 0,
+        uniqueSenders: parseInt(nativeData?.unique_senders) || 0,
+      });
       protocolCategory.set('Native Transfers', 'native');
     }
 
@@ -287,6 +363,9 @@ export async function GET(request: Request) {
       txCount: parseInt(prevNativeData?.tx_count) || 0,
       gasUsed: parseInt(prevNativeData?.total_gas) || 0,
       avaxBurned: prevNativeData?.avax_burned || 0,
+      gasCostUsd: prevNativeData?.gas_cost_usd || 0,
+      avaxBurnedUsd: prevNativeData?.avax_burned_usd || 0,
+      uniqueSenders: parseInt(prevNativeData?.unique_senders) || 0,
     });
 
     // Add contract deploys
@@ -295,7 +374,14 @@ export async function GET(request: Request) {
     const deployGas = parseInt(deployData?.total_gas) || 0;
     const deployBurned = deployData?.avax_burned || 0;
     if (deployTxCount > 0) {
-      currentProtocolStats.set('Contract Deploys', { txCount: deployTxCount, gasUsed: deployGas, avaxBurned: deployBurned });
+      currentProtocolStats.set('Contract Deploys', {
+        txCount: deployTxCount,
+        gasUsed: deployGas,
+        avaxBurned: deployBurned,
+        gasCostUsd: deployData?.gas_cost_usd || 0,
+        avaxBurnedUsd: deployData?.avax_burned_usd || 0,
+        uniqueSenders: parseInt(deployData?.unique_senders) || 0,
+      });
       protocolCategory.set('Contract Deploys', 'infrastructure');
     }
 
@@ -304,6 +390,9 @@ export async function GET(request: Request) {
       txCount: parseInt(prevDeployData?.tx_count) || 0,
       gasUsed: parseInt(prevDeployData?.total_gas) || 0,
       avaxBurned: prevDeployData?.avax_burned || 0,
+      gasCostUsd: prevDeployData?.gas_cost_usd || 0,
+      avaxBurnedUsd: prevDeployData?.avax_burned_usd || 0,
+      uniqueSenders: parseInt(prevDeployData?.unique_senders) || 0,
     });
 
     // Calculate tagged totals
@@ -333,6 +422,9 @@ export async function GET(request: Request) {
           txCount: stats.txCount,
           gasUsed: stats.gasUsed,
           avaxBurned: stats.avaxBurned,
+          gasCostUsd: stats.gasCostUsd,
+          avaxBurnedUsd: stats.avaxBurnedUsd,
+          uniqueSenders: stats.uniqueSenders,
           gasShare: totalChainGas > 0 ? (stats.gasUsed / totalChainGas) * 100 : 0,
           delta,
         };
@@ -341,23 +433,35 @@ export async function GET(request: Request) {
       .sort((a, b) => b.gasUsed - a.gasUsed);
 
     // Build category breakdown with deltas
-    const categoryMap = new Map<string, { current: { txCount: number; gasUsed: number; avaxBurned: number }; prev: { gasUsed: number } }>();
+    const categoryMap = new Map<string, {
+      current: { txCount: number; gasUsed: number; avaxBurned: number; gasCostUsd: number; avaxBurnedUsd: number; uniqueSenders: number };
+      prev: { gasUsed: number };
+    }>();
 
     for (const [protocol, stats] of currentProtocolStats) {
       const cat = protocolCategory.get(protocol) || 'other';
       if (!categoryMap.has(cat)) {
-        categoryMap.set(cat, { current: { txCount: 0, gasUsed: 0, avaxBurned: 0 }, prev: { gasUsed: 0 } });
+        categoryMap.set(cat, {
+          current: { txCount: 0, gasUsed: 0, avaxBurned: 0, gasCostUsd: 0, avaxBurnedUsd: 0, uniqueSenders: 0 },
+          prev: { gasUsed: 0 },
+        });
       }
       const entry = categoryMap.get(cat)!;
       entry.current.txCount += stats.txCount;
       entry.current.gasUsed += stats.gasUsed;
       entry.current.avaxBurned += stats.avaxBurned;
+      entry.current.gasCostUsd += stats.gasCostUsd;
+      entry.current.avaxBurnedUsd += stats.avaxBurnedUsd;
+      entry.current.uniqueSenders += stats.uniqueSenders;
     }
 
     for (const [protocol, stats] of prevProtocolStats) {
       const cat = protocolCategory.get(protocol) || 'other';
       if (!categoryMap.has(cat)) {
-        categoryMap.set(cat, { current: { txCount: 0, gasUsed: 0, avaxBurned: 0 }, prev: { gasUsed: 0 } });
+        categoryMap.set(cat, {
+          current: { txCount: 0, gasUsed: 0, avaxBurned: 0, gasCostUsd: 0, avaxBurnedUsd: 0, uniqueSenders: 0 },
+          prev: { gasUsed: 0 },
+        });
       }
       categoryMap.get(cat)!.prev.gasUsed += stats.gasUsed;
     }
@@ -373,6 +477,9 @@ export async function GET(request: Request) {
           txCount: data.current.txCount,
           gasUsed: data.current.gasUsed,
           avaxBurned: data.current.avaxBurned,
+          gasCostUsd: data.current.gasCostUsd,
+          avaxBurnedUsd: data.current.avaxBurnedUsd,
+          uniqueSenders: data.current.uniqueSenders,
           gasShare: totalChainGas > 0 ? (data.current.gasUsed / totalChainGas) * 100 : 0,
           delta,
         };
@@ -386,6 +493,7 @@ export async function GET(request: Request) {
       txCount: parseInt(row.tx_count) || 0,
       gasUsed: parseInt(row.total_gas) || 0,
       avaxBurned: row.avax_burned || 0,
+      avaxBurnedUsd: row.avax_burned_usd || 0,
     }));
 
     const watermark = watermarkResult.data[0];

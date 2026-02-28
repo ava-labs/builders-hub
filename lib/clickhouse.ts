@@ -54,6 +54,38 @@ export function buildAddressFilter(addresses: string[], column: string = 'to'): 
   return `${column} IN (${unhexList})`;
 }
 
+// Build swap_prices CTE for on-chain AVAX/USD price derivation
+// Hourly median from Trader Joe V1 + Pangolin USDC/WAVAX Swap events
+export function buildSwapPricesCTE(timeFilter: string): string {
+  return `swap_prices AS (
+    SELECT
+      toStartOfHour(block_time) as price_hour,
+      median(
+        toFloat64(
+          reinterpretAsUInt256(reverse(substring(data, 33, 32)))
+          + reinterpretAsUInt256(reverse(substring(data, 97, 32)))
+        ) * 1e12
+        / toFloat64(
+          reinterpretAsUInt256(reverse(substring(data, 1, 32)))
+          + reinterpretAsUInt256(reverse(substring(data, 65, 32)))
+        )
+      ) as price_usd
+    FROM raw_logs
+    WHERE chain_id = ${C_CHAIN_ID}
+      AND topic0 = unhex('d78ad95fa46c994b6551d0da85fc275fe613ce37657fb8d5e3d130840159d822')
+      AND address IN (
+        unhex('f4003f4efbe8691b60249e6afbd307abe7758adb'),
+        unhex('0e0100ab771e9288e0aa97e11557e6654c3a9665')
+      )
+      AND length(data) >= 128
+      AND (reinterpretAsUInt256(reverse(substring(data, 1, 32)))
+          + reinterpretAsUInt256(reverse(substring(data, 65, 32)))) > 0
+      ${timeFilter}
+    GROUP BY price_hour
+    HAVING price_usd > 0 AND price_usd < 100000
+  )`;
+}
+
 // Protocol stats from transactions
 export interface ProtocolStats {
   txCount: number;
