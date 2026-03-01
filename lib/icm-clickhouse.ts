@@ -1,6 +1,13 @@
 import l1ChainsData from "@/constants/l1-chains.json";
 import { ICMDataPoint } from "@/types/stats";
 import bs58 from "bs58";
+import { createPublicClient, http } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
+import { avalanche } from "viem/chains";
+import { x402Client } from "@x402/core/client";
+import { wrapFetchWithPayment } from "@x402/fetch";
+import { registerExactEvmScheme } from "@x402/evm/exact/client";
+import { toClientEvmSigner } from "@x402/evm";
 
 type L1ChainEntry = {
   chainId: string;
@@ -11,12 +18,37 @@ type L1ChainEntry = {
   blockchainId?: string;
 };
 
+// Clickhouse x402 proxy server
+const CLICKHOUSE_PROXY_URL = process.env.CLICKHOUSE_PROXY_URL || "";
+
+// Fallback: direct ClickHouse access (no x402 payment)
 const CLICKHOUSE_URL = process.env.CLICKHOUSE_URL || "";
 const CLICKHOUSE_USER = process.env.CLICKHOUSE_USER || "readonly";
 const CLICKHOUSE_PASSWORD = process.env.CLICKHOUSE_PASSWORD || "";
 const CLICKHOUSE_DATABASE = process.env.CLICKHOUSE_DATABASE || "default";
 
-async function queryClickHouse<T = Record<string, unknown>>(sql: string): Promise<T[]> {
+// x402 payer wallet — signs USDC transfer authorizations on Avalanche C-Chain
+const X402_PAYER_PRIVATE_KEY = process.env.X402_PAYER_PRIVATE_KEY || "";
+
+function createX402Fetch() {
+  if (!CLICKHOUSE_PROXY_URL || !X402_PAYER_PRIVATE_KEY) return null;
+
+  try {
+    const account = privateKeyToAccount(X402_PAYER_PRIVATE_KEY as `0x${string}`);
+    const publicClient = createPublicClient({ chain: avalanche, transport: http() });
+    const signer = toClientEvmSigner(account as Parameters<typeof toClientEvmSigner>[0], publicClient);
+    const client = new x402Client();
+    registerExactEvmScheme(client, { signer });
+    return wrapFetchWithPayment(fetch, client);
+  } catch (err) {
+    console.warn("[icm-clickhouse] Failed to create x402 fetch client:", err);
+    return null;
+  }
+}
+
+const x402Fetch = createX402Fetch();
+
+async function queryClickHouseDirect<T = Record<string, unknown>>(sql: string): Promise<T[]> {
   if (!CLICKHOUSE_URL) {
     console.warn("[icm-clickhouse] CLICKHOUSE_URL not set – returning empty results");
     return [];
@@ -44,6 +76,39 @@ async function queryClickHouse<T = Record<string, unknown>>(sql: string): Promis
   if (!text) return [];
 
   return text.split("\n").map((line) => JSON.parse(line) as T);
+}
+
+async function queryClickHouseX402<T = Record<string, unknown>>(sql: string): Promise<T[]> {
+  const proxyUrl = CLICKHOUSE_PROXY_URL.endsWith("/query") ? CLICKHOUSE_PROXY_URL : CLICKHOUSE_PROXY_URL.replace(/\/$/, "") + "/query";
+
+  const response = await x402Fetch!(proxyUrl, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain" },
+    body: sql,
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`ClickHouse x402 proxy query failed (${response.status}): ${text.slice(0, 300)}`);
+  }
+
+  const text = (await response.text()).trim();
+  if (!text) return [];
+
+  return text.split("\n").map((line) => JSON.parse(line) as T);
+}
+
+async function queryClickHouse<T = Record<string, unknown>>(sql: string): Promise<T[]> {
+  // Try x402 proxy first, fall back to direct ClickHouse on failure
+  if (CLICKHOUSE_PROXY_URL && x402Fetch) {
+    try {
+      return await queryClickHouseX402<T>(sql);
+    } catch (err) {
+      console.warn("[icm-clickhouse] x402 proxy failed, falling back to direct ClickHouse:", err);
+    }
+  }
+
+  return queryClickHouseDirect<T>(sql);
 }
 
 // ReceiveCrossChainMessage(bytes32,bytes32,address,address,(uint256,address,bytes32,address,uint256,address[],(uint256,address)[],bytes))
