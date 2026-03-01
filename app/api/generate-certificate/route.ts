@@ -2,8 +2,25 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PDFDocument } from 'pdf-lib';
 import { getServerSession } from 'next-auth';
 import { AuthOptions } from '@/lib/auth/authOptions';
-import { triggerCertificateWebhook } from '@/server/services/hubspotCodebaseCertificateWebhook';
+import { triggerCertificateWebhook } from '@/server/services/hubspotCertificateWebhook';
+import { getCompletedCourseSlugs } from '@/server/services/userBadge';
 import { getCourseConfig } from '@/content/courses';
+
+async function fetchWithRetry(
+  url: string,
+  maxRetries = 3,
+  delayMs = 500
+): Promise<Response> {
+  let lastResponse: Response | undefined;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    lastResponse = await fetch(url);
+    if (lastResponse.ok || lastResponse.status < 500) return lastResponse;
+    if (attempt < maxRetries) {
+      await new Promise((resolve) => setTimeout(resolve, delayMs * attempt));
+    }
+  }
+  return lastResponse!;
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -42,7 +59,7 @@ export async function POST(req: NextRequest) {
     const userName = session.user.name || session.user.email || 'BuilderHub User';
     const { name: courseName, template: templateUrl } = course;
 
-    const templateResponse = await fetch(templateUrl);
+    const templateResponse = await fetchWithRetry(templateUrl);
     if (!templateResponse.ok) {
       throw new Error(`Failed to fetch template: ${templateUrl}`);
     }
@@ -95,13 +112,26 @@ export async function POST(req: NextRequest) {
     
     // Trigger HubSpot webhook for certificate completion
     // At this point we know email exists due to the check above
-    await triggerCertificateWebhook(
+    // Include the current courseId since badge assignment may not have persisted yet
+    const completedBefore = await getCompletedCourseSlugs(session.user.id);
+    const isNewCompletion = !completedBefore.includes(courseId);
+    const completedCourses = [...completedBefore];
+    if (isNewCompletion) {
+      completedCourses.push(courseId);
+    }
+
+    // Fire-and-forget: don't block PDF delivery on webhook
+    // Only pass completedCourses for graduation check on new completions
+    triggerCertificateWebhook(
       session.user.id,
       session.user.email!,
       userName,
-      courseId
+      courseId,
+      isNewCompletion ? completedCourses : undefined
+    ).catch((err) =>
+      console.error('HubSpot webhook failed (non-blocking):', err)
     );
-    
+
     return new NextResponse(Buffer.from(pdfBytes), {
       status: 200,
       headers: {
