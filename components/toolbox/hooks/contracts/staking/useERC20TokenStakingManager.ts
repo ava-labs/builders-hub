@@ -34,7 +34,7 @@ export interface ERC20TokenStakingManagerHook {
 
   // Write functions - Delegator operations
   initiateDelegatorRegistration: (validationID: string, delegationAmount: bigint, rewardRecipient: string) => Promise<string>;
-  completeDelegatorRegistration: (messageIndex: number, delegationID: string, accessList?: any[]) => Promise<string>;
+  completeDelegatorRegistration: (delegationID: string, messageIndex: number, accessList?: any[]) => Promise<string>;
   initiateDelegatorRemoval: (delegationID: string) => Promise<string>;
   completeDelegatorRemoval: (delegationID: string, messageIndex: number, accessList?: any[]) => Promise<string>;
   forceInitiateDelegatorRemoval: (delegationID: string, includeUptime: boolean, messageIndex: number) => Promise<string>;
@@ -305,7 +305,7 @@ export function useERC20TokenStakingManager(
     return await writePromise;
   };
 
-  const completeDelegatorRegistration = async (messageIndex: number, delegationID: string, accessList?: any[]): Promise<string> => {
+  const completeDelegatorRegistration = async (delegationID: string, messageIndex: number, accessList?: any[]): Promise<string> => {
     if (!walletClient || !contractAddress || !walletEVMAddress || !viemChain) {
       throw new Error('Wallet not connected or contract not ready');
     }
