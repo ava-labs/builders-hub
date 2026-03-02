@@ -248,8 +248,8 @@ const CompletePChainWeightUpdate: React.FC<CompletePChainWeightUpdateProps> = ({
             let hash: string;
             if (isDelegation) {
                 hash = tokenType === 'native'
-                    ? await nativeStakingManager.completeDelegatorRegistration(0, delegationIDState as `0x${string}`, accessList)
-                    : await erc20StakingManager.completeDelegatorRegistration(0, delegationIDState as `0x${string}`, accessList);
+                    ? await nativeStakingManager.completeDelegatorRegistration(delegationIDState as `0x${string}`, 0, accessList)
+                    : await erc20StakingManager.completeDelegatorRegistration(delegationIDState as `0x${string}`, 0, accessList);
             } else {
                 // ChangeWeight
                 hash = useMultisig

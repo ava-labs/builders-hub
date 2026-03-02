@@ -44,7 +44,7 @@ export interface NativeTokenStakingManagerHook {
 
   // Write functions - Delegator operations
   initiateDelegatorRegistration: (validationID: string, rewardRecipient: string, delegationAmount: bigint) => Promise<string>;
-  completeDelegatorRegistration: (messageIndex: number, delegationID: string, accessList?: any[]) => Promise<string>;
+  completeDelegatorRegistration: (delegationID: string, messageIndex: number, accessList?: any[]) => Promise<string>;
   initiateDelegatorRemoval: (delegationID: string) => Promise<string>;
   completeDelegatorRemoval: (delegationID: string, messageIndex: number, accessList?: any[]) => Promise<string>;
   forceInitiateDelegatorRemoval: (delegationID: string, includeUptime: boolean, messageIndex: number) => Promise<string>;
@@ -303,7 +303,7 @@ export function useNativeTokenStakingManager(
     return await writePromise;
   };
 
-  const completeDelegatorRegistration = async (messageIndex: number, delegationID: string, accessList?: any[]): Promise<string> => {
+  const completeDelegatorRegistration = async (delegationID: string, messageIndex: number, accessList?: any[]): Promise<string> => {
     if (!walletClient || !contractAddress || !walletEVMAddress || !viemChain) {
       throw new Error('Wallet not connected or contract not ready');
     }
@@ -312,7 +312,7 @@ export function useNativeTokenStakingManager(
       address: contractAddress as `0x${string}`,
       abi: contractAbi,
       functionName: 'completeDelegatorRegistration',
-      args: [messageIndex, delegationID],
+      args: [delegationID, messageIndex],
       chain: viemChain,
       account: walletEVMAddress as `0x${string}`,
       gas: BigInt(1_000_000),
