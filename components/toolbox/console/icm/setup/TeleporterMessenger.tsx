@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { formatEther, parseEther } from 'viem';
+import { useState, useEffect, useMemo } from "react";
+import { formatEther, parseEther, createPublicClient, http } from 'viem';
 import { useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 import TeleporterMessengerDeploymentTransaction from '@/contracts/icm-contracts-releases/v1.0.0/TeleporterMessenger_Deployment_Transaction_v1.0.0.txt.json';
@@ -45,9 +45,19 @@ const metadata: ConsoleToolMetadata = {
 
 function TeleporterMessenger({ onSuccess }: BaseConsoleToolProps) {
   const [criticalError, setCriticalError] = useState<Error | null>(null);
-  const { publicClient, walletEVMAddress } = useWalletStore();
+  const { walletEVMAddress } = useWalletStore();
   const { walletClient } = useConnectedWallet();
   const viemChain = useViemChainStore();
+
+  // Create a chain-specific public client to avoid the global publicClient
+  // which is hardcoded to Fuji for non-Core wallets (Rabby, MetaMask, etc.)
+  const chainPublicClient = useMemo(() => {
+    if (!viemChain) return null;
+    return createPublicClient({
+      chain: viemChain,
+      transport: http(viemChain.rpcUrls.default.http[0]),
+    });
+  }, [viemChain]);
   const [isDeploying, setIsDeploying] = useState(false);
   const [deployerBalance, setDeployerBalance] = useState(BigInt(0));
   const [isCheckingBalance, setIsCheckingBalance] = useState(true);
@@ -65,15 +75,16 @@ function TeleporterMessenger({ onSuccess }: BaseConsoleToolProps) {
   const expectedContractAddress = TeleporterMessengerAddress.content;
 
   const checkDeployerBalance = async () => {
+    if (!chainPublicClient) return;
     setIsCheckingBalance(true);
     try {
-      const balance = await publicClient.getBalance({
+      const balance = await chainPublicClient.getBalance({
         address: deployerAddress,
       });
 
       setDeployerBalance(balance);
 
-      const code = await publicClient.getBytecode({
+      const code = await chainPublicClient.getBytecode({
         address: expectedContractAddress as `0x${string}`,
       });
 
@@ -87,9 +98,10 @@ function TeleporterMessenger({ onSuccess }: BaseConsoleToolProps) {
 
   useEffect(() => {
     checkDeployerBalance();
-  }, []);
+  }, [chainPublicClient]);
 
   const handleTopUp = async () => {
+    if (!chainPublicClient) return;
     setIsSending(true);
     try {
       const hash = await walletClient.sendTransaction({
@@ -99,7 +111,7 @@ function TeleporterMessenger({ onSuccess }: BaseConsoleToolProps) {
         account: walletEVMAddress as `0x${string}`,
       });
 
-      await publicClient.waitForTransactionReceipt({ hash });
+      await chainPublicClient.waitForTransactionReceipt({ hash });
       await checkDeployerBalance();
     } catch (error) {
       setCriticalError(error instanceof Error ? error : new Error(String(error)));
@@ -109,6 +121,7 @@ function TeleporterMessenger({ onSuccess }: BaseConsoleToolProps) {
   };
 
   const handleDeploy = async () => {
+    if (!chainPublicClient) return;
     setIsDeploying(true);
     try {
       const hash = await walletClient.sendRawTransaction({
@@ -117,7 +130,7 @@ function TeleporterMessenger({ onSuccess }: BaseConsoleToolProps) {
 
       setTxHash(hash);
 
-      await publicClient.waitForTransactionReceipt({ hash });
+      await chainPublicClient.waitForTransactionReceipt({ hash });
       setIsDeployed(true);
       onSuccess?.();
 

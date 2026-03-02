@@ -3,7 +3,8 @@
 import { useSelectedL1 } from "@/components/toolbox/stores/l1ListStore";
 import { useToolboxStore, useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { createPublicClient, http } from 'viem';
 import TeleporterRegistryBytecode from '@/contracts/icm-contracts-releases/v1.0.0/TeleporterRegistry_Bytecode_v1.0.0.txt.json';
 import TeleporterMessengerAddress from '@/contracts/icm-contracts-releases/v1.0.0/TeleporterMessenger_Contract_Address_v1.0.0.txt.json';
 import TeleporterRegistryManualyCompiled from '@/contracts/icm-contracts/compiled/TeleporterRegistry.json';
@@ -45,10 +46,20 @@ const metadata: ConsoleToolMetadata = {
 function TeleporterRegistry({ onSuccess }: BaseConsoleToolProps) {
   const [criticalError, setCriticalError] = useState<Error | null>(null);
   const { setTeleporterRegistryAddress, teleporterRegistryAddress } = useToolboxStore();
-  const { publicClient, walletEVMAddress } = useWalletStore();
+  const { walletEVMAddress } = useWalletStore();
   const { walletClient } = useConnectedWallet();
   const [isDeploying, setIsDeploying] = useState(false);
   const viemChain = useViemChainStore();
+
+  // Create a chain-specific public client to avoid the global publicClient
+  // which is hardcoded to Fuji for non-Core wallets (Rabby, MetaMask, etc.)
+  const chainPublicClient = useMemo(() => {
+    if (!viemChain) return null;
+    return createPublicClient({
+      chain: viemChain,
+      transport: http(viemChain.rpcUrls.default.http[0]),
+    });
+  }, [viemChain]);
   const selectedL1 = useSelectedL1()();
   const { notify } = useConsoleNotifications();
   const [copied, setCopied] = useState(false);
@@ -60,6 +71,7 @@ function TeleporterRegistry({ onSuccess }: BaseConsoleToolProps) {
   const messengerAddress = TeleporterMessengerAddress.content.trim();
 
   async function handleDeploy() {
+    if (!chainPublicClient) return;
     setIsDeploying(true);
     setTeleporterRegistryAddress("");
     try {
@@ -78,7 +90,7 @@ function TeleporterRegistry({ onSuccess }: BaseConsoleToolProps) {
       }, deployPromise, viemChain ?? undefined);
 
       const hash = await deployPromise;
-      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      const receipt = await chainPublicClient.waitForTransactionReceipt({ hash });
 
       if (!receipt.contractAddress) {
         throw new Error('No contract address in receipt');
