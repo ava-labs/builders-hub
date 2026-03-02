@@ -203,7 +203,7 @@ export function AddChainModal() {
             };
 
             await walletClient.addChain({
-                chain: { ...viemChain, testnet: chainData.isTestnet }
+                chain: { ...viemChain, isTestnet: chainData.isTestnet }
             });
 
             await walletClient.switchChain({
