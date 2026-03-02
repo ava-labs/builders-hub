@@ -2,10 +2,9 @@ import { withAuth } from "@/lib/protectedRoute";
 import { GetProjectsByUserId } from "@/server/services/memberProject";
 import { NextResponse } from "next/server";
 
-export const GET = withAuth(async (_, context: any) => {
+export const GET = withAuth(async (_, _context: any, session: any) => {
     try {
-        const { id } = await context.params;
-        const projects = await GetProjectsByUserId(id);
+        const projects = await GetProjectsByUserId(session.user.id);
         return NextResponse.json(projects);
     } catch (error: any) {
         console.error("Error getting projects:", error);
