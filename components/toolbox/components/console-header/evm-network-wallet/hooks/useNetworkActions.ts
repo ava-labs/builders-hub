@@ -70,6 +70,7 @@ export function useNetworkActions() {
                     },
                     rpcUrls: [network.rpcUrl],
                     blockExplorerUrls: network.explorerUrl ? [network.explorerUrl] : undefined,
+                    isTestnet: network.isTestnet,
                   }],
                 })
               } catch (addError) {
