@@ -325,6 +325,8 @@ const PROTOCOL_OTHERS_THRESHOLD = 0.03; // 3% of category gas
 interface Insight {
   title: string;
   description: string;
+  expandedDescription: string;
+  category?: string;
   delta: number;
   deltaDirection: "up" | "down" | "neutral";
   icon: "trending" | "fire" | "zap" | "info";
@@ -350,11 +352,14 @@ function generateInsights(data: ChainStatsData): Insight[] {
       .sort((a, b) => b.delta - a.delta);
     const driver = catProtos[0];
 
+    const topDrivers = catProtos.slice(0, 3);
     insights.push({
       title: `${catLabel} Surging`,
       description: driver
         ? `Led by ${driver.protocol} with +${driver.delta.toFixed(1)}% gas increase`
         : `Category seeing strong growth in gas usage`,
+      expandedDescription: `${catLabel} activity on C-Chain saw strong growth this period with gas consumption up ${top.delta.toFixed(1)}%.${driver ? ` ${driver.protocol} was the primary driver, increasing ${driver.delta.toFixed(1)}%.` : ""} The category represents ${top.gasShare.toFixed(1)}% of total chain gas with ${formatNumber(top.txCount)} transactions across ${formatNumber(top.uniqueSenders)} unique senders, burning ${top.avaxBurned.toFixed(2)} AVAX in fees.${topDrivers.length > 1 ? ` Other movers: ${topDrivers.slice(1).map((p) => `${p.protocol} (+${p.delta.toFixed(1)}%)`).join(", ")}.` : ""}`,
+      category: top.category,
       delta: top.delta,
       deltaDirection: "up",
       icon: "trending",
@@ -370,6 +375,8 @@ function generateInsights(data: ChainStatsData): Insight[] {
     insights.push({
       title: `${catLabel} Declining`,
       description: `Largest category decline this period`,
+      expandedDescription: `${catLabel} saw the steepest decline this period, with gas usage dropping ${Math.abs(bottom.delta).toFixed(1)}%. The category accounts for ${bottom.gasShare.toFixed(1)}% of total chain gas, processing ${formatNumber(bottom.txCount)} transactions from ${formatNumber(bottom.uniqueSenders)} unique senders. This decline burned ${bottom.avaxBurned.toFixed(2)} AVAX in gas fees, down from the previous period.`,
+      category: bottom.category,
       delta: bottom.delta,
       deltaDirection: "down",
       icon: "trending",
@@ -384,12 +391,15 @@ function generateInsights(data: ChainStatsData): Insight[] {
     );
     const biggest = sorted.find((p) => !coveredProtocols.has(p.protocol));
     if (biggest) {
+      const bigCatLabel = CATEGORY_LABELS[biggest.category] || biggest.category;
       insights.push({
         title: `${biggest.protocol}`,
         description:
           biggest.delta >= 0
             ? `Biggest gainer among all protocols`
             : `Largest protocol decline this period`,
+        expandedDescription: `${biggest.protocol} (${bigCatLabel}) showed the most significant movement this period with a ${Math.abs(biggest.delta).toFixed(1)}% ${biggest.delta >= 0 ? "increase" : "decrease"} in gas consumption. It processed ${formatNumber(biggest.txCount)} transactions from ${formatNumber(biggest.uniqueSenders)} unique senders, burning ${biggest.avaxBurned.toFixed(2)} AVAX in gas fees and accounting for ${biggest.gasShare.toFixed(2)}% of total chain gas.`,
+        category: biggest.category,
         delta: biggest.delta,
         deltaDirection: biggest.delta >= 0 ? "up" : "down",
         icon: "zap",
@@ -404,6 +414,7 @@ function generateInsights(data: ChainStatsData): Insight[] {
     insights.push({
       title: "Classification Coverage",
       description: `${(100 - pct).toFixed(1)}% of gas remains unclassified`,
+      expandedDescription: `Currently ${pct.toFixed(1)}% of C-Chain gas is classified across ${data.categoryBreakdown.length} categories. The remaining ${(100 - pct).toFixed(1)}% comes from contracts not yet tagged in the registry. Top categories: ${data.categoryBreakdown.slice(0, 3).map((c) => `${CATEGORY_LABELS[c.category] || c.category} (${c.gasShare.toFixed(1)}%)`).join(", ")}. Expanding coverage helps surface emerging protocols and usage patterns.`,
       delta: pct,
       deltaDirection: "neutral",
       icon: "info",
@@ -1170,75 +1181,103 @@ export default function GasTreemap() {
 
       {/* Enhanced Insights Panel */}
       {insights.length > 0 && (
-        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
+        <div className="bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4">
           <div className="flex items-center gap-2 mb-4">
-            <BarChart3 className="w-4 h-4 text-zinc-400" />
-            <h3 className="text-sm font-semibold text-zinc-200">Market Insights</h3>
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-500">
+            <BarChart3 className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
+            <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Market Insights</h3>
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-200 dark:bg-zinc-800 text-zinc-500">
               {TIME_RANGES[timeRange].label} period
             </span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-            {insights.map((insight, i) => (
-              <div
-                key={i}
-                className={`relative overflow-hidden rounded-lg border p-3 transition-colors ${
-                  insight.deltaDirection === "up"
-                    ? "bg-emerald-500/5 border-emerald-500/20 hover:border-emerald-500/40"
-                    : insight.deltaDirection === "down"
-                      ? "bg-red-500/5 border-red-500/20 hover:border-red-500/40"
-                      : "bg-zinc-800/50 border-zinc-700/50 hover:border-zinc-600"
-                }`}
-              >
-                {/* Icon */}
-                <div className={`absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center ${
-                  insight.deltaDirection === "up"
-                    ? "bg-emerald-500/10"
-                    : insight.deltaDirection === "down"
-                      ? "bg-red-500/10"
-                      : "bg-zinc-700/50"
-                }`}>
-                  {insight.icon === "trending" && (
-                    insight.deltaDirection === "up"
-                      ? <TrendingUp className="w-4 h-4 text-emerald-400" />
-                      : <TrendingDown className="w-4 h-4 text-red-400" />
-                  )}
-                  {insight.icon === "zap" && <Zap className="w-4 h-4 text-amber-400" />}
-                  {insight.icon === "fire" && <Flame className="w-4 h-4 text-orange-400" />}
-                  {insight.icon === "info" && <Info className="w-4 h-4 text-zinc-400" />}
-                </div>
+            {insights.map((insight, i) => {
+              const isExpanded =
+                !!hovered &&
+                !!insight.category &&
+                hovered.category === insight.category;
 
-                {/* Content */}
-                <div className="pr-10">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-sm font-semibold text-zinc-100 truncate">
-                      {insight.title}
-                    </span>
+              return (
+                <div
+                  key={i}
+                  className={`relative overflow-hidden rounded-lg border p-3 transition-all duration-300 ${
+                    isExpanded ? "scale-[1.03] shadow-lg z-10" : ""
+                  } ${
+                    insight.deltaDirection === "up"
+                      ? isExpanded
+                        ? "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-400 dark:border-emerald-500/50 shadow-emerald-200/50 dark:shadow-emerald-500/20"
+                        : "bg-emerald-50/50 dark:bg-emerald-500/5 border-emerald-200 dark:border-emerald-500/20 hover:border-emerald-300 dark:hover:border-emerald-500/40"
+                      : insight.deltaDirection === "down"
+                        ? isExpanded
+                          ? "bg-red-50 dark:bg-red-500/10 border-red-400 dark:border-red-500/50 shadow-red-200/50 dark:shadow-red-500/20"
+                          : "bg-red-50/50 dark:bg-red-500/5 border-red-200 dark:border-red-500/20 hover:border-red-300 dark:hover:border-red-500/40"
+                        : isExpanded
+                          ? "bg-zinc-100 dark:bg-zinc-800 border-zinc-400 dark:border-zinc-600"
+                          : "bg-zinc-100/50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700/50 hover:border-zinc-300 dark:hover:border-zinc-600"
+                  }`}
+                >
+                  {/* Icon */}
+                  <div className={`absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${
+                    isExpanded ? "scale-110" : ""
+                  } ${
+                    insight.deltaDirection === "up"
+                      ? "bg-emerald-100 dark:bg-emerald-500/10"
+                      : insight.deltaDirection === "down"
+                        ? "bg-red-100 dark:bg-red-500/10"
+                        : "bg-zinc-200 dark:bg-zinc-700/50"
+                  }`}>
+                    {insight.icon === "trending" && (
+                      insight.deltaDirection === "up"
+                        ? <TrendingUp className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                        : <TrendingDown className="w-4 h-4 text-red-600 dark:text-red-400" />
+                    )}
+                    {insight.icon === "zap" && <Zap className="w-4 h-4 text-amber-600 dark:text-amber-400" />}
+                    {insight.icon === "fire" && <Flame className="w-4 h-4 text-orange-600 dark:text-orange-400" />}
+                    {insight.icon === "info" && <Info className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />}
                   </div>
 
-                  {insight.deltaDirection !== "neutral" && (
-                    <div className={`text-lg font-bold mb-1 ${
-                      insight.deltaDirection === "up" ? "text-emerald-400" : "text-red-400"
-                    }`}>
-                      {insight.delta >= 0 ? "+" : ""}{insight.delta.toFixed(1)}%
-                    </div>
-                  )}
-
-                  <p className="text-xs text-zinc-400 leading-relaxed">
-                    {insight.description}
-                  </p>
-
-                  {insight.metric && (
-                    <div className="mt-2 pt-2 border-t border-zinc-700/30">
-                      <span className="text-[10px] uppercase text-zinc-500">
-                        {insight.metric}
+                  {/* Content */}
+                  <div className="pr-10">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 truncate">
+                        {insight.title}
                       </span>
                     </div>
-                  )}
+
+                    {insight.deltaDirection !== "neutral" && (
+                      <div className={`text-lg font-bold mb-1 ${
+                        insight.deltaDirection === "up" ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
+                      }`}>
+                        {insight.delta >= 0 ? "+" : ""}{insight.delta.toFixed(1)}%
+                      </div>
+                    )}
+
+                    <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
+                      {insight.description}
+                    </p>
+
+                    {/* Expanded description — animated via max-height */}
+                    <div
+                      className={`overflow-hidden transition-all duration-300 ease-out ${
+                        isExpanded ? "max-h-[200px] opacity-100 mt-2" : "max-h-0 opacity-0"
+                      }`}
+                    >
+                      <p className="text-xs text-zinc-700 dark:text-zinc-300 leading-relaxed pt-2 border-t border-zinc-300/50 dark:border-zinc-700/50">
+                        {insight.expandedDescription}
+                      </p>
+                    </div>
+
+                    {insight.metric && (
+                      <div className="mt-2 pt-2 border-t border-zinc-200 dark:border-zinc-700/30">
+                        <span className="text-[10px] uppercase text-zinc-500">
+                          {insight.metric}
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
