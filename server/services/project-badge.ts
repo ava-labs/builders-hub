@@ -65,21 +65,17 @@ export async function assignBadgeProject(
   if (!userProject) {
     return badgeToReturn;
   }
-  // Validate that the project is a winner before assigning badges
-  if (!userProject.is_winner) {
-    return {
-      success: false,
-      message: "Badges can only be assigned to winning projects",
-      badge_id: "",
-      user_id: "",
-      badges: [],
-    };
-  }
 
   const userProjectMembers = userProject.members;
 
   try {
     const result = await prisma.$transaction(async (tx) => {
+      // Set the project as winner atomically with badge assignment
+      await tx.project.update({
+        where: { id: body.projectId! },
+        data: { is_winner: true },
+      });
+
       const awardedBadges: BadgeData[] = [];
       const errors: string[] = [];
 

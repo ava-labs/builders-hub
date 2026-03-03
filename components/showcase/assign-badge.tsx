@@ -8,6 +8,7 @@ import { BadgeCategory } from "@/server/services/badge";
 import { useToast } from "@/hooks/use-toast";
 import { LoadingButton } from "../ui/loading-button";
 import { Toaster } from "../ui/toaster";
+import { useRouter } from "next/navigation";
 type showAssignBadgeProps = {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
@@ -21,6 +22,7 @@ export const AssignBadge = ({
   const [optionsWithLabel, setOptionsWithLabel] = useState<
     { label: string; value: string }[]
   >([]);
+  const router = useRouter();
   const { toast } = useToast();
   const [selectedBadges, setSelectedBadges] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -35,7 +37,11 @@ export const AssignBadge = ({
     const fetchBadges = async () => {
       const response = await axios.get("/api/badge/get-all");
       const filteredBadges = response.data.filter(
-        (badge: Badge) => badge.category == "hackathon"
+        (badge: Badge) =>
+          badge.category == "hackathon" &&
+          badge.requirements?.some(
+            (req: any) => req.hackathon == project.hackaton_id
+          )
       );
 
       // Filter out badges that are already assigned
@@ -72,6 +78,8 @@ export const AssignBadge = ({
         description: "The badges have been assigned to the project",
         duration: 3000,
       });
+      handleClose();
+      router.refresh();
     } else {
       toast({
         title: "Failed to assign badges",
@@ -79,8 +87,8 @@ export const AssignBadge = ({
         variant: "destructive",
         duration: 3000,
       });
+      handleClose();
     }
-    handleClose();
   };
 
   const multiSelectCard = (

@@ -8,67 +8,26 @@ import {
 } from "../ui/dropdown-menu";
 import { Button } from "../ui/button";
 import { EllipsisVertical } from "lucide-react";
-import {
-  AlertDialog,
-  AlertDialogFooter,
-  AlertDialogDescription,
-  AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogCancel,
-  AlertDialogAction,
-} from "../ui/alert-dialog";
-import axios from "axios";
-import { useToast } from "@/hooks/use-toast";
 import { Toaster } from "../ui/toaster";
 import { AssignBadge } from "./assign-badge";
 import { useRouter } from "next/navigation";
 
 export const ProjectOptions = ({
   project,
-  confirmOpen,
-  setConfirmOpen,
   isAssignBadgeOpen,
   setIsAssignBadgeOpen,
   isFromProfile = false,
 }: Props & {
-  confirmOpen: boolean;
-  setConfirmOpen: React.Dispatch<React.SetStateAction<boolean>>;
   isAssignBadgeOpen: boolean;
   setIsAssignBadgeOpen: React.Dispatch<React.SetStateAction<boolean>>;
   isFromProfile?: boolean;
 }) => {
   const router = useRouter();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const { toast } = useToast();
-  const handleSetWinner = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const response = await axios.put(`/api/project/set-winner`, {
-      project_id: project.id,
-      isWinner: true,
-    });
-
-    if (response.data.success) {
-      toast({
-        title: "Project winner set successfully",
-        description: "The project has been marked as the winner",
-        duration: 3000,
-      });
-    } else {
-      toast({
-        title: "Failed to set project winner",
-        description: "Unable to mark project as winner. Please try again.",
-        variant: "destructive",
-        duration: 3000,
-      });
-    }
-    setConfirmOpen(false);
-  };
 
   const handleAssignBadge = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-   
     setIsAssignBadgeOpen(true);
   };
 
@@ -109,63 +68,22 @@ export const ProjectOptions = ({
               Edit
             </DropdownMenuItem>
           ) : (
-            <>
-              {!project.is_winner ? (
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.stopPropagation();
-                  }}
-                  onSelect={(e) => {
-                    e.stopPropagation();
-                    setIsDropdownOpen(false);
-                    setConfirmOpen(true);
-                  }}
-                >
-                  Set Winner
-                </DropdownMenuItem>
-              ) : 
-              (<DropdownMenuItem
-                  onClick={(e) => {
-                    e.stopPropagation();
-                  }}
-                  onSelect={(e) => {
-                    e.stopPropagation();
-                    setIsDropdownOpen(false);
-                    handleAssignBadge(e as any);
-                  }}
-                >
-                  Assign Badge
-                </DropdownMenuItem>)
-              }
-            </>
+            <DropdownMenuItem
+              onClick={(e) => {
+                e.stopPropagation();
+              }}
+              onSelect={(e) => {
+                e.stopPropagation();
+                setIsDropdownOpen(false);
+                handleAssignBadge(e as any);
+              }}
+            >
+              Assign Badge
+            </DropdownMenuItem>
           )}
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <AlertDialogContent onPointerDownCapture={(e) => e.stopPropagation()}>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Winner?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Do you want to mark "{project.project_name}" as winner? This
-              action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={(e) => e.stopPropagation()}>
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(e) => {
-                e.stopPropagation();
-                handleSetWinner(e);
-              }}
-            >
-              Confirm
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
       <AssignBadge
         isOpen={isAssignBadgeOpen}
         onOpenChange={setIsAssignBadgeOpen}
