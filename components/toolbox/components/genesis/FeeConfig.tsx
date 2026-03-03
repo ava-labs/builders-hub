@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { RawInput } from "../Input";
-import { Info, Zap, Building2, Settings2, HelpCircle } from "lucide-react";
+import { Info, Zap, Building2, Settings2, HelpCircle, Gamepad2, TrendingUp } from "lucide-react";
 import { ValidationMessages } from "./types";
 import { useGenesisHighlight } from "./GenesisHighlightContext";
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -27,16 +27,25 @@ type FeeConfigProps = {
   onFeeConfigChange: (config: FeeConfigType) => void;
   validationMessages: ValidationMessages;
   compact?: boolean;
+  initialPreset?: string | null;
 };
 
 // Preset configurations
-type PresetType = 'testnet' | 'mainnet' | 'custom';
+type PresetType = 'testnet' | 'mainnet' | 'gaming' | 'defi' | 'rwa' | 'custom';
 
-const PRESETS = {
+const PRESETS: Record<Exclude<PresetType, 'custom'>, {
+  name: string;
+  description: string;
+  icon: typeof Zap;
+  gasLimit: number;
+  feeConfig: FeeConfigType;
+  color: string;
+}> = {
   testnet: {
-    name: 'Testnet (Fast & Cheap)',
+    name: 'Testnet',
     description: 'Optimized for development and testing. Low fees, high throughput, static pricing.',
     icon: Zap,
+    color: 'green',
     gasLimit: 100000000,        // 100M - high throughput
     feeConfig: {
       baseFeeChangeDenominator: 48,
@@ -48,15 +57,61 @@ const PRESETS = {
     }
   },
   mainnet: {
-    name: 'Mainnet (Production)',
+    name: 'Mainnet',
     description: 'Balanced for production use. Standard fees with congestion protection.',
     icon: Building2,
+    color: 'blue',
     gasLimit: 15000000,         // 15M - standard
     feeConfig: {
       baseFeeChangeDenominator: 48,
       blockGasCostStep: 200000,
       maxBlockGasCost: 1000000,
       minBaseFee: 25000000000,   // 25 gwei
+      minBlockGasCost: 0,
+      targetGas: 15000000
+    }
+  },
+  gaming: {
+    name: 'Gaming',
+    description: 'Maximum throughput with predictable, low-cost static fees.',
+    icon: Gamepad2,
+    color: 'pink',
+    gasLimit: 100000000,          // 100M - max throughput
+    feeConfig: {
+      baseFeeChangeDenominator: 48,
+      blockGasCostStep: 0,        // Static pricing - no fee surprises mid-game
+      maxBlockGasCost: 0,         // Static pricing
+      minBaseFee: 1000000000,     // 1 gwei
+      minBlockGasCost: 0,
+      targetGas: 100000000        // Match gas limit for static pricing
+    }
+  },
+  defi: {
+    name: 'DeFi',
+    description: 'Optimized for decentralized finance with MEV protection.',
+    icon: TrendingUp,
+    color: 'violet',
+    gasLimit: 30000000,           // 30M
+    feeConfig: {
+      baseFeeChangeDenominator: 36,
+      blockGasCostStep: 500000,
+      maxBlockGasCost: 10000000,   // 10M - high for liquidations
+      minBaseFee: 10000000000,     // 10 gwei
+      minBlockGasCost: 0,
+      targetGas: 15000000          // 15M
+    }
+  },
+  rwa: {
+    name: 'Tokenization',
+    description: 'Compliant infrastructure for real-world asset tokenization.',
+    icon: Building2,
+    color: 'emerald',
+    gasLimit: 15000000,           // 15M
+    feeConfig: {
+      baseFeeChangeDenominator: 36,
+      blockGasCostStep: 200000,
+      maxBlockGasCost: 1000000,
+      minBaseFee: 25000000000,     // 25 gwei
       minBlockGasCost: 0,
       targetGas: 15000000
     }
@@ -72,7 +127,7 @@ const FIELD_DESCRIPTIONS = {
   gasLimit: {
     title: 'Gas Limit',
     description: 'Maximum gas allowed per block. Higher values allow more transactions per block but require more validator resources.',
-    recommendation: 'Testnet: 100M for high throughput. Mainnet: 15-30M for balanced performance.',
+    recommendation: 'Testnet: 100M for high throughput. Mainnet: 15-40M for balanced performance. C-Chain uses 37.5M.',
     unit: 'gas units'
   },
   minBaseFee: {
@@ -196,6 +251,46 @@ const Field = ({
   </div>
 );
 
+// Color mappings for presets
+const PRESET_COLORS: Record<string, { border: string; bg: string; icon: string; text: string }> = {
+  green: {
+    border: 'border-green-500',
+    bg: 'bg-green-50 dark:bg-green-950/30',
+    icon: 'text-green-600 dark:text-green-400',
+    text: 'text-green-700 dark:text-green-300'
+  },
+  blue: {
+    border: 'border-blue-500',
+    bg: 'bg-blue-50 dark:bg-blue-950/30',
+    icon: 'text-blue-600 dark:text-blue-400',
+    text: 'text-blue-700 dark:text-blue-300'
+  },
+  pink: {
+    border: 'border-pink-500',
+    bg: 'bg-pink-50 dark:bg-pink-950/30',
+    icon: 'text-pink-600 dark:text-pink-400',
+    text: 'text-pink-700 dark:text-pink-300'
+  },
+  violet: {
+    border: 'border-violet-500',
+    bg: 'bg-violet-50 dark:bg-violet-950/30',
+    icon: 'text-violet-600 dark:text-violet-400',
+    text: 'text-violet-700 dark:text-violet-300'
+  },
+  emerald: {
+    border: 'border-emerald-500',
+    bg: 'bg-emerald-50 dark:bg-emerald-950/30',
+    icon: 'text-emerald-600 dark:text-emerald-400',
+    text: 'text-emerald-700 dark:text-emerald-300'
+  },
+  purple: {
+    border: 'border-purple-500',
+    bg: 'bg-purple-50 dark:bg-purple-950/30',
+    icon: 'text-purple-600 dark:text-purple-400',
+    text: 'text-purple-700 dark:text-purple-300'
+  }
+};
+
 // Preset selector component
 const PresetSelector = ({
   selected,
@@ -203,90 +298,79 @@ const PresetSelector = ({
 }: {
   selected: PresetType;
   onSelect: (preset: PresetType) => void;
-}) => (
-  <div className="space-y-2">
-    <div className="flex items-center gap-1">
-      <span className="text-sm font-medium text-zinc-800 dark:text-zinc-200">Configuration Preset</span>
-      <FieldTooltip field="preset" />
-    </div>
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-      {/* Testnet Preset */}
-      <button
-        type="button"
-        onClick={() => onSelect('testnet')}
-        className={`flex items-start gap-3 p-3 rounded-lg border-2 transition-all text-left ${
-          selected === 'testnet'
-            ? 'border-green-500 bg-green-50 dark:bg-green-950/30'
-            : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600'
-        }`}
-      >
-        <Zap className={`h-5 w-5 mt-0.5 flex-shrink-0 ${
-          selected === 'testnet' ? 'text-green-600 dark:text-green-400' : 'text-zinc-400'
-        }`} />
-        <div className="min-w-0">
-          <div className={`font-medium text-sm ${
-            selected === 'testnet' ? 'text-green-700 dark:text-green-300' : 'text-zinc-700 dark:text-zinc-300'
-          }`}>
-            Testnet
-          </div>
-          <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-            Low fees, high throughput
-          </div>
-        </div>
-      </button>
+}) => {
+  const presetOrder: PresetType[] = ['testnet', 'mainnet', 'custom', 'gaming', 'defi', 'rwa'];
+  const presetDescriptions: Record<PresetType, string> = {
+    testnet: 'Low fees, high throughput',
+    mainnet: 'Production-ready defaults',
+    custom: 'Fine-tune all parameters',
+    gaming: 'High TPS, stable fees',
+    defi: 'MEV protection, high gas',
+    rwa: 'Compliance & audit trail'
+  };
 
-      {/* Mainnet Preset */}
-      <button
-        type="button"
-        onClick={() => onSelect('mainnet')}
-        className={`flex items-start gap-3 p-3 rounded-lg border-2 transition-all text-left ${
-          selected === 'mainnet'
-            ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/30'
-            : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600'
-        }`}
-      >
-        <Building2 className={`h-5 w-5 mt-0.5 flex-shrink-0 ${
-          selected === 'mainnet' ? 'text-blue-600 dark:text-blue-400' : 'text-zinc-400'
-        }`} />
-        <div className="min-w-0">
-          <div className={`font-medium text-sm ${
-            selected === 'mainnet' ? 'text-blue-700 dark:text-blue-300' : 'text-zinc-700 dark:text-zinc-300'
-          }`}>
-            Mainnet
-          </div>
-          <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-            Production-ready defaults
-          </div>
-        </div>
-      </button>
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-1">
+        <span className="text-sm font-medium text-zinc-800 dark:text-zinc-200">Configuration Preset</span>
+        <FieldTooltip field="preset" />
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        {presetOrder.map((presetKey) => {
+          const isCustom = presetKey === 'custom';
+          const preset = isCustom ? null : PRESETS[presetKey];
+          const color = isCustom ? 'purple' : preset!.color;
+          const colors = PRESET_COLORS[color];
+          const Icon = isCustom ? Settings2 : preset!.icon;
+          const isSelected = selected === presetKey;
+          const isBlueprint = ['gaming', 'defi', 'rwa'].includes(presetKey);
+          const isComingSoon = presetKey === 'defi' || presetKey === 'rwa';
 
-      {/* Custom Preset */}
-      <button
-        type="button"
-        onClick={() => onSelect('custom')}
-        className={`flex items-start gap-3 p-3 rounded-lg border-2 transition-all text-left ${
-          selected === 'custom'
-            ? 'border-purple-500 bg-purple-50 dark:bg-purple-950/30'
-            : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600'
-        }`}
-      >
-        <Settings2 className={`h-5 w-5 mt-0.5 flex-shrink-0 ${
-          selected === 'custom' ? 'text-purple-600 dark:text-purple-400' : 'text-zinc-400'
-        }`} />
-        <div className="min-w-0">
-          <div className={`font-medium text-sm ${
-            selected === 'custom' ? 'text-purple-700 dark:text-purple-300' : 'text-zinc-700 dark:text-zinc-300'
-          }`}>
-            Custom
-          </div>
-          <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-            Fine-tune all parameters
-          </div>
-        </div>
-      </button>
+          return (
+            <button
+              key={presetKey}
+              type="button"
+              onClick={() => !isComingSoon && onSelect(presetKey)}
+              disabled={isComingSoon}
+              className={`flex items-start gap-3 p-3 rounded-lg border-2 transition-all text-left ${
+                isComingSoon
+                  ? 'border-zinc-200 dark:border-zinc-800 opacity-50 cursor-not-allowed'
+                  : isSelected
+                  ? `${colors.border} ${colors.bg}`
+                  : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600'
+              }`}
+            >
+              <Icon className={`h-5 w-5 mt-0.5 flex-shrink-0 ${
+                isComingSoon ? 'text-zinc-300 dark:text-zinc-600' : isSelected ? colors.icon : 'text-zinc-400'
+              }`} />
+              <div className="min-w-0 flex-1 overflow-hidden">
+                <div className={`font-medium text-sm flex items-center gap-1.5 overflow-hidden ${
+                  isComingSoon ? 'text-zinc-400 dark:text-zinc-500' : isSelected ? colors.text : 'text-zinc-700 dark:text-zinc-300'
+                }`}>
+                  <span className="truncate">{isCustom ? 'Custom' : preset!.name}</span>
+                  {isComingSoon ? (
+                    <span className="text-[10px] font-normal px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 whitespace-nowrap flex-shrink-0">
+                      Coming Soon
+                    </span>
+                  ) : isBlueprint ? (
+                    <span className="text-[10px] font-normal px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 whitespace-nowrap flex-shrink-0">
+                      Blueprint
+                    </span>
+                  ) : null}
+                </div>
+                <div className={`text-xs mt-0.5 truncate ${
+                  isComingSoon ? 'text-zinc-400 dark:text-zinc-500' : 'text-zinc-500 dark:text-zinc-400'
+                }`}>
+                  {presetDescriptions[presetKey]}
+                </div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 function FeeConfigBase({
   gasLimit,
@@ -295,13 +379,50 @@ function FeeConfigBase({
   feeConfig,
   onFeeConfigChange,
   validationMessages,
-  compact
+  compact,
+  initialPreset
 }: FeeConfigProps) {
   const { setHighlightPath } = useGenesisHighlight();
 
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [selectedPreset, setSelectedPreset] = useState<PresetType>('testnet');
   const [showAdvanced, setShowAdvanced] = useState(false);
+  // Track when user explicitly selects a blueprint to prevent auto-detection overwriting it
+  // Initialize from initialPreset if it's a blueprint to prevent auto-detection from overriding it
+  const [userSelectedBlueprint, setUserSelectedBlueprint] = useState<PresetType | null>(
+    initialPreset && ['gaming', 'defi', 'rwa'].includes(initialPreset) ? (initialPreset as PresetType) : null
+  );
+
+  // Track if initial preset has been applied to avoid re-applying on every render
+  const [initialPresetApplied, setInitialPresetApplied] = useState(false);
+
+  // Apply initial preset on mount if provided (e.g., from blueprint navigation)
+  useEffect(() => {
+    if (initialPreset && !initialPresetApplied && initialPreset !== 'custom' && PRESETS[initialPreset as Exclude<PresetType, 'custom'>]) {
+      const presetKey = initialPreset as Exclude<PresetType, 'custom'>;
+      const presetConfig = PRESETS[presetKey];
+
+      setSelectedPreset(presetKey);
+      setGasLimit(presetConfig.gasLimit);
+      onFeeConfigChange(presetConfig.feeConfig);
+
+      // Update local inputs
+      setGasLimitInput(presetConfig.gasLimit.toString());
+      setMinBaseFeeInput((presetConfig.feeConfig.minBaseFee / 1000000000).toString());
+      setBaseFeeChangeDenominatorInput(presetConfig.feeConfig.baseFeeChangeDenominator.toString());
+      setMinBlockGasCostInput(presetConfig.feeConfig.minBlockGasCost.toString());
+      setMaxBlockGasCostInput(presetConfig.feeConfig.maxBlockGasCost.toString());
+      setBlockGasCostStepInput(presetConfig.feeConfig.blockGasCostStep.toString());
+      setTargetGasInput(presetConfig.feeConfig.targetGas.toString());
+
+      // Track if user selected a blueprint
+      if (['gaming', 'defi', 'rwa'].includes(presetKey)) {
+        setUserSelectedBlueprint(presetKey);
+      }
+
+      setInitialPresetApplied(true);
+    }
+  }, [initialPreset, initialPresetApplied, setGasLimit, onFeeConfigChange]);
 
   const handleFocus = (path: string) => {
     setHighlightPath(path);
@@ -319,30 +440,53 @@ function FeeConfigBase({
 
   // Detect current preset based on values
   useEffect(() => {
-    const isTestnet =
-      gasLimit === PRESETS.testnet.gasLimit &&
-      feeConfig.minBaseFee === PRESETS.testnet.feeConfig.minBaseFee &&
-      feeConfig.maxBlockGasCost === PRESETS.testnet.feeConfig.maxBlockGasCost;
+    // Skip auto-detection when user has explicitly selected a blueprint OR initialPreset is a blueprint
+    // This prevents customizer changes or closing from resetting to 'custom'
+    if (
+      (userSelectedBlueprint && ['gaming', 'defi', 'rwa'].includes(userSelectedBlueprint)) ||
+      (initialPreset && ['gaming', 'defi', 'rwa'].includes(initialPreset))
+    ) {
+      return;
+    }
 
-    const isMainnet =
-      gasLimit === PRESETS.mainnet.gasLimit &&
-      feeConfig.minBaseFee === PRESETS.mainnet.feeConfig.minBaseFee &&
-      feeConfig.maxBlockGasCost === PRESETS.mainnet.feeConfig.maxBlockGasCost;
+    const checkPreset = (presetKey: Exclude<PresetType, 'custom'>) => {
+      const preset = PRESETS[presetKey];
+      return (
+        gasLimit === preset.gasLimit &&
+        feeConfig.minBaseFee === preset.feeConfig.minBaseFee &&
+        feeConfig.maxBlockGasCost === preset.feeConfig.maxBlockGasCost &&
+        feeConfig.baseFeeChangeDenominator === preset.feeConfig.baseFeeChangeDenominator
+      );
+    };
 
-    if (isTestnet) {
+    if (checkPreset('testnet')) {
       setSelectedPreset('testnet');
-    } else if (isMainnet) {
+    } else if (checkPreset('mainnet')) {
       setSelectedPreset('mainnet');
+    } else if (checkPreset('gaming')) {
+      setSelectedPreset('gaming');
+    } else if (checkPreset('defi')) {
+      setSelectedPreset('defi');
+    } else if (checkPreset('rwa')) {
+      setSelectedPreset('rwa');
     } else {
       setSelectedPreset('custom');
     }
-  }, [gasLimit, feeConfig]);
+  }, [gasLimit, feeConfig, userSelectedBlueprint]);
 
   // Handle preset selection
   const handlePresetSelect = useCallback((preset: PresetType) => {
     setSelectedPreset(preset);
 
-    if (preset === 'testnet' || preset === 'mainnet') {
+    // Track if user explicitly selected a blueprint preset
+    if (['gaming', 'defi', 'rwa'].includes(preset)) {
+      setUserSelectedBlueprint(preset);
+    } else {
+      // Clear user selection when switching to non-blueprint presets
+      setUserSelectedBlueprint(null);
+    }
+
+    if (preset !== 'custom') {
       const presetConfig = PRESETS[preset];
       setGasLimit(presetConfig.gasLimit);
       onFeeConfigChange(presetConfig.feeConfig);
@@ -355,6 +499,7 @@ function FeeConfigBase({
       setMaxBlockGasCostInput(presetConfig.feeConfig.maxBlockGasCost.toString());
       setBlockGasCostStepInput(presetConfig.feeConfig.blockGasCostStep.toString());
       setTargetGasInput(presetConfig.feeConfig.targetGas.toString());
+
     }
   }, [setGasLimit, onFeeConfigChange]);
 
@@ -461,6 +606,17 @@ function FeeConfigBase({
   const staticGasThreshold = Math.ceil((gasLimit * 10) / targetBlockRate);
   const isStaticPricing = feeConfig.targetGas >= staticGasThreshold;
 
+  // Computed metrics for display
+  const blockUtilizationTarget = gasLimit > 0
+    ? Math.min(100, Math.round((feeConfig.targetGas * targetBlockRate) / (gasLimit * 10) * 100))
+    : 0;
+
+  // Slider range for target gas — ensures static threshold is reachable
+  const targetGasSliderMax = Math.max(staticGasThreshold * 1.2, 200000000);
+
+  // Common slider class
+  const sliderClass = "w-full h-1.5 bg-zinc-200 dark:bg-zinc-700 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-500 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-sm";
+
   // Format large numbers for display
   const formatNumber = (num: number) => {
     if (num >= 1000000) return `${(num / 1000000).toFixed(0)}M`;
@@ -473,113 +629,264 @@ function FeeConfigBase({
       {/* Preset Selector */}
       <PresetSelector selected={selectedPreset} onSelect={handlePresetSelect} />
 
-      {/* Preset Description */}
-      {selectedPreset !== 'custom' && (
-        <div className={`rounded-lg p-4 ${
-          selectedPreset === 'testnet'
-            ? 'bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800/50'
-            : 'bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800/50'
-        }`}>
-          <div className="flex items-start gap-3">
-            {selectedPreset === 'testnet' ? (
-              <Zap className="h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
-            ) : (
-              <Building2 className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-            )}
-            <div className="space-y-2">
-              <div className={`font-medium text-sm ${
-                selectedPreset === 'testnet' ? 'text-green-800 dark:text-green-200' : 'text-blue-800 dark:text-blue-200'
+      {/* Core Parameters - Enhanced */}
+      <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg overflow-hidden">
+        {/* Header with live metrics */}
+        <div className="px-4 py-3 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <h4 className="text-sm font-medium text-zinc-800 dark:text-zinc-200">
+              Core Parameters
+            </h4>
+            <div className="flex items-center gap-2">
+              <div className={`flex items-center gap-1.5 px-2 py-1 rounded-md ${
+                isStaticPricing
+                  ? 'bg-green-50 dark:bg-green-950/30'
+                  : 'bg-amber-50 dark:bg-amber-950/30'
               }`}>
-                {PRESETS[selectedPreset].name}
-              </div>
-              <div className={`text-xs ${
-                selectedPreset === 'testnet' ? 'text-green-700 dark:text-green-300' : 'text-blue-700 dark:text-blue-300'
-              }`}>
-                {PRESETS[selectedPreset].description}
-              </div>
-              <div className={`text-xs space-y-1 pt-1 ${
-                selectedPreset === 'testnet' ? 'text-green-600 dark:text-green-400' : 'text-blue-600 dark:text-blue-400'
-              }`}>
-                <div>• Gas limit: <strong>{formatNumber(PRESETS[selectedPreset].gasLimit)}</strong></div>
-                <div>• Min fee: <strong>{PRESETS[selectedPreset].feeConfig.minBaseFee / 1000000000} gwei</strong></div>
-                <div>• Fee model: <strong>{PRESETS[selectedPreset].feeConfig.maxBlockGasCost === 0 ? 'Static (consistent)' : 'Dynamic (congestion-based)'}</strong></div>
+                <div className={`h-1.5 w-1.5 rounded-full ${
+                  isStaticPricing ? 'bg-green-500' : 'bg-amber-500 animate-pulse'
+                }`} />
+                <span className={`text-[10px] uppercase tracking-wider font-medium ${
+                  isStaticPricing
+                    ? 'text-green-700 dark:text-green-400'
+                    : 'text-amber-700 dark:text-amber-400'
+                }`}>
+                  {isStaticPricing ? 'Static' : 'Dynamic'}
+                </span>
               </div>
             </div>
           </div>
         </div>
-      )}
 
-      {/* Core Parameters - Always visible */}
-      <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4">
-        <h4 className="text-sm font-medium mb-4 text-zinc-800 dark:text-zinc-200">
-          Core Parameters
-        </h4>
-        <div className={`grid grid-cols-1 md:grid-cols-2 ${compact ? 'gap-3' : 'gap-4'}`}>
-          <Field
-            id="gasLimit"
-            label="Gas Limit per Block"
-            value={gasLimitInput}
-            onChange={handleGasLimitChange}
-            onFocus={() => handleFocus('gasLimit')}
-            onBlur={() => normalizeOnBlur('gasLimit')}
-            placeholder="15000000"
-            tooltipField="gasLimit"
-            suffix={formatNumber(parseInt(gasLimitInput) || 0)}
-            error={validationMessages.errors.gasLimit}
-            warning={validationMessages.warnings.gasLimit}
-          />
-          <Field
-            id="minBaseFee"
-            label="Minimum Transaction Fee"
-            value={minBaseFeeInput}
-            onChange={handleMinBaseFeeChange}
-            onFocus={() => handleFocus('minBaseFee')}
-            onBlur={() => normalizeOnBlur('minBaseFee')}
-            placeholder="1"
-            type="text"
-            tooltipField="minBaseFee"
-            suffix="gwei"
-            error={validationMessages.errors.minBaseFee}
-            warning={validationMessages.warnings.minBaseFee}
-          />
-          <Field
-            id="targetGas"
-            label="Target Gas (10s window)"
-            value={targetGasInput}
-            onChange={(v) => handleFeeConfigNumberChange('targetGas', v)}
-            onFocus={() => handleFocus('targetGas')}
-            onBlur={() => normalizeOnBlur('targetGas')}
-            placeholder="15000000"
-            tooltipField="targetGas"
-            suffix={formatNumber(parseInt(targetGasInput) || 0)}
-            error={validationMessages.errors.targetGas}
-            warning={validationMessages.warnings.targetGas}
-          />
-        </div>
-      </div>
+        <div className={`p-4 ${compact ? 'space-y-4' : 'space-y-6'}`}>
+          {/* Gas Limit */}
+          <div className="space-y-2.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <label className="text-sm font-medium text-zinc-800 dark:text-zinc-200" htmlFor="gasLimit">
+                  Gas Limit per Block
+                </label>
+                <FieldTooltip field="gasLimit" />
+              </div>
+              <span className="text-xs font-mono text-zinc-500 dark:text-zinc-400">
+                {formatNumber(parseInt(gasLimitInput) || 0)}
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="flex-1 space-y-1">
+                <input
+                  type="range"
+                  min={1000000}
+                  max={200000000}
+                  step={1000000}
+                  value={gasLimit}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value);
+                    setGasLimit(value);
+                    setGasLimitInput(value.toString());
+                  }}
+                  className={sliderClass}
+                />
+                <div className="relative h-5 mt-0.5">
+                  <span className="absolute left-0 text-[9px] text-zinc-400">1M</span>
+                  <span className="absolute right-0 text-[9px] text-zinc-400">200M</span>
+                  <span
+                    className="absolute -translate-x-1/2 flex flex-col items-center"
+                    style={{ left: `${((37_500_000 - 1_000_000) / (200_000_000 - 1_000_000)) * 100}%` }}
+                  >
+                    <span className="w-px h-1.5 bg-zinc-300 dark:bg-zinc-600" />
+                    <span className="text-[9px] text-zinc-500 dark:text-zinc-400 whitespace-nowrap">C-Chain 37.5M</span>
+                  </span>
+                </div>
+              </div>
+              <div className="w-[120px] flex-shrink-0">
+                <RawInput
+                  id="gasLimit"
+                  type="text"
+                  value={gasLimitInput}
+                  onChange={(e) => handleGasLimitChange((e.target as HTMLInputElement).value)}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onClick={(e) => e.stopPropagation()}
+                  onPointerDownCapture={(e) => e.stopPropagation()}
+                  onFocus={() => handleFocus('gasLimit')}
+                  onBlur={() => normalizeOnBlur('gasLimit')}
+                  className="py-1.5 text-xs font-mono text-right"
+                  inputMode="numeric"
+                  autoComplete="off"
+                />
+              </div>
+            </div>
+            {validationMessages.errors.gasLimit && (
+              <div className="text-xs text-red-500">{validationMessages.errors.gasLimit}</div>
+            )}
+            {!validationMessages.errors.gasLimit && validationMessages.warnings.gasLimit && (
+              <div className="text-xs text-amber-500">{validationMessages.warnings.gasLimit}</div>
+            )}
+          </div>
 
-      {/* Pricing Model Indicator */}
-      <div className={`rounded-lg p-3 ${
-        isStaticPricing
-          ? 'bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800/50'
-          : 'bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/50'
-      }`}>
-        <div className="flex gap-2">
-          <Info className={`h-4 w-4 flex-shrink-0 mt-0.5 ${
-            isStaticPricing ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'
-          }`} />
-          <div className="text-xs space-y-1">
-            <div className={`font-medium ${
-              isStaticPricing ? 'text-green-900 dark:text-green-100' : 'text-amber-900 dark:text-amber-100'
+          <div className="border-t border-zinc-100 dark:border-zinc-800/50" />
+
+          {/* Min Base Fee */}
+          <div className="space-y-2.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <label className="text-sm font-medium text-zinc-800 dark:text-zinc-200" htmlFor="minBaseFee">
+                  Minimum Base Fee
+                </label>
+                <FieldTooltip field="minBaseFee" />
+              </div>
+              <span className="text-xs font-mono text-zinc-500 dark:text-zinc-400">
+                {parseFloat(minBaseFeeInput) || 0} gwei
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="flex-1 space-y-1">
+                <input
+                  type="range"
+                  min={0}
+                  max={100000000000}
+                  step={1000000000}
+                  value={feeConfig.minBaseFee}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value);
+                    onFeeConfigChange({ ...feeConfig, minBaseFee: value });
+                    setMinBaseFeeInput((value / 1000000000).toString());
+                  }}
+                  className={sliderClass}
+                />
+                <div className="relative h-5 mt-0.5">
+                  <span className="absolute left-0 text-[9px] text-zinc-400">0 gwei</span>
+                  <span className="absolute right-0 text-[9px] text-zinc-400">100 gwei</span>
+                  <span
+                    className="absolute -translate-x-1/2 flex flex-col items-center"
+                    style={{ left: '25%' }}
+                  >
+                    <span className="w-px h-1.5 bg-zinc-300 dark:bg-zinc-600" />
+                    <span className="text-[9px] text-zinc-500 dark:text-zinc-400 whitespace-nowrap">25 gwei</span>
+                  </span>
+                </div>
+              </div>
+              <div className="w-[120px] flex-shrink-0 flex items-center gap-1">
+                <RawInput
+                  id="minBaseFee"
+                  type="text"
+                  value={minBaseFeeInput}
+                  onChange={(e) => handleMinBaseFeeChange((e.target as HTMLInputElement).value)}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onClick={(e) => e.stopPropagation()}
+                  onPointerDownCapture={(e) => e.stopPropagation()}
+                  onFocus={() => handleFocus('minBaseFee')}
+                  onBlur={() => normalizeOnBlur('minBaseFee')}
+                  className="py-1.5 text-xs font-mono text-right"
+                  inputMode="decimal"
+                  autoComplete="off"
+                />
+                <span className="text-[10px] text-zinc-400 flex-shrink-0">gwei</span>
+              </div>
+            </div>
+            {validationMessages.errors.minBaseFee && (
+              <div className="text-xs text-red-500">{validationMessages.errors.minBaseFee}</div>
+            )}
+            {!validationMessages.errors.minBaseFee && validationMessages.warnings.minBaseFee && (
+              <div className="text-xs text-amber-500">{validationMessages.warnings.minBaseFee}</div>
+            )}
+          </div>
+
+          <div className="border-t border-zinc-100 dark:border-zinc-800/50" />
+
+          {/* Target Gas */}
+          <div className="space-y-2.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <label className="text-sm font-medium text-zinc-800 dark:text-zinc-200" htmlFor="targetGas">
+                  Target Gas (10s window)
+                </label>
+                <FieldTooltip field="targetGas" />
+              </div>
+              <span className={`text-[10px] uppercase tracking-wider font-medium px-2 py-0.5 rounded-full ${
+                isStaticPricing
+                  ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                  : 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
+              }`}>
+                {isStaticPricing ? 'Static pricing' : `Dynamic ${blockUtilizationTarget}%`}
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="flex-1 space-y-1">
+                <div className="relative">
+                  <input
+                    type="range"
+                    min={1000000}
+                    max={targetGasSliderMax}
+                    step={1000000}
+                    value={feeConfig.targetGas}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value);
+                      handleFeeConfigNumberChange('targetGas', value.toString());
+                    }}
+                    className={sliderClass}
+                  />
+                  {/* Static pricing threshold marker */}
+                  {staticGasThreshold > 1000000 && staticGasThreshold < targetGasSliderMax && (
+                    <div
+                      className="absolute top-0 h-1.5 w-0 border-r-[2px] border-dashed border-green-500/50 pointer-events-none"
+                      style={{
+                        left: `${((staticGasThreshold - 1000000) / (targetGasSliderMax - 1000000)) * 100}%`
+                      }}
+                    />
+                  )}
+                </div>
+                <div className="relative h-5 mt-0.5">
+                  <span className="absolute left-0 text-[9px] text-zinc-400">1M</span>
+                  <span className="absolute right-0 text-[9px] text-zinc-400">{formatNumber(Math.round(targetGasSliderMax))}</span>
+                  {staticGasThreshold > 1000000 && staticGasThreshold < targetGasSliderMax && (
+                    <span
+                      className="absolute -translate-x-1/2 flex flex-col items-center"
+                      style={{ left: `${((staticGasThreshold - 1000000) / (targetGasSliderMax - 1000000)) * 100}%` }}
+                    >
+                      <span className="w-px h-1.5 bg-green-400 dark:bg-green-500" />
+                      <span className="text-[9px] text-green-600 dark:text-green-400 whitespace-nowrap">static</span>
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="w-[120px] flex-shrink-0">
+                <RawInput
+                  id="targetGas"
+                  type="text"
+                  value={targetGasInput}
+                  onChange={(e) => handleFeeConfigNumberChange('targetGas', (e.target as HTMLInputElement).value)}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onClick={(e) => e.stopPropagation()}
+                  onPointerDownCapture={(e) => e.stopPropagation()}
+                  onFocus={() => handleFocus('targetGas')}
+                  onBlur={() => normalizeOnBlur('targetGas')}
+                  className="py-1.5 text-xs font-mono text-right"
+                  inputMode="numeric"
+                  autoComplete="off"
+                />
+              </div>
+            </div>
+            {/* Inline pricing explanation */}
+            <div className={`flex gap-2 p-2.5 rounded-md text-xs ${
+              isStaticPricing
+                ? 'bg-green-50 dark:bg-green-950/20 text-green-700 dark:text-green-400'
+                : 'bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400'
             }`}>
-              {isStaticPricing ? '✓ Static Fee Pricing Active' : '⚡ Dynamic Fee Pricing Active'}
+              <Info className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
+              <span>
+                {isStaticPricing
+                  ? 'Fees remain constant regardless of network activity. Ideal for testnets and predictable costs.'
+                  : `Fees adjust when block utilization exceeds ${blockUtilizationTarget}% of capacity. Threshold: ${formatNumber(staticGasThreshold)} gas.`
+                }
+              </span>
             </div>
-            <div className={isStaticPricing ? 'text-green-800 dark:text-green-200' : 'text-amber-800 dark:text-amber-200'}>
-              {isStaticPricing
-                ? 'Transaction fees will remain constant regardless of network activity. Ideal for testnets and predictable costs.'
-                : `Fees will adjust based on network congestion. Target gas threshold: ${formatNumber(staticGasThreshold)}.`
-              }
-            </div>
+            {validationMessages.errors.targetGas && (
+              <div className="text-xs text-red-500">{validationMessages.errors.targetGas}</div>
+            )}
+            {!validationMessages.errors.targetGas && validationMessages.warnings.targetGas && (
+              <div className="text-xs text-amber-500">{validationMessages.warnings.targetGas}</div>
+            )}
           </div>
         </div>
       </div>

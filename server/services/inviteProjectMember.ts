@@ -20,7 +20,8 @@ export async function generateInvitation(
   userId: string,
   inviterName: string,
   emails: string[],
-  projectId?: string
+  projectId?: string,
+  stage?: number
 ): Promise<InvitationResult> {
   if (!hackathonId) {
     throw new Error("Hackathon ID is required");
@@ -48,7 +49,8 @@ export async function generateInvitation(
       userId,
       project,
       hackathonId,
-      inviterName
+      inviterName,
+      stage
     );
     if (invitationLink) {
       invitationLinks.push(invitationLink);
@@ -66,7 +68,8 @@ async function handleEmailInvitation(
   userId: string,
   project: any,
   hackathonId: string,
-  inviterName: string
+  inviterName: string,
+  stage?: number
 ) {
   const invitedUser = await getUserByEmail(email);
 
@@ -91,7 +94,8 @@ async function handleEmailInvitation(
     email,
     project,
     hackathonId,
-    inviterName
+    inviterName,
+    stage
   );
   
   if (inviteLink) {
@@ -151,15 +155,21 @@ async function createOrUpdateMemberAtomically(
   });
 }
 
+const BUILD_GAMES_HACKATHON_ID = "249d2911-7931-4aa0-a696-37d8370b79f9";
+
 async function sendInvitationEmail(
   member: any,
   email: string,
   project: any,
   hackathonId: string,
-  inviterName: string
+  inviterName: string,
+  stage?: number
 ): Promise<{ success: boolean; inviteLink: string }> {
   const baseUrl = process.env.NEXTAUTH_URL as string;
-  const inviteLink = `${baseUrl}/hackathons/project-submission?hackathon=${hackathonId}&invitation=${member.id}#team`;
+  const inviteLink =
+    hackathonId === BUILD_GAMES_HACKATHON_ID
+      ? `${baseUrl}/build-games/submit?stage=${stage ?? 1}&invitation=${member.id}`
+      : `${baseUrl}/hackathons/project-submission?hackathon=${hackathonId}&invitation=${member.id}#team`;
   let result = { success: true, inviteLink: inviteLink };
   try {
     await sendInvitation(email, project.project_name, inviterName, inviteLink);

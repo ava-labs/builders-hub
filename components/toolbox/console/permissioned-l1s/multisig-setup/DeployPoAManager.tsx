@@ -1,7 +1,6 @@
 "use client";
 
 import { useToolboxStore, useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
-import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/toolbox/components/Button";
 import { Input } from "@/components/toolbox/components/Input";
@@ -21,6 +20,7 @@ import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } fr
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 import { useContractDeployer } from "@/components/toolbox/hooks/contracts";
 import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
+import { useChainPublicClient } from "@/components/toolbox/hooks/useChainPublicClient";
 
 const metadata: ConsoleToolMetadata = {
     title: "Deploy PoA Manager",
@@ -37,8 +37,8 @@ function DeployPoAManager({ onSuccess }: BaseConsoleToolProps) {
         poaManagerAddress,
         setPoaManagerAddress
     } = useToolboxStore();
-    const { publicClient } = useWalletStore();
-    const { coreWalletClient } = useConnectedWallet();
+    const chainPublicClient = useChainPublicClient();
+    const { walletClient } = useConnectedWallet();
     const createChainStoreSubnetId = useCreateChainStore()(state => state.subnetId);
     const [subnetIdL1, setSubnetIdL1] = useState<string>(createChainStoreSubnetId || "");
     const [isChecking, setIsChecking] = useState(false);
@@ -96,8 +96,8 @@ function DeployPoAManager({ onSuccess }: BaseConsoleToolProps) {
 
         try {
             if (!viemChain) throw new Error("Viem chain not found");
-            await coreWalletClient.addChain({ chain: viemChain });
-            await coreWalletClient.switchChain({ id: viemChain!.id });
+            await walletClient.addChain({ chain: viemChain });
+            await walletClient.switchChain({ id: viemChain!.id });
 
             const result = await deploy({
                 abi: PoAManagerABI.abi as any,
@@ -120,7 +120,7 @@ function DeployPoAManager({ onSuccess }: BaseConsoleToolProps) {
 
         setIsChecking(true);
         try {
-            const owner = await publicClient.readContract({
+            const owner = await chainPublicClient!.readContract({
                 address: poaManagerAddress as `0x${string}`,
                 abi: PoAManagerABI.abi,
                 functionName: 'owner'
@@ -194,13 +194,13 @@ function DeployPoAManager({ onSuccess }: BaseConsoleToolProps) {
 
                     <Steps>
                         <Step>
-                            <h2 className="text-lg font-semibold">Configure and Deploy PoA Manager</h2>
-                            <p className="text-sm text-gray-500">
+                            <h2 className="text-lg font-medium">Configure and Deploy PoA Manager</h2>
+                            <p className="text-sm text-zinc-500 dark:text-zinc-400">
                                 Deploy the <code>PoAManager</code> contract with the specified owner and validator manager addresses.
                                 The contract will be initialized automatically during deployment.
                             </p>
                             {viemChain && (
-                                <div className="mt-2 text-xs text-gray-600 dark:text-gray-400">
+                                <div className="mt-2 text-xs text-zinc-600 dark:text-zinc-400">
                                     Current chain: {viemChain.name} (ID: {viemChain.id})
                                 </div>
                             )}
@@ -221,7 +221,7 @@ function DeployPoAManager({ onSuccess }: BaseConsoleToolProps) {
                                     />
 
                                     {safeSelection.safeAddress && (
-                                        <div className="text-xs text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 p-2 rounded">
+                                        <div className="text-xs text-zinc-600 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-800 p-2 rounded-lg">
                                             <strong>Safe Details:</strong> {safeSelection.threshold}/{safeSelection.owners.length} multisig
                                             <br />
                                             <strong>Owners:</strong> {safeSelection.owners.length > 0 ? safeSelection.owners.join(', ') : 'Loading...'}
@@ -255,8 +255,8 @@ function DeployPoAManager({ onSuccess }: BaseConsoleToolProps) {
                         </Step>
 
                         <Step>
-                            <h2 className="text-lg font-semibold">Verify Deployment</h2>
-                            <p className="text-sm text-gray-500">
+                            <h2 className="text-lg font-medium">Verify Deployment</h2>
+                            <p className="text-sm text-zinc-500 dark:text-zinc-400">
                                 Verify that the PoA Manager was deployed and initialized correctly.
                             </p>
 

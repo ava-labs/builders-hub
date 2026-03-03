@@ -13,14 +13,15 @@ import {
   FormControl,
   FormMessage,
 } from "@/components/ui/form";
-import { SubmissionForm } from "../hooks/useSubmissionFormSecure";
 import { FormLabelWithCheck } from "./FormLabelWithCheck";
 
 interface MultiLinkInputProps {
-  name: keyof SubmissionForm;
+  name: string;
   label: string;
   placeholder: string;
   validationMessage?: string;
+  /** When true, renders a plain FormLabel instead of FormLabelWithCheck. */
+  plainLabel?: boolean;
 }
 
 export const MultiLinkInput: React.FC<MultiLinkInputProps> = ({
@@ -28,8 +29,10 @@ export const MultiLinkInput: React.FC<MultiLinkInputProps> = ({
   label,
   placeholder,
   validationMessage,
+  plainLabel = false,
 }) => {
-  const form = useFormContext<SubmissionForm>();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const form = useFormContext<any>();
   const [newLink, setNewLink] = React.useState("");
 
   const handleAddLink = async () => {
@@ -99,10 +102,14 @@ export const MultiLinkInput: React.FC<MultiLinkInputProps> = ({
       name={name}
       render={({ field, fieldState }) => (
         <FormItem>
-          <FormLabelWithCheck
-            label={label}
-            checked={!!field.value && (field.value as string[]).length > 0}
-          />
+          {plainLabel ? (
+            <FormLabel>{label}</FormLabel>
+          ) : (
+            <FormLabelWithCheck
+              label={label}
+              checked={!!field.value && (field.value as string[]).length > 0}
+            />
+          )}
           <FormControl>
             <div className="space-y-2">
               <Input
