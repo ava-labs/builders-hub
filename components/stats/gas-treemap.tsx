@@ -322,6 +322,14 @@ const PROTOCOL_OTHERS_THRESHOLD = 0.03; // 3% of category gas
 
 // --- Trend insight generation ---
 
+interface InsightProtocol {
+  protocol: string;
+  txCount: number;
+  uniqueSenders: number;
+  delta: number;
+  gasShare: number;
+}
+
 interface Insight {
   title: string;
   description: string;
@@ -331,6 +339,7 @@ interface Insight {
   deltaDirection: "up" | "down" | "neutral";
   icon: "trending" | "fire" | "zap" | "info";
   metric?: string;
+  topProtocols?: InsightProtocol[];
 }
 
 function generateInsights(data: ChainStatsData): Insight[] {
@@ -352,18 +361,28 @@ function generateInsights(data: ChainStatsData): Insight[] {
       .sort((a, b) => b.delta - a.delta);
     const driver = catProtos[0];
 
-    const topDrivers = catProtos.slice(0, 3);
+    const allCatProtos = data.protocolBreakdown
+      .filter((p) => p.category === top.category)
+      .sort((a, b) => b.gasUsed - a.gasUsed)
+      .slice(0, 5);
     insights.push({
       title: `${catLabel} Surging`,
       description: driver
         ? `Led by ${driver.protocol} with +${driver.delta.toFixed(1)}% gas increase`
         : `Category seeing strong growth in gas usage`,
-      expandedDescription: `${catLabel} activity on C-Chain saw strong growth this period with gas consumption up ${top.delta.toFixed(1)}%.${driver ? ` ${driver.protocol} was the primary driver, increasing ${driver.delta.toFixed(1)}%.` : ""} The category represents ${top.gasShare.toFixed(1)}% of total chain gas with ${formatNumber(top.txCount)} transactions across ${formatNumber(top.uniqueSenders)} unique senders, burning ${top.avaxBurned.toFixed(2)} AVAX in fees.${topDrivers.length > 1 ? ` Other movers: ${topDrivers.slice(1).map((p) => `${p.protocol} (+${p.delta.toFixed(1)}%)`).join(", ")}.` : ""}`,
+      expandedDescription: `${catLabel} activity on C-Chain saw strong growth this period with gas consumption up ${top.delta.toFixed(1)}%.${driver ? ` ${driver.protocol} was the primary driver, increasing ${driver.delta.toFixed(1)}%.` : ""} The category represents ${top.gasShare.toFixed(1)}% of total chain gas with ${formatNumber(top.txCount)} transactions across ${formatNumber(top.uniqueSenders)} unique wallets, burning ${top.avaxBurned.toFixed(2)} AVAX in fees.`,
       category: top.category,
       delta: top.delta,
       deltaDirection: "up",
       icon: "trending",
       metric: `${top.gasShare.toFixed(1)}% of total gas`,
+      topProtocols: allCatProtos.map((p) => ({
+        protocol: p.protocol,
+        txCount: p.txCount,
+        uniqueSenders: p.uniqueSenders,
+        delta: p.delta,
+        gasShare: p.gasShare,
+      })),
     });
     if (driver) coveredProtocols.add(driver.protocol);
   }
@@ -372,15 +391,26 @@ function generateInsights(data: ChainStatsData): Insight[] {
   if (catsDown.length > 0 && catsDown[0].delta < 0) {
     const bottom = catsDown[0];
     const catLabel = CATEGORY_LABELS[bottom.category] || bottom.category;
+    const bottomCatProtos = data.protocolBreakdown
+      .filter((p) => p.category === bottom.category)
+      .sort((a, b) => b.gasUsed - a.gasUsed)
+      .slice(0, 5);
     insights.push({
       title: `${catLabel} Declining`,
       description: `Largest category decline this period`,
-      expandedDescription: `${catLabel} saw the steepest decline this period, with gas usage dropping ${Math.abs(bottom.delta).toFixed(1)}%. The category accounts for ${bottom.gasShare.toFixed(1)}% of total chain gas, processing ${formatNumber(bottom.txCount)} transactions from ${formatNumber(bottom.uniqueSenders)} unique senders. This decline burned ${bottom.avaxBurned.toFixed(2)} AVAX in gas fees, down from the previous period.`,
+      expandedDescription: `${catLabel} saw the steepest decline this period, with gas usage dropping ${Math.abs(bottom.delta).toFixed(1)}%. The category accounts for ${bottom.gasShare.toFixed(1)}% of total chain gas, processing ${formatNumber(bottom.txCount)} transactions from ${formatNumber(bottom.uniqueSenders)} unique wallets. This decline burned ${bottom.avaxBurned.toFixed(2)} AVAX in gas fees, down from the previous period.`,
       category: bottom.category,
       delta: bottom.delta,
       deltaDirection: "down",
       icon: "trending",
       metric: `${bottom.gasShare.toFixed(1)}% of total gas`,
+      topProtocols: bottomCatProtos.map((p) => ({
+        protocol: p.protocol,
+        txCount: p.txCount,
+        uniqueSenders: p.uniqueSenders,
+        delta: p.delta,
+        gasShare: p.gasShare,
+      })),
     });
   }
 
@@ -392,18 +422,29 @@ function generateInsights(data: ChainStatsData): Insight[] {
     const biggest = sorted.find((p) => !coveredProtocols.has(p.protocol));
     if (biggest) {
       const bigCatLabel = CATEGORY_LABELS[biggest.category] || biggest.category;
+      const siblingProtos = data.protocolBreakdown
+        .filter((p) => p.category === biggest.category)
+        .sort((a, b) => b.gasUsed - a.gasUsed)
+        .slice(0, 5);
       insights.push({
         title: `${biggest.protocol}`,
         description:
           biggest.delta >= 0
             ? `Biggest gainer among all protocols`
             : `Largest protocol decline this period`,
-        expandedDescription: `${biggest.protocol} (${bigCatLabel}) showed the most significant movement this period with a ${Math.abs(biggest.delta).toFixed(1)}% ${biggest.delta >= 0 ? "increase" : "decrease"} in gas consumption. It processed ${formatNumber(biggest.txCount)} transactions from ${formatNumber(biggest.uniqueSenders)} unique senders, burning ${biggest.avaxBurned.toFixed(2)} AVAX in gas fees and accounting for ${biggest.gasShare.toFixed(2)}% of total chain gas.`,
+        expandedDescription: `${biggest.protocol} (${bigCatLabel}) showed the most significant movement this period with a ${Math.abs(biggest.delta).toFixed(1)}% ${biggest.delta >= 0 ? "increase" : "decrease"} in gas consumption. It processed ${formatNumber(biggest.txCount)} transactions from ${formatNumber(biggest.uniqueSenders)} unique wallets, burning ${biggest.avaxBurned.toFixed(2)} AVAX in gas fees and accounting for ${biggest.gasShare.toFixed(2)}% of total chain gas.`,
         category: biggest.category,
         delta: biggest.delta,
         deltaDirection: biggest.delta >= 0 ? "up" : "down",
         icon: "zap",
         metric: `${formatNumber(biggest.txCount)} txs`,
+        topProtocols: siblingProtos.map((p) => ({
+          protocol: p.protocol,
+          txCount: p.txCount,
+          uniqueSenders: p.uniqueSenders,
+          delta: p.delta,
+          gasShare: p.gasShare,
+        })),
       });
     }
   }
@@ -414,11 +455,18 @@ function generateInsights(data: ChainStatsData): Insight[] {
     insights.push({
       title: "Classification Coverage",
       description: `${(100 - pct).toFixed(1)}% of gas remains unclassified`,
-      expandedDescription: `Currently ${pct.toFixed(1)}% of C-Chain gas is classified across ${data.categoryBreakdown.length} categories. The remaining ${(100 - pct).toFixed(1)}% comes from contracts not yet tagged in the registry. Top categories: ${data.categoryBreakdown.slice(0, 3).map((c) => `${CATEGORY_LABELS[c.category] || c.category} (${c.gasShare.toFixed(1)}%)`).join(", ")}. Expanding coverage helps surface emerging protocols and usage patterns.`,
+      expandedDescription: `Currently ${pct.toFixed(1)}% of C-Chain gas is classified across ${data.categoryBreakdown.length} categories. The remaining ${(100 - pct).toFixed(1)}% comes from contracts not yet tagged in the registry. Expanding coverage helps surface emerging protocols and usage patterns.`,
       delta: pct,
       deltaDirection: "neutral",
       icon: "info",
       metric: `${pct.toFixed(1)}% classified`,
+      topProtocols: data.categoryBreakdown.slice(0, 5).map((c) => ({
+        protocol: CATEGORY_LABELS[c.category] || c.category,
+        txCount: c.txCount,
+        uniqueSenders: c.uniqueSenders,
+        delta: c.delta,
+        gasShare: c.gasShare,
+      })),
     });
   }
 
@@ -465,6 +513,7 @@ export default function GasTreemap() {
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState<TimeRange>("30d");
   const [hovered, setHovered] = useState<HoveredInfo | null>(null);
+  const [hoveredInsight, setHoveredInsight] = useState<number | null>(null);
   const [dimensions, setDimensions] = useState({ width: 900, height: 500 });
 
   useEffect(() => {
@@ -1193,14 +1242,17 @@ export default function GasTreemap() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
             {insights.map((insight, i) => {
               const isExpanded =
-                !!hovered &&
-                !!insight.category &&
-                hovered.category === insight.category;
+                hoveredInsight === i ||
+                (!!hovered &&
+                  !!insight.category &&
+                  hovered.category === insight.category);
 
               return (
                 <div
                   key={i}
-                  className={`relative overflow-hidden rounded-lg border p-3 transition-all duration-300 ${
+                  onMouseEnter={() => setHoveredInsight(i)}
+                  onMouseLeave={() => setHoveredInsight(null)}
+                  className={`relative overflow-hidden rounded-lg border p-3 cursor-default transition-all duration-300 ${
                     isExpanded ? "scale-[1.03] shadow-lg z-10" : ""
                   } ${
                     insight.deltaDirection === "up"
@@ -1256,18 +1308,62 @@ export default function GasTreemap() {
                       {insight.description}
                     </p>
 
-                    {/* Expanded description — animated via max-height */}
+                    {/* Expanded detail — animated via max-height */}
                     <div
                       className={`overflow-hidden transition-all duration-300 ease-out ${
-                        isExpanded ? "max-h-[200px] opacity-100 mt-2" : "max-h-0 opacity-0"
+                        isExpanded ? "max-h-[400px] opacity-100 mt-2" : "max-h-0 opacity-0"
                       }`}
                     >
-                      <p className="text-xs text-zinc-700 dark:text-zinc-300 leading-relaxed pt-2 border-t border-zinc-300/50 dark:border-zinc-700/50">
-                        {insight.expandedDescription}
-                      </p>
+                      <div className="pt-2 border-t border-zinc-300/50 dark:border-zinc-700/50 space-y-2">
+                        <p className="text-xs text-zinc-700 dark:text-zinc-300 leading-relaxed">
+                          {insight.expandedDescription}
+                        </p>
+
+                        {/* Protocol / category breakdown table */}
+                        {insight.topProtocols && insight.topProtocols.length > 0 && (
+                          <table className="w-full text-[11px]">
+                            <thead>
+                              <tr className="text-zinc-500 text-[9px] uppercase">
+                                <th className="text-left py-1 font-medium">
+                                  {insight.icon === "info" ? "Category" : "Protocol"}
+                                </th>
+                                <th className="text-right py-1 font-medium">Txns</th>
+                                <th className="text-right py-1 font-medium">EOAs</th>
+                                <th className="text-right py-1 font-medium">Change</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {insight.topProtocols.map((p, idx) => (
+                                <tr
+                                  key={p.protocol}
+                                  className={idx % 2 === 0
+                                    ? "bg-zinc-200/30 dark:bg-zinc-800/30"
+                                    : ""
+                                  }
+                                >
+                                  <td className="py-1 pr-1 text-zinc-800 dark:text-zinc-200 font-medium truncate max-w-[100px]">
+                                    {p.protocol}
+                                  </td>
+                                  <td className="py-1 text-right text-zinc-600 dark:text-zinc-400 font-mono">
+                                    {formatNumber(p.txCount)}
+                                  </td>
+                                  <td className="py-1 text-right text-zinc-600 dark:text-zinc-400 font-mono">
+                                    {formatNumber(p.uniqueSenders)}
+                                  </td>
+                                  <td className={`py-1 text-right font-semibold ${
+                                    p.delta >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
+                                  }`}>
+                                    {p.delta >= 0 ? "+" : ""}{p.delta.toFixed(1)}%
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        )}
+                      </div>
                     </div>
 
-                    {insight.metric && (
+                    {insight.metric && !isExpanded && (
                       <div className="mt-2 pt-2 border-t border-zinc-200 dark:border-zinc-700/30">
                         <span className="text-[10px] uppercase text-zinc-500">
                           {insight.metric}
