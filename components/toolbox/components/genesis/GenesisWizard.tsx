@@ -178,14 +178,14 @@ function CustomJsonEditor({
     return (
         <div className="space-y-4">
             {/* Info banner */}
-            <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/50 rounded-lg p-4">
+            <div className="border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 rounded-lg p-4">
                 <div className="flex items-start gap-3">
-                    <FileJson className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                    <FileJson className="h-5 w-5 text-zinc-500 dark:text-zinc-400 flex-shrink-0 mt-0.5" />
                     <div className="space-y-1">
-                        <div className="font-medium text-sm text-blue-800 dark:text-blue-200">
+                        <div className="font-medium text-sm text-zinc-900 dark:text-zinc-100">
                             Custom Genesis JSON
                         </div>
-                        <div className="text-xs text-blue-700 dark:text-blue-300">
+                        <div className="text-xs text-zinc-600 dark:text-zinc-400">
                             Paste your pre-configured genesis JSON or drag & drop a genesis.json file.
                             This is useful for importing configurations from other tools or deploying
                             previously saved genesis files.
@@ -278,13 +278,7 @@ function CustomJsonEditor({
 
             {/* Validation status */}
             {value && (
-                <div className={`rounded-lg p-3 ${
-                    validation.valid
-                        ? validation.hasRequiredFields
-                            ? 'bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800/50'
-                            : 'bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/50'
-                        : 'bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800/50'
-                }`}>
+                <div className="rounded-lg p-3 border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900">
                     <div className="flex items-start gap-2">
                         {validation.valid ? (
                             validation.hasRequiredFields ? (
@@ -298,21 +292,13 @@ function CustomJsonEditor({
                         <div className="flex-1 space-y-1">
                             {validation.valid ? (
                                 <>
-                                    <div className={`text-sm font-medium ${
-                                        validation.hasRequiredFields
-                                            ? 'text-green-800 dark:text-green-200'
-                                            : 'text-amber-800 dark:text-amber-200'
-                                    }`}>
+                                    <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
                                         {validation.hasRequiredFields
-                                            ? '✓ Valid Genesis JSON'
-                                            : '⚠ Valid JSON with warnings'
+                                            ? 'Valid Genesis JSON'
+                                            : 'Valid JSON with warnings'
                                         }
                                     </div>
-                                    <div className={`text-xs ${
-                                        validation.hasRequiredFields
-                                            ? 'text-green-700 dark:text-green-300'
-                                            : 'text-amber-700 dark:text-amber-300'
-                                    }`}>
+                                    <div className="text-xs text-zinc-600 dark:text-zinc-400">
                                         Size: {(validation.size / 1024).toFixed(2)} KiB
                                         {validation.size > 64 * 1024 && (
                                             <span className="ml-2 text-red-600 dark:text-red-400">
@@ -328,10 +314,10 @@ function CustomJsonEditor({
                                 </>
                             ) : (
                                 <>
-                                    <div className="text-sm font-medium text-red-800 dark:text-red-200">
-                                        ✗ Invalid JSON
+                                    <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                                        Invalid JSON
                                     </div>
-                                    <div className="text-xs text-red-700 dark:text-red-300 font-mono">
+                                    <div className="text-xs text-red-600 dark:text-red-400 font-mono">
                                         {validation.error}
                                     </div>
                                 </>

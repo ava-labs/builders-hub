@@ -36,8 +36,8 @@ function DeployProxyContract({ onSuccess }: BaseConsoleToolProps) {
     const [acknowledged, setAcknowledged] = useState(false);
     const [warningDismissed, setWarningDismissed] = useState(false);
 
-    const { publicClient, walletEVMAddress } = useWalletStore();
-    const { coreWalletClient } = useConnectedWallet();
+    const { walletEVMAddress } = useWalletStore();
+    const { walletClient } = useConnectedWallet();
     const { deploy, isDeploying } = useContractDeployer();
 
     async function deployProxyAdmin() {

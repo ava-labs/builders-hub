@@ -72,7 +72,7 @@ export default function InvalidInvitationComponent({open, hackathonId, onOpenCha
                 <Card className="border border-red-500 dark:bg-zinc-800 rounded-md">
                     <div className="flex flex-col px-6">
                         <p className="text-md dark:text-white text-gray-700">
-                            Invitation link is not valid, you will be redirect to hackathon
+                            Invitation link is not valid. Verify you're logged in the correct account and try again.
                         </p>
                     </div>
         

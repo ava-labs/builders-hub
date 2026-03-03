@@ -2,12 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import ReferralButton from "./ReferralButton";
-import { ApplyButton } from "./ApplyButton";
 
-interface ApplicationData {
-  id: string;
-  firstName: string;
+interface ParticipantData {
   projectName: string;
   createdAt: string;
 }
@@ -119,7 +115,7 @@ function MobileTimeline({ steps }: { steps: TimelineStep[] }) {
   );
 }
 
-function StatusTracker({ application }: { application: ApplicationData }) {
+function StatusTracker({ application }: { application: ParticipantData }) {
   const formattedDate = new Date(application.createdAt).toLocaleDateString(
     "en-US",
     {
@@ -164,41 +160,18 @@ function StatusTracker({ application }: { application: ApplicationData }) {
 
         <div className="flex flex-col items-center gap-3 mt-2">
           <span className="font-['Aeonik:Regular',sans-serif] text-[16px] text-[rgba(255,255,255,0.8)]">
-          Stay connected and invite others join.
+            Stay connected with the community.
           </span>
-          <div className="flex flex-row flex-wrap gap-[10px] items-center justify-center">
-            <ReferralButton />
-            <a
-              href="https://t.me/avaxbuildgames"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="shrink-0 bg-[#66acd6] flex h-[52px] items-center justify-center px-[36px] py-[12px] rounded-[3.35544e+07px] cursor-pointer hover:bg-[#7bbde3] transition-colors shadow-[0px_0px_20px_4px_rgba(102,172,214,0.5)]"
-            >
-              <span className="font-['Aeonik:Medium',sans-serif] font-medium text-[#152d44] text-[18px] text-center text-nowrap leading-[28px]">
-                Join the Build Games chat
-              </span>
-            </a>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function OriginalCTA() {
-  return (
-    <div className="get-involved-cta relative shrink-0 w-full py-[40px]" data-name="GetInvolvedCTA">
-      <div className="flex flex-row flex-nowrap items-center justify-center gap-[16px] px-[16px]">
-        <div className="font-['Aeonik:Medium',sans-serif] font-medium text-[64px] text-nowrap text-white leading-[80px]">
-          Get Involved
-        </div>
-        <div className="flex flex-row flex-nowrap gap-[10px] items-center">
-          <ReferralButton />
-          <ApplyButton className="shrink-0 bg-[#66acd6] flex h-[52px] items-center justify-center px-[36px] py-[12px] rounded-[3.35544e+07px] cursor-pointer hover:bg-[#7bbde3] transition-colors shadow-[0px_0px_20px_4px_rgba(102,172,214,0.5)]">
+          <a
+            href="https://t.me/avaxbuildgames"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="shrink-0 bg-[#66acd6] flex h-[52px] items-center justify-center px-[36px] py-[12px] rounded-[3.35544e+07px] cursor-pointer hover:bg-[#7bbde3] transition-colors shadow-[0px_0px_20px_4px_rgba(102,172,214,0.5)]"
+          >
             <span className="font-['Aeonik:Medium',sans-serif] font-medium text-[#152d44] text-[18px] text-center text-nowrap leading-[28px]">
-              Apply
+              Join the Build Games chat
             </span>
-          </ApplyButton>
+          </a>
         </div>
       </div>
     </div>
@@ -207,11 +180,10 @@ function OriginalCTA() {
 
 export default function ApplicationStatusTracker() {
   const { status } = useSession();
-  const [application, setApplication] = useState<ApplicationData | null>(null);
+  const [participant, setParticipant] = useState<ParticipantData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    // Only fetch when authenticated
     if (status !== "authenticated") {
       return;
     }
@@ -220,8 +192,8 @@ export default function ApplicationStatusTracker() {
     fetch("/api/build-games/status")
       .then((res) => res.json())
       .then((data) => {
-        if (data.hasApplied && data.application) {
-          setApplication(data.application);
+        if (data.isParticipant && data.participant) {
+          setParticipant(data.participant);
         }
       })
       .catch((error) => {
@@ -232,13 +204,9 @@ export default function ApplicationStatusTracker() {
       });
   }, [status]);
 
-  if (status === "loading" || status === "unauthenticated" || isLoading) {
-    return <OriginalCTA />;
+  if (status === "loading" || status === "unauthenticated" || isLoading || !participant) {
+    return null;
   }
 
-  if (!application) {
-    return <OriginalCTA />;
-  }
-
-  return <StatusTracker application={application} />;
+  return <StatusTracker application={participant} />;
 }

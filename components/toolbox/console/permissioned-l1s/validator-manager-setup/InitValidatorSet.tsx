@@ -1,278 +1,496 @@
 "use client";
 
-import { useEffect, useState } from 'react';
-import { Step, Steps } from "fumadocs-ui/components/steps";
-
+import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useSelectedL1 } from "@/components/toolbox/stores/l1ListStore";
 import { useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
-import { hexToBytes, decodeErrorResult, Abi } from 'viem';
-import { packWarpIntoAccessList } from '../ValidatorManager/packWarp';
+import { useChainPublicClient } from "@/components/toolbox/hooks/useChainPublicClient";
+import { useWalletClient } from 'wagmi';
+import { hexToBytes, decodeErrorResult, Abi, encodeFunctionData } from "viem";
+import { packWarpIntoAccessList } from "../ValidatorManager/packWarp";
 import ValidatorManagerABI from "@/contracts/icm-contracts/compiled/ValidatorManager.json";
-
 import { Button } from "@/components/toolbox/components/Button";
-import { Input } from "@/components/toolbox/components/Input";
-import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
-import { getSubnetInfo } from '@/components/toolbox/coreViem/utils/glacier';
+import { getSubnetInfo } from "@/components/toolbox/coreViem/utils/glacier";
 import { useAvalancheSDKChainkit } from "@/components/toolbox/stores/useAvalancheSDKChainkit";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
-import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
-import { cb58ToHex } from '@/components/toolbox/console/utilities/format-converter/FormatConverter';
+import { cb58ToHex } from "@/components/toolbox/console/utilities/format-converter/FormatConverter";
+import { ContractFunctionViewer } from "@/components/console/contract-function-viewer";
+import { Check, ChevronDown, ChevronRight } from "lucide-react";
+import { DynamicCodeBlock } from "fumadocs-ui/components/dynamic-codeblock";
+import versions from "@/scripts/versions.json";
+import { fetchConversionData, ConversionData } from "./fetchConversionData";
 
-const add0x = (hex: string): `0x${string}` => hex.startsWith('0x') ? hex as `0x${string}` : `0x${hex}`;
+const ICM_COMMIT = versions["ava-labs/icm-contracts"];
+const add0x = (hex: string): `0x${string}` => (hex.startsWith("0x") ? (hex as `0x${string}`) : `0x${hex}`);
 
 const metadata: ConsoleToolMetadata = {
-    title: "Initialize Validator Set",
-    description: "Initialize the ValidatorManager contract with the initial validator set",
-    toolRequirements: [
-        WalletRequirementsConfigKey.EVMChainBalance
-    ],
-    githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
+  title: "Initialize Validator Set",
+  description: "Initialize the ValidatorManager with the initial validator set from P-Chain",
+  toolRequirements: [WalletRequirementsConfigKey.WalletConnected],
+  githubUrl: generateConsoleToolGitHubUrl(import.meta.url),
 };
 
 function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
-    const [conversionTxID, setConversionTxID] = useState<string>("");
-    const [L1ConversionSignature, setL1ConversionSignature] = useState<string>("");
-    const viemChain = useViemChainStore();
-    const { publicClient, walletEVMAddress } = useWalletStore();
-    const { coreWalletClient } = useConnectedWallet();
-    const { aggregateSignature } = useAvalancheSDKChainkit();
-    const [isInitializing, setIsInitializing] = useState(false);
-    const [txHash, setTxHash] = useState<string | null>(null);
-    const [simulationWentThrough, _] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [collectedData, setCollectedData] = useState<Record<string, any>>({});
-    const [showDebugData, setShowDebugData] = useState(false);
-    const selectedL1 = useSelectedL1()();
-    const [conversionTxIDError, setConversionTxIDError] = useState<string>("");
-    const [L1ConversionSignatureError, setL1ConversionSignatureError] = useState<string>("");
-    const [isAggregating, setIsAggregating] = useState(false);
+  const [conversionTxID, setConversionTxID] = useState<string>("");
+  const [L1ConversionSignature, setL1ConversionSignature] = useState<string>("");
+  const viemChain = useViemChainStore();
+  const { walletEVMAddress, isTestnet } = useWalletStore();
+  const chainPublicClient = useChainPublicClient();
+  const { data: walletClient } = useWalletClient();
+  const walletType = useWalletStore((s) => s.walletType);
+  const isCoreWallet = walletType === "core";
+  const { aggregateSignature } = useAvalancheSDKChainkit();
+  const [isInitializing, setIsInitializing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [collectedData, setCollectedData] = useState<Record<string, any>>({});
+  const [showDebugData, setShowDebugData] = useState(false);
+  const selectedL1 = useSelectedL1()();
+  const [conversionTxIDError, setConversionTxIDError] = useState<string>("");
+  const [isAggregating, setIsAggregating] = useState(false);
+  const [txSuccess, setTxSuccess] = useState(false);
+  const [managerAddress, setManagerAddress] = useState<string>("");
+  const [conversionResult, setConversionResult] = useState<ConversionData | null>(null);
+  const [isValidatorSetInit, setIsValidatorSetInit] = useState<boolean | null>(null);
+  const [isCheckingInit, setIsCheckingInit] = useState(false);
 
-    const { sendCoreWalletNotSetNotification, notify } = useConsoleNotifications();
+  const { notify } = useConsoleNotifications();
 
-    async function aggSigs() {
-        setL1ConversionSignatureError("");
-        setIsAggregating(true);
+  // Unified aggregation: works for ALL wallet types
+  async function aggSigs() {
+    setError(null);
+    setIsAggregating(true);
 
-        const aggPromise = (async () => {
-            const { message, justification, signingSubnetId } = await coreWalletClient.extractWarpMessageFromPChainTx({ txId: conversionTxID });
+    const aggPromise = (async () => {
+      // Use fetchConversionData (P-Chain RPC + Glacier) — no wallet dependency
+      const data = await fetchConversionData(conversionTxID, isTestnet);
+      setConversionResult(data);
 
-            const { signedMessage } = await aggregateSignature({
-                message: message,
-                justification: justification,
-                signingSubnetId: signingSubnetId,
-                quorumPercentage: 67,
-            });
-            setL1ConversionSignature(signedMessage);
-            return signedMessage;
-        })();
+      if (data.managerAddress) {
+        setManagerAddress(data.managerAddress);
+      }
 
-        notify({
-            type: 'local',
-            name: 'Aggregate Signatures'
-        }, aggPromise);
+      const { signedMessage } = await aggregateSignature({
+        message: data.message,
+        justification: data.justification,
+        signingSubnetId: data.signingSubnetId,
+        quorumPercentage: 67,
+      });
+      setL1ConversionSignature(signedMessage);
+      return signedMessage;
+    })();
 
-        try {
-            await aggPromise;
-        } finally {
-            setIsAggregating(false);
-        }
+    notify({ type: "local", name: "Aggregate Signatures" }, aggPromise);
+
+    try {
+      await aggPromise;
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setIsAggregating(false);
+    }
+  }
+
+  useEffect(() => {
+    setConversionTxIDError("");
+    const subnetId = selectedL1?.subnetId;
+    if (!subnetId) return;
+    getSubnetInfo(subnetId)
+      .then((subnetInfo) => {
+        setConversionTxID(subnetInfo.l1ConversionTransactionHash);
+        const contractAddr = subnetInfo.l1ValidatorManagerDetails?.contractAddress;
+        if (contractAddr) setManagerAddress(contractAddr);
+      })
+      .catch((error) => {
+        console.error("Error getting subnet info:", error);
+        setConversionTxIDError((error as Error)?.message || "Unknown error");
+      });
+  }, [selectedL1?.subnetId]);
+
+  // Check on-chain whether initializeValidatorSet has already been called
+  useEffect(() => {
+    if (!managerAddress || !chainPublicClient) return;
+    setIsCheckingInit(true);
+    chainPublicClient.readContract({
+      address: managerAddress as `0x${string}`,
+      abi: ValidatorManagerABI.abi,
+      functionName: "isValidatorSetInitialized",
+    }).then((result) => {
+      setIsValidatorSetInit(result as boolean);
+    }).catch(() => {
+      setIsValidatorSetInit(null);
+    }).finally(() => {
+      setIsCheckingInit(false);
+    });
+  }, [managerAddress, chainPublicClient]);
+
+  // Build the transaction args from conversion data
+  function buildTxArgs(data: ConversionData) {
+    return [
+      {
+        subnetID: add0x(cb58ToHex(data.subnetId)),
+        validatorManagerBlockchainID: add0x(cb58ToHex(data.chainId)),
+        validatorManagerAddress: data.managerAddress as `0x${string}`,
+        initialValidators: data.validators.map(
+          ({ nodeID, weight, signer }: { nodeID: string; weight: number; signer: { publicKey: string } }) => {
+            const nodeIDBytes = nodeID.startsWith("0x") ? nodeID : add0x(nodeID);
+            const blsPublicKeyBytes = signer.publicKey.startsWith("0x") ? signer.publicKey : add0x(signer.publicKey);
+            return {
+              nodeID: nodeIDBytes,
+              blsPublicKey: blsPublicKeyBytes,
+              weight: weight,
+            };
+          }
+        ),
+      },
+      0,
+    ];
+  }
+
+  // Core Wallet path: send tx with access list in-browser
+  const onInitialize = async () => {
+    if (!conversionTxID) {
+      setError("Conversion Tx ID is required");
+      return;
+    }
+    if (!walletClient) {
+      setError("Core Wallet required for in-browser submission");
+      return;
+    }
+    if (!conversionResult) {
+      setError("Aggregate signatures first");
+      return;
     }
 
-    useEffect(() => {
-        setConversionTxIDError("");
-        const subnetId = selectedL1?.subnetId;
-        if (!subnetId) return;
-        getSubnetInfo(subnetId).then((subnetInfo) => {
-            setConversionTxID(subnetInfo.l1ConversionTransactionHash);
-        }).catch((error) => {
-            console.error('Error getting subnet info:', error);
-            setConversionTxIDError((error as Error)?.message || "Unknown error");
-        });
-    }, []);
+    setIsInitializing(true);
+    setError(null);
 
-    const onInitialize = async (debug: boolean = false) => {
-        if (!conversionTxID) {
-            setError("Conversion Tx ID is required");
-            return;
-        }
-        const evmChainRpcUrl = selectedL1?.rpcUrl;
-        if (!evmChainRpcUrl && debug) {
-            setError('RPC endpoint is required for debug mode');
-            return;
-        }
-        if (!coreWalletClient) {
-            sendCoreWalletNotSetNotification();
-            return;
-        }
+    try {
+      const txArgs = buildTxArgs(conversionResult);
+      setCollectedData({ ...(txArgs[0] as any), L1ConversionSignature });
 
-        setIsInitializing(true);
-        setError(null);
+      const signatureBytes = hexToBytes(add0x(L1ConversionSignature));
+      const accessList = packWarpIntoAccessList(signatureBytes);
 
-        const initPromise = (async () => {
-            const { validators, subnetId, chainId, managerAddress } = await coreWalletClient.extractWarpMessageFromPChainTx({ txId: conversionTxID });
-            const txArgs = [
-                {
-                    subnetID: add0x(cb58ToHex(subnetId)),
-                    validatorManagerBlockchainID: add0x(cb58ToHex(chainId)),
-                    validatorManagerAddress: managerAddress as `0x${string}`,
-                    initialValidators: validators
-                        .map(({ nodeID, weight, signer }: { nodeID: string, weight: number, signer: { publicKey: string } }) => {
-                            const nodeIDBytes = nodeID.startsWith('0x')
-                                ? nodeID
-                                : add0x(nodeID);
-                            const blsPublicKeyBytes = signer.publicKey.startsWith('0x')
-                                ? signer.publicKey
-                                : add0x(signer.publicKey);
-                            return {
-                                nodeID: nodeIDBytes,
-                                blsPublicKey: blsPublicKeyBytes,
-                                weight: weight
-                            };
-                        })
-                },
-                0
-            ];
+      const initPromise = walletClient!.writeContract({
+        address: conversionResult.managerAddress as `0x${string}`,
+        abi: ValidatorManagerABI.abi,
+        functionName: "initializeValidatorSet",
+        args: txArgs,
+        accessList,
+        gas: BigInt(2_000_000),
+        chain: viemChain || undefined,
+        account: walletEVMAddress as `0x${string}`,
+      });
 
-            setCollectedData({ ...txArgs[0] as any, L1ConversionSignature });
+      notify({ type: "call", name: "Initialize Validator Set" }, initPromise, viemChain ?? undefined);
 
-            const signatureBytes = hexToBytes(add0x(L1ConversionSignature));
-            const accessList = packWarpIntoAccessList(signatureBytes);
+      const hash = await initPromise;
+      const receipt = await chainPublicClient!.waitForTransactionReceipt({ hash });
 
-            const initPromise = coreWalletClient.writeContract({
-                address: managerAddress as `0x${string}`,
-                abi: ValidatorManagerABI.abi,
-                functionName: 'initializeValidatorSet',
-                args: txArgs,
-                accessList,
-                gas: BigInt(2_000_000),
-                chain: viemChain || undefined,
-                account: walletEVMAddress as `0x${string}`
-            });
+      const evmChainRpcUrl = selectedL1?.rpcUrl;
+      if (receipt.status !== "success") {
+        const decodedError = await debugTraceAndDecode(hash, evmChainRpcUrl!);
+        throw new Error(`Transaction failed: ${decodedError}`);
+      }
 
-            notify({
-                type: 'call',
-                name: 'Initialize Validator Set'
-            }, initPromise, viemChain ?? undefined);
+      setTxSuccess(true);
+      onSuccess?.();
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setIsInitializing(false);
+    }
+  };
 
-            try {
-                const hash = await initPromise;
-                const receipt = await publicClient.waitForTransactionReceipt({ hash });
+  // Generate cast command with real encoded args for generic wallets
+  function generateCastCommand(): string {
+    if (!conversionResult || !L1ConversionSignature) return "";
 
-                if (receipt.status !== 'success') {
-                    const decodedError = await debugTraceAndDecode(hash, evmChainRpcUrl!);
-                    throw new Error(`Transaction failed: ${decodedError}`);
-                }
+    const rpcUrl = selectedL1?.rpcUrl || "<L1_RPC_URL>";
+    const addr = conversionResult.managerAddress || managerAddress || "<VALIDATOR_MANAGER_ADDRESS>";
 
-                onSuccess?.();
-                return hash;
-            } catch (err) {
-                setError((err as Error).message);
-            } finally {
-                setIsInitializing(false);
-            }
-        })();
-    };
+    const txArgs = buildTxArgs(conversionResult);
 
-    return (
-        <>
-                <Steps>
-                    <Step>
-                        <h2 className="text-lg font-semibold">Step 1: Aggregate Signature of Conversion Data</h2>
-                        <p>Enter the P-Chain Transaction ID of the ConvertSubnetToL1Tx of the L1 this Validator Manager it is for. It is needed to fetch the conversion data containing the initial validator set. This validator set will be set up in the validator manager contract so the consensus weight of these validators can be changed or they can be removed entirely if desired.</p>
-                        <div className="space-y-4">
-                            <Input
-                                label="Conversion Tx ID"
-                                value={conversionTxID}
-                                onChange={setConversionTxID}
-                                error={conversionTxIDError}
-                            />
-                            <Button disabled={!conversionTxID || !!L1ConversionSignature} onClick={() => aggSigs()} loading={isAggregating}>Aggregate</Button>
-                        </div>
-                    </Step>
-                    <Step>
-                        <h2 className="text-lg font-semibold">Step 2: Intialize the Validator Manager Contract State</h2>
-                        With the aggregated signature, you can now initialize the Validator Manager contract state. This will set up the initial validator set and allow you to manage validators.
-                        <Input
-                            label="Aggregated Signature"
-                            value={L1ConversionSignature}
-                            onChange={setL1ConversionSignature}
-                            type="textarea"
-                            placeholder="0x...."
-                            disabled={!conversionTxID}
-                            error={L1ConversionSignatureError}
-                        />
-                        <Button
-                            variant="primary"
-                            onClick={() => onInitialize(false)}
-                            loading={isInitializing}
-                            disabled={!conversionTxID || !L1ConversionSignature}
-                        >
-                            Initialize Validator Set
-                        </Button>
-                    </Step>
-                </Steps>
+    // Encode full calldata (4-byte selector + ABI-encoded args).
+    // Passing raw calldata avoids cast trying to re-encode the args.
+    const calldata = encodeFunctionData({
+      abi: ValidatorManagerABI.abi as Abi,
+      functionName: "initializeValidatorSet",
+      args: txArgs,
+    });
 
-                {error && (
-                    <div className="p-4 text-red-700 bg-red-100 rounded-md">
-                        {error}
+    // Build the access list JSON for the Warp precompile
+    let accessListJson = '"<ACCESS_LIST>"';
+    try {
+      const signatureBytes = hexToBytes(add0x(L1ConversionSignature));
+      const accessList = packWarpIntoAccessList(signatureBytes);
+      accessListJson = `'${JSON.stringify(accessList)}'`;
+    } catch {
+      // Keep placeholder
+    }
+
+    return [
+      `# Requires Foundry ≥ 2024-09-16 (run foundryup to update)`,
+      `cast send ${addr} \\`,
+      `  ${calldata} \\`,
+      `  --access-list ${accessListJson} \\`,
+      `  --gas-limit 2000000 \\`,
+      `  --rpc-url ${rpcUrl} \\`,
+      `  --private-key $PRIVATE_KEY`,
+    ].join("\n");
+  }
+
+  const step1Complete = !!L1ConversionSignature;
+  const step2Complete = txSuccess || isValidatorSetInit === true;
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Left: Initialize Controls */}
+      <div className="flex flex-col rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
+        <div className="p-4 space-y-3">
+          {/* Step 1: Aggregate Signatures */}
+          <div
+            className={`p-3 rounded-xl border transition-colors ${
+              step1Complete
+                ? "bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800"
+                : "bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700"
+            }`}
+          >
+            <div className="flex items-start gap-3">
+              <div
+                className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
+                  step1Complete
+                    ? "bg-green-500 text-white"
+                    : "bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300"
+                }`}
+              >
+                {step1Complete ? <Check className="w-3 h-3" /> : "1"}
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Aggregate Conversion Signature</h3>
+                <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                  Collect BLS signatures from validators for the{" "}
+                  <Link
+                    href="/docs/rpcs/p-chain/txn-format#unsigned-convert-subnet-to-l1-tx"
+                    className="text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    ConvertSubnetToL1Tx
+                  </Link>
+                  . Ensure port <code className="px-1 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-[10px]">9651</code> is open on all validators.
+                </p>
+
+                <div className="mt-2 space-y-2">
+                  <div>
+                    <label className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400 mb-1">
+                      Conversion Tx ID (P-Chain)
+                    </label>
+                    <input
+                      type="text"
+                      value={conversionTxID}
+                      onChange={(e) => setConversionTxID(e.target.value)}
+                      className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-mono"
+                      placeholder="txID..."
+                    />
+                    {conversionTxIDError && <p className="mt-0.5 text-[10px] text-red-500">{conversionTxIDError}</p>}
+                  </div>
+
+                  {step1Complete ? (
+                    <div className="flex items-center gap-2">
+                      <Check className="w-3.5 h-3.5 text-green-500" />
+                      <code className="text-[10px] font-mono text-zinc-500 truncate">
+                        {L1ConversionSignature.slice(0, 24)}...
+                      </code>
                     </div>
-                )}
+                  ) : (
+                    <Button
+                      variant="primary"
+                      onClick={aggSigs}
+                      loading={isAggregating}
+                      disabled={!conversionTxID || isAggregating}
+                      className="w-full"
+                    >
+                      {isAggregating ? "Aggregating..." : "Aggregate Signatures"}
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
 
-                {simulationWentThrough && !error && (
-                    <div className="p-4 text-green-700 bg-green-100 rounded-md">
-                        Transaction simulation successful
+          {/* Step 2: Initialize Validator Set */}
+          <div
+            className={`p-3 rounded-xl border transition-colors ${
+              step2Complete
+                ? "bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800"
+                : step1Complete
+                ? "bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700"
+                : "bg-zinc-50/50 dark:bg-zinc-800/20 border-zinc-200/50 dark:border-zinc-800 opacity-50"
+            }`}
+          >
+            <div className="flex items-start gap-3">
+              <div
+                className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
+                  step2Complete
+                    ? "bg-green-500 text-white"
+                    : step1Complete
+                    ? "bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300"
+                    : "bg-zinc-200/50 dark:bg-zinc-800 text-zinc-400"
+                }`}
+              >
+                {step2Complete ? <Check className="w-3 h-3" /> : "2"}
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3
+                  className={`text-sm font-medium ${
+                    step1Complete ? "text-zinc-900 dark:text-zinc-100" : "text-zinc-400 dark:text-zinc-600"
+                  }`}
+                >
+                  Initialize Validator Set
+                </h3>
+                <p
+                  className={`mt-1 text-xs ${
+                    step1Complete ? "text-zinc-500 dark:text-zinc-400" : "text-zinc-400 dark:text-zinc-600"
+                  }`}
+                >
+                  Submit the aggregated signature to register initial validators on-chain via{" "}
+                  <a
+                    href="https://eips.ethereum.org/EIPS/eip-2930"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    EIP-2930
+                  </a>{" "}
+                  access list
+                </p>
+
+                <div className="mt-2 space-y-2">
+                  {step2Complete ? (
+                    <div className="flex items-center gap-1.5 text-green-600 dark:text-green-400">
+                      <Check className="w-3.5 h-3.5" />
+                      <span className="text-xs font-medium">Validator set initialized</span>
                     </div>
-                )}
-
-                {
-                    Object.keys(collectedData).length > 0 && (
-                        <div className="space-y-2">
-                            <span onClick={() => setShowDebugData(!showDebugData)} className="cursor-pointer text-blue-500  hover:underline">{showDebugData ? "Hide" : "Show"} debug data</span>
-                            {showDebugData && (
-                                <DynamicCodeBlock lang="json" code={JSON.stringify(collectedData, null, 2)} />
-                            )}
-                        </div>
+                  ) : isCheckingInit ? (
+                    <p className="text-xs text-zinc-400">Checking on-chain status...</p>
+                  ) : step1Complete ? (
+                    isCoreWallet ? (
+                      <Button
+                        variant="primary"
+                        onClick={onInitialize}
+                        loading={isInitializing}
+                        disabled={!L1ConversionSignature || isInitializing}
+                        className="w-full"
+                      >
+                        Initialize Validator Set
+                      </Button>
+                    ) : (
+                      <DynamicCodeBlock lang="bash" code={generateCastCommand()} />
                     )
-                }
-        </>
-    );
+                  ) : null}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Error Display */}
+          {error && (
+            <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+              <p className="text-xs text-red-600 dark:text-red-400">{error}</p>
+            </div>
+          )}
+
+          {/* Debug Data (collapsible) */}
+          {Object.keys(collectedData).length > 0 && (
+            <div className="border border-zinc-200 dark:border-zinc-700 rounded-xl overflow-hidden">
+              <button
+                onClick={() => setShowDebugData(!showDebugData)}
+                className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors"
+              >
+                {showDebugData ? (
+                  <ChevronDown className="w-3.5 h-3.5 text-zinc-400" />
+                ) : (
+                  <ChevronRight className="w-3.5 h-3.5 text-zinc-400" />
+                )}
+                <span className="text-xs font-medium text-zinc-600 dark:text-zinc-400">Debug Data</span>
+              </button>
+              {showDebugData && (
+                <div className="px-3 pb-3 border-t border-zinc-200 dark:border-zinc-700">
+                  <pre className="mt-2 p-2 text-[10px] font-mono bg-zinc-100 dark:bg-zinc-800 rounded-lg overflow-auto max-h-32">
+                    {JSON.stringify(collectedData, null, 2)}
+                  </pre>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="shrink-0 px-4 py-2.5 border-t border-zinc-200/80 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 flex items-center justify-between mt-auto">
+          <span className="text-xs text-zinc-500">Calls initializeValidatorSet()</span>
+          <a
+            href={`https://github.com/ava-labs/icm-contracts/tree/${ICM_COMMIT}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[11px] text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 font-mono transition-colors"
+          >
+            @{ICM_COMMIT.slice(0, 7)}
+          </a>
+        </div>
+      </div>
+
+      {/* Right: Contract Source with file tabs */}
+      <ContractFunctionViewer
+        sources={[
+          {
+            filename: "ValidatorManager.sol",
+            sourceUrl: `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/validator-manager/ValidatorManager.sol`,
+            githubUrl: `https://github.com/ava-labs/icm-contracts/blob/${ICM_COMMIT}/contracts/validator-manager/ValidatorManager.sol`,
+            highlightFunction: "initializeValidatorSet",
+          },
+          {
+            filename: "IACP99Manager.sol",
+            sourceUrl: `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/validator-manager/interfaces/IACP99Manager.sol`,
+            githubUrl: `https://github.com/ava-labs/icm-contracts/blob/${ICM_COMMIT}/contracts/validator-manager/interfaces/IACP99Manager.sol`,
+            highlightFunction: "ConversionData",
+          },
+        ]}
+        showFunctionOnly={true}
+      />
+    </div>
+  );
 }
 
 export default withConsoleToolMetadata(InitValidatorSet, metadata);
 
-
 const debugTraceAndDecode = async (txHash: string, rpcEndpoint: string) => {
-    const traceResponse = await fetch(rpcEndpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            jsonrpc: '2.0',
-            method: 'debug_traceTransaction',
-            params: [txHash, { tracer: 'callTracer' }],
-            id: 1
-        })
-    });
+  const traceResponse = await fetch(rpcEndpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      jsonrpc: "2.0",
+      method: "debug_traceTransaction",
+      params: [txHash, { tracer: "callTracer" }],
+      id: 1,
+    }),
+  });
 
-    const trace = await traceResponse.json();
-
-    // The error selector is in the output field
-    const errorSelector = trace.result.output;
-    if (errorSelector && errorSelector.startsWith('0x')) {
-        try {
-            // For this specific case, we got 0x6b2f19e9
-            const errorResult = decodeErrorResult({
-                abi: ValidatorManagerABI.abi as Abi,
-                data: errorSelector
-            });
-            return `${errorResult.errorName}${errorResult.args ? ': ' + errorResult.args.join(', ') : ''}`;
-        } catch (e: unknown) {
-            console.error('Error decoding error result:', e);
-            return 'Unknown error selector found in trace';
-        }
+  const trace = await traceResponse.json();
+  const errorSelector = trace.result.output;
+  if (errorSelector && errorSelector.startsWith("0x")) {
+    try {
+      const errorResult = decodeErrorResult({
+        abi: ValidatorManagerABI.abi as Abi,
+        data: errorSelector,
+      });
+      return `${errorResult.errorName}${errorResult.args ? ": " + errorResult.args.join(", ") : ""}`;
+    } catch (e: unknown) {
+      console.error("Error decoding error result:", e);
+      return "Unknown error selector found in trace";
     }
-    return 'No error selector found in trace';
+  }
+  return "No error selector found in trace";
 };

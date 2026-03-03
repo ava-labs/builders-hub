@@ -16,29 +16,29 @@ export const BadgeNotification = ({
 }) => {
   const { session, awardBadge, getBadge } = useBadgeAward(courseId);
   const ref = useRef<FireworksHandlers>(null);
+  const badgeAwardedRef = useRef(false);
   const [showFireworks, setShowFireworks] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const [badges, setBadges] = useState<BadgeData[]>([]);
   const badgeDefaultImage = "/wolfie/wolfie-hack.png";
   useEffect(() => {
-    if (isCompleted && session) {
+    if (isCompleted && session && !badgeAwardedRef.current) {
+      badgeAwardedRef.current = true;
       awardBadge()
         .then((badge) => {
-
           if (
-            badge.result &&
+            badge?.result &&
             Array.isArray(badge.result.badges) &&
             badge.result.badges.length > 0
           ) {
-
             setBadges(badge.result.badges);
             setShowFireworks(true);
             setIsModalOpen(true);
-
           }
         })
         .catch((error) => {
+          badgeAwardedRef.current = false; // Allow retry on error
           console.error("Error awarding badge:", error);
         });
     }

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { Avalanche } from "@avalanche-sdk/chainkit";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { STATS_CONFIG } from "@/types/stats";
+import { getChainICMCount } from "@/lib/icm-clickhouse";
 
 export const dynamic = 'force-dynamic';
 
@@ -21,8 +22,6 @@ const TIME_RANGE_CONFIG = {
 type TimeRangeKey = keyof typeof TIME_RANGE_CONFIG;
 
 interface MetricResult { timestamp: number; value: number; }
-interface ICMResult { timestamp: number; messageCount: number; }
-
 interface ChainOverviewMetrics {
   chainId: string;
   chainName: string;
@@ -92,14 +91,6 @@ function sumValues(sorted: MetricResult[], daysToSum: number): number {
   let sum = 0;
   for (let i = 1; i <= Math.min(daysToSum, sorted.length - 1); i++) {
     sum += sorted[i]?.value || 0;
-  }
-  return sum;
-}
-
-function sumMessageCounts(sorted: ICMResult[], daysToSum: number): number {
-  let sum = 0;
-  for (let i = 1; i <= Math.min(daysToSum, sorted.length - 1); i++) {
-    sum += sorted[i]?.messageCount || 0;
   }
   return sum;
 }
@@ -190,24 +181,10 @@ async function getActiveAddressesData(chainId: string, timeRange: TimeRangeKey):
 
 async function getICMData(chainId: string, timeRange: TimeRangeKey): Promise<number> {
   try {
-    const daysToFetch = TIME_RANGE_CONFIG[timeRange].days + 1;
-    const response = await fetchWithTimeout(
-      `https://idx6.solokhin.com/api/${chainId}/metrics/dailyMessageVolume?days=${daysToFetch}`,
-      { headers: { 'Accept': 'application/json' } }
-    );
-
-    if (!response.ok) return 0;
-    const data: ICMResult[] = await response.json();
-    if (!Array.isArray(data)) return 0;
-
-    const sorted = sortByTimestampDesc(data);
-    if (sorted.length < 2) return 0;
-    if (timeRange === 'day') return sorted[1]?.messageCount || 0;
-    return sumMessageCounts(sorted, timeRange === 'week' ? 7 : 30);
+    const daysToSum = timeRange === 'day' ? 1 : timeRange === 'week' ? 7 : 30;
+    return await getChainICMCount(chainId, daysToSum);
   } catch (error) {
-    if (error instanceof Error && error.name !== 'AbortError') {
-      console.error(`[getICMData] Failed for chain ${chainId}:`, error);
-    }
+    console.error(`[getICMData] Failed for chain ${chainId}:`, error);
     return 0;
   }
 }

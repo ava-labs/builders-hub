@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, SetStateAction } from "react";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
+import { useCreateChainStore } from "@/components/toolbox/stores/createChainStore";
 import { Address } from "viem";
 import { Input } from '@/components/toolbox/components/Input';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -78,6 +79,10 @@ function GenesisBuilderInner({
     const setGenesisData = externalSetGenesisData || setInternalGenesisData;
     const { walletEVMAddress } = useWalletStore();
     const { setHighlightPath, clearHighlight } = useGenesisHighlight();
+
+    // Get blueprint from store (set when navigating from blueprint pages)
+    const useChainStore = useCreateChainStore();
+    const blueprint = useChainStore((state) => state.blueprint);
 
     // --- State ---
     const [evmChainId, setEvmChainId] = useState<number>(MIN_CHAIN_ID + Math.floor(Math.random() * (MAX_CHAIN_ID - MIN_CHAIN_ID)));
@@ -478,6 +483,7 @@ function GenesisBuilderInner({
                             validationMessages={validationMessages}
                             compact
                             walletAddress={walletEVMAddress ? walletEVMAddress as Address : undefined}
+                            initialPreset={blueprint}
                         />
 
                         {/* PRE-DEPLOYS: Pre-deployed contracts (Safe Singleton enabled by default) */}

@@ -310,37 +310,33 @@ function PhaseDetailsCards({ phase }: { phase: TimelinePhase }) {
   );
 }
 
-export default function ProgramTimeline() {
-  // Define phase deadlines
+export default function ProgramTimeline({ isParticipant = false }: { isParticipant?: boolean }) {
+  // Reactive date — updates every minute so the timeline advances automatically
+  // without requiring a page reload.
+  const [todayDate, setTodayDate] = useState<Date>(() => new Date());
+
+  // Phase deadlines at 11:59 PM NYC time.
+  // Feb dates use EST (UTC-5) = 04:59Z next day.
+  // Mar dates use EDT (UTC-4, DST starts Mar 8) = 03:59Z next day.
   const phaseDeadlines = [
-    new Date("2026-02-20"), // Kick Off
-    new Date("2026-02-25"), // Idea Pitch
-    new Date("2026-03-09"), // Prototype / MVP
-    new Date("2026-03-19"), // GTM Plan & Vision
-    new Date("2026-03-27"), // Final Pitch
+    new Date("2026-02-21T04:59:00Z"), // Kick Off — Feb 20 11:59 PM EST
+    new Date("2026-02-26T04:59:00Z"), // Stage 1  — Feb 25 11:59 PM EST
+    new Date("2026-03-10T03:59:00Z"), // Stage 2  — Mar  9 11:59 PM EDT
+    new Date("2026-03-20T03:59:00Z"), // Stage 3  — Mar 19 11:59 PM EDT
+    new Date("2026-03-28T03:59:00Z"), // Stage 4  — Mar 27 11:59 PM EDT
   ];
 
-  // Helper function to determine phase statuses based on current date
+  // Compute statuses based on todayDate so re-renders from the interval pick
+  // up the new day automatically.
   const getPhaseStatuses = (): ("completed" | "current" | "upcoming")[] => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
     let currentPhaseIndex = -1;
-
-    // Find the first phase that hasn't passed its deadline
     for (let i = 0; i < phaseDeadlines.length; i++) {
-      if (today <= phaseDeadlines[i]) {
+      if (todayDate <= phaseDeadlines[i]) {
         currentPhaseIndex = i;
         break;
       }
     }
-
-    // If all phases have passed, mark all as completed
-    if (currentPhaseIndex === -1) {
-      return phaseDeadlines.map(() => "completed");
-    }
-
-    // Set statuses: completed before current, current at index, upcoming after
+    if (currentPhaseIndex === -1) return phaseDeadlines.map(() => "completed");
     return phaseDeadlines.map((_, index) => {
       if (index < currentPhaseIndex) return "completed";
       if (index === currentPhaseIndex) return "current";
@@ -368,7 +364,7 @@ export default function ProgramTimeline() {
       date: "Feb 25",
       details: {
         deadline: "February 25, 2026 at 11:59 PM EST",
-        requirements: "Create a 1-minute video clearly explaining your project idea, target problem, solution approach, and value proposition.",
+        requirements: "Create a 2-minute video clearly explaining your project idea, target problem, solution approach, and value proposition.",
         criteria: "Clarity of idea, problem-solution fit, innovation, presentation quality, and potential market impact.",
         support: (
           <>
@@ -383,7 +379,7 @@ export default function ProgramTimeline() {
       date: "March 9",
       details: {
         deadline: "March 9, 2026 at 11:59 PM EST",
-        requirements: "Functional prototype, GitHub repository with code, technical documentation, and product walkthrough video demonstrating key features.",
+        requirements: "Functional prototype, GitHub repository with code, technical implementaiton details, and product walkthrough video (max 5 mins) demonstrating key features.",
         criteria: "Technical implementation quality, use of Avalanche technologies, MVP architecture design, and UX design.",
         support: "Attend the Office Hours and get feedback from mentors and other builders. Schedule a time here: ",
       },
@@ -416,22 +412,27 @@ export default function ProgramTimeline() {
   const [currentPhase, setCurrentPhase] = useState<TimelinePhase | null>(null);
   const [daysUntilStart, setDaysUntilStart] = useState<number | null>(null);
 
+  // Advance todayDate at midnight without requiring a page reload.
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTodayDate(new Date());
+    }, 60_000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Sync the selected/current phase whenever todayDate advances to a new day.
   useEffect(() => {
     const current = competitionPhases.find((phase) => phase.status === "current");
     const currentIndex = competitionPhases.findIndex((phase) => phase.status === "current");
     setCurrentPhase(current || null);
     setSelectedPhaseIndex(currentIndex >= 0 ? currentIndex : 0);
 
-    // Calculate days until current phase starts
     if (current && currentIndex >= 0) {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const phaseDate = phaseDeadlines[currentIndex];
-      const diffTime = phaseDate.getTime() - today.getTime();
+      const diffTime = phaseDeadlines[currentIndex].getTime() - todayDate.getTime();
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
       setDaysUntilStart(diffDays > 0 ? diffDays : null);
     }
-  }, []);
+  }, [todayDate]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="gradient-border-section relative rounded-[16px] shrink-0 w-full">
@@ -486,14 +487,28 @@ export default function ProgramTimeline() {
                   <div className="absolute w-2 h-2 rounded-full bg-[#66acd6] animate-ping opacity-75" />
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="font-['Aeonik:Medium',sans-serif] text-white/50 text-[10px] uppercase tracking-wider">
-                    {daysUntilStart ? 'Next' : 'Current'}
-                  </span>
-                  <span className="font-['Aeonik:Medium',sans-serif] text-[#66acd6] text-[13px]">{currentPhase.label}</span>
-                  {daysUntilStart && (
-                    <span className="font-['Aeonik:Regular',sans-serif] text-white/50 text-[11px]">
-                      · starts in {daysUntilStart} {daysUntilStart === 1 ? 'day' : 'days'}
-                    </span>
+                  {currentPhase.label === 'Kick Off' ? (
+                    <>
+                      <span className="font-['Aeonik:Medium',sans-serif] text-white/50 text-[10px] uppercase tracking-wider">
+                        {daysUntilStart ? 'Next' : 'Current'}
+                      </span>
+                      <span className="font-['Aeonik:Medium',sans-serif] text-[#66acd6] text-[13px]">{currentPhase.label}</span>
+                      {daysUntilStart && (
+                        <span className="font-['Aeonik:Regular',sans-serif] text-white/50 text-[11px]">
+                          · starts in {daysUntilStart} {daysUntilStart === 1 ? 'day' : 'days'}
+                        </span>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <span className="font-['Aeonik:Medium',sans-serif] text-white/50 text-[10px] uppercase tracking-wider">
+                        Next Submission:
+                      </span>
+                      <span className="font-['Aeonik:Medium',sans-serif] text-[#66acd6] text-[13px]">{currentPhase.label}</span>
+                      <span className="font-['Aeonik:Regular',sans-serif] text-white/50 text-[11px]">
+                        · deadline in {daysUntilStart ?? 0} {(daysUntilStart ?? 0) === 1 ? 'day' : 'days'}
+                      </span>
+                    </>
                   )}
                 </div>
               </div>
@@ -526,12 +541,33 @@ export default function ProgramTimeline() {
 
         {/* Submit Button - Only show for stages 1-4 (not Kick Off) */}
         {selectedPhaseIndex >= 1 && (() => {
-          // Check if submission should be disabled (before kick off)
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
-          const kickOffDate = phaseDeadlines[0];
-          const isBeforeKickOff = today < kickOffDate;
-          const isDisabled = isBeforeKickOff;
+          const selectedStatus = competitionPhases[selectedPhaseIndex].status;
+          const isBeforeKickOff = todayDate < phaseDeadlines[0];
+          const isUpcoming = selectedStatus === "upcoming";
+          const isDisabled = isBeforeKickOff || isUpcoming;
+
+          const disabledReason = isBeforeKickOff
+            ? "Submission forms open after the Kick Off on February 20, 2026"
+            : `${competitionPhases[selectedPhaseIndex].label} hasn't started yet`;
+
+          // Non-participants (logged out or not in the program) see a prompt
+          if (!isParticipant) {
+            return (
+              <div className="flex flex-col items-center w-full pt-4 gap-3">
+                <div className="group relative inline-flex opacity-60 cursor-not-allowed">
+                  <div className="relative flex items-center gap-3 px-10 py-5 bg-gray-700 rounded-xl font-['Aeonik:Medium',sans-serif] font-medium text-gray-400">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                    <span className="text-[17px]">Submit {competitionPhases[selectedPhaseIndex].label}</span>
+                  </div>
+                </div>
+                <p className="text-[13px] font-['Aeonik:Regular',sans-serif] text-white/50 text-center">
+                  Log into a participant account to submit
+                </p>
+              </div>
+            );
+          }
 
           return (
             <div className="flex flex-col items-center w-full pt-4 gap-3">
@@ -559,9 +595,7 @@ export default function ProgramTimeline() {
                 </div>
               ) : (
                 <a
-                  href="/hackathons/project-submission?hackathon=249d2911-7931-4aa0-a696-37d8370b79f9"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  href={`/build-games/submit?stage=${selectedPhaseIndex}`}
                   className="group relative inline-flex"
                 >
                   <div className="absolute -inset-1 bg-gradient-to-r from-[#66acd6] via-[#38bdf8] to-[#66acd6] rounded-xl blur-sm opacity-40 group-hover:opacity-70 transition duration-500 animate-pulse" />
@@ -588,7 +622,7 @@ export default function ProgramTimeline() {
               )}
               {isDisabled && (
                 <p className="text-[13px] font-['Aeonik:Regular',sans-serif] text-white/50 text-center">
-                  Submissions Forms open after the Kick Off on February 20, 2026
+                  {disabledReason}
                 </p>
               )}
             </div>

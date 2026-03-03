@@ -6,13 +6,13 @@ authors: [martineckardt, nicolasarnedo]
 icon: Smile
 ---
 
-In this course, you will learn how to build cross-L1 Solidity dApps with Interchain Messaging and Avalanche Warp Messaging.
+In this course, you will learn the fundamentals of Avalanche Interchain Messaging (ICM) and set up cross-chain communication infrastructure using Console tools.
 
 ## Why Take This Course?
 
 A significant innovation in blockchain is the development of multi-chain systems, like Avalanche, which provide a significant improvement in scalability, interoperability, and flexibility. At the core of these multi-chain systems is the ability to run multiple blockchains that communicate. Each chain's VM is optimized for specialized use cases, thereby boosting the network's overall performance.
 
-Cross-chain communication is a crucial building block of multi-chain systems. Utilizing Interchain Messaging and Avalanche Warp Messaging is an incredible easy way to build cross-L1 dApps, since developers can build on top an extensive and audited development framework. 
+Cross-chain communication is a crucial building block of multi-chain systems. Avalanche Interchain Messaging (ICM) and Avalanche Warp Messaging (AWM) provide a native, trustless way to send messages between any Avalanche L1s.
 
 ## Course Content
 
@@ -20,21 +20,35 @@ Below you can find a 30 minute recording of a presentation about Avalanche Warp 
 
 <YouTube id="N6F7D4Hb87c"/>
 
-### Interoperability 
+### Interoperability
 
-In the first section, we cover some basic concepts of interoperability in multi-chain systems. You will learn about examples of interoperability between blockchains and the terms "source," "destination," and "message."
+In the first section, we cover basic concepts of interoperability in multi-chain systems. You will learn about examples of interoperability between blockchains and the terms "source," "destination," and "message."
 
-### Avalanche Interchain Messaging
+### Avalanche Warp Messaging
 
-In this section, we learn what Avalanche Interchain Messaging is and what is abstracted away from the general dApp developer. You will also build your first cross-L1 dApps.
+In this section, we look at the low-level messaging primitive that powers cross-chain communication on Avalanche. You will learn about the warp message format, BLS signatures, validator signing, and how messages flow between chains.
 
-### Securing Cross-Chain Communication
+### ICM Protocol
 
-In this section, we look at techniques to secure cross-chain communication. We dive into signature schemes, multi-signature schemes, and the BLS multi-signature scheme.
+Here we dive into the Interchain Messaging protocol layer built on top of AWM. You'll learn about TeleporterMessenger, message encoding/decoding, sending and receiving messages, and the TeleporterRegistry for version management.
 
-### Avalanche Interchain Messaging Protocol
+### ICM Infrastructure Setup
 
-Avalanche blockchains can natively interoperate between one another using AWM. You will learn about the AWM message format and how the message flow works.
+In this hands-on section, you'll use Console tools to deploy the full ICM infrastructure on your L1: TeleporterMessenger, TeleporterRegistry, and a relayer.
+
+### Your First Cross-Chain Message
+
+Put it all together by deploying demo contracts and sending your first cross-chain message between Fuji C-Chain and your L1.
+
+### Relayer Deep Dive
+
+Finally, we take a deeper look at relayer configuration, restricting relayers, and the economics of incentivizing message delivery.
+
+## What You'll Need
+
+- **An L1 deployed on Fuji testnet** — If you haven't deployed one yet, see the [L1 Architecture course](/academy/avalanche-l1/l1-architecture)
+- **Core Wallet** connected to both Fuji C-Chain and your L1
+- **Test AVAX** for gas fees (get some from the [Fuji faucet](https://faucet.avax.network/))
 
 ## Prerequisites
 
@@ -49,11 +63,7 @@ If any of this is unclear, we strongly recommend taking the Avalanche Fundamenta
 
 ### Software Development
 
-You will need a general understanding of Software Development. You won't have to write a lot of code, but you will have to understand some. Therefore, we recommend:
-
-- **Solidity:** Familiarity with most concepts of the language. All exercises will mainly consist of writing cross-subnet dApps in Solidity.
-- **Docker:** The advanced exercises in the latter part of the course will occur in contained environments for easy setup. It will help if you're generally familiar with the concept of containerization, docker, and docker compose.
-- **Testing:** Having some experience or familiarity with unit testing is ideal.
+- **Solidity:** Familiarity with Solidity concepts. You won't write any contracts in this course, but you'll read contract interfaces and understand how cross-chain contracts work.
 
 ## Learning Outcomes
 
@@ -61,7 +71,9 @@ By the end of this course, students will:
 
 - Understand the challenges of cross-chain communication
 - Know what separates Avalanche Warp Messaging from other cross-chain communication protocols
-- Understand the differences between Avalanche Warp Messaging and Teleporter
-- Apply their knowledge by building cross-Avalanche L1 dApps, such as asset bridges
+- Understand the ICM protocol layer and how it builds on AWM
+- Set up ICM infrastructure (TeleporterMessenger, TeleporterRegistry, Relayer) on an L1
+- Send and verify cross-chain messages using Console tools
+- Understand relayer configuration, restrictions, and fee economics
 
-Overall, this course aims to provide an advanced understanding of Teleporter. By completing this course, students will be better prepared to build advanced cross-Avalanche L1 blockchain applications.
+For practical token bridging applications built on ICM, check out the [ERC-20 Bridge](/academy/avalanche-l1/erc20-bridge) and [Native Token Bridge](/academy/avalanche-l1/native-token-bridge) courses.

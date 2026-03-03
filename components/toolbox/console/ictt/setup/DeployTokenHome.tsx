@@ -23,6 +23,26 @@ import { useSelectedL1 } from "@/components/toolbox/stores/l1ListStore";
 import { ConsoleToolMetadata, withConsoleToolMetadata } from "@/components/toolbox/components/WithConsoleToolMetadata";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { useContractDeployer } from "@/components/toolbox/hooks/contracts";
+import { useWalletClient } from 'wagmi';
+import versions from "@/scripts/versions.json";
+import { ContractDeployViewer, type ContractSource } from "@/components/console/contract-deploy-viewer";
+
+const ICM_COMMIT = versions["ava-labs/icm-contracts"];
+
+const CONTRACT_SOURCES: ContractSource[] = [
+  {
+    name: "ERC20TokenHome",
+    filename: "ERC20TokenHome.sol",
+    url: `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/ictt/TokenHome/ERC20TokenHome.sol`,
+    description: "Home chain endpoint for ERC20 cross-chain transfers via ICTT.",
+  },
+  {
+    name: "NativeTokenHome",
+    filename: "NativeTokenHome.sol",
+    url: `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/ictt/TokenHome/NativeTokenHome.sol`,
+    description: "Home chain endpoint for native token cross-chain transfers via ICTT.",
+  },
+];
 
 const metadata: ConsoleToolMetadata = {
   title: "Deploy Token Home Contract",
@@ -42,8 +62,8 @@ function DeployTokenHome() {
   } = useToolboxStore();
   const wrappedNativeTokenAddress = useWrappedNativeToken();
   const selectedL1 = useSelectedL1()();
-  const { coreWalletClient, walletEVMAddress, walletChainId } =
-    useWalletStore();
+  const { walletEVMAddress, walletChainId } = useWalletStore();
+  const { data: walletClient } = useWalletClient();
   const viemChain = useViemChainStore();
   const { deploy, isDeploying } = useContractDeployer();
   const [teleporterManager, setTeleporterManager] = useState("");
@@ -141,8 +161,8 @@ function DeployTokenHome() {
   }, [tokenAddress, viemChain?.id]);
 
   async function handleDeploy() {
-    if (!coreWalletClient) {
-      setCriticalError(new Error("Core wallet not found"));
+    if (!walletClient) {
+      setCriticalError(new Error("Wallet not connected"));
       return;
     }
 
@@ -210,7 +230,8 @@ function DeployTokenHome() {
   };
 
   return (
-    <>
+    <ContractDeployViewer contracts={CONTRACT_SOURCES}>
+      <div className="space-y-4">
       <div>
         <p className="mt-2">
           This will deploy a TokenHome contract to your connected network (Chain
@@ -323,7 +344,8 @@ function DeployTokenHome() {
       >
         {getTokenHomeAddress() ? "Re-Deploy Token Home" : "Deploy Token Home"}
       </Button>
-    </>
+      </div>
+    </ContractDeployViewer>
   );
 }
 

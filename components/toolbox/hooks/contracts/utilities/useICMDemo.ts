@@ -3,6 +3,7 @@ import { useViemChainStore } from '../../../stores/toolboxStore';
 import { readContract } from 'viem/actions';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { useWallet } from '../../useWallet';
+import { useWalletClient } from 'wagmi';
 import ICMDemoAbi from '@/contracts/example-contracts/compiled/ICMDemo.json';
 
 export interface ICMDemoHook {
@@ -26,13 +27,14 @@ export function useICMDemo(
   contractAddress: string | null,
   abi?: any
 ): ICMDemoHook {
-  const { coreWalletClient, walletEVMAddress } = useWalletStore();
+  const { walletEVMAddress } = useWalletStore();
   const viemChain = useViemChainStore();
   const { notify } = useConsoleNotifications();
   const { avalancheWalletClient } = useWallet();
+  const { data: walletClient } = useWalletClient();
 
   const contractAbi = abi ?? ICMDemoAbi.abi;
-  const isReady = Boolean(contractAddress && avalancheWalletClient && viemChain);
+  const isReady = Boolean(contractAddress && walletClient && viemChain);
 
   // Read functions
   const lastMessage = async (): Promise<bigint> => {
@@ -54,11 +56,11 @@ export function useICMDemo(
     message: bigint,
     destinationBlockchainID: string
   ): Promise<string> => {
-    if (!coreWalletClient || !contractAddress || !walletEVMAddress || !viemChain) {
+    if (!walletClient || !contractAddress || !walletEVMAddress || !viemChain) {
       throw new Error('Wallet not connected or contract not ready');
     }
 
-    const writePromise = coreWalletClient.writeContract({
+    const writePromise = walletClient!.writeContract({
       address: contractAddress as `0x${string}`,
       abi: contractAbi,
       functionName: 'sendMessage',

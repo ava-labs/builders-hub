@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPublicClient, http } from 'viem';
 import { useWalletStore } from '../../../stores/walletStore';
 import { useViemChainStore } from '../../../stores/toolboxStore';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
@@ -27,20 +28,20 @@ export interface ContractDeployerHook {
  * Provides a simplified interface for contract deployment with automatic notifications
  */
 export function useContractDeployer(): ContractDeployerHook {
-  const { publicClient, walletEVMAddress } = useWalletStore();
-  const { coreWalletClient } = useConnectedWallet();
+  const { walletEVMAddress } = useWalletStore();
+  const { walletClient } = useConnectedWallet();
   const viemChain = useViemChainStore();
   const { notify } = useConsoleNotifications();
   const [isDeploying, setIsDeploying] = useState(false);
 
   const deploy = async (params: DeployParams): Promise<DeployResult> => {
-    if (!coreWalletClient || !publicClient || !walletEVMAddress || !viemChain) {
+    if (!walletClient || !walletEVMAddress || !viemChain) {
       throw new Error('Wallet not connected or chain not configured');
     }
 
     setIsDeploying(true);
     try {
-      const deployPromise = coreWalletClient.deployContract({
+      const deployPromise = walletClient.deployContract({
         abi: params.abi,
         bytecode: params.bytecode as `0x${string}`,
         args: params.args,
@@ -54,7 +55,15 @@ export function useContractDeployer(): ContractDeployerHook {
       }, deployPromise, viemChain);
 
       const hash = await deployPromise;
-      const receipt = await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
+
+      // Create a chain-specific public client for receipt polling.
+      // The global publicClient from walletStore may point to the wrong RPC
+      // (e.g. hardcoded to Fuji for non-Core wallets).
+      const chainClient = createPublicClient({
+        chain: viemChain,
+        transport: http(viemChain.rpcUrls.default.http[0]),
+      });
+      const receipt = await chainClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
 
       if (!receipt.contractAddress) {
         throw new Error('No contract address in receipt');

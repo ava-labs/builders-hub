@@ -37,6 +37,8 @@ export function ActiveNavHighlighter() {
       activeSection = '/grants';
     } else if (pathname.startsWith('/university')) {
       activeSection = '/university';
+    } else if (pathname.startsWith('/chat')) {
+      activeSection = '/chat';
     }
 
     if (activeSection) {
