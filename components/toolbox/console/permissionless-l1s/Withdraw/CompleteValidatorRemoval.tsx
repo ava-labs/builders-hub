@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
+import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
 import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { Button } from '@/components/toolbox/components/Button';
 import { Input } from '@/components/toolbox/components/Input';
@@ -13,6 +14,7 @@ import { packWarpIntoAccessList } from '@/components/toolbox/console/permissione
 import { useNativeTokenStakingManager, useERC20TokenStakingManager } from '@/components/toolbox/hooks/contracts';
 import { packL1ValidatorWeightMessage } from '@/components/toolbox/coreViem/utils/convertWarp';
 import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
+import { useWalletClient } from 'wagmi';
 
 type TokenType = 'native' | 'erc20';
 
@@ -37,7 +39,9 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
     onSuccess,
     onError,
 }) => {
-    const { coreWalletClient, publicClient, walletEVMAddress, avalancheNetworkID } = useWalletStore();
+    const { coreWalletClient, walletEVMAddress, avalancheNetworkID } = useWalletStore();
+    const chainPublicClient = useChainPublicClient();
+    const { data: walletClient } = useWalletClient();
     const { aggregateSignature } = useAvalancheSDKChainkit();
     const viemChain = useViemChainStore();
     const { notify } = useConsoleNotifications();
@@ -78,7 +82,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
         setPChainSignature(null);
         setExtractedData(null);
 
-        if (!coreWalletClient || !publicClient || !viemChain) {
+        if (!walletClient || !chainPublicClient || !viemChain) {
             setErrorState("Wallet or chain configuration is not properly initialized.");
             onError("Wallet or chain configuration is not properly initialized.");
             return;
@@ -112,6 +116,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
         setIsProcessing(true);
         try {
             // Step 1: Extract L1ValidatorWeightMessage from P-Chain transaction
+            if (!coreWalletClient) { throw new Error('This operation requires Core Wallet'); }
             const weightMessageData = await coreWalletClient.extractL1ValidatorWeightMessage({
                 txId: pChainTxId
             });
@@ -180,7 +185,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
             setTxHash(hash);
 
             // Wait for confirmation
-            const receipt = await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
+            const receipt = await chainPublicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
             if (receipt.status !== 'success') {
                 throw new Error(`Transaction failed with status: ${receipt.status}`);
             }

@@ -73,15 +73,15 @@ export const StepCard = ({
     const getHeaderBg = () => {
         switch (status) {
             case 'completed':
-                return 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800';
+                return 'bg-green-50 dark:bg-green-900/20 border-green-200/80 dark:border-green-800';
             case 'active':
-                return 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800';
+                return 'bg-blue-50 dark:bg-blue-900/20 border-blue-200/80 dark:border-blue-800';
             case 'waiting':
-                return 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800';
+                return 'bg-orange-50 dark:bg-orange-900/20 border-orange-200/80 dark:border-orange-800';
             case 'error':
-                return 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800';
+                return 'bg-red-50 dark:bg-red-900/20 border-red-200/80 dark:border-red-800';
             default:
-                return 'bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700';
+                return 'bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200/80 dark:border-zinc-800';
         }
     };
 
@@ -89,7 +89,7 @@ export const StepCard = ({
     const canToggle = status === 'completed';
 
     return (
-        <div className={`border rounded-lg overflow-hidden ${getHeaderBg()}`}>
+        <div className={`border rounded-xl overflow-hidden ${getHeaderBg()}`}>
             <div
                 className={`p-4 flex items-center justify-between ${canToggle ? 'cursor-pointer' : ''}`}
                 onClick={canToggle ? onToggle : undefined}
@@ -103,10 +103,10 @@ export const StepCard = ({
             </div>
 
             {isExpanded && (
-                <div className="border-t border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-4">
+                <div className="border-t border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4">
                     <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">{description}</p>
                     {error && (
-                        <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                        <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200/80 dark:border-red-800 rounded-xl">
                             <div className="text-red-700 dark:text-red-300 text-sm">{error}</div>
                         </div>
                     )}

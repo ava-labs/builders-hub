@@ -3,6 +3,7 @@ import { useViemChainStore } from '../../../stores/toolboxStore';
 import { readContract } from 'viem/actions';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { useWallet } from '../../useWallet';
+import { useWalletClient } from 'wagmi';
 import FeeManagerAbi from '@/contracts/precompiles/FeeManager.json';
 import RewardManagerAbi from '@/contracts/precompiles/RewardManager.json';
 import NativeMinterAbi from '@/contracts/precompiles/NativeMinter.json';
@@ -58,21 +59,22 @@ export interface PrecompilesHook {
  * No address parameter needed - addresses are fixed
  */
 export function usePrecompiles(): PrecompilesHook {
-  const { coreWalletClient, walletEVMAddress } = useWalletStore();
+  const { walletEVMAddress } = useWalletStore();
   const viemChain = useViemChainStore();
   const { notify } = useConsoleNotifications();
   const { avalancheWalletClient } = useWallet();
+  const { data: walletClient } = useWalletClient();
 
-  const isReady = Boolean(avalancheWalletClient && viemChain);
+  const isReady = Boolean(walletClient && viemChain);
 
   // Fee Manager functions
   const feeManager = {
     setFeeConfig: async (config: FeeConfig): Promise<string> => {
-      if (!coreWalletClient || !walletEVMAddress || !viemChain) {
+      if (!walletClient || !walletEVMAddress || !viemChain) {
         throw new Error('Wallet not connected');
       }
 
-      const writePromise = coreWalletClient.writeContract({
+      const writePromise = walletClient!.writeContract({
         address: FEE_MANAGER_ADDRESS,
         abi: FeeManagerAbi.abi,
         functionName: 'setFeeConfig',
@@ -127,11 +129,11 @@ export function usePrecompiles(): PrecompilesHook {
   // Reward Manager functions
   const rewardManager = {
     allowFeeRecipients: async (): Promise<string> => {
-      if (!coreWalletClient || !walletEVMAddress || !viemChain) {
+      if (!walletClient || !walletEVMAddress || !viemChain) {
         throw new Error('Wallet not connected');
       }
 
-      const writePromise = coreWalletClient.writeContract({
+      const writePromise = walletClient!.writeContract({
         address: REWARD_MANAGER_ADDRESS,
         abi: RewardManagerAbi.abi,
         functionName: 'allowFeeRecipients',
@@ -163,11 +165,11 @@ export function usePrecompiles(): PrecompilesHook {
     },
 
     disableRewards: async (): Promise<string> => {
-      if (!coreWalletClient || !walletEVMAddress || !viemChain) {
+      if (!walletClient || !walletEVMAddress || !viemChain) {
         throw new Error('Wallet not connected');
       }
 
-      const writePromise = coreWalletClient.writeContract({
+      const writePromise = walletClient!.writeContract({
         address: REWARD_MANAGER_ADDRESS,
         abi: RewardManagerAbi.abi,
         functionName: 'disableRewards',
@@ -197,11 +199,11 @@ export function usePrecompiles(): PrecompilesHook {
     },
 
     setRewardAddress: async (address: string): Promise<string> => {
-      if (!coreWalletClient || !walletEVMAddress || !viemChain) {
+      if (!walletClient || !walletEVMAddress || !viemChain) {
         throw new Error('Wallet not connected');
       }
 
-      const writePromise = coreWalletClient.writeContract({
+      const writePromise = walletClient!.writeContract({
         address: REWARD_MANAGER_ADDRESS,
         abi: RewardManagerAbi.abi,
         functionName: 'setRewardAddress',
@@ -223,11 +225,11 @@ export function usePrecompiles(): PrecompilesHook {
   // Native Minter functions
   const nativeMinter = {
     mintNativeCoin: async (to: string, amount: bigint): Promise<string> => {
-      if (!coreWalletClient || !walletEVMAddress || !viemChain) {
+      if (!walletClient || !walletEVMAddress || !viemChain) {
         throw new Error('Wallet not connected');
       }
 
-      const writePromise = coreWalletClient.writeContract({
+      const writePromise = walletClient!.writeContract({
         address: NATIVE_MINTER_ADDRESS,
         abi: NativeMinterAbi.abi,
         functionName: 'mintNativeCoin',
@@ -257,11 +259,11 @@ export function usePrecompiles(): PrecompilesHook {
     },
 
     setAdmin: async (address: string): Promise<string> => {
-      if (!coreWalletClient || !walletEVMAddress || !viemChain) {
+      if (!walletClient || !walletEVMAddress || !viemChain) {
         throw new Error('Wallet not connected');
       }
 
-      const writePromise = coreWalletClient.writeContract({
+      const writePromise = walletClient!.writeContract({
         address: NATIVE_MINTER_ADDRESS,
         abi: NativeMinterAbi.abi,
         functionName: 'setAdmin',
@@ -280,11 +282,11 @@ export function usePrecompiles(): PrecompilesHook {
     },
 
     setEnabled: async (address: string): Promise<string> => {
-      if (!coreWalletClient || !walletEVMAddress || !viemChain) {
+      if (!walletClient || !walletEVMAddress || !viemChain) {
         throw new Error('Wallet not connected');
       }
 
-      const writePromise = coreWalletClient.writeContract({
+      const writePromise = walletClient!.writeContract({
         address: NATIVE_MINTER_ADDRESS,
         abi: NativeMinterAbi.abi,
         functionName: 'setEnabled',
@@ -303,11 +305,11 @@ export function usePrecompiles(): PrecompilesHook {
     },
 
     setManager: async (address: string): Promise<string> => {
-      if (!coreWalletClient || !walletEVMAddress || !viemChain) {
+      if (!walletClient || !walletEVMAddress || !viemChain) {
         throw new Error('Wallet not connected');
       }
 
-      const writePromise = coreWalletClient.writeContract({
+      const writePromise = walletClient!.writeContract({
         address: NATIVE_MINTER_ADDRESS,
         abi: NativeMinterAbi.abi,
         functionName: 'setManager',
@@ -326,11 +328,11 @@ export function usePrecompiles(): PrecompilesHook {
     },
 
     setNone: async (address: string): Promise<string> => {
-      if (!coreWalletClient || !walletEVMAddress || !viemChain) {
+      if (!walletClient || !walletEVMAddress || !viemChain) {
         throw new Error('Wallet not connected');
       }
 
-      const writePromise = coreWalletClient.writeContract({
+      const writePromise = walletClient!.writeContract({
         address: NATIVE_MINTER_ADDRESS,
         abi: NativeMinterAbi.abi,
         functionName: 'setNone',

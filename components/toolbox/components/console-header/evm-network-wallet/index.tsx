@@ -4,10 +4,11 @@ import { useEffect, useState, useMemo } from 'react'
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent } from '@/components/ui/dropdown-menu'
 import { useL1ListStore } from '@/components/toolbox/stores/l1ListStore'
 import { Button } from '@/components/ui/button'
-import { useWalletConnect } from '@/components/toolbox/hooks/useWalletConnect'
+import { useConnectModal } from '@rainbow-me/rainbowkit'
 import { useWalletStore } from '@/components/toolbox/stores/walletStore'
 import { createPublicClient, http, formatUnits } from 'viem'
 import { avalancheFuji, avalanche } from 'viem/chains'
+import { Wallet } from 'lucide-react'
 
 import { useNetworkData } from './hooks/useNetworkData'
 import { useNetworkActions } from './hooks/useNetworkActions'
@@ -29,7 +30,6 @@ const ERC20_BALANCE_ABI = [
 
 export function EvmNetworkWallet() {
   const [isEditMode, setIsEditMode] = useState(false)
-  const [isCoreWalletAvailable, setIsCoreWalletAvailable] = useState(false)
   const [tokenBalance, setTokenBalance] = useState<string | null>(null)
 
   const l1ListStore = useL1ListStore()
@@ -44,7 +44,7 @@ export function EvmNetworkWallet() {
   } = useNetworkData()
 
   const l1List = l1ListStore((s: any) => s.l1List)
-  
+
   // Find the selected token info
   const selectedTokenInfo = useMemo(() => {
     if (!selectedToken || !currentNetwork) return null;
@@ -58,16 +58,8 @@ export function EvmNetworkWallet() {
     updateAllBalances,
   } = useNetworkActions()
 
-  const { connectWallet } = useWalletConnect()
+  const { openConnectModal } = useConnectModal()
 
-  useEffect(() => {
-    const isCoreWalletInjected = (): boolean => (
-      typeof window !== 'undefined' && !!window.avalanche?.request
-    )
-
-    setIsCoreWalletAvailable(isCoreWalletInjected())
-  }, [])
-  
   // Fetch selected token balance
   useEffect(() => {
     const fetchTokenBalance = async () => {
@@ -91,7 +83,7 @@ export function EvmNetworkWallet() {
           functionName: "balanceOf",
           args: [walletEVMAddress as `0x${string}`],
         });
-        
+
         setTokenBalance(formatUnits(balance, selectedTokenInfo.decimals));
       } catch (err) {
         console.error(`Error fetching ${selectedTokenInfo.symbol} balance:`, err);
@@ -103,13 +95,7 @@ export function EvmNetworkWallet() {
   }, [selectedTokenInfo, walletEVMAddress, walletChainId])
 
   const handlePrimaryButtonClick = (): void => {
-    if (isCoreWalletAvailable) {
-      void connectWallet()
-      return
-    }
-    if (typeof window !== 'undefined') {
-      window.open('https://core.app/download', '_blank', 'noopener,noreferrer')
-    }
+    openConnectModal?.()
   }
 
   const handleRemoveNetwork = (network: any) => {
@@ -118,15 +104,13 @@ export function EvmNetworkWallet() {
 
   // Show connect wallet button if no wallet is connected
   if (!walletEVMAddress) {
-    const buttonLabel = isCoreWalletAvailable ? 'Connect Core Wallet' : 'Download Core Wallet'
     return (
       <Button
         onClick={handlePrimaryButtonClick}
         size="sm"
       >
-        <img src="/core-logo-dark.svg" alt="Core logo" className="mr-2 h-4 w-4 object-contain dark:hidden" />
-        <img src="/core-logo.svg" alt="Core logo" className="mr-2 h-4 w-4 object-contain hidden dark:block" />
-        <span className="text-sm">{buttonLabel}</span>
+        <Wallet className="mr-2 h-4 w-4" />
+        <span className="text-sm">Connect Wallet</span>
       </Button>
     )
   }
@@ -138,9 +122,9 @@ export function EvmNetworkWallet() {
             <div className="flex items-center gap-3">
               <div className="flex-shrink-0 w-5 h-5 flex items-center justify-start">
                 {selectedTokenInfo ? (
-                  <img 
-                    src={selectedTokenInfo.logoUrl} 
-                    alt={selectedTokenInfo.symbol} 
+                  <img
+                    src={selectedTokenInfo.logoUrl}
+                    alt={selectedTokenInfo.symbol}
                     className="w-5 h-5 rounded-full"
                     onError={(e) => {
                       (e.target as HTMLImageElement).style.display = 'none';

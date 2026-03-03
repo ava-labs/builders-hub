@@ -12,6 +12,7 @@ import NativeTokenStakingManager from "@/contracts/icm-contracts/compiled/Native
 import ERC20TokenStakingManager from "@/contracts/icm-contracts/compiled/ERC20TokenStakingManager.json";
 import versions from '@/scripts/versions.json';
 import { getLinkedBytecode } from "@/components/toolbox/utils/contract-deployment";
+import { useWalletClient } from 'wagmi';
 import { useCriticalError } from "@/components/toolbox/hooks/useCriticalError";
 import { LibraryRequirementStatus } from "@/components/toolbox/components/LibraryRequirementStatus";
 import { useContractDeployer } from "@/components/toolbox/hooks/contracts";
@@ -37,7 +38,8 @@ function DeployStakingManager({ initialTokenType = 'native' }: DeployStakingMana
     const [tokenType, setTokenType] = useState<TokenType>(initialTokenType);
     const { setCriticalError } = useCriticalError();
 
-    const { coreWalletClient, publicClient, walletEVMAddress } = useWalletStore();
+    const { walletEVMAddress } = useWalletStore();
+    const { data: walletClient } = useWalletClient();
     const viemChain = useViemChainStore();
     const {
         nativeStakingManagerAddress,
@@ -60,7 +62,7 @@ function DeployStakingManager({ initialTokenType = 'native' }: DeployStakingMana
         setContractAddress("");
         try {
             if (!viemChain) throw new Error("Viem chain not found");
-            if (!coreWalletClient) throw new Error("Wallet not connected");
+            if (!walletClient) throw new Error("Wallet not connected");
             if (!walletEVMAddress) throw new Error("Wallet address not available");
 
             // Check for library first
@@ -69,8 +71,8 @@ function DeployStakingManager({ initialTokenType = 'native' }: DeployStakingMana
             }
 
             // Follow exact pattern from ValidatorManager deployment
-            await coreWalletClient.addChain({ chain: viemChain });
-            await coreWalletClient.switchChain({ id: viemChain!.id });
+            await walletClient!.addChain({ chain: viemChain });
+            await walletClient!.switchChain({ id: viemChain!.id });
 
             const result = await deploy({
                 abi: contractJson.abi as any,

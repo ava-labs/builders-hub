@@ -1,0 +1,1 @@
+export { docsResources } from './docs';

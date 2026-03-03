@@ -34,30 +34,15 @@ const StateGrowthChart = dynamic(() => import("@/components/content-design/state
 export function useMDXComponents(components: MDXComponents): MDXComponents {
   // Exclude heading and img components from defaultComponents to avoid conflicts
   const { h1, h2, h3, h4, h5, h6, img, ...restDefaultComponents } = defaultComponents;
-  
-  return {
-    ...restDefaultComponents,
-    h1: (props) => <Heading as="h1" {...props} />,
-    h2: (props) => <Heading as="h2" {...props} />,
-    h3: (props) => <Heading as="h3" {...props} />,
-    h4: (props) => <Heading as="h4" {...props} />,
-    h5: (props) => <Heading as="h5" {...props} />,
-    h6: (props) => <Heading as="h6" {...props} />,
+
+  // Custom components registered as MDX shortcodes. The MDXComponents index
+  // signature in @mdx-js/mdx v3 is stricter than before, so we type these
+  // separately and merge with a cast.
+  const customComponents = {
     BadgeCheck,
     Popup,
     PopupContent,
     PopupTrigger,
-    // Fix srcset -> srcSet for React 19 compatibility
-    img: (props: any) => {
-      const { srcset, ...imgProps } = props;
-      // eslint-disable-next-line jsx-a11y/alt-text, @next/next/no-img-element
-      return <img {...imgProps} {...(srcset && { srcSet: srcset })} />;
-    },
-    pre: ({ title, className, icon, allowCopy, ...props }: CodeBlockProps) => (
-      <CodeBlock title={title} icon={icon} allowCopy={allowCopy}>
-        <Pre className={cn("max-h-[1200px]", className)} {...(props as any)} />
-      </CodeBlock>
-    ),
     Tabs,
     Tab,
     Cards,
@@ -67,10 +52,8 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
     Step,
     Steps,
     APIPage: (props: any) => {
-      // Determine which API instance to use based on the document path
       const document = props.document || '';
       const isMetricsApi = document.includes('popsicle.json');
-      
       return isMetricsApi ? <MetricsAPIPage {...props} /> : <DataAPIPage {...props} />;
     },
     Accordion,
@@ -91,7 +74,34 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
         {children}
       </Tabs>
     ),
-    blockquote: (props) => <Callout>{props.children}</Callout>,
+  };
+
+  // The MDXComponents index signature in @mdx-js/mdx v3 (via next-mdx-remote 6)
+  // is stricter and doesn't accept arbitrary React components for custom keys.
+  // We build the full map untyped and cast at the boundary.
+  const allComponents: Record<string, any> = {
+    ...restDefaultComponents,
+    h1: (props: any) => <Heading as="h1" {...props} />,
+    h2: (props: any) => <Heading as="h2" {...props} />,
+    h3: (props: any) => <Heading as="h3" {...props} />,
+    h4: (props: any) => <Heading as="h4" {...props} />,
+    h5: (props: any) => <Heading as="h5" {...props} />,
+    h6: (props: any) => <Heading as="h6" {...props} />,
+    // Fix srcset -> srcSet for React 19 compatibility
+    img: (props: any) => {
+      const { srcset, ...imgProps } = props;
+      // eslint-disable-next-line jsx-a11y/alt-text, @next/next/no-img-element
+      return <img {...imgProps} {...(srcset && { srcSet: srcset })} />;
+    },
+    pre: ({ title, className, icon, allowCopy, ...props }: CodeBlockProps) => (
+      <CodeBlock title={title} icon={icon} allowCopy={allowCopy}>
+        <Pre className={cn("max-h-[1200px]", className)} {...(props as any)} />
+      </CodeBlock>
+    ),
+    blockquote: (props: any) => <Callout>{props.children}</Callout>,
+    ...customComponents,
     ...components,
   };
+
+  return allComponents as MDXComponents;
 }

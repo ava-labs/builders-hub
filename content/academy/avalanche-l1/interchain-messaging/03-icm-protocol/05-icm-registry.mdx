@@ -1,0 +1,118 @@
+---
+title: ICM Registry
+description: Learn about the Interchain Messaging Registry to manage multiple Interchain Messaging versions.
+updated: 2024-05-31
+authors: [martineckardt]
+icon: BookOpen
+---
+
+When sending a message from the source chain we are calling the Interchain Messaging contract:
+
+<img src="/common-images/teleporter/teleporter-source.png" width="400" class="mx-auto"/>
+
+The TeleporterMessenger contract is non-upgradable. Once a version of the contract is deployed it cannot be changed. This is with the intention of preventing any changes to the deployed contract that could potentially introduce bugs or vulnerabilities. However, there could still be new versions of TeleporterMessenger contracts needed to be deployed in the future.
+
+## Why TeleporterRegistry?
+
+Using a fixed address for the TeleporterMessenger in contracts is not ideal:
+
+```solidity
+contract SenderOnCChain {
+
+    ITeleporterMessenger public immutable teleporterMessenger = ITeleporterMessenger(0x253b2784c75e510dD0fF1da844684a1aC0aa5fcf); // [!code highlight]
+
+    function sendMessage(
+        address destinationAddress,
+        string calldata message
+    ) external {
+        teleporterMessenger.sendCrossChainMessage(
+            // ...
+        );
+    }
+}
+```
+
+While you could manually update the address of the used TeleporterMessenger in your contract, TeleporterRegistry provides an easy way to use the latest version of TeleporterMessenger.
+
+## How the Registry Works
+
+TeleporterRegistry keeps track of TeleporterMessenger contract versions. Cross-Avalanche L1 dApps can request the latest or a specific version of the TeleporterMessenger:
+
+<img src="/common-images/teleporter/teleporter-registry.png" width="600" class="mx-auto"/>
+
+Internally the TeleporterRegistry maintains a mapping of TeleporterMessenger contract versions to their addresses.
+
+<img src="/common-images/teleporter/teleporter-registry-class-diagram.png" width="400" class="mx-auto"/>
+
+Each registry's mapping of version to contract address is independent of registries on other blockchains, and chains can decide on their own registry mapping entries. So the contract of version 4 on one chain does not have to be equal to that version on another chain.
+
+### Internal State
+
+```solidity title="/lib/icm-contracts/contracts/teleporter/registry/TeleporterRegistry.sol"
+
+contract TeleporterRegistry {
+    // ....
+
+    // The latest protocol version. 0 means no protocol version has been added, and isn't a valid version.
+    uint256 public latestVersion;
+
+    // Mappings that keep track of the protocol version and corresponding contract address.
+    mapping(uint256 version => address protocolAddress) private _versionToAddress;
+    mapping(address protocolAddress => uint256 version) private _addressToVersion;
+
+   // ...
+}
+```
+
+### Key Functions
+
+In the `TeleporterRegistry` contract, the `latestVersion` state variable returns the highest version number that has been registered in the registry. The `getLatestTeleporter` function returns the `ITeleporterMessenger` that is registered with the corresponding version. Version zero is an invalid version, and is used to indicate that a `TeleporterMessenger` contract has not been registered yet.
+
+```solidity title="/lib/icm-contracts/contracts/teleporter/registry/TeleporterRegistry.sol"
+contract TeleporterRegistry {
+    // ....
+
+  	// Mappings that keep track of the protocol version and corresponding contract address.
+    mapping(uint256 version => address protocolAddress) private _versionToAddress;
+
+    // The latest protocol version. 0 means no protocol version has been added, and isn't a valid version.
+    uint256 public latestVersion;
+
+    function getLatestTeleporter() external view returns (ITeleporterMessenger) {
+        return ITeleporterMessenger(getAddressFromVersion(latestVersion));
+    }
+
+    function getAddressFromVersion(uint256 version) public view returns (address) {
+        require(version != 0, "TeleporterRegistry: zero version");
+        address protocolAddress = _versionToAddress[version];
+        require(protocolAddress != address(0), "TeleporterRegistry: version not found");
+        return protocolAddress;
+    }
+
+    // ...
+}
+```
+
+If a cross-Avalanche L1 dApp prefers a specific version, it can also call directly the `getAddressFromVersion` function:
+
+```solidity title="/lib/icm-contracts/contracts/teleporter/registry/TeleporterRegistry.sol"
+contract TeleporterRegistry {
+  	// Mappings that keep track of the protocol version and corresponding contract address.
+    mapping(uint256 version => address protocolAddress) private _versionToAddress;
+
+    // ....
+
+    function getAddressFromVersion(uint256 version) public view returns (address) {
+        require(version != 0, "TeleporterRegistry: zero version");
+        address protocolAddress = _versionToAddress[version];
+        require(protocolAddress != address(0), "TeleporterRegistry: version not found");
+        return protocolAddress;
+    }
+
+    // ...
+}
+```
+
+If you are interested in the entire implementation, check it out [here](https://github.com/ava-labs/teleporter/blob/main/contracts/teleporter/registry/TeleporterRegistry.sol).
+
+<Quiz quizId="308"/>

@@ -1,6 +1,5 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { v4 as uuidv4 } from 'uuid';
 import { saveQuizResponse, getQuizResponse } from '@/utils/quizzes/indexedDB';
 import { parseTextWithLinks } from '../../utils/safeHtml';
 import Image from 'next/image';
@@ -27,6 +26,15 @@ function getVariant(quizId: string, variantIndex: number): QuizData | null {
   return baseQuiz;
 }
 
+function shuffleArray(arr: number[]): number[] {
+  const shuffled = [...arr];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
 const Quiz: React.FC<QuizProps> = ({ quizId, onQuizCompleted }) => {
   const [quizInfo, setQuizInfo] = useState<QuizData | null>(null);
   const [selectedAnswers, setSelectedAnswers] = useState<number[]>([]);
@@ -36,6 +44,7 @@ const Quiz: React.FC<QuizProps> = ({ quizId, onQuizCompleted }) => {
   const [attemptCount, setAttemptCount] = useState<number>(0);
   const [lastAttemptAt, setLastAttemptAt] = useState<number>(0);
   const [cooldownRemaining, setCooldownRemaining] = useState<number>(0);
+  const [shuffledIndices, setShuffledIndices] = useState<number[]>([]);
 
   const isLocked = attemptCount >= MAX_ATTEMPTS && !isCorrect;
   const isCoolingDown = cooldownRemaining > 0;
@@ -54,6 +63,13 @@ const Quiz: React.FC<QuizProps> = ({ quizId, onQuizCompleted }) => {
     const interval = setInterval(updateCooldown, 1000);
     return () => clearInterval(interval);
   }, [lastAttemptAt, isCorrect, isAnswerChecked]);
+
+  // Shuffle option display order whenever the quiz variant changes
+  useEffect(() => {
+    if (quizInfo) {
+      setShuffledIndices(shuffleArray(quizInfo.options.map((_, i) => i)));
+    }
+  }, [quizInfo]);
 
   useEffect(() => {
     setIsClient(true);
@@ -212,7 +228,7 @@ const Quiz: React.FC<QuizProps> = ({ quizId, onQuizCompleted }) => {
     return null;
   };
 
-  if (!isClient || !quizInfo) {
+  if (!isClient || !quizInfo || shuffledIndices.length === 0) {
     return <div>Loading...</div>;
   }
 
@@ -247,39 +263,43 @@ const Quiz: React.FC<QuizProps> = ({ quizId, onQuizCompleted }) => {
           )}
         </div>
         <div className="space-y-3">
-          {quizInfo.options.map((option, index) => (
+          {shuffledIndices.map((originalIndex, displayIndex) => (
             <div
-              key={uuidv4()}
+              key={`option-${originalIndex}`}
               className={`flex items-center p-3 rounded-lg border transition-colors cursor-pointer ${
                 isAnswerChecked
-                  ? selectedAnswers.includes(index)
-                    ? quizInfo.correctAnswers.includes(index)
+                  ? selectedAnswers.includes(originalIndex)
+                    ? quizInfo.correctAnswers.includes(originalIndex)
                       ? 'border-avax-green bg-green-50 dark:bg-green-900/30 dark:border-green-700'
                       : 'border-avax-red bg-red-50 dark:bg-red-900/30 dark:border-red-700'
                     : 'border-gray-200 bg-white dark:border-gray-700 dark:bg-black'
-                  : selectedAnswers.includes(index)
-                    ? 'border-[#3752ac] bg-[#3752ac] bg-opacity-10 dark:bg-opacity-30'
+                  : selectedAnswers.includes(originalIndex)
+                    ? 'border-avax-red bg-avax-red/10'
                     : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900'
               } ${isLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
-              onClick={() => handleAnswerSelect(index)}
+              onClick={() => handleAnswerSelect(originalIndex)}
             >
               <span className={`w-6 h-6 shrink-0 flex items-center justify-center ${quizInfo.correctAnswers.length === 1 ? 'rounded-full' : 'rounded-md'} mr-3 text-sm ${
                 isAnswerChecked
-                  ? selectedAnswers.includes(index)
-                    ? quizInfo.correctAnswers.includes(index)
+                  ? selectedAnswers.includes(originalIndex)
+                    ? quizInfo.correctAnswers.includes(originalIndex)
                       ? 'bg-avax-green text-white'
                       : 'bg-avax-red text-white'
                     : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
-                  : selectedAnswers.includes(index)
-                    ? 'bg-[#3752ac] text-white'
+                  : selectedAnswers.includes(originalIndex)
+                    ? 'bg-avax-red text-white'
                     : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
               }`}>
                 {quizInfo.correctAnswers.length === 1
-                  ? String.fromCharCode(65 + index)
-                  : (selectedAnswers.includes(index) ? '✓' : '')}
+                  ? String.fromCharCode(65 + displayIndex)
+                  : (selectedAnswers.includes(originalIndex) ? '✓' : '')}
               </span>
-              <span className="text-sm text-gray-600 dark:text-gray-300">
-                {parseTextWithLinks(option)}
+              <span className={`text-sm ${
+                !isAnswerChecked && selectedAnswers.includes(originalIndex)
+                  ? 'text-avax-red font-medium'
+                  : 'text-gray-600 dark:text-gray-300'
+              }`}>
+                {parseTextWithLinks(quizInfo.options[originalIndex])}
               </span>
             </div>
           ))}

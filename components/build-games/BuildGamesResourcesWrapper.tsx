@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
 import { ExternalLink } from 'lucide-react';
 import { DynamicIcon } from 'lucide-react/dynamic';
 
@@ -13,35 +12,22 @@ interface Resource {
 }
 
 export default function BuildGamesResourcesWrapper() {
-  const { status } = useSession();
   const [resources, setResources] = useState<Resource[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Only fetch when authenticated
-    if (status !== "authenticated") {
-      setIsLoading(false);
-      return;
-    }
-
-    setIsLoading(true);
     fetch("/api/build-games/resources")
       .then((res) => res.json())
       .then((data) => {
-        if (data.hasAccess && data.resources) {
+        if (data.resources) {
           setResources(data.resources);
         }
       })
       .catch((error) => {
         console.error("Error fetching resources:", error);
-      })
-      .finally(() => {
-        setIsLoading(false);
       });
-  }, [status]);
+  }, []);
 
-  // Don't render if not authenticated, no resources, or still loading
-  if (status === "loading" || isLoading || resources.length === 0) {
+  if (resources.length === 0) {
     return null;
   }
 

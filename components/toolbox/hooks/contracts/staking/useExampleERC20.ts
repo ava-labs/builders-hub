@@ -2,6 +2,7 @@ import { useERC20Token, ERC20TokenHook } from '../../useERC20Token';
 import { useWalletStore } from '../../../stores/walletStore';
 import { useViemChainStore } from '../../../stores/toolboxStore';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
+import { useWalletClient } from 'wagmi';
 import ExampleERC20Abi from '@/contracts/icm-contracts/compiled/ExampleERC20.json';
 import { parseEther } from 'viem';
 
@@ -28,17 +29,18 @@ export function useExampleERC20(tokenAddress: string | null): ExampleERC20Hook {
   const erc20Token = useERC20Token(tokenAddress, ExampleERC20Abi.abi);
 
   // Get additional dependencies for write functions
-  const { coreWalletClient, walletEVMAddress } = useWalletStore();
+  const { walletEVMAddress } = useWalletStore();
   const viemChain = useViemChainStore();
   const { notify } = useConsoleNotifications();
+  const { data: walletClient } = useWalletClient();
 
   // Additional write functions
   const mint = async (to: string, amount: string): Promise<string> => {
-    if (!coreWalletClient || !tokenAddress || !walletEVMAddress || !viemChain) {
+    if (!walletClient || !tokenAddress || !walletEVMAddress || !viemChain) {
       throw new Error('Wallet not connected or contract not ready');
     }
 
-    const writePromise = coreWalletClient.writeContract({
+    const writePromise = walletClient!.writeContract({
       address: tokenAddress as `0x${string}`,
       abi: ExampleERC20Abi.abi,
       functionName: 'mint',
@@ -57,11 +59,11 @@ export function useExampleERC20(tokenAddress: string | null): ExampleERC20Hook {
   };
 
   const burn = async (amount: string): Promise<string> => {
-    if (!coreWalletClient || !tokenAddress || !walletEVMAddress || !viemChain) {
+    if (!walletClient || !tokenAddress || !walletEVMAddress || !viemChain) {
       throw new Error('Wallet not connected or contract not ready');
     }
 
-    const writePromise = coreWalletClient.writeContract({
+    const writePromise = walletClient!.writeContract({
       address: tokenAddress as `0x${string}`,
       abi: ExampleERC20Abi.abi,
       functionName: 'burn',
@@ -80,11 +82,11 @@ export function useExampleERC20(tokenAddress: string | null): ExampleERC20Hook {
   };
 
   const burnFrom = async (from: string, amount: string): Promise<string> => {
-    if (!coreWalletClient || !tokenAddress || !walletEVMAddress || !viemChain) {
+    if (!walletClient || !tokenAddress || !walletEVMAddress || !viemChain) {
       throw new Error('Wallet not connected or contract not ready');
     }
 
-    const writePromise = coreWalletClient.writeContract({
+    const writePromise = walletClient!.writeContract({
       address: tokenAddress as `0x${string}`,
       abi: ExampleERC20Abi.abi,
       functionName: 'burnFrom',
@@ -103,11 +105,11 @@ export function useExampleERC20(tokenAddress: string | null): ExampleERC20Hook {
   };
 
   const grantRole = async (role: string, account: string): Promise<string> => {
-    if (!coreWalletClient || !tokenAddress || !walletEVMAddress || !viemChain) {
+    if (!walletClient || !tokenAddress || !walletEVMAddress || !viemChain) {
       throw new Error('Wallet not connected or contract not ready');
     }
 
-    const writePromise = coreWalletClient.writeContract({
+    const writePromise = walletClient!.writeContract({
       address: tokenAddress as `0x${string}`,
       abi: ExampleERC20Abi.abi,
       functionName: 'grantRole',
