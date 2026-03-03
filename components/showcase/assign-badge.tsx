@@ -34,6 +34,9 @@ export const AssignBadge = ({
   );
 
   useEffect(() => {
+    // Only fetch badges when modal is opened
+    if (!isOpen) return;
+
     const fetchBadges = async () => {
       const response = await axios.get("/api/badge/get-all");
       const filteredBadges = response.data.filter(
@@ -57,7 +60,7 @@ export const AssignBadge = ({
       );
     };
     fetchBadges();
-  }, [project.id, assignedBadgeIds]);
+  }, [isOpen, project.id, assignedBadgeIds]);
 
   const handleClose = () => {
     setSelectedBadges([]);

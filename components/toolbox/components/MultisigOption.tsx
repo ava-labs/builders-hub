@@ -7,6 +7,7 @@ import { encodeFunctionData, getAddress } from 'viem';
 import { MetaTransactionData } from '@safe-global/types-kit';
 import validatorManagerAbi from '../../../contracts/icm-contracts/compiled/ValidatorManager.json';
 import poaManagerAbi from '../../../contracts/icm-contracts/compiled/PoAManager.json';
+import { useWalletClient } from 'wagmi';
 import { useWalletStore } from '../stores/walletStore';
 import { useViemChainStore } from '../stores/toolboxStore';
 import { useSafeAPI, SafeInfo, NonceResponse, AshWalletUrlResponse } from '../hooks/useSafeAPI';
@@ -90,7 +91,8 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [ashWalletUrl, setAshWalletUrl] = useState('');
 
-  const { coreWalletClient, publicClient, walletEVMAddress } = useWalletStore();
+  const { publicClient, walletEVMAddress } = useWalletStore();
+  const { data: walletClient } = useWalletClient();
   const viemChain = useViemChainStore();
   const { callSafeAPI } = useSafeAPI();
 
@@ -109,7 +111,7 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
   const checkWalletAndOwnership = async () => {
     setIsCheckingOwnership(true);
     try {
-      if (!coreWalletClient?.account) {
+      if (!walletClient?.account) {
         setIsPoaOwner(false);
         return;
       }
@@ -158,7 +160,7 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
   const initializeMultisig = async () => {
     setIsInitializing(true);
     try {
-      if (!coreWalletClient?.account) {
+      if (!walletClient?.account) {
         throw new Error('Wallet not connected');
       }
 
@@ -317,7 +319,7 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
   };
 
   const executeDirectTransaction = async () => {
-    if (!coreWalletClient) {
+    if (!walletClient) {
       onError('Core wallet not found');
       return;
     }
@@ -330,13 +332,13 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
 
     setIsExecutingDirect(true);
     try {
-      const txHash = await coreWalletClient.writeContract({
+      const txHash = await walletClient!.writeContract({
         address: poaManagerAddress as `0x${string}`,
         abi: poaManagerAbi.abi,
         functionName: functionName,
         args: args,
         chain: viemChain,
-        account: coreWalletClient.account!,
+        account: walletClient!.account,
       });
 
       // Wait for transaction receipt

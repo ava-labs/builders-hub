@@ -14,6 +14,8 @@ import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalle
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../components/WithConsoleToolMetadata";
 import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
+import { PrecompileCodeViewer } from "@/components/console/precompile-code-viewer";
+import { Coins } from "lucide-react";
 
 // Default Native Minter address
 const DEFAULT_NATIVE_MINTER_ADDRESS =
@@ -30,7 +32,7 @@ const metadata: ConsoleToolMetadata = {
 
 function NativeMinter({ onSuccess }: BaseConsoleToolProps) {
   const { publicClient, walletEVMAddress } = useWalletStore();
-  const { coreWalletClient } = useConnectedWallet();
+  const { walletClient } = useConnectedWallet();
   const viemChain = useViemChainStore();
   const [amount, setAmount] = useState<string>("");
   const [recipient, setRecipient] = useState<string>("");
@@ -45,7 +47,7 @@ function NativeMinter({ onSuccess }: BaseConsoleToolProps) {
       const amountInWei = BigInt(amount) * BigInt(10 ** 18);
 
       // Call the mintNativeCoin function using the contract ABI
-      const hash = await coreWalletClient.writeContract({
+      const hash = await walletClient.writeContract({
         address: DEFAULT_NATIVE_MINTER_ADDRESS as `0x${string}`,
         abi: nativeMinterAbi.abi,
         functionName: "mintNativeCoin",
@@ -70,32 +72,61 @@ function NativeMinter({ onSuccess }: BaseConsoleToolProps) {
   };
 
   const isValidAmount = amount && Number(amount) > 0;
-  const canMint = Boolean(recipient && isValidAmount && walletEVMAddress && coreWalletClient && !isMinting);
+  const canMint = Boolean(recipient && isValidAmount && walletEVMAddress && walletClient && !isMinting);
 
   return (
     <CheckPrecompile
       configKey="contractNativeMinterConfig"
       precompileName="Native Minter"
     >
-      <div>
+      <PrecompileCodeViewer
+        precompileName="NativeMinter"
+        highlightFunction="mintNativeCoin"
+        collapsibleSections={[
+          {
+            title: "Manage Allowlist",
+            defaultOpen: false,
+            children: (
+              <AllowlistComponent
+                precompileAddress={DEFAULT_NATIVE_MINTER_ADDRESS}
+                precompileType="Minter"
+                onSuccess={onSuccess}
+              />
+            ),
+          },
+        ]}
+      >
+        {/* Mint Form */}
         <div className="space-y-4">
-          <div className="space-y-4">
-            <EVMAddressInput
-              label="Recipient Address"
-              value={recipient}
-              onChange={setRecipient}
-              disabled={isMinting}
-            />
-            <Input
-              label="Amount"
-              value={amount}
-              onChange={(value) => setAmount(value)}
-              type="number"
-              min="0"
-              step="0.000000000000000001"
-              disabled={isMinting}
-            />
+          <div className="flex items-center gap-2 mb-4">
+            <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/30">
+              <Coins className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+            </div>
+            <div>
+              <h3 className="font-medium text-zinc-900 dark:text-zinc-100">Mint Native Tokens</h3>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                Create new native tokens and send to any address
+              </p>
+            </div>
           </div>
+
+          <EVMAddressInput
+            label="Recipient Address"
+            value={recipient}
+            onChange={setRecipient}
+            disabled={isMinting}
+          />
+
+          <Input
+            label="Amount"
+            value={amount}
+            onChange={(value) => setAmount(value)}
+            type="number"
+            min="0"
+            step="0.000000000000000001"
+            disabled={isMinting}
+            helperText="Amount in native token units (e.g., AVAX)"
+          />
 
           {txHash && (
             <ResultField
@@ -116,13 +147,7 @@ function NativeMinter({ onSuccess }: BaseConsoleToolProps) {
               : "Mint Native Tokens"}
           </Button>
         </div>
-      </div>
-
-      <AllowlistComponent
-        precompileAddress={DEFAULT_NATIVE_MINTER_ADDRESS}
-        precompileType="Minter"
-        onSuccess={onSuccess}
-      />
+      </PrecompileCodeViewer>
     </CheckPrecompile>
   );
 }

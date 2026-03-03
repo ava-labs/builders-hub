@@ -15,9 +15,6 @@ const config = {
   outputFileTracingIncludes: {
     '/*': ['./tsconfig.json'],
   },
-  env: {
-    APIKEY: process.env.APIKEY,
-  },
   transpilePackages: ["next-mdx-remote"],
   images: {
     remotePatterns: [
@@ -482,7 +479,13 @@ const config = {
       },
       {
         source: '/hackathon',
-        destination: '/hackathons/26bfce9b-4d44-4d40-8fbe-7903e76d48fa',
+        destination: '/hackathons',
+        permanent: true,
+      },
+      // Build Games hackathon redirect
+      {
+        source: '/hackathons/249d2911-7931-4aa0-a696-37d8370b79f9',
+        destination: '/build-games',
         permanent: true,
       },
       {
@@ -938,7 +941,7 @@ const config = {
       },
       {
         source: "/academy/avalanche-l1/interchain-token-transfer/02-avalanche-starter-kit/:path*",
-        destination: "/academy/avalanche-l1/interchain-messaging/03-avalanche-starter-kit/:path*",
+        destination: "/academy/avalanche-l1/interchain-messaging",
         permanent: true,
       },
       {
@@ -946,9 +949,50 @@ const config = {
         destination: "/academy/avalanche-l1/interchain-messaging/08-avalanche-warp-messaging/:path*",
         permanent: true,
       },
+      // Deleted ICM sections → redirect to new equivalents
+      {
+        source: "/academy/avalanche-l1/interchain-messaging/04-icm-basics/:path*",
+        destination: "/academy/avalanche-l1/interchain-messaging/03-icm-protocol/01-what-is-icm",
+        permanent: true,
+      },
+      {
+        source: "/academy/avalanche-l1/interchain-messaging/05-two-way-communication/:path*",
+        destination: "/academy/avalanche-l1/interchain-messaging/03-icm-protocol/01-what-is-icm",
+        permanent: true,
+      },
+      {
+        source: "/academy/avalanche-l1/interchain-messaging/06-invoking-functions/:path*",
+        destination: "/academy/avalanche-l1/interchain-messaging/03-icm-protocol/01-what-is-icm",
+        permanent: true,
+      },
+      {
+        source: "/academy/avalanche-l1/interchain-messaging/07-icm-registry/:path*",
+        destination: "/academy/avalanche-l1/interchain-messaging/03-icm-protocol/05-icm-registry",
+        permanent: true,
+      },
+      {
+        source: "/academy/avalanche-l1/interchain-messaging/09-running-a-relayer/:path*",
+        destination: "/academy/avalanche-l1/interchain-messaging/06-relayer-deep-dive/01-relayer-configuration",
+        permanent: true,
+      },
       {
         source: "/academy/avalanche-l1/interchain-messaging/10-running-a-relayer/:path*",
-        destination: "/academy/avalanche-l1/interchain-messaging/09-running-a-relayer/:path*",
+        destination: "/academy/avalanche-l1/interchain-messaging/06-relayer-deep-dive/01-relayer-configuration",
+        permanent: true,
+      },
+      {
+        source: "/academy/avalanche-l1/interchain-messaging/10-restricting-the-relayer/:path*",
+        destination: "/academy/avalanche-l1/interchain-messaging/06-relayer-deep-dive/02-restricting-relayers",
+        permanent: true,
+      },
+      {
+        source: "/academy/avalanche-l1/interchain-messaging/11-incentivizing-a-relayer/:path*",
+        destination: "/academy/avalanche-l1/interchain-messaging/06-relayer-deep-dive/03-fee-data-flow",
+        permanent: true,
+      },
+      {
+        source: "/academy/avalanche-l1/interchain-messaging/03-avalanche-starter-kit/:path*",
+        destination: "/academy/avalanche-l1/interchain-messaging",
         permanent: true,
       },
       {
@@ -1242,11 +1286,6 @@ const config = {
       {
         source: "/docs/nodes/maintain/background-service-config",
         destination: "/docs/nodes/maintain/run-as-background-service",
-        permanent: true,
-      },
-      {
-        source: "/docs/nodes/run-a-node",
-        destination: "/docs/nodes",
         permanent: true,
       },
       {

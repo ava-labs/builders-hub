@@ -56,7 +56,7 @@ export function getApisConfigs(): FileConfig[] {
       contentUrl: "https://github.com/ava-labs/avalanchego/blob/master/vms/avm/",
     },
     {
-      sourceUrl: "https://raw.githubusercontent.com/ava-labs/avalanchego/master/graft/coreth/plugin/evm/api.md",
+      sourceUrl: "https://raw.githubusercontent.com/ava-labs/avalanchego/master/graft/coreth/plugin/evm/service.md",
       outputPath: "content/docs/rpcs/c-chain/index.mdx",
       title: "AvalancheGo C-Chain RPC",
       description: "This page is an overview of the C-Chain RPC associated with AvalancheGo.",

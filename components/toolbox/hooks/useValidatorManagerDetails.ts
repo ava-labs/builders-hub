@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from "react";
 import { networkIDs } from "@avalabs/avalanchejs";
-import { getTotalStake } from "../coreViem/hooks/getTotalStake";
 import { getSubnetInfoForNetwork, getBlockchainInfoForNetwork } from "../coreViem/utils/glacier";
 import { useWalletStore } from "../stores/walletStore";
 import { useViemChainStore } from "../stores/toolboxStore";
-import validatorManagerAbi from '../../../contracts/icm-contracts/compiled/ValidatorManager.json';
-import poaManagerAbi from '../../../contracts/icm-contracts/compiled/PoAManager.json';
+import { useValidatorManager } from "./contracts/core/useValidatorManager";
+import { usePoAManager } from "./contracts/governance/usePoAManager";
+import { useChainPublicClient } from "./useChainPublicClient";
 
 interface ValidatorManagerDetails {
     validatorManagerAddress: string;
@@ -29,9 +29,9 @@ interface UseValidatorManagerDetailsProps {
 }
 
 export function useValidatorManagerDetails({ subnetId }: UseValidatorManagerDetailsProps): ValidatorManagerDetails {
-    const { avalancheNetworkID, publicClient } = useWalletStore();
+    const { avalancheNetworkID } = useWalletStore();
     const viemChain = useViemChainStore();
-    const getChainIdFn = publicClient?.getChainId;
+    const chainPublicClient = useChainPublicClient();
 
     const [validatorManagerAddress, setValidatorManagerAddress] = useState("");
     const [blockchainId, setBlockchainId] = useState("");
@@ -45,6 +45,11 @@ export function useValidatorManagerDetails({ subnetId }: UseValidatorManagerDeta
 
     // Contract owner states (no ownership verification, just the address)
     const [contractOwner, setContractOwner] = useState<string | null>(null);
+
+    // Initialize hooks for contract interactions (after state declarations)
+    const validatorManager = useValidatorManager(validatorManagerAddress || null);
+    // Initialize PoA Manager hook with owner address (will be null initially)
+    const poaManager = usePoAManager(contractOwner);
     const [ownershipError, setOwnershipError] = useState<string | null>(null);
     const [isLoadingOwnership, setIsLoadingOwnership] = useState(false);
     const [isOwnerContract, setIsOwnerContract] = useState(false);
@@ -90,7 +95,6 @@ export function useValidatorManagerDetails({ subnetId }: UseValidatorManagerDeta
 
             const cacheKey = `${avalancheNetworkID}-${subnetId}`;
             if (subnetCache.current[cacheKey]) {
-                console.log(`Using cached Validator Manager details for subnet: ${subnetId}`);
                 const cached = subnetCache.current[cacheKey];
                 setValidatorManagerAddress(cached.validatorManagerAddress);
                 setBlockchainId(cached.blockchainId);
@@ -101,7 +105,6 @@ export function useValidatorManagerDetails({ subnetId }: UseValidatorManagerDeta
 
             try {
                 const network = avalancheNetworkID === networkIDs.MainnetID ? "mainnet" : "testnet";
-                console.log(`Fetching Validator Manager details for subnet: ${subnetId} on network: ${network}`);
 
                 const subnetInfo = await getSubnetInfoForNetwork(network, subnetId);
 
@@ -121,20 +124,7 @@ export function useValidatorManagerDetails({ subnetId }: UseValidatorManagerDeta
                 const expectedChainIdForVMC = blockchainInfoForVMC.evmChainId;
 
                 if (viemChain && viemChain.id !== expectedChainIdForVMC) {
-                    setError(`Please use chain ID ${expectedChainIdForVMC} in your wallet. Current selected chain ID: ${viemChain.id}`);
-                    setIsLoading(false);
-                    return;
-                }
-
-                if (!publicClient) {
-                    setError("Public client not available. Please ensure your wallet is connected.");
-                    setIsLoading(false);
-                    return;
-                }
-
-                const connectedChainId = await publicClient.getChainId();
-                if (connectedChainId !== expectedChainIdForVMC) {
-                    setError(`Please connect to chain ID ${expectedChainIdForVMC} to use this L1\'s Validator Manager. Connected: ${connectedChainId}`);
+                    setError(`Please switch to chain ID ${expectedChainIdForVMC} to use this L1's Validator Manager. Current: ${viemChain.id}`);
                     setIsLoading(false);
                     return;
                 }
@@ -166,12 +156,12 @@ export function useValidatorManagerDetails({ subnetId }: UseValidatorManagerDeta
         };
 
         fetchDetails();
-    }, [subnetId, getChainIdFn, viemChain?.id, avalancheNetworkID]);
+    }, [subnetId, viemChain?.id, avalancheNetworkID]);
 
     // Fetch L1 total weight
     useEffect(() => {
         const fetchL1TotalWeight = async () => {
-            if (!publicClient) {
+            if (!chainPublicClient) {
                 setContractTotalWeight(0n);
                 setL1WeightError(null);
                 setIsLoadingL1Weight(false);
@@ -189,11 +179,11 @@ export function useValidatorManagerDetails({ subnetId }: UseValidatorManagerDeta
             setL1WeightError(null); // Clear previous errors before fetching
 
             try {
-                const formattedAddress = validatorManagerAddress.startsWith('0x')
-                    ? validatorManagerAddress as `0x${string}`
-                    : `0x${validatorManagerAddress}` as `0x${string}`;
+                if (!validatorManager.isReady) {
+                    throw new Error('Validator manager not ready');
+                }
 
-                const totalWeight = await getTotalStake(publicClient, formattedAddress);
+                const totalWeight = await validatorManager.l1TotalWeight();
                 setContractTotalWeight(totalWeight);
 
                 if (totalWeight === 0n) {
@@ -220,101 +210,150 @@ export function useValidatorManagerDetails({ subnetId }: UseValidatorManagerDeta
         };
 
         fetchL1TotalWeight();
-    }, [validatorManagerAddress, publicClient]); // Re-run if VMC address or publicClient changes
+    }, [validatorManagerAddress, chainPublicClient]);
 
     // Fetch contract owner (no ownership verification, just fetch the owner address)
     useEffect(() => {
+        let cancelled = false;
+
         const fetchContractOwner = async () => {
-            if (!publicClient || !validatorManagerAddress) {
-                setContractOwner(null);
-                setOwnershipError(null);
-                setIsLoadingOwnership(false);
-                setIsOwnerContract(false);
+            if (!chainPublicClient || !validatorManagerAddress) {
+                if (!cancelled) {
+                    setContractOwner(null);
+                    setOwnershipError(null);
+                    setIsLoadingOwnership(false);
+                    setIsOwnerContract(false);
+                }
                 return;
             }
 
-            setIsLoadingOwnership(true);
-            setOwnershipError(null);
-            setIsOwnerContract(false);
-            setOwnerType(null);
-            
+            if (!cancelled) {
+                setIsLoadingOwnership(true);
+                setOwnershipError(null);
+                setIsOwnerContract(false);
+                setOwnerType(null);
+            }
+
+            const timeoutId = setTimeout(() => {
+                if (!cancelled) {
+                    setContractOwner(null);
+                    setOwnershipError("Ownership check timed out.");
+                    setIsOwnerContract(false);
+                    setIsLoadingOwnership(false);
+                }
+            }, 15000);
+
             try {
-                const formattedAddress = validatorManagerAddress.startsWith('0x')
-                    ? validatorManagerAddress as `0x${string}`
-                    : `0x${validatorManagerAddress}` as `0x${string}`;
+                if (!validatorManager.isReady) {
+                    throw new Error('Validator manager not ready');
+                }
 
-                // Fetch contract owner address only
-                const owner = await publicClient.readContract({
-                    address: formattedAddress,
-                    abi: validatorManagerAbi.abi,
-                    functionName: "owner",
-                }) as `0x${string}`;
+                // Fetch contract owner address using the hook
+                const owner = await validatorManager.owner() as `0x${string}`;
+                clearTimeout(timeoutId);
 
-                setContractOwner(owner);
+                if (!cancelled) {
+                    setContractOwner(owner);
+                }
 
                 // Check if the owner is a contract by checking if it has bytecode
                 if (owner) {
                     try {
-                        const bytecode = await publicClient.getBytecode({ address: owner });
+                        const bytecode = await chainPublicClient!.getBytecode({ address: owner });
                         const isContract = !!bytecode && bytecode !== '0x';
-                        setIsOwnerContract(isContract);
+                        if (!cancelled) {
+                            setIsOwnerContract(isContract);
 
-                        // If it's not a contract, set it as EOA immediately
-                        if (!isContract) {
-                            setOwnerType('EOA');
+                            // If it's not a contract, set it as EOA immediately
+                            if (!isContract) {
+                                setOwnerType('EOA');
+                            }
                         }
                     } catch (e) {
-                        console.warn("Could not check if owner is a contract:", e);
-                        setIsOwnerContract(false);
-                        setOwnerType('EOA'); // Default to EOA if we can't determine
+                        if (!cancelled) {
+                            setIsOwnerContract(false);
+                            setOwnerType('EOA'); // Default to EOA if we can't determine
+                        }
                     }
                 }
 
             } catch (e: any) {
-                setContractOwner(null);
-                setOwnershipError(e.message || "Failed to fetch contract owner information.");
-                setIsOwnerContract(false);
+                if (!cancelled) {
+                    setContractOwner(null);
+                    setOwnershipError(e.message || "Failed to fetch contract owner information.");
+                    setIsOwnerContract(false);
+                }
             } finally {
-                setIsLoadingOwnership(false);
+                clearTimeout(timeoutId);
+                if (!cancelled) {
+                    setIsLoadingOwnership(false);
+                }
             }
         };
 
         fetchContractOwner();
-    }, [validatorManagerAddress, publicClient]);
+        return () => { cancelled = true; };
+    }, [validatorManagerAddress, chainPublicClient]);
 
     // Detect owner contract type when owner is a contract
     useEffect(() => {
+        let cancelled = false;
+
         const detectOwnerType = async () => {
-            if (!isOwnerContract || !contractOwner || !publicClient) {
-                setIsDetectingOwnerType(false);
+            if (!isOwnerContract || !contractOwner || !chainPublicClient) {
+                if (!cancelled) {
+                    setIsDetectingOwnerType(false);
+                }
                 return;
             }
 
-            setIsDetectingOwnerType(true);
+            if (!cancelled) {
+                setIsDetectingOwnerType(true);
+            }
+
+            const timeoutId = setTimeout(() => {
+                if (!cancelled) {
+                    setOwnerType('StakingManager');
+                    setIsDetectingOwnerType(false);
+                }
+            }, 10000);
+
             try {
-                // Try to call owner() function using PoAManager ABI to detect if it's a PoAManager
-                const ownerAddress = await publicClient.readContract({
-                    address: contractOwner as `0x${string}`,
-                    abi: poaManagerAbi.abi,
-                    functionName: "owner",
-                });
+                if (!poaManager.isReady) {
+                    // If PoA Manager hook is not ready, can't detect
+                    if (!cancelled) {
+                        setOwnerType('StakingManager');
+                    }
+                    return;
+                }
+
+                // Try to call owner() function using PoAManager hook to detect if it's a PoAManager
+                const ownerAddress = await poaManager.owner();
+                clearTimeout(timeoutId);
 
                 // If we can successfully call owner() with PoAManager ABI, it's a PoAManager
-                if (ownerAddress) {
-                    setOwnerType('PoAManager');
-                } else {
-                    setOwnerType('StakingManager');
+                if (!cancelled) {
+                    if (ownerAddress) {
+                        setOwnerType('PoAManager');
+                    } else {
+                        setOwnerType('StakingManager');
+                    }
                 }
             } catch (error) {
-                console.log('Owner contract does not have PoAManager ABI structure, likely StakingManager');
-                setOwnerType('StakingManager');
+                if (!cancelled) {
+                    setOwnerType('StakingManager');
+                }
             } finally {
-                setIsDetectingOwnerType(false);
+                clearTimeout(timeoutId);
+                if (!cancelled) {
+                    setIsDetectingOwnerType(false);
+                }
             }
         };
 
         detectOwnerType();
-    }, [isOwnerContract, contractOwner, publicClient]);
+        return () => { cancelled = true; };
+    }, [isOwnerContract, contractOwner, chainPublicClient]);
 
     return {
         validatorManagerAddress,
