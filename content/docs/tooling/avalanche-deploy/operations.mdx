@@ -1,0 +1,194 @@
+---
+title: Operations and Maintenance
+description: Day-2 operations for Avalanche infrastructure — AvalancheGo upgrades, monitoring, health checks, staking key backup, database snapshots, and rolling restarts.
+---
+
+This guide covers ongoing operations for infrastructure deployed with `avalanche-deploy`. All commands use `make` targets that wrap Ansible playbooks.
+
+## Health Checks
+
+Run comprehensive health checks across all nodes:
+
+```bash
+# Basic health checks
+make health-checks
+
+# Include L1 chain status
+make health-checks CHAIN_ID=$CHAIN_ID
+```
+
+Health checks verify:
+- AvalancheGo service status (systemd)
+- NodeID and version
+- P-Chain, X-Chain, and C-Chain bootstrap status
+- L1 block number (if `CHAIN_ID` is provided)
+
+## Monitoring
+
+### Deploy Prometheus and Grafana
+
+```bash
+make monitoring
+```
+
+**Access Grafana**: `http://<monitoring-ip>:3000` (default credentials: `admin`/`admin`)
+
+### Pre-Built Dashboards
+
+| Dashboard | Metrics |
+|-----------|---------|
+| Avalanche L1 | Block height, transaction throughput, validator status |
+| L1 EVM | Gas usage, contract calls, pending transactions |
+| P-Chain | Staking metrics, validator set changes |
+| System Health | CPU, memory, disk, network for all nodes |
+
+Prometheus is pre-configured to scrape both AvalancheGo metrics and node_exporter system metrics from all hosts.
+
+## Viewing Logs
+
+```bash
+# View logs from all nodes
+make logs
+```
+
+Or SSH directly to inspect a specific node:
+
+```bash
+ssh -i ~/.ssh/avalanche-deploy ubuntu@<node-ip> \
+  "sudo journalctl -u avalanchego -f --no-pager -n 100"
+```
+
+## Rolling Restart
+
+Restart all nodes one at a time with health checks between each restart. This ensures zero downtime:
+
+```bash
+make rolling-restart
+```
+
+The playbook:
+1. Stops AvalancheGo on one node
+2. Starts AvalancheGo
+3. Waits for the node to report healthy
+4. Moves to the next node
+
+## Upgrading AvalancheGo
+
+Perform a zero-downtime rolling upgrade to a new AvalancheGo version:
+
+```bash
+make upgrade VERSION=1.14.1
+```
+
+<Callout type="info">
+Subnet-EVM is bundled with AvalancheGo v1.12.0+ and updates automatically with each AvalancheGo upgrade. No separate plugin management is needed.
+</Callout>
+
+The upgrade playbook follows the same rolling pattern as restarts: one node at a time with health checks between each upgrade.
+
+## Staking Key Backup and Restore
+
+### Backup
+
+```bash
+# Backup all validator keys to S3 (KMS encrypted)
+make backup-keys CLOUD=aws
+```
+
+Keys are encrypted with AWS KMS. Validator instances access the S3 bucket via IAM role — no credentials stored on disk.
+
+### Restore
+
+```bash
+# Restore keys from one node to another
+make restore-keys CLOUD=aws SOURCE=primary-validator-1 TARGET_IP=10.0.1.50
+```
+
+### List Backups
+
+```bash
+aws s3 ls s3://$(terraform -chdir=terraform/aws-primary-network output -raw staking_keys_bucket)/
+```
+
+## Database Snapshots
+
+Create lz4-compressed snapshots of node databases for fast bootstrapping:
+
+```bash
+# Create a snapshot
+make create-snapshot CLOUD=aws NODE=primary-validator-1
+
+# Create with custom name
+make create-snapshot CLOUD=aws NODE=primary-validator-1 NAME=mainnet-2025-02
+
+# List snapshots
+make list-snapshots CLOUD=aws
+
+# Restore a snapshot
+make restore-snapshot CLOUD=aws TARGET=migration-target
+```
+
+Snapshots include SHA256 checksums for integrity verification. Enable integrity checking with:
+
+```bash
+cd ansible && ansible-playbook -i inventory/aws_hosts playbooks/15-restore-snapshot.yml \
+  --limit migration-target \
+  -e verify_integrity=true
+```
+
+<Callout type="warn">
+Verified restore mode requires approximately 3x the snapshot size in free disk space (download + extract + verify).
+</Callout>
+
+## Reset L1 Chain Data
+
+Wipe L1 chain data on all nodes for redeployment. This preserves staking keys and Primary Network data:
+
+```bash
+make reset-l1
+```
+
+## Tear Down Infrastructure
+
+Permanently destroy all cloud resources:
+
+```bash
+# Destroy L1 infrastructure
+make destroy
+
+# Destroy Primary Network infrastructure
+make primary-destroy CLOUD=aws
+```
+
+<Callout type="warn">
+This permanently deletes all VMs, disks, and networking. Staking keys previously backed up to S3 are preserved, but node databases are permanently lost.
+</Callout>
+
+## Command Reference
+
+### L1 Operations
+
+| Command | Description |
+|---------|-------------|
+| `make status` | Check node sync status |
+| `make health-checks` | Run comprehensive health checks |
+| `make logs` | View node logs |
+| `make rolling-restart` | Zero-downtime rolling restart |
+| `make upgrade VERSION=x.y.z` | Rolling AvalancheGo upgrade |
+| `make monitoring` | Deploy Prometheus + Grafana |
+| `make reset-l1` | Wipe L1 chain data (keeps keys) |
+| `make destroy` | Tear down all infrastructure |
+
+### Primary Network Operations
+
+| Command | Description |
+|---------|-------------|
+| `make primary-status CLOUD=aws` | Check Primary Network node status |
+| `make backup-keys CLOUD=aws` | Backup staking keys to S3 |
+| `make restore-keys CLOUD=aws SOURCE=... TARGET_IP=...` | Restore staking keys |
+| `make create-snapshot CLOUD=aws NODE=...` | Create database snapshot |
+| `make restore-snapshot CLOUD=aws TARGET=...` | Restore database snapshot |
+| `make list-snapshots CLOUD=aws` | List available S3 snapshots |
+| `make prepare-migration CLOUD=aws NODE=...` | Prepare node for migration |
+| `make migrate-validator CLOUD=aws SOURCE=... TARGET=...` | Execute validator migration |
+| `make primary-destroy CLOUD=aws` | Tear down Primary Network infra |
