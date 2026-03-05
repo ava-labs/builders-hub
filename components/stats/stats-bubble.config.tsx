@@ -2,12 +2,14 @@
 
 import BubbleNavigation from "@/components/navigation/BubbleNavigation";
 import type { BubbleNavigationConfig } from "@/components/navigation/bubble-navigation.types";
-import { Globe, List, ChartArea, Command, MessageCircleMore } from "lucide-react";
+import { Globe, List, ChartArea, Command, MessageCircleMore, AppWindow, LayoutGrid } from "lucide-react";
 
 export const statsBubbleConfig: BubbleNavigationConfig = {
   items: [
     { id: "overview", label: "Overview", href: "/stats/overview", icon: Globe },
     { id: "chain-list", label: "Chain List", href: "/stats/chain-list", icon: List },
+    { id: "dapps", label: "DApps", href: "/stats/dapps", icon: AppWindow },
+    { id: "treemap", label: "Treemap", href: "/stats/dapps/treemap", icon: LayoutGrid },
     { id: "stats", label: "Stats", href: "/stats/network-metrics", icon: ChartArea },
     { id: "playground", label: "Playground", href: "/stats/playground", icon: Command },
     { id: "icm", label: "ICM", href: "/stats/interchain-messaging", icon: MessageCircleMore },
@@ -29,6 +31,10 @@ const getActiveItem = (
     return currentItem.id;
   } else if (pathname.startsWith("/stats/chain-list")) {
     return "chain-list";
+  } else if (pathname.startsWith("/stats/dapps/treemap")) {
+    return "treemap";
+  } else if (pathname.startsWith("/stats/dapps")) {
+    return "dapps";
   } else if (pathname.startsWith("/stats/network-metrics")) {
     return "stats"; // All chains stats page
   } else if (pathname.startsWith("/stats/interchain-messaging")) {

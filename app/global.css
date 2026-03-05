@@ -615,17 +615,17 @@ html {
 }
 
 .dark {
-  --background: oklch(0 0 0);
+  --background: oklch(0.145 0 0);
   --foreground: oklch(0.98 0 0);
-  --card: oklch(0 0 0);
+  --card: oklch(0.205 0 0);
   --card-foreground: oklch(0.98 0 0);
-  --popover: oklch(0 0 0);
+  --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.98 0 0);
   --primary: oklch(0.98 0 0); /* near-white text/icons */
   --primary-foreground: oklch(0.2 0 0);
   --secondary: oklch(0.12 0 0);
   --secondary-foreground: oklch(0.9 0 0);
-  --muted: oklch(0.16 0 0);
+  --muted: oklch(0.269 0 0);
   --muted-foreground: oklch(0.7 0 0);
   --accent: oklch(0.14 0 0);
   --accent-foreground: oklch(0.92 0 0);
@@ -778,6 +778,15 @@ html {
   }
   .animate-stroke {
     animation: stroke 5s linear infinite;
+  }
+
+  @keyframes flow {
+    from {
+      stroke-dashoffset: 24;
+    }
+    to {
+      stroke-dashoffset: 0;
+    }
   }
 
   .container {
@@ -1176,8 +1185,6 @@ nav button[aria-current="page"]:hover {
   [data-radix-popover-content][data-state="open"],
   [data-slot="popover-content"][data-state="open"] {
     z-index: 10000 !important;
-    position: fixed !important;
-    display: flex !important;
     visibility: visible !important;
     opacity: 1 !important;
     pointer-events: auto !important;
@@ -1538,6 +1545,16 @@ html.embed-mode .fd-layout-docs > aside#nd-toc,
 html.embed-mode [data-docs-layout] > aside#nd-toc,
 html.embed-mode #nd-toc {
   grid-column: 2 !important;
+}
+
+@keyframes flow {
+  from { background-position: 0 0; }
+  to { background-position: 24px 0; }
+}
+
+@keyframes flowVertical {
+  from { background-position: 0 0; }
+  to { background-position: 0 24px; }
 }
 
 .dark .custom-scroll::-webkit-scrollbar {
