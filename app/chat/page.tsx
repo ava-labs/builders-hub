@@ -594,7 +594,7 @@ function ChatInput({ suggestions, onSuggestionClick }: {
           <span>{getErrorMessage(visibleError)}</span>
           <button
             type="button"
-            onClick={() => setDismissedError(error)}
+            onClick={() => setDismissedError(error ?? null)}
             className="shrink-0 text-red-500 hover:text-red-700 dark:hover:text-red-300 transition-colors"
             aria-label="Dismiss error"
           >
