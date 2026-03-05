@@ -254,11 +254,11 @@ For detailed Safe setup including contract deployment and chain registration, se
 
 | Add-On | Ansible Playbook | Helm Chart | Ports |
 |--------|-----------------|------------|-------|
-| eRPC | `08-deploy-erpc.yml` | `helm/erpc` | 4000, 4001 |
-| Blockscout | `04-deploy-blockscout.yml` | `helm/blockscout` | 3000, 4000 |
-| Faucet | `06-deploy-faucet.yml` | `helm/faucet` | 8010 |
-| The Graph | `07-deploy-graph-node.yml` | `helm/graph-node` | 8000, 8020, 5001 |
-| ICM Relayer | `16-deploy-icm-relayer.yml` | `helm/icm-relayer` | 8080, 9090 |
-| Safe | `05-deploy-safe.yml` | `helm/safe` | 3000, 8000, 8888 |
-| Monitoring | `03-setup-monitoring.yml` | `helm/monitoring` | 3000, 9090 |
-| Staking Key Backup | `11-backup-staking-keys.yml` | `helm/staking-key-backup` | — |
+| eRPC | `l1/deploy-erpc.yml` | `helm/erpc` | 4000, 4001 |
+| Blockscout | `l1/deploy-blockscout.yml` | `helm/blockscout` | 3000, 4000 |
+| Faucet | `l1/deploy-faucet.yml` | `helm/faucet` | 8010 |
+| The Graph | `l1/deploy-graph-node.yml` | `helm/graph-node` | 8000, 8020, 5001 |
+| ICM Relayer | `l1/deploy-icm-relayer.yml` | `helm/icm-relayer` | 8080, 9090 |
+| Safe | `l1/deploy-safe.yml` | `helm/safe` | 3000, 8000, 8888 |
+| Monitoring | `shared/monitoring.yml` | `helm/monitoring` | 3000, 9090 |
+| Staking Key Backup | `primary-network/backup-staking-keys.yml` | `helm/staking-key-backup` | — |

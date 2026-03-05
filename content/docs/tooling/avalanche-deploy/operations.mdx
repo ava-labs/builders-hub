@@ -132,7 +132,7 @@ make restore-keys CLOUD=aws SOURCE=primary-validator-1 TARGET_IP=10.0.1.50
 ### List Backups
 
 ```bash
-aws s3 ls s3://$(terraform -chdir=terraform/aws-primary-network output -raw staking_keys_bucket)/
+aws s3 ls s3://$(terraform -chdir=terraform/primary-network/aws output -raw staking_keys_bucket)/
 ```
 
 ## Database Snapshots
@@ -156,7 +156,7 @@ make restore-snapshot CLOUD=aws TARGET=migration-target
 Snapshots include SHA256 checksums for integrity verification. Enable integrity checking with:
 
 ```bash
-cd ansible && ansible-playbook -i inventory/aws_hosts playbooks/15-restore-snapshot.yml \
+cd ansible && ansible-playbook -i inventory/aws_hosts playbooks/primary-network/restore-snapshot.yml \
   --limit migration-target \
   -e verify_integrity=true
 ```
