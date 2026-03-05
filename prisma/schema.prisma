@@ -71,6 +71,7 @@ model User {
   statsPlaygrounds         StatsPlayground[]
   statsPlaygroundFavorites StatsPlaygroundFavorite[] @relation("StatsPlaygroundFavorites")
   badges                   UserBadge[]
+  oauthCodes               OAuthCode[]
 }
 
 model VerificationToken {
@@ -363,6 +364,17 @@ model BuildGamesApplication {
   @@index([created_at])
   @@index([referrer_handle])
   @@index([area_of_focus])
+}
+
+model OAuthCode {
+  code       String   @id
+  client_id  String
+  user_id    String
+  expires_at DateTime @db.Timestamptz(3)
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([expires_at])
 }
 
 model Retro9000ReturningApplication {
