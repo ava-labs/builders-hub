@@ -1,13 +1,16 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { Fuel, Activity, Flame, TrendingUp, TrendingDown } from "lucide-react";
+import { Fuel, Activity, Flame, DollarSign, Users, TrendingUp, TrendingDown } from "lucide-react";
 
 interface CategoryBreakdown {
   category: string;
   txCount: number;
   gasUsed: number;
   avaxBurned: number;
+  gasCostUsd: number;
+  avaxBurnedUsd: number;
+  uniqueSenders: number;
   gasShare: number;
   delta: number;
 }
@@ -19,6 +22,9 @@ interface ProtocolBreakdown {
   txCount: number;
   gasUsed: number;
   avaxBurned: number;
+  gasCostUsd: number;
+  avaxBurnedUsd: number;
+  uniqueSenders: number;
   gasShare: number;
   delta: number;
 }
@@ -69,6 +75,13 @@ function formatNumber(num: number): string {
   if (num >= 1e6) return `${(num / 1e6).toFixed(1)}M`;
   if (num >= 1e3) return `${(num / 1e3).toFixed(1)}K`;
   return num.toLocaleString();
+}
+
+function formatUsd(num: number): string {
+  if (num >= 1e6) return `$${(num / 1e6).toFixed(1)}M`;
+  if (num >= 1e3) return `$${(num / 1e3).toFixed(1)}K`;
+  if (num >= 1) return `$${num.toFixed(2)}`;
+  return `$${num.toFixed(4)}`;
 }
 
 // Finviz-style red/green color scale based on delta %
@@ -226,6 +239,9 @@ interface CategoryItem extends SquarifyItem {
   txCount: number;
   gasUsed: number;
   avaxBurned: number;
+  gasCostUsd: number;
+  avaxBurnedUsd: number;
+  uniqueSenders: number;
 }
 
 interface ProtocolItem extends SquarifyItem {
@@ -238,6 +254,9 @@ interface ProtocolItem extends SquarifyItem {
   txCount: number;
   gasUsed: number;
   avaxBurned: number;
+  gasCostUsd: number;
+  avaxBurnedUsd: number;
+  uniqueSenders: number;
 }
 
 type HoveredInfo =
@@ -249,6 +268,9 @@ type HoveredInfo =
       txCount: number;
       gasUsed: number;
       avaxBurned: number;
+      gasCostUsd: number;
+      avaxBurnedUsd: number;
+      uniqueSenders: number;
       category: string;
     }
   | {
@@ -260,6 +282,9 @@ type HoveredInfo =
       txCount: number;
       gasUsed: number;
       avaxBurned: number;
+      gasCostUsd: number;
+      avaxBurnedUsd: number;
+      uniqueSenders: number;
       category: string;
     };
 
@@ -409,6 +434,9 @@ export default function GasTreemap() {
         txCount: c.txCount,
         gasUsed: c.gasUsed,
         avaxBurned: c.avaxBurned,
+        gasCostUsd: c.gasCostUsd,
+        avaxBurnedUsd: c.avaxBurnedUsd,
+        uniqueSenders: c.uniqueSenders,
       }));
 
     // Add unclassified block
@@ -438,6 +466,9 @@ export default function GasTreemap() {
             data.coverage.totalChainBurned - data.totalAvaxBurned,
             0
           ),
+          gasCostUsd: 0,
+          avaxBurnedUsd: 0,
+          uniqueSenders: 0,
         });
       }
     }
@@ -488,6 +519,9 @@ export default function GasTreemap() {
       let othersTx = 0;
       let othersBurned = 0;
       let othersShare = 0;
+      let othersGasCostUsd = 0;
+      let othersBurnedUsd = 0;
+      let othersSenders = 0;
 
       for (const p of protocols) {
         if (catTotalGas > 0 && p.gasUsed / catTotalGas < PROTOCOL_OTHERS_THRESHOLD) {
@@ -495,6 +529,9 @@ export default function GasTreemap() {
           othersTx += p.txCount;
           othersBurned += p.avaxBurned;
           othersShare += p.gasShare;
+          othersGasCostUsd += p.gasCostUsd;
+          othersBurnedUsd += p.avaxBurnedUsd;
+          othersSenders += p.uniqueSenders;
         } else {
           significant.push({
             key: `${cat.category}:${p.protocol}`,
@@ -506,6 +543,9 @@ export default function GasTreemap() {
             txCount: p.txCount,
             gasUsed: p.gasUsed,
             avaxBurned: p.avaxBurned,
+            gasCostUsd: p.gasCostUsd,
+            avaxBurnedUsd: p.avaxBurnedUsd,
+            uniqueSenders: p.uniqueSenders,
           });
         }
       }
@@ -521,6 +561,9 @@ export default function GasTreemap() {
           txCount: othersTx,
           gasUsed: othersGas,
           avaxBurned: othersBurned,
+          gasCostUsd: othersGasCostUsd,
+          avaxBurnedUsd: othersBurnedUsd,
+          uniqueSenders: othersSenders,
         });
       }
 
@@ -670,6 +713,9 @@ export default function GasTreemap() {
                       txCount: cat.txCount,
                       gasUsed: cat.gasUsed,
                       avaxBurned: cat.avaxBurned,
+                      gasCostUsd: cat.gasCostUsd,
+                      avaxBurnedUsd: cat.avaxBurnedUsd,
+                      uniqueSenders: cat.uniqueSenders,
                       category: cat.category,
                     })
                   }
@@ -777,6 +823,9 @@ export default function GasTreemap() {
                       txCount: cat.txCount,
                       gasUsed: cat.gasUsed,
                       avaxBurned: cat.avaxBurned,
+                      gasCostUsd: cat.gasCostUsd,
+                      avaxBurnedUsd: cat.avaxBurnedUsd,
+                      uniqueSenders: cat.uniqueSenders,
                       category: cat.category,
                     })
                   }
@@ -866,6 +915,9 @@ export default function GasTreemap() {
                             txCount: p.txCount,
                             gasUsed: p.gasUsed,
                             avaxBurned: p.avaxBurned,
+                            gasCostUsd: p.gasCostUsd,
+                            avaxBurnedUsd: p.avaxBurnedUsd,
+                            uniqueSenders: p.uniqueSenders,
                             category: cat.category,
                           })
                         }
@@ -936,7 +988,7 @@ export default function GasTreemap() {
 
         {/* Hover tooltip */}
         {hovered && (
-          <div className="absolute top-3 right-3 bg-zinc-900/95 backdrop-blur-sm border border-zinc-700 rounded-lg px-4 py-3 shadow-2xl text-sm pointer-events-none z-10 min-w-[200px]">
+          <div className="absolute top-3 right-3 bg-zinc-900/95 backdrop-blur-sm border border-zinc-700 rounded-lg px-4 py-3 shadow-2xl text-sm pointer-events-none z-10 min-w-[220px]">
             <div className="flex items-center justify-between mb-2">
               <div>
                 {hovered.type === "protocol" && (
@@ -984,8 +1036,33 @@ export default function GasTreemap() {
                 </span>
                 <span className="text-zinc-200 font-medium">
                   {hovered.avaxBurned.toFixed(2)}
+                  {hovered.avaxBurnedUsd > 0 && (
+                    <span className="text-zinc-500 ml-1">
+                      (~{formatUsd(hovered.avaxBurnedUsd)})
+                    </span>
+                  )}
                 </span>
               </div>
+              {hovered.gasCostUsd > 0 && (
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <DollarSign className="w-3 h-3 text-green-400" /> Gas Cost (USD)
+                  </span>
+                  <span className="text-zinc-200 font-medium">
+                    {formatUsd(hovered.gasCostUsd)}
+                  </span>
+                </div>
+              )}
+              {hovered.uniqueSenders > 0 && (
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <Users className="w-3 h-3 text-purple-400" /> Unique Senders
+                  </span>
+                  <span className="text-zinc-200 font-medium">
+                    {formatNumber(hovered.uniqueSenders)}
+                  </span>
+                </div>
+              )}
             </div>
             <div className="mt-2 pt-2 border-t border-zinc-700/50 text-[10px] text-zinc-500">
               vs previous {TIME_RANGES[timeRange].label} period
