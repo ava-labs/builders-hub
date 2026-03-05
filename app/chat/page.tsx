@@ -37,6 +37,7 @@ import { MessageFeedback } from '@/components/ai/feedback';
 import InlineChatComponent from '@/components/chat/inline-component';
 import Link from 'fumadocs-core/link';
 import { type UIMessage, useChat, type UseChatHelpers } from '@ai-sdk/react';
+import { MAX_MESSAGE_CHARS, WARN_MESSAGE_CHARS } from '@/lib/chat/constants';
 
 // In v6, UIMessage has 'parts' array instead of 'content'
 // Create a compatible Message type for our app
@@ -519,13 +520,18 @@ function ChatInput({ suggestions, onSuggestionClick }: {
   suggestions?: string[];
   onSuggestionClick?: (q: string) => void;
 }) {
-  const { status, sendMessage, stop } = useChatContext();
+  const { status, sendMessage, stop, error } = useChatContext();
   const [inputValue, setInputValue] = useState('');
+  const [dismissedError, setDismissedError] = useState<Error | null>(null);
   const isLoading = status === 'streaming' || status === 'submitted';
+
+  const charCount = inputValue.length;
+  const isOverLimit = charCount > MAX_MESSAGE_CHARS;
+  const isNearLimit = charCount >= WARN_MESSAGE_CHARS;
 
   const onSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (inputValue.trim()) {
+    if (inputValue.trim() && !isOverLimit) {
       posthog.capture('ai_chat_message_sent', {
         query_length: inputValue.length,
         query: inputValue.substring(0, 100),
@@ -537,6 +543,21 @@ function ChatInput({ suggestions, onSuggestionClick }: {
   };
 
   const hasSuggestions = suggestions && suggestions.length > 0 && !isLoading;
+
+  // Determine which error to show (API error, but not if user dismissed this exact one)
+  const visibleError = error && error !== dismissedError ? error : null;
+
+  // Map error to a user-friendly message
+  function getErrorMessage(err: Error): string {
+    const msg = err.message || '';
+    if (msg.includes('413') || msg.toLowerCase().includes('too long')) {
+      return 'Your message is too long. Please shorten it and try again.';
+    }
+    if (msg.includes('429') || msg.toLowerCase().includes('rate limit')) {
+      return 'You\'ve sent too many messages. Please wait a moment and try again.';
+    }
+    return 'Something went wrong. Please try again.';
+  }
 
   return (
     <div className="w-full max-w-4xl mx-auto px-4 pb-4">
@@ -563,12 +584,32 @@ function ChatInput({ suggestions, onSuggestionClick }: {
         </div>
       )}
 
+      {/* API error banner */}
+      {visibleError && (
+        <div className={cn(
+          "flex items-center justify-between gap-3 mb-3 px-4 py-2.5 rounded-xl text-sm",
+          "bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800",
+          "text-red-700 dark:text-red-400",
+        )}>
+          <span>{getErrorMessage(visibleError)}</span>
+          <button
+            type="button"
+            onClick={() => setDismissedError(error)}
+            className="shrink-0 text-red-500 hover:text-red-700 dark:hover:text-red-300 transition-colors"
+            aria-label="Dismiss error"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       <form onSubmit={onSubmit} className="relative">
         <div className={cn(
           "relative flex items-end rounded-2xl border transition-colors duration-200",
           "bg-zinc-50 dark:bg-zinc-800/80",
-          "border-zinc-200 dark:border-zinc-700",
-          "focus-within:border-zinc-400 dark:focus-within:border-zinc-500",
+          isOverLimit
+            ? "border-red-400 dark:border-red-600"
+            : "border-zinc-200 dark:border-zinc-700 focus-within:border-zinc-400 dark:focus-within:border-zinc-500",
           "focus-within:bg-white dark:focus-within:bg-zinc-800",
         )}>
           <TextareaInput
@@ -576,10 +617,16 @@ function ChatInput({ suggestions, onSuggestionClick }: {
             placeholder="Ask anything about Avalanche..."
             className="w-full px-5 py-4 pr-16 text-sm"
             disabled={isLoading}
-            onChange={(e) => setInputValue(e.target.value)}
+            onChange={(e) => {
+              setInputValue(e.target.value);
+              // Clear dismissed error when user types
+              if (dismissedError) setDismissedError(null);
+            }}
             onKeyDown={(event) => {
               if (!event.shiftKey && event.key === 'Enter') {
-                onSubmit();
+                if (!isOverLimit) {
+                  onSubmit();
+                }
                 event.preventDefault();
               }
             }}
@@ -588,21 +635,34 @@ function ChatInput({ suggestions, onSuggestionClick }: {
             <button
               type={isLoading ? 'button' : 'submit'}
               onClick={isLoading ? stop : undefined}
-              disabled={!isLoading && inputValue.length === 0}
+              disabled={!isLoading && (inputValue.length === 0 || isOverLimit)}
               className={cn(
                 "p-2 rounded-xl transition-all duration-150",
                 isLoading
                   ? "bg-zinc-200 dark:bg-zinc-600 text-zinc-500 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-500"
-                  : inputValue.length > 0
+                  : inputValue.length > 0 && !isOverLimit
                     ? "bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 hover:bg-zinc-700 dark:hover:bg-zinc-200 shadow-sm"
                     : "bg-zinc-200 dark:bg-zinc-700 text-zinc-400 dark:text-zinc-500 cursor-not-allowed"
               )}
-              title={isLoading ? "Stop generating" : "Send message"}
+              title={isLoading ? "Stop generating" : isOverLimit ? "Message too long" : "Send message"}
             >
               {isLoading ? <StopCircle className="w-5 h-5" /> : <ArrowUp className="w-5 h-5" />}
             </button>
           </div>
         </div>
+        {/* Character counter */}
+        {charCount > 0 && (
+          <div className={cn(
+            "absolute right-14 bottom-[18px] text-xs tabular-nums pointer-events-none",
+            isOverLimit
+              ? "text-red-500 dark:text-red-400"
+              : isNearLimit
+                ? "text-amber-500 dark:text-amber-400"
+                : "text-muted-foreground/40",
+          )}>
+            {charCount.toLocaleString()}/{MAX_MESSAGE_CHARS.toLocaleString()}
+          </div>
+        )}
       </form>
       <p className="text-center text-xs text-muted-foreground/40 mt-2">
         Avalanche AI can make mistakes. Consider checking important information.

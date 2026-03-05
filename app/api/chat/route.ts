@@ -11,6 +11,7 @@ import {
   createRateLimitHeaders,
   formatResetTime,
 } from '@/lib/chat/rateLimit';
+import { SERVER_MAX_MESSAGE_CHARS } from '@/lib/chat/constants';
 import { searchTools, formatToolsForContext } from '@/lib/chat/tools-search';
 import { docsTools, githubTools } from '@/lib/mcp/tools';
 import { componentNames, getCatalogDescription } from '@/lib/chat/catalog';
@@ -248,6 +249,17 @@ export async function POST(req: Request) {
   // Get the last user message to search for relevant docs
   const lastUserMessage = messages.filter((m: any) => m.role === 'user').pop();
   const lastUserMessageText = lastUserMessage ? getTextFromMessage(lastUserMessage) : '';
+
+  // Validate message size
+  if (lastUserMessageText.length > SERVER_MAX_MESSAGE_CHARS) {
+    return new Response(
+      JSON.stringify({
+        error: 'Message too long',
+        message: `Your message exceeds the maximum allowed length of ${SERVER_MAX_MESSAGE_CHARS.toLocaleString()} characters. Please shorten it and try again.`,
+      }),
+      { status: 413, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
 
   // Get valid URLs for link validation
   const validUrls = await getValidUrls();
