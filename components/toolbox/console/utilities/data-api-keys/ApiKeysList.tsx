@@ -2,7 +2,8 @@
 
 import { ApiKeyListItem } from './types';
 import { Button } from "@/components/toolbox/components/Button";
-import { Trash2, RefreshCw } from "lucide-react";
+import { Trash2, RefreshCw, KeyRound, Loader2, AlertTriangle } from "lucide-react";
+import { TableSkeleton } from "@/components/console";
 
 interface ApiKeysListProps {
     apiKeys: ApiKeyListItem[];
@@ -31,43 +32,20 @@ export default function ApiKeysList({
     onDeleteKey,
 }: ApiKeysListProps) {
     if (isLoading) {
-        return (
-            <div className="space-y-4">
-                {/* Loading skeleton */}
-                <div className="animate-pulse">
-                    <div className="h-4 bg-zinc-200 dark:bg-zinc-700 rounded w-1/4 mb-4"></div>
-                    <div className="bg-white/50 dark:bg-zinc-900/50 backdrop-blur-sm border border-zinc-200 dark:border-zinc-700 rounded-2xl p-6">
-                        <div className="space-y-3">
-                            {[...Array(3)].map((_, i) => (
-                                <div key={i} className="flex items-center justify-between">
-                                    <div className="flex space-x-4">
-                                        <div className="h-4 bg-zinc-200 dark:bg-zinc-700 rounded w-24"></div>
-                                        <div className="h-4 bg-zinc-200 dark:bg-zinc-700 rounded w-32"></div>
-                                    </div>
-                                    <div className="h-8 bg-zinc-200 dark:bg-zinc-700 rounded w-20"></div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        );
+        return <TableSkeleton rows={3} columns={3} />;
     }
 
     if (error) {
         return (
-            <div className="bg-white/50 dark:bg-zinc-900/50 backdrop-blur-sm border border-red-200 dark:border-red-700 rounded-2xl p-8 text-center">
+            <div className="bg-white dark:bg-zinc-900 border border-red-200/80 dark:border-red-800 rounded-2xl p-8 text-center">
                 <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
-                    <RefreshCw className="w-8 h-8 text-red-600 dark:text-red-400" />
+                    <AlertTriangle className="w-8 h-8 text-red-600 dark:text-red-400" />
                 </div>
-                <h3 className="text-xl font-semibold text-zinc-900 dark:text-white mb-2">
+                <h3 className="text-xl font-medium text-zinc-900 dark:text-white mb-2">
                     Failed to Load API Keys
                 </h3>
                 <p className="text-zinc-600 dark:text-zinc-400 mb-6">{error}</p>
-                <Button
-                    onClick={onRefresh}
-                    className="bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100"
-                >
+                <Button onClick={onRefresh} variant="primary">
                     Try Again
                 </Button>
             </div>
@@ -76,22 +54,17 @@ export default function ApiKeysList({
 
     if (apiKeys.length === 0) {
         return (
-            <div className="bg-white/50 dark:bg-zinc-900/50 backdrop-blur-sm border border-zinc-200 dark:border-zinc-700 rounded-2xl p-8 text-center">
-                <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                    <svg className="w-8 h-8 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                    </svg>
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-8 text-center">
+                <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+                    <KeyRound className="w-8 h-8 text-zinc-500 dark:text-zinc-400" />
                 </div>
-                <h3 className="text-xl font-semibold text-zinc-900 dark:text-white mb-2">
+                <h3 className="text-xl font-medium text-zinc-900 dark:text-white mb-2">
                     No API Keys Yet
                 </h3>
                 <p className="text-zinc-600 dark:text-zinc-400 mb-6">
                     Create your first API key to start using the Glacier API.
                 </p>
-                <Button
-                    onClick={onShowCreateForm}
-                    className="bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100"
-                >
+                <Button onClick={onShowCreateForm} variant="primary">
                     Create API Key
                 </Button>
             </div>
@@ -102,7 +75,7 @@ export default function ApiKeysList({
         <div className="space-y-4">
             <div className="flex items-center justify-between">
                 <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                    <span className="font-semibold">{apiKeys.length}</span> / {maxApiKeysAllowed} API keys
+                    <span className="font-medium">{apiKeys.length}</span> / {maxApiKeysAllowed} API keys
                 </p>
                 <button
                     onClick={onRefresh}
@@ -113,18 +86,18 @@ export default function ApiKeysList({
                 </button>
             </div>
 
-            <div className="bg-white/50 dark:bg-zinc-900/50 backdrop-blur-sm border border-zinc-200 dark:border-zinc-700 rounded-2xl overflow-hidden">
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-2xl overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full">
                         <thead>
-                            <tr className="border-b border-zinc-200 dark:border-zinc-700">
-                                <th className="text-left py-4 px-6 text-sm font-medium text-zinc-600 dark:text-zinc-400">
+                            <tr className="border-b border-zinc-200/80 dark:border-zinc-800 bg-zinc-50/80 dark:bg-zinc-800/50">
+                                <th className="text-left py-3 px-6 text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
                                     Alias
                                 </th>
-                                <th className="text-left py-4 px-6 text-sm font-medium text-zinc-600 dark:text-zinc-400">
+                                <th className="text-left py-3 px-6 text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
                                     Key ID
                                 </th>
-                                <th className="text-right py-4 px-6 text-sm font-medium text-zinc-600 dark:text-zinc-400">
+                                <th className="text-right py-3 px-6 text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
                                     Actions
                                 </th>
                             </tr>
@@ -133,15 +106,15 @@ export default function ApiKeysList({
                             {apiKeys.map((apiKey) => (
                                 <tr
                                     key={apiKey.keyId}
-                                    className="border-b border-zinc-100 dark:border-zinc-800 last:border-b-0 hover:bg-zinc-50/50 dark:hover:bg-zinc-800/50"
+                                    className="border-b border-zinc-200/80 dark:border-zinc-800 last:border-b-0 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors"
                                 >
                                     <td className="py-4 px-6">
-                                        <div className="font-medium text-zinc-900 dark:text-white">
+                                        <div className="font-medium text-sm text-zinc-900 dark:text-zinc-100">
                                             {apiKey.alias}
                                         </div>
                                     </td>
                                     <td className="py-4 px-6">
-                                        <code className="text-sm bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded font-mono text-zinc-700 dark:text-zinc-300">
+                                        <code className="text-xs bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded-lg font-mono text-zinc-700 dark:text-zinc-300">
                                             {truncateKeyId(apiKey.keyId)}
                                         </code>
                                     </td>
@@ -153,7 +126,7 @@ export default function ApiKeysList({
                                             aria-label="Delete API key"
                                         >
                                             {deletingKeys.has(apiKey.keyId) ? (
-                                                <RefreshCw className="w-4 h-4 animate-spin" />
+                                                <Loader2 className="w-4 h-4 animate-spin" />
                                             ) : (
                                                 <Trash2 className="w-4 h-4" />
                                             )}

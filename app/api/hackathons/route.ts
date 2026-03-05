@@ -6,7 +6,7 @@ import {
 } from '@/server/services/hackathons';
 import { HackathonStatus } from '@/types/hackathons';
 import { getUserById } from '@/server/services/getUser';
-import { env } from 'process';
+import { withAuthRole } from '@/lib/protectedRoute';
 
 
 
@@ -67,10 +67,8 @@ export async function GET(req: NextRequest) {
   }
 }
 
-export async function POST(req: NextRequest) {
+export const POST = withAuthRole('devrel', async (req: NextRequest, context: any, session: any) => {
   try {
-    if (req.headers.get("x-api-key") != env.APIKEY)
-      throw new Error('Unauthorized')
     const body = await req.json();
     const newHackathon = await createHackathon(body);
 
@@ -86,5 +84,5 @@ export async function POST(req: NextRequest) {
       { status: wrappedError.cause == 'ValidationError' ? 400 : 500 }
     );
   }
-}
+});
 

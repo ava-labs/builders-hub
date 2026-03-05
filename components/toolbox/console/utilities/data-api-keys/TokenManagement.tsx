@@ -203,10 +203,7 @@ function TokenManagementInner({ onSuccess }: BaseConsoleToolProps) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
         <p className="text-red-500 dark:text-red-400 mb-4">{jwtError}</p>
-        <Button
-          onClick={() => window.location.reload()}
-          className="bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100"
-        >
+        <Button onClick={() => window.location.reload()} variant="primary">
           Retry
         </Button>
       </div>
@@ -249,7 +246,7 @@ function TokenManagementInner({ onSuccess }: BaseConsoleToolProps) {
       <div className="mb-8 not-prose">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-zinc-900 dark:text-white mb-1">
+            <h2 className="text-lg font-medium text-zinc-900 dark:text-white mb-1">
               Your API Keys
             </h2>
             <p className="text-sm text-zinc-500 dark:text-zinc-400">
@@ -260,8 +257,9 @@ function TokenManagementInner({ onSuccess }: BaseConsoleToolProps) {
             onClick={() => {
               setShowCreateModal(true);
             }}
-            className="bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100 !w-auto"
+            variant="primary"
             size="sm"
+            className="w-auto"
           >
             <Plus className="w-4 h-4 mr-2" />
             Create API Key

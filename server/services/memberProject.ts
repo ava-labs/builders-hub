@@ -177,9 +177,27 @@ export async function GetProjectsByUserId(user_id: string) {
           },
         },
       },
+      hackathon: true,
+      badges: {
+        where: {
+          status: 1, // BadgeAwardStatus.approved
+        },
+        include: {
+          badge: true,
+        },
+      },
     },
   });
-  return projects;
+
+  // Transform badges to match the expected format
+  return projects.map((project) => ({
+    ...project,
+    badges: project.badges?.map((projectBadge: any) => ({
+      ...projectBadge,
+      name: projectBadge.badge.name,
+      image_path: projectBadge.badge.image_path,
+    })),
+  }));
 }
 
 export async function GetProjectByIdWithMembers(project_id: string) {

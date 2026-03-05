@@ -51,30 +51,30 @@ export function RelayerFunding({
             </div>
 
             <div className="space-y-3">
-                <div className="text-base font-semibold">Fund Relayer Address</div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">
+                <div className="text-base font-medium">Fund Relayer Address</div>
+                <div className="text-sm text-zinc-600 dark:text-zinc-400">
                     Ensure the relayer address maintains a positive balance on all selected chains to cover transaction fees.
                 </div>
                 <div className="space-y-2">
                     {selectedChains.map((chain: L1ListItem) => (
                         <div 
                             key={`balance-${chain.id}`} 
-                            className="flex items-center justify-between p-3 border rounded-md bg-white dark:bg-gray-950"
+                            className="flex items-center justify-between p-3 border border-zinc-200/80 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900"
                         >
                             <div>
                                 <div className="font-medium text-sm">{chain.name}</div>
-                                <div className="flex items-center gap-1 text-sm text-gray-500">
+                                <div className="flex items-center gap-1 text-sm text-zinc-500 dark:text-zinc-400">
                                     {balances[chain.id] !== undefined ? (
                                         `${balances[chain.id]} ${chain.coinName}`
                                     ) : (
-                                        <span className="text-gray-400">
+                                        <span className="text-zinc-400">
                                             {isLoadingBalances ? 'Loading...' : '0 ' + chain.coinName}
                                         </span>
                                     )}
                                     <button
                                         onClick={onRefreshBalances}
                                         disabled={isLoadingBalances}
-                                        className="p-1 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 disabled:opacity-50"
+                                        className="p-1 text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 disabled:opacity-50"
                                         style={{ lineHeight: 0 }}
                                     >
                                         <RefreshCw className={`h-4 w-4 ${isLoadingBalances ? 'animate-spin' : ''}`} />

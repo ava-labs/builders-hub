@@ -1,0 +1,22 @@
+---
+title: Register Validator Demo
+description: Practical - register a PoS validator by staking native tokens using the Toolbox.
+updated: 2025-03-19
+authors: [nicolasarnedo]
+icon: Terminal
+---
+
+import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx"
+import StakeNative from "@/components/toolbox/console/permissionless-l1s/Stake/StakeNative.tsx"
+
+This demo walks you through registering a new validator on your Permissionless L1 by staking native tokens. The tool handles all three phases:
+
+1. **Initiate** - Lock your native tokens and start the registration
+2. **P-Chain** - Sign and submit the registration to the P-Chain
+3. **Complete** - Finalize the registration to activate your validator
+
+<ToolboxMdxWrapper walletMode="l1">
+  <StakeNative />
+</ToolboxMdxWrapper>
+
+You can view the changes applied to the validator set by [re-running the query in section 2](/academy/permissionless-l1s/06-staking-manager-operations/02-query-pos-validator-set).

@@ -1,8 +1,25 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { motion } from "framer-motion";
 import { ReportIssueButton } from "@/components/console/report-issue-button";
 import { EditOnGitHubButton } from "@/components/console/edit-on-github-button";
+
+const containerVariants = {
+  hidden: {},
+  visible: {
+    transition: { staggerChildren: 0.1, delayChildren: 0.05 },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 16 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { type: "spring" as const, stiffness: 200, damping: 24 },
+  },
+};
 
 interface ContainerProps {
   title: string;
@@ -11,8 +28,6 @@ interface ContainerProps {
   githubUrl?: string;
 }
 
-// simplified container does not use color themes currently
-
 export function Container({
   title,
   children,
@@ -20,10 +35,14 @@ export function Container({
   githubUrl,
 }: ContainerProps) {
   return (
-    <>
-      <div className="space-y-3 prose">
+    <motion.div
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
+      <motion.div className="space-y-3 prose" variants={itemVariants}>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div className="flex flex-col gap-0">
+          <div className="flex flex-col gap-1">
             <h3 className="text-xl md:text-2xl mt-0 font-semibold leading-tight text-foreground">
               {title}
             </h3>
@@ -38,8 +57,10 @@ export function Container({
             <ReportIssueButton toolTitle={title} />
           </div>
         </div>
-      </div>
-      <div className="space-y-8 text-foreground prose">{children}</div>
-    </>
+      </motion.div>
+      <motion.div className="space-y-8 text-foreground prose mt-6" variants={itemVariants}>
+        {children}
+      </motion.div>
+    </motion.div>
   );
 }

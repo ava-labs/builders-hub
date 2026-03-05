@@ -4,14 +4,15 @@ import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
 
 /**
- * Wrapper that hides its children on /chat and /chat/* pages
- * Used to hide global elements (Banner, Privacy Policy, etc.) on the fullscreen chat experience
+ * Wrapper that hides its children on embedded chat share pages.
+ * The main /chat page shows all global elements (Banner, Privacy Policy, etc.)
+ * but share embeds (/chat/share/*) use a minimal layout.
  */
 export function HideOnChatPage({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
-  // Hide on /chat and all /chat/* subpaths (including /chat/share/[token])
-  if (pathname === '/chat' || pathname.startsWith('/chat/')) {
+  // Only hide on share embeds — the main /chat page shows everything
+  if (pathname.startsWith('/chat/share')) {
     return null;
   }
 

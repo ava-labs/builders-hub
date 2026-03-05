@@ -1,0 +1,415 @@
+{
+  "title": "Fundraising & Finance Pro",
+  "quizzes": {
+    "601": {
+      "question": "What is the minimum recommended runway to have before starting your fundraising process?",
+      "options": [
+        "1 month",
+        "3 months",
+        "6 months",
+        "12 months"
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "You need enough time to negotiate from a position of strength.",
+      "explanation": "Having at least 6 months of runway allows you to negotiate from a position of strength and maintain maximum leverage during fundraising.",
+      "chapter": "Fundraising",
+      "alternates": [
+        {
+          "question": "Why is having sufficient runway important when entering the fundraising process?",
+          "options": [
+            "It allows you to invest more in marketing before talking to investors.",
+            "Having at least 6 months of runway lets you negotiate from a position of strength.",
+            "It signals to investors that you don't actually need their money.",
+            "It gives you enough time to negotiate from a position of strength and avoid accepting unfavorable terms out of desperation."
+          ],
+          "correctAnswers": [
+            3
+          ],
+          "hint": "Think about how urgency affects your negotiating position.",
+          "explanation": "Having sufficient runway is critical because it prevents you from negotiating under pressure. When founders are desperate for capital, they accept unfavorable terms — lower valuations, excessive dilution, or restrictive conditions. With adequate runway, you can walk away from bad deals, take time to find the right partners, and negotiate terms that align with your long-term vision."
+        },
+        {
+          "question": "What is a recommended strategy for creating urgency among investors during a fundraising round?",
+          "options": [
+            "Running a structured process where you meet multiple investors in a compressed timeline to create competitive dynamics.",
+            "Waiting until you have only 1 month of runway so investors feel the urgency.",
+            "Having at least 6 months of runway to show you are not in a rush.",
+            "Publicly announcing your funding needs on social media to attract attention."
+          ],
+          "correctAnswers": [
+            0
+          ],
+          "hint": "Think about how competitive dynamics work in fundraising.",
+          "explanation": "Running a structured fundraising process — meeting multiple investors in a compressed timeline — creates competitive dynamics that work in the founder's favor. When investors know other firms are also evaluating the deal, they are more likely to make decisions quickly and offer better terms. This is more effective than signaling desperation or artificially creating urgency."
+        }
+      ]
+    },
+    "602": {
+      "question": "Which of the following is NOT recommended for cold outreach to investors?",
+      "options": [
+        "Personalizing based on their investment thesis",
+        "Sending a short, punchy introduction",
+        "Following up with humor to stand out",
+        "Sending a comprehensive 20-page deck"
+      ],
+      "correctAnswers": [
+        3
+      ],
+      "hint": "Initial outreach should be concise and compelling.",
+      "explanation": "Sending a comprehensive 20-page deck in cold outreach overwhelms investors. Start with a teaser deck of 3-5 slides instead.",
+      "chapter": "Fundraising",
+      "alternates": [
+        {
+          "question": "What is the recommended format for initial outreach materials when cold-contacting investors?",
+          "options": [
+            "A teaser deck of 3-5 slides that highlights the key value proposition and creates curiosity.",
+            "A comprehensive 20-page deck that covers every aspect of the business.",
+            "A one-line email with just a link to your website.",
+            "A detailed financial model with five-year projections."
+          ],
+          "correctAnswers": [
+            0
+          ],
+          "hint": "The goal of initial outreach is to spark interest, not to overwhelm.",
+          "explanation": "A teaser deck of 3-5 slides is the recommended format for initial investor outreach. It should highlight the key value proposition, the problem you are solving, and enough traction data to create curiosity. The goal is to earn a meeting, not to close the deal in the email. Comprehensive materials can be shared after the investor expresses interest."
+        },
+        {
+          "question": "Which elements make cold outreach to investors most effective? (Select all that apply)",
+          "options": [
+            "Personalizing the message based on the investor's thesis and portfolio.",
+            "Keeping the introduction short and punchy with a clear ask.",
+            "Sending a comprehensive 20-page deck to show thoroughness.",
+            "Following up with humor or a memorable hook to stand out."
+          ],
+          "correctAnswers": [
+            0,
+            1,
+            3
+          ],
+          "hint": "Think about what makes an investor want to respond among hundreds of pitches they receive.",
+          "explanation": "Effective cold outreach involves personalization (showing you understand their investment focus), brevity (investors receive hundreds of pitches), and memorability (humor or a unique hook helps you stand out). Sending a comprehensive 20-page deck overwhelms recipients and signals poor communication skills — a red flag for investors evaluating founders."
+        }
+      ]
+    },
+    "901": {
+      "question": "What is the primary focus of Avalanche Foundation grants?",
+      "options": [
+        "Monetary returns for the foundation",
+        "Creating ecosystem impact",
+        "Supporting only DeFi projects",
+        "Short-term growth metrics"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Grants prioritize ecosystem value over ROI.",
+      "explanation": "Avalanche Foundation grants prioritize creating ecosystem impact rather than financial returns.",
+      "chapter": "Grants Process",
+      "alternates": [
+        {
+          "question": "What type of projects are best suited for Avalanche Foundation grants?",
+          "options": [
+            "Projects that promise the highest financial returns to the foundation.",
+            "Projects that demonstrate clear ecosystem impact, such as infrastructure, tooling, or applications that benefit the broader Avalanche community.",
+            "Only DeFi projects with proven revenue models.",
+            "Creating ecosystem impact is the primary focus, so any project on Avalanche qualifies."
+          ],
+          "correctAnswers": [
+            1
+          ],
+          "hint": "Think about what 'ecosystem impact' means in practice — what kinds of projects create value for everyone?",
+          "explanation": "Avalanche Foundation grants are best suited for projects that create broad ecosystem impact — infrastructure improvements, developer tooling, educational content, and applications that serve as public goods or attract new users and builders to Avalanche. The focus is on projects whose benefits extend beyond the individual team to strengthen the entire ecosystem."
+        },
+        {
+          "question": "Which statements are true about how Avalanche Foundation grants differ from venture capital investments? (Select all that apply)",
+          "options": [
+            "Grants focus on ecosystem impact and community benefit rather than financial returns.",
+            "Grant recipients do not give up equity or tokens to the Foundation in exchange for funding.",
+            "Grants only evaluate technical feasibility while VCs only evaluate market potential.",
+            "Creating ecosystem impact is the primary focus, meaning any Avalanche project automatically qualifies."
+          ],
+          "correctAnswers": [
+            0,
+            1
+          ],
+          "hint": "Think about the structural and philosophical differences between grants and investments.",
+          "explanation": "Avalanche Foundation grants differ from VC investments in two key ways: they prioritize ecosystem impact over financial returns, and grant recipients typically do not give up equity or tokens (unlike VC deals which require ownership stakes). Both grants and VCs evaluate multiple factors including team capability and execution potential — not just one dimension each."
+        }
+      ]
+    },
+    "902": {
+      "question": "Which of these is NOT one of the four key areas the foundation evaluates in applications?",
+      "options": [
+        "Problem identification and ecosystem fit",
+        "Proof of ability to deliver",
+        "Logo design",
+        "Long-term ecosystem impact"
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "Focus areas are execution, fit, traction, and impact.",
+      "explanation": "Logo design is not part of the evaluation criteria; reviewers focus on ecosystem fit, delivery capability, traction, and long-term impact.",
+      "chapter": "Grants Process",
+      "alternates": [
+        {
+          "question": "What does 'proof of ability to deliver' mean in the context of an Avalanche Foundation grant application?",
+          "options": [
+            "Demonstrating relevant experience, a track record of shipping products, or a working prototype that shows the team can execute on the proposal.",
+            "Having a PhD or advanced degree in computer science.",
+            "Logo design, branding, and a polished website showing professionalism.",
+            "Having raised venture capital funding to prove investor confidence."
+          ],
+          "correctAnswers": [
+            0
+          ],
+          "hint": "Think about what gives the foundation confidence that a team will actually deliver on their proposal.",
+          "explanation": "Proof of ability to deliver means demonstrating that the team has the skills, experience, and track record to execute on their proposal. This can include previous projects shipped, relevant technical expertise, working prototypes, or meaningful GitHub contributions. The foundation needs confidence that grant funds will result in actual deliverables, not just good ideas."
+        },
+        {
+          "question": "Which of the four key evaluation areas assesses whether a project will provide lasting value to the Avalanche ecosystem?",
+          "options": [
+            "Problem identification and ecosystem fit.",
+            "Proof of ability to deliver.",
+            "Traction and early evidence of market need.",
+            "Long-term ecosystem impact."
+          ],
+          "correctAnswers": [
+            3
+          ],
+          "hint": "Think about which criterion specifically evaluates sustainability and lasting value.",
+          "explanation": "Long-term ecosystem impact is the evaluation area that assesses whether a project will provide lasting value to the Avalanche ecosystem. While problem identification checks if the project addresses a real need, and traction shows early validation, long-term impact evaluates whether the project's contributions will compound and remain valuable over time rather than being a short-lived initiative."
+        }
+      ]
+    },
+    "1101": {
+      "question": "What should Web3 founders separate when creating their pitch?",
+      "options": [
+        "Technical and non-technical information",
+        "Short-term and long-term goals",
+        "Deck visuals from speaking script",
+        "Personal stories from business metrics"
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "Think about what you show versus what you say.",
+      "explanation": "Web3 founders should separate deck visuals from their speaking script. The deck should have minimal text with visual cues, while the script tells the complete story.",
+      "chapter": "Pitching",
+      "alternates": [
+        {
+          "question": "According to the pitching module, what should a pitch deck opening contain to immediately engage investors?",
+          "options": [
+            "A detailed technical architecture diagram of the blockchain protocol",
+            "A strong hook -- either a concise one-liner encapsulating your company's identity, impact, and vision, or an engaging question that pulls the audience in",
+            "A slide showing deck visuals separated from the speaking script",
+            "A comprehensive list of all team members' credentials and backgrounds"
+          ],
+          "correctAnswers": [
+            1
+          ],
+          "hint": "Think about the very first impression -- what draws investors in within the first few seconds of a pitch.",
+          "explanation": "The course recommends opening with a strong hook: either a concise one-liner that encapsulates your company's identity, impact, and future vision, or an engaging question that pulls the audience in. This opening should use natural language matching your speaking style. The option about separating visuals from script is the correct answer from the base question and describes a preparation technique, not an opening strategy."
+        },
+        {
+          "question": "Which narrative frameworks does the pitching module recommend for structuring a Web3 pitch presentation? (Select all that apply)",
+          "options": [
+            "The Hero's Journey, positioning your company as overcoming obstacles to create meaningful change",
+            "The Bridge Story, showing how your solution connects a significant problem with an innovative solution",
+            "The Competitive Matrix, comparing your metrics directly against all major competitors",
+            "Separating deck visuals from speaking script to create minimal-text presentations"
+          ],
+          "correctAnswers": [
+            0,
+            1
+          ],
+          "hint": "The course lists specific storytelling frameworks that give your pitch a narrative arc with a clear beginning, middle, and end.",
+          "explanation": "The course recommends three narrative frameworks: The Hero's Journey (overcoming obstacles), The Bridge Story (connecting problem to solution), and The Twist Ending (showing how the market is heading wrong until your solution changes everything). The option about separating visuals from script is the base question's answer about pitch preparation, not a narrative framework."
+        }
+      ]
+    },
+    "1102": {
+      "question": "Which framework helps translate complex technical concepts for non-technical investors?",
+      "options": [
+        "Hero's Journey",
+        "Context, Content, and Climb",
+        "Known truth → Your specific change → Vision of transformed future",
+        "Beginning, middle, end structure"
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "This framework starts with something familiar and shows transformation.",
+      "explanation": "The 'Known truth → Your specific change → Vision of transformed future' framework helps translate complex technical concepts by starting with something investors understand and showing how your innovation transforms it.",
+      "chapter": "Pitching",
+      "alternates": [
+        {
+          "question": "Before diving into technical explanations during a pitch, what does the course recommend doing first to connect with non-technical investors?",
+          "options": [
+            "Present a detailed comparison table of your blockchain versus competitors",
+            "Skip all technical details entirely and focus solely on financial projections",
+            "Use the 'Known truth, Your specific change, Vision of transformed future' framework to translate complex concepts",
+            "Lead with personal connections to humanize your pitch and build rapport before addressing complex topics"
+          ],
+          "correctAnswers": [
+            3
+          ],
+          "hint": "Think about what establishes an emotional connection with investors before any technical content is introduced.",
+          "explanation": "The course advises leading with personal connections to humanize your pitch before diving into technical explanations. This builds rapport and makes investors receptive to complex information that follows. The framework option ('Known truth, Your specific change, Vision') is the correct answer from the base question and describes how to translate technical concepts, not the step that should come before technical explanations."
+        },
+        {
+          "question": "When explaining complex Web3 protocols to investors, what techniques does the course recommend? (Select all that apply)",
+          "options": [
+            "First compare to other Web3 solutions investors might know, then relate to real-world experiences they can understand",
+            "Use the 'Known truth, Your specific change, Vision of transformed future' framework exclusively",
+            "Present raw technical data and let investors draw their own conclusions",
+            "Paint a vivid picture of the post-solution world to help investors see how users will benefit"
+          ],
+          "correctAnswers": [
+            0,
+            3
+          ],
+          "hint": "Think about a two-step comparison process that starts within the crypto world and then bridges to everyday understanding.",
+          "explanation": "The course recommends a layered approach: first compare your protocol to other Web3 solutions investors might be familiar with, then relate it to real-world experiences. It also advises painting a vivid picture of the post-solution world rather than focusing exclusively on technical mechanics. The 'Known truth' framework from the base question is a complementary but different technique."
+        }
+      ]
+    },
+    "603": {
+      "question": "How should you think about fundraising timing in relation to your company's formation?",
+      "options": [
+        "Wait until you need money to start talking to investors",
+        "Fundraising starts the day you start your business",
+        "Only approach investors after achieving product-market fit",
+        "Focus exclusively on revenue before considering investment"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Building relationships takes time and should start early.",
+      "explanation": "Fundraising starts the day you start your business because it's fundamentally about building relationships, which requires time and consistency.",
+      "chapter": "Fundraising"
+    },
+    "604": {
+      "question": "What percentage of your company should you typically expect to sell in a seed round?",
+      "options": [
+        "1-5%",
+        "50% or more",
+        "25-40%",
+        "It depends"
+      ],
+      "correctAnswers": [
+        3
+      ],
+      "hint": "There's no one-size-fits-all answer to dilution.",
+      "explanation": "The amount of equity sold in a seed round depends on multiple factors including valuation, capital needs, and investor requirements - there's no standard percentage.",
+      "chapter": "Fundraising"
+    },
+    "605": {
+      "question": "Which of the following should be included in a monthly investor update?",
+      "options": [
+        "Only positive news to maintain investor confidence",
+        "Technical details about your product implementation",
+        "Metrics, recent wins/challenges, and specific asks",
+        "Complaints about difficulties in the market"
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "Transparency and actionable information build trust.",
+      "explanation": "Monthly investor updates should include metrics, recent wins AND challenges, plus specific asks for help. Transparency about challenges builds trust with investors.",
+      "chapter": "Fundraising"
+    },
+    "903": {
+      "question": "What is a common mistake applicants make when applying for grants?",
+      "options": [
+        "Including too much quantitative data",
+        "Building too much before applying",
+        "Under-explaining ecosystem impact",
+        "Being too specific about grant usage"
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "Reviewers need to see clear ecosystem value.",
+      "explanation": "A frequent mistake is under-explaining ecosystem impact; applications should clearly articulate the value to Avalanche.",
+      "chapter": "Grants Process"
+    },
+    "904": {
+      "question": "Beyond funding, what is a valuable resource the foundation provides to grantees?",
+      "options": [
+        "Office space",
+        "Business development connections",
+        "Guaranteed future funding",
+        "Legal services"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Think ecosystem support and network access.",
+      "explanation": "Business development connections are a key non-monetary benefit offered by the foundation.",
+      "chapter": "Grants Process"
+    },
+    "905": {
+      "question": "What stage should your project ideally be at when applying for a foundation grant?",
+      "options": [
+        "Just an idea with no team",
+        "Beyond MVP with a committed team",
+        "Already launched with significant traction",
+        "After securing VC funding"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Reviewers look for execution readiness and commitment.",
+      "explanation": "Projects beyond MVP with a committed team are best positioned for a successful grant application.",
+      "chapter": "Grants Process"
+    },
+    "1103": {
+      "question": "What is the most effective way for early-stage founders to build credibility?",
+      "options": [
+        "Overselling current progress",
+        "Focusing exclusively on team credentials",
+        "Owning their current stage honestly while demonstrating dedication",
+        "Emphasizing technical complexity"
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "Authenticity and commitment matter more than exaggeration.",
+      "explanation": "Early-stage founders build credibility best by owning their current stage honestly while demonstrating dedication. This shows self-awareness and commitment rather than trying to appear further along than they are.",
+      "chapter": "Pitching"
+    },
+    "1104": {
+      "question": "For a five-minute pitch, what approach to slides is most effective?",
+      "options": [
+        "Detailed technical diagrams",
+        "Minimal deck with cue words",
+        "Text-heavy explanations",
+        "Multiple animations per slide"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Less is more when time is limited.",
+      "explanation": "For a five-minute pitch, a minimal deck with cue words is most effective. This allows you to maintain eye contact and tell your story naturally rather than reading from slides.",
+      "chapter": "Pitching"
+    },
+    "1105": {
+      "question": "When discussing tokenomics in a pitch, founders should focus on:",
+      "options": [
+        "The technical mechanics of the token",
+        "Comparing to as many other tokens as possible",
+        "The change and incentives the token creates",
+        "Detailed economic models and formulas"
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "Think about what the token enables rather than how it works.",
+      "explanation": "When discussing tokenomics in a pitch, founders should focus on the change and incentives the token creates. This helps investors understand the value and behavior the token drives rather than getting lost in technical details.",
+      "chapter": "Pitching"
+    }
+  }
+}

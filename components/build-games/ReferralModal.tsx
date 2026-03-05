@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Copy, Check } from "lucide-react";
 import { getSession } from "next-auth/react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -16,6 +16,15 @@ export default function ReferralModal({ isOpen, onClose }: ReferralModalProps) {
   const [handle, setHandle] = useState("");
   const [referralLink, setReferralLink] = useState("");
   const [copied, setCopied] = useState(false);
+  const [hasApplication, setHasApplication] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    fetch("/api/build-games/status")
+      .then((res) => res.json())
+      .then((data) => setHasApplication(!!data.hasApplied))
+      .catch(() => setHasApplication(false));
+  }, [isOpen]);
 
   const handleGenerateLink = async () => {
     if (!handle.trim()) return;
@@ -128,9 +137,14 @@ export default function ReferralModal({ isOpen, onClose }: ReferralModalProps) {
           <div className="flex flex-col gap-2">
             <label htmlFor="x-handle" className="text-sm text-gray-300">Your X (Twitter) Handle</label>
             <div className="flex gap-2">
-              <input id="x-handle" type="text" value={handle} onChange={(e) => setHandle(e.target.value)} placeholder="@yourhandle" className="flex-1 min-w-0 px-3 sm:px-4 py-2 bg-[#152d44] border border-[rgba(102,172,214,0.3)] rounded-lg text-white text-sm sm:text-base placeholder-gray-500 focus:outline-none focus:border-[#66acd6] transition-colors" onKeyDown={(e) => e.key === "Enter" && handleGenerateLink()} />
-              <button onClick={handleGenerateLink} disabled={!handle.trim()} className="px-3 sm:px-4 py-2 bg-[#66acd6] text-[#152d44] text-sm sm:text-base font-medium rounded-lg hover:bg-[#7bbde3] transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0">Generate</button>
+              <input id="x-handle" type="text" value={handle} onChange={(e) => setHandle(e.target.value)} placeholder="@yourhandle" className="flex-1 min-w-0 px-3 sm:px-4 py-2 bg-[#152d44] border border-[rgba(102,172,214,0.3)] rounded-lg text-white text-sm sm:text-base placeholder-gray-500 focus:outline-none focus:border-[#66acd6] transition-colors" onKeyDown={(e) => e.key === "Enter" && hasApplication && handleGenerateLink()} />
+              <button onClick={handleGenerateLink} disabled={!handle.trim() || !hasApplication} className="px-3 sm:px-4 py-2 bg-[#66acd6] text-[#152d44] text-sm sm:text-base font-medium rounded-lg hover:bg-[#7bbde3] transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0">Generate</button>
             </div>
+            {hasApplication === false && (
+              <p className="text-xs text-red-400">
+                Applications are closed, only existing participants can invite team members.
+              </p>
+            )}
           </div>
 
           {referralLink && (
@@ -165,23 +179,36 @@ export default function ReferralModal({ isOpen, onClose }: ReferralModalProps) {
         <Accordion type="single" collapsible className="w-full mt-4 border-t border-[rgba(102,172,214,0.2)] pt-2">
           <AccordionItem value="terms" className="border-none">
             <AccordionTrigger className="text-gray-400 text-xs hover:no-underline py-2">
-              Terms & Conditions
+            Build Games Referral Program Terms & Conditions
             </AccordionTrigger>
             <AccordionContent className="text-gray-400 text-xs leading-relaxed">
-              <div className="space-y-3 max-h-[150px] overflow-y-auto pr-2">
-                <p>
-                  The Build Games referral program offers a total referral prize pool of <strong className="text-gray-300">$30,000</strong>, distributed based on the final placement of referred teams or individuals. Referral rewards are allocated as follows: <strong className="text-gray-300">$10,000</strong> for referring the 1st place winner, <strong className="text-gray-300">$7,500</strong> for the 2nd place winner, <strong className="text-gray-300">$5,500</strong> for the 3rd place winner, and <strong className="text-gray-300">$1,000</strong> for referring a team that places between 4th and 10th.
+            <div className="space-y-3 max-h-[150px] overflow-y-auto pr-2">
+              <p>
+                The Build Games referral program offers a total referral prize pool of <strong className="text-gray-300">$30,000</strong>, distributed based on the final placement of referred teams or individuals in the Build Games. Referral rewards are payable solely to the eligible referrer who submitted the qualifying referral (not to the referred team or individual).
                 </p>
                 <p>
-                  Self-referrals are strictly prohibited. Referrals are <strong className="text-gray-300">first-come, first-served</strong>, and only one referral may be attributed to any individual or team, meaning no duplicate or competing referrals will be honored. Referrals must be submitted at the time of application; <strong className="text-gray-300">retroactive referrals will not be accepted</strong> if a participant has already applied without a referral or with a different referral.
-                </p>
-                <p>
-                  The <strong className="text-gray-300">Avalanche Foundation</strong> reserves the right, in its sole discretion, to <strong className="text-gray-300">disqualify any participant or referrer</strong> found to be engaging in fraudulent behavior, manipulation, misrepresentation, or any activity deemed to undermine the integrity of Build Games or the referral program. All terms and conditions are subject to change at any time.
-                </p>
-                <p>
-                  By <strong className="text-gray-300">creating or using a referral link</strong>, you acknowledge and agree to these terms and conditions.
-                </p>
-              </div>
+                Referral rewards are allocated as follows: <strong className="text-gray-300">$10,000</strong> for referring the 1st place winner, <strong className="text-gray-300">$7,500</strong> for the 2nd place winner, <strong className="text-gray-300">$5,500</strong> for the 3rd place winner, and <strong className="text-gray-300">$1,000</strong> for referring a team or individual that places between 4th and 10th.
+              </p>
+
+              <p>
+                Self-referrals are strictly prohibited. Referrals are <strong className="text-gray-300">first-come, first-served</strong>, and only one referral may be attributed to any individual or team, meaning no duplicate or competing referrals will be honored. Referrals must be submitted at the time of application; <strong className="text-gray-300">retroactive referrals will not be accepted</strong> if a participant has already applied without a referral or with a different referral.
+              </p>
+
+              <p>
+                Referral rewards will be paid following final confirmation of Build Games results and are subject to the referrer’s eligibility to participate in the Avalanche Foundation’s sole discretion and compliance with any applicable verification, tax reporting, or other compliance requirements. The timing, method, and currency of payment will be determined by the <strong className="text-gray-300">Avalanche Foundation</strong> in its sole discretion.
+          
+              </p>
+
+              <p>
+                Participation in the referral program is void where prohibited by law. The <strong className="text-gray-300">Avalanche Foundation</strong> may exclude employees, contractors, or affiliates of the Avalanche Foundation from eligibility, in its discretion. The <strong className="text-gray-300">Avalanche Foundation</strong> reserves the right, in its sole discretion, to <strong className="text-gray-300">disqualify any participant or referrer</strong> found to be engaging in fraudulent behavior, manipulation, misrepresentation, or any activity deemed to undermine the integrity of Build Games or the referral program. All determinations made by the Avalanche Foundation under these terms are final and binding
+              </p>
+
+              <p>
+                All terms and conditions are subject to change at any time. By <strong className="text-gray-300">creating or using a referral link</strong>, you acknowledge and agree to these terms and conditions.
+              </p>
+            </div>
+
+
             </AccordionContent>
           </AccordionItem>
         </Accordion>
