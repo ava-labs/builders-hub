@@ -2,7 +2,7 @@
 title: JAW
 category: Wallets and Account Abstraction
 available: ["C-Chain"]
-description: "Smart account infrastructure with passkey authentication, gasless transactions, and programmable permissions for Avalanche applications."
+description: "Identity-centric smart account infrastructure with passkey authentication, gasless transactions, and programmable permissions for Avalanche applications."
 logo: /images/jaw.png
 developer: JAW
 website: https://jaw.id/
@@ -17,6 +17,7 @@ documentation: https://docs.jaw.id/
 
 - **Passkey Authentication**: Phishing-resistant, synced across devices via iCloud/Google (works as transport layer)
 - **ERC-4337 Smart Accounts**: Gasless, batchable, and programmable
+- **EOA Upgrade**: Upgrade existing externally owned accounts to smart accounts without migrating assets
 - **EIP-1193 Compatible**: Drop-in replacement for MetaMask or any injected wallet
 - **Delegated Permissions**: Let contracts or agents perform scoped actions (ERC-7715)
 - **ENS Subname Issuance**: Assign human-readable identities on onboarding
@@ -145,7 +146,11 @@ export function SendAVAX() {
 
 #### Gasless Transactions
 
-Add a paymaster to your config to sponsor gas fees so users never need to hold AVAX. JAW requires an ERC-7677 compatible paymaster using EntryPoint v0.8.
+JAW supports two approaches to removing gas friction for users:
+
+- **Sponsored (gasless)**: A paymaster covers gas fees entirely, so users pay nothing. Requires a paymaster URL in your config.
+- **Stablecoin gas payments**: Users pay gas fees in stablecoins (e.g. USDC) instead of AVAX. This works natively with JAW, no additional configuration needed.
+
 
 ```typescript
 // config.ts
@@ -171,7 +176,7 @@ export const config = createConfig({
 });
 ```
 
-Once configured, transactions via `useSendCalls` and `useWriteContract` are automatically sponsored. No changes to your transaction code needed.
+Once configured, transactions via `useSendCalls` and `useWriteContract` are automatically sponsored. No changes to your transaction code needed. See the [Gas Sponsoring guide](https://docs.jaw.id/guides/gas-sponsoring) for paymaster setup and stablecoin gas configuration.
 
 #### Delegated Permissions
 
@@ -254,6 +259,7 @@ For full integration guides, API reference, and examples:
 - [Sign-In With Ethereum](https://docs.jaw.id/guides/sign-in-with-ethereum)
 - [Subscription Payments](https://docs.jaw.id/guides/subscription-payments)
 - [Onchain Identity](https://docs.jaw.id/guides/onchain-identity)
+- [Skills](https://docs.jaw.id/skills)
 - [Configuration Reference](https://docs.jaw.id/configuration)
 - [Source Code](https://github.com/JustaName-id/jaw-mono)
 - [Example Integrations](https://github.com/JustaName-id/jaw-examples)
