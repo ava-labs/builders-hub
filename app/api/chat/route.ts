@@ -41,7 +41,12 @@ function getTextFromMessage(message: any): string {
 // Changed from 'edge' to 'nodejs' to support code search (zlib operations)
 export const runtime = 'nodejs';
 // Extend timeout for AI streaming + tool calls (default 10s is too short)
-export const maxDuration = 60;
+export const maxDuration = 120;
+
+// Context budget: keep system prompt under ~100K chars (~25K tokens)
+// to leave room for conversation history + output within 200K token window
+const MAX_SYSTEM_PROMPT_CHARS = 100_000;
+const MAX_MESSAGE_CHARS = 12_000;
 
 const anthropic = createAnthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -249,6 +254,17 @@ export async function POST(req: Request) {
   const lastUserMessage = messages.filter((m: any) => m.role === 'user').pop();
   const lastUserMessageText = lastUserMessage ? getTextFromMessage(lastUserMessage) : '';
 
+  // Validate message size before doing expensive context assembly
+  if (lastUserMessageText.length > MAX_MESSAGE_CHARS) {
+    return new Response(
+      JSON.stringify({
+        error: 'Message too long',
+        message: `Your message is ${lastUserMessageText.length.toLocaleString()} characters, which exceeds the ${MAX_MESSAGE_CHARS.toLocaleString()} character limit. Please shorten it and try again.`,
+      }),
+      { status: 413, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+
   // Get valid URLs for link validation
   const validUrls = await getValidUrls();
 
@@ -418,15 +434,27 @@ export async function POST(req: Request) {
     }, visitorId);
   }
   
-  // Add valid URLs list
-  const validUrlsList = validUrls.length > 0 
-    ? `\n\n=== VALID DOCUMENTATION URLS ===\nThese are ALL the valid URLs on the site. ONLY use URLs from this list:\n${validUrls.map(url => `https://build.avax.network${url}`).join('\n')}\n=== END VALID URLS ===\n`
+  // Add valid URLs list — only include URLs relevant to the query to avoid blowing up context
+  // Full list is 1,300+ URLs (~28K tokens) which leaves no room for large messages
+  let filteredUrls = validUrls;
+  if (lastUserMessageText && validUrls.length > 100) {
+    const queryTerms = lastUserMessageText.toLowerCase().split(/\s+/).filter(t => t.length > 2);
+    filteredUrls = validUrls.filter(url => {
+      const urlLower = url.toLowerCase();
+      return queryTerms.some(term => urlLower.includes(term));
+    });
+    // Always include top-level section URLs as anchors
+    const topLevel = validUrls.filter(url => (url.match(/\//g) || []).length <= 2);
+    filteredUrls = Array.from(new Set([...filteredUrls, ...topLevel])).slice(0, 200);
+  }
+  const validUrlsList = filteredUrls.length > 0
+    ? `\n\n=== VALID DOCUMENTATION URLS ===\nOnly use URLs from this list (filtered to relevant ones). For others, use the full path patterns you see in documentation context above.\n${filteredUrls.map(url => `https://build.avax.network${url}`).join('\n')}\n=== END VALID URLS ===\n`
     : '';
 
   // Extract images from documentation context so the AI can embed them
   const imageMatches = relevantContext.match(/!\[[^\]]*\]\([^)]+\)/g) || [];
   // Format extracted images as render_component hints
-  const uniqueImages = [...new Set(imageMatches)].slice(0, 6);
+  const uniqueImages = Array.from(new Set(imageMatches)).slice(0, 6);
   const imagesContext = uniqueImages.length > 0
     ? `\n\n=== EMBEDDABLE IMAGES ===\nThese images are from the docs above. Show them with render_component("DocImage", { src, alt }):\n${uniqueImages.map(img => {
         const match = img.match(/!\[([^\]]*)\]\(([^)]+)\)/);
@@ -436,6 +464,38 @@ export async function POST(req: Request) {
 
   // Build the full input for analytics
   const userInput = lastUserMessageText;
+
+  // Budget the context: measure total size and truncate if needed
+  // Priority order: toolsContext > relevantContext > codeContext > youtubeContext > validUrlsList > imagesContext
+  const baseSystemPromptSize = 2000; // the static system prompt text
+  const conversationSize = messages.reduce((sum: number, m: any) => sum + getTextFromMessage(m).length, 0);
+  let contextBudget = MAX_SYSTEM_PROMPT_CHARS - baseSystemPromptSize;
+
+  // Allocate context by priority, truncating lower-priority items if over budget
+  const contextParts: Array<{ key: string; text: string }> = [
+    { key: 'tools', text: toolsContext },
+    { key: 'docs', text: relevantContext },
+    { key: 'code', text: codeContext },
+    { key: 'youtube', text: youtubeContext },
+    { key: 'urls', text: validUrlsList },
+    { key: 'images', text: imagesContext },
+  ];
+
+  const budgetedContext: Record<string, string> = {};
+  for (const part of contextParts) {
+    if (part.text.length <= contextBudget) {
+      budgetedContext[part.key] = part.text;
+      contextBudget -= part.text.length;
+    } else if (contextBudget > 500) {
+      // Truncate this part to fit remaining budget
+      budgetedContext[part.key] = part.text.slice(0, contextBudget - 100) + '\n\n... [truncated for context limit] ...\n';
+      contextBudget = 0;
+    } else {
+      budgetedContext[part.key] = '';
+    }
+  }
+
+  console.log(`[Context Budget] conversation=${conversationSize} chars, system parts: ${contextParts.map(p => `${p.key}=${budgetedContext[p.key]?.length ?? 0}`).join(', ')}`);
 
   // Convert UI messages to model messages format
   // Handle both v6 (parts) and legacy (content) formats
@@ -447,7 +507,9 @@ export async function POST(req: Request) {
     };
   });
 
-  const result = streamText({
+  let result;
+  try {
+  result = streamText({
     model: anthropic('claude-sonnet-4-6'),
     messages: modelMessages,
     onFinish: async ({ text, usage }) => {
@@ -623,18 +685,28 @@ export async function POST(req: Request) {
 ## Pre-indexed Context
 When code context is provided below, use it directly with GitHub links. Only search GitHub if context is insufficient.
 
-${toolsContext}
+${budgetedContext['tools'] ?? ''}
 
-${youtubeContext}
+${budgetedContext['youtube'] ?? ''}
 
-${relevantContext}
+${budgetedContext['docs'] ?? ''}
 
-${imagesContext}
+${budgetedContext['images'] ?? ''}
 
-${codeContext}
+${budgetedContext['code'] ?? ''}
 
-${validUrlsList}`,
+${budgetedContext['urls'] ?? ''}`,
   });
+  } catch (error) {
+    console.error('[Chat] streamText failed:', error);
+    return new Response(
+      JSON.stringify({
+        error: 'Chat failed',
+        message: 'Something went wrong processing your message. Please try a shorter message or start a new conversation.',
+      }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
 
   return result.toUIMessageStreamResponse();
 }
