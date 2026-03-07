@@ -41,7 +41,12 @@ function getTextFromMessage(message: any): string {
 // Changed from 'edge' to 'nodejs' to support code search (zlib operations)
 export const runtime = 'nodejs';
 // Extend timeout for AI streaming + tool calls (default 10s is too short)
-export const maxDuration = 60;
+export const maxDuration = 120;
+
+// Context budget: keep system prompt under ~100K chars (~25K tokens)
+// to leave room for conversation history + output within 200K token window
+const MAX_SYSTEM_PROMPT_CHARS = 100_000;
+const MAX_MESSAGE_CHARS = 12_000;
 
 const anthropic = createAnthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -249,6 +254,17 @@ export async function POST(req: Request) {
   const lastUserMessage = messages.filter((m: any) => m.role === 'user').pop();
   const lastUserMessageText = lastUserMessage ? getTextFromMessage(lastUserMessage) : '';
 
+  // Validate message size before doing expensive context assembly
+  if (lastUserMessageText.length > MAX_MESSAGE_CHARS) {
+    return new Response(
+      JSON.stringify({
+        error: 'Message too long',
+        message: `Your message is ${lastUserMessageText.length.toLocaleString()} characters, which exceeds the ${MAX_MESSAGE_CHARS.toLocaleString()} character limit. Please shorten it and try again.`,
+      }),
+      { status: 413, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+
   // Get valid URLs for link validation
   const validUrls = await getValidUrls();
 
@@ -418,15 +434,27 @@ export async function POST(req: Request) {
     }, visitorId);
   }
   
-  // Add valid URLs list
-  const validUrlsList = validUrls.length > 0 
-    ? `\n\n=== VALID DOCUMENTATION URLS ===\nThese are ALL the valid URLs on the site. ONLY use URLs from this list:\n${validUrls.map(url => `https://build.avax.network${url}`).join('\n')}\n=== END VALID URLS ===\n`
+  // Add valid URLs list — only include URLs relevant to the query to avoid blowing up context
+  // Full list is 1,300+ URLs (~28K tokens) which leaves no room for large messages
+  let filteredUrls = validUrls;
+  if (lastUserMessageText && validUrls.length > 100) {
+    const queryTerms = lastUserMessageText.toLowerCase().split(/\s+/).filter(t => t.length > 2);
+    filteredUrls = validUrls.filter(url => {
+      const urlLower = url.toLowerCase();
+      return queryTerms.some(term => urlLower.includes(term));
+    });
+    // Always include top-level section URLs as anchors
+    const topLevel = validUrls.filter(url => (url.match(/\//g) || []).length <= 2);
+    filteredUrls = Array.from(new Set([...filteredUrls, ...topLevel])).slice(0, 200);
+  }
+  const validUrlsList = filteredUrls.length > 0
+    ? `\n\n=== VALID DOCUMENTATION URLS ===\nOnly use URLs from this list (filtered to relevant ones). For others, use the full path patterns you see in documentation context above.\n${filteredUrls.map(url => `https://build.avax.network${url}`).join('\n')}\n=== END VALID URLS ===\n`
     : '';
 
   // Extract images from documentation context so the AI can embed them
   const imageMatches = relevantContext.match(/!\[[^\]]*\]\([^)]+\)/g) || [];
   // Format extracted images as render_component hints
-  const uniqueImages = [...new Set(imageMatches)].slice(0, 6);
+  const uniqueImages = Array.from(new Set(imageMatches)).slice(0, 6);
   const imagesContext = uniqueImages.length > 0
     ? `\n\n=== EMBEDDABLE IMAGES ===\nThese images are from the docs above. Show them with render_component("DocImage", { src, alt }):\n${uniqueImages.map(img => {
         const match = img.match(/!\[([^\]]*)\]\(([^)]+)\)/);
@@ -436,6 +464,38 @@ export async function POST(req: Request) {
 
   // Build the full input for analytics
   const userInput = lastUserMessageText;
+
+  // Budget the context: measure total size and truncate if needed
+  // Priority order: toolsContext > relevantContext > codeContext > youtubeContext > validUrlsList > imagesContext
+  const baseSystemPromptSize = 2000; // the static system prompt text
+  const conversationSize = messages.reduce((sum: number, m: any) => sum + getTextFromMessage(m).length, 0);
+  let contextBudget = MAX_SYSTEM_PROMPT_CHARS - baseSystemPromptSize;
+
+  // Allocate context by priority, truncating lower-priority items if over budget
+  const contextParts: Array<{ key: string; text: string }> = [
+    { key: 'tools', text: toolsContext },
+    { key: 'docs', text: relevantContext },
+    { key: 'code', text: codeContext },
+    { key: 'youtube', text: youtubeContext },
+    { key: 'urls', text: validUrlsList },
+    { key: 'images', text: imagesContext },
+  ];
+
+  const budgetedContext: Record<string, string> = {};
+  for (const part of contextParts) {
+    if (part.text.length <= contextBudget) {
+      budgetedContext[part.key] = part.text;
+      contextBudget -= part.text.length;
+    } else if (contextBudget > 500) {
+      // Truncate this part to fit remaining budget
+      budgetedContext[part.key] = part.text.slice(0, contextBudget - 100) + '\n\n... [truncated for context limit] ...\n';
+      contextBudget = 0;
+    } else {
+      budgetedContext[part.key] = '';
+    }
+  }
+
+  console.log(`[Context Budget] conversation=${conversationSize} chars, system parts: ${contextParts.map(p => `${p.key}=${budgetedContext[p.key]?.length ?? 0}`).join(', ')}`);
 
   // Convert UI messages to model messages format
   // Handle both v6 (parts) and legacy (content) formats
@@ -447,7 +507,9 @@ export async function POST(req: Request) {
     };
   });
 
-  const result = streamText({
+  let result;
+  try {
+  result = streamText({
     model: anthropic('claude-sonnet-4-6'),
     messages: modelMessages,
     onFinish: async ({ text, usage }) => {
@@ -603,15 +665,23 @@ export async function POST(req: Request) {
         },
       }),
     },
-    stopWhen: stepCountIs(8),
+    stopWhen: stepCountIs(15),
     system: `You are the AI assistant for Avalanche Builders Hub (build.avax.network). You help developers build on Avalanche — answer questions, look up on-chain data, render interactive tools, and cite documentation. Be concise and helpful — code over prose, cite docs.
+
+## CRITICAL: Always produce a text response
+**You MUST write a text answer to the user's question.** Never spend all your steps on tool calls without producing text. If tools fail or return empty results, answer from your knowledge and the documentation context below. A text response is mandatory — tool calls are supplementary.
+
+## Tool Usage Rules
+- **GitHub search**: Make at most 2-3 search calls per question. If searches return empty results, STOP searching and answer from your knowledge + the pre-indexed context below. Do NOT keep retrying with different queries — GitHub has rate limits.
+- **If a tool returns a rate limit error**, stop using that tool and proceed with your answer.
+- **Answer first, enhance second**: Write your text answer, THEN use tools (render_component, suggest_followups) to enhance it.
 
 ## Tools & Rendering
 - **render_component**: For ANY hands-on task (create L1, faucet, staking, bridging, fees, minting, ICM, ICTT, etc.), call \`render_component\` to embed the interactive UI inline. Never just link to console tools — render them.
 - **metrics_lookup**: For stats questions (active accounts, TPS, validators, etc.), call \`metrics_lookup\` first to get numbers, then \`render_component("OverviewStats")\` to show visually. For burns → \`render_component("LiveBlockBurns")\`, ICM traffic → \`render_component("ICMFlowDiagram")\`, ICTT → \`render_component("ICTTDashboard")\`.
 - **YouTube**: Embed with \`render_component("YouTubeEmbed", { videoId, title })\`. Never paste bare YouTube links.
 - **blockchain_lookup_***: For tx hashes, addresses, validators, subnets, chains. Follow up on \`_lookupHints\` in results.
-- **github_search_code / github_get_file**: Search avalanchego, icm-services, builders-hub. Check pre-indexed code context below first.
+- **github_search_code / github_get_file**: Search avalanchego, icm-services, builders-hub. Check pre-indexed code context below first. **Max 3 searches per question.**
 - **suggest_followups**: ALWAYS call this after answering. Suggest 2-3 relevant follow-up questions specific to the conversation.
 - **DocImage**: When documentation context contains images like \`![alt](/images/...)\`, call \`render_component("DocImage", { src: "/images/...", alt: "..." })\` to show them inline. Diagrams and screenshots help developers understand faster.
 
@@ -623,18 +693,28 @@ export async function POST(req: Request) {
 ## Pre-indexed Context
 When code context is provided below, use it directly with GitHub links. Only search GitHub if context is insufficient.
 
-${toolsContext}
+${budgetedContext['tools'] ?? ''}
 
-${youtubeContext}
+${budgetedContext['youtube'] ?? ''}
 
-${relevantContext}
+${budgetedContext['docs'] ?? ''}
 
-${imagesContext}
+${budgetedContext['images'] ?? ''}
 
-${codeContext}
+${budgetedContext['code'] ?? ''}
 
-${validUrlsList}`,
+${budgetedContext['urls'] ?? ''}`,
   });
+  } catch (error) {
+    console.error('[Chat] streamText failed:', error);
+    return new Response(
+      JSON.stringify({
+        error: 'Chat failed',
+        message: 'Something went wrong processing your message. Please try a shorter message or start a new conversation.',
+      }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
 
   return result.toUIMessageStreamResponse();
 }
