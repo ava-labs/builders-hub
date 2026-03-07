@@ -355,7 +355,7 @@ function Stage1ResultBanner({ result, projectName }: { result: string; projectNa
   );
 }
 
-export default function ProgramTimeline({ isParticipant = false, stage1Result = null, projectName = null }: { isParticipant?: boolean; stage1Result?: string | null; projectName?: string | null }) {
+export default function ProgramTimeline({ isParticipant = false, stageResults = [] }: { isParticipant?: boolean; stageResults?: { projectName: string; stage1Result: string }[] }) {
   // Reactive date — updates every minute so the timeline advances automatically
   // without requiring a page reload.
   const [todayDate, setTodayDate] = useState<Date>(() => new Date());
@@ -595,10 +595,12 @@ export default function ProgramTimeline({ isParticipant = false, stage1Result = 
             </p>
           </div>
 
-          {/* Stage 1 result banner — always visible when a result exists */}
-          {stage1Result && (
-            <div className="px-8 pb-6">
-              <Stage1ResultBanner result={stage1Result} projectName={projectName} />
+          {/* Stage 1 result banners — always visible when results exist */}
+          {stageResults.length > 0 && (
+            <div className="px-8 pb-6 flex flex-col gap-3">
+              {stageResults.map((r) => (
+                <Stage1ResultBanner key={r.projectName} result={r.stage1Result} projectName={r.projectName} />
+              ))}
             </div>
           )}
         </div>

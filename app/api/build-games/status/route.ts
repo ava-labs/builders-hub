@@ -42,48 +42,61 @@ export async function GET() {
       }),
     ]);
 
-    // If the user is on multiple projects, prefer the one where they are Confirmed.
-    // If only on one project, use it regardless of status.
-    const project =
-      projects.length === 1
-        ? projects[0]
-        : projects.find((p) => p.members.some((m) => m.status === "Confirmed")) ??
-          projects[0] ??
-          null;
-
-    const isParticipant = !!(application || registration || project);
+    const isParticipant = !!(application || registration || projects.length > 0);
 
     if (!isParticipant) {
       return NextResponse.json({ isParticipant: false });
     }
 
-    // Fetch stage results from FormData for the resolved project
-    let stage1Result: string | null = null;
-    if (project?.id) {
-      const formData = await prisma.formData.findFirst({
-        where: { project_id: project.id },
-        select: { form_data: true },
-      });
-      const buildGames = (formData?.form_data as Record<string, any>)?.build_games;
-      stage1Result = buildGames?.stage1_result ?? null;
+    // Fetch FormData for all projects in parallel
+    const projectsWithResults = await Promise.all(
+      projects.map(async (p) => {
+        const formData = await prisma.formData.findFirst({
+          where: { project_id: p.id },
+          select: { form_data: true },
+        });
+        const buildGames = (formData?.form_data as Record<string, any>)?.build_games;
+        const stage1Result: string | null = buildGames?.stage1_result ?? null;
+        const isConfirmed = p.members.some((m) => m.status === "Confirmed");
+        return { projectName: p.project_name, stage1Result, isConfirmed, createdAt: p.created_at };
+      })
+    );
+
+    // Selection logic:
+    // 1. Prefer accepted projects; among those prefer confirmed membership.
+    // 2. If multiple confirmed+accepted exist, show all of them.
+    // 3. If no accepted projects, show the confirmed one.
+    // 4. If only one project total, show it regardless.
+    let selectedProjects = projectsWithResults;
+
+    if (projectsWithResults.length > 1) {
+      const accepted = projectsWithResults.filter((p) => p.stage1Result === "accepted");
+      if (accepted.length > 0) {
+        const confirmedAccepted = accepted.filter((p) => p.isConfirmed);
+        selectedProjects = confirmedAccepted.length > 0 ? confirmedAccepted : accepted;
+      } else {
+        const confirmed = projectsWithResults.filter((p) => p.isConfirmed);
+        selectedProjects = confirmed.length > 0 ? [confirmed[0]] : [projectsWithResults[0]];
+      }
     }
 
-    // Use the best available project name: application > project > registration name
-    const projectName =
-      project?.project_name ??
-      application?.project_name ??
-      "Build Games 2026";
+    const stageResults = selectedProjects
+      .filter((p) => p.stage1Result !== null)
+      .map((p) => ({ projectName: p.projectName, stage1Result: p.stage1Result as string }));
+
+    const firstProject = selectedProjects[0];
+    const projectName = firstProject?.projectName ?? application?.project_name ?? "Build Games 2026";
 
     const createdAt = (
       application?.created_at ??
       registration?.created_at ??
-      project?.created_at
+      firstProject?.createdAt
     )?.toISOString() ?? new Date().toISOString();
 
     return NextResponse.json({
       isParticipant: true,
       participant: { projectName, createdAt },
-      stage1Result,
+      stageResults,
     });
   } catch (error) {
     console.error('Error checking application status:', error);
