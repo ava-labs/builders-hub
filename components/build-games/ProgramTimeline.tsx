@@ -495,45 +495,45 @@ export default function ProgramTimeline({ isParticipant = false, stageResults = 
           </div>
 
           {/* Action buttons */}
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap gap-3">
             <a
               href="https://t.me/avaxbuildgames"
               target="_blank"
               rel="noopener noreferrer"
-              className="group relative inline-flex"
+              className="group relative inline-flex shrink-0"
             >
               <div className="absolute -inset-1 bg-gradient-to-r from-[#66acd6] via-[#38bdf8] to-[#66acd6] rounded-lg blur-sm opacity-20 group-hover:opacity-40 transition duration-300" />
-              <div className="relative flex items-center gap-2 px-6 py-3 bg-transparent border border-[#66acd6]/50 rounded-lg font-['Aeonik:Medium',sans-serif] font-medium text-[#66acd6] group-hover:border-[#66acd6] group-hover:bg-[#66acd6]/10 transition-all duration-200">
-                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+              <div className="relative flex items-center gap-2 px-4 py-3 bg-transparent border border-[#66acd6]/50 rounded-lg font-['Aeonik:Medium',sans-serif] font-medium text-[#66acd6] group-hover:border-[#66acd6] group-hover:bg-[#66acd6]/10 transition-all duration-200">
+                <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248-2.012 9.483c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L7.26 14.4l-2.95-.924c-.64-.203-.654-.64.136-.948l11.527-4.444c.537-.194 1.006.131.589.164z" />
                 </svg>
-                <span className="text-[15px] whitespace-nowrap">Join the Build Games chat</span>
+                <span className="text-[15px]">Join the Build Games chat</span>
               </div>
             </a>
             <a
               href="https://calendly.com/devrel-avalabs/office-hour-buildgames?month=2026-03"
               target="_blank"
               rel="noopener noreferrer"
-              className="group relative inline-flex"
+              className="group relative inline-flex shrink-0"
             >
               <div className="absolute -inset-1 bg-gradient-to-r from-[#66acd6] via-[#38bdf8] to-[#66acd6] rounded-lg blur-sm opacity-20 group-hover:opacity-40 transition duration-300" />
-              <div className="relative flex items-center gap-2 px-6 py-3 bg-transparent border border-[#66acd6]/50 rounded-lg font-['Aeonik:Medium',sans-serif] font-medium text-[#66acd6] group-hover:border-[#66acd6] group-hover:bg-[#66acd6]/10 transition-all duration-200">
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="relative flex items-center gap-2 px-4 py-3 bg-transparent border border-[#66acd6]/50 rounded-lg font-['Aeonik:Medium',sans-serif] font-medium text-[#66acd6] group-hover:border-[#66acd6] group-hover:bg-[#66acd6]/10 transition-all duration-200">
+                <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
-                <span className="text-[15px] whitespace-nowrap">Schedule Office Hours</span>
+                <span className="text-[15px]">Schedule Office Hours</span>
               </div>
             </a>
             <a
               href="https://calendar.google.com/calendar/u/0?cid=Y19mNzExYTJkN2NjZDJhZTY2MWFjYmJlMjE5MDM4ZDZmYzcwMjRjNmFiMzJjNGVmZDhhNmVkYTIxMDY1MGRiODdiQGdyb3VwLmNhbGVuZGFyLmdvb2dsZS5jb20"
               target="_blank"
               rel="noopener noreferrer"
-              className="group relative inline-flex"
+              className="group relative inline-flex shrink-0"
             >
               <div className="absolute -inset-1 bg-gradient-to-r from-[#66acd6] via-[#38bdf8] to-[#66acd6] rounded-lg blur-sm opacity-30 group-hover:opacity-50 transition duration-300" />
-              <div className="relative flex items-center gap-2 px-6 py-3 bg-[#66acd6] rounded-lg font-['Aeonik:Medium',sans-serif] font-medium text-[#152d44] group-hover:bg-[#7fc0e5] transition-all duration-200 shadow-lg shadow-cyan-500/20 group-hover:shadow-cyan-500/40">
-                <Calendar size={20} />
-                <span className="text-[15px] whitespace-nowrap">Add to Calendar</span>
+              <div className="relative flex items-center gap-2 px-4 py-3 bg-[#66acd6] rounded-lg font-['Aeonik:Medium',sans-serif] font-medium text-[#152d44] group-hover:bg-[#7fc0e5] transition-all duration-200 shadow-lg shadow-cyan-500/20 group-hover:shadow-cyan-500/40">
+                <Calendar size={20} className="shrink-0" />
+                <span className="text-[15px]">Add to Calendar</span>
               </div>
             </a>
           </div>
