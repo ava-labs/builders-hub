@@ -230,7 +230,7 @@ function KickOffDetails() {
                   📅 February 20, 2026
                 </p>
                 <span className="text-[#66acd6] text-[12px] font-['Aeonik:Medium',sans-serif] opacity-0 group-hover:opacity-100 transition-opacity">
-                  + Add to Calendar
+                  + Add Timeline to Calendar
                 </span>
               </div>
               <p className="text-[14px] font-['Aeonik:Regular',sans-serif] text-white/70">
@@ -508,6 +508,20 @@ export default function ProgramTimeline({ isParticipant = false, stage1Result = 
                   <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248-2.012 9.483c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L7.26 14.4l-2.95-.924c-.64-.203-.654-.64.136-.948l11.527-4.444c.537-.194 1.006.131.589.164z" />
                 </svg>
                 <span className="text-[15px] whitespace-nowrap">Join the Build Games chat</span>
+              </div>
+            </a>
+            <a
+              href="https://calendly.com/devrel-avalabs/office-hour-buildgames?month=2026-03"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group relative inline-flex"
+            >
+              <div className="absolute -inset-1 bg-gradient-to-r from-[#66acd6] via-[#38bdf8] to-[#66acd6] rounded-lg blur-sm opacity-20 group-hover:opacity-40 transition duration-300" />
+              <div className="relative flex items-center gap-2 px-6 py-3 bg-transparent border border-[#66acd6]/50 rounded-lg font-['Aeonik:Medium',sans-serif] font-medium text-[#66acd6] group-hover:border-[#66acd6] group-hover:bg-[#66acd6]/10 transition-all duration-200">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <span className="text-[15px] whitespace-nowrap">Schedule Office Hours</span>
               </div>
             </a>
             <a
