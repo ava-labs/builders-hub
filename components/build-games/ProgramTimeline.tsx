@@ -494,19 +494,35 @@ export default function ProgramTimeline({ isParticipant = false, stage1Result = 
             </div>
           </div>
 
-          {/* Add to Calendar Button */}
-          <a
-            href="https://calendar.google.com/calendar/u/0?cid=Y19mNzExYTJkN2NjZDJhZTY2MWFjYmJlMjE5MDM4ZDZmYzcwMjRjNmFiMzJjNGVmZDhhNmVkYTIxMDY1MGRiODdiQGdyb3VwLmNhbGVuZGFyLmdvb2dsZS5jb20"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="group relative inline-flex"
-          >
-            <div className="absolute -inset-1 bg-gradient-to-r from-[#66acd6] via-[#38bdf8] to-[#66acd6] rounded-lg blur-sm opacity-30 group-hover:opacity-50 transition duration-300" />
-            <div className="relative flex items-center gap-2 px-6 py-3 bg-[#66acd6] rounded-lg font-['Aeonik:Medium',sans-serif] font-medium text-[#152d44] group-hover:bg-[#7fc0e5] transition-all duration-200 shadow-lg shadow-cyan-500/20 group-hover:shadow-cyan-500/40">
-              <Calendar size={20} />
-              <span className="text-[15px] whitespace-nowrap">Add to Calendar</span>
-            </div>
-          </a>
+          {/* Action buttons */}
+          <div className="flex items-center gap-3">
+            <a
+              href="https://t.me/avaxbuildgames"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group relative inline-flex"
+            >
+              <div className="absolute -inset-1 bg-gradient-to-r from-[#66acd6] via-[#38bdf8] to-[#66acd6] rounded-lg blur-sm opacity-20 group-hover:opacity-40 transition duration-300" />
+              <div className="relative flex items-center gap-2 px-6 py-3 bg-transparent border border-[#66acd6]/50 rounded-lg font-['Aeonik:Medium',sans-serif] font-medium text-[#66acd6] group-hover:border-[#66acd6] group-hover:bg-[#66acd6]/10 transition-all duration-200">
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248-2.012 9.483c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L7.26 14.4l-2.95-.924c-.64-.203-.654-.64.136-.948l11.527-4.444c.537-.194 1.006.131.589.164z" />
+                </svg>
+                <span className="text-[15px] whitespace-nowrap">Join the Build Games chat</span>
+              </div>
+            </a>
+            <a
+              href="https://calendar.google.com/calendar/u/0?cid=Y19mNzExYTJkN2NjZDJhZTY2MWFjYmJlMjE5MDM4ZDZmYzcwMjRjNmFiMzJjNGVmZDhhNmVkYTIxMDY1MGRiODdiQGdyb3VwLmNhbGVuZGFyLmdvb2dsZS5jb20"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group relative inline-flex"
+            >
+              <div className="absolute -inset-1 bg-gradient-to-r from-[#66acd6] via-[#38bdf8] to-[#66acd6] rounded-lg blur-sm opacity-30 group-hover:opacity-50 transition duration-300" />
+              <div className="relative flex items-center gap-2 px-6 py-3 bg-[#66acd6] rounded-lg font-['Aeonik:Medium',sans-serif] font-medium text-[#152d44] group-hover:bg-[#7fc0e5] transition-all duration-200 shadow-lg shadow-cyan-500/20 group-hover:shadow-cyan-500/40">
+                <Calendar size={20} />
+                <span className="text-[15px] whitespace-nowrap">Add to Calendar</span>
+              </div>
+            </a>
+          </div>
         </div>
 
         {/* Timeline */}
