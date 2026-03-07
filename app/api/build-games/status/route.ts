@@ -15,8 +15,8 @@ export async function GET() {
     // Check all three participation paths in parallel:
     // 1. BuildGames application form
     // 2. RegisterForm for the Build Games hackathon
-    // 3. Confirmed project member of a Build Games project
-    const [application, registration, project] = await Promise.all([
+    // 3. Project member (non-Removed) of a Build Games project
+    const [application, registration, projects] = await Promise.all([
       prisma.buildGamesApplication.findUnique({
         where: { email: session.user.email },
         select: { id: true, first_name: true, project_name: true, created_at: true },
@@ -25,14 +25,31 @@ export async function GET() {
         where: { hackathon_id: BG_HACKATHON_ID, email: session.user.email },
         select: { id: true, name: true, created_at: true },
       }),
-      prisma.project.findFirst({
+      prisma.project.findMany({
         where: {
           hackaton_id: BG_HACKATHON_ID,
-          members: { some: { email: session.user.email } },
+          members: { some: { email: session.user.email, status: { not: "Removed" } } },
         },
-        select: { id: true, project_name: true, created_at: true },
+        select: {
+          id: true,
+          project_name: true,
+          created_at: true,
+          members: {
+            where: { email: session.user.email, status: { not: "Removed" } },
+            select: { status: true },
+          },
+        },
       }),
     ]);
+
+    // If the user is on multiple projects, prefer the one where they are Confirmed.
+    // If only on one project, use it regardless of status.
+    const project =
+      projects.length === 1
+        ? projects[0]
+        : projects.find((p) => p.members.some((m) => m.status === "Confirmed")) ??
+          projects[0] ??
+          null;
 
     const isParticipant = !!(application || registration || project);
 
@@ -40,10 +57,21 @@ export async function GET() {
       return NextResponse.json({ isParticipant: false });
     }
 
+    // Fetch stage results from FormData for the resolved project
+    let stage1Result: string | null = null;
+    if (project?.id) {
+      const formData = await prisma.formData.findFirst({
+        where: { project_id: project.id },
+        select: { form_data: true },
+      });
+      const buildGames = (formData?.form_data as Record<string, any>)?.build_games;
+      stage1Result = buildGames?.stage1_result ?? null;
+    }
+
     // Use the best available project name: application > project > registration name
     const projectName =
-      application?.project_name ??
       project?.project_name ??
+      application?.project_name ??
       "Build Games 2026";
 
     const createdAt = (
@@ -55,6 +83,7 @@ export async function GET() {
     return NextResponse.json({
       isParticipant: true,
       participant: { projectName, createdAt },
+      stage1Result,
     });
   } catch (error) {
     console.error('Error checking application status:', error);

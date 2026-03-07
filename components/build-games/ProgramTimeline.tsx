@@ -310,7 +310,52 @@ function PhaseDetailsCards({ phase }: { phase: TimelinePhase }) {
   );
 }
 
-export default function ProgramTimeline({ isParticipant = false }: { isParticipant?: boolean }) {
+function Stage1ResultBanner({ result, projectName }: { result: string; projectName?: string | null }) {
+  const accepted = result === "accepted";
+  return (
+    <div
+      className={`mb-8 flex items-start gap-4 rounded-xl border p-5 ${
+        accepted
+          ? "bg-emerald-950/40 border-emerald-500/40"
+          : "bg-red-950/40 border-red-500/30"
+      }`}
+    >
+      <div
+        className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
+          accepted ? "bg-emerald-500/20" : "bg-red-500/20"
+        }`}
+      >
+        {accepted ? (
+          <svg className="w-5 h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+          </svg>
+        ) : (
+          <svg className="w-5 h-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        )}
+      </div>
+      <div>
+        <p className={`font-['Aeonik:Medium',sans-serif] text-[16px] mb-1 ${accepted ? "text-emerald-300" : "text-red-300"}`}>
+          {projectName ? (
+            accepted
+              ? <><strong>{projectName}</strong> advanced to Stage 2!</>
+              : <><strong>{projectName}</strong> was not selected to continue</>
+          ) : (
+            accepted ? "Your project advanced to Stage 2!" : "Your project was not selected to continue"
+          )}
+        </p>
+        <p className="font-['Aeonik:Regular',sans-serif] text-[14px] text-white/60">
+          {accepted
+            ? "Congratulations — your Stage 1 submission was accepted. Keep building and submit your MVP for Stage 2. If during these days your idea changed, please update your 1st stage submission to always reflect the latest version of your project."
+            : "Thank you for participating in Stage 1. We appreciate the effort you put into your submission and you're still welcome to attend the Workshops and Office Hours to get feedback from mentors and other builders to keep building your project."}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+export default function ProgramTimeline({ isParticipant = false, stage1Result = null, projectName = null }: { isParticipant?: boolean; stage1Result?: string | null; projectName?: string | null }) {
   // Reactive date — updates every minute so the timeline advances automatically
   // without requiring a page reload.
   const [todayDate, setTodayDate] = useState<Date>(() => new Date());
@@ -519,6 +564,13 @@ export default function ProgramTimeline({ isParticipant = false }: { isParticipa
               Click on each stage to view details
             </p>
           </div>
+
+          {/* Stage 1 result banner — always visible when a result exists */}
+          {stage1Result && (
+            <div className="px-8 pb-6">
+              <Stage1ResultBanner result={stage1Result} projectName={projectName} />
+            </div>
+          )}
         </div>
 
         {/* Selected Phase Details */}
