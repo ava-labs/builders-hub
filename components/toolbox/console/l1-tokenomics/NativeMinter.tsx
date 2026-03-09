@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
+import { useChainPublicClient } from "@/components/toolbox/hooks/useChainPublicClient";
 import { useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
 import { Button } from "@/components/toolbox/components/Button";
 import { Input } from "@/components/toolbox/components/Input";
@@ -31,7 +32,8 @@ const metadata: ConsoleToolMetadata = {
 };
 
 function NativeMinter({ onSuccess }: BaseConsoleToolProps) {
-  const { publicClient, walletEVMAddress } = useWalletStore();
+  const { walletEVMAddress } = useWalletStore();
+  const publicClient = useChainPublicClient();
   const { walletClient } = useConnectedWallet();
   const viemChain = useViemChainStore();
   const [amount, setAmount] = useState<string>("");
@@ -40,6 +42,7 @@ function NativeMinter({ onSuccess }: BaseConsoleToolProps) {
   const [txHash, setTxHash] = useState<string | null>(null);
 
   const handleMint = async () => {
+    if (!publicClient) return;
     setIsMinting(true);
 
     try {

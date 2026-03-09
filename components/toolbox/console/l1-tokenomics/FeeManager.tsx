@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
+import { useChainPublicClient } from "@/components/toolbox/hooks/useChainPublicClient";
 import { useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
 import { Button } from "@/components/toolbox/components/Button";
 import { Input } from "@/components/toolbox/components/Input";
@@ -119,7 +120,8 @@ function ConfigDisplay({ config, lastChangedAt }: ConfigDisplayProps) {
 }
 
 function FeeManager({ onSuccess }: BaseConsoleToolProps) {
-  const { publicClient, walletEVMAddress } = useWalletStore();
+  const { walletEVMAddress } = useWalletStore();
+  const publicClient = useChainPublicClient();
   const { walletClient } = useConnectedWallet();
   const viemChain = useViemChainStore();
   const [gasLimit, setGasLimit] = useState<string>("20000000");
@@ -140,6 +142,7 @@ function FeeManager({ onSuccess }: BaseConsoleToolProps) {
   const [activeAction, setActiveAction] = useState<"set" | "get" | null>(null);
 
   const handleSetFeeConfig = async () => {
+    if (!publicClient) return;
     setIsSettingConfig(true);
     setActiveAction("set");
 
@@ -177,6 +180,7 @@ function FeeManager({ onSuccess }: BaseConsoleToolProps) {
   };
 
   const handleGetFeeConfig = async () => {
+    if (!publicClient) return;
     setIsReadingConfig(true);
     setActiveAction("get");
 

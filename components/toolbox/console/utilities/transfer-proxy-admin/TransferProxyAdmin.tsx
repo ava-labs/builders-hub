@@ -1,6 +1,7 @@
 "use client";
 
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
+import { useChainPublicClient } from "@/components/toolbox/hooks/useChainPublicClient";
 import { useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
 import { useSelectedL1 } from "@/components/toolbox/stores/l1ListStore";
 import { useState, useEffect } from "react";
@@ -32,7 +33,8 @@ function TransferProxyAdmin({ onSuccess }: BaseConsoleToolProps) {
     const [criticalError, setCriticalError] = useState<Error | null>(null);
     const [proxyAdminAddress, setProxyAdminAddress] = useState<`0x${string}` | null>(null);
     const selectedL1 = useSelectedL1()();
-    const { publicClient, walletChainId, walletEVMAddress } = useWalletStore();
+    const { walletChainId, walletEVMAddress } = useWalletStore();
+    const publicClient = useChainPublicClient();
     const { walletClient } = useConnectedWallet();
     const [isTransferring, setIsTransferring] = useState(false);
     const [currentOwner, setCurrentOwner] = useState<string | null>(null);
@@ -72,7 +74,7 @@ function TransferProxyAdmin({ onSuccess }: BaseConsoleToolProps) {
     // Read the proxy admin from storage slot
     async function readProxyAdminSlot(address: string) {
         try {
-            if (!address) return;
+            if (!address || !publicClient) return;
 
             const data = await publicClient.getStorageAt({
                 address: address as `0x${string}`,
@@ -104,7 +106,7 @@ function TransferProxyAdmin({ onSuccess }: BaseConsoleToolProps) {
 
     async function checkCurrentOwner() {
         try {
-            if (!proxyAdminAddress) {
+            if (!publicClient || !proxyAdminAddress) {
                 setCurrentOwner(null);
                 setContractError("Proxy admin address is required");
                 return;
@@ -134,6 +136,9 @@ function TransferProxyAdmin({ onSuccess }: BaseConsoleToolProps) {
 
         if (!proxyAdminAddress) {
             throw new Error('Proxy admin address is required');
+        }
+        if (!publicClient) {
+            throw new Error('Public client not ready');
         }
 
         setIsTransferring(true);

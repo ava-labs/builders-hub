@@ -1,4 +1,5 @@
 import { useWalletStore } from '../../../stores/walletStore';
+import { useChainPublicClient } from '../../useChainPublicClient';
 import { useViemChainStore } from '../../../stores/toolboxStore';
 import { readContract } from 'viem/actions';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
@@ -66,7 +67,8 @@ export function useERC20TokenStakingManager(
   contractAddress: string | null,
   abi?: any
 ): ERC20TokenStakingManagerHook {
-  const { walletEVMAddress, publicClient } = useWalletStore();
+  const { walletEVMAddress } = useWalletStore();
+  const publicClient = useChainPublicClient();
   const viemChain = useViemChainStore();
   const { notify } = useConsoleNotifications();
   const { avalancheWalletClient } = useWallet();

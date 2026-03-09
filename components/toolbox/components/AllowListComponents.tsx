@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useWalletStore } from "../stores/walletStore";
+import { useChainPublicClient } from "../hooks/useChainPublicClient";
 import { useViemChainStore } from "../stores/toolboxStore";
 import { Button } from "./Button";
 import { EVMAddressInput } from "./EVMAddressInput";
@@ -127,7 +128,8 @@ function SetRoleForm({
   onSuccess,
   onFunctionChange,
 }: SetRoleFormProps) {
-  const { publicClient, walletEVMAddress, walletChainId } = useWalletStore();
+  const { walletEVMAddress, walletChainId } = useWalletStore();
+  const publicClient = useChainPublicClient();
   const { walletClient } = useConnectedWallet();
   const viemChain = useViemChainStore();
   const [isProcessing, setIsProcessing] = useState(false);
@@ -137,6 +139,7 @@ function SetRoleForm({
   const [error, setError] = useState<string | null>(null);
 
   const handleSetRole = async () => {
+    if (!publicClient) return;
     setIsProcessing(true);
     setError(null);
     setTxHash(null);
@@ -249,13 +252,14 @@ function ReadRoleForm({
   precompileType = "precompiled contract",
   abi = allowListAbi.abi,
 }: ReadRoleFormProps) {
-  const { publicClient } = useWalletStore();
+  const publicClient = useChainPublicClient();
   const [isReading, setIsReading] = useState(false);
   const [readAddress, setReadAddress] = useState<string>("");
   const [readResult, setReadResult] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const handleRead = async () => {
+    if (!publicClient) return;
     setIsReading(true);
     setError(null);
     setReadResult(null);

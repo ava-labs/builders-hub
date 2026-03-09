@@ -9,6 +9,7 @@ import validatorManagerAbi from '../../../contracts/icm-contracts/compiled/Valid
 import poaManagerAbi from '../../../contracts/icm-contracts/compiled/PoAManager.json';
 import { useWalletClient } from 'wagmi';
 import { useWalletStore } from '../stores/walletStore';
+import { useChainPublicClient } from '../hooks/useChainPublicClient';
 import { useViemChainStore } from '../stores/toolboxStore';
 import { useSafeAPI, SafeInfo, NonceResponse, AshWalletUrlResponse } from '../hooks/useSafeAPI';
 
@@ -91,7 +92,8 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [ashWalletUrl, setAshWalletUrl] = useState('');
 
-  const { publicClient, walletEVMAddress } = useWalletStore();
+  const { walletEVMAddress } = useWalletStore();
+  const publicClient = useChainPublicClient();
   const { data: walletClient } = useWalletClient();
   const viemChain = useViemChainStore();
   const { callSafeAPI } = useSafeAPI();
@@ -111,7 +113,7 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
   const checkWalletAndOwnership = async () => {
     setIsCheckingOwnership(true);
     try {
-      if (!walletClient?.account) {
+      if (!publicClient || !walletClient?.account) {
         setIsPoaOwner(false);
         return;
       }
@@ -319,11 +321,11 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
   };
 
   const executeDirectTransaction = async () => {
+    if (!publicClient) return;
     if (!walletClient) {
       onError('Core wallet not found');
       return;
     }
-
 
     if (!poaManagerAddress) {
       onError('PoAManager address not found');
