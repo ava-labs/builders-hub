@@ -1,11 +1,10 @@
 'use client';
 
-import React, { useState, useEffect, memo, useCallback } from 'react';
+import React, { useState, useEffect, memo, useCallback, useMemo } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Trash, ChevronDown, ChevronRight, ExternalLink } from 'lucide-react';
+import { Plus, Trash, ChevronDown, ChevronRight, ExternalLink, Bell } from 'lucide-react';
 import { t } from './translations';
 import { useSession, SessionProvider } from "next-auth/react";
 import axios from 'axios';
@@ -13,6 +12,27 @@ import { initialData, IDataMain, IDataContent, IDataLatest, ITrack, ISchedule, I
 import { LanguageButton } from './language-button';
 import HackathonPreview from '@/components/hackathons/HackathonPreview';
 import { EmailListInput } from '@/components/common/EmailListInput';
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { Textarea } from '@/components/ui/textarea';
+import { Divider } from '@/components/ui/divider';
+import { Notification } from "@/types/notifications";
+import { sendNotifications } from '@/utils/send-notification';
+import { Spinner } from '@/components/ui/spinner';
+import ReactMarkdown from 'react-markdown';
+import DOMPurify from "isomorphic-dompurify";
+import remarkGfm from "remark-gfm";
+import { detectNotificationContentType } from '@/components/notification/send-notifications-form';
+import { useToast } from '@/hooks/use-toast';
+import { DialogClose } from '@radix-ui/react-dialog';
+
+const notificationsTypeOptions = [
+  { value: "message", label: "Message" },
+]
 
 function toLocalDatetimeString(isoString: string) {
   if (!isoString) return '';
@@ -34,14 +54,62 @@ function toIso8601(datetimeLocal: string) {
   return date.toISOString();
 }
 
-const MyHackathonsList = ({ myHackathons, language, onSelect, selectedId, isDevrel, loading }: { 
-  myHackathons: any[], 
-  language: 'en' | 'es', 
-  onSelect: (hackathon: any) => void, 
-  selectedId: string | null, 
+const MyHackathonsList = ({ myHackathons, language, onSelect, selectedId, isDevrel, loading }: {
+  myHackathons: any[],
+  language: 'en' | 'es',
+  onSelect: (hackathon: any) => void,
+  selectedId: string | null,
   isDevrel: boolean,
   loading: boolean
 }) => {
+  const [title, setTitle] = useState<string>("");
+  const [shortDescription, setShortDescription] = useState<string>("");
+  const [content, setContent] = useState<string>("");
+  const [contentType, setContentType] = useState<string>("");
+  const [type, setType] = useState<string>("");
+  const [loadingSendNotification, setLoadingSendNotification] = useState(false)
+  const [state, setState] = useState<"none" | "Close" | "Error">("none");
+  const { toast } = useToast();
+  const isValidForm = useMemo(() => {
+    return (
+      title &&
+      type &&
+      shortDescription &&
+      content &&
+      contentType
+    )
+  }, [title, content, contentType]);
+  const buildBody = (hackathon: string): Notification[] => {
+    return [
+      {
+        audience: {
+          all: false,
+          users: [],
+          hackathons: [hackathon],
+        },
+        type,
+        title,
+        short_description: shortDescription,
+        content,
+        content_type: contentType,
+      }
+    ]
+  };
+
+  const send = async (hackathon: string): Promise<void> => {
+    setLoadingSendNotification(true)
+    const response = await sendNotifications(buildBody(hackathon))
+    if (response.success) {
+      setState("Close");
+    } else {
+      setState("Error");
+    }
+    setLoadingSendNotification(false)
+  };
+
+  useEffect(() => {
+    setContentType(detectNotificationContentType(content));
+  }, [content]);
   if (loading) {
     return (
       <div className="mb-6">
@@ -78,16 +146,15 @@ const MyHackathonsList = ({ myHackathons, language, onSelect, selectedId, isDevr
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div 
-                    className={`w-3 h-3 rounded-full ${
-                      hackathon.is_public 
-                        ? 'bg-green-500' 
-                        : 'bg-gray-400'
-                    }`}
+                  <div
+                    className={`w-3 h-3 rounded-full ${hackathon.is_public
+                      ? 'bg-green-500'
+                      : 'bg-gray-400'
+                      }`}
                     title={hackathon.is_public ? 'Public hackathon' : 'Private hackathon'}
                   />
                   <span className="cursor-pointer" onClick={() => onSelect(hackathon)}>
-            {hackathon.title}
+                    {hackathon.title}
                   </span>
                 </div>
                 <div className="flex gap-1 ml-2">
@@ -114,6 +181,144 @@ const MyHackathonsList = ({ myHackathons, language, onSelect, selectedId, isDevr
                   >
                     Edit
                   </Button>
+                  <Dialog>
+                    <DialogTrigger>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-xs px-2 py-1 h-auto cursor-pointer flex items-center gap-1 transition-transform duration-200 hover:scale-105 bg-white text-white border-gray-300 hover:bg-gray-50"
+                      >
+                        <Bell size={12} />
+                        Send notification
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className='custom-scroll max-h-[60vh] overflow-y-scroll'>
+                      <DialogTitle>Send notification</DialogTitle>
+                      <Divider />
+
+                      <div className='flex flex-col gap-4'>
+
+                        <div className="flex flex-col gap-2">
+                          <h1 className="text-md font-medium">Title</h1>
+                          <Input
+                            value={title}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTitle(e.target.value)}
+                            placeholder="Type the notification title"
+                          />
+                        </div>
+
+                        <div className="flex flex-col gap-2">
+                          <h1 className="text-md font-medium">Short description</h1>
+                          <Input
+                            value={shortDescription}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setShortDescription(e.target.value)}
+                            placeholder="Type a short description"
+                          />
+                        </div>
+
+                        <div className="flex flex-col gap-2">
+                          <h1 className="text-md font-medium">Type</h1>
+                          <Select value={type} onValueChange={(e) => setType(e)}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select notification type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {
+                                notificationsTypeOptions.map((option) => (
+                                  <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                                ))
+                              }
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="w-full flex flex-col gap-2">
+                          <div className="flex-1 flex flex-col gap-2">
+                            <h1 className="text-md font-medium">Content</h1>
+                            <div className="flex items-center gap-2">
+                              <Textarea
+                                value={content}
+                                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setContent(e.target.value)}
+                                placeholder="Type a content"
+                                className="custom-scroll h-20"
+                              />
+                            </div>
+                          </div>
+                          <div className="flex-1 w-full flex flex-col gap-2">
+                            <p className="text-md font-medium">Content preview</p>
+                            <div className="custom-scroll p-4 min-h-20 overflow-y-auto border border-border rounded-lg dark:shadow-2xl">
+                              {(() => {
+                                switch (contentType) {
+                                  case "text/plain":
+                                    return content;
+
+                                  case "text/markdown":
+                                    return <ReactMarkdown
+                                      remarkPlugins={[remarkGfm]}
+                                      components={{
+                                        // Keep styling consistent; customize as needed.
+                                        p: (props: React.ComponentPropsWithoutRef<"p">) => (
+                                          <p className="text-sm text-zinc-700 dark:text-zinc-200 leading-6" {...props} />
+                                        ),
+                                        a: (props: React.ComponentPropsWithoutRef<"a">) => (
+                                          <a className="underline underline-offset-4" target="_blank" rel="noreferrer" {...props} />
+                                        ),
+                                        ul: (props: React.ComponentPropsWithoutRef<"ul">) => (
+                                          <ul className="list-disc pl-5 space-y-1" {...props} />
+                                        ),
+                                        ol: (props: React.ComponentPropsWithoutRef<"ol">) => (
+                                          <ol className="list-decimal pl-5 space-y-1" {...props} />
+                                        ),
+                                        code: (props: React.ComponentPropsWithoutRef<"code">) => (
+                                          <code className="px-1 py-0.5 rounded bg-zinc-200/60 dark:bg-zinc-800/60" {...props} />
+                                        ),
+                                      }}
+                                    >
+                                      {content}
+                                    </ReactMarkdown>;
+                                  case "text/html": {
+                                    const sanitizedHtml: string = DOMPurify.sanitize(content);
+
+                                    return (
+                                      <div
+                                        className="prose prose-sm dark:prose-invert"
+                                        dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
+                                      />
+                                    );
+                                  }
+
+
+                                  default:
+                                    return content;
+                                }
+                              })()}
+
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      {
+                        state === "none" ? (
+                          <Button onClick={() => send(hackathon.id)} disabled={!isValidForm || loading} className="bg-black dark:bg-white px-2 py-1 w-16 ">
+                            {
+                              loadingSendNotification ? (
+                                <Spinner data-icon="inline-center" />
+                              ) : (
+
+                                <p className="text-zinc-50 dark:text-zinc-900 text-sm font-medium">Send</p>
+                              )
+                            }
+                          </Button>
+                        ) : (
+                          <DialogClose className='flex items-start'>
+                            <Button onClick={() => setState('none')} className="bg-black dark:bg-white px-2 py-1 w-16 ">
+                              <p className="text-zinc-50 dark:text-zinc-900 text-sm font-medium">{state}</p>
+                            </Button>
+                          </DialogClose>
+                        )
+                      }
+                    </DialogContent>
+                  </Dialog>
                 </div>
               </div>
               {isDevrel && hackathon.created_by_name && (
@@ -138,50 +343,50 @@ const UpdateModal = ({ open, onClose, onConfirm, fieldsToUpdate, t, language }: 
   language: 'en' | 'es',
 }) => {
   if (!open) return null;
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-        <div className="bg-white dark:bg-zinc-900 rounded-lg shadow-lg p-6 max-w-4xl w-full max-h-[90vh] flex flex-col">
-          <h2 className="text-lg font-bold mb-4 flex-shrink-0">{t[language].confirmUpdateTitle || 'Confirm Update'}</h2>
-          <p className="mb-2 flex-shrink-0">{t[language].confirmUpdateText || 'You are about to update the following fields:'}</p>
-          <ul className="list-disc pl-6 flex-1 min-h-0 overflow-y-auto overflow-x-auto mb-4">
-            {fieldsToUpdate.map(({ key, oldValue, newValue }) => (
-              <li key={key} className="mb-1">
-                <div className="font-semibold mb-1">{key}:</div>
-                <div className="overflow-x-auto max-w-full border border-gray-200 dark:border-gray-700 rounded p-2">
-                  <div className="text-red-600 dark:text-red-500 line-through whitespace-nowrap text-sm min-w-max">{String(oldValue)}</div>
-                </div>
-                <div className="overflow-x-auto max-w-full border border-gray-200 dark:border-gray-700 rounded p-2">
-                  <div className="text-green-600 dark:text-green-500 whitespace-nowrap text-sm min-w-max">{String(newValue)}</div>
-                </div>
-              </li>
-            ))}
-          </ul>
-          <div className="flex justify-end gap-2 mt-4 flex-shrink-0">
-            <button onClick={onClose} className="px-4 py-2 rounded bg-zinc-200 dark:bg-zinc-700 hover:bg-zinc-300 dark:hover:bg-zinc-600">{t[language].cancel}</button>
-            <button onClick={onConfirm} className="px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700">{t[language].update}</button>
-          </div>
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+      <div className="bg-white dark:bg-zinc-900 rounded-lg shadow-lg p-6 max-w-4xl w-full max-h-[90vh] flex flex-col">
+        <h2 className="text-lg font-bold mb-4 flex-shrink-0">{t[language].confirmUpdateTitle || 'Confirm Update'}</h2>
+        <p className="mb-2 flex-shrink-0">{t[language].confirmUpdateText || 'You are about to update the following fields:'}</p>
+        <ul className="list-disc pl-6 flex-1 min-h-0 overflow-y-auto overflow-x-auto mb-4">
+          {fieldsToUpdate.map(({ key, oldValue, newValue }) => (
+            <li key={key} className="mb-1">
+              <div className="font-semibold mb-1">{key}:</div>
+              <div className="overflow-x-auto max-w-full border border-gray-200 dark:border-gray-700 rounded p-2">
+                <div className="text-red-600 dark:text-red-500 line-through whitespace-nowrap text-sm min-w-max">{String(oldValue)}</div>
+              </div>
+              <div className="overflow-x-auto max-w-full border border-gray-200 dark:border-gray-700 rounded p-2">
+                <div className="text-green-600 dark:text-green-500 whitespace-nowrap text-sm min-w-max">{String(newValue)}</div>
+              </div>
+            </li>
+          ))}
+        </ul>
+        <div className="flex justify-end gap-2 mt-4 flex-shrink-0">
+          <button onClick={onClose} className="px-4 py-2 rounded bg-zinc-200 dark:bg-zinc-700 hover:bg-zinc-300 dark:hover:bg-zinc-600">{t[language].cancel}</button>
+          <button onClick={onConfirm} className="px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700">{t[language].update}</button>
         </div>
       </div>
-    );
+    </div>
+  );
 };
 
 type TrackItemProps = {
-    track: ITrack;
-    index: number;
-    collapsed: boolean;
-    onChange: (index: number, field: string, value: any) => void;
-    onDone: (index: number) => void;
-    onExpand: (index: number) => void;
-    onRemove: (index: number) => void;
+  track: ITrack;
+  index: number;
+  collapsed: boolean;
+  onChange: (index: number, field: string, value: any) => void;
+  onDone: (index: number) => void;
+  onExpand: (index: number) => void;
+  onRemove: (index: number) => void;
   onScrollToPreview: (section: string) => void;
-    t: any; 
-    language: 'en' | 'es';
-    removing: { [key: string]: number | null };
-    tracksLength: number;
+  t: any;
+  language: 'en' | 'es';
+  removing: { [key: string]: number | null };
+  tracksLength: number;
   rawTrackDescriptions: { [key: number]: string };
   setRawTrackDescriptions: (value: { [key: number]: string } | ((prev: { [key: number]: string }) => { [key: number]: string })) => void;
   convertToHTML: (text: string) => string;
-  };
+};
 
 const TrackItem = memo(function TrackItem({ track, index, collapsed, onChange, onDone, onExpand, onRemove, onScrollToPreview, t, language, removing, tracksLength, rawTrackDescriptions, setRawTrackDescriptions, convertToHTML }: TrackItemProps) {
   return (
@@ -634,20 +839,20 @@ const SpeakerItem = memo(function SpeakerItem({ speaker, index, collapsed, onCha
             />
           </div>
           <div className="mb-2">
-          <Input
-            type="text"
-            placeholder="Or enter Picture URL"
-            value={speaker.picture}
-            onChange={e => onPictureChange(index, e.target.value)}
-            className="w-full"
+            <Input
+              type="text"
+              placeholder="Or enter Picture URL"
+              value={speaker.picture}
+              onChange={e => onPictureChange(index, e.target.value)}
+              className="w-full"
             />
           </div>
           {speaker.picture && speaker.picture.trim() !== "" && (
             <div className="mb-2">
-              <img 
-                src={speaker.picture} 
-                alt={speaker.name} 
-                className="w-20 h-20 object-cover rounded border border-zinc-600" 
+              <img
+                src={speaker.picture}
+                alt={speaker.name}
+                className="w-20 h-20 object-cover rounded border border-zinc-600"
               />
             </div>
           )}
@@ -772,14 +977,14 @@ const HackathonsEdit = () => {
       const response = await axios.get(
         `/api/hackathons`,
         {
-            headers: {
-                id: session?.user?.id,
-            }
+          headers: {
+            id: session?.user?.id,
+          }
         }
       );
       if (response.data?.hackathons?.length > 0) {
         const hackathons = response.data.hackathons;
-        console.log({response: hackathons });
+        console.log({ response: hackathons });
         setMyHackathons(hackathons);
       }
     } catch (error) {
@@ -807,7 +1012,7 @@ const HackathonsEdit = () => {
       organizers: hackathon.organizers ?? '',
       is_public: hackathon.is_public ?? false,
     });
-    console.log({hackathon});
+    console.log({ hackathon });
     setFormDataContent({
       ...(hackathon.content ?? {}),
       tracks: hackathon.content?.tracks ?? [{ icon: '', logo: '', name: '', partner: '', description: '', short_description: '' }],
@@ -898,13 +1103,13 @@ const HackathonsEdit = () => {
       customAttributes.includes("hackathonCreator") ||
       customAttributes.includes("team1-admin") ||
       customAttributes.includes("devrel");
-    
+
     // If no hackathon is selected, allow editing only for special roles (for creating new hackathons)
     if (!selectedHackathon) {
       setHasEditPermission(isSpecialRole);
       return;
     }
-    
+
     // If hackathon is selected, check if user is creator/updater, special role, or cohost
     const userEmail = session.user.email || "";
     const isCohost =
@@ -997,7 +1202,7 @@ const HackathonsEdit = () => {
     });
   }, [formDataContent.resources.length]);
 
- 
+
   const handleScheduleDone = (idx: number) => {
     setCollapsedSchedules((prev) => prev.map((v, i) => (i === idx ? true : v)));
   };
@@ -1214,11 +1419,11 @@ const HackathonsEdit = () => {
         method: 'POST',
         body: formData,
       });
-      
+
       if (!uploadResponse.ok) {
         throw new Error(`Upload failed: ${uploadResponse.statusText}`);
       }
-      
+
       const result = await uploadResponse.json();
       return result.url;
     } catch (error) {
@@ -1234,7 +1439,7 @@ const HackathonsEdit = () => {
       if (processedData[field] && processedData[field].startsWith('data:image/')) {
         const fileName = `builders-hub/hackathon-images/${processedData.title.toLowerCase().replace(/ /g, '-')}/${processedData.title}-${field}-${Date.now()}.${processedData[field].split(';')[0].split('/')[1]}`;
         try {
-          console.log({fileName})
+          console.log({ fileName })
           processedData[field] = await uploadBase64ToVercel(processedData[field], fileName);
           console.log(`Uploaded ${field} to Vercel storage:`, processedData[field]);
         } catch (error) {
@@ -1242,7 +1447,7 @@ const HackathonsEdit = () => {
         }
       }
     }
-    
+
     if (processedData.content?.speakers) {
       for (let i = 0; i < processedData.content.speakers.length; i++) {
         const speaker = processedData.content.speakers[i];
@@ -1257,36 +1462,36 @@ const HackathonsEdit = () => {
         }
       }
     }
-    
+
     return processedData;
   };
 
   const doSubmit = async () => {
     setLoading(true);
-    let dataToSend 
+    let dataToSend
     if (isSelectedHackathon)
-      dataToSend= {...getDataToSend(), updated_by: session?.user?.id};
+      dataToSend = { ...getDataToSend(), updated_by: session?.user?.id };
     else {
-      dataToSend= {...getDataToSend(), created_by: session?.user?.id};
+      dataToSend = { ...getDataToSend(), created_by: session?.user?.id };
     }
-    console.log({dataToSend, isSelectedHackathon});
+    console.log({ dataToSend, isSelectedHackathon });
     try {
       dataToSend = await processBase64Images(dataToSend);
       console.log('Processed data with uploaded images:', dataToSend);
     } catch (error) {
       console.error('Error processing base64 images:', error);
     }
-    
+
     if (!isSelectedHackathon) {
       try {
         const response = await fetch('/api/hackathons', {
-          method: 'POST', 
+          method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify(dataToSend),
         });
-        
+
         if (response.status === 200) {
           setShowUpdateModal(true);
           setFieldsToUpdate([{
@@ -1308,18 +1513,18 @@ const HackathonsEdit = () => {
         setLoading(false);
       }
     } else {
-      console.log({selectedHackathon, id: selectedHackathon?.id});
+      console.log({ selectedHackathon, id: selectedHackathon?.id });
       try {
 
         const response = await fetch(`/api/hackathons/${selectedHackathon?.id}`, {
-          method: 'PUT', 
+          method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify(dataToSend),
         });
-        
-       if (response.status === 200) {
+
+        if (response.status === 200) {
           setFormDataMain(initialData.main);
           setFormDataContent(initialData.content);
           setFormDataLatest(initialData.latest);
@@ -1342,7 +1547,7 @@ const HackathonsEdit = () => {
     console.log('delete');
     try {
       const response = await fetch(`/api/hackathons/${selectedHackathon?.id}`, {
-        method: 'DELETE', 
+        method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -1355,9 +1560,9 @@ const HackathonsEdit = () => {
 
   const handleToggleVisibility = async (hackathonId: string, isPublic: boolean) => {
     try {
-      console.log({isPublic})
+      console.log({ isPublic })
       const response = await fetch(`/api/hackathons/${selectedHackathon?.id}`, {
-        method: 'PUT', 
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -1367,19 +1572,19 @@ const HackathonsEdit = () => {
       });
 
       if (response.ok) {
-        setMyHackathons(prev => 
-          prev.map(hackathon => 
-            hackathon.id === hackathonId 
+        setMyHackathons(prev =>
+          prev.map(hackathon =>
+            hackathon.id === hackathonId
               ? { ...hackathon, is_public: isPublic }
               : hackathon
           )
         );
-        
+
         if (selectedHackathon?.id === hackathonId) {
           setSelectedHackathon((prev: any) => prev ? { ...prev, is_public: isPublic } : null);
           setFormDataMain((prev: IDataMain) => ({ ...prev, is_public: isPublic }));
         }
-        
+
         console.log(`Hackathon ${hackathonId} visibility updated to ${isPublic ? 'public' : 'private'}`);
       } else {
         console.error('Failed to update hackathon visibility');
@@ -1484,7 +1689,7 @@ const HackathonsEdit = () => {
         },
         {
           icon: "shield",
-          logo: "shield", 
+          logo: "shield",
           name: "Security & Privacy",
           partner: "Avalanche",
           description: "<b>Security & Privacy:</b> Develop cutting-edge security solutions and privacy-preserving technologies. Build secure wallets, privacy protocols, or tools that enhance the security and privacy of blockchain applications.",
@@ -1622,20 +1827,20 @@ const HackathonsEdit = () => {
   // Check if user has required permissions
   const hasRequiredPermissions = () => {
     if (!session?.user?.custom_attributes) return false;
-    return session.user.custom_attributes.includes("team1-admin") || 
-           session.user.custom_attributes.includes("hackathonCreator") || 
-           session.user.custom_attributes.includes("devrel");
+    return session.user.custom_attributes.includes("team1-admin") ||
+      session.user.custom_attributes.includes("hackathonCreator") ||
+      session.user.custom_attributes.includes("devrel");
   };
 
   // Redirect unauthorized users
   React.useEffect(() => {
     if (status === "loading") return; // Still loading
-    
+
     if (status === "unauthenticated") {
       window.location.href = "/login";
       return;
     }
-    
+
     if (status === "authenticated" && !hasRequiredPermissions()) {
       window.location.href = "/";
       return;
@@ -1644,7 +1849,7 @@ const HackathonsEdit = () => {
 
   // Show loading while checking authentication
   if (status === "loading") {
-  return (
+    return (
       <div className="h-screen flex items-center justify-center">
         <div className="text-white text-xl">Loading...</div>
       </div>
@@ -1667,10 +1872,10 @@ const HackathonsEdit = () => {
               <div className="w-2 h-2 bg-green-300 rounded-full animate-pulse"></div>
               <span className="text-white">Live Preview</span>
             </div>
-            <LanguageButton 
-              language={language} 
-              onLanguageChange={setLanguage} 
-              t={t} 
+            <LanguageButton
+              language={language}
+              onLanguageChange={setLanguage}
+              t={t}
             />
           </div>
           <div className="flex items-center gap-4">
@@ -1691,865 +1896,864 @@ const HackathonsEdit = () => {
       <div className="flex-1 flex overflow-hidden">
         {/* Left Panel - Edit Form */}
         <div className="w-1/2 overflow-y-auto bg-zinc-950">
-    <div className="container mx-auto px-4 py-8">
-      <UpdateModal
-        open={showUpdateModal}
-        onClose={() => setShowUpdateModal(false)}
-        onConfirm={handleConfirmUpdate}
-        fieldsToUpdate={fieldsToUpdate}
-        t={t}
-        language={language}
-      />
-            
-      <MyHackathonsList 
-        myHackathons={myHackathons} 
-        language={language} 
-        onSelect={handleSelectHackathon} 
-        selectedId={selectedHackathon?.id ?? null} 
-        isDevrel={session?.user?.custom_attributes?.includes("devrel") || false}
-        loading={loadingHackathons}
-      />
-      {isSelectedHackathon && (
-        <div className="flex gap-2 mb-4 sticky top-0 z-10 bg-zinc-950 py-2">
-          <Button onClick={handleCancelEdit} variant="outline">
-            {t[language].cancel}
-          </Button>
-          <Button type="button" className="bg-green-600 hover:bg-green-700 text-white" onClick={handleUpdateClick}>
-            {t[language].update}
-          </Button>  
-          {session?.user?.custom_attributes?.includes("devrel") && (
-            <Button 
-              type="button" 
-              className={`${
-                formDataMain.is_public 
-                  ? 'bg-orange-600 hover:bg-orange-700' 
-                  : 'bg-green-600 hover:bg-green-700'
-              } text-white`}
-              onClick={() => handleToggleVisibility(selectedHackathon.id, !formDataMain.is_public)}
-            >
-              {formDataMain.is_public ? 'Hide' : 'Activate'}
-            </Button>
-          )}  
-          {/* <Button
+          <div className="container mx-auto px-4 py-8">
+            <UpdateModal
+              open={showUpdateModal}
+              onClose={() => setShowUpdateModal(false)}
+              onConfirm={handleConfirmUpdate}
+              fieldsToUpdate={fieldsToUpdate}
+              t={t}
+              language={language}
+            />
+
+            <MyHackathonsList
+              myHackathons={myHackathons}
+              language={language}
+              onSelect={handleSelectHackathon}
+              selectedId={selectedHackathon?.id ?? null}
+              isDevrel={session?.user?.custom_attributes?.includes("devrel") || false}
+              loading={loadingHackathons}
+            />
+            {isSelectedHackathon && (
+              <div className="flex gap-2 mb-4 sticky top-0 z-10 bg-zinc-950 py-2">
+                <Button onClick={handleCancelEdit} variant="outline">
+                  {t[language].cancel}
+                </Button>
+                <Button type="button" className="bg-green-600 hover:bg-green-700 text-white" onClick={handleUpdateClick}>
+                  {t[language].update}
+                </Button>
+                {session?.user?.custom_attributes?.includes("devrel") && (
+                  <Button
+                    type="button"
+                    className={`${formDataMain.is_public
+                      ? 'bg-orange-600 hover:bg-orange-700'
+                      : 'bg-green-600 hover:bg-green-700'
+                      } text-white`}
+                    onClick={() => handleToggleVisibility(selectedHackathon.id, !formDataMain.is_public)}
+                  >
+                    {formDataMain.is_public ? 'Hide' : 'Activate'}
+                  </Button>
+                )}
+                {/* <Button
             type="button"
             className="bg-red-600 hover:bg-red-700 text-white"
             onClick={() => setShowDeleteModal(true)}
           >
             Delete
           </Button> */}
-        </div>
-      )}
-      {showForm && hasEditPermission && (
-        <>
-          {/* Cohosts Section - Always Visible */}
-          <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-6 mb-6">
-            <h2 className="text-xl font-semibold mb-2 text-blue-300">{t[language].cohostsTitle}</h2>
-            <p className="text-sm text-blue-200 mb-4">
-              {t[language].cohostsDescription}
-            </p>
-            <EmailListInput
-              value={cohostsEmails}
-              onChange={(emails) => {
-                setCohostsEmails(emails);
-              }}
-              placeholder={t[language].cohostsPlaceholder}
-              label={t[language].cohostsLabel}
-              description={t[language].cohostsHelp}
-            />
-          </div>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-2xl font-bold">Step 1: Basic Hackathon Info</h2>
-                {collapsed.main && (
-                  <button onClick={() => setCollapsed({ ...collapsed, main: false })} className="flex items-center gap-1 text-zinc-400 hover:text-red-500 cursor-pointer">
-                    <ChevronRight className="w-5 h-5" /> {t[language].expand}
-                  </button>
-                )}
               </div>
-              {!collapsed.main && (
-                <>
-                  <div className="mb-4 p-4 bg-green-900/20 border border-green-500/30 rounded-lg">
-                    <h3 className="text-lg font-semibold text-green-300 mb-2">Hackathon Details</h3>
-                    <p className="text-sm text-green-200">Let's start with the basic information that will appear in your hackathon preview.</p>
-                  </div>
-                  
-                  <div className="mb-2 text-zinc-400 text-sm">Hackathon Title</div>
-                  <Input
-                    type="text"
-                    name="title"
-                    placeholder="e.g., Avalanche Hackathon 2025, Build on Avalanche"
-                    value={formDataMain.title}
-                    onChange={(e) => {
-                      setFormDataMain(prev => ({ ...prev, title: e.target.value }));
-                      scrollToSection('about');
+            )}
+            {showForm && hasEditPermission && (
+              <>
+                {/* Cohosts Section - Always Visible */}
+                <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-6 mb-6">
+                  <h2 className="text-xl font-semibold mb-2 text-blue-300">{t[language].cohostsTitle}</h2>
+                  <p className="text-sm text-blue-200 mb-4">
+                    {t[language].cohostsDescription}
+                  </p>
+                  <EmailListInput
+                    value={cohostsEmails}
+                    onChange={(emails) => {
+                      setCohostsEmails(emails);
                     }}
-                    className="w-full mb-4"
-                    required
+                    placeholder={t[language].cohostsPlaceholder}
+                    label={t[language].cohostsLabel}
+                    description={t[language].cohostsHelp}
                   />
-                  
-                  <div className="mb-2 text-zinc-400 text-sm">Description</div>
-                  <textarea
-                    name="description"
-                    placeholder="Describe your hackathon, its goals, and what participants will build..."
-                    value={formDataMain.description}
-                    onChange={(e) => {
-                      setFormDataMain(prev => ({ ...prev, description: e.target.value }));
-                      scrollToSection('about');
-                    }}
-                    className="w-full mb-4 p-3 bg-zinc-800 border border-zinc-600 rounded-lg text-white placeholder-zinc-400 resize-none h-24"
-                    required
-                  />
-                  
-                  <div className="mb-2 text-zinc-400 text-sm">Location</div>
-                  <Input
-                    type="text"
-                    name="location"
-                    placeholder="e.g., Online, New York, San Francisco"
-                    value={formDataMain.location}
-                    onChange={(e) => {
-                      setFormDataMain(prev => ({ ...prev, location: e.target.value }));
-                      scrollToSection('about');
-                    }}
-                    className="w-full mb-4"
-                    required
-                  />
-                  
-                  <div className="mb-2 text-zinc-400 text-sm">Event Type</div>
-                  <Select
-                    value={formDataLatest.event}
-                    onValueChange={(value) => {
-                      setFormDataLatest(prev => ({ ...prev, event: value }));
-                      console.log(value);
-                    }}
-                  >
-                    <SelectTrigger className="w-full mb-4">
-                      <SelectValue placeholder="Select event type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="hackathon">Hackathon</SelectItem>
-                      <SelectItem value="workshop">Workshop</SelectItem>
-                      <SelectItem value="bootcamp">Bootcamp</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  
-                  <div className="flex flex-col space-y-2 bg-zinc-900/60 border border-zinc-700 rounded-lg p-4 my-4">
-                    <label className="font-medium">Tags (Optional)</label>
-                    <div className="mb-2 text-zinc-400 text-sm">Add relevant tags to help participants find your hackathon</div>
-                    <div className="flex flex-wrap gap-2 items-center">
-                      {formDataMain.tags.map((tag, idx) => (
-                        <div key={idx} className="flex items-center gap-1">
-                          <Input
-                            type="text"
-                            value={tag}
-                            onChange={e => handleTagChange(idx, e.target.value)}
-                            className="w-32 px-2 py-1 text-sm"
-                            placeholder={`Tag ${idx + 1}`}
-                          />
-                          {formDataMain.tags.length > 1 && (
-                            <button type="button" onClick={() => removeTag(idx)} className="text-red-500 hover:text-red-700 px-1">×</button>
-                          )}
-                        </div>
-                      ))}
-                      <button type="button" onClick={addTag} className="text-green-500 hover:text-green-700 px-2 py-1 border border-green-500 rounded">+ Add Tag</button>
-                    </div>
-                  </div>
-                  
-                  <div className="flex justify-end mt-4">
-                    <button 
-                      type="button"
-                      onClick={() => handleDone('main')} 
-                      className="bg-green-600 hover:bg-green-700 text-white px-4 py-1 rounded flex items-center gap-1 cursor-pointer"
-                    >
-                      {t[language].done} <ChevronDown className="w-4 h-4" />
-                    </button>
-                  </div>
-                </>
-              )}
-              {collapsed.main && (
-                <div className="text-zinc-400 italic">✓ Basic hackathon info completed</div>
-              )}
-            </div>
-            
-            {/* Step 2: Images & Branding */}
-            <div className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-2xl font-bold">Step 2: Images & Branding</h2>
-                {collapsed.images && (
-                  <button onClick={() => setCollapsed({ ...collapsed, images: false })} className="flex items-center gap-1 text-zinc-400 hover:text-red-500 cursor-pointer">
-                    <ChevronRight className="w-5 h-5" /> {t[language].expand}
-                  </button>
-                )}
-              </div>
-              {!collapsed.images && (
-                <>
-                  <div className="mb-4 p-4 bg-blue-900/20 border border-blue-500/30 rounded-lg">
-                    <h3 className="text-lg font-semibold text-blue-300 mb-2">Hackathon Images & Branding</h3>
-                    <p className="text-sm text-blue-200">Upload your hackathon banner, icon, and small banner. Images will be stored locally and uploaded to the database when you submit the form.</p>
-                  </div>
-                  
-                  {/* Banner Image */}
-                  <div className="mb-6">
-                    <label className="font-medium text-xl mb-2 block">Main Banner:</label>
-                    <div className="mb-2 text-zinc-400 text-sm">The main banner image displayed at the top of your hackathon page</div>
-                    
-                    <div className="mb-4">
-                      <div className="flex gap-4 items-start">
-                        {/* File Input */}
-                        <div className="flex-1">
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) {
-                                const reader = new FileReader();
-                                reader.onload = (event) => {
-                                  const dataUrl = event.target?.result as string;
-                                  setFormDataLatest({ ...formDataLatest, banner: dataUrl });
-                                };
-                                reader.readAsDataURL(file);
-                              }
-                            }}
-                            className="w-full p-2 bg-zinc-800 border border-zinc-600 rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700"
-                          />
-                        </div>
-                        
-                        {/* Or URL Input */}
-                        <div className="flex-1">
-                          <Input
-                            type="text"
-                            placeholder="Or enter banner URL"
-                            value={formDataLatest.banner}
-                            onChange={e => setFormDataLatest({ ...formDataLatest, banner: e.target.value })}
-                            className="w-full"
-                          />
-                        </div>
-                      </div>
-                      
-                      {/* Banner Preview */}
-                      {formDataLatest.banner && (
-                        <div className="mt-4">
-                          <div className="text-zinc-400 text-sm mb-2">Preview (1600 x 909):</div>
-                          <div className="relative w-full max-w-2xl mx-auto bg-zinc-800 border border-zinc-600 rounded-lg overflow-hidden" style={{ aspectRatio: '1600/909' }}>
-                            <img
-                              src={formDataLatest.banner}
-                              alt="Banner preview"
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                e.currentTarget.style.display = 'none';
-                                (e.currentTarget.nextElementSibling as HTMLElement)!.style.display = 'flex';
-                              }}
-                            />
-                            <div className="hidden absolute inset-0 items-center justify-center text-zinc-500">
-                              Invalid image URL
-                            </div>
-                          </div>
-                        </div>
+                </div>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="text-2xl font-bold">Step 1: Basic Hackathon Info</h2>
+                      {collapsed.main && (
+                        <button onClick={() => setCollapsed({ ...collapsed, main: false })} className="flex items-center gap-1 text-zinc-400 hover:text-red-500 cursor-pointer">
+                          <ChevronRight className="w-5 h-5" /> {t[language].expand}
+                        </button>
                       )}
                     </div>
-                  </div>
-                  
-                  
-                  {/* Icon Image */}
-                  <div className="mb-6">
-                    <label className="font-medium text-xl mb-2 block">Icon:</label>
-                    <div className="mb-2 text-zinc-400 text-sm">The small icon displayed next to your hackathon title</div>
-                    
-                    <div className="mb-4">
-                      <div className="flex gap-4 items-start">
-                        <div className="flex-1">
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) {
-                                const reader = new FileReader();
-                                reader.onload = (event) => {
-                                  const dataUrl = event.target?.result as string;
-                                  setFormDataLatest({ ...formDataLatest, icon: dataUrl });
-                                };
-                                reader.readAsDataURL(file);
-                              }
-                            }}
-                            className="w-full p-2 bg-zinc-800 border border-zinc-600 rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-600 file:text-white hover:file:bg-green-700"
-                          />
+                    {!collapsed.main && (
+                      <>
+                        <div className="mb-4 p-4 bg-green-900/20 border border-green-500/30 rounded-lg">
+                          <h3 className="text-lg font-semibold text-green-300 mb-2">Hackathon Details</h3>
+                          <p className="text-sm text-green-200">Let's start with the basic information that will appear in your hackathon preview.</p>
                         </div>
-                        
-                        <div className="flex-1">
-                          <Input
-                            type="text"
-                            placeholder="Or enter icon URL"
-                            value={formDataLatest.icon}
-                            onChange={e => setFormDataLatest({ ...formDataLatest, icon: e.target.value })}
-                            className="w-full"
-                          />
-                        </div>
-                      </div>
-                      
-                      {formDataLatest.icon && (
-                        <div className="mt-4">
-                          <div className="text-zinc-400 text-sm mb-2">Preview:</div>
-                          <div className="relative w-16 h-16 bg-zinc-800 border border-zinc-600 rounded-lg overflow-hidden">
-                            <img
-                              src={formDataLatest.icon}
-                              alt="Icon preview"
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                e.currentTarget.style.display = 'none';
-                                (e.currentTarget.nextElementSibling as HTMLElement)!.style.display = 'flex';
-                              }}
-                            />
-                            <div className="hidden absolute inset-0 items-center justify-center text-zinc-500 text-xs">
-                              Invalid
-                            </div>
+
+                        <div className="mb-2 text-zinc-400 text-sm">Hackathon Title</div>
+                        <Input
+                          type="text"
+                          name="title"
+                          placeholder="e.g., Avalanche Hackathon 2025, Build on Avalanche"
+                          value={formDataMain.title}
+                          onChange={(e) => {
+                            setFormDataMain(prev => ({ ...prev, title: e.target.value }));
+                            scrollToSection('about');
+                          }}
+                          className="w-full mb-4"
+                          required
+                        />
+
+                        <div className="mb-2 text-zinc-400 text-sm">Description</div>
+                        <textarea
+                          name="description"
+                          placeholder="Describe your hackathon, its goals, and what participants will build..."
+                          value={formDataMain.description}
+                          onChange={(e) => {
+                            setFormDataMain(prev => ({ ...prev, description: e.target.value }));
+                            scrollToSection('about');
+                          }}
+                          className="w-full mb-4 p-3 bg-zinc-800 border border-zinc-600 rounded-lg text-white placeholder-zinc-400 resize-none h-24"
+                          required
+                        />
+
+                        <div className="mb-2 text-zinc-400 text-sm">Location</div>
+                        <Input
+                          type="text"
+                          name="location"
+                          placeholder="e.g., Online, New York, San Francisco"
+                          value={formDataMain.location}
+                          onChange={(e) => {
+                            setFormDataMain(prev => ({ ...prev, location: e.target.value }));
+                            scrollToSection('about');
+                          }}
+                          className="w-full mb-4"
+                          required
+                        />
+
+                        <div className="mb-2 text-zinc-400 text-sm">Event Type</div>
+                        <Select
+                          value={formDataLatest.event}
+                          onValueChange={(value) => {
+                            setFormDataLatest(prev => ({ ...prev, event: value }));
+                            console.log(value);
+                          }}
+                        >
+                          <SelectTrigger className="w-full mb-4">
+                            <SelectValue placeholder="Select event type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="hackathon">Hackathon</SelectItem>
+                            <SelectItem value="workshop">Workshop</SelectItem>
+                            <SelectItem value="bootcamp">Bootcamp</SelectItem>
+                          </SelectContent>
+                        </Select>
+
+                        <div className="flex flex-col space-y-2 bg-zinc-900/60 border border-zinc-700 rounded-lg p-4 my-4">
+                          <label className="font-medium">Tags (Optional)</label>
+                          <div className="mb-2 text-zinc-400 text-sm">Add relevant tags to help participants find your hackathon</div>
+                          <div className="flex flex-wrap gap-2 items-center">
+                            {formDataMain.tags.map((tag, idx) => (
+                              <div key={idx} className="flex items-center gap-1">
+                                <Input
+                                  type="text"
+                                  value={tag}
+                                  onChange={e => handleTagChange(idx, e.target.value)}
+                                  className="w-32 px-2 py-1 text-sm"
+                                  placeholder={`Tag ${idx + 1}`}
+                                />
+                                {formDataMain.tags.length > 1 && (
+                                  <button type="button" onClick={() => removeTag(idx)} className="text-red-500 hover:text-red-700 px-1">×</button>
+                                )}
+                              </div>
+                            ))}
+                            <button type="button" onClick={addTag} className="text-green-500 hover:text-green-700 px-2 py-1 border border-green-500 rounded">+ Add Tag</button>
                           </div>
                         </div>
-                      )}
-                    </div>
+
+                        <div className="flex justify-end mt-4">
+                          <button
+                            type="button"
+                            onClick={() => handleDone('main')}
+                            className="bg-green-600 hover:bg-green-700 text-white px-4 py-1 rounded flex items-center gap-1 cursor-pointer"
+                          >
+                            {t[language].done} <ChevronDown className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </>
+                    )}
+                    {collapsed.main && (
+                      <div className="text-zinc-400 italic">✓ Basic hackathon info completed</div>
+                    )}
                   </div>
 
-                  <div className="mb-6">
-                    <label className="font-medium text-xl mb-2 block">Small Banner:</label>
-                    <div className="mb-2 text-zinc-400 text-sm">A smaller banner image for additional branding</div>
-                    
-                    <div className="mb-4">
-                      <div className="flex gap-4 items-start">
-                        <div className="flex-1">
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) {
-                                const reader = new FileReader();
-                                reader.onload = (event) => {
-                                  const dataUrl = event.target?.result as string;
-                                  setFormDataLatest({ ...formDataLatest, small_banner: dataUrl });
-                                };
-                                reader.readAsDataURL(file);
-                              }
-                            }}
-                            className="w-full p-2 bg-zinc-800 border border-zinc-600 rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700"
-                          />
-                        </div>
-                        
-                        <div className="flex-1">
-                          <Input
-                            type="text"
-                            placeholder="Or enter small banner URL"
-                            value={formDataLatest.small_banner}
-                            onChange={e => setFormDataLatest({ ...formDataLatest, small_banner: e.target.value })}
-                            className="w-full"
-                          />
-                        </div>
-                      </div>
-                      
-                      {formDataLatest.small_banner && (
-                        <div className="mt-4">
-                          <div className="text-zinc-400 text-sm mb-2">Preview (601 x 1028):</div>
-                          <div className="relative w-32 mx-auto bg-zinc-800 border border-zinc-600 rounded-lg overflow-hidden" style={{ aspectRatio: '601/1028' }}>
-                            <img
-                              src={formDataLatest.small_banner}
-                              alt="Small banner preview"
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                e.currentTarget.style.display = 'none';
-                                (e.currentTarget.nextElementSibling as HTMLElement)!.style.display = 'flex';
-                              }}
-                            />
-                            <div className="hidden absolute inset-0 items-center justify-center text-zinc-500 text-xs">
-                              Invalid image URL
-                            </div>
-                          </div>
-                        </div>
+                  {/* Step 2: Images & Branding */}
+                  <div className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="text-2xl font-bold">Step 2: Images & Branding</h2>
+                      {collapsed.images && (
+                        <button onClick={() => setCollapsed({ ...collapsed, images: false })} className="flex items-center gap-1 text-zinc-400 hover:text-red-500 cursor-pointer">
+                          <ChevronRight className="w-5 h-5" /> {t[language].expand}
+                        </button>
                       )}
                     </div>
+                    {!collapsed.images && (
+                      <>
+                        <div className="mb-4 p-4 bg-blue-900/20 border border-blue-500/30 rounded-lg">
+                          <h3 className="text-lg font-semibold text-blue-300 mb-2">Hackathon Images & Branding</h3>
+                          <p className="text-sm text-blue-200">Upload your hackathon banner, icon, and small banner. Images will be stored locally and uploaded to the database when you submit the form.</p>
+                        </div>
+
+                        {/* Banner Image */}
+                        <div className="mb-6">
+                          <label className="font-medium text-xl mb-2 block">Main Banner:</label>
+                          <div className="mb-2 text-zinc-400 text-sm">The main banner image displayed at the top of your hackathon page</div>
+
+                          <div className="mb-4">
+                            <div className="flex gap-4 items-start">
+                              {/* File Input */}
+                              <div className="flex-1">
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                      const reader = new FileReader();
+                                      reader.onload = (event) => {
+                                        const dataUrl = event.target?.result as string;
+                                        setFormDataLatest({ ...formDataLatest, banner: dataUrl });
+                                      };
+                                      reader.readAsDataURL(file);
+                                    }
+                                  }}
+                                  className="w-full p-2 bg-zinc-800 border border-zinc-600 rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700"
+                                />
+                              </div>
+
+                              {/* Or URL Input */}
+                              <div className="flex-1">
+                                <Input
+                                  type="text"
+                                  placeholder="Or enter banner URL"
+                                  value={formDataLatest.banner}
+                                  onChange={e => setFormDataLatest({ ...formDataLatest, banner: e.target.value })}
+                                  className="w-full"
+                                />
+                              </div>
+                            </div>
+
+                            {/* Banner Preview */}
+                            {formDataLatest.banner && (
+                              <div className="mt-4">
+                                <div className="text-zinc-400 text-sm mb-2">Preview (1600 x 909):</div>
+                                <div className="relative w-full max-w-2xl mx-auto bg-zinc-800 border border-zinc-600 rounded-lg overflow-hidden" style={{ aspectRatio: '1600/909' }}>
+                                  <img
+                                    src={formDataLatest.banner}
+                                    alt="Banner preview"
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                      e.currentTarget.style.display = 'none';
+                                      (e.currentTarget.nextElementSibling as HTMLElement)!.style.display = 'flex';
+                                    }}
+                                  />
+                                  <div className="hidden absolute inset-0 items-center justify-center text-zinc-500">
+                                    Invalid image URL
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+
+                        {/* Icon Image */}
+                        <div className="mb-6">
+                          <label className="font-medium text-xl mb-2 block">Icon:</label>
+                          <div className="mb-2 text-zinc-400 text-sm">The small icon displayed next to your hackathon title</div>
+
+                          <div className="mb-4">
+                            <div className="flex gap-4 items-start">
+                              <div className="flex-1">
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                      const reader = new FileReader();
+                                      reader.onload = (event) => {
+                                        const dataUrl = event.target?.result as string;
+                                        setFormDataLatest({ ...formDataLatest, icon: dataUrl });
+                                      };
+                                      reader.readAsDataURL(file);
+                                    }
+                                  }}
+                                  className="w-full p-2 bg-zinc-800 border border-zinc-600 rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-600 file:text-white hover:file:bg-green-700"
+                                />
+                              </div>
+
+                              <div className="flex-1">
+                                <Input
+                                  type="text"
+                                  placeholder="Or enter icon URL"
+                                  value={formDataLatest.icon}
+                                  onChange={e => setFormDataLatest({ ...formDataLatest, icon: e.target.value })}
+                                  className="w-full"
+                                />
+                              </div>
+                            </div>
+
+                            {formDataLatest.icon && (
+                              <div className="mt-4">
+                                <div className="text-zinc-400 text-sm mb-2">Preview:</div>
+                                <div className="relative w-16 h-16 bg-zinc-800 border border-zinc-600 rounded-lg overflow-hidden">
+                                  <img
+                                    src={formDataLatest.icon}
+                                    alt="Icon preview"
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                      e.currentTarget.style.display = 'none';
+                                      (e.currentTarget.nextElementSibling as HTMLElement)!.style.display = 'flex';
+                                    }}
+                                  />
+                                  <div className="hidden absolute inset-0 items-center justify-center text-zinc-500 text-xs">
+                                    Invalid
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="mb-6">
+                          <label className="font-medium text-xl mb-2 block">Small Banner:</label>
+                          <div className="mb-2 text-zinc-400 text-sm">A smaller banner image for additional branding</div>
+
+                          <div className="mb-4">
+                            <div className="flex gap-4 items-start">
+                              <div className="flex-1">
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                      const reader = new FileReader();
+                                      reader.onload = (event) => {
+                                        const dataUrl = event.target?.result as string;
+                                        setFormDataLatest({ ...formDataLatest, small_banner: dataUrl });
+                                      };
+                                      reader.readAsDataURL(file);
+                                    }
+                                  }}
+                                  className="w-full p-2 bg-zinc-800 border border-zinc-600 rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700"
+                                />
+                              </div>
+
+                              <div className="flex-1">
+                                <Input
+                                  type="text"
+                                  placeholder="Or enter small banner URL"
+                                  value={formDataLatest.small_banner}
+                                  onChange={e => setFormDataLatest({ ...formDataLatest, small_banner: e.target.value })}
+                                  className="w-full"
+                                />
+                              </div>
+                            </div>
+
+                            {formDataLatest.small_banner && (
+                              <div className="mt-4">
+                                <div className="text-zinc-400 text-sm mb-2">Preview (601 x 1028):</div>
+                                <div className="relative w-32 mx-auto bg-zinc-800 border border-zinc-600 rounded-lg overflow-hidden" style={{ aspectRatio: '601/1028' }}>
+                                  <img
+                                    src={formDataLatest.small_banner}
+                                    alt="Small banner preview"
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                      e.currentTarget.style.display = 'none';
+                                      (e.currentTarget.nextElementSibling as HTMLElement)!.style.display = 'flex';
+                                    }}
+                                  />
+                                  <div className="hidden absolute inset-0 items-center justify-center text-zinc-500 text-xs">
+                                    Invalid image URL
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex justify-end mt-4">
+                          <button
+                            type="button"
+                            onClick={() => handleDone('images')}
+                            className="bg-green-600 hover:bg-green-700 text-white px-4 py-1 rounded flex items-center gap-1 cursor-pointer"
+                          >
+                            {t[language].done} <ChevronDown className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </>
+                    )}
+                    {collapsed.images && (
+                      <div className="text-zinc-400 italic">✓ Images & branding completed</div>
+                    )}
                   </div>
-                  
-                  <div className="flex justify-end mt-4">
-                    <button 
-                      type="button"
-                      onClick={() => handleDone('images')} 
-                      className="bg-green-600 hover:bg-green-700 text-white px-4 py-1 rounded flex items-center gap-1 cursor-pointer"
-                    >
-                      {t[language].done} <ChevronDown className="w-4 h-4" />
-                    </button>
-                  </div>
-                </>
-              )}
-              {collapsed.images && (
-                <div className="text-zinc-400 italic">✓ Images & branding completed</div>
-              )}
-            </div>
-            
-            {/* Step 3: Participants & Prizes */}
-            <div className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-2xl font-bold">Step 3: Participants & Prizes</h2>
-                {collapsed.about && (
-                  <button onClick={() => setCollapsed({ ...collapsed, about: false })} className="flex items-center gap-1 text-zinc-400 hover:text-red-500 cursor-pointer">
-                    <ChevronRight className="w-5 h-5" /> {t[language].expand}
-                  </button>
-                )}
-              </div>
-              {!collapsed.about && (
-                <>
-                  <div className="mb-4 p-4 bg-orange-900/20 border border-orange-500/30 rounded-lg">
-                    <h3 className="text-lg font-semibold text-orange-300 mb-2">Participants & Prize Information</h3>
-                    <p className="text-sm text-orange-200">Now let's add details about participants and the prize pool.</p>
-                  </div>
-                  
-                  <div className="mb-2 text-zinc-400 text-sm">Expected Number of Participants</div>
-                  <Input
-                    type="number"
-                    name="participants"
-                    placeholder="e.g., 100, 500, 1000"
-                    value={formDataMain.participants?.toString() || ''}
-                    onChange={(e) => {
-                      setFormDataMain(prev => ({ ...prev, participants: Number(e.target.value) || 0 }));
-                      scrollToSection('about');
-                    }}
-                    className="w-full mb-4"
-                    required
-                  />
-                  <div className="mb-2 text-zinc-400 text-sm">Organizer Name/Organization</div>
-                  <Input
-                    type="text"
-                    name="organizers"
-                    placeholder="e.g., Avalanche Foundation, DevRel Team"
-                    value={formDataMain.organizers || ''}
-                    onChange={(e) => {
-                      setFormDataMain(prev => ({ ...prev, organizers: e.target.value }));
-                      scrollToSection('about');
-                    }}
-                    className="w-full mb-4"
-                    required
-                  />
-                  <div className="mb-2 text-zinc-400 text-sm">Total Prize Pool (USD)</div>
-                  <Input
-                    type="number"
-                    name="total_prizes"
-                    placeholder="e.g., 50000, 100000"
-                    value={formDataMain.total_prizes?.toString() || ''}
-                    onChange={(e) => {
-                      setFormDataMain(prev => ({ ...prev, total_prizes: Number(e.target.value) || 0 }));
-                      scrollToSection('tracks');
-                    }}
-                    className="w-full mb-4"
-                    required
-                  />
-                  
-                  <div className="flex justify-end mt-4">
-                    <button 
-                      type="button"
-                      onClick={() => handleDone('about')} 
-                      className="bg-green-600 hover:bg-green-700 text-white px-4 py-1 rounded flex items-center gap-1 cursor-pointer"
-                    >
-                      {t[language].done} <ChevronDown className="w-4 h-4" />
-                    </button>
-                  </div>
-                </>
-              )}
-              {collapsed.about && (
-                <div className="text-zinc-400 italic">✓ Participants & prizes completed</div>
-              )}
-            </div>
-            
-            {/* Step 4: Track Text - Only for Hackathons */}
-            {formDataLatest.event === 'hackathon' && (
-            <div className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-2xl font-bold">Step 4: Track Text</h2>
-                {collapsed.trackText && (
-                  <button onClick={() => setCollapsed({ ...collapsed, trackText: false })} className="flex items-center gap-1 text-zinc-400 hover:text-red-500 cursor-pointer">
-                    <ChevronRight className="w-5 h-5" /> {t[language].expand}
-                  </button>
-                )}
-              </div>
-              {!collapsed.trackText && (
-                <>
-                  <div className="mb-4 p-4 bg-purple-900/20 border border-purple-500/30 rounded-lg">
-                    <h3 className="text-lg font-semibold text-purple-300 mb-2">Track Description</h3>
-                    <p className="text-sm text-purple-200">Write detailed information about your hackathon tracks, program structure, and timeline. Use paragraphs and line breaks - they will be converted to markdown format.</p>
-                  </div>
-                  
-                  <div className="mb-2 text-zinc-400 text-sm">Schedule Text:</div>
-                  <div className="mb-2 text-zinc-500 text-xs">Write a step-by-step schedule outlining what will happen, either hour by hour or week by week. Use the formatting buttons below or type markdown directly.</div>
-                  
-                  {/* Formatting Toolbar */}
-                  <div className="flex flex-wrap gap-2 mb-3 p-3 bg-zinc-800/50 border border-zinc-600 rounded-lg">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const textarea = document.querySelector('textarea[name="tracks_text"]') as HTMLTextAreaElement;
-                        if (textarea) {
-                          const start = textarea.selectionStart;
-                          const end = textarea.selectionEnd;
-                          const selectedText = rawTrackText.substring(start, end);
-                          const newText = rawTrackText.substring(0, start) + `**${selectedText}**` + rawTrackText.substring(end);
-                          setRawTrackText(newText);
-                          // Auto-convert to markdown
-                          const markdownText = convertToMarkdown(newText);
-                          setFormDataContent(prev => ({ ...prev, tracks_text: markdownText }));
-                        }
-                      }}
-                      className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm font-bold"
-                      title="Bold (Ctrl+B)"
-                    >
-                      B
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const textarea = document.querySelector('textarea[name="tracks_text"]') as HTMLTextAreaElement;
-                        if (textarea) {
-                          const start = textarea.selectionStart;
-                          const end = textarea.selectionEnd;
-                          const selectedText = rawTrackText.substring(start, end);
-                          const newText = rawTrackText.substring(0, start) + `*${selectedText}*` + rawTrackText.substring(end);
-                          setRawTrackText(newText);
-                          // Auto-convert to markdown
-                          const markdownText = convertToMarkdown(newText);
-                          setFormDataContent(prev => ({ ...prev, tracks_text: markdownText }));
-                        }
-                      }}
-                      className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm italic"
-                      title="Italic (Ctrl+I)"
-                    >
-                      I
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const textarea = document.querySelector('textarea[name="tracks_text"]') as HTMLTextAreaElement;
-                        if (textarea) {
-                          const start = textarea.selectionStart;
-                          const end = textarea.selectionEnd;
-                          const selectedText = rawTrackText.substring(start, end);
-                          const newText = rawTrackText.substring(0, start) + `# ${selectedText}` + rawTrackText.substring(end);
-                          setRawTrackText(newText);
-                          // Auto-convert to markdown
-                          const markdownText = convertToMarkdown(newText);
-                          setFormDataContent(prev => ({ ...prev, tracks_text: markdownText }));
-                        }
-                      }}
-                      className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded text-sm"
-                      title="Main Title (H1)"
-                    >
-                      H1
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const textarea = document.querySelector('textarea[name="tracks_text"]') as HTMLTextAreaElement;
-                        if (textarea) {
-                          const start = textarea.selectionStart;
-                          const end = textarea.selectionEnd;
-                          const selectedText = rawTrackText.substring(start, end);
-                          const newText = rawTrackText.substring(0, start) + `## ${selectedText}` + rawTrackText.substring(end);
-                          setRawTrackText(newText);
-                          // Auto-convert to markdown
-                          const markdownText = convertToMarkdown(newText);
-                          setFormDataContent(prev => ({ ...prev, tracks_text: markdownText }));
-                        }
-                      }}
-                      className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded text-sm"
-                      title="Secondary Title (H2)"
-                    >
-                      H2
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const textarea = document.querySelector('textarea[name="tracks_text"]') as HTMLTextAreaElement;
-                        if (textarea) {
-                          const start = textarea.selectionStart;
-                          const end = textarea.selectionEnd;
-                          const selectedText = rawTrackText.substring(start, end);
-                          const newText = rawTrackText.substring(0, start) + `### ${selectedText}` + rawTrackText.substring(end);
-                          setRawTrackText(newText);
-                          // Auto-convert to markdown
-                          const markdownText = convertToMarkdown(newText);
-                          setFormDataContent(prev => ({ ...prev, tracks_text: markdownText }));
-                        }
-                      }}
-                      className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded text-sm"
-                      title="Subtitle (H3)"
-                    >
-                      H3
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const textarea = document.querySelector('textarea[name="tracks_text"]') as HTMLTextAreaElement;
-                        if (textarea) {
-                          const start = textarea.selectionStart;
-                          const newText = rawTrackText.substring(0, start) + '\n---\n' + rawTrackText.substring(start);
-                          setRawTrackText(newText);
-                          // Auto-convert to markdown
-                          const markdownText = convertToMarkdown(newText);
-                          setFormDataContent(prev => ({ ...prev, tracks_text: markdownText }));
-                        }
-                      }}
-                      className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded text-sm"
-                      title="Horizontal Rule"
-                    >
-                      ---
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const textarea = document.querySelector('textarea[name="tracks_text"]') as HTMLTextAreaElement;
-                        if (textarea) {
-                          const start = textarea.selectionStart;
-                          const newText = rawTrackText.substring(0, start) + '\n\n' + rawTrackText.substring(start);
-                          setRawTrackText(newText);
-                          // Auto-convert to markdown
-                          const markdownText = convertToMarkdown(newText);
-                          setFormDataContent(prev => ({ ...prev, tracks_text: markdownText }));
-                        }
-                      }}
-                      className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm"
-                      title="New Paragraph"
-                    >
-                      ¶
-                    </button>
-                  </div>
-                  
-                  <textarea
-                    name="tracks_text"
-                    placeholder="Enter your track description here... Use the formatting buttons above or type markdown directly. Changes are converted automatically."
-                    value={rawTrackText}
-                    onChange={(e) => {
-                      setRawTrackText(e.target.value);
-                      // Auto-convert to markdown on every change
-                      const markdownText = convertToMarkdown(e.target.value);
-                      setFormDataContent(prev => ({ ...prev, tracks_text: markdownText }));
-                      scrollToSection('about');
-                    }}
-                    onKeyDown={(e) => {
-                      // Keyboard shortcuts
-                      if (e.ctrlKey || e.metaKey) {
-                        const textarea = e.target as HTMLTextAreaElement;
-                        const start = textarea.selectionStart;
-                        const end = textarea.selectionEnd;
-                        const selectedText = rawTrackText.substring(start, end);
-                        
-                        if (e.key === 'b') {
-                          e.preventDefault();
-                          const newText = rawTrackText.substring(0, start) + `**${selectedText}**` + rawTrackText.substring(end);
-                          setRawTrackText(newText);
-                          const markdownText = convertToMarkdown(newText);
-                          setFormDataContent(prev => ({ ...prev, tracks_text: markdownText }));
-                        } else if (e.key === 'i') {
-                          e.preventDefault();
-                          const newText = rawTrackText.substring(0, start) + `*${selectedText}*` + rawTrackText.substring(end);
-                          setRawTrackText(newText);
-                          const markdownText = convertToMarkdown(newText);
-                          setFormDataContent(prev => ({ ...prev, tracks_text: markdownText }));
-                        }
-                      }
-                    }}
-                    className="w-full mb-4 p-3 bg-zinc-800 border border-zinc-600 rounded-lg text-white placeholder-zinc-400 resize-none h-48"
-                    required
-                  />
-                  
-                  <div className="flex gap-2 mb-4">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setRawTrackText(formDataContent.tracks_text || '');
-                      }}
-                      className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded text-sm"
-                    >
-                      Load Current
-                    </button>
-                    <div className="text-green-400 text-sm flex items-center">
-                      ✓ Auto-converting to markdown as you type
+
+                  {/* Step 3: Participants & Prizes */}
+                  <div className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="text-2xl font-bold">Step 3: Participants & Prizes</h2>
+                      {collapsed.about && (
+                        <button onClick={() => setCollapsed({ ...collapsed, about: false })} className="flex items-center gap-1 text-zinc-400 hover:text-red-500 cursor-pointer">
+                          <ChevronRight className="w-5 h-5" /> {t[language].expand}
+                        </button>
+                      )}
                     </div>
+                    {!collapsed.about && (
+                      <>
+                        <div className="mb-4 p-4 bg-orange-900/20 border border-orange-500/30 rounded-lg">
+                          <h3 className="text-lg font-semibold text-orange-300 mb-2">Participants & Prize Information</h3>
+                          <p className="text-sm text-orange-200">Now let's add details about participants and the prize pool.</p>
+                        </div>
+
+                        <div className="mb-2 text-zinc-400 text-sm">Expected Number of Participants</div>
+                        <Input
+                          type="number"
+                          name="participants"
+                          placeholder="e.g., 100, 500, 1000"
+                          value={formDataMain.participants?.toString() || ''}
+                          onChange={(e) => {
+                            setFormDataMain(prev => ({ ...prev, participants: Number(e.target.value) || 0 }));
+                            scrollToSection('about');
+                          }}
+                          className="w-full mb-4"
+                          required
+                        />
+                        <div className="mb-2 text-zinc-400 text-sm">Organizer Name/Organization</div>
+                        <Input
+                          type="text"
+                          name="organizers"
+                          placeholder="e.g., Avalanche Foundation, DevRel Team"
+                          value={formDataMain.organizers || ''}
+                          onChange={(e) => {
+                            setFormDataMain(prev => ({ ...prev, organizers: e.target.value }));
+                            scrollToSection('about');
+                          }}
+                          className="w-full mb-4"
+                          required
+                        />
+                        <div className="mb-2 text-zinc-400 text-sm">Total Prize Pool (USD)</div>
+                        <Input
+                          type="number"
+                          name="total_prizes"
+                          placeholder="e.g., 50000, 100000"
+                          value={formDataMain.total_prizes?.toString() || ''}
+                          onChange={(e) => {
+                            setFormDataMain(prev => ({ ...prev, total_prizes: Number(e.target.value) || 0 }));
+                            scrollToSection('tracks');
+                          }}
+                          className="w-full mb-4"
+                          required
+                        />
+
+                        <div className="flex justify-end mt-4">
+                          <button
+                            type="button"
+                            onClick={() => handleDone('about')}
+                            className="bg-green-600 hover:bg-green-700 text-white px-4 py-1 rounded flex items-center gap-1 cursor-pointer"
+                          >
+                            {t[language].done} <ChevronDown className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </>
+                    )}
+                    {collapsed.about && (
+                      <div className="text-zinc-400 italic">✓ Participants & prizes completed</div>
+                    )}
                   </div>
-                  
-                  {formDataContent.tracks_text && (
-                    <div className="mb-4">
-                      <div className="text-zinc-400 text-sm mb-2">Markdown Preview:</div>
-                      <div className="p-3 bg-zinc-800 border border-zinc-600 rounded-lg text-green-400 text-xs font-mono whitespace-pre-wrap max-h-32 overflow-y-auto">
-                        {formDataContent.tracks_text}
+
+                  {/* Step 4: Track Text - Only for Hackathons */}
+                  {formDataLatest.event === 'hackathon' && (
+                    <div className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-2xl font-bold">Step 4: Track Text</h2>
+                        {collapsed.trackText && (
+                          <button onClick={() => setCollapsed({ ...collapsed, trackText: false })} className="flex items-center gap-1 text-zinc-400 hover:text-red-500 cursor-pointer">
+                            <ChevronRight className="w-5 h-5" /> {t[language].expand}
+                          </button>
+                        )}
                       </div>
+                      {!collapsed.trackText && (
+                        <>
+                          <div className="mb-4 p-4 bg-purple-900/20 border border-purple-500/30 rounded-lg">
+                            <h3 className="text-lg font-semibold text-purple-300 mb-2">Track Description</h3>
+                            <p className="text-sm text-purple-200">Write detailed information about your hackathon tracks, program structure, and timeline. Use paragraphs and line breaks - they will be converted to markdown format.</p>
+                          </div>
+
+                          <div className="mb-2 text-zinc-400 text-sm">Schedule Text:</div>
+                          <div className="mb-2 text-zinc-500 text-xs">Write a step-by-step schedule outlining what will happen, either hour by hour or week by week. Use the formatting buttons below or type markdown directly.</div>
+
+                          {/* Formatting Toolbar */}
+                          <div className="flex flex-wrap gap-2 mb-3 p-3 bg-zinc-800/50 border border-zinc-600 rounded-lg">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const textarea = document.querySelector('textarea[name="tracks_text"]') as HTMLTextAreaElement;
+                                if (textarea) {
+                                  const start = textarea.selectionStart;
+                                  const end = textarea.selectionEnd;
+                                  const selectedText = rawTrackText.substring(start, end);
+                                  const newText = rawTrackText.substring(0, start) + `**${selectedText}**` + rawTrackText.substring(end);
+                                  setRawTrackText(newText);
+                                  // Auto-convert to markdown
+                                  const markdownText = convertToMarkdown(newText);
+                                  setFormDataContent(prev => ({ ...prev, tracks_text: markdownText }));
+                                }
+                              }}
+                              className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm font-bold"
+                              title="Bold (Ctrl+B)"
+                            >
+                              B
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const textarea = document.querySelector('textarea[name="tracks_text"]') as HTMLTextAreaElement;
+                                if (textarea) {
+                                  const start = textarea.selectionStart;
+                                  const end = textarea.selectionEnd;
+                                  const selectedText = rawTrackText.substring(start, end);
+                                  const newText = rawTrackText.substring(0, start) + `*${selectedText}*` + rawTrackText.substring(end);
+                                  setRawTrackText(newText);
+                                  // Auto-convert to markdown
+                                  const markdownText = convertToMarkdown(newText);
+                                  setFormDataContent(prev => ({ ...prev, tracks_text: markdownText }));
+                                }
+                              }}
+                              className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm italic"
+                              title="Italic (Ctrl+I)"
+                            >
+                              I
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const textarea = document.querySelector('textarea[name="tracks_text"]') as HTMLTextAreaElement;
+                                if (textarea) {
+                                  const start = textarea.selectionStart;
+                                  const end = textarea.selectionEnd;
+                                  const selectedText = rawTrackText.substring(start, end);
+                                  const newText = rawTrackText.substring(0, start) + `# ${selectedText}` + rawTrackText.substring(end);
+                                  setRawTrackText(newText);
+                                  // Auto-convert to markdown
+                                  const markdownText = convertToMarkdown(newText);
+                                  setFormDataContent(prev => ({ ...prev, tracks_text: markdownText }));
+                                }
+                              }}
+                              className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded text-sm"
+                              title="Main Title (H1)"
+                            >
+                              H1
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const textarea = document.querySelector('textarea[name="tracks_text"]') as HTMLTextAreaElement;
+                                if (textarea) {
+                                  const start = textarea.selectionStart;
+                                  const end = textarea.selectionEnd;
+                                  const selectedText = rawTrackText.substring(start, end);
+                                  const newText = rawTrackText.substring(0, start) + `## ${selectedText}` + rawTrackText.substring(end);
+                                  setRawTrackText(newText);
+                                  // Auto-convert to markdown
+                                  const markdownText = convertToMarkdown(newText);
+                                  setFormDataContent(prev => ({ ...prev, tracks_text: markdownText }));
+                                }
+                              }}
+                              className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded text-sm"
+                              title="Secondary Title (H2)"
+                            >
+                              H2
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const textarea = document.querySelector('textarea[name="tracks_text"]') as HTMLTextAreaElement;
+                                if (textarea) {
+                                  const start = textarea.selectionStart;
+                                  const end = textarea.selectionEnd;
+                                  const selectedText = rawTrackText.substring(start, end);
+                                  const newText = rawTrackText.substring(0, start) + `### ${selectedText}` + rawTrackText.substring(end);
+                                  setRawTrackText(newText);
+                                  // Auto-convert to markdown
+                                  const markdownText = convertToMarkdown(newText);
+                                  setFormDataContent(prev => ({ ...prev, tracks_text: markdownText }));
+                                }
+                              }}
+                              className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded text-sm"
+                              title="Subtitle (H3)"
+                            >
+                              H3
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const textarea = document.querySelector('textarea[name="tracks_text"]') as HTMLTextAreaElement;
+                                if (textarea) {
+                                  const start = textarea.selectionStart;
+                                  const newText = rawTrackText.substring(0, start) + '\n---\n' + rawTrackText.substring(start);
+                                  setRawTrackText(newText);
+                                  // Auto-convert to markdown
+                                  const markdownText = convertToMarkdown(newText);
+                                  setFormDataContent(prev => ({ ...prev, tracks_text: markdownText }));
+                                }
+                              }}
+                              className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded text-sm"
+                              title="Horizontal Rule"
+                            >
+                              ---
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const textarea = document.querySelector('textarea[name="tracks_text"]') as HTMLTextAreaElement;
+                                if (textarea) {
+                                  const start = textarea.selectionStart;
+                                  const newText = rawTrackText.substring(0, start) + '\n\n' + rawTrackText.substring(start);
+                                  setRawTrackText(newText);
+                                  // Auto-convert to markdown
+                                  const markdownText = convertToMarkdown(newText);
+                                  setFormDataContent(prev => ({ ...prev, tracks_text: markdownText }));
+                                }
+                              }}
+                              className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm"
+                              title="New Paragraph"
+                            >
+                              ¶
+                            </button>
+                          </div>
+
+                          <textarea
+                            name="tracks_text"
+                            placeholder="Enter your track description here... Use the formatting buttons above or type markdown directly. Changes are converted automatically."
+                            value={rawTrackText}
+                            onChange={(e) => {
+                              setRawTrackText(e.target.value);
+                              // Auto-convert to markdown on every change
+                              const markdownText = convertToMarkdown(e.target.value);
+                              setFormDataContent(prev => ({ ...prev, tracks_text: markdownText }));
+                              scrollToSection('about');
+                            }}
+                            onKeyDown={(e) => {
+                              // Keyboard shortcuts
+                              if (e.ctrlKey || e.metaKey) {
+                                const textarea = e.target as HTMLTextAreaElement;
+                                const start = textarea.selectionStart;
+                                const end = textarea.selectionEnd;
+                                const selectedText = rawTrackText.substring(start, end);
+
+                                if (e.key === 'b') {
+                                  e.preventDefault();
+                                  const newText = rawTrackText.substring(0, start) + `**${selectedText}**` + rawTrackText.substring(end);
+                                  setRawTrackText(newText);
+                                  const markdownText = convertToMarkdown(newText);
+                                  setFormDataContent(prev => ({ ...prev, tracks_text: markdownText }));
+                                } else if (e.key === 'i') {
+                                  e.preventDefault();
+                                  const newText = rawTrackText.substring(0, start) + `*${selectedText}*` + rawTrackText.substring(end);
+                                  setRawTrackText(newText);
+                                  const markdownText = convertToMarkdown(newText);
+                                  setFormDataContent(prev => ({ ...prev, tracks_text: markdownText }));
+                                }
+                              }
+                            }}
+                            className="w-full mb-4 p-3 bg-zinc-800 border border-zinc-600 rounded-lg text-white placeholder-zinc-400 resize-none h-48"
+                            required
+                          />
+
+                          <div className="flex gap-2 mb-4">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setRawTrackText(formDataContent.tracks_text || '');
+                              }}
+                              className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded text-sm"
+                            >
+                              Load Current
+                            </button>
+                            <div className="text-green-400 text-sm flex items-center">
+                              ✓ Auto-converting to markdown as you type
+                            </div>
+                          </div>
+
+                          {formDataContent.tracks_text && (
+                            <div className="mb-4">
+                              <div className="text-zinc-400 text-sm mb-2">Markdown Preview:</div>
+                              <div className="p-3 bg-zinc-800 border border-zinc-600 rounded-lg text-green-400 text-xs font-mono whitespace-pre-wrap max-h-32 overflow-y-auto">
+                                {formDataContent.tracks_text}
+                              </div>
+                            </div>
+                          )}
+
+                          <div className="flex justify-end mt-4">
+                            <button
+                              type="button"
+                              onClick={() => handleDone('trackText')}
+                              className="bg-green-600 hover:bg-green-700 text-white px-4 py-1 rounded flex items-center gap-1 cursor-pointer"
+                            >
+                              {t[language].done} <ChevronDown className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </>
+                      )}
+                      {collapsed.trackText && (
+                        <div className="text-zinc-400 italic">✓ Track text completed</div>
+                      )}
                     </div>
                   )}
-                  
-                  <div className="flex justify-end mt-4">
-                    <button 
-                      type="button"
-                      onClick={() => handleDone('trackText')} 
-                      className="bg-green-600 hover:bg-green-700 text-white px-4 py-1 rounded flex items-center gap-1 cursor-pointer"
-                    >
-                      {t[language].done} <ChevronDown className="w-4 h-4" />
-                    </button>
-                  </div>
-                </>
-              )}
-              {collapsed.trackText && (
-                <div className="text-zinc-400 italic">✓ Track text completed</div>
-              )}
-            </div>
-            )}
-            
-            {/* Step 5: Content - Tracks, Schedule, etc. */}
-            <div className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-2xl font-bold">Step 5: Content</h2>
-                {collapsed.content && (
-                  <button onClick={() => setCollapsed({ ...collapsed, content: false })} className="flex items-center gap-1 text-zinc-400 hover:text-red-500 cursor-pointer">
-                    <ChevronRight className="w-5 h-5" /> {t[language].expand}
-                  </button>
-                )}
-              </div>
-              {!collapsed.content && (
-                <>
-                  {/* Tracks Section - Only for Hackathons */}
-                  {formDataLatest.event === 'hackathon' && (
-                  <div className="space-y-4">
-                    <label className="font-medium text-xl">{t[language].tracks}:</label>
-                    {formDataContent.tracks.map((track, index) => (
-                      <TrackItem
-                        key={index}
-                        track={track}
-                        index={index}
-                        collapsed={collapsedTracks[index]}
-                        onChange={handleTrackFieldChange}
-                        onDone={handleTrackDone}
-                        onExpand={handleTrackExpand}
-                        onRemove={animateRemove.bind(null, 'track', index, removeTrack)}
-                        onScrollToPreview={scrollToSection}
-                        t={t}
-                        language={language}
-                        removing={removing}
-                        tracksLength={formDataContent.tracks.length}
-                        rawTrackDescriptions={rawTrackDescriptions}
-                        setRawTrackDescriptions={setRawTrackDescriptions}
-                        convertToHTML={convertToHTML}
-                      />
-                    ))}
-                    <div className="flex justify-end">
-                      <Button type="button" onClick={addTrack} className="mt-2 bg-red-500 hover:bg-red-600 text-white flex items-center gap-2">
-                        <Plus className="w-4 h-4" /> {t[language].addTrack}
-                      </Button>
+
+                  {/* Step 5: Content - Tracks, Schedule, etc. */}
+                  <div className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="text-2xl font-bold">Step 5: Content</h2>
+                      {collapsed.content && (
+                        <button onClick={() => setCollapsed({ ...collapsed, content: false })} className="flex items-center gap-1 text-zinc-400 hover:text-red-500 cursor-pointer">
+                          <ChevronRight className="w-5 h-5" /> {t[language].expand}
+                        </button>
+                      )}
                     </div>
+                    {!collapsed.content && (
+                      <>
+                        {/* Tracks Section - Only for Hackathons */}
+                        {formDataLatest.event === 'hackathon' && (
+                          <div className="space-y-4">
+                            <label className="font-medium text-xl">{t[language].tracks}:</label>
+                            {formDataContent.tracks.map((track, index) => (
+                              <TrackItem
+                                key={index}
+                                track={track}
+                                index={index}
+                                collapsed={collapsedTracks[index]}
+                                onChange={handleTrackFieldChange}
+                                onDone={handleTrackDone}
+                                onExpand={handleTrackExpand}
+                                onRemove={animateRemove.bind(null, 'track', index, removeTrack)}
+                                onScrollToPreview={scrollToSection}
+                                t={t}
+                                language={language}
+                                removing={removing}
+                                tracksLength={formDataContent.tracks.length}
+                                rawTrackDescriptions={rawTrackDescriptions}
+                                setRawTrackDescriptions={setRawTrackDescriptions}
+                                convertToHTML={convertToHTML}
+                              />
+                            ))}
+                            <div className="flex justify-end">
+                              <Button type="button" onClick={addTrack} className="mt-2 bg-red-500 hover:bg-red-600 text-white flex items-center gap-2">
+                                <Plus className="w-4 h-4" /> {t[language].addTrack}
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                        <div className="space-y-4">
+                          <label className="font-medium text-xl mb-2 block">{t[language].address}:</label>
+                          <div className="mb-2 text-zinc-400 text-sm">{t[language].addressHelp}</div>
+                          <Input
+                            type="text"
+                            placeholder="Address"
+                            value={formDataContent.address}
+                            onChange={(e) => setFormDataContent({ ...formDataContent, address: e.target.value })}
+                            className="w-full mb-4"
+                            required
+                          />
+                        </div>
+                        {formDataLatest.event === "hackathon" && (
+                          <div className="space-y-4">
+                            <label className="font-medium text-xl mb-2 block">{t[language].schedule}:</label>
+                            <div className="mb-2 text-zinc-400 text-sm">{t[language].scheduleHelp}</div>
+                            {formDataContent.schedule.map((event, index) => (
+                              <ScheduleItem
+                                key={index}
+                                event={event}
+                                index={index}
+                                collapsed={collapsedSchedules[index]}
+                                onChange={handleScheduleFieldChange}
+                                onDone={handleScheduleDone}
+                                onExpand={handleScheduleExpand}
+                                onRemove={animateRemove.bind(null, 'schedule', index, removeSchedule)}
+                                t={t}
+                                language={language}
+                                removing={removing}
+                                scheduleLength={formDataContent.schedule.length}
+                                toLocalDatetimeString={toLocalDatetimeString}
+                              />
+                            ))}
+                            <div className="flex justify-end">
+                              <Button type="button" onClick={addSchedule} className="mt-2 bg-red-500 hover:bg-red-600 text-white flex items-center gap-2">
+                                <Plus className="w-4 h-4" /> {t[language].addSchedule}
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                        <div className="space-y-4">
+                          <label className="font-medium text-xl mb-2 block">{t[language].speakers}:</label>
+                          {formDataContent.speakers.map((speaker, index) => (
+                            <SpeakerItem
+                              key={index}
+                              speaker={speaker}
+                              index={index}
+                              collapsed={collapsedSpeakers[index]}
+                              onChange={handleSpeakerFieldChange}
+                              onDone={handleSpeakerDone}
+                              onExpand={handleSpeakerExpand}
+                              onRemove={animateRemove.bind(null, 'speaker', index, removeSpeaker)}
+                              t={t}
+                              language={language}
+                              removing={removing}
+                              speakersLength={formDataContent.speakers.length}
+                              onPictureChange={handleSpeakerPictureChange}
+                            />
+                          ))}
+                          <div className="flex justify-end">
+                            <Button type="button" onClick={addSpeaker} className="mt-2 bg-red-500 hover:bg-red-600 text-white flex items-center gap-2">
+                              <Plus className="w-4 h-4" /> {t[language].addSpeaker}
+                            </Button>
+                          </div>
+                        </div>
+                        {/* Submission Section - Only for Hackathons */}
+                        {formDataLatest.event === 'hackathon' && (
+                          <div className="space-y-4">
+                            <div>
+                              <label className="font-medium text-xl mb-2 block">{t[language].submissionDeadline}:</label>
+                              <div className="mb-2 text-zinc-400 text-sm">{t[language].submissionDeadlineHelp}</div>
+                              <Input
+                                type="datetime-local"
+                                placeholder="Submission Deadline"
+                                value={formDataContent.submission_deadline}
+                                onChange={(e) => setFormDataContent({ ...formDataContent, submission_deadline: e.target.value })}
+                                className="w-full mb-4"
+                                required
+                              />
+                            </div>
+                          </div>
+                        )}
+                        <div className="flex justify-end mt-4">
+                          <button
+                            type="button"
+                            onClick={() => handleDone('content')}
+                            className="bg-green-600 hover:bg-green-700 text-white px-4 py-1 rounded flex items-center gap-1 cursor-pointer"
+                          >
+                            {t[language].done} <ChevronDown className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </>
+                    )}
+                    {collapsed.content && (
+                      <div className="text-zinc-400 italic">{t[language].contentCompleted}</div>
+                    )}
                   </div>
-                  )}
-                  <div className="space-y-4">
-                    <label className="font-medium text-xl mb-2 block">{t[language].address}:</label>
-                    <div className="mb-2 text-zinc-400 text-sm">{t[language].addressHelp}</div>
-                    <Input
-                      type="text"
-                      placeholder="Address"
-                      value={formDataContent.address}
-                      onChange={(e) => setFormDataContent({ ...formDataContent, address: e.target.value })}
-                      className="w-full mb-4"
-                      required
-                    />
-                  </div>
-                  {formDataLatest.event === "hackathon" && (
-                    <div className="space-y-4">
-                    <label className="font-medium text-xl mb-2 block">{t[language].schedule}:</label>
-                    <div className="mb-2 text-zinc-400 text-sm">{t[language].scheduleHelp}</div>
-                    {formDataContent.schedule.map((event, index) => (
-                      <ScheduleItem
-                        key={index}
-                        event={event}
-                        index={index}
-                        collapsed={collapsedSchedules[index]}
-                        onChange={handleScheduleFieldChange}
-                        onDone={handleScheduleDone}
-                        onExpand={handleScheduleExpand}
-                        onRemove={animateRemove.bind(null, 'schedule', index, removeSchedule)}
-                        t={t}
-                        language={language}
-                        removing={removing}
-                        scheduleLength={formDataContent.schedule.length}
-                        toLocalDatetimeString={toLocalDatetimeString}
-                      />
-                    ))}
-                    <div className="flex justify-end">
-                      <Button type="button" onClick={addSchedule} className="mt-2 bg-red-500 hover:bg-red-600 text-white flex items-center gap-2">
-                        <Plus className="w-4 h-4" /> {t[language].addSchedule}
-                      </Button>
+                  <div className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6 mt-10">
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="text-2xl font-bold">Step 6: Last Details</h2>
+                      {collapsed.last && (
+                        <button onClick={() => setCollapsed({ ...collapsed, last: false })} className="flex items-center gap-1 text-zinc-400 hover:text-red-500 cursor-pointer">
+                          <ChevronRight className="w-5 h-5" /> {t[language].expand}
+                        </button>
+                      )}
                     </div>
-                  </div>
-                  )}
-                  <div className="space-y-4">
-                    <label className="font-medium text-xl mb-2 block">{t[language].speakers}:</label>
-                    {formDataContent.speakers.map((speaker, index) => (
-                      <SpeakerItem
-                        key={index}
-                        speaker={speaker}
-                        index={index}
-                        collapsed={collapsedSpeakers[index]}
-                        onChange={handleSpeakerFieldChange}
-                        onDone={handleSpeakerDone}
-                        onExpand={handleSpeakerExpand}
-                        onRemove={animateRemove.bind(null, 'speaker', index, removeSpeaker)}
-                        t={t}
-                        language={language}
-                        removing={removing}
-                        speakersLength={formDataContent.speakers.length}
-                        onPictureChange={handleSpeakerPictureChange}
-                      />
-                    ))}
-                    <div className="flex justify-end">
-                      <Button type="button" onClick={addSpeaker} className="mt-2 bg-red-500 hover:bg-red-600 text-white flex items-center gap-2">
-                        <Plus className="w-4 h-4" /> {t[language].addSpeaker}
-                      </Button>
-                    </div>
-                  </div>
-                  {/* Submission Section - Only for Hackathons */}
-                  {formDataLatest.event === 'hackathon' && (
-                  <div className="space-y-4">
-                    <div>
-                      <label className="font-medium text-xl mb-2 block">{t[language].submissionDeadline}:</label>
-                      <div className="mb-2 text-zinc-400 text-sm">{t[language].submissionDeadlineHelp}</div>
-                      <Input
-                        type="datetime-local"
-                        placeholder="Submission Deadline"
-                        value={formDataContent.submission_deadline}
-                        onChange={(e) => setFormDataContent({ ...formDataContent, submission_deadline: e.target.value })}
-                        className="w-full mb-4"
-                        required
-                      />
-                    </div>
-                  </div>
-                  )}
-                  <div className="flex justify-end mt-4">
-                    <button 
-                      type="button"
-                      onClick={() => handleDone('content')} 
-                      className="bg-green-600 hover:bg-green-700 text-white px-4 py-1 rounded flex items-center gap-1 cursor-pointer"
-                    >
-                      {t[language].done} <ChevronDown className="w-4 h-4" />
-                    </button>
-                  </div>
-                </>
-              )}
-              {collapsed.content && (
-                <div className="text-zinc-400 italic">{t[language].contentCompleted}</div>
-              )}
-            </div>
-            <div className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6 mt-10">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-2xl font-bold">Step 6: Last Details</h2>
-                {collapsed.last && (
-                  <button onClick={() => setCollapsed({ ...collapsed, last: false })} className="flex items-center gap-1 text-zinc-400 hover:text-red-500 cursor-pointer">
-                    <ChevronRight className="w-5 h-5" /> {t[language].expand}
-                  </button>
-                )}
-              </div>
-              {!collapsed.last && (
-                <>
-                  <div className="space-y-4">
-                    {/* Top Most checkbox
+                    {!collapsed.last && (
+                      <>
+                        <div className="space-y-4">
+                          {/* Top Most checkbox
                     <div className="flex items-center gap-2 mb-4">
                       <Checkbox
                         id="top_most"
@@ -2564,151 +2768,151 @@ const HackathonsEdit = () => {
                       </label>
                     </div>
                     */}
-                    <label className="font-medium text-xl mb-2 block">{t[language].customLink}:</label>
-                    <div className="mb-2 text-zinc-400 text-sm">{t[language].customLinkHelp}</div>
-                    <Input
-                      type="text"
-                      name="custom_link"
-                      placeholder="e.g., https://hackathon.custom..."
-                      value={formDataLatest.custom_link ?? ''}
-                      onChange={(e) => {
-                        setFormDataLatest(prev => ({ ...prev, custom_link: e.target.value }));
-                      }}
-                      className="w-full mb-4"
-                    />
-                    <label className="font-medium text-xl mb-2 block">{t[language].joinCustomLink}:</label>
-                    <div className="mb-2 text-zinc-400 text-sm">{t[language].joinCustomLinkHelp}</div>
-                    <Input
-                      type="text"
-                      name="join_custom_link"
-                      placeholder="e.g., https://hackathon.custom..."
-                      value={formDataContent.join_custom_link}
-                      onChange={(e) => {
-                        setFormDataContent(prev => ({ ...prev, join_custom_link: e.target.value }));
-                      }}
-                      className="w-full mb-4"
-                    />
-                    <label className="font-medium text-xl mb-2 block">{t[language].submissionCustomLink}:</label>
-                    <div className="mb-2 text-zinc-400 text-sm">{t[language].submissionCustomLinkHelp}</div>
-                    <Input
-                      type="text"
-                      name="submission_custom_link"
-                      placeholder="e.g., https://hackathon.custom..."
-                      value={formDataContent.submission_custom_link ?? ''}
-                      onChange={(e) => {
-                        setFormDataContent(prev => ({ ...prev, submission_custom_link: e.target.value }));
-                      }}
-                      className="w-full mb-4"
-                    />
-                    <div>
-                      <label className="font-medium text-xl mb-2 block">{t[language].startDate}:</label>
-                      <div className="mb-2 text-zinc-400 text-sm">{t[language].startDateHelp}</div>
-                      <Input
-                        type="datetime-local"
-                        placeholder="Start Date"
-                        value={formDataLatest.start_date}
-                        onChange={(e) => setFormDataLatest({ ...formDataLatest, start_date: e.target.value })}
-                        className="w-full mb-4"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="font-medium text-xl mb-2 block">{t[language].endDate}:</label>
-                      <div className="mb-2 text-zinc-400 text-sm">{t[language].endDateHelp}</div>
-                      <Input
-                        type="datetime-local"
-                        placeholder="End Date"
-                        value={formDataLatest.end_date}
-                        onChange={(e) => setFormDataLatest({ ...formDataLatest, end_date: e.target.value })}
-                        className="w-full mb-4"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="font-medium text-xl mb-2 block">{t[language].timezone}:</label>
-                      <div className="mb-2 text-zinc-400 text-sm">{t[language].timezoneHelp}</div>
-                      <Select
-                        value={formDataLatest.timezone}
-                        onValueChange={(value) => setFormDataLatest({ ...formDataLatest, timezone: value })}
-                      >
-                        <SelectTrigger className="w-full mb-4">
-                          <SelectValue placeholder="Select timezone" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="America/New_York">New York (EST/EDT) - GMT-5/-4</SelectItem>
-                          <SelectItem value="America/Chicago">Chicago (CST/CDT) - GMT-6/-5</SelectItem>
-                          <SelectItem value="America/Denver">Denver (MST/MDT) - GMT-7/-6</SelectItem>
-                          <SelectItem value="America/Los_Angeles">Los Angeles (PST/PDT) - GMT-8/-7</SelectItem>
-                          <SelectItem value="America/Toronto">Toronto (EST/EDT) - GMT-5/-4</SelectItem>
-                          <SelectItem value="America/Vancouver">Vancouver (PST/PDT) - GMT-8/-7</SelectItem>
-                          <SelectItem value="America/Mexico_City">Mexico City (CST/CDT) - GMT-6/-5</SelectItem>
-                          <SelectItem value="America/Bogota">Bogotá, Colombia (COT) - GMT-5</SelectItem>
-                          <SelectItem value="America/Costa_Rica">San José, Costa Rica (CST) - GMT-6</SelectItem>
-                          <SelectItem value="America/Panama">Panama City, Panama (EST) - GMT-5</SelectItem>
-                          <SelectItem value="America/Caracas">Caracas, Venezuela (VET) - GMT-4</SelectItem>
-                          <SelectItem value="America/La_Paz">La Paz, Bolivia (BOT) - GMT-4</SelectItem>
-                          <SelectItem value="America/Lima">Lima, Peru (PET) - GMT-5</SelectItem>
-                          <SelectItem value="America/Sao_Paulo">São Paulo, Brazil (BRT) - GMT-3</SelectItem>
-                          <SelectItem value="America/Santiago">Santiago, Chile (CLT) - GMT-3</SelectItem>
-                          <SelectItem value="America/Buenos_Aires">Buenos Aires, Argentina (ART) - GMT-3</SelectItem>
-                          <SelectItem value="Europe/London">London (GMT/BST) - GMT+0/+1</SelectItem>
-                          <SelectItem value="Europe/Paris">Paris (CET/CEST) - GMT+1/+2</SelectItem>
-                          <SelectItem value="Europe/Berlin">Berlin (CET/CEST) - GMT+1/+2</SelectItem>
-                          <SelectItem value="Europe/Rome">Rome (CET/CEST) - GMT+1/+2</SelectItem>
-                          <SelectItem value="Europe/Madrid">Madrid (CET/CEST) - GMT+1/+2</SelectItem>
-                          <SelectItem value="Europe/Amsterdam">Amsterdam (CET/CEST) - GMT+1/+2</SelectItem>
-                          <SelectItem value="Europe/Zurich">Zurich (CET/CEST) - GMT+1/+2</SelectItem>
-                          <SelectItem value="Europe/Stockholm">Stockholm (CET/CEST) - GMT+1/+2</SelectItem>
-                          <SelectItem value="Europe/Moscow">Moscow (MSK) - GMT+3</SelectItem>
-                          <SelectItem value="Asia/Tokyo">Tokyo (JST) - GMT+9</SelectItem>
-                          <SelectItem value="Asia/Shanghai">Shanghai (CST) - GMT+8</SelectItem>
-                          <SelectItem value="Asia/Hong_Kong">Hong Kong (HKT) - GMT+8</SelectItem>
-                          <SelectItem value="Asia/Singapore">Singapore (SGT) - GMT+8</SelectItem>
-                          <SelectItem value="Asia/Seoul">Seoul (KST) - GMT+9</SelectItem>
-                          <SelectItem value="Asia/Mumbai">Mumbai (IST) - GMT+5:30</SelectItem>
-                          <SelectItem value="Asia/Dubai">Dubai (GST) - GMT+4</SelectItem>
-                          <SelectItem value="Asia/Jerusalem">Jerusalem (IST) - GMT+2/+3</SelectItem>
-                          <SelectItem value="Australia/Sydney">Sydney (AEST/AEDT) - GMT+10/+11</SelectItem>
-                          <SelectItem value="Australia/Melbourne">Melbourne (AEST/AEDT) - GMT+10/+11</SelectItem>
-                          <SelectItem value="Australia/Perth">Perth (AWST) - GMT+8</SelectItem>
-                          <SelectItem value="Pacific/Auckland">Auckland (NZST/NZDT) - GMT+12/+13</SelectItem>
-                          <SelectItem value="Pacific/Honolulu">Honolulu (HST) - GMT-10</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                          <label className="font-medium text-xl mb-2 block">{t[language].customLink}:</label>
+                          <div className="mb-2 text-zinc-400 text-sm">{t[language].customLinkHelp}</div>
+                          <Input
+                            type="text"
+                            name="custom_link"
+                            placeholder="e.g., https://hackathon.custom..."
+                            value={formDataLatest.custom_link ?? ''}
+                            onChange={(e) => {
+                              setFormDataLatest(prev => ({ ...prev, custom_link: e.target.value }));
+                            }}
+                            className="w-full mb-4"
+                          />
+                          <label className="font-medium text-xl mb-2 block">{t[language].joinCustomLink}:</label>
+                          <div className="mb-2 text-zinc-400 text-sm">{t[language].joinCustomLinkHelp}</div>
+                          <Input
+                            type="text"
+                            name="join_custom_link"
+                            placeholder="e.g., https://hackathon.custom..."
+                            value={formDataContent.join_custom_link}
+                            onChange={(e) => {
+                              setFormDataContent(prev => ({ ...prev, join_custom_link: e.target.value }));
+                            }}
+                            className="w-full mb-4"
+                          />
+                          <label className="font-medium text-xl mb-2 block">{t[language].submissionCustomLink}:</label>
+                          <div className="mb-2 text-zinc-400 text-sm">{t[language].submissionCustomLinkHelp}</div>
+                          <Input
+                            type="text"
+                            name="submission_custom_link"
+                            placeholder="e.g., https://hackathon.custom..."
+                            value={formDataContent.submission_custom_link ?? ''}
+                            onChange={(e) => {
+                              setFormDataContent(prev => ({ ...prev, submission_custom_link: e.target.value }));
+                            }}
+                            className="w-full mb-4"
+                          />
+                          <div>
+                            <label className="font-medium text-xl mb-2 block">{t[language].startDate}:</label>
+                            <div className="mb-2 text-zinc-400 text-sm">{t[language].startDateHelp}</div>
+                            <Input
+                              type="datetime-local"
+                              placeholder="Start Date"
+                              value={formDataLatest.start_date}
+                              onChange={(e) => setFormDataLatest({ ...formDataLatest, start_date: e.target.value })}
+                              className="w-full mb-4"
+                              required
+                            />
+                          </div>
+                          <div>
+                            <label className="font-medium text-xl mb-2 block">{t[language].endDate}:</label>
+                            <div className="mb-2 text-zinc-400 text-sm">{t[language].endDateHelp}</div>
+                            <Input
+                              type="datetime-local"
+                              placeholder="End Date"
+                              value={formDataLatest.end_date}
+                              onChange={(e) => setFormDataLatest({ ...formDataLatest, end_date: e.target.value })}
+                              className="w-full mb-4"
+                              required
+                            />
+                          </div>
+                          <div>
+                            <label className="font-medium text-xl mb-2 block">{t[language].timezone}:</label>
+                            <div className="mb-2 text-zinc-400 text-sm">{t[language].timezoneHelp}</div>
+                            <Select
+                              value={formDataLatest.timezone}
+                              onValueChange={(value) => setFormDataLatest({ ...formDataLatest, timezone: value })}
+                            >
+                              <SelectTrigger className="w-full mb-4">
+                                <SelectValue placeholder="Select timezone" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="America/New_York">New York (EST/EDT) - GMT-5/-4</SelectItem>
+                                <SelectItem value="America/Chicago">Chicago (CST/CDT) - GMT-6/-5</SelectItem>
+                                <SelectItem value="America/Denver">Denver (MST/MDT) - GMT-7/-6</SelectItem>
+                                <SelectItem value="America/Los_Angeles">Los Angeles (PST/PDT) - GMT-8/-7</SelectItem>
+                                <SelectItem value="America/Toronto">Toronto (EST/EDT) - GMT-5/-4</SelectItem>
+                                <SelectItem value="America/Vancouver">Vancouver (PST/PDT) - GMT-8/-7</SelectItem>
+                                <SelectItem value="America/Mexico_City">Mexico City (CST/CDT) - GMT-6/-5</SelectItem>
+                                <SelectItem value="America/Bogota">Bogotá, Colombia (COT) - GMT-5</SelectItem>
+                                <SelectItem value="America/Costa_Rica">San José, Costa Rica (CST) - GMT-6</SelectItem>
+                                <SelectItem value="America/Panama">Panama City, Panama (EST) - GMT-5</SelectItem>
+                                <SelectItem value="America/Caracas">Caracas, Venezuela (VET) - GMT-4</SelectItem>
+                                <SelectItem value="America/La_Paz">La Paz, Bolivia (BOT) - GMT-4</SelectItem>
+                                <SelectItem value="America/Lima">Lima, Peru (PET) - GMT-5</SelectItem>
+                                <SelectItem value="America/Sao_Paulo">São Paulo, Brazil (BRT) - GMT-3</SelectItem>
+                                <SelectItem value="America/Santiago">Santiago, Chile (CLT) - GMT-3</SelectItem>
+                                <SelectItem value="America/Buenos_Aires">Buenos Aires, Argentina (ART) - GMT-3</SelectItem>
+                                <SelectItem value="Europe/London">London (GMT/BST) - GMT+0/+1</SelectItem>
+                                <SelectItem value="Europe/Paris">Paris (CET/CEST) - GMT+1/+2</SelectItem>
+                                <SelectItem value="Europe/Berlin">Berlin (CET/CEST) - GMT+1/+2</SelectItem>
+                                <SelectItem value="Europe/Rome">Rome (CET/CEST) - GMT+1/+2</SelectItem>
+                                <SelectItem value="Europe/Madrid">Madrid (CET/CEST) - GMT+1/+2</SelectItem>
+                                <SelectItem value="Europe/Amsterdam">Amsterdam (CET/CEST) - GMT+1/+2</SelectItem>
+                                <SelectItem value="Europe/Zurich">Zurich (CET/CEST) - GMT+1/+2</SelectItem>
+                                <SelectItem value="Europe/Stockholm">Stockholm (CET/CEST) - GMT+1/+2</SelectItem>
+                                <SelectItem value="Europe/Moscow">Moscow (MSK) - GMT+3</SelectItem>
+                                <SelectItem value="Asia/Tokyo">Tokyo (JST) - GMT+9</SelectItem>
+                                <SelectItem value="Asia/Shanghai">Shanghai (CST) - GMT+8</SelectItem>
+                                <SelectItem value="Asia/Hong_Kong">Hong Kong (HKT) - GMT+8</SelectItem>
+                                <SelectItem value="Asia/Singapore">Singapore (SGT) - GMT+8</SelectItem>
+                                <SelectItem value="Asia/Seoul">Seoul (KST) - GMT+9</SelectItem>
+                                <SelectItem value="Asia/Mumbai">Mumbai (IST) - GMT+5:30</SelectItem>
+                                <SelectItem value="Asia/Dubai">Dubai (GST) - GMT+4</SelectItem>
+                                <SelectItem value="Asia/Jerusalem">Jerusalem (IST) - GMT+2/+3</SelectItem>
+                                <SelectItem value="Australia/Sydney">Sydney (AEST/AEDT) - GMT+10/+11</SelectItem>
+                                <SelectItem value="Australia/Melbourne">Melbourne (AEST/AEDT) - GMT+10/+11</SelectItem>
+                                <SelectItem value="Australia/Perth">Perth (AWST) - GMT+8</SelectItem>
+                                <SelectItem value="Pacific/Auckland">Auckland (NZST/NZDT) - GMT+12/+13</SelectItem>
+                                <SelectItem value="Pacific/Honolulu">Honolulu (HST) - GMT-10</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        <div className="flex justify-end mt-4">
+                          <button
+                            type="button"
+                            onClick={() => handleDone('last')}
+                            className="bg-green-600 hover:bg-green-700 text-white px-4 py-1 rounded flex items-center gap-1 cursor-pointer"
+                          >
+                            {t[language].done} <ChevronDown className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </>
+                    )}
+                    {collapsed.last && (
+                      <div className="text-zinc-400 italic">{t[language].lastDetailsCompleted}</div>
+                    )}
                   </div>
-                  <div className="flex justify-end mt-4">
-                    <button 
-                      type="button"
-                      onClick={() => handleDone('last')} 
-                      className="bg-green-600 hover:bg-green-700 text-white px-4 py-1 rounded flex items-center gap-1 cursor-pointer"
-                    >
-                      {t[language].done} <ChevronDown className="w-4 h-4" />
-                    </button>
-                  </div>
-                </>
-              )}
-              {collapsed.last && (
-                <div className="text-zinc-400 italic">{t[language].lastDetailsCompleted}</div>
-              )}
-            </div>
-            {!isSelectedHackathon && (
-              <Button type="submit" className="bg-red-500 hover:bg-red-600 text-white">
-                {t[language].submit}
-              </Button>
+                  {!isSelectedHackathon && (
+                    <Button type="submit" className="bg-red-500 hover:bg-red-600 text-white">
+                      {t[language].submit}
+                    </Button>
+                  )}
+                </form>
+              </>
             )}
-          </form>
-        </>
-      )}
-      {showForm && !hasEditPermission && (
-        <div className="mt-8 p-6 rounded-lg border border-red-500/40 bg-red-900/10 text-red-100 max-w-2xl mx-auto text-center">
-          <h2 className="text-xl font-semibold mb-2">You don&apos;t have permission to edit this hackathon</h2>
-          <p className="text-sm text-red-200">
-            Only the creator, authorized roles, or configured cohosts can edit this hackathon. Please contact the hackathon owner if you believe this is a mistake.
-          </p>
-        </div>
-      )}
-      {loading && (
+            {showForm && !hasEditPermission && (
+              <div className="mt-8 p-6 rounded-lg border border-red-500/40 bg-red-900/10 text-red-100 max-w-2xl mx-auto text-center">
+                <h2 className="text-xl font-semibold mb-2">You don&apos;t have permission to edit this hackathon</h2>
+                <p className="text-sm text-red-200">
+                  Only the creator, authorized roles, or configured cohosts can edit this hackathon. Please contact the hackathon owner if you believe this is a mistake.
+                </p>
+              </div>
+            )}
+            {loading && (
               <div className="flex justify-center items-center my-4">
                 <svg className="animate-spin h-8 w-8 text-red-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -2716,23 +2920,23 @@ const HackathonsEdit = () => {
                 </svg>
               </div>
             )}
-      {showDeleteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white dark:bg-zinc-900 rounded-lg shadow-lg p-6 max-w-lg w-full">
-            <h2 className="text-lg font-bold mb-4">Are you sure you want to delete the hackathon?</h2>
-            <p className="mb-4">This action cannot be undone.<br/>Hackathon: <span className="font-semibold">{selectedHackathon?.title}</span></p>
-            <div className="flex justify-end gap-2">
-              <button onClick={() => setShowDeleteModal(false)} className="px-4 py-2 rounded bg-zinc-200 dark:bg-zinc-700 hover:bg-zinc-300 dark:hover:bg-zinc-600 cursor-pointer">Cancel</button>
-              <button onClick={() => { setShowDeleteModal(false); handleDeleteClick(); }} className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700 cursor-pointer">Delete</button>
-            </div>
-          </div>
-        </div>
-      )}
+            {showDeleteModal && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                <div className="bg-white dark:bg-zinc-900 rounded-lg shadow-lg p-6 max-w-lg w-full">
+                  <h2 className="text-lg font-bold mb-4">Are you sure you want to delete the hackathon?</h2>
+                  <p className="mb-4">This action cannot be undone.<br />Hackathon: <span className="font-semibold">{selectedHackathon?.title}</span></p>
+                  <div className="flex justify-end gap-2">
+                    <button onClick={() => setShowDeleteModal(false)} className="px-4 py-2 rounded bg-zinc-200 dark:bg-zinc-700 hover:bg-zinc-300 dark:hover:bg-zinc-600 cursor-pointer">Cancel</button>
+                    <button onClick={() => { setShowDeleteModal(false); handleDeleteClick(); }} className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700 cursor-pointer">Delete</button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
         <div className="w-1/2 border-l border-zinc-700 bg-white dark:bg-zinc-900">
-        <div className="h-full">
-            <HackathonPreview 
+          <div className="h-full">
+            <HackathonPreview
               hackathonData={{
                 id: selectedHackathon?.id,
                 title: formDataMain.title,

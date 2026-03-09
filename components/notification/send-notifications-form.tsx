@@ -2,14 +2,6 @@
 
 import { Divider } from "@/components/ui/divider";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -28,6 +20,9 @@ import { sendNotifications } from "@/utils/send-notification";
 import { useToast } from "@/hooks/use-toast";
 import { Toaster } from "../ui/toaster";
 import { Spinner } from "@/components/ui/spinner"
+import ReactMarkdown from "react-markdown";
+import DOMPurify from "isomorphic-dompurify";
+import remarkGfm from "remark-gfm";
 
 type AudienceTab = "all" | "hackathons" | "custom";
 
@@ -36,6 +31,34 @@ const notificationsTypeOptions = [
   { value: "message", label: "Message" },
 ]
 
+type DetectedContentType = "text/plain" | "text/markdown" | "text/html";
+
+export function detectNotificationContentType(content: string): DetectedContentType {
+  const trimmed: string = content.trim();
+
+  if (!trimmed) {
+    return "text/plain";
+  }
+
+  const htmlPattern: RegExp =
+    /<([a-z][a-z0-9-]*)(\s[^>]*)?>[\s\S]*<\/\1>|<([a-z][a-z0-9-]*)(\s[^>]*)?\/?>/i;
+
+  const markdownPattern: RegExp =
+    /^(#{1,6}\s.+|>\s.+|[-*+]\s.+|\d+\.\s.+|```[\s\S]*```|`[^`]+`|\[.+\]\(.+\)|!\[.*\]\(.+\)|\*\*.+\*\*|__.+__|\*.+\*|_.+_)$/m;
+
+  const looksLikeHtml: boolean = htmlPattern.test(trimmed);
+  const looksLikeMarkdown: boolean = markdownPattern.test(trimmed);
+
+  if (looksLikeHtml) {
+    return "text/html";
+  }
+
+  if (looksLikeMarkdown) {
+    return "text/markdown";
+  }
+
+  return "text/plain";
+}
 
 export default function SendNotificationsForm() {
   // Fields
@@ -120,6 +143,9 @@ export default function SendNotificationsForm() {
     setSessionPayload(payload);
   }, [openAudienceDialog]);
 
+  useEffect(() => {
+    setContentType(detectNotificationContentType(content));
+  }, [content]);
 
   return (
     <main className='container py-8 mx-auto min-h-[calc(100vh-92px)] lg:min-h-0 flex items-center justify-center relative px-2 pb-6 lg:px-14 '>
@@ -168,116 +194,147 @@ export default function SendNotificationsForm() {
             </Select>
           </div>
 
-          <div className="flex flex-col gap-2">
-            <h1 className="text-xl font-medium">Content type</h1>
-            <Select value={contentType} onValueChange={(e) => setContentType(e)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select content type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="text/plain">text/plain</SelectItem>
-                <SelectItem value="text/markdown">text/markdown</SelectItem>
-                <SelectItem value="text/html">text/html</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <div className="w-full flex flex-col gap-4">
+            <div className="flex-1 flex flex-col gap-2">
+              <h1 className="text-xl font-medium">Content</h1>
+              <div className="flex items-center gap-2">
+                <Textarea
+                  value={content}
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setContent(e.target.value)}
+                  placeholder="Type a content"
+                  className="custom-scroll h-20"
+                />
+              </div>
+            </div>
 
-          <div className="flex flex-col gap-2">
-            <h1 className="text-xl font-medium">Content</h1>
-            <Textarea
-              value={content}
-              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setContent(e.target.value)}
-              placeholder="Type a content"
-            />
+            <div className="flex-1 w-full flex flex-col gap-2">
+              <p className="text-xl font-medium">Content preview</p>
+              <div className="custom-scroll p-4 min-h-20 overflow-y-auto border border-border rounded-lg dark:shadow-2xl">
+                {(() => {
+                  switch (contentType) {
+                    case "text/plain":
+                      return content;
+
+                    case "text/markdown":
+                      return <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        components={{
+                          // Keep styling consistent; customize as needed.
+                          p: (props: React.ComponentPropsWithoutRef<"p">) => (
+                            <p className="text-sm text-zinc-700 dark:text-zinc-200 leading-6" {...props} />
+                          ),
+                          a: (props: React.ComponentPropsWithoutRef<"a">) => (
+                            <a className="underline underline-offset-4" target="_blank" rel="noreferrer" {...props} />
+                          ),
+                          ul: (props: React.ComponentPropsWithoutRef<"ul">) => (
+                            <ul className="list-disc pl-5 space-y-1" {...props} />
+                          ),
+                          ol: (props: React.ComponentPropsWithoutRef<"ol">) => (
+                            <ol className="list-decimal pl-5 space-y-1" {...props} />
+                          ),
+                          code: (props: React.ComponentPropsWithoutRef<"code">) => (
+                            <code className="px-1 py-0.5 rounded bg-zinc-200/60 dark:bg-zinc-800/60" {...props} />
+                          ),
+                        }}
+                      >
+                        {content}
+                      </ReactMarkdown>;
+                    case "text/html": {
+                      const sanitizedHtml: string = DOMPurify.sanitize(content);
+
+                      return (
+                        <div
+                          className="prose prose-sm dark:prose-invert"
+                          dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
+                        />
+                      );
+                    }
+
+
+                    default:
+                      return content;
+                  }
+                })()}
+
+              </div>
+            </div>
           </div>
 
 
           {/* Si quieres cambiar "type" desde UI, agrega otro input/select aquí.
               Por ahora lo estás capturando con estado (default "n"). */}
 
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-4">
             <h2 className="text-xl font-medium">Audience</h2>
+            <Tabs
+              value={audienceTab}
+              onValueChange={(v: string) => setAudienceTab(v as AudienceTab)}
+              className="w-full flex"
+            >
+              <TabsList className="mb-2">
+                <TabsTrigger disabled={!sessionPayload?.custom_attributes.includes('devrel')} value="all">All</TabsTrigger>
+                <TabsTrigger value="hackathons">Hackathons</TabsTrigger>
+                <TabsTrigger value="custom">Custom</TabsTrigger>
+              </TabsList>
+              <div className="p-4 border border-border rounded-lg dark:shadow-2xl">
+                <TabsContent value="all">
+                  <div className="flex flex-col gap-4">
 
-            <Dialog open={openAudienceDialog} onOpenChange={() => setOpenAudienceDialog(!openAudienceDialog)}>
-              <DialogTrigger className="bg-black dark:bg-white rounded-md px-2 py-1 w-20">
-                <p className="text-zinc-50 dark:text-zinc-900 text-sm font-medium">Select</p>
-              </DialogTrigger>
+                    With this option, the notification will be sent to all users
+                  </div>
+                </TabsContent>
 
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Select your notification audience</DialogTitle>
-                  <DialogDescription>
-                    <Tabs
-                      value={audienceTab}
-                      onValueChange={(v: string) => setAudienceTab(v as AudienceTab)}
-                      className="w-full flex items-center my-2"
-                    >
-                      <TabsList>
-                        <TabsTrigger disabled={!sessionPayload?.custom_attributes.includes('devrel')} value="all">All</TabsTrigger>
-                        <TabsTrigger value="hackathons">Hackathons</TabsTrigger>
-                        <TabsTrigger value="custom">Custom</TabsTrigger>
-                      </TabsList>
-
-                      <TabsContent value="all">
-                        <div className="flex flex-col gap-4 items-center">
-
-                          With this option, the notification will be sent to all users
-                          <Button onClick={() => setOpenAudienceDialog(false)} className="bg-black dark:bg-white px-2 py-1 w-20 ">
-                            <p className="text-zinc-50 dark:text-zinc-900 text-sm font-medium">Apply</p>
-                          </Button>
-                        </div>
-                      </TabsContent>
-
-                      <TabsContent value="hackathons">
-                        <div className="flex flex-col gap-4 items-center">
-                          <div className="flex flex-col gap-4">
-                            <p>
-                              With this option, the notification will be sent to all users registered in the selected hackathons.
-                            </p>
-                            <div className="custom-scroll max-h-40 overflow-x-hidden overflow-y-auto flex flex-col gap-2">
-                              {hackathons?.map((hackathon: { id: string, title: string }, index: number) => (
-                                <div key={index} className="flex items-center gap-2">
-                                  <Checkbox
-                                    checked={selectedHackathons.includes(hackathon.id)}
-                                    onCheckedChange={() => toggleHackathon(hackathon.id)}
-                                  />
-                                  <p>{hackathon.title}</p>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                          <Button onClick={() => setOpenAudienceDialog(false)} className="bg-black dark:bg-white px-2 py-1 w-20 ">
-                            <p className="text-zinc-50 dark:text-zinc-900 text-sm font-medium">Apply</p>
-                          </Button>
-                        </div>
-                      </TabsContent>
-
-                      <TabsContent value="custom">
-                        <div className="flex flex-col gap-4 items-center">
-                          <div className="flex flex-col gap-2">
-                            <p>
-                              Enter the email addresses of the users you wish to send notifications to, separated by commas.
-                            </p>
-                            <Input
-                              type="email"
-                              value={customUsersRaw}
-                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCustomUsersRaw(e.target.value)}
-                              placeholder="email1@x.com, email2@x.com"
+                <TabsContent value="hackathons">
+                  <div className="flex flex-col gap-4">
+                    <div className="flex flex-col gap-4">
+                      <div>
+                        <p>
+                          With this option, the notification will be sent to all users registered in the selected hackathons.
+                        </p>
+                        <Divider />
+                      </div>
+                      <div className="custom-scroll max-h-40 overflow-x-hidden overflow-y-auto flex flex-col gap-2">
+                        {hackathons?.map((hackathon: { id: string, title: string }, index: number) => (
+                          <div key={index} className="flex items-center gap-2">
+                            <Checkbox
+                              checked={selectedHackathons.includes(hackathon.id)}
+                              onCheckedChange={() => toggleHackathon(hackathon.id)}
                             />
-                            <p className="text-xs text-zinc-500">
-                              Parsed: {customUsersParsed.length} email(s)
-                            </p>
+                            <p>{hackathon.title}</p>
                           </div>
-                          <Button onClick={() => setOpenAudienceDialog(false)} className="bg-black dark:bg-white px-2 py-1 w-20 ">
-                            <p className="text-zinc-50 dark:text-zinc-900 text-sm font-medium">Apply</p>
-                          </Button>
-                        </div>
-                      </TabsContent>
-                    </Tabs>
-                  </DialogDescription>
-                </DialogHeader>
-              </DialogContent>
-            </Dialog>
+                        ))}
+                      </div>
+                      <p className="text-xs text-zinc-500">
+                        {`${selectedHackathons.length} hackathon(s) selected, ${customUsersParsed.length > 0 ? `${customUsersParsed.length} email(s) parsed` : ''}`}
+                      </p>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="custom">
+                  <div className="flex flex-col gap-4">
+                    <div className="flex flex-col gap-2">
+                      <div>
+                        <p>
+                          Enter the email addresses of the users you wish to send notifications to, separated by commas.
+                        </p>
+                        <Divider />
+                      </div>
+                      <Input
+                        type="email"
+                        value={customUsersRaw}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCustomUsersRaw(e.target.value)}
+                        placeholder="email1@x.com, email2@x.com"
+                      />
+                      <p className="text-xs text-zinc-500">
+                        {`Parsed: ${customUsersParsed.length} email(s)${selectedHackathons.length > 0 ? `, ${selectedHackathons.length} hackathon(s) selected` : ''}`}
+                      </p>
+                    </div>
+                  </div>
+                </TabsContent>
+              </div>
+
+            </Tabs>
           </div>
         </div>
 
