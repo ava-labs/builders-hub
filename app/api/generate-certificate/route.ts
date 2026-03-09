@@ -6,6 +6,31 @@ import { triggerCertificateWebhook } from '@/server/services/hubspotCertificateW
 import { getCompletedCourseSlugs } from '@/server/services/userBadge';
 import { getCourseConfig } from '@/content/courses';
 
+/**
+ * Sanitize text for WinAnsi (Windows-1252) encoding used by pdf-lib.
+ * Characters outside WinAnsi (e.g. Turkish İ U+0130) are decomposed
+ * to their closest ASCII base form via NFKD normalization.
+ * WinAnsi-safe accented characters (é, ñ, ü, etc.) are preserved.
+ */
+function sanitizeForWinAnsi(text: string): string {
+  const WIN_1252_EXTRAS = new Set([
+    0x152, 0x153, 0x160, 0x161, 0x178, 0x17D, 0x17E, 0x192,
+    0x2C6, 0x2DC, 0x2013, 0x2014, 0x2018, 0x2019, 0x201A,
+    0x201C, 0x201D, 0x201E, 0x2020, 0x2021, 0x2022, 0x2026,
+    0x2030, 0x2039, 0x203A, 0x20AC, 0x2122,
+  ]);
+
+  return text
+    .split('')
+    .map((char) => {
+      const code = char.charCodeAt(0);
+      if (code <= 0xFF || WIN_1252_EXTRAS.has(code)) return char;
+      const base = char.normalize('NFKD').replace(/[\u0300-\u036f]/g, '');
+      return base || '?';
+    })
+    .join('');
+}
+
 async function fetchWithRetry(
   url: string,
   maxRetries = 3,
@@ -56,7 +81,9 @@ export async function POST(req: NextRequest) {
       }, { status: 404 });
     }
 
-    const userName = session.user.name || session.user.email || 'BuilderHub User';
+    const userName = sanitizeForWinAnsi(
+      session.user.name || session.user.email || 'BuilderHub User'
+    );
     const { name: courseName, template: templateUrl } = course;
 
     const templateResponse = await fetchWithRetry(templateUrl);
