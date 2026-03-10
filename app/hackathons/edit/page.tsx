@@ -29,6 +29,7 @@ import remarkGfm from "remark-gfm";
 import { detectNotificationContentType } from '@/components/notification/send-notifications-form';
 import { useToast } from '@/hooks/use-toast';
 import { DialogClose } from '@radix-ui/react-dialog';
+import { useNotificationContentGuard } from '@/hooks/use-notification-content-guard';
 
 const notificationsTypeOptions = [
   { value: "message", label: "Message" },
@@ -65,20 +66,18 @@ const MyHackathonsList = ({ myHackathons, language, onSelect, selectedId, isDevr
   const [title, setTitle] = useState<string>("");
   const [shortDescription, setShortDescription] = useState<string>("");
   const [content, setContent] = useState<string>("");
-  const [contentType, setContentType] = useState<string>("");
   const [type, setType] = useState<string>("");
   const [loadingSendNotification, setLoadingSendNotification] = useState(false)
   const [state, setState] = useState<"none" | "Close" | "Error">("none");
-  const { toast } = useToast();
+  const guardedContent = useNotificationContentGuard(content);
   const isValidForm = useMemo(() => {
     return (
       title &&
       type &&
       shortDescription &&
-      content &&
-      contentType
+      content
     )
-  }, [title, content, contentType]);
+  }, [title, content]);
   const buildBody = (hackathon: string): Notification[] => {
     return [
       {
@@ -91,7 +90,7 @@ const MyHackathonsList = ({ myHackathons, language, onSelect, selectedId, isDevr
         title,
         short_description: shortDescription,
         content,
-        content_type: contentType,
+        content_type: guardedContent.detectedType,
       }
     ]
   };
@@ -107,9 +106,6 @@ const MyHackathonsList = ({ myHackathons, language, onSelect, selectedId, isDevr
     setLoadingSendNotification(false)
   };
 
-  useEffect(() => {
-    setContentType(detectNotificationContentType(content));
-  }, [content]);
   if (loading) {
     return (
       <div className="mb-6">
@@ -245,61 +241,68 @@ const MyHackathonsList = ({ myHackathons, language, onSelect, selectedId, isDevr
                             </div>
                           </div>
                           <div className="flex-1 w-full flex flex-col gap-2">
-                            <p className="text-md font-medium">Content preview</p>
-                            <div className="custom-scroll p-4 min-h-20 overflow-y-auto border border-border rounded-lg dark:shadow-2xl">
-                              {(() => {
-                                switch (contentType) {
-                                  case "text/plain":
-                                    return content;
+                            <p className="text-xl font-medium">Content preview</p>
+                            <div className="custom-scroll p-4 min-h-20 overflow-y-auto border-2 bg-zinc-200 dark:bg-zinc-800 border-zinc-500 dark:border-zinc-500 rounded-lg dark:shadow-2xl">
+                              {
+                                guardedContent.isSafe ? (
 
-                                  case "text/markdown":
-                                    return <ReactMarkdown
-                                      remarkPlugins={[remarkGfm]}
-                                      components={{
-                                        // Keep styling consistent; customize as needed.
-                                        p: (props: React.ComponentPropsWithoutRef<"p">) => (
-                                          <p className="text-sm text-zinc-700 dark:text-zinc-200 leading-6" {...props} />
-                                        ),
-                                        a: (props: React.ComponentPropsWithoutRef<"a">) => (
-                                          <a className="underline underline-offset-4" target="_blank" rel="noreferrer" {...props} />
-                                        ),
-                                        ul: (props: React.ComponentPropsWithoutRef<"ul">) => (
-                                          <ul className="list-disc pl-5 space-y-1" {...props} />
-                                        ),
-                                        ol: (props: React.ComponentPropsWithoutRef<"ol">) => (
-                                          <ol className="list-decimal pl-5 space-y-1" {...props} />
-                                        ),
-                                        code: (props: React.ComponentPropsWithoutRef<"code">) => (
-                                          <code className="px-1 py-0.5 rounded bg-zinc-200/60 dark:bg-zinc-800/60" {...props} />
-                                        ),
-                                      }}
-                                    >
-                                      {content}
-                                    </ReactMarkdown>;
-                                  case "text/html": {
-                                    const sanitizedHtml: string = DOMPurify.sanitize(content);
+                                  (() => {
+                                    switch (guardedContent.detectedType) {
+                                      case "text/plain":
+                                        return content;
 
-                                    return (
-                                      <div
-                                        className="prose prose-sm dark:prose-invert"
-                                        dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
-                                      />
-                                    );
-                                  }
+                                      case "text/markdown":
+                                        return <ReactMarkdown
+                                          remarkPlugins={[remarkGfm]}
+                                          components={{
+                                            // Keep styling consistent; customize as needed.
+                                            p: (props: React.ComponentPropsWithoutRef<"p">) => (
+                                              <p className="text-sm text-zinc-700 dark:text-zinc-200 leading-6" {...props} />
+                                            ),
+                                            a: (props: React.ComponentPropsWithoutRef<"a">) => (
+                                              <a className="underline underline-offset-4" target="_blank" rel="noreferrer" {...props} />
+                                            ),
+                                            ul: (props: React.ComponentPropsWithoutRef<"ul">) => (
+                                              <ul className="list-disc pl-5 space-y-1" {...props} />
+                                            ),
+                                            ol: (props: React.ComponentPropsWithoutRef<"ol">) => (
+                                              <ol className="list-decimal pl-5 space-y-1" {...props} />
+                                            ),
+                                            code: (props: React.ComponentPropsWithoutRef<"code">) => (
+                                              <code className="px-1 py-0.5 rounded bg-zinc-200/60 dark:bg-zinc-800/60" {...props} />
+                                            ),
+                                          }}
+                                        >
+                                          {content}
+                                        </ReactMarkdown>;
+                                      case "text/html": {
+                                        const sanitizedHtml: string = DOMPurify.sanitize(content);
+
+                                        return (
+                                          <div
+                                            className="prose prose-sm dark:prose-invert"
+                                            dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
+                                          />
+                                        );
+                                      }
 
 
-                                  default:
-                                    return content;
-                                }
-                              })()}
+                                      default:
+                                        return content;
+                                    }
+                                  })()
 
+                                ) : (
+                                  <p>Unsafe content detected</p>
+                                )
+                              }
                             </div>
                           </div>
                         </div>
                       </div>
                       {
                         state === "none" ? (
-                          <Button onClick={() => send(hackathon.id)} disabled={!isValidForm || loading} className="bg-black dark:bg-white px-2 py-1 w-16 ">
+                          <Button onClick={() => send(hackathon.id)} disabled={!isValidForm || !guardedContent.isSafe || loading} className="bg-black dark:bg-white px-2 py-1 w-16 ">
                             {
                               loadingSendNotification ? (
                                 <Spinner data-icon="inline-center" />
