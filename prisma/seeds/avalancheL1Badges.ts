@@ -21,70 +21,39 @@ interface NewBadge {
   requirements: BadgeRequirement[];
 }
 
+// Original production DB state (4 badges):
+//   1avalancheL1Academy-1blockchain-fundamentals  → DELETE (course moved to blockchain academy)
+//   1avalancheL1Academy-2avalanche-fundamentals    → KEEP as ID -1 (renumber)
+//   1avalancheL1Academy-3interchain-messaging      → KEEP as ID -4 (renumber)
+//   1avalancheL1Academy-4interchain-token-transfer  → DELETE (course removed)
+
 // Badge IDs to delete — courses no longer in Avalanche L1 academy
 const BADGES_TO_DELETE = [
   "1avalancheL1Academy-1blockchain-fundamentals",
   "1avalancheL1Academy-4interchain-token-transfer",
 ];
 
-// Existing badges — only update image URL, keep everything else
-const imageUpdates: { id: string; image_path: string }[] = [
+// Existing badges that need their ID renumbered + image updated
+// Uses create → migrate userBadges → delete pattern for FK safety
+const idMigrations: { oldId: string; newId: string; image_path: string }[] = [
   {
-    id: "1avalancheL1Academy-2avalanche-fundamentals",
+    oldId: "1avalancheL1Academy-2avalanche-fundamentals",
+    newId: "1avalancheL1Academy-1avalanche-fundamentals",
     image_path: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/academy_badges/Avalanche%20L1/Avalanche_Fundamentals_Badge.png",
   },
   {
-    id: "1avalancheL1Academy-3interchain-messaging",
+    oldId: "1avalancheL1Academy-3interchain-messaging",
+    newId: "1avalancheL1Academy-4interchain-messaging",
     image_path: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/academy_badges/Avalanche%20L1/ICM_Badge.png",
   },
 ];
 
-// New badges to create
+// New badges to create — numbered in correct course order
 const newBadges: NewBadge[] = [
   {
-    id: "1avalancheL1Academy-5customizing-evm",
-    name: "Customizing the EVM",
-    description: "Successfully completed the Customizing the EVM course",
-    image_path: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/academy_badges/Avalanche%20L1/Customizing_EVM_Badge.png",
-    category: "academy",
-    requirements: [
-      { id: "customizing-evm", type: "course", points: 100, unlocked: false, course_id: "customizing-evm", hackathon: null, description: "Complete the Customizing the EVM course" },
-    ],
-  },
-  {
-    id: "1avalancheL1Academy-6erc20-bridge",
-    name: "ERC-20 Bridge",
-    description: "Successfully completed the ERC-20 Bridge course",
-    image_path: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/academy_badges/Avalanche%20L1/ERC20_Bridge_Badge.png",
-    category: "academy",
-    requirements: [
-      { id: "erc20-bridge", type: "course", points: 100, unlocked: false, course_id: "erc20-bridge", hackathon: null, description: "Complete the ERC-20 Bridge course" },
-    ],
-  },
-  {
-    id: "1avalancheL1Academy-7native-token-bridge",
-    name: "Native Token Bridge",
-    description: "Successfully completed the Native Token Bridge course",
-    image_path: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/academy_badges/Avalanche%20L1/Native_Token_Bridge.png",
-    category: "academy",
-    requirements: [
-      { id: "native-token-bridge", type: "course", points: 100, unlocked: false, course_id: "native-token-bridge", hackathon: null, description: "Complete the Native Token Bridge course" },
-    ],
-  },
-  {
-    id: "1avalancheL1Academy-8l1-native-tokenomics",
-    name: "L1 Native Tokenomics",
-    description: "Successfully completed the L1 Native Tokenomics course",
-    image_path: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/academy_badges/Avalanche%20L1/L1_Native_Tokenomics_Badge.png",
-    category: "academy",
-    requirements: [
-      { id: "l1-native-tokenomics", type: "course", points: 100, unlocked: false, course_id: "l1-native-tokenomics", hackathon: null, description: "Complete the L1 Native Tokenomics course" },
-    ],
-  },
-  {
-    id: "1avalancheL1Academy-9permissioned-l1s",
+    id: "1avalancheL1Academy-2permissioned-l1s",
     name: "Permissioned L1s",
-    description: "Successfully completed the Permissioned L1s course",
+    description: "Completed the Permissioned L1s course",
     image_path: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/academy_badges/Avalanche%20L1/Permissioned_L1s_Badge.png",
     category: "academy",
     requirements: [
@@ -92,9 +61,29 @@ const newBadges: NewBadge[] = [
     ],
   },
   {
-    id: "1avalancheL1Academy-10permissionless-l1s",
+    id: "1avalancheL1Academy-3l1-native-tokenomics",
+    name: "L1 Native Tokenomics",
+    description: "Completed the L1 Native Tokenomics course",
+    image_path: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/academy_badges/Avalanche%20L1/L1_Native_Tokenomics_Badge.png",
+    category: "academy",
+    requirements: [
+      { id: "l1-native-tokenomics", type: "course", points: 100, unlocked: false, course_id: "l1-native-tokenomics", hackathon: null, description: "Complete the L1 Native Tokenomics course" },
+    ],
+  },
+  {
+    id: "1avalancheL1Academy-5customizing-evm",
+    name: "Customizing the EVM",
+    description: "Completed the Customizing the EVM course",
+    image_path: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/academy_badges/Avalanche%20L1/Customizing_EVM_Badge.png",
+    category: "academy",
+    requirements: [
+      { id: "customizing-evm", type: "course", points: 100, unlocked: false, course_id: "customizing-evm", hackathon: null, description: "Complete the Customizing the EVM course" },
+    ],
+  },
+  {
+    id: "1avalancheL1Academy-6permissionless-l1s",
     name: "Permissionless L1s",
-    description: "Successfully completed the Permissionless L1s course",
+    description: "Completed the Permissionless L1s course",
     image_path: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/academy_badges/Avalanche%20L1/Permissionless_L1s_Badge.png",
     category: "academy",
     requirements: [
@@ -102,31 +91,50 @@ const newBadges: NewBadge[] = [
     ],
   },
   {
-    id: "1avalancheL1Academy-11access-restriction",
+    id: "1avalancheL1Academy-7erc20-bridge",
+    name: "ERC-20 Bridge",
+    description: "Completed the ERC-20 Bridge course",
+    image_path: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/academy_badges/Avalanche%20L1/ERC20_Bridge_Badge.png",
+    category: "academy",
+    requirements: [
+      { id: "erc20-bridge", type: "course", points: 100, unlocked: false, course_id: "erc20-bridge", hackathon: null, description: "Complete the ERC-20 Bridge course" },
+    ],
+  },
+  {
+    id: "1avalancheL1Academy-8native-token-bridge",
+    name: "Native Token Bridge",
+    description: "Completed the Native Token Bridge course",
+    image_path: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/academy_badges/Avalanche%20L1/Native_Token_Bridge.png",
+    category: "academy",
+    requirements: [
+      { id: "native-token-bridge", type: "course", points: 100, unlocked: false, course_id: "native-token-bridge", hackathon: null, description: "Complete the Native Token Bridge course" },
+    ],
+  },
+  {
+    id: "1avalancheL1Academy-9access-restriction",
     name: "Access Restriction",
-    description: "Successfully completed the Access Restriction course",
+    description: "Completed the Access Restriction course",
     image_path: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/academy_badges/Avalanche%20L1/Access_Restriction_Badge.png",
     category: "academy",
     requirements: [
       { id: "access-restriction", type: "course", points: 100, unlocked: false, course_id: "access-restriction", hackathon: null, description: "Complete the Access Restriction course" },
     ],
   },
-  // Full-completion badge — awarded when ALL 9 Avalanche L1 courses completed
   {
-    id: "1avalancheL1Academy-12academy-full-completion",
+    id: "1avalancheL1Academy-10academy-full-completion",
     name: "Avalanche L1 Academy Graduate",
-    description: "Successfully completed all Avalanche L1 Academy courses",
+    description: "Completed all Avalanche L1 Academy courses",
     image_path: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/academy_badges/Avalanche%20L1/Avalanche_L1_Academy_Badge.png",
     category: "academy",
     requirements: [
       { id: "avalanche-fundamentals", type: "course", points: 100, unlocked: false, course_id: "avalanche-fundamentals", hackathon: null, description: "Complete the Avalanche Fundamentals course" },
+      { id: "permissioned-l1s", type: "course", points: 100, unlocked: false, course_id: "permissioned-l1s", hackathon: null, description: "Complete the Permissioned L1s course" },
+      { id: "l1-native-tokenomics", type: "course", points: 100, unlocked: false, course_id: "l1-native-tokenomics", hackathon: null, description: "Complete the L1 Native Tokenomics course" },
       { id: "interchain-messaging", type: "course", points: 100, unlocked: false, course_id: "interchain-messaging", hackathon: null, description: "Complete the Interchain Messaging course" },
       { id: "customizing-evm", type: "course", points: 100, unlocked: false, course_id: "customizing-evm", hackathon: null, description: "Complete the Customizing the EVM course" },
+      { id: "permissionless-l1s", type: "course", points: 100, unlocked: false, course_id: "permissionless-l1s", hackathon: null, description: "Complete the Permissionless L1s course" },
       { id: "erc20-bridge", type: "course", points: 100, unlocked: false, course_id: "erc20-bridge", hackathon: null, description: "Complete the ERC-20 Bridge course" },
       { id: "native-token-bridge", type: "course", points: 100, unlocked: false, course_id: "native-token-bridge", hackathon: null, description: "Complete the Native Token Bridge course" },
-      { id: "l1-native-tokenomics", type: "course", points: 100, unlocked: false, course_id: "l1-native-tokenomics", hackathon: null, description: "Complete the L1 Native Tokenomics course" },
-      { id: "permissioned-l1s", type: "course", points: 100, unlocked: false, course_id: "permissioned-l1s", hackathon: null, description: "Complete the Permissioned L1s course" },
-      { id: "permissionless-l1s", type: "course", points: 100, unlocked: false, course_id: "permissionless-l1s", hackathon: null, description: "Complete the Permissionless L1s course" },
       { id: "access-restriction", type: "course", points: 100, unlocked: false, course_id: "access-restriction", hackathon: null, description: "Complete the Access Restriction course" },
     ],
   },
@@ -143,29 +151,56 @@ async function seedAvalancheL1Badges() {
       await prisma.badge.delete({ where: { id: badgeId } });
       console.log(`  Deleted: ${existing.name} (${badgeId})`);
     } else {
-      console.log(`  Skipped (not found): ${badgeId}`);
+      console.log(`  Skipped delete (not found): ${badgeId}`);
     }
   }
 
-  // Step 2: Update image URLs for existing badges
-  for (const { id, image_path } of imageUpdates) {
-    const existing = await prisma.badge.findUnique({ where: { id } });
+  // Step 2: Migrate existing badges to new IDs + update images
+  // Pattern: create new badge → migrate userBadge FKs → delete old badge
+  for (const { oldId, newId, image_path } of idMigrations) {
+    const existing = await prisma.badge.findUnique({ where: { id: oldId } });
     if (existing) {
-      await prisma.badge.update({
-        where: { id },
-        data: { image_path },
+      await prisma.badge.create({
+        data: {
+          id: newId,
+          name: existing.name,
+          description: `Completed the ${existing.name} course`,
+          image_path: image_path,
+          category: existing.category,
+          requirements: existing.requirements,
+          current_version: existing.current_version,
+        },
       });
-      console.log(`  Updated image: ${existing.name}`);
+      await prisma.userBadge.updateMany({
+        where: { badge_id: oldId },
+        data: { badge_id: newId },
+      });
+      await prisma.badge.delete({ where: { id: oldId } });
+      console.log(`  Migrated: ${existing.name} (${oldId} → ${newId})`);
     } else {
-      console.log(`  Skipped (not found): ${id}`);
+      // Check if already migrated (idempotent)
+      const already = await prisma.badge.findUnique({ where: { id: newId } });
+      if (already) {
+        await prisma.badge.update({
+          where: { id: newId },
+          data: { image_path, description: `Completed the ${already.name} course` },
+        });
+        console.log(`  Updated (already migrated): ${already.name}`);
+      } else {
+        console.log(`  Skipped migrate (not found): ${oldId}`);
+      }
     }
   }
 
-  // Step 3: Create new badges
+  // Step 3: Create new badges (idempotent — updates image + description if exists)
   for (const badge of newBadges) {
     const existing = await prisma.badge.findUnique({ where: { id: badge.id } });
     if (existing) {
-      console.log(`  Already exists: ${badge.name}`);
+      await prisma.badge.update({
+        where: { id: badge.id },
+        data: { image_path: badge.image_path, description: badge.description },
+      });
+      console.log(`  Updated: ${badge.name}`);
     } else {
       await prisma.badge.create({
         data: {
@@ -181,7 +216,7 @@ async function seedAvalancheL1Badges() {
     }
   }
 
-  console.log(`Done. Deleted ${BADGES_TO_DELETE.length}, updated ${imageUpdates.length} images, created ${newBadges.length} new badges.`);
+  console.log("Done.");
 }
 
 seedAvalancheL1Badges()
