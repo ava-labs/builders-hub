@@ -915,6 +915,49 @@
           "explanation": "A genesis.json file typically contains two main sections: the 'config' section, which defines chain parameters like chainId, hardfork activation blocks, fee configuration, and other EVM settings; and the 'alloc' section, which specifies initial token balances for addresses at chain creation. Additional fields like gasLimit and difficulty may also be present at the top level. Validator configuration and contract deployment are handled through separate mechanisms outside the genesis file."
         }
       ]
+    },
+    "115": {
+      "question": "How many VMs can Avalanche run?",
+      "options": [
+        "Only the Avalanche Virtual Machine",
+        "EVM and AVM",
+        "There is no limit to how many virtual machines can run on Avalanche. Everyone can create a modified VM catering best to their needs"
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "Think about the flexibility of Avalanche's architecture.",
+      "explanation": "Avalanche is designed to be highly flexible, allowing for an unlimited number of custom Virtual Machines to be created and run on the network.",
+      "chapter": "Virtual Machine Customization"
+    },
+    "116": {
+      "question": "Can a Virtual Machine (VM) be used to create multiple blockchains?",
+      "options": [
+        "Yes, the same VM can be used to create multiple blockchains",
+        "No, each blockchain requires a unique VM",
+        "Yes, but only if the blockchains are part of different networks"
+      ],
+      "correctAnswers": [
+        0
+      ],
+      "hint": "Think about how a VM can be customized to create different blockchains.",
+      "explanation": "You can think of a Virtual Machine (VM) as a blueprint for a blockchain, where the same VM can be used to create multiple blockchains. Each of these blockchains adheres to the same rules but remains logically independent from the others.",
+      "chapter": "Virtual Machine Customization"
+    },
+    "117": {
+      "question": "How does Avalanche handle the modification of Virtual Machines (VMs)?",
+      "options": [
+        "Customization is challenging and requires a wide consensus among network participants.",
+        "Customization is not allowed as it can compromise the security of the blockchain.",
+        "Avalanche offers an easy API for VM developers.",
+        "Avalanche does not support customization of VMs."
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "Think about how Avalanche allows developers to modify Virtual Machines.",
+      "explanation": "Unlike one-chain-fits all systems, which requires a wide consensus to make changes, Avalanche allows for straightforward customization of Virtual Machines, making it more adaptable to unique use cases.",
+      "chapter": "Virtual Machine Customization"
     }
   }
 }

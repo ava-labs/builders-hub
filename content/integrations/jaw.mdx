@@ -1,0 +1,266 @@
+---
+title: JAW
+category: Wallets and Account Abstraction
+available: ["C-Chain"]
+description: "Identity-centric smart account infrastructure with passkey authentication, gasless transactions, and programmable permissions for Avalanche applications."
+logo: /images/jaw.png
+developer: JAW
+website: https://jaw.id/
+documentation: https://docs.jaw.id/
+---
+
+## Overview
+
+[JAW](https://jaw.id/) provides smart account infrastructure for Avalanche applications. Give users passkey-secured accounts with ENS identity, sponsor their gas, and enable programmable permissions for subscriptions and delegated agent execution.
+
+## Features
+
+- **Passkey Authentication**: Phishing-resistant, synced across devices via iCloud/Google (works as transport layer)
+- **ERC-4337 Smart Accounts**: Gasless, batchable, and programmable
+- **EOA Upgrade**: Upgrade existing externally owned accounts to smart accounts without migrating assets
+- **EIP-1193 Compatible**: Drop-in replacement for MetaMask or any injected wallet
+- **Delegated Permissions**: Let contracts or agents perform scoped actions (ERC-7715)
+- **ENS Subname Issuance**: Assign human-readable identities on onboarding
+- **Headless / Server-Side Support**: AI agent wallets or backend-triggered transactions
+
+## Getting Started
+
+Get an API key from the [JAW Dashboard](https://dashboard.jaw.id) and add your domain to the allowed list. Use `localhost` for local development, your production domain for production.
+
+JAW offers two SDKs:
+
+- **`@jaw.id/wagmi`**: React connector with wagmi hooks. Use this for React and Next.js apps.
+- **`@jaw.id/core`**: Framework-agnostic EIP-1193 provider. Use this for vanilla JS, server-side, or headless environments.
+
+### wagmi (React / Next.js)
+
+#### Installation
+
+```bash
+npm install @jaw.id/wagmi wagmi @tanstack/react-query
+```
+
+#### Configuration
+
+Create your wagmi config with the JAW connector, then wrap your app with `WagmiProvider` and `QueryClientProvider`. Both are required.
+
+```typescript
+// config.ts
+import { createConfig, http } from 'wagmi';
+import { avalanche } from 'wagmi/chains';
+import { jaw } from '@jaw.id/wagmi';
+
+export const config = createConfig({
+  chains: [avalanche],
+  connectors: [
+    jaw({
+      apiKey: process.env.NEXT_PUBLIC_JAW_API_KEY!,
+      appName: 'My Avalanche App',
+      defaultChainId: avalanche.id, // 43114
+    }),
+  ],
+  transports: {
+    [avalanche.id]: http(),
+  },
+});
+```
+
+```tsx
+// App.tsx
+import { WagmiProvider } from 'wagmi';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { config } from './config';
+
+const queryClient = new QueryClient();
+
+export function App({ children }: { children: React.ReactNode }) {
+  return (
+    <WagmiProvider config={config}>
+      <QueryClientProvider client={queryClient}>
+        {children}
+      </QueryClientProvider>
+    </WagmiProvider>
+  );
+}
+```
+
+For testnet (Avalanche Fuji), enable `showTestnets` in the connector:
+
+```typescript
+jaw({
+  apiKey: process.env.NEXT_PUBLIC_JAW_API_KEY!,
+  defaultChainId: 43113, // Avalanche Fuji Testnet
+  preference: { showTestnets: true },
+})
+```
+
+#### Connect a Wallet
+
+Use `useConnect` from `@jaw.id/wagmi` (not from `wagmi`) to support JAW-specific capabilities like SIWE and subname issuance during connection.
+
+```tsx
+import { useConnect } from '@jaw.id/wagmi';
+import { useAccount } from 'wagmi';
+
+export function ConnectButton() {
+  const { connect, connectors } = useConnect();
+  const { address, isConnected } = useAccount();
+
+  if (isConnected) return <p>Connected: {address}</p>;
+
+  return (
+    <button onClick={() => connect({ connector: connectors[0] })}>
+      Sign in with Passkey
+    </button>
+  );
+}
+```
+
+In CrossPlatform mode, clicking the button opens a `keys.jaw.id` popup where the user registers or authenticates with their passkey. In AppSpecific mode, the `uiHandler` renders the UI inside your app instead.
+
+#### Send a Transaction
+
+```tsx
+import { useSendCalls } from 'wagmi';
+import { parseEther } from 'viem';
+
+export function SendAVAX() {
+  const { sendCalls } = useSendCalls();
+
+  return (
+    <button
+      onClick={() =>
+        sendCalls({
+          calls: [{
+            to: '0xRecipientAddress',
+            value: parseEther('0.01'),
+          }],
+        })
+      }
+    >
+      Send 0.01 AVAX
+    </button>
+  );
+}
+```
+
+#### Gasless Transactions
+
+JAW supports two approaches to removing gas friction for users:
+
+- **Sponsored (gasless)**: A paymaster covers gas fees entirely, so users pay nothing. Requires a paymaster URL in your config.
+- **Stablecoin gas payments**: Users pay gas fees in stablecoins (e.g. USDC) instead of AVAX. This works natively with JAW, no additional configuration needed.
+
+
+```typescript
+// config.ts
+import { createConfig, http } from 'wagmi';
+import { avalanche } from 'wagmi/chains';
+import { jaw } from '@jaw.id/wagmi';
+
+export const config = createConfig({
+  chains: [avalanche],
+  connectors: [
+    jaw({
+      apiKey: process.env.NEXT_PUBLIC_JAW_API_KEY!,
+      appName: 'My Avalanche App',
+      defaultChainId: avalanche.id,
+      paymasters: {
+        [avalanche.id]: { url: 'https://your-paymaster-url/rpc' },
+      },
+    }),
+  ],
+  transports: {
+    [avalanche.id]: http(),
+  },
+});
+```
+
+Once configured, transactions via `useSendCalls` and `useWriteContract` are automatically sponsored. No changes to your transaction code needed. See the [Gas Sponsoring guide](https://docs.jaw.id/guides/gas-sponsoring) for paymaster setup and stablecoin gas configuration.
+
+#### Delegated Permissions
+
+Permissions (ERC-7715) let you grant a spender (a backend wallet, contract, or AI agent) the ability to perform scoped actions on behalf of the user. Permissions define exactly which contracts can be called, how much can be spent, and for how long. Use them for subscription payments, recurring charges, and autonomous agent wallets.
+
+```tsx
+import { useGrantPermissions } from '@jaw.id/wagmi';
+import { parseUnits } from 'viem';
+
+const AVAX_NATIVE = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
+
+function GrantPermission() {
+  const { mutate: grant, isPending } = useGrantPermissions();
+
+  return (
+    <button
+      disabled={isPending}
+      onClick={() =>
+        grant({
+          end: Math.floor(Date.now() / 1000) + 86400 * 30, // 30 days
+          spender: '0xYourAgentOrBackendWallet',
+          permissions: {
+            calls: [{
+              target: '0xSomeContract',
+              functionSignature: 'execute(address,uint256)',
+            }],
+            spends: [{
+              token: AVAX_NATIVE,
+              allowance: parseUnits('1', 18).toString(), // 1 AVAX per day
+              unit: 'day',
+            }],
+          },
+        }, {
+          onSuccess: ({ permissionId }) => {
+            console.log('Permission granted:', permissionId);
+          },
+        })
+      }
+    >
+      Grant Permission
+    </button>
+  );
+}
+```
+
+Use `usePermissions` to query active permissions and `useRevokePermissions` to revoke them, both from `@jaw.id/wagmi`.
+
+### core (Framework-Agnostic)
+
+JAW also provides `@jaw.id/core`, a framework-agnostic EIP-1193 provider for vanilla JS, server-side, or headless environments. Use it when you don't need React or wagmi. See the [Core SDK documentation](https://docs.jaw.id/core) for setup and usage.
+
+### Headless / Server-Side
+
+For AI agent wallets and backend-triggered transactions, JAW supports headless smart accounts via `Account.fromLocalAccount()`. Wrap any viem `LocalAccount` (private key, Turnkey, Fireblocks, or other KMS) into a JAW smart account without any browser or passkey. See the [Account API documentation](https://docs.jaw.id/account) for full details.
+
+To use JAW as a smart account layer on top of an existing KMS provider, see the [KMS examples](https://github.com/JustaName-id/jaw-examples/tree/main/examples/kms).
+
+## Authentication Modes
+
+- **CrossPlatform** (default): Passkey operations run on `keys.jaw.id` via a popup, giving users a portable wallet that works across any JAW-powered app.
+- **AppSpecific**: Passkey operations run inside your app via a `uiHandler`, giving you full UI control at the cost of wallet portability.
+
+See the [JAW configuration docs](https://docs.jaw.id/configuration) for setup details and UIHandler implementation.
+
+## Use Cases
+
+- **User Onboarding**: Passkey-based sign-in with no browser extension or seed phrase needed
+- **Gasless DeFi**: Sponsor gas so users can interact with DeFi protocols without holding AVAX
+- **Subscription Payments**: Recurring charges via delegated permissions (ERC-7715)
+- **AI Agent Wallets**: Headless smart accounts for autonomous on-chain agents
+- **Enterprise Apps**: Backend-triggered transactions with server-side `Account.fromLocalAccount()`
+
+## Documentation
+
+For full integration guides, API reference, and examples:
+
+- [Quickstart Guide](https://docs.jaw.id/guides/quickstart)
+- [Account API](https://docs.jaw.id/account)
+- [Gas Sponsoring](https://docs.jaw.id/guides/gas-sponsoring)
+- [Sign-In With Ethereum](https://docs.jaw.id/guides/sign-in-with-ethereum)
+- [Subscription Payments](https://docs.jaw.id/guides/subscription-payments)
+- [Onchain Identity](https://docs.jaw.id/guides/onchain-identity)
+- [Skills](https://docs.jaw.id/skills)
+- [Configuration Reference](https://docs.jaw.id/configuration)
+- [Source Code](https://github.com/JustaName-id/jaw-mono)
+- [Example Integrations](https://github.com/JustaName-id/jaw-examples)
+
