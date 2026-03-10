@@ -58,7 +58,7 @@ async function updateEntrepreneurBadges() {
           description: description,
           image_path: image_path,
           category: existing.category,
-          requirements: existing.requirements,
+          requirements: existing.requirements as any,
           current_version: existing.current_version,
         },
       });

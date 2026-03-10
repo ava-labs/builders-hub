@@ -167,7 +167,7 @@ async function seedAvalancheL1Badges() {
           description: `Completed the ${existing.name} course`,
           image_path: image_path,
           category: existing.category,
-          requirements: existing.requirements,
+          requirements: existing.requirements as any,
           current_version: existing.current_version,
         },
       });
@@ -209,7 +209,7 @@ async function seedAvalancheL1Badges() {
           description: badge.description,
           image_path: badge.image_path,
           category: badge.category,
-          requirements: badge.requirements,
+          requirements: badge.requirements as any,
         },
       });
       console.log(`  Created: ${badge.name}`);
