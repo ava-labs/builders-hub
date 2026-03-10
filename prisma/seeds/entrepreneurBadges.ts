@@ -2,98 +2,52 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-interface EntrepreneurBadgeSeed {
-  id: string;
-  name: string;
-  description: string;
-  image_path: string;
-  category: string;
-  requirements: { id: string; course_id: string; type: string; description: string; unlocked: boolean }[];
-}
-
-const entrepreneurBadges: EntrepreneurBadgeSeed[] = [
+// Only updating image URLs — no structural changes
+const imageUpdates: { id: string; image_path: string }[] = [
   {
-    id: "entrepreneuracademy-foundations-web3-venture",
-    name: "Foundations of a Web3 Venture",
-    description: "Completed the Foundations of a Web3 Venture course",
+    id: "3entrepreneurAcademy-1foundations-web3-venture",
     image_path: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/academy_badges/Entrepreneur/Foundations_Web3_Venture_Badge.png",
-    category: "academy",
-    requirements: [
-      { id: "foundations-web3-venture-complete", course_id: "foundations-web3-venture", type: "course", description: "Complete Foundations of a Web3 Venture", unlocked: false },
-    ],
   },
   {
-    id: "entrepreneuracademy-go-to-market",
-    name: "Go-to-Market Strategist",
-    description: "Completed the Go-to-Market Strategist course",
-    image_path: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/academy_badges/Entrepreneur/Go_To_Market_Badge.png",
-    category: "academy",
-    requirements: [
-      { id: "go-to-market-complete", course_id: "go-to-market", type: "course", description: "Complete Go-to-Market Strategist", unlocked: false },
-    ],
-  },
-  {
-    id: "entrepreneuracademy-web3-community-architect",
-    name: "Web3 Community Architect",
-    description: "Completed the Web3 Community Architect course",
-    image_path: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/academy_badges/Entrepreneur/Community_Architect_Badge.png",
-    category: "academy",
-    requirements: [
-      { id: "web3-community-architect-complete", course_id: "web3-community-architect", type: "course", description: "Complete Web3 Community Architect", unlocked: false },
-    ],
-  },
-  {
-    id: "entrepreneuracademy-fundraising-finance",
-    name: "Fundraising & Finance Pro",
-    description: "Completed the Fundraising & Finance Pro course",
+    id: "3entrepreneurAcademy-2fundraising-finance",
     image_path: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/academy_badges/Entrepreneur/Fundraising_Badge.png",
-    category: "academy",
-    requirements: [
-      { id: "fundraising-finance-complete", course_id: "fundraising-finance", type: "course", description: "Complete Fundraising & Finance Pro", unlocked: false },
-    ],
+  },
+  {
+    id: "3entrepreneurAcademy-3go-to-market",
+    image_path: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/academy_badges/Entrepreneur/Go_To_Market_Badge.png",
+  },
+  {
+    id: "3entrepreneurAcademy-4web3-community-architect",
+    image_path: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/academy_badges/Entrepreneur/Community_Architect_Badge.png",
+  },
+  {
+    id: "3entrepreneurAcademy-5academy-full-completion",
+    image_path: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/academy_badges/Entrepreneur_Academy_Badge.png",
   },
 ];
 
-async function seedEntrepreneurBadges() {
-  console.log("Seeding entrepreneur academy badges...");
+async function updateEntrepreneurBadgeImages() {
+  console.log("Updating entrepreneur academy badge images...");
 
-  for (const badge of entrepreneurBadges) {
-    const existing = await prisma.badge.findFirst({
-      where: { name: badge.name, category: "academy" },
-    });
-
+  for (const { id, image_path } of imageUpdates) {
+    const existing = await prisma.badge.findUnique({ where: { id } });
     if (existing) {
       await prisma.badge.update({
-        where: { id: existing.id },
-        data: {
-          id: badge.id,
-          description: badge.description,
-          image_path: badge.image_path,
-          requirements: badge.requirements,
-        },
+        where: { id },
+        data: { image_path },
       });
-      console.log(`  Updated: ${badge.name}`);
+      console.log(`  Updated: ${existing.name}`);
     } else {
-      await prisma.badge.create({
-        data: {
-          id: badge.id,
-          name: badge.name,
-          description: badge.description,
-          image_path: badge.image_path,
-          category: badge.category,
-          requirements: badge.requirements,
-        },
-      });
-      console.log(`  Created: ${badge.name}`);
+      console.log(`  Skipped (not found): ${id}`);
     }
   }
 
-  console.log(`Done. ${entrepreneurBadges.length} entrepreneur academy badges seeded.`);
+  console.log(`Done. ${imageUpdates.length} entrepreneur badge images updated.`);
 }
 
-seedEntrepreneurBadges()
+updateEntrepreneurBadgeImages()
   .catch((e) => {
-    console.error("Error seeding entrepreneur badges:", e);
+    console.error("Error updating entrepreneur badge images:", e);
     process.exit(1);
   })
   .finally(async () => {
