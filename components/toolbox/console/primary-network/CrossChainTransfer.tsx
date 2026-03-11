@@ -236,7 +236,7 @@ function CrossChainTransfer({
                     fromAddress: walletEVMAddress as `0x${string}`
                 });
                 const txnResponse = await coreWalletClient.sendXPTransaction(txnRequest);
-                await coreWalletClient.waitForTxn(txnResponse);
+                await coreWalletClient.waitForTxn({ ...txnResponse, sleepTime: 2000, maxRetries: 30 });
                 return { txHash: txnResponse.txHash, xpChain: "C" as const };
             } else {
                 const txnRequest = await coreWalletClient.pChain.prepareExportTxn({
@@ -247,7 +247,7 @@ function CrossChainTransfer({
                     destinationChain: "C"
                 });
                 const txnResponse = await coreWalletClient.sendXPTransaction(txnRequest);
-                await coreWalletClient.waitForTxn(txnResponse);
+                await coreWalletClient.waitForTxn({ ...txnResponse, sleepTime: 2000, maxRetries: 30 });
                 return { txHash: txnResponse.txHash, xpChain: "P" as const };
             }
         })();
@@ -287,7 +287,7 @@ function CrossChainTransfer({
                     }
                 });
                 const txnResponse = await coreWalletClient.sendXPTransaction(txnRequest);
-                await coreWalletClient.waitForTxn(txnResponse);
+                await coreWalletClient.waitForTxn({ ...txnResponse, sleepTime: 2000, maxRetries: 30 });
                 return { txHash: String(txnResponse.txHash), xpChain: "P" as const };
             } else {
                 const txnRequest = await coreWalletClient.cChain.prepareImportTxn({
@@ -295,7 +295,7 @@ function CrossChainTransfer({
                     toAddress: walletEVMAddress as `0x${string}`,
                 });
                 const txnResponse = await coreWalletClient.sendXPTransaction(txnRequest);
-                await coreWalletClient.waitForTxn(txnResponse);
+                await coreWalletClient.waitForTxn({ ...txnResponse, sleepTime: 2000, maxRetries: 30 });
                 return { txHash: String(txnResponse.txHash), xpChain: "C" as const };
             }
         })();
@@ -421,7 +421,7 @@ const txnRequest = await coreWalletClient.cChain.prepareExportTxn({
 });
 
 const txnResponse = await coreWalletClient.sendXPTransaction(txnRequest);
-await coreWalletClient.waitForTxn(txnResponse);
+await coreWalletClient.waitForTxn({ ...txnResponse, sleepTime: 2000, maxRetries: 30 });
 console.log("Export tx:", txnResponse.txHash);`
                     : `import { CoreWalletClient } from "@core-wallet/sdk";
 
@@ -435,7 +435,7 @@ const txnRequest = await coreWalletClient.pChain.prepareExportTxn({
 });
 
 const txnResponse = await coreWalletClient.sendXPTransaction(txnRequest);
-await coreWalletClient.waitForTxn(txnResponse);
+await coreWalletClient.waitForTxn({ ...txnResponse, sleepTime: 2000, maxRetries: 30 });
 console.log("Export tx:", txnResponse.txHash);`,
                 description: isCtoP
                     ? "Export AVAX from C-Chain to P-Chain using Core Wallet SDK"
@@ -456,7 +456,7 @@ const txnRequest = await coreWalletClient.pChain.prepareImportTxn({
 });
 
 const txnResponse = await coreWalletClient.sendXPTransaction(txnRequest);
-await coreWalletClient.waitForTxn(txnResponse);
+await coreWalletClient.waitForTxn({ ...txnResponse, sleepTime: 2000, maxRetries: 30 });
 console.log("Import tx:", txnResponse.txHash);`
                     : `import { CoreWalletClient } from "@core-wallet/sdk";
 
@@ -467,7 +467,7 @@ const txnRequest = await coreWalletClient.cChain.prepareImportTxn({
 });
 
 const txnResponse = await coreWalletClient.sendXPTransaction(txnRequest);
-await coreWalletClient.waitForTxn(txnResponse);
+await coreWalletClient.waitForTxn({ ...txnResponse, sleepTime: 2000, maxRetries: 30 });
 console.log("Import tx:", txnResponse.txHash);`,
                 description: isCtoP
                     ? "Import the exported AVAX to P-Chain"
