@@ -4,6 +4,7 @@ import { Globe, ChevronRight, AppWindow, LayoutGrid } from "lucide-react";
 import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import GasTreemap from "@/components/stats/gas-treemap";
+import ContractGasXray from "@/components/stats/contract-gas-xray";
 
 export default function TreemapPage() {
   return (
@@ -56,6 +57,10 @@ export default function TreemapPage() {
       {/* Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
         <GasTreemap />
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-8">
+        <ContractGasXray />
       </div>
 
       <StatsBubbleNav />

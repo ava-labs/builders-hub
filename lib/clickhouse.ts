@@ -467,6 +467,59 @@ export async function getTotalChainGas(days: number): Promise<TotalChainStats> {
   };
 }
 
+// ============ Contract Gas X-Ray Queries (raw_traces) ============
+
+// Query A: Who calls this contract and how much gas each caller sends
+export function buildContractGasReceivedQuery(address: string, days: number): string {
+  const timeFilter = days > 0 ? `AND block_time >= now() - INTERVAL ${days} DAY` : '';
+  return `
+    SELECT
+      lower(concat('0x', hex(\`from\`))) as address,
+      sum(gas_used) as gas,
+      uniqExact(tx_hash) as tx_count
+    FROM raw_traces
+    WHERE chain_id = ${C_CHAIN_ID}
+      AND \`to\` = unhex('${toUnhex(address)}')
+      AND call_type IN ('CALL', 'CREATE', 'CREATE2')
+      ${timeFilter}
+    GROUP BY \`from\`
+    ORDER BY gas DESC
+  `;
+}
+
+// Query B: What contracts does this contract call and how much gas it gives
+export function buildContractGasGivenQuery(address: string, days: number): string {
+  const timeFilter = days > 0 ? `AND block_time >= now() - INTERVAL ${days} DAY` : '';
+  return `
+    SELECT
+      lower(concat('0x', hex(\`to\`))) as address,
+      sum(gas_used) as gas,
+      uniqExact(tx_hash) as tx_count
+    FROM raw_traces
+    WHERE chain_id = ${C_CHAIN_ID}
+      AND \`from\` = unhex('${toUnhex(address)}')
+      AND call_type IN ('CALL', 'CREATE', 'CREATE2')
+      ${timeFilter}
+    GROUP BY \`to\`
+    ORDER BY gas DESC
+  `;
+}
+
+// Query C: Transaction and caller summary for the target contract
+export function buildContractTxSummaryQuery(address: string, days: number): string {
+  const timeFilter = days > 0 ? `AND block_time >= now() - INTERVAL ${days} DAY` : '';
+  return `
+    SELECT
+      uniqExact(tx_hash) as total_txs,
+      uniqExact(tx_from) as unique_callers
+    FROM raw_traces
+    WHERE chain_id = ${C_CHAIN_ID}
+      AND (\`to\` = unhex('${toUnhex(address)}') OR \`from\` = unhex('${toUnhex(address)}'))
+      AND call_type IN ('CALL', 'CREATE', 'CREATE2')
+      ${timeFilter}
+  `;
+}
+
 // Top unknown contracts (not in known address list) by gas
 export interface UnknownContract {
   address: string;
