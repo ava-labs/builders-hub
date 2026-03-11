@@ -424,8 +424,20 @@ export async function getTotalChainGas(days: number): Promise<TotalChainStats> {
 
 // ============ Contract Gas X-Ray Queries (raw_traces) ============
 
+// Validate and convert address to safe hex string for SQL interpolation.
+// Defense-in-depth: even if the API caller forgets to validate, this
+// ensures only exactly 40 lowercase hex chars ever reach the query.
+function toSafeHex(address: string): string {
+  const hex = toUnhex(address);
+  if (!/^[a-f0-9]{40}$/.test(hex)) {
+    throw new Error(`Invalid address for query: ${address}`);
+  }
+  return hex;
+}
+
 // Query A: Who calls this contract and how much gas each caller sends
 export function buildContractGasReceivedQuery(address: string, days: number): string {
+  const hex = toSafeHex(address);
   const timeFilter = days > 0 ? `AND block_time >= now() - INTERVAL ${days} DAY` : '';
   return `
     SELECT
@@ -434,7 +446,7 @@ export function buildContractGasReceivedQuery(address: string, days: number): st
       uniqExact(tx_hash) as tx_count
     FROM raw_traces
     WHERE chain_id = ${C_CHAIN_ID}
-      AND \`to\` = unhex('${toUnhex(address)}')
+      AND \`to\` = unhex('${hex}')
       AND call_type IN ('CALL', 'CREATE', 'CREATE2')
       ${timeFilter}
     GROUP BY \`from\`
@@ -444,6 +456,7 @@ export function buildContractGasReceivedQuery(address: string, days: number): st
 
 // Query B: What contracts does this contract call and how much gas it gives
 export function buildContractGasGivenQuery(address: string, days: number): string {
+  const hex = toSafeHex(address);
   const timeFilter = days > 0 ? `AND block_time >= now() - INTERVAL ${days} DAY` : '';
   return `
     SELECT
@@ -452,7 +465,7 @@ export function buildContractGasGivenQuery(address: string, days: number): strin
       uniqExact(tx_hash) as tx_count
     FROM raw_traces
     WHERE chain_id = ${C_CHAIN_ID}
-      AND \`from\` = unhex('${toUnhex(address)}')
+      AND \`from\` = unhex('${hex}')
       AND call_type IN ('CALL', 'CREATE', 'CREATE2')
       ${timeFilter}
     GROUP BY \`to\`
@@ -462,6 +475,7 @@ export function buildContractGasGivenQuery(address: string, days: number): strin
 
 // Query C: Transaction and caller summary for the target contract
 export function buildContractTxSummaryQuery(address: string, days: number): string {
+  const hex = toSafeHex(address);
   const timeFilter = days > 0 ? `AND block_time >= now() - INTERVAL ${days} DAY` : '';
   return `
     SELECT
@@ -469,7 +483,7 @@ export function buildContractTxSummaryQuery(address: string, days: number): stri
       uniqExact(tx_from) as unique_callers
     FROM raw_traces
     WHERE chain_id = ${C_CHAIN_ID}
-      AND (\`to\` = unhex('${toUnhex(address)}') OR \`from\` = unhex('${toUnhex(address)}'))
+      AND (\`to\` = unhex('${hex}') OR \`from\` = unhex('${hex}'))
       AND call_type IN ('CALL', 'CREATE', 'CREATE2')
       ${timeFilter}
   `;
