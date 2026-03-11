@@ -1,5 +1,6 @@
 .DS_Store
 .cursor
+.yarnrc
 # Logs
 logs
 *.log

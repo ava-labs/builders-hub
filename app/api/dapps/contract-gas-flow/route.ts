@@ -48,7 +48,8 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const address = searchParams.get('address');
-    const days = parseInt(searchParams.get('days') || '30');
+    const daysRaw = parseInt(searchParams.get('days') || '30');
+    const days = Number.isFinite(daysRaw) && daysRaw > 0 && daysRaw <= 365 ? daysRaw : 30;
 
     if (!address || !/^0x[a-fA-F0-9]{40}$/.test(address)) {
       return NextResponse.json(

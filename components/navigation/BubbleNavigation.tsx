@@ -84,9 +84,10 @@ export default function BubbleNavigation({
       const distanceToFooter = windowHeight - footerRect.top;
 
       if (footerRect.top <= windowHeight && footerRect.top > 0) {
+        // Cap offset so the bubble never gets pushed beyond 100px from bottom
         const newBottomOffset = Math.max(
           margin,
-          Math.min(distanceToFooter + margin, windowHeight - navHeight - margin)
+          Math.min(distanceToFooter + margin, 100)
         );
         setBottomOffset(newBottomOffset);
       } else {

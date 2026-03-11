@@ -85,6 +85,50 @@ export function buildSwapPricesCTE(timeFilter: string): string {
   )`;
 }
 
+// Build trace_attribution CTE: "received minus given" self-gas per contract.
+// For each known address, computes gas_used from traces WHERE to=address (received)
+// minus gas_used from traces WHERE from=address (given away to sub-calls).
+// Filters to CALL/CREATE/CREATE2 — excludes DELEGATECALL (keeps gas with proxy)
+// and STATICCALL (read-only, gas already counted in parent).
+export function buildTraceAttributionCTE(addresses: string[], timeFilter: string): string {
+  const toFilter = buildAddressFilter(addresses, 'tr.to');
+  const fromFilter = buildAddressFilter(addresses, 'tr.from');
+
+  return `trace_attribution AS (
+    SELECT
+      address,
+      tx_hash,
+      greatest(sum(received) - sum(given), 0) AS self_gas
+    FROM (
+      SELECT
+        lower(concat('0x', hex(tr.to))) AS address,
+        tr.tx_hash AS tx_hash,
+        toInt64(tr.gas_used) AS received,
+        0 AS given
+      FROM raw_traces tr
+      WHERE tr.chain_id = ${C_CHAIN_ID}
+        AND ${toFilter}
+        AND tr.call_type IN ('CALL', 'CREATE', 'CREATE2')
+        ${timeFilter.replace(/\bblock_time\b/g, 'tr.block_time')}
+
+      UNION ALL
+
+      SELECT
+        lower(concat('0x', hex(tr.from))) AS address,
+        tr.tx_hash AS tx_hash,
+        0 AS received,
+        toInt64(tr.gas_used) AS given
+      FROM raw_traces tr
+      WHERE tr.chain_id = ${C_CHAIN_ID}
+        AND ${fromFilter}
+        AND tr.call_type IN ('CALL', 'CREATE', 'CREATE2')
+        ${timeFilter.replace(/\bblock_time\b/g, 'tr.block_time')}
+    )
+    GROUP BY address, tx_hash
+    HAVING self_gas > 0
+  )`;
+}
+
 // Protocol stats from transactions
 export interface ProtocolStats {
   txCount: number;
