@@ -1,7 +1,7 @@
 // ClickHouse client for querying C-Chain analytics data
-
-const CLICKHOUSE_URL = process.env.CLICKHOUSE_URL || '';
-const CLICKHOUSE_USER = process.env.CLICKHOUSE_USER || '';
+// Vercel uses CLICKHOUSE_PROXY_URL; local dev uses CLICKHOUSE_URL directly
+const CLICKHOUSE_URL = process.env.CLICKHOUSE_PROXY_URL || process.env.CLICKHOUSE_URL || '';
+const CLICKHOUSE_USER = process.env.CLICKHOUSE_USER || 'readonly';
 const CLICKHOUSE_PASSWORD = process.env.CLICKHOUSE_PASSWORD || '';
 const CLICKHOUSE_DATABASE = process.env.CLICKHOUSE_DATABASE || 'default';
 
