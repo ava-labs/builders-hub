@@ -12,39 +12,86 @@ import {
   CommandItem,
   CommandList,
 } from "./command";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { cn } from "@/utils/cn";
 
-// Mapping of UTC offsets to major cities/regions
-export const timezoneMap: Record<string, string[]> = {
-  "Pacific/Midway": ["(GMT -11:00) Baker Island, US Minor Outlying Islands"],
-  "Pacific/Pago_Pago": ["(GMT -11:00) Pago Pago, American Samoa"],
-  "Pacific/Honolulu": ["(GMT -10:00) Honolulu, Hawaii"],
-  "America/Anchorage": ["(GMT -09:00) Anchorage, Alaska"],
-  "America/Los_Angeles": ["(GMT -08:00) Los Angeles, Vancouver"],
-  "America/Denver": ["(GMT -07:00) Phoenix, Denver"],
-  "America/Chicago": ["(GMT -06:00) Chicago, Mexico City"],
-  "America/New_York": ["(GMT -05:00) Bogotá, New York"],
-  "America/Santiago": ["(GMT -04:00) Santiago, Santo Domingo"],
-  "America/Sao_Paulo": ["(GMT -03:00) São Paulo, Buenos Aires"],
-  "America/Noronha": ["(GMT -02:00) Fernando de Noronha, Brazil"],
-  "Atlantic/Azores": ["(GMT -01:00) Azores, Cape Verde"],
-  "Europe/London": ["(GMT +00:00) London, Dublin"],
-  "Europe/Berlin": ["(GMT +01:00) Berlin, Paris"],
-  "Africa/Cairo": ["(GMT +02:00) Cairo, Jerusalem"],
-  "Europe/Istanbul": ["(GMT +03:00) Moscow, Istanbul"],
-  "Asia/Dubai": ["(GMT +04:00) Dubai, Baku"],
-  "Asia/Karachi": ["(GMT +05:00) Karachi, Tashkent"],
-  "Asia/Dhaka": ["(GMT +06:00) Dhaka, Almaty"],
-  "Asia/Bangkok": ["(GMT +07:00) Bangkok, Jakarta"],
-  "Asia/Singapore": ["(GMT +08:00) Singapore, Beijing"],
-  "Asia/Tokyo": ["(GMT +09:00) Tokyo, Seoul"],
-  "Australia/Sydney": ["(GMT +10:00) Sydney, Melbourne"],
-  "Pacific/Noumea": ["(GMT +11:00) Noumea, Solomon Islands"],
-  "Pacific/Auckland": ["(GMT +12:00) Auckland, Fiji"],
-  "Pacific/Apia": ["(GMT +13:00) Samoa, Tonga"],
-  "Pacific/Kiritimati": ["(GMT +14:00) Kiritimati, Line Islands"],
-};
+interface TimezoneInfo {
+  id: string;
+  label: string;
+  offset: number;
+  offsetString: string;
+}
+
+/**
+ * Get all supported timezones with their current offsets using native Intl API
+ */
+function getAllTimezones(): TimezoneInfo[] {
+  const timezones = Intl.supportedValuesOf('timeZone');
+  console.debug('Supported timezones:', timezones);
+  const now = new Date();
+  
+  return timezones.map((tz) => {
+    const offset = getTimezoneOffset(tz, now);
+    const offsetString = formatOffset(offset);
+    const label = formatTimezoneLabel(tz, offsetString);
+    
+    return {
+      id: tz,
+      label,
+      offset,
+      offsetString,
+    };
+  }).sort((a, b) => a.offset - b.offset);
+}
+
+/**
+ * Format offset in minutes to string like "GMT-05:00"
+ */
+function formatOffset(offsetMinutes: number): string {
+  const sign = offsetMinutes >= 0 ? '+' : '-';
+  const absMinutes = Math.abs(offsetMinutes);
+  const hours = Math.floor(absMinutes / 60);
+  const minutes = absMinutes % 60;
+  return `GMT${sign}${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+}
+
+/**
+ * Format timezone label: "(GMT-05:00) America/New_York"
+ */
+function formatTimezoneLabel(tzId: string, offsetString: string): string {
+  return `(${offsetString}) ${tzId}`;
+}
+
+/**
+ * Gets the UTC offset in minutes for a timezone at a given date
+ */
+function getTimezoneOffset(tz: string, date: Date): number {
+  const utcDate = new Date(date.toLocaleString('en-US', { timeZone: 'UTC' }));
+  const tzDate = new Date(date.toLocaleString('en-US', { timeZone: tz }));
+  return (tzDate.getTime() - utcDate.getTime()) / 60000;
+}
+
+
+
+/**
+ * Check if a timezone ID is valid
+ */
+export function isValidTimezone(tz: string): boolean {
+  try {
+    Intl.DateTimeFormat(undefined, { timeZone: tz });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Resolves a timezone - validates it exists or returns empty string
+ */
+export function resolveTimezone(tz: string): string {
+  if (!tz) return '';
+  return isValidTimezone(tz) ? tz : '';
+}
 
 type Props = {
   timeZone: string;
@@ -53,6 +100,15 @@ type Props = {
 
 export function TimeZoneSelect({ timeZone, setTimeZone }: Props) {
   const [open, setOpen] = useState(false);
+  
+  // Memoize timezone list - computed once per component mount
+  const timezones = useMemo(() => getAllTimezones(), []);
+  
+  // Find current timezone info for display
+  const currentTz = useMemo(() => 
+    timezones.find(tz => tz.id === timeZone), 
+    [timezones, timeZone]
+  );
 
   return (
     <div
@@ -74,13 +130,12 @@ export function TimeZoneSelect({ timeZone, setTimeZone }: Props) {
             className="w-[270px] justify-between"
           >
             <AlarmClock
-              className="h-5 w-5 !text-zinc-600 dark:!text-zinc-400" /** text-zinc-400 = #a1a1aa */
+              className="h-5 w-5 !text-zinc-600 dark:!text-zinc-400"
             />
-            <p className="!text-zinc-600 dark:!text-zinc-400">
-              {timezoneMap[timeZone]
-                ? timezoneMap[timeZone][0]?.slice(0, 25)
+            <p className="!text-zinc-600 dark:!text-zinc-400 truncate">
+              {currentTz
+                ? currentTz.label.slice(0, 25) + (currentTz.label.length > 25 ? '...' : '')
                 : "Select time zone"}
-              ...
             </p>
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50 !text-zinc-600 dark:!text-zinc-400" />
           </Button>
@@ -91,26 +146,22 @@ export function TimeZoneSelect({ timeZone, setTimeZone }: Props) {
             <CommandList>
               <CommandEmpty>No time zone found.</CommandEmpty>
               <CommandGroup>
-                {Object.entries(timezoneMap).map((timeZoneEntrie) => (
+                {timezones.map((tz) => (
                   <CommandItem
-                    key={timeZoneEntrie[0]}
-                    value={timeZoneEntrie[0]}
-                    onSelect={(currentValue) => {
-                      setTimeZone(
-                        timeZone === timeZoneEntrie[0] ? "" : currentValue
-                      );
+                    key={tz.id}
+                    value={`${tz.id} ${tz.label}`}
+                    onSelect={() => {
+                      setTimeZone(timeZone === tz.id ? "" : tz.id);
                       setOpen(false);
                     }}
                   >
                     <Check
                       className={cn(
                         "mr-2 h-4 w-4 !text-zinc-600 dark:!text-zinc-400",
-                        timeZone === timeZoneEntrie[0]
-                          ? "opacity-100"
-                          : "opacity-0"
+                        timeZone === tz.id ? "opacity-100" : "opacity-0"
                       )}
                     />
-                    {timeZoneEntrie[1]}
+                    {tz.label}
                   </CommandItem>
                 ))}
               </CommandGroup>
