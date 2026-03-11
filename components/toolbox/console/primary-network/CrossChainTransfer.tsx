@@ -52,6 +52,8 @@ function CrossChainTransfer({
     const [cToP_UTXOs, setC_To_P_UTXOs] = useState<Utxo<TransferOutput>[]>([])
     const [pToC_UTXOs, setP_To_C_UTXOs] = useState<Utxo<TransferOutput>[]>([])
     const isFetchingRef = useRef(false)
+    const autoImportTriggeredRef = useRef(false)
+    const handleImportRef = useRef<() => Promise<void>>(undefined)
     const [criticalError, setCriticalError] = useState<Error | null>(null)
 
     // Add states for step collapse timing
@@ -145,14 +147,10 @@ function CrossChainTransfer({
 
     const pollForUTXOChanges = useCallback(async () => {
         try {
-            for (let i = 0; i < 10; i++) {
-                await new Promise(resolve => setTimeout(resolve, (i + 1) * 1000));
+            for (let i = 0; i < 15; i++) {
+                await new Promise(resolve => setTimeout(resolve, 2000));
                 const utxosChanged = await fetchUTXOs();
-
-                // Break the loop if UTXOs changed
-                if (utxosChanged) {
-                    break;
-                }
+                if (utxosChanged) break;
             }
         } catch (e) {
             // Critical UTXO fetch failure - blockchain state unknown
@@ -225,6 +223,7 @@ function CrossChainTransfer({
 
         setExportLoading(true);
         setError(null);
+        autoImportTriggeredRef.current = false;
 
         const exportPromise = (async () => {
             if (sourceChain === "c-chain") {
@@ -321,6 +320,9 @@ function CrossChainTransfer({
         }
     }
 
+    // Keep import ref in sync for auto-import effect
+    handleImportRef.current = handleImport;
+
     // Get the available UTXOs based on current direction
     const availableUTXOs = destinationChain === "p-chain" ? cToP_UTXOs : pToC_UTXOs;
     const totalUtxoAmount = destinationChain === "p-chain" ? totalCToPUtxoAmount : totalPToCUtxoAmount;
@@ -342,24 +344,36 @@ function CrossChainTransfer({
         return 'pending';
     };
 
-    // Auto-collapse logic after success message
+    // Collapse step 1 when step 2 becomes actionable (UTXOs arrived or import started)
     useEffect(() => {
-        if (completedExportTxId && !step1AutoCollapse) {
-            const timer = setTimeout(() => {
-                setStep1AutoCollapse(true);
-            }, 2000); // 2 seconds after success message
-            return () => clearTimeout(timer);
+        if (completedExportTxId && !step1AutoCollapse && (availableUTXOs.length > 0 || importLoading)) {
+            setStep1AutoCollapse(true);
         }
-    }, [completedExportTxId, step1AutoCollapse]);
+    }, [completedExportTxId, step1AutoCollapse, availableUTXOs.length, importLoading]);
 
     useEffect(() => {
         if (importTxId && !step2AutoCollapse) {
             const timer = setTimeout(() => {
                 setStep2AutoCollapse(true);
-            }, 2000); // 2 seconds after success message
+            }, 2000);
             return () => clearTimeout(timer);
         }
     }, [importTxId, step2AutoCollapse]);
+
+    // Auto-trigger import after export completes and UTXOs arrive
+    useEffect(() => {
+        if (
+            completedExportTxId &&
+            completedExportTxId !== "utxo-available" &&
+            availableUTXOs.length > 0 &&
+            !importTxId &&
+            !importLoading &&
+            !autoImportTriggeredRef.current
+        ) {
+            autoImportTriggeredRef.current = true;
+            handleImportRef.current?.();
+        }
+    }, [completedExportTxId, availableUTXOs.length, importTxId, importLoading]);
 
     // Auto-skip to step 2 if UTXOs are already available
     useEffect(() => {
@@ -370,20 +384,20 @@ function CrossChainTransfer({
         }
     }, [availableUTXOs.length, completedExportTxId, exportTxId, importTxId]);
 
-    // Auto-switch to direction with pending UTXOs
+    // Auto-switch to direction with pending UTXOs (only on initial load)
+    const hasAutoSwitchedRef = useRef(false);
     useEffect(() => {
+        if (hasAutoSwitchedRef.current) return;
         if (!exportTxId && !completedExportTxId && !importTxId) {
-            // Only auto-switch when no active transfer
             if (cToP_UTXOs.length > 0 && pToC_UTXOs.length === 0) {
-                // Only C→P UTXOs, switch to C→P direction
                 setSourceChain("c-chain");
                 setDestinationChain("p-chain");
+                hasAutoSwitchedRef.current = true;
             } else if (pToC_UTXOs.length > 0 && cToP_UTXOs.length === 0) {
-                // Only P→C UTXOs, switch to P→C direction
                 setSourceChain("p-chain");
                 setDestinationChain("c-chain");
+                hasAutoSwitchedRef.current = true;
             }
-            // If both directions have UTXOs, keep current selection
         }
     }, [cToP_UTXOs.length, pToC_UTXOs.length, exportTxId, completedExportTxId, importTxId]);
 
@@ -602,32 +616,51 @@ console.log("Import tx:", txnResponse.txHash);`,
                         </div>
                     )}
 
-                    {/* Import phase */}
-                    {availableUTXOs.length > 0 && !importTxId && (
+                    {/* Import phase - auto-importing after export */}
+                    {importLoading && (
+                        <Button
+                            variant="primary"
+                            disabled
+                            loading
+                            loadingText={`Importing to ${destChainName}...`}
+                            className="w-full"
+                        >
+                            Importing...
+                        </Button>
+                    )}
+
+                    {/* Import phase - manual button for pre-existing UTXOs only */}
+                    {availableUTXOs.length > 0 && !importTxId && !importLoading && completedExportTxId === "utxo-available" && (
                         <>
                             <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-muted/50 border border-border text-sm">
-                                <span className="text-muted-foreground">Ready to import</span>
+                                <span className="text-muted-foreground">Pending import from a previous transfer</span>
                                 <span className="font-mono font-medium text-foreground">{totalUtxoAmount.toFixed(6)} AVAX</span>
                             </div>
-
-                            {importError && (
-                                <div className="p-3 rounded-lg border border-destructive/30 bg-destructive/5">
-                                    <p className="text-sm text-destructive">{importError}</p>
-                                </div>
-                            )}
 
                             <Button
                                 variant="primary"
                                 onClick={handleImport}
-                                disabled={importLoading}
-                                loading={importLoading}
-                                loadingText="Importing..."
                                 icon={<img src="/images/core.svg" alt="" className="w-4 h-4" />}
                                 className="w-full"
                             >
-                                Import to {destChainName}
+                                Import {totalUtxoAmount.toFixed(6)} AVAX to {destChainName}
                             </Button>
                         </>
+                    )}
+
+                    {/* Import error */}
+                    {importError && (
+                        <div className="p-3 rounded-lg border border-destructive/30 bg-destructive/5">
+                            <p className="text-sm text-destructive">{importError}</p>
+                            <Button
+                                variant="secondary"
+                                onClick={handleImport}
+                                disabled={importLoading}
+                                className="w-full mt-2"
+                            >
+                                Retry Import
+                            </Button>
+                        </div>
                     )}
 
                     {/* Transfer complete */}
@@ -650,6 +683,7 @@ console.log("Import tx:", txnResponse.txHash);`,
                                     setImportError(null);
                                     setStep1AutoCollapse(false);
                                     setStep2AutoCollapse(false);
+                                    autoImportTriggeredRef.current = false;
                                     setTimeout(() => {
                                         if (availableUTXOs.length > 0) {
                                             setCompletedExportTxId("utxo-available");

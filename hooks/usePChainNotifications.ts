@@ -72,7 +72,7 @@ const configs: Record<PChainAction, PChainNotificationConfig> = {
     },
 };
 
-const waitForTransaction = async (client: PChainClient, txID: string, maxAttempts = 10, interval = 300) => {
+const waitForTransaction = async (client: PChainClient, txID: string, maxAttempts = 30, interval = 2000) => {
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
         const receipt = await client.getTxStatus({ txID });
         if (receipt.status === 'Committed') {
