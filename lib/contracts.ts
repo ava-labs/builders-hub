@@ -1903,6 +1903,79 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     type: 'other',
   },
 
+  // ============ MEV / ARBITRAGE BOTS (Round 6) ============
+  // Top 10 unclassified by gas (30d ending 2026-03-04). All single-caller, unverified.
+  '0x17768456b8e8b26d06bf5e99a77c4c0c9d2bfb2a': {
+    address: '0x17768456b8e8b26d06bf5e99a77c4c0c9d2bfb2a',
+    name: 'MEV Bot (multi-hop arb, 5.9M avg gas)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0xac3b57bd239b1ff49d07be4f7cf48f64b7462811': {
+    address: '0xac3b57bd239b1ff49d07be4f7cf48f64b7462811',
+    name: 'MEV Bot (high-freq, 0x977a caller)',
+    protocol: 'MEV: 0x977a',
+    category: 'mev',
+    type: 'other',
+  },
+  '0x350b239e26690202e2a2d46f55a844e4396f0485': {
+    address: '0x350b239e26690202e2a2d46f55a844e4396f0485',
+    name: 'MEV Bot (heavy arb, 4.1M avg gas)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0x181870d61c0e5a6985c873485de8297426f4aed4': {
+    address: '0x181870d61c0e5a6985c873485de8297426f4aed4',
+    name: 'MEV Bot (JIT liquidity #1)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0x9ad4c21765e3b18930227a97481fb30293486f3a': {
+    address: '0x9ad4c21765e3b18930227a97481fb30293486f3a',
+    name: 'MEV Bot (template A #1)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0xcf03a2eeda67d775ebc2fcd799d67ed01cd80599': {
+    address: '0xcf03a2eeda67d775ebc2fcd799d67ed01cd80599',
+    name: 'MEV Bot (template A #2)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0x4f7b47d5998bd53f63786ffb6e42becda7eec4ab': {
+    address: '0x4f7b47d5998bd53f63786ffb6e42becda7eec4ab',
+    name: 'MEV Bot (template A #3)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0x87f7129ab8cd0f5d438bfe31a7f5eb097e73acf2': {
+    address: '0x87f7129ab8cd0f5d438bfe31a7f5eb097e73acf2',
+    name: 'MEV Bot (template A #4)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0x12f62e3cee07524fd3368c1d63b5d61f227d2b78': {
+    address: '0x12f62e3cee07524fd3368c1d63b5d61f227d2b78',
+    name: 'MEV Bot (arb bot)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0xe7c679e7488bb8a3ac0e7eeb511cee3f580bf1e1': {
+    address: '0xe7c679e7488bb8a3ac0e7eeb511cee3f580bf1e1',
+    name: 'MEV Bot (JIT liquidity #2)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+
   // ============ AUTO-CLASSIFIED (Round 7) ============
 
   // --- ERC-4337 ---
