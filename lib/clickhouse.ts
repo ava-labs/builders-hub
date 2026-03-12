@@ -152,7 +152,7 @@ export async function getProtocolStats(addresses: string[], days?: number): Prom
     SELECT
       count() as tx_count,
       sum(gas_used) as total_gas,
-      sum(toFloat64(gas_used) * toFloat64(base_fee_per_gas)) / 1e18 as avax_burned,
+      sum(toFloat64(gas_used) * toFloat64(gas_price)) / 1e18 as avax_burned,
       uniqExact(from) as unique_users
     FROM raw_txs
     WHERE chain_id = ${C_CHAIN_ID}
@@ -201,7 +201,7 @@ export async function getProtocolDailyActivity(
       toDate(block_time) as date,
       count() as tx_count,
       sum(gas_used) as total_gas,
-      sum(toFloat64(gas_used) * toFloat64(base_fee_per_gas)) / 1e18 as avax_burned,
+      sum(toFloat64(gas_used) * toFloat64(gas_price)) / 1e18 as avax_burned,
       uniqExact(from) as unique_users
     FROM raw_txs
     WHERE chain_id = ${C_CHAIN_ID}
@@ -249,7 +249,7 @@ export async function getTopContractsByGas(
       lower(concat('0x', hex(to))) as address,
       count() as tx_count,
       sum(gas_used) as total_gas,
-      sum(toFloat64(gas_used) * toFloat64(base_fee_per_gas)) / 1e18 as avax_burned
+      sum(toFloat64(gas_used) * toFloat64(gas_price)) / 1e18 as avax_burned
     FROM raw_txs
     WHERE chain_id = ${C_CHAIN_ID}
       AND ${addressFilter}
@@ -300,7 +300,7 @@ export async function getCChainOverview(): Promise<ChainOverviewStats> {
     SELECT
       count() as total_tx,
       sum(gas_used) as total_gas,
-      sum(toFloat64(gas_used) * toFloat64(base_fee_per_gas)) / 1e18 as total_burned
+      sum(toFloat64(gas_used) * toFloat64(gas_price)) / 1e18 as total_burned
     FROM raw_txs
     WHERE chain_id = ${C_CHAIN_ID}
   `;
@@ -351,7 +351,7 @@ export async function getProtocolRecentTransactions(
       lower(concat('0x', hex(from))) as from_addr,
       lower(concat('0x', hex(to))) as to_addr,
       gas_used as tx_gas_used,
-      toFloat64(gas_used) * toFloat64(base_fee_per_gas) / 1e18 as avax_burned,
+      toFloat64(gas_used) * toFloat64(gas_price) / 1e18 as avax_burned,
       success
     FROM raw_txs
     WHERE chain_id = ${C_CHAIN_ID}
@@ -405,7 +405,7 @@ export async function getProtocolMonthlyActivity(
       toStartOfMonth(block_time) as month,
       count() as tx_count,
       sum(gas_used) as total_gas,
-      sum(toFloat64(gas_used) * toFloat64(base_fee_per_gas)) / 1e18 as avax_burned,
+      sum(toFloat64(gas_used) * toFloat64(gas_price)) / 1e18 as avax_burned,
       uniqExact(from) as unique_users
     FROM raw_txs
     WHERE chain_id = ${C_CHAIN_ID}
@@ -446,7 +446,7 @@ export async function getTotalChainGas(days: number): Promise<TotalChainStats> {
     SELECT
       count() as total_tx,
       sum(gas_used) as total_gas,
-      sum(toFloat64(gas_used) * toFloat64(base_fee_per_gas)) / 1e18 as total_burned
+      sum(toFloat64(gas_used) * toFloat64(gas_price)) / 1e18 as total_burned
     FROM raw_txs
     WHERE chain_id = ${C_CHAIN_ID}
       ${timeFilter}
@@ -488,7 +488,7 @@ export function buildContractGasReceivedQuery(address: string, days: number): st
     SELECT
       lower(concat('0x', hex(tr.\`from\`))) as address,
       sum(tr.gas_used) as gas,
-      sum(toFloat64(tr.gas_used) * toFloat64(t.base_fee_per_gas)) / 1e18 as avax,
+      sum(toFloat64(tr.gas_used) * toFloat64(t.gas_price)) / 1e18 as avax,
       uniqExact(tr.tx_hash) as tx_count
     FROM raw_traces tr
     INNER JOIN raw_txs t ON tr.tx_hash = t.hash
@@ -512,7 +512,7 @@ export function buildContractGasGivenQuery(address: string, days: number): strin
     SELECT
       lower(concat('0x', hex(tr.\`to\`))) as address,
       sum(tr.gas_used) as gas,
-      sum(toFloat64(tr.gas_used) * toFloat64(t.base_fee_per_gas)) / 1e18 as avax,
+      sum(toFloat64(tr.gas_used) * toFloat64(t.gas_price)) / 1e18 as avax,
       uniqExact(tr.tx_hash) as tx_count
     FROM raw_traces tr
     INNER JOIN raw_txs t ON tr.tx_hash = t.hash
@@ -616,7 +616,7 @@ export async function getProtocolGasRankings(
       lower(concat('0x', hex(to))) as address,
       count() as tx_count,
       sum(gas_used) as total_gas,
-      sum(toFloat64(gas_used) * toFloat64(base_fee_per_gas)) / 1e18 as avax_burned
+      sum(toFloat64(gas_used) * toFloat64(gas_price)) / 1e18 as avax_burned
     FROM raw_txs
     WHERE chain_id = ${C_CHAIN_ID}
       AND ${addressFilter}
