@@ -70,7 +70,8 @@ export interface ChainStatsResponse {
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const days = parseInt(searchParams.get('days') || '30');
+    const daysRaw = parseInt(searchParams.get('days') || '30');
+    const days = Number.isFinite(daysRaw) && daysRaw > 0 ? Math.min(daysRaw, 183) : 30;
 
     // Get all known contract addresses grouped by protocol
     const protocolAddresses = new Map<string, string[]>();

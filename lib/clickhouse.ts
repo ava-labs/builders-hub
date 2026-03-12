@@ -482,18 +482,23 @@ function toSafeHex(address: string): string {
 // Query A: Who calls this contract and how much gas each caller sends
 export function buildContractGasReceivedQuery(address: string, days: number): string {
   const hex = toSafeHex(address);
-  const timeFilter = days > 0 ? `AND block_time >= now() - INTERVAL ${days} DAY` : '';
+  const trTimeFilter = days > 0 ? `AND tr.block_time >= now() - INTERVAL ${days} DAY` : '';
+  const tTimeFilter = days > 0 ? `AND t.block_time >= now() - INTERVAL ${days} DAY` : '';
   return `
     SELECT
-      lower(concat('0x', hex(\`from\`))) as address,
-      sum(gas_used) as gas,
-      uniqExact(tx_hash) as tx_count
-    FROM raw_traces
-    WHERE chain_id = ${C_CHAIN_ID}
-      AND \`to\` = unhex('${hex}')
-      AND call_type IN ('CALL', 'CREATE', 'CREATE2')
-      ${timeFilter}
-    GROUP BY \`from\`
+      lower(concat('0x', hex(tr.\`from\`))) as address,
+      sum(tr.gas_used) as gas,
+      sum(toFloat64(tr.gas_used) * toFloat64(t.base_fee_per_gas)) / 1e18 as avax,
+      uniqExact(tr.tx_hash) as tx_count
+    FROM raw_traces tr
+    INNER JOIN raw_txs t ON tr.tx_hash = t.hash
+      AND t.chain_id = ${C_CHAIN_ID}
+      ${tTimeFilter}
+    WHERE tr.chain_id = ${C_CHAIN_ID}
+      AND tr.\`to\` = unhex('${hex}')
+      AND tr.call_type IN ('CALL', 'CREATE', 'CREATE2')
+      ${trTimeFilter}
+    GROUP BY tr.\`from\`
     ORDER BY gas DESC
   `;
 }
@@ -501,18 +506,23 @@ export function buildContractGasReceivedQuery(address: string, days: number): st
 // Query B: What contracts does this contract call and how much gas it gives
 export function buildContractGasGivenQuery(address: string, days: number): string {
   const hex = toSafeHex(address);
-  const timeFilter = days > 0 ? `AND block_time >= now() - INTERVAL ${days} DAY` : '';
+  const trTimeFilter = days > 0 ? `AND tr.block_time >= now() - INTERVAL ${days} DAY` : '';
+  const tTimeFilter = days > 0 ? `AND t.block_time >= now() - INTERVAL ${days} DAY` : '';
   return `
     SELECT
-      lower(concat('0x', hex(\`to\`))) as address,
-      sum(gas_used) as gas,
-      uniqExact(tx_hash) as tx_count
-    FROM raw_traces
-    WHERE chain_id = ${C_CHAIN_ID}
-      AND \`from\` = unhex('${hex}')
-      AND call_type IN ('CALL', 'CREATE', 'CREATE2')
-      ${timeFilter}
-    GROUP BY \`to\`
+      lower(concat('0x', hex(tr.\`to\`))) as address,
+      sum(tr.gas_used) as gas,
+      sum(toFloat64(tr.gas_used) * toFloat64(t.base_fee_per_gas)) / 1e18 as avax,
+      uniqExact(tr.tx_hash) as tx_count
+    FROM raw_traces tr
+    INNER JOIN raw_txs t ON tr.tx_hash = t.hash
+      AND t.chain_id = ${C_CHAIN_ID}
+      ${tTimeFilter}
+    WHERE tr.chain_id = ${C_CHAIN_ID}
+      AND tr.\`from\` = unhex('${hex}')
+      AND tr.call_type IN ('CALL', 'CREATE', 'CREATE2')
+      ${trTimeFilter}
+    GROUP BY tr.\`to\`
     ORDER BY gas DESC
   `;
 }

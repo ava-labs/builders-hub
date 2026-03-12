@@ -13,6 +13,7 @@ export const revalidate = 300;
 interface TraceRow {
   address: string;
   gas: string;
+  avax: number;
   tx_count: string;
 }
 
@@ -30,6 +31,7 @@ interface AddressInfo {
 
 interface FlowEntry extends AddressInfo {
   gas: number;
+  avax: number;
   txCount: number;
   gasPercent: number;
 }
@@ -49,7 +51,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const address = searchParams.get('address');
     const daysRaw = parseInt(searchParams.get('days') || '30');
-    const days = Number.isFinite(daysRaw) && daysRaw > 0 && daysRaw <= 365 ? daysRaw : 30;
+    const days = Number.isFinite(daysRaw) && daysRaw > 0 && daysRaw <= 183 ? daysRaw : 30;
 
     if (!address || !/^0x[a-fA-F0-9]{40}$/.test(address)) {
       return NextResponse.json(
@@ -75,6 +77,14 @@ export async function GET(request: Request) {
     const selfGas = Math.max(totalGasReceived - totalGasGiven, 0);
     const selfGasRatio = totalGasReceived > 0 ? selfGas / totalGasReceived : 0;
 
+    const totalAvaxReceived = callersResult.data.reduce(
+      (sum, r) => sum + (r.avax || 0), 0
+    );
+    const totalAvaxGiven = calleesResult.data.reduce(
+      (sum, r) => sum + (r.avax || 0), 0
+    );
+    const selfAvax = Math.max(totalAvaxReceived - totalAvaxGiven, 0);
+
     // Classification
     let classification: 'entry_point' | 'gas_burner' | 'mixed';
     if (selfGasRatio >= 0.7) {
@@ -91,6 +101,7 @@ export async function GET(request: Request) {
         .map(r => ({
           ...enrichAddress(r.address),
           gas: parseInt(r.gas) || 0,
+          avax: r.avax || 0,
           txCount: parseInt(r.tx_count) || 0,
           gasPercent: totalGas > 0 ? ((parseInt(r.gas) || 0) / totalGas) * 100 : 0,
         }))
@@ -101,6 +112,7 @@ export async function GET(request: Request) {
       const top = sorted.slice(0, 10);
       const rest = sorted.slice(10);
       const othersGas = rest.reduce((s, r) => s + r.gas, 0);
+      const othersAvax = rest.reduce((s, r) => s + r.avax, 0);
       const othersTx = rest.reduce((s, r) => s + r.txCount, 0);
 
       top.push({
@@ -109,6 +121,7 @@ export async function GET(request: Request) {
         protocol: null,
         category: null,
         gas: othersGas,
+        avax: othersAvax,
         txCount: othersTx,
         gasPercent: totalGas > 0 ? (othersGas / totalGas) * 100 : 0,
       });
@@ -129,6 +142,9 @@ export async function GET(request: Request) {
         totalGasReceived,
         totalGasGiven,
         selfGas,
+        totalAvaxReceived,
+        totalAvaxGiven,
+        selfAvax,
         totalTransactions: parseInt(summaryData?.total_txs) || 0,
         uniqueCallers: parseInt(summaryData?.unique_callers) || 0,
       },

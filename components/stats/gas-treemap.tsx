@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import {
   Fuel,
   Activity,
@@ -12,8 +12,13 @@ import {
   BarChart3,
   Info,
   ArrowUpRight,
-  ArrowDownRight
+  ArrowDownRight,
+  CalendarDays
 } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { differenceInCalendarDays, subMonths, format } from "date-fns";
+import type { DateRange } from "react-day-picker";
 
 interface CategoryBreakdown {
   category: string;
@@ -56,14 +61,16 @@ interface ChainStatsData {
   };
 }
 
-type TimeRange = "1d" | "7d" | "30d" | "90d";
+type TimeRange = "1d" | "7d" | "30d" | "90d" | "custom";
 
-const TIME_RANGES: Record<TimeRange, { label: string; days: number }> = {
+const TIME_RANGES: Record<Exclude<TimeRange, "custom">, { label: string; days: number }> = {
   "1d": { label: "1D", days: 1 },
   "7d": { label: "1W", days: 7 },
   "30d": { label: "1M", days: 30 },
   "90d": { label: "3M", days: 90 },
 };
+
+const PRESET_KEYS = Object.keys(TIME_RANGES) as Exclude<TimeRange, "custom">[];
 
 const CATEGORY_LABELS: Record<string, string> = {
   dex: "DEX",
@@ -103,6 +110,29 @@ function formatGas(num: number): string {
   if (num >= 1e3) return `${(num / 1e3).toFixed(2)}K`;
   return num.toFixed(2);
 }
+
+function formatAvax(num: number): string {
+  if (num >= 1e6) return `${(num / 1e6).toFixed(2)}M AVAX`;
+  if (num >= 1e3) return `${(num / 1e3).toFixed(2)}K AVAX`;
+  if (num >= 1) return `${num.toFixed(2)} AVAX`;
+  if (num >= 0.001) return `${num.toFixed(3)} AVAX`;
+  return `${num.toFixed(4)} AVAX`;
+}
+
+function estimateLoadTime(days: number): number {
+  if (days <= 1) return 10;
+  if (days <= 7) return 20;
+  if (days <= 30) return 35;
+  if (days <= 90) return 50;
+  return 60;
+}
+
+const LOADING_PHASES = [
+  "Scanning blocks...",
+  "Aggregating protocols...",
+  "Computing deltas...",
+  "Almost done...",
+];
 
 // Finviz-style red/green color scale based on delta %
 function getDeltaColor(delta: number): string {
@@ -368,9 +398,9 @@ function generateInsights(data: ChainStatsData): Insight[] {
     insights.push({
       title: `${catLabel} Surging`,
       description: driver
-        ? `Led by ${driver.protocol} with +${driver.delta.toFixed(1)}% gas increase`
-        : `Category seeing strong growth in gas usage`,
-      expandedDescription: `${catLabel} activity on C-Chain saw strong growth this period with gas consumption up ${top.delta.toFixed(1)}%.${driver ? ` ${driver.protocol} was the primary driver, increasing ${driver.delta.toFixed(1)}%.` : ""} The category represents ${top.gasShare.toFixed(1)}% of total chain gas with ${formatNumber(top.txCount)} transactions across ${formatNumber(top.uniqueSenders)} unique wallets, burning ${top.avaxBurned.toFixed(2)} AVAX in fees.`,
+        ? `Led by ${driver.protocol} with +${driver.delta.toFixed(1)}% AVAX burned increase`
+        : `Category seeing strong growth in AVAX burned`,
+      expandedDescription: `${catLabel} activity on C-Chain saw strong growth this period with AVAX burned up ${top.delta.toFixed(1)}%.${driver ? ` ${driver.protocol} was the primary driver, increasing ${driver.delta.toFixed(1)}%.` : ""} The category represents ${top.gasShare.toFixed(1)}% of total chain gas with ${formatNumber(top.txCount)} transactions across ${formatNumber(top.uniqueSenders)} unique wallets, burning ${formatAvax(top.avaxBurned)} in fees.`,
       category: top.category,
       delta: top.delta,
       deltaDirection: "up",
@@ -398,7 +428,7 @@ function generateInsights(data: ChainStatsData): Insight[] {
     insights.push({
       title: `${catLabel} Declining`,
       description: `Largest category decline this period`,
-      expandedDescription: `${catLabel} saw the steepest decline this period, with gas usage dropping ${Math.abs(bottom.delta).toFixed(1)}%. The category accounts for ${bottom.gasShare.toFixed(1)}% of total chain gas, processing ${formatNumber(bottom.txCount)} transactions from ${formatNumber(bottom.uniqueSenders)} unique wallets. This decline burned ${bottom.avaxBurned.toFixed(2)} AVAX in gas fees, down from the previous period.`,
+      expandedDescription: `${catLabel} saw the steepest decline this period, with AVAX burned dropping ${Math.abs(bottom.delta).toFixed(1)}%. The category accounts for ${bottom.gasShare.toFixed(1)}% of total chain gas, processing ${formatNumber(bottom.txCount)} transactions from ${formatNumber(bottom.uniqueSenders)} unique wallets, burning ${formatAvax(bottom.avaxBurned)} in fees.`,
       category: bottom.category,
       delta: bottom.delta,
       deltaDirection: "down",
@@ -432,7 +462,7 @@ function generateInsights(data: ChainStatsData): Insight[] {
           biggest.delta >= 0
             ? `Biggest gainer among all protocols`
             : `Largest protocol decline this period`,
-        expandedDescription: `${biggest.protocol} (${bigCatLabel}) showed the most significant movement this period with a ${Math.abs(biggest.delta).toFixed(1)}% ${biggest.delta >= 0 ? "increase" : "decrease"} in gas consumption. It processed ${formatNumber(biggest.txCount)} transactions from ${formatNumber(biggest.uniqueSenders)} unique wallets, burning ${biggest.avaxBurned.toFixed(2)} AVAX in gas fees and accounting for ${biggest.gasShare.toFixed(2)}% of total chain gas.`,
+        expandedDescription: `${biggest.protocol} (${bigCatLabel}) showed the most significant movement this period with a ${Math.abs(biggest.delta).toFixed(1)}% ${biggest.delta >= 0 ? "increase" : "decrease"} in AVAX burned. It processed ${formatNumber(biggest.txCount)} transactions from ${formatNumber(biggest.uniqueSenders)} unique wallets, burning ${formatAvax(biggest.avaxBurned)} and accounting for ${biggest.gasShare.toFixed(2)}% of total chain gas.`,
         category: biggest.category,
         delta: biggest.delta,
         deltaDirection: biggest.delta >= 0 ? "up" : "down",
@@ -512,27 +542,71 @@ export default function GasTreemap() {
   const [data, setData] = useState<ChainStatsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState<TimeRange>("30d");
+  const [customRange, setCustomRange] = useState<DateRange | undefined>(undefined);
+  const [customPopoverOpen, setCustomPopoverOpen] = useState(false);
   const [hovered, setHovered] = useState<HoveredInfo | null>(null);
   const [hoveredInsight, setHoveredInsight] = useState<number | null>(null);
   const [dimensions, setDimensions] = useState({ width: 900, height: 500 });
+  const [loadingStartTime, setLoadingStartTime] = useState(Date.now);
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  const [loadingPhase, setLoadingPhase] = useState(0);
+  const abortRef = useRef<AbortController | null>(null);
+
+  // Compute active days from either preset or custom range
+  const activeDays = useMemo(() => {
+    if (timeRange === "custom" && customRange?.from && customRange?.to) {
+      return Math.min(differenceInCalendarDays(customRange.to, customRange.from) + 1, 183);
+    }
+    return TIME_RANGES[timeRange as Exclude<TimeRange, "custom">]?.days ?? 30;
+  }, [timeRange, customRange]);
 
   useEffect(() => {
+    // Abort previous request
+    if (abortRef.current) abortRef.current.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     const fetchData = async () => {
       try {
         setLoading(true);
-        const days = TIME_RANGES[timeRange].days;
-        const response = await fetch(`/api/dapps/chain-stats?days=${days}`);
+        setLoadingStartTime(Date.now());
+        setLoadingProgress(0);
+        setLoadingPhase(0);
+        const response = await fetch(`/api/dapps/chain-stats?days=${activeDays}`, {
+          signal: controller.signal,
+        });
         if (response.ok) {
           setData(await response.json());
         }
       } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") return;
         console.error("Error fetching treemap data:", err);
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
       }
     };
     fetchData();
-  }, [timeRange]);
+
+    return () => controller.abort();
+  }, [activeDays]);
+
+  // Loading animation timer
+  useEffect(() => {
+    if (!loading) return;
+    const estimate = estimateLoadTime(activeDays);
+    const interval = setInterval(() => {
+      const elapsed = (Date.now() - loadingStartTime) / 1000;
+      // Asymptotic to 95%
+      const progress = Math.min(95, (elapsed / estimate) * 80);
+      setLoadingProgress(progress);
+      // Phase transitions at 20%, 45%, 70%, 85%
+      const phase = progress < 20 ? 0 : progress < 45 ? 1 : progress < 70 ? 2 : 3;
+      setLoadingPhase(phase);
+    }, 200);
+    return () => clearInterval(interval);
+  }, [loading, loadingStartTime, activeDays]);
 
   // Responsive container
   const containerRef = useCallback((node: HTMLDivElement | null) => {
@@ -570,7 +644,7 @@ export default function GasTreemap() {
       .filter((c) => c.gasShare > 0.1)
       .map((c) => ({
         key: c.category,
-        value: c.gasUsed,
+        value: c.avaxBurned,
         category: c.category,
         label: CATEGORY_LABELS[c.category] || c.category,
         gasShare: c.gasShare,
@@ -589,6 +663,10 @@ export default function GasTreemap() {
         data.coverage.totalChainGas - data.totalGasUsed,
         0
       );
+      const unclassifiedBurned = Math.max(
+        data.coverage.totalChainBurned - data.totalAvaxBurned,
+        0
+      );
       const unclassifiedPercent = Math.max(
         0,
         100 - data.coverage.taggedGasPercent
@@ -596,7 +674,7 @@ export default function GasTreemap() {
       if (unclassifiedPercent > 0.5) {
         items.push({
           key: "unclassified",
-          value: unclassifiedGas,
+          value: unclassifiedBurned,
           category: "unclassified",
           label: "Unclassified",
           gasShare: unclassifiedPercent,
@@ -606,10 +684,7 @@ export default function GasTreemap() {
             0
           ),
           gasUsed: unclassifiedGas,
-          avaxBurned: Math.max(
-            data.coverage.totalChainBurned - data.totalAvaxBurned,
-            0
-          ),
+          avaxBurned: unclassifiedBurned,
           gasCostUsd: 0,
           avaxBurnedUsd: 0,
           uniqueSenders: 0,
@@ -679,7 +754,7 @@ export default function GasTreemap() {
         } else {
           significant.push({
             key: `${cat.category}:${p.protocol}`,
-            value: p.gasUsed,
+            value: p.avaxBurned,
             protocol: p.protocol,
             category: cat.category,
             gasShare: p.gasShare,
@@ -697,7 +772,7 @@ export default function GasTreemap() {
       if (othersGas > 0) {
         significant.push({
           key: `${cat.category}:others`,
-          value: othersGas,
+          value: othersBurned,
           protocol: "Others",
           category: cat.category,
           gasShare: othersShare,
@@ -753,18 +828,11 @@ export default function GasTreemap() {
       .slice(0, 12);
   }, [hovered, protocolsByCategory]);
 
-  if (loading) {
-    return (
-      <div className="space-y-4">
-        <div className="animate-pulse">
-          <div className="h-8 w-48 bg-zinc-200 dark:bg-zinc-800 rounded mb-4" />
-          <div className="h-[500px] bg-zinc-200 dark:bg-zinc-800 rounded-lg" />
-        </div>
-      </div>
-    );
-  }
+  if (!data && !loading) return null;
 
-  if (!data) return null;
+  const timeRangeLabel = timeRange === "custom" && customRange?.from && customRange?.to
+    ? `${format(customRange.from, "MMM d")} – ${format(customRange.to, "MMM d")}`
+    : null;
 
   return (
     <div className="space-y-6">
@@ -774,26 +842,75 @@ export default function GasTreemap() {
           <h2 className="text-lg font-semibold text-zinc-900 dark:text-white">
             C-Chain Gas Map
           </h2>
-          <span className="text-xs px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400">
-            {data.coverage?.taggedGasPercent.toFixed(1)}% classified
-          </span>
+          {data && (
+            <>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400">
+                {data.coverage?.taggedGasPercent.toFixed(1)}% classified
+              </span>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-red-500/10 text-red-400 border border-red-500/20">
+                {formatAvax(data.totalAvaxBurned)}
+              </span>
+            </>
+          )}
         </div>
 
         {/* Time range pills */}
-        <div className="flex items-center bg-zinc-900 rounded-md overflow-hidden border border-zinc-700">
-          {(Object.keys(TIME_RANGES) as TimeRange[]).map((range) => (
-            <button
-              key={range}
-              onClick={() => setTimeRange(range)}
-              className={`px-3 py-1.5 text-xs font-medium transition-colors ${
-                timeRange === range
-                  ? "bg-zinc-700 text-white"
-                  : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"
-              }`}
-            >
-              {TIME_RANGES[range].label}
-            </button>
-          ))}
+        <div className="flex items-center gap-1">
+          <div className="flex items-center bg-zinc-900 rounded-md overflow-hidden border border-zinc-700">
+            {PRESET_KEYS.map((range) => (
+              <button
+                key={range}
+                onClick={() => { setTimeRange(range); setCustomRange(undefined); }}
+                className={`px-3 py-1.5 text-xs font-medium transition-colors ${
+                  timeRange === range
+                    ? "bg-zinc-700 text-white"
+                    : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"
+                }`}
+              >
+                {TIME_RANGES[range].label}
+              </button>
+            ))}
+          </div>
+
+          <Popover open={customPopoverOpen} onOpenChange={setCustomPopoverOpen}>
+            <PopoverTrigger asChild>
+              <button
+                className={`px-3 py-1.5 text-xs font-medium rounded-md border transition-colors flex items-center gap-1.5 ${
+                  timeRange === "custom"
+                    ? "bg-zinc-700 text-white border-zinc-600"
+                    : "bg-zinc-900 text-zinc-400 border-zinc-700 hover:text-zinc-200 hover:bg-zinc-800"
+                }`}
+              >
+                <CalendarDays className="w-3 h-3" />
+                {timeRangeLabel || "Custom"}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0 bg-zinc-900 border-zinc-700" align="end">
+              <Calendar
+                mode="range"
+                selected={customRange}
+                onSelect={(range: DateRange | undefined) => {
+                  setCustomRange(range);
+                  if (range?.from && range?.to) {
+                    const span = differenceInCalendarDays(range.to, range.from);
+                    if (span <= 183) {
+                      setTimeRange("custom");
+                      setCustomPopoverOpen(false);
+                    }
+                  }
+                }}
+                disabled={[
+                  { before: subMonths(new Date(), 6) },
+                  { after: new Date() },
+                ]}
+                numberOfMonths={2}
+                className="text-zinc-100"
+              />
+              {customRange?.from && customRange?.to && differenceInCalendarDays(customRange.to, customRange.from) > 183 && (
+                <p className="text-xs text-red-400 px-3 pb-2">Max 6 months</p>
+              )}
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
 
@@ -803,7 +920,47 @@ export default function GasTreemap() {
         className="relative rounded-lg overflow-hidden bg-zinc-950 border border-zinc-800"
         style={{ height: dimensions.height }}
       >
-        <svg
+        {/* Loading overlay */}
+        {loading && (
+          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-zinc-950/90 backdrop-blur-sm">
+            {/* Placeholder grid */}
+            <div className="absolute inset-4 grid grid-cols-3 grid-rows-2 gap-2 opacity-20">
+              {[0, 1, 2, 3, 4, 5].map((i) => (
+                <div
+                  key={i}
+                  className="rounded-md bg-zinc-700 animate-pulse"
+                  style={{ animationDelay: `${i * 150}ms` }}
+                />
+              ))}
+            </div>
+
+            {/* Center content */}
+            <div className="relative z-10 flex flex-col items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center">
+                <Flame className="w-6 h-6 text-red-400 animate-pulse" />
+              </div>
+              <div className="text-sm font-medium text-zinc-300">
+                Crunching {activeDays} day{activeDays !== 1 ? "s" : ""} of C-Chain data...
+              </div>
+              <div className="text-xs text-zinc-500">
+                {LOADING_PHASES[loadingPhase]}
+              </div>
+
+              {/* Progress bar */}
+              <div className="w-64 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-red-500 to-amber-500 transition-all duration-300 ease-out"
+                  style={{ width: `${loading ? loadingProgress : 100}%` }}
+                />
+              </div>
+              <div className="text-[10px] text-zinc-600">
+                ~{estimateLoadTime(activeDays)}s estimated
+              </div>
+            </div>
+          </div>
+        )}
+
+        {data && <svg
           width={dimensions.width}
           height={dimensions.height}
           viewBox={`0 0 ${dimensions.width} ${dimensions.height}`}
@@ -1095,7 +1252,7 @@ export default function GasTreemap() {
               </g>
             );
           })}
-        </svg>
+        </svg>}
 
         {/* Finviz-style Hover Tooltip */}
         {hovered && (
@@ -1189,7 +1346,7 @@ export default function GasTreemap() {
                     <thead>
                       <tr className="text-zinc-500 text-[10px] uppercase">
                         <th className="text-left px-4 py-1.5 font-medium">Protocol</th>
-                        <th className="text-right px-2 py-1.5 font-medium">Gas</th>
+                        <th className="text-right px-2 py-1.5 font-medium">AVAX</th>
                         <th className="text-right px-4 py-1.5 font-medium">Change</th>
                       </tr>
                     </thead>
@@ -1203,7 +1360,7 @@ export default function GasTreemap() {
                             {p.protocol}
                           </td>
                           <td className="px-2 py-1.5 text-right text-zinc-400 font-mono">
-                            {formatGas(p.gasUsed)}
+                            {p.avaxBurned.toFixed(2)}
                           </td>
                           <td className={`px-4 py-1.5 text-right font-semibold ${
                             p.delta >= 0 ? "text-emerald-400" : "text-red-400"
@@ -1221,21 +1378,34 @@ export default function GasTreemap() {
             {/* Footer */}
             <div className="px-4 py-2 border-t border-zinc-700/50 bg-zinc-800/30">
               <span className="text-[10px] text-zinc-500">
-                vs previous {TIME_RANGES[timeRange].label} period
+                vs previous {timeRangeLabel || (timeRange !== "custom" ? TIME_RANGES[timeRange as Exclude<TimeRange, "custom">].label : "")} period
               </span>
             </div>
           </div>
         )}
       </div>
 
+      {/* Loading insight skeletons */}
+      {loading && !data && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="rounded-lg border border-zinc-200 dark:border-zinc-800 p-3 animate-pulse" style={{ animationDelay: `${i * 100}ms` }}>
+              <div className="h-4 w-24 bg-zinc-200 dark:bg-zinc-800 rounded mb-2" />
+              <div className="h-6 w-16 bg-zinc-200 dark:bg-zinc-800 rounded mb-2" />
+              <div className="h-3 w-full bg-zinc-200 dark:bg-zinc-800 rounded" />
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Enhanced Insights Panel */}
-      {insights.length > 0 && (
+      {insights.length > 0 && !loading && (
         <div className="bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4">
           <div className="flex items-center gap-2 mb-4">
             <BarChart3 className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
             <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Market Insights</h3>
             <span className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-200 dark:bg-zinc-800 text-zinc-500">
-              {TIME_RANGES[timeRange].label} period
+              {timeRangeLabel || (timeRange !== "custom" ? TIME_RANGES[timeRange as Exclude<TimeRange, "custom">].label : "")} period
             </span>
           </div>
 
