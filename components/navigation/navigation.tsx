@@ -15,7 +15,6 @@ import {
   ChevronDownIcon,
   Pyramid,
   HandCoins,
-  Server,
   Code,
   TrendingUp,
   ScanFace,
@@ -167,13 +166,6 @@ export function GrantsDropdown() {
       description: "Build publicly and get rewarded.",
       icon: <HandCoins className="w-5 h-5" />,
       url: "https://www.avax.network/retro9000",
-    },
-    {
-      title: "infraBUIDL()",
-      description:
-        "Infrastructure projects that enhance user and developer experience",
-      icon: <Server className="w-5 h-5" />,
-      url: "https://www.avax.network/infrabuidl-program",
     },
     {
       title: "Codebase",

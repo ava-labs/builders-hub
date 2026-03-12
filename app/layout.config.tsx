@@ -5,9 +5,7 @@ import {
   Logs,
   ArrowUpRight,
   SendHorizontal,
-  Bot,
   Computer,
-  Cpu,
   Snowflake,
   BriefcaseBusiness,
   MessageSquareQuote,
@@ -447,26 +445,6 @@ export const grantsMenu: LinkItemType = {
       description:
         'We help transform good ideas into great web3 companies & ambitious builders into extraordinary founders.',
       url: '/codebase',
-    },
-    {
-      icon: <Cpu />,
-      text: 'InfraBUIDL',
-      description:
-        "Strengthening Avalanche's infrastructure. Build the foundation for next-gen blockchain applications.",
-      url: '/grants/infrabuidl',
-      menu: {
-        className: 'lg:col-start-2',
-      },
-    },
-    {
-      icon: <Bot />,
-      text: 'InfraBUIDL (AI)',
-      description:
-        'Supports projects that fuse artificial intelligence (AI) with decentralized infrastructure.',
-      url: '/grants/infrabuidlai',
-      menu: {
-        className: 'lg:col-start-2',
-      },
     },
     {
       icon: <MessageSquareQuote />,

@@ -458,6 +458,16 @@ const config = {
         permanent: false,
       },
       {
+        source: '/grants/infrabuidl',
+        destination: '/grants',
+        permanent: true,
+      },
+      {
+        source: '/grants/infrabuidlai',
+        destination: '/grants',
+        permanent: true,
+      },
+      {
         source: '/codebase-entrepreneur',
         destination: '/academy/entrepreneur',
         permanent: true,
