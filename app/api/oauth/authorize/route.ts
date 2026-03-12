@@ -8,8 +8,13 @@ const OAUTH_REDIRECT_URI = process.env.OAUTH_REDIRECT_URI!;
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
+  const clientId = searchParams.get('client_id');
   const redirectUri = searchParams.get('redirect_uri');
   const state = searchParams.get('state');
+
+  if (!clientId || clientId !== OAUTH_CLIENT_ID) {
+    return NextResponse.json({ error: 'invalid_client_id' }, { status: 400 });
+  }
 
   if (!redirectUri) {
     return NextResponse.json({ error: 'missing_redirect_uri' }, { status: 400 });
