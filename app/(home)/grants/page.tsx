@@ -22,25 +22,11 @@ const programs = [
     image: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/local_events_team1-UJLssyvek3G880Q013A94SdMKxiLRq.jpg",
   },
   {
-    title: "infraBUIDL ( )",
-    description: "Strengthen Avalanche's infrastructure by building the foundation for next-generation applications.",
-    href: "/grants/infrabuidl",
-    external: false,
-    image: "/infrabuidl.png",
-  },
-  {
     title: "Codebase by Avalanche™",
     description: "Empower developers to create innovative blockchain solutions and turn visions into reality.",
     href: "/codebase",
     external: false,
     image: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/codebase-banner-VKmQyN5sPojnIOU09p0lCkUgR6YTpQ.png",
-  },
-  {
-    title: "infraBUIDL (AI)",
-    description: "Support projects that combine artificial intelligence with decentralized infrastructure.",
-    href: "/grants/infrabuidlai",
-    external: false,
-    image: "/infrabuidl-ai.png",
   },
   {
     title: "Blizzard Fund",
