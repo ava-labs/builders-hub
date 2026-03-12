@@ -15,7 +15,8 @@ import {
   Book,
   Eye,
   Bot,
-  AppWindow
+  AppWindow,
+  Cloud
 } from 'lucide-react';
 
 export type NavOption = {
@@ -128,6 +129,13 @@ export const toolingOptions: NavOption[] = [
     badge: 'New',
     icon: <Terminal className="w-5 h-5" />,
     url: '/docs/tooling/platform-cli',
+  },
+  {
+    title: 'Avalanche Deploy',
+    description: 'Cloud playbooks for L1s and validators',
+    badge: 'New',
+    icon: <Cloud className="w-5 h-5" />,
+    url: '/docs/tooling/avalanche-deploy',
   },
   {
     title: 'Avalanche-SDK',

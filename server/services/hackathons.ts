@@ -343,6 +343,7 @@ export async function createHackathon(
       top_most: hackathonData.top_most ?? false,
       content: content,
       event: hackathonData.event ?? 'hackathon',
+      new_layout: hackathonData.new_layout ?? false,
     },
   });
   hackathonData.id = newHackathon.id;
@@ -434,6 +435,8 @@ export async function updateHackathon(
     updateData.is_public = hackathonData.is_public;
   if (hackathonData.event !== undefined)
     updateData.event = hackathonData.event;
+  if (hackathonData.new_layout !== undefined)
+    updateData.new_layout = hackathonData.new_layout;
   if (userId) updateData.updated_by = userId;
   if (hackathonData.content !== undefined) {
     const content = {

@@ -519,9 +519,12 @@ function ChatInput({ suggestions, onSuggestionClick }: {
   suggestions?: string[];
   onSuggestionClick?: (q: string) => void;
 }) {
-  const { status, sendMessage, stop } = useChatContext();
+  const { status, sendMessage, stop, error } = useChatContext();
   const [inputValue, setInputValue] = useState('');
+  const [dismissedError, setDismissedError] = useState<Error | null>(null);
   const isLoading = status === 'streaming' || status === 'submitted';
+  // Show error if not dismissed
+  const visibleError = error && error !== dismissedError ? error : null;
 
   const onSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -560,6 +563,27 @@ function ChatInput({ suggestions, onSuggestionClick }: {
               {q}
             </button>
           ))}
+        </div>
+      )}
+
+      {/* Error banner */}
+      {visibleError && (
+        <div className="flex items-center justify-between gap-3 mb-3 px-4 py-2.5 rounded-xl text-sm bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400">
+          <span>
+            {visibleError.message?.includes('413') || visibleError.message?.toLowerCase().includes('too long')
+              ? 'Your message is too long. Please shorten it and try again.'
+              : visibleError.message?.includes('429') || visibleError.message?.toLowerCase().includes('rate limit')
+                ? "You've sent too many messages. Please wait a moment and try again."
+                : 'Something went wrong. Please try again.'}
+          </span>
+          <button
+            type="button"
+            onClick={() => setDismissedError(error ?? null)}
+            className="shrink-0 text-red-500 hover:text-red-700 dark:hover:text-red-300 transition-colors"
+            aria-label="Dismiss error"
+          >
+            ✕
+          </button>
         </div>
       )}
 
@@ -1133,7 +1157,8 @@ function ChatPageInner() {
   const chat = useChat({
     id: currentConversationId || 'new',
     onError(error) {
-      console.error('Chat error:', error);
+      console.error('Chat error:', error.message, error);
+      // Error is automatically exposed via chat.error and displayed in ChatInput
     },
     async onFinish({ message }) {
       const messageText = getMessageText(message);

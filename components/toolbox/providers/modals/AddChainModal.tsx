@@ -13,7 +13,6 @@ import { useWallet } from '../../hooks/useWallet';
 import { useModalState } from '../../hooks/useModal';
 import { useLookupChain } from '@/components/toolbox/hooks/useLookupChain';
 import { toast } from '@/lib/toast';
-import { type Chain } from 'viem';
 import type { ChainData } from '@/types/wallet';
 
 interface AddChainFormData {
@@ -189,21 +188,25 @@ export function AddChainModal() {
         }
 
         try {
-            const viemChain: Chain = {
-                id: chainData.evmChainId,
-                name: chainData.name,
-                rpcUrls: {
-                    default: { http: [chainData.rpcUrl] },
-                },
-                nativeCurrency: {
-                    name: chainData.coinName,
-                    symbol: chainData.coinName,
-                    decimals: 18,
-                }
-            };
+            const chainIdHex = `0x${chainData.evmChainId.toString(16)}`;
 
-            await walletClient.addChain({
-                chain: { ...viemChain, testnet: chainData.isTestnet }
+            // Send wallet_addEthereumChain directly instead of viem's addChain,
+            // which only forwards standard EIP-3085 fields and drops Core wallet's
+            // proprietary isTestnet flag.
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            await walletClient.request({
+                method: 'wallet_addEthereumChain',
+                params: [{
+                    chainId: chainIdHex,
+                    chainName: chainData.name,
+                    nativeCurrency: {
+                        name: chainData.coinName,
+                        symbol: chainData.coinName,
+                        decimals: 18,
+                    },
+                    rpcUrls: [chainData.rpcUrl],
+                    isTestnet: chainData.isTestnet,
+                }] as any, // isTestnet is a Core wallet extension to EIP-3085
             });
 
             await walletClient.switchChain({

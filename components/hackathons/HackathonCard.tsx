@@ -1,4 +1,4 @@
-import { Trophy, UserRound } from "lucide-react";
+import { Trophy, Tag } from "lucide-react";
 import { CalendarIcon } from "lucide-react";
 import { MapPinIcon } from "lucide-react";
 import Image from "next/image";
@@ -7,6 +7,13 @@ import { HackathonHeader } from "@/types/hackathons";
 import { Button } from "../ui/button";
 import HackathonStatus from "./hackathon/HackathonStatus";
 import { Badge } from "../ui/badge";
+
+function labelForEventType(eventType: string) {
+  if (eventType === "hackathon") return "Hackathon";
+  if (eventType === "workshop") return "Workshop";
+  if (eventType === "bootcamp") return "Bootcamp";
+  return eventType.charAt(0).toUpperCase() + eventType.slice(1);
+}
 
 export default function HackathonCard({
   hackathon,
@@ -91,21 +98,19 @@ export default function HackathonCard({
         </div>
         <div className="flex flex-wrap gap-y-2 justify-around items-center text-gray-300 text-sm py-[10px]">
           {isHackathon && (
-            <>
-              <div className="flex items-center gap-1 md:gap-2">
-                <Trophy className="h-4 w-4 dark:stroke-zinc-50 stroke-zinc-900" />
-                <span className="font-medium dark:text-zinc-50 text-zinc-900">
-                  ${(hackathon.total_prizes ?? 0).toLocaleString("en-US")}
-                </span>
-              </div>
-              <div className="flex items-center gap-1 md:gap-2">
-                <UserRound className="h-4 w-4 dark:stroke-zinc-50 stroke-zinc-900" />
-                <span className="font-medium dark:text-zinc-50 text-zinc-900">
-                  {hackathon.participants ?? 0}
-                </span>
-              </div>
-            </>
+            <div className="flex items-center gap-1 md:gap-2">
+              <Trophy className="h-4 w-4 dark:stroke-zinc-50 stroke-zinc-900" />
+              <span className="font-medium dark:text-zinc-50 text-zinc-900">
+                ${(hackathon.total_prizes ?? 0).toLocaleString("en-US")}
+              </span>
+            </div>
           )}
+          <div className="flex items-center gap-1 md:gap-2">
+            <Tag className="h-4 w-4 dark:stroke-zinc-50 stroke-zinc-900" />
+            <span className="font-medium dark:text-zinc-50 text-zinc-900">
+              {labelForEventType(eventType)}
+            </span>
+          </div>
           <div className="flex items-center gap-1 md:gap-2">
             <HackathonStatus
               status={hackathon.status ?? "UPCOMING"}

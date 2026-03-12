@@ -1,0 +1,211 @@
+---
+title: Deploy an L1 on Kubernetes
+description: Launch an Avalanche L1 blockchain on Kubernetes using Helm charts, with local kind clusters for development and testing.
+---
+
+This guide covers deploying an Avalanche L1 on Kubernetes as an alternative to the Terraform + Ansible path. Use this when you already have a Kubernetes cluster or want local development with kind.
+
+**Requirements**: `kubectl`, `helm` v3+, Docker (for kind). **Time to deploy**: ~15 minutes locally, ~30 minutes on a remote cluster (plus sync time).
+
+<Callout type="info">
+The Kubernetes path covers deployment, sync, and L1 creation. Advanced operational workflows (staking key backup, database snapshots, validator migration) are only available in the [Terraform + Ansible path](/docs/tooling/avalanche-deploy/deploy-l1).
+</Callout>
+
+## Prerequisites
+
+- `kubectl` connected to your cluster
+- `helm` v3+
+- For local testing: `kind` and Docker
+- For L1 creation: funded key in platform-cli keystore
+
+## Helm Charts
+
+| Chart | Path | Purpose |
+|-------|------|---------|
+| `avalanche-validator` | `helm/avalanche-validator` | L1 validator nodes |
+| `avalanche-rpc` | `helm/avalanche-rpc` | L1 RPC nodes |
+| `monitoring` | `helm/monitoring` | Prometheus + Grafana |
+| `icm-relayer` | `helm/icm-relayer` | Cross-chain messaging |
+
+## Quick Start with Local Kind Cluster
+
+<Steps>
+<Step>
+
+### Create a Local Cluster
+
+```bash
+cd kubernetes
+
+./scripts/create-kind-cluster.sh \
+  --name=avalanche-l1 \
+  --image=kindest/node:v1.34.0 \
+  --workers=1
+```
+
+<Callout>
+The first run pulls the node image and can take several minutes. If your machine is resource-constrained, start with `--workers=1` and scale up later.
+</Callout>
+
+</Step>
+<Step>
+
+### Deploy L1 Validators and RPC
+
+```bash
+helm upgrade --install l1-validators ./helm/avalanche-validator \
+  -f ./helm/avalanche-validator/values-kind.yaml \
+  --set network=fuji
+
+helm upgrade --install l1-rpc ./helm/avalanche-rpc \
+  -f ./helm/avalanche-rpc/values-kind.yaml \
+  --set network=fuji
+```
+
+</Step>
+<Step>
+
+### Wait for P-Chain Sync
+
+```bash
+./scripts/wait-for-sync.sh --release=l1-validators
+```
+
+</Step>
+<Step>
+
+### Create Your L1
+
+```bash
+# Import or create a deployer key
+platform keys import --name l1-deployer
+platform keys default --name l1-deployer
+
+./scripts/create-l1.sh \
+  --release=l1-validators \
+  --network=fuji \
+  --chain-name=mychain \
+  --output=l1.env \
+  --key-name=l1-deployer
+```
+
+The script collects NodeIDs from validator pods and runs the same P-Chain transactions as the Terraform path: `CreateSubnetTx`, `CreateChainTx`, and `ConvertSubnetToL1Tx`.
+
+</Step>
+<Step>
+
+### Configure Validators for Your L1
+
+```bash
+./scripts/configure-l1.sh --release=l1-validators --env=l1.env
+```
+
+</Step>
+<Step>
+
+### Verify Status
+
+```bash
+./scripts/status.sh --release=l1-validators
+```
+
+</Step>
+</Steps>
+
+## Deploying on an Existing Cluster
+
+Skip the kind cluster creation step and use the same Helm releases and scripts above. Ensure your cluster has sufficient resources for the validator and RPC pods.
+
+## Accessing RPC
+
+```bash
+# L1 RPC service
+kubectl port-forward svc/l1-rpc 9650:9650
+
+# Then query
+curl -X POST http://localhost:9650/ext/bc/<CHAIN_ID>/rpc \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}'
+```
+
+## Add-Ons on Kubernetes
+
+### Monitoring
+
+```bash
+helm install monitoring ./helm/monitoring
+
+# Access Grafana
+kubectl port-forward svc/monitoring-grafana 3000:3000
+# http://localhost:3000 (admin/admin)
+```
+
+### ICM Relayer
+
+```bash
+source l1.env
+helm upgrade --install icm-relayer ./helm/icm-relayer \
+  --set "l1.subnetId=$SUBNET_ID" \
+  --set "l1.blockchainId=$CHAIN_ID" \
+  --set "relayerPrivateKey=0x..." \
+  --set "network=fuji"
+```
+
+The relayer connects to the `l1-rpc` service by default. Override with `--set avalanchego.serviceName=<svc>`.
+
+## Make Wrappers
+
+From the repo root, you can also use `make` targets:
+
+| Command | Description |
+|---------|-------------|
+| `make k8s-kind` | Create local kind cluster |
+| `make k8s-l1-deploy` | Deploy L1 validators + RPC |
+| `make k8s-l1-wait` | Wait for P-Chain sync |
+| `make k8s-l1-create` | Create L1 chain |
+| `make k8s-l1-configure` | Configure validators for L1 |
+| `make k8s-l1-status` | Check L1 status |
+| `make k8s-monitoring` | Deploy monitoring stack |
+| `make k8s-icm-relayer` | Deploy ICM Relayer |
+| `make k8s-cleanup` | Remove releases and optional PVC/kind cleanup |
+
+## Troubleshooting
+
+### Pods Stuck in Pending
+
+```bash
+kubectl describe pod <pod-name>
+```
+
+If you see `Insufficient cpu` or `does not have a host assigned`, use the kind-specific value files:
+
+```bash
+helm upgrade --install l1-validators ./helm/avalanche-validator \
+  -f ./helm/avalanche-validator/values-kind.yaml --set network=fuji
+```
+
+### Node Not Syncing
+
+```bash
+kubectl logs <pod-name> -f
+```
+
+### Kind Fails with "No Such Container"
+
+This usually means the Docker daemon API is unhealthy. Restart Docker Desktop and retry `./scripts/create-kind-cluster.sh`.
+
+## Cleanup
+
+```bash
+cd kubernetes
+./scripts/cleanup.sh
+```
+
+This removes Helm releases and optionally deletes PVCs and the kind cluster.
+
+## Next Steps
+
+- [Deploy with Terraform + Ansible instead](/docs/tooling/avalanche-deploy/deploy-l1) — Full-featured deployment with archive/pruned RPC split and staking key backup
+- [Deploy add-ons](/docs/tooling/avalanche-deploy/add-ons) — Blockscout, faucet, The Graph, ICM Relayer
+- [Operations guide](/docs/tooling/avalanche-deploy/operations) — Upgrades, monitoring, health checks
+- [Troubleshooting](/docs/tooling/avalanche-deploy/troubleshooting) — Common issues and solutions
