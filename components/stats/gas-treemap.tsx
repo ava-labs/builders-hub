@@ -848,7 +848,7 @@ export default function GasTreemap() {
                 {data.coverage?.taggedGasPercent.toFixed(1)}% classified
               </span>
               <span className="text-xs px-2 py-0.5 rounded-full bg-red-500/10 text-red-400 border border-red-500/20">
-                {formatAvax(data.totalAvaxBurned)}
+                {formatAvax(data.coverage?.totalChainBurned ?? data.totalAvaxBurned)}
               </span>
             </>
           )}
