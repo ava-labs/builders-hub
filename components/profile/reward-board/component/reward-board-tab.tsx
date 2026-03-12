@@ -57,11 +57,14 @@ function resolveUnlockStatus(badge: Badge, userBadges: UserBadge[]) {
   };
 }
 
-function sortUnlockedFirst<T extends { is_unlocked: boolean; name: string }>(items: T[]): T[] {
-  return [...items].sort((a, b) => {
-    if (a.is_unlocked !== b.is_unlocked) return a.is_unlocked ? -1 : 1;
-    return a.name.localeCompare(b.name);
-  });
+function getBadgeOrder(badge: { id: string }): number {
+  // Extract the number after the last dash-prefix, e.g. "1avalancheL1Academy-10academy-full-completion" → 10
+  const match = badge.id.match(/-(\d+)/);
+  return match ? Number(match[1]) : 999;
+}
+
+function sortByCourseOrder<T extends { id: string }>(items: T[]): T[] {
+  return [...items].sort((a, b) => getBadgeOrder(a) - getBadgeOrder(b));
 }
 
 function renderBadgeGrid(badges: ReturnType<typeof resolveUnlockStatus>[], isSecret = false) {
@@ -149,9 +152,9 @@ export default async function RewardBoardTab() {
   const sortedTiers = [...consoleTierMap.keys()].sort((a, b) => Number(a) - Number(b));
 
   // Academy: resolve unlock status and sort
-  const blockchainResolved = sortUnlockedFirst(blockchainBadges.map((b) => resolveUnlockStatus(b, userBadges)));
-  const avalancheL1Resolved = sortUnlockedFirst(avalancheL1Badges.map((b) => resolveUnlockStatus(b, userBadges)));
-  const entrepreneurResolved = sortUnlockedFirst(entrepreneurBadges.map((b) => resolveUnlockStatus(b, userBadges)));
+  const blockchainResolved = sortByCourseOrder(blockchainBadges.map((b) => resolveUnlockStatus(b, userBadges)));
+  const avalancheL1Resolved = sortByCourseOrder(avalancheL1Badges.map((b) => resolveUnlockStatus(b, userBadges)));
+  const entrepreneurResolved = sortByCourseOrder(entrepreneurBadges.map((b) => resolveUnlockStatus(b, userBadges)));
 
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
@@ -173,7 +176,7 @@ export default async function RewardBoardTab() {
       ) : (
         <div className="flex flex-col gap-8">
           {sortedTiers.map((tier) => {
-            const tierBadges = sortUnlockedFirst(consoleTierMap.get(tier)!);
+            const tierBadges = sortByCourseOrder(consoleTierMap.get(tier)!);
             const label = CONSOLE_TIER_LABELS[tier] || `Tier ${tier}`;
             const isLegendary = tier === LEGENDARY_TIER;
             return (

@@ -872,7 +872,7 @@ function PrizesSection() {
           <div className="content-stretch flex gap-[10px] h-[117px] items-center relative shrink-0 w-[1068px]">
             <BenefitCard text="Ongoing grants and ecosystem support" />
             <BenefitCard text="Mentorship, network, and launch visibility via Avalanche channels" shortText="Mentorship, network, and launch visibility" />
-            <BenefitCard text="Post-event paths into programs like Codebase, Grants, and ecosystem partnerships" shortText="Post-event paths into programs and ecosystem partnerships" />
+            <BenefitCard text="Post-event paths into grants and ecosystem partnerships" shortText="Post-event paths into programs and ecosystem partnerships" />
           </div>
         </div>
       </div>
