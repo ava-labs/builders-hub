@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, memo, useCallback } from 'react';
+import React, { useState, useEffect, memo, useCallback, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -888,6 +888,17 @@ const HackathonsEdit = () => {
   const [hasEditPermission, setHasEditPermission] = useState<boolean>(false);
   const [dateRangeError, setDateRangeError] = useState<string | null>(null);
 
+  const leftPanelRef = useRef<HTMLDivElement | null>(null);
+  const step1Ref = useRef<HTMLDivElement | null>(null);
+  const step2Ref = useRef<HTMLDivElement | null>(null);
+  const step3Ref = useRef<HTMLDivElement | null>(null);
+  const step4Ref = useRef<HTMLDivElement | null>(null);
+  const step5Ref = useRef<HTMLDivElement | null>(null);
+  const step6Ref = useRef<HTMLDivElement | null>(null);
+
+  const [activeStep, setActiveStep] = useState<'step1' | 'step2' | 'step3' | 'step4' | 'step5' | 'step6'>('step1');
+  const [contentTab, setContentTab] = useState<'tracks' | 'meta' | 'schedule' | 'resources' | 'speakers' | 'submission'>('tracks');
+
   const getDateRangeError = (start: string, end: string): string | null => {
     if (!start?.trim() || !end?.trim()) return null;
     const startTime = new Date(start).getTime();
@@ -1009,6 +1020,58 @@ const HackathonsEdit = () => {
       return prev;
     });
   }, [formDataContent.resources.length]);
+
+  useEffect(() => {
+    if (formDataLatest.event !== 'hackathon') {
+      if (contentTab === 'tracks' || contentTab === 'submission') {
+        setContentTab('meta');
+      }
+    }
+  }, [formDataLatest.event, contentTab]);
+
+  useEffect(() => {
+    if (!leftPanelRef.current) return;
+    const sections: { id: typeof activeStep; ref: React.RefObject<HTMLDivElement | null> }[] = [
+      { id: 'step1', ref: step1Ref },
+      { id: 'step2', ref: step2Ref },
+      { id: 'step3', ref: step3Ref },
+      { id: 'step4', ref: step4Ref },
+      { id: 'step5', ref: step5Ref },
+      { id: 'step6', ref: step6Ref },
+    ];
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        let bestEntry: IntersectionObserverEntry | null = null;
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          if (!bestEntry || entry.intersectionRatio > bestEntry.intersectionRatio) {
+            bestEntry = entry;
+          }
+        });
+        if (bestEntry) {
+          const found = sections.find((s) => s.ref.current === bestEntry!.target);
+          if (found) {
+            setActiveStep(found.id);
+          }
+        }
+      },
+      {
+        root: leftPanelRef.current,
+        threshold: 0.3,
+      }
+    );
+
+    sections.forEach(({ ref }) => {
+      if (ref.current) {
+        observer.observe(ref.current);
+      }
+    });
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [leftPanelRef.current]);
 
  
   const handleScheduleDone = (idx: number) => {
@@ -1753,7 +1816,10 @@ const HackathonsEdit = () => {
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
         {/* Left Panel - Edit Form */}
-        <div className="w-1/2 overflow-y-auto bg-zinc-950">
+        <div
+          ref={leftPanelRef}
+          className="w-1/2 overflow-y-auto bg-zinc-950 max-h-[calc(100vh-80px)]"
+        >
     <div className="container mx-auto px-4 py-8">
       <UpdateModal
         open={showUpdateModal}
@@ -1772,36 +1838,143 @@ const HackathonsEdit = () => {
         isDevrel={session?.user?.custom_attributes?.includes("devrel") || false}
         loading={loadingHackathons}
       />
-      {isSelectedHackathon && (
-        <div className="flex gap-2 mb-4 sticky top-0 z-10 bg-zinc-950 py-2">
-          <Button onClick={handleCancelEdit} variant="outline">
-            {t[language].cancel}
-          </Button>
-          <Button type="button" className="bg-green-600 hover:bg-green-700 text-white" onClick={handleUpdateClick}>
-            {t[language].update}
-          </Button>  
-          {session?.user?.custom_attributes?.includes("devrel") && (
-            <Button 
-              type="button" 
-              className={`${
-                formDataMain.is_public 
-                  ? 'bg-orange-600 hover:bg-orange-700' 
-                  : 'bg-green-600 hover:bg-green-700'
-              } text-white`}
-              onClick={() => handleToggleVisibility(selectedHackathon.id, !formDataMain.is_public)}
-            >
-              {formDataMain.is_public ? 'Hide' : 'Activate'}
-            </Button>
-          )}  
-          {/* <Button
-            type="button"
-            className="bg-red-600 hover:bg-red-700 text-white"
-            onClick={() => setShowDeleteModal(true)}
-          >
-            Delete
-          </Button> */}
+      {/* Sticky bar: action buttons + step navigation (always visible when editing) */}
+      {(isSelectedHackathon || (showForm && hasEditPermission)) && (
+        <div className="sticky top-0 z-20 bg-zinc-950/98 backdrop-blur border-b border-zinc-800 mb-4">
+          {isSelectedHackathon && (
+            <div className="flex gap-2 py-2 flex-wrap items-center">
+              <Button onClick={handleCancelEdit} variant="outline">
+                {t[language].cancel}
+              </Button>
+              <Button type="button" className="bg-green-600 hover:bg-green-700 text-white" onClick={handleUpdateClick}>
+                {t[language].update}
+              </Button>  
+              {session?.user?.custom_attributes?.includes("devrel") && (
+                <Button 
+                  type="button" 
+                  className={`${
+                    formDataMain.is_public 
+                      ? 'bg-orange-600 hover:bg-orange-700' 
+                      : 'bg-green-600 hover:bg-green-700'
+                  } text-white`}
+                  onClick={() => handleToggleVisibility(selectedHackathon.id, !formDataMain.is_public)}
+                >
+                  {formDataMain.is_public ? 'Hide' : 'Activate'}
+                </Button>
+              )}  
+            </div>
+          )}
+          {showForm && hasEditPermission && (
+            <div className={`flex flex-wrap gap-2 py-3 ${isSelectedHackathon ? 'border-t border-zinc-800/80' : ''}`}>
+              <button
+                type="button"
+                onClick={() => {
+                  if (collapsed.main) {
+                    setCollapsed((prev) => ({ ...prev, main: false }));
+                  }
+                  step1Ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  setActiveStep('step1');
+                }}
+                className={`px-3 py-1 rounded-full text-sm border transition-colors ${
+                  activeStep === 'step1'
+                    ? 'bg-red-600 text-white border-red-500'
+                    : 'bg-zinc-900 text-zinc-200 border-zinc-700 hover:bg-zinc-800'
+                }`}
+              >
+                Basic Info
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (collapsed.images) {
+                    setCollapsed((prev) => ({ ...prev, images: false }));
+                  }
+                  step2Ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  setActiveStep('step2');
+                }}
+                className={`px-3 py-1 rounded-full text-sm border transition-colors ${
+                  activeStep === 'step2'
+                    ? 'bg-red-600 text-white border-red-500'
+                    : 'bg-zinc-900 text-zinc-200 border-zinc-700 hover:bg-zinc-800'
+                }`}
+              >
+                Images & Branding
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (collapsed.about) {
+                    setCollapsed((prev) => ({ ...prev, about: false }));
+                  }
+                  step3Ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  setActiveStep('step3');
+                }}
+                className={`px-3 py-1 rounded-full text-sm border transition-colors ${
+                  activeStep === 'step3'
+                    ? 'bg-red-600 text-white border-red-500'
+                    : 'bg-zinc-900 text-zinc-200 border-zinc-700 hover:bg-zinc-800'
+                }`}
+              >
+                {formDataLatest.event === 'hackathon' ? 'Participants & Prizes' : 'Organizer'}
+              </button>
+              {formDataLatest.event === 'hackathon' && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (collapsed.trackText) {
+                      setCollapsed((prev) => ({ ...prev, trackText: false }));
+                    }
+                    step4Ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    setActiveStep('step4');
+                  }}
+                  className={`px-3 py-1 rounded-full text-sm border transition-colors ${
+                    activeStep === 'step4'
+                      ? 'bg-red-600 text-white border-red-500'
+                      : 'bg-zinc-900 text-zinc-200 border-zinc-700 hover:bg-zinc-800'
+                  }`}
+                >
+                  Track Text
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  if (collapsed.content) {
+                    setCollapsed((prev) => ({ ...prev, content: false }));
+                  }
+                  step5Ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  setActiveStep('step5');
+                }}
+                className={`px-3 py-1 rounded-full text-sm border transition-colors ${
+                  activeStep === 'step5'
+                    ? 'bg-red-600 text-white border-red-500'
+                    : 'bg-zinc-900 text-zinc-200 border-zinc-700 hover:bg-zinc-800'
+                }`}
+              >
+                Content
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (collapsed.last) {
+                    setCollapsed((prev) => ({ ...prev, last: false }));
+                  }
+                  step6Ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  setActiveStep('step6');
+                }}
+                className={`px-3 py-1 rounded-full text-sm border transition-colors ${
+                  activeStep === 'step6'
+                    ? 'bg-red-600 text-white border-red-500'
+                    : 'bg-zinc-900 text-zinc-200 border-zinc-700 hover:bg-zinc-800'
+                }`}
+              >
+                Last Details
+              </button>
+            </div>
+          )}
         </div>
       )}
+
       {showForm && hasEditPermission && (
         <>
           {/* Cohosts Section - Always Visible */}
@@ -1856,8 +2029,9 @@ const HackathonsEdit = () => {
               Toggle on for the modern layout (workshop-style), off for the legacy hackathon layout.
             </p>
           </div>
+
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
+            <div ref={step1Ref} className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-2xl font-bold">Step 1: Basic Hackathon Info</h2>
                 {collapsed.main && (
@@ -1953,7 +2127,7 @@ const HackathonsEdit = () => {
             </div>
             
             {/* Step 2: Images & Branding */}
-            <div className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
+            <div ref={step2Ref} className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-2xl font-bold">Step 2: Images & Branding</h2>
                 {collapsed.images && (
@@ -2166,7 +2340,7 @@ const HackathonsEdit = () => {
             </div>
             
             {/* Step 3: Participants & Prizes (hackathon) or Organizer only (other events) */}
-            <div className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
+            <div ref={step3Ref} className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-2xl font-bold">
                   {formDataLatest.event === 'hackathon' ? 'Step 3: Participants & Prizes' : 'Step 3: Organizer'}
@@ -2250,7 +2424,7 @@ const HackathonsEdit = () => {
             
             {/* Step 4: Track Text - Only for Hackathons */}
             {formDataLatest.event === 'hackathon' && (
-            <div className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
+            <div ref={step4Ref} className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-2xl font-bold">Step 4: Track Text</h2>
                 {collapsed.trackText && (
@@ -2489,7 +2663,7 @@ const HackathonsEdit = () => {
             )}
             
             {/* Step 5: Content - Tracks, Schedule, etc. */}
-            <div className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
+            <div ref={step5Ref} className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-2xl font-bold">Step 5: Content</h2>
                 {collapsed.content && (
@@ -2500,153 +2674,248 @@ const HackathonsEdit = () => {
               </div>
               {!collapsed.content && (
                 <>
+                  {/* Inner tabs for content sections */}
+                  <div className="mb-6">
+                    <div className="flex flex-wrap gap-2">
+                      {formDataLatest.event === 'hackathon' && (
+                        <button
+                          type="button"
+                          onClick={() => setContentTab('tracks')}
+                          className={`px-3 py-1 rounded-full text-xs border transition-colors ${
+                            contentTab === 'tracks'
+                              ? 'bg-red-600 text-white border-red-500'
+                              : 'bg-zinc-900 text-zinc-200 border-zinc-700 hover:bg-zinc-800'
+                          }`}
+                        >
+                          {t[language].tracks}
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setContentTab('meta')}
+                        className={`px-3 py-1 rounded-full text-xs border transition-colors ${
+                          contentTab === 'meta'
+                            ? 'bg-red-600 text-white border-red-500'
+                            : 'bg-zinc-900 text-zinc-200 border-zinc-700 hover:bg-zinc-800'
+                        }`}
+                      >
+                        Meta
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setContentTab('schedule')}
+                        className={`px-3 py-1 rounded-full text-xs border transition-colors ${
+                          contentTab === 'schedule'
+                            ? 'bg-red-600 text-white border-red-500'
+                            : 'bg-zinc-900 text-zinc-200 border-zinc-700 hover:bg-zinc-800'
+                        }`}
+                      >
+                        {t[language].schedule}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setContentTab('resources')}
+                        className={`px-3 py-1 rounded-full text-xs border transition-colors ${
+                          contentTab === 'resources'
+                            ? 'bg-red-600 text-white border-red-500'
+                            : 'bg-zinc-900 text-zinc-200 border-zinc-700 hover:bg-zinc-800'
+                        }`}
+                      >
+                        {t[language].resources}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setContentTab('speakers')}
+                        className={`px-3 py-1 rounded-full text-xs border transition-colors ${
+                          contentTab === 'speakers'
+                            ? 'bg-red-600 text-white border-red-500'
+                            : 'bg-zinc-900 text-zinc-200 border-zinc-700 hover:bg-zinc-800'
+                        }`}
+                      >
+                        {t[language].speakers}
+                      </button>
+                      {formDataLatest.event === 'hackathon' && (
+                        <button
+                          type="button"
+                          onClick={() => setContentTab('submission')}
+                          className={`px-3 py-1 rounded-full text-xs border transition-colors ${
+                            contentTab === 'submission'
+                              ? 'bg-red-600 text-white border-red-500'
+                              : 'bg-zinc-900 text-zinc-200 border-zinc-700 hover:bg-zinc-800'
+                          }`}
+                        >
+                          {t[language].submissionDeadline}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
                   {/* Tracks Section - Only for Hackathons */}
-                  {formDataLatest.event === 'hackathon' && (
-                  <div className="space-y-4">
-                    <label className="font-medium text-xl">{t[language].tracks}:</label>
-                    {formDataContent.tracks.map((track, index) => (
-                      <TrackItem
-                        key={index}
-                        track={track}
-                        index={index}
-                        collapsed={collapsedTracks[index]}
-                        onChange={handleTrackFieldChange}
-                        onDone={handleTrackDone}
-                        onExpand={handleTrackExpand}
-                        onRemove={animateRemove.bind(null, 'track', index, removeTrack)}
-                        onScrollToPreview={scrollToSection}
-                        t={t}
-                        language={language}
-                        removing={removing}
-                        tracksLength={formDataContent.tracks.length}
-                        rawTrackDescriptions={rawTrackDescriptions}
-                        setRawTrackDescriptions={setRawTrackDescriptions}
-                        convertToHTML={convertToHTML}
-                      />
-                    ))}
-                    <div className="flex justify-end">
-                      <Button type="button" onClick={addTrack} className="mt-2 bg-red-500 hover:bg-red-600 text-white flex items-center gap-2">
-                        <Plus className="w-4 h-4" /> {t[language].addTrack}
-                      </Button>
+                  {formDataLatest.event === 'hackathon' && contentTab === 'tracks' && (
+                    <div className="space-y-4">
+                      <label className="font-medium text-xl">{t[language].tracks}:</label>
+                      {formDataContent.tracks.map((track, index) => (
+                        <TrackItem
+                          key={index}
+                          track={track}
+                          index={index}
+                          collapsed={collapsedTracks[index]}
+                          onChange={handleTrackFieldChange}
+                          onDone={handleTrackDone}
+                          onExpand={handleTrackExpand}
+                          onRemove={animateRemove.bind(null, 'track', index, removeTrack)}
+                          onScrollToPreview={scrollToSection}
+                          t={t}
+                          language={language}
+                          removing={removing}
+                          tracksLength={formDataContent.tracks.length}
+                          rawTrackDescriptions={rawTrackDescriptions}
+                          setRawTrackDescriptions={setRawTrackDescriptions}
+                          convertToHTML={convertToHTML}
+                        />
+                      ))}
+                      <div className="flex justify-end">
+                        <Button type="button" onClick={addTrack} className="mt-2 bg-red-500 hover:bg-red-600 text-white flex items-center gap-2">
+                          <Plus className="w-4 h-4" /> {t[language].addTrack}
+                        </Button>
+                      </div>
                     </div>
-                  </div>
                   )}
-                  <div className="space-y-4">
-                    <label className="font-medium text-xl mb-2 block">{t[language].address}:</label>
-                    <div className="mb-2 text-zinc-400 text-sm">{t[language].addressHelp}</div>
-                    <Input
-                      type="text"
-                      placeholder="Address"
-                      value={formDataContent.address}
-                      onChange={(e) => setFormDataContent({ ...formDataContent, address: e.target.value })}
-                      className="w-full mb-4"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-4">
-                    <label className="font-medium text-xl mb-2 block">{t[language].googleCalendarId}:</label>
-                    <div className="mb-2 text-zinc-400 text-sm">{t[language].googleCalendarIdHelp}</div>
-                    <Input
-                      type="text"
-                      placeholder="e.g. primary or abc123@group.calendar.google.com"
-                      value={formDataLatest.google_calendar_id ?? ''}
-                      onChange={(e) => setFormDataLatest({ ...formDataLatest, google_calendar_id: e.target.value || null })}
-                      className="w-full mb-4"
-                    />
-                  </div>
-                  <div className="space-y-4">
-                  <label className="font-medium text-xl mb-2 block">{t[language].schedule}:</label>
-                  <div className="mb-2 text-zinc-400 text-sm">{t[language].scheduleHelp}</div>
-                  {formDataContent.schedule.map((event, index) => (
-                    <ScheduleItem
-                      key={index}
-                      event={event}
-                      index={index}
-                      collapsed={collapsedSchedules[index]}
-                      onChange={handleScheduleFieldChange}
-                      onDone={handleScheduleDone}
-                      onExpand={handleScheduleExpand}
-                      onRemove={animateRemove.bind(null, 'schedule', index, removeSchedule)}
-                      t={t}
-                      language={language}
-                      removing={removing}
-                      scheduleLength={formDataContent.schedule.length}
-                      toLocalDatetimeString={toLocalDatetimeString}
-                    />
-                  ))}
-                  <div className="flex justify-end">
-                    <Button type="button" onClick={addSchedule} className="mt-2 bg-red-500 hover:bg-red-600 text-white flex items-center gap-2">
-                      <Plus className="w-4 h-4" /> {t[language].addSchedule}
-                    </Button>
-                  </div>
-                </div>
+
+                  {/* Meta: Address + Google Calendar */}
+                  {contentTab === 'meta' && (
+                    <>
+                      <div className="space-y-4">
+                        <label className="font-medium text-xl mb-2 block">{t[language].address}:</label>
+                        <div className="mb-2 text-zinc-400 text-sm">{t[language].addressHelp}</div>
+                        <Input
+                          type="text"
+                          placeholder="Address"
+                          value={formDataContent.address}
+                          onChange={(e) => setFormDataContent({ ...formDataContent, address: e.target.value })}
+                          className="w-full mb-4"
+                          required
+                        />
+                      </div>
+                      <div className="space-y-4">
+                        <label className="font-medium text-xl mb-2 block">{t[language].googleCalendarId}:</label>
+                        <div className="mb-2 text-zinc-400 text-sm">{t[language].googleCalendarIdHelp}</div>
+                        <Input
+                          type="text"
+                          placeholder="e.g. primary or abc123@group.calendar.google.com"
+                          value={formDataLatest.google_calendar_id ?? ''}
+                          onChange={(e) => setFormDataLatest({ ...formDataLatest, google_calendar_id: e.target.value || null })}
+                          className="w-full mb-4"
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  {/* Schedule */}
+                  {contentTab === 'schedule' && (
+                    <div className="space-y-4">
+                      <label className="font-medium text-xl mb-2 block">{t[language].schedule}:</label>
+                      <div className="mb-2 text-zinc-400 text-sm">{t[language].scheduleHelp}</div>
+                      {formDataContent.schedule.map((event, index) => (
+                        <ScheduleItem
+                          key={index}
+                          event={event}
+                          index={index}
+                          collapsed={collapsedSchedules[index]}
+                          onChange={handleScheduleFieldChange}
+                          onDone={handleScheduleDone}
+                          onExpand={handleScheduleExpand}
+                          onRemove={animateRemove.bind(null, 'schedule', index, removeSchedule)}
+                          t={t}
+                          language={language}
+                          removing={removing}
+                          scheduleLength={formDataContent.schedule.length}
+                          toLocalDatetimeString={toLocalDatetimeString}
+                        />
+                      ))}
+                      <div className="flex justify-end">
+                        <Button type="button" onClick={addSchedule} className="mt-2 bg-red-500 hover:bg-red-600 text-white flex items-center gap-2">
+                          <Plus className="w-4 h-4" /> {t[language].addSchedule}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Resources Section - For all event types */}
-                  <div className="space-y-4">
-                    <label className="font-medium text-xl mb-2 block">{t[language].resources}:</label>
-                    {formDataContent.resources.map((resource, index) => (
-                      <ResourceItem
-                        key={index}
-                        resource={resource}
-                        index={index}
-                        collapsed={collapsedResources[index]}
-                        onChange={handleResourceFieldChange}
-                        onDone={handleResourceDone}
-                        onExpand={handleResourceExpand}
-                        onRemove={animateRemove.bind(null, 'resource', index, removeResource)}
-                        t={t}
-                        language={language}
-                        removing={removing}
-                        resourcesLength={formDataContent.resources.length}
-                      />
-                    ))}
-                    <div className="flex justify-end">
-                      <Button type="button" onClick={addResource} className="mt-2 bg-red-500 hover:bg-red-600 text-white flex items-center gap-2">
-                        <Plus className="w-4 h-4" /> {t[language].addResource}
-                      </Button>
+                  {contentTab === 'resources' && (
+                    <div className="space-y-4">
+                      <label className="font-medium text-xl mb-2 block">{t[language].resources}:</label>
+                      {formDataContent.resources.map((resource, index) => (
+                        <ResourceItem
+                          key={index}
+                          resource={resource}
+                          index={index}
+                          collapsed={collapsedResources[index]}
+                          onChange={handleResourceFieldChange}
+                          onDone={handleResourceDone}
+                          onExpand={handleResourceExpand}
+                          onRemove={animateRemove.bind(null, 'resource', index, removeResource)}
+                          t={t}
+                          language={language}
+                          removing={removing}
+                          resourcesLength={formDataContent.resources.length}
+                        />
+                      ))}
+                      <div className="flex justify-end">
+                        <Button type="button" onClick={addResource} className="mt-2 bg-red-500 hover:bg-red-600 text-white flex items-center gap-2">
+                          <Plus className="w-4 h-4" /> {t[language].addResource}
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                  <div className="space-y-4">
-                    <label className="font-medium text-xl mb-2 block">{t[language].speakers}:</label>
-                    {formDataContent.speakers.map((speaker, index) => (
-                      <SpeakerItem
-                        key={index}
-                        speaker={speaker}
-                        index={index}
-                        collapsed={collapsedSpeakers[index]}
-                        onChange={handleSpeakerFieldChange}
-                        onDone={handleSpeakerDone}
-                        onExpand={handleSpeakerExpand}
-                        onRemove={animateRemove.bind(null, 'speaker', index, removeSpeaker)}
-                        t={t}
-                        language={language}
-                        removing={removing}
-                        speakersLength={formDataContent.speakers.length}
-                        onPictureChange={handleSpeakerPictureChange}
-                      />
-                    ))}
-                    <div className="flex justify-end">
-                      <Button type="button" onClick={addSpeaker} className="mt-2 bg-red-500 hover:bg-red-600 text-white flex items-center gap-2">
-                        <Plus className="w-4 h-4" /> {t[language].addSpeaker}
-                      </Button>
-                    </div>
-                  </div>
-                  {/* Submission Section - Only for Hackathons */}
-                  {formDataLatest.event === 'hackathon' && (
-                  <div className="space-y-4">
-                    <div>
-                      <label className="font-medium text-xl mb-2 block">{t[language].submissionDeadline}:</label>
-                      <div className="mb-2 text-zinc-400 text-sm">{t[language].submissionDeadlineHelp}</div>
-                      <Input
-                        type="datetime-local"
-                        placeholder="Submission Deadline"
-                        value={formDataContent.submission_deadline}
-                        onChange={(e) => setFormDataContent({ ...formDataContent, submission_deadline: e.target.value })}
-                        className="w-full mb-4"
-                        required
-                      />
-                    </div>
-                  </div>
                   )}
+
+                  {/* Speakers */}
+                  {contentTab === 'speakers' && (
+                    <div className="space-y-4">
+                      <label className="font-medium text-xl mb-2 block">{t[language].speakers}:</label>
+                      {formDataContent.speakers.map((speaker, index) => (
+                        <SpeakerItem
+                          key={index}
+                          speaker={speaker}
+                          index={index}
+                          collapsed={collapsedSpeakers[index]}
+                          onChange={handleSpeakerFieldChange}
+                          onDone={handleSpeakerDone}
+                          onExpand={handleSpeakerExpand}
+                          onRemove={animateRemove.bind(null, 'speaker', index, removeSpeaker)}
+                          t={t}
+                          language={language}
+                          removing={removing}
+                          speakersLength={formDataContent.speakers.length}
+                          onPictureChange={handleSpeakerPictureChange}
+                        />
+                      ))}
+                      <div className="flex justify-end">
+                        <Button type="button" onClick={addSpeaker} className="mt-2 bg-red-500 hover:bg-red-600 text-white flex items-center gap-2">
+                          <Plus className="w-4 h-4" /> {t[language].addSpeaker}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Submission Section - Only for Hackathons */}
+                  {formDataLatest.event === 'hackathon' && contentTab === 'submission' && (
+                    <div className="space-y-4">
+                      <div>
+                        <label className="font-medium text-xl mb-2 block">{t[language].submissionDeadline}:</label>
+                        <div className="mb-2 text-zinc-400 text-sm">{t[language].submissionDeadlineHelp}</div>
+                        <Input
+                          type="datetime-local"
+                          placeholder="Submission Deadline"
+                          value={formDataContent.submission_deadline}
+                          onChange={(e) => setFormDataContent({ ...formDataContent, submission_deadline: e.target.value })}
+                          className="w-full mb-4"
+                          required
+                        />
+                      </div>
+                    </div>
+                  )}
+
                   <div className="flex justify-end mt-4">
                     <button 
                       type="button"
@@ -2662,7 +2931,7 @@ const HackathonsEdit = () => {
                 <div className="text-zinc-400 italic">{t[language].contentCompleted}</div>
               )}
             </div>
-            <div className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6 mt-10">
+            <div ref={step6Ref} className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6 mt-10">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-2xl font-bold">Step 6: Last Details</h2>
                 {collapsed.last && (
