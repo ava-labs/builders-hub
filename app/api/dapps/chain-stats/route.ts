@@ -136,9 +136,9 @@ export async function GET(request: Request) {
           lower(concat('0x', hex(t.to))) as address,
           count() as tx_count,
           sum(t.gas_used) as total_gas,
-          sum(toFloat64(t.gas_used) * toFloat64(t.base_fee_per_gas + t.gas_price)) / 1e18 as avax_burned,
-          sum(toFloat64(t.gas_used) * toFloat64(t.base_fee_per_gas + t.gas_price) / 1e18 * coalesce(p.price_usd, 0)) as avax_burned_usd,
-          sum(toFloat64(t.gas_used) * toFloat64(t.base_fee_per_gas + t.gas_price) / 1e18 * coalesce(p.price_usd, 0)) as gas_cost_usd,
+          sum(toFloat64(t.gas_used) * toFloat64(t.gas_price)) / 1e18 as avax_burned,
+          sum(toFloat64(t.gas_used) * toFloat64(t.gas_price) / 1e18 * coalesce(p.price_usd, 0)) as avax_burned_usd,
+          sum(toFloat64(t.gas_used) * toFloat64(t.gas_price) / 1e18 * coalesce(p.price_usd, 0)) as gas_cost_usd,
           uniqExact(t.from) as unique_senders
         FROM raw_txs t
         LEFT JOIN swap_prices p ON toStartOfHour(t.block_time) = p.price_hour
@@ -164,9 +164,9 @@ export async function GET(request: Request) {
               lower(concat('0x', hex(t.to))) as address,
               count() as tx_count,
               sum(t.gas_used) as total_gas,
-              sum(toFloat64(t.gas_used) * toFloat64(t.base_fee_per_gas + t.gas_price)) / 1e18 as avax_burned,
-              sum(toFloat64(t.gas_used) * toFloat64(t.base_fee_per_gas + t.gas_price) / 1e18 * coalesce(p.price_usd, 0)) as avax_burned_usd,
-              sum(toFloat64(t.gas_used) * toFloat64(t.base_fee_per_gas + t.gas_price) / 1e18 * coalesce(p.price_usd, 0)) as gas_cost_usd,
+              sum(toFloat64(t.gas_used) * toFloat64(t.gas_price)) / 1e18 as avax_burned,
+              sum(toFloat64(t.gas_used) * toFloat64(t.gas_price) / 1e18 * coalesce(p.price_usd, 0)) as avax_burned_usd,
+              sum(toFloat64(t.gas_used) * toFloat64(t.gas_price) / 1e18 * coalesce(p.price_usd, 0)) as gas_cost_usd,
               uniqExact(t.from) as unique_senders
             FROM raw_txs t
             LEFT JOIN swap_prices p ON toStartOfHour(t.block_time) = p.price_hour
@@ -190,8 +190,8 @@ export async function GET(request: Request) {
           toDate(t.block_time) as date,
           count() as tx_count,
           sum(t.gas_used) as total_gas,
-          sum(toFloat64(t.gas_used) * toFloat64(t.base_fee_per_gas + t.gas_price)) / 1e18 as avax_burned,
-          sum(toFloat64(t.gas_used) * toFloat64(t.base_fee_per_gas + t.gas_price) / 1e18 * coalesce(p.price_usd, 0)) as avax_burned_usd
+          sum(toFloat64(t.gas_used) * toFloat64(t.gas_price)) / 1e18 as avax_burned,
+          sum(toFloat64(t.gas_used) * toFloat64(t.gas_price) / 1e18 * coalesce(p.price_usd, 0)) as avax_burned_usd
         FROM raw_txs t
         LEFT JOIN swap_prices p ON toStartOfHour(t.block_time) = p.price_hour
         WHERE t.chain_id = ${C_CHAIN_ID}
@@ -217,9 +217,9 @@ export async function GET(request: Request) {
         SELECT
           count() as tx_count,
           sum(t.gas_used) as total_gas,
-          sum(toFloat64(t.gas_used) * toFloat64(t.base_fee_per_gas + t.gas_price)) / 1e18 as avax_burned,
-          sum(toFloat64(t.gas_used) * toFloat64(t.base_fee_per_gas + t.gas_price) / 1e18 * coalesce(p.price_usd, 0)) as avax_burned_usd,
-          sum(toFloat64(t.gas_used) * toFloat64(t.base_fee_per_gas + t.gas_price) / 1e18 * coalesce(p.price_usd, 0)) as gas_cost_usd,
+          sum(toFloat64(t.gas_used) * toFloat64(t.gas_price)) / 1e18 as avax_burned,
+          sum(toFloat64(t.gas_used) * toFloat64(t.gas_price) / 1e18 * coalesce(p.price_usd, 0)) as avax_burned_usd,
+          sum(toFloat64(t.gas_used) * toFloat64(t.gas_price) / 1e18 * coalesce(p.price_usd, 0)) as gas_cost_usd,
           uniqExact(t.from) as unique_senders
         FROM raw_txs t
         LEFT JOIN swap_prices p ON toStartOfHour(t.block_time) = p.price_hour
@@ -242,9 +242,9 @@ export async function GET(request: Request) {
         SELECT
           count() as tx_count,
           sum(t.gas_used) as total_gas,
-          sum(toFloat64(t.gas_used) * toFloat64(t.base_fee_per_gas + t.gas_price)) / 1e18 as avax_burned,
-          sum(toFloat64(t.gas_used) * toFloat64(t.base_fee_per_gas + t.gas_price) / 1e18 * coalesce(p.price_usd, 0)) as avax_burned_usd,
-          sum(toFloat64(t.gas_used) * toFloat64(t.base_fee_per_gas + t.gas_price) / 1e18 * coalesce(p.price_usd, 0)) as gas_cost_usd,
+          sum(toFloat64(t.gas_used) * toFloat64(t.gas_price)) / 1e18 as avax_burned,
+          sum(toFloat64(t.gas_used) * toFloat64(t.gas_price) / 1e18 * coalesce(p.price_usd, 0)) as avax_burned_usd,
+          sum(toFloat64(t.gas_used) * toFloat64(t.gas_price) / 1e18 * coalesce(p.price_usd, 0)) as gas_cost_usd,
           uniqExact(t.from) as unique_senders
         FROM raw_txs t
         LEFT JOIN swap_prices p ON toStartOfHour(t.block_time) = p.price_hour
@@ -267,9 +267,9 @@ export async function GET(request: Request) {
             SELECT
               count() as tx_count,
               sum(t.gas_used) as total_gas,
-              sum(toFloat64(t.gas_used) * toFloat64(t.base_fee_per_gas + t.gas_price)) / 1e18 as avax_burned,
-              sum(toFloat64(t.gas_used) * toFloat64(t.base_fee_per_gas + t.gas_price) / 1e18 * coalesce(p.price_usd, 0)) as avax_burned_usd,
-              sum(toFloat64(t.gas_used) * toFloat64(t.base_fee_per_gas + t.gas_price) / 1e18 * coalesce(p.price_usd, 0)) as gas_cost_usd,
+              sum(toFloat64(t.gas_used) * toFloat64(t.gas_price)) / 1e18 as avax_burned,
+              sum(toFloat64(t.gas_used) * toFloat64(t.gas_price) / 1e18 * coalesce(p.price_usd, 0)) as avax_burned_usd,
+              sum(toFloat64(t.gas_used) * toFloat64(t.gas_price) / 1e18 * coalesce(p.price_usd, 0)) as gas_cost_usd,
               uniqExact(t.from) as unique_senders
             FROM raw_txs t
             LEFT JOIN swap_prices p ON toStartOfHour(t.block_time) = p.price_hour
@@ -294,9 +294,9 @@ export async function GET(request: Request) {
             SELECT
               count() as tx_count,
               sum(t.gas_used) as total_gas,
-              sum(toFloat64(t.gas_used) * toFloat64(t.base_fee_per_gas + t.gas_price)) / 1e18 as avax_burned,
-              sum(toFloat64(t.gas_used) * toFloat64(t.base_fee_per_gas + t.gas_price) / 1e18 * coalesce(p.price_usd, 0)) as avax_burned_usd,
-              sum(toFloat64(t.gas_used) * toFloat64(t.base_fee_per_gas + t.gas_price) / 1e18 * coalesce(p.price_usd, 0)) as gas_cost_usd,
+              sum(toFloat64(t.gas_used) * toFloat64(t.gas_price)) / 1e18 as avax_burned,
+              sum(toFloat64(t.gas_used) * toFloat64(t.gas_price) / 1e18 * coalesce(p.price_usd, 0)) as avax_burned_usd,
+              sum(toFloat64(t.gas_used) * toFloat64(t.gas_price) / 1e18 * coalesce(p.price_usd, 0)) as gas_cost_usd,
               uniqExact(t.from) as unique_senders
             FROM raw_txs t
             LEFT JOIN swap_prices p ON toStartOfHour(t.block_time) = p.price_hour
