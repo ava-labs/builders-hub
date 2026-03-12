@@ -14,7 +14,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import { Separator } from "../ui/separator";
-import { useSession } from 'next-auth/react';
+import { useSession } from "next-auth/react";
 import {
   Pagination,
   PaginationContent,
@@ -28,6 +28,7 @@ import OverviewBanner from "./hackathon/sections/OverviewBanner";
 import Link from "next/link";
 import Image from "next/image";
 import DiscoveryCard from "./DiscoveryCard";
+import { Tabs, TabsList, TabsTrigger } from "../ui/tabs";
 
 
 function buildQueryString(
@@ -111,13 +112,12 @@ export default function Events({
   );
   const [currentPage, setCurrentPage] = useState<number>(filters.page ?? 1);
   const [searchValue, setSearchValue] = useState("");
-  // Keep empty string for "all" so Select shows placeholder (same UX as location filter)
-  const [upcomingEventType, setUpcomingEventType] = useState<string>("");
-  const [ongoingEventType, setOngoingEventType] = useState<string>("");
+  const [activeEventType, setActiveEventType] = useState<string>("all");
   const [pastEventType, setPastEventType] = useState<string>("");
 
   // Search debounce
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const eventsSectionRef = useRef<HTMLDivElement | null>(null);
 
   const eventTypes = useMemo(() => {
     const types = new Set<string>(["hackathon", "workshop", "bootcamp"]);
@@ -128,19 +128,25 @@ export default function Events({
     return Array.from(types);
   }, [upcomingEvents, ongoingEvents, pastEvents]);
 
-  const filteredUpcomingEvents = useMemo(() => {
-    if (!upcomingEventType) return upcomingEvents;
-    return upcomingEvents.filter(
-      (e) => normalizeEventType(e.event) === upcomingEventType
-    );
-  }, [upcomingEvents, upcomingEventType]);
+  const sortByStartDateAsc = (a: HackathonHeader, b: HackathonHeader) => {
+    const aDate = a.start_date ? new Date(a.start_date).getTime() : 0;
+    const bDate = b.start_date ? new Date(b.start_date).getTime() : 0;
+    return aDate - bDate;
+  };
 
-  const filteredOngoingEvents = useMemo(() => {
-    if (!ongoingEventType) return ongoingEvents;
-    return ongoingEvents.filter(
-      (e) => normalizeEventType(e.event) === ongoingEventType
-    );
-  }, [ongoingEvents, ongoingEventType]);
+  const activeEvents = useMemo(() => {
+    const filterByType = (events: HackathonHeader[]) => {
+      if (activeEventType === "all") return events;
+      return events.filter(
+        (e) => normalizeEventType(e.event) === activeEventType
+      );
+    };
+
+    const sortedOngoing = [...ongoingEvents].sort(sortByStartDateAsc);
+    const sortedUpcoming = [...upcomingEvents].sort(sortByStartDateAsc);
+
+    return [...filterByType(sortedOngoing), ...filterByType(sortedUpcoming)];
+  }, [ongoingEvents, upcomingEvents, activeEventType]);
 
   useEffect(() => {
     const abortController = new AbortController();
@@ -221,11 +227,18 @@ export default function Events({
       handleSearchChange(searchValue);
     }
   };
-  const bannerPool =
-    !upcomingEventType && !ongoingEventType
-      ? [...upcomingEvents, ...ongoingEvents]
-      : [...filteredUpcomingEvents, ...filteredOngoingEvents];
+  const bannerPool = [...upcomingEvents, ...ongoingEvents];
   const topMostEvent = bannerPool.find((x) => x.top_most);
+
+  const handleActiveEventTypeChange = (value: string) => {
+    setActiveEventType(value);
+    if (eventsSectionRef.current) {
+      eventsSectionRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }
+  };
 
   const addNewHackathon = () => {
     router.push('/hackathons/edit');
@@ -264,7 +277,9 @@ export default function Events({
           </div>
         )}
 
-        {isHackathonCreator && <><button
+        {isHackathonCreator && (
+          <>
+        <button
           className={`flex items-center gap-2 font-medium text-3xl text-zinc-900 dark:text-zinc-50 ${topMostEvent ? "mt-12" : ""} px-4 py-2 rounded-md bg-zinc-100 dark:bg-zinc-800 hover:bg-red-500 hover:text-white transition-colors duration-200 cursor-pointer`}
           onClick={addNewHackathon}
         >
@@ -272,34 +287,31 @@ export default function Events({
           My Hackathons
         </button>
         <Separator className="my-4 bg-zinc-300 dark:bg-zinc-800" />
-        </>}
-        <div className={`flex flex-col md:flex-row md:items-center md:justify-between gap-4 ${topMostEvent ? "mt-12" : ""}`}>
+        </>)}
+        <div
+          ref={eventsSectionRef}
+          className={`flex flex-col md:flex-row md:items-center md:justify-between gap-4 ${topMostEvent ? "mt-12" : ""}`}
+        >
           <h2 className="font-medium text-3xl text-zinc-900 dark:text-zinc-50">
-            Upcoming
+            Events
           </h2>
-          <Select
-            value={upcomingEventType}
-            onValueChange={(value) =>
-              setUpcomingEventType(value === "all" ? "" : value)
-            }
+          <Tabs
+            value={activeEventType}
+            onValueChange={handleActiveEventTypeChange}
+            className="w-full md:w-auto"
           >
-            <SelectTrigger className="w-[220px] border border-zinc-300 dark:border-zinc-800">
-              <SelectValue placeholder="Filter by Event" />
-            </SelectTrigger>
-            <SelectContent className="bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800">
-              <SelectItem value="all">All Events</SelectItem>
-              {eventTypes.map((t) => (
-                <SelectItem key={t} value={t}>
-                  {labelForEventType(t)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            <TabsList>
+              <TabsTrigger value="all" className="cursor-pointer">All</TabsTrigger>
+              <TabsTrigger value="hackathon" className="cursor-pointer">Hackathons</TabsTrigger>
+              <TabsTrigger value="workshop" className="cursor-pointer">Workshops</TabsTrigger>
+              <TabsTrigger value="bootcamp" className="cursor-pointer">Bootcamps</TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
         <Separator className="my-4 bg-zinc-300 dark:bg-zinc-800" />
-        {filteredUpcomingEvents.length > 0 ? (
+        {activeEvents.length > 0 ? (
           <div className="grid grid-cols-1 gap-y-8 gap-x-4 xl:grid-cols-2">
-            {filteredUpcomingEvents.map((event: any) => (
+            {activeEvents.map((event: any) => (
               <HackathonCard key={event.id} hackathon={event} basePath="/events" />
             ))}
           </div>
@@ -307,7 +319,7 @@ export default function Events({
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <div className="max-w-md">
               <p className="text-lg text-zinc-600 dark:text-zinc-400 mb-6">
-                No upcoming events at the moment. Join our Telegram community to be the first to know about new opportunities!
+                No upcoming or ongoing events at the moment. Join our Telegram community to be the first to know about new opportunities!
               </p>
               <a
                 href="https://t.me/avalancheacademy"
@@ -319,40 +331,6 @@ export default function Events({
               </a>
             </div>
           </div>
-        )}
-        
-        {ongoingEvents.length > 0 && (
-          <>
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mt-12">
-              <h2 className="font-medium text-3xl text-zinc-900 dark:text-zinc-50">
-                Ongoing
-              </h2>
-              <Select
-                value={ongoingEventType}
-                onValueChange={(value) =>
-                  setOngoingEventType(value === "all" ? "" : value)
-                }
-              >
-                <SelectTrigger className="w-[220px] border border-zinc-300 dark:border-zinc-800">
-                  <SelectValue placeholder="Filter by Event" />
-                </SelectTrigger>
-                <SelectContent className="bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800">
-                  <SelectItem value="all">All Events</SelectItem>
-                  {eventTypes.map((t) => (
-                    <SelectItem key={t} value={t}>
-                      {labelForEventType(t)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <Separator className="my-4 bg-zinc-300 dark:bg-zinc-800" />
-            <div className="grid grid-cols-1 gap-y-8 gap-x-4 xl:grid-cols-2">
-              {filteredOngoingEvents.map((event: any) => (
-                  <HackathonCard key={event.id} hackathon={event} basePath="/events" />
-                ))}
-            </div>
-          </>
         )}
 
         {/* Discovery Section */}
