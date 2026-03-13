@@ -13,19 +13,16 @@ export const GET = withAuth(async (req: NextRequest, context: any, session: any)
       return NextResponse.json({ error: "ID required" }, { status: 400 });
     }
 
-    // Check if user is a member of the project
-    const isMember = await isUserProjectMember(session.user.id, id);
-    if (!isMember) {
-      return NextResponse.json(
-        { error: "Forbidden: You are not a member of this project" },
-        { status: 403 }
-      );
-    }
-
+    // Use GetProjectByIdWithMembers to get project with full member information
     const project = await GetProjectByIdWithMembers(id);
+    
+    if (!project) {
+      return NextResponse.json({ error: "Project not found" }, { status: 404 });
+    }
+    
     return NextResponse.json(project);
   } catch (error) {
-    console.error("Error in GET /api/projects/[id]:");
+    console.error("Error in GET /api/projects/[id]:", error);
     return NextResponse.json(
       { error: (error as Error).message },
       { status: 500 }

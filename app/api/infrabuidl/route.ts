@@ -1,4 +1,8 @@
 import { NextResponse } from 'next/server';
+import { getProject, createProject } from '@/server/services/projects';
+import { GetProjectByIdWithMembers, UpdateStatusMember } from '@/server/services/memberProject';
+import { createFormData } from '@/server/services/formData';
+import { getUserById } from '@/server/services/getUser';
 
 const HUBSPOT_API_KEY = process.env.HUBSPOT_API_KEY;
 const HUBSPOT_PORTAL_ID = process.env.HUBSPOT_PORTAL_ID;
@@ -24,6 +28,119 @@ export async function POST(request: Request) {
         { success: false, message: 'Invalid request body' },
         { status: 400 }
       );
+    }
+
+    const projectId = formData.projectId;
+    const userId = formData.userId;
+
+    // Validate userId exists and is valid
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, message: 'User ID is required' },
+        { status: 401 }
+      );
+    }
+
+    // Verify that the user exists in the database
+    const user = await getUserById(userId);
+    if (!user) {
+      return NextResponse.json(
+        { success: false, message: 'Invalid user ID' },
+        { status: 401 }
+      );
+    }
+
+    let finalProjectId = projectId;
+
+    // Verify if project exists or create it
+    if (projectId) {
+      // Verify that the project exists in the database using service
+      try {
+        await getProject(projectId);
+        finalProjectId = projectId;
+        
+        // If project exists, verify that the user is a member
+        const projectWithMembers = await GetProjectByIdWithMembers(finalProjectId);
+        
+        if (!projectWithMembers) {
+          return NextResponse.json(
+            { success: false, message: 'Project not found' },
+            { status: 404 }
+          );
+        }
+        
+        // Check if user is already a member
+        const existingMember = projectWithMembers.members?.find(
+          (member) => 
+            (member.user_id === userId) &&
+            member.status !== 'Removed'
+        );
+        
+        if (!existingMember) {
+          // User is not a member of the existing project - return error
+          return NextResponse.json(
+            { success: false, message: 'User is not a member of this project' },
+            { status: 403 }
+          );
+        }
+        
+        // Update status if needed (user is already a member)
+        if (existingMember.status !== 'Confirmed') {
+          try {
+            await UpdateStatusMember(
+              userId,
+              finalProjectId,
+              'Confirmed',
+              existingMember.email || formData.email || '',
+              false // wasInOtherProject
+            );
+          } catch (error) {
+            console.error('Error updating member status:', error);
+            // Don't fail the request if status update fails, but log it
+          }
+        }
+      } catch (error) {
+        return NextResponse.json(
+          { success: false, message: 'Project not found' },
+          { status: 404 }
+        );
+      }
+    } else {
+      // Create new project if it doesn't exist
+      try {
+        const newProject = await createProject({
+          project_name: formData.project,
+          full_description: formData.project_abstract_objective || '',
+          members: [{
+            user_id: userId,
+            role: 'Member',
+            status: 'Confirmed',
+          } as any],
+          origin: "infrabuidl",
+        });
+        
+        finalProjectId = newProject.id;
+      } catch (error) {
+        console.error('Error creating project:', error);
+        return NextResponse.json(
+          { success: false, message: 'Failed to create project' },
+          { status: 500 }
+        );
+      }
+    }
+
+    // Save form data to database
+    if (finalProjectId) {
+      try {
+        await createFormData({
+          formData: formData,
+          projectId: finalProjectId,
+          origin: 'infrabuidl',
+        });
+      } catch (error) {
+        console.error('Error saving form data:', error);
+        // Don't fail the request if form data save fails, but log it
+      }
     }
     
     const processedFormData: Record<string, any> = {};
