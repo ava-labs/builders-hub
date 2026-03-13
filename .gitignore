@@ -1,5 +1,6 @@
 .DS_Store
 .cursor
+.yarnrc
 # Logs
 logs
 *.log
@@ -36,6 +37,9 @@ bower_components
 
 # node-waf configuration
 .lock-wscript
+
+# gittrees 
+.claude/worktrees/
 
 # Compiled binary addons (https://nodejs.org/api/addons.html)
 build/Release
