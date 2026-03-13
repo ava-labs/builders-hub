@@ -29,13 +29,6 @@ const programs = [
     image: "/infrabuidl.png",
   },
   {
-    title: "Codebase by Avalanche™",
-    description: "Empower developers to create innovative blockchain solutions and turn visions into reality.",
-    href: "/codebase",
-    external: false,
-    image: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/codebase-banner-VKmQyN5sPojnIOU09p0lCkUgR6YTpQ.png",
-  },
-  {
     title: "infraBUIDL (AI)",
     description: "Support projects that combine artificial intelligence with decentralized infrastructure.",
     href: "/grants/infrabuidlai",

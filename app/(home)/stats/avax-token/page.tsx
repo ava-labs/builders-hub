@@ -104,7 +104,7 @@ export default function AvaxTokenPage() {
             .map((item) => ({
               date: item.date,
               timestamp: item.timestamp,
-              value: item.feesPaid,
+              value: item.feesPaid / 1e18,
             }))
             .reverse();
           setICMFees(icmFeesData);

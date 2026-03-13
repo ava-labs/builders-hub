@@ -2,7 +2,6 @@ import clsx from "clsx";
 import Link from "next/link";
 import "./styles.css";
 import ReferralLink from "@/components/build-games/ReferralLink";
-import ApplicationStatusTracker from "@/components/build-games/ApplicationStatusTracker";
 import ProgramTimelineWrapper from "@/components/build-games/ProgramTimelineWrapper";
 import BuildGamesResourcesWrapper from "@/components/build-games/BuildGamesResourcesWrapper";
 import HowItWorksWrapper from "@/components/build-games/HowItWorksWrapper";
@@ -873,7 +872,7 @@ function PrizesSection() {
           <div className="content-stretch flex gap-[10px] h-[117px] items-center relative shrink-0 w-[1068px]">
             <BenefitCard text="Ongoing grants and ecosystem support" />
             <BenefitCard text="Mentorship, network, and launch visibility via Avalanche channels" shortText="Mentorship, network, and launch visibility" />
-            <BenefitCard text="Post-event paths into programs like Codebase, Grants, and ecosystem partnerships" shortText="Post-event paths into programs and ecosystem partnerships" />
+            <BenefitCard text="Post-event paths into grants and ecosystem partnerships" shortText="Post-event paths into programs and ecosystem partnerships" />
           </div>
         </div>
       </div>
@@ -1025,7 +1024,6 @@ function MainContent() {
     <div className="absolute content-stretch flex flex-col items-start left-[-0.05px] right-[0.05px] top-0" data-name="Main">
       <HeroSection />
       <HeroTilesSection />
-      <ApplicationStatusTracker />
       <div className="relative shrink-0 w-full" data-name="CTA">
         <div className="flex flex-col justify-center size-full">
           <div className="content-stretch flex flex-col gap-[16px] items-start justify-center px-[186px] py-0 relative w-full">
