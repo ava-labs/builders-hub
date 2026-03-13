@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
+import { useChainPublicClient } from "@/components/toolbox/hooks/useChainPublicClient";
 import { useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
 import { Button } from "@/components/toolbox/components/Button";
 import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput";
@@ -81,7 +82,8 @@ function StatusCard({ title, value, status, onRefresh, isRefreshing }: StatusCar
 }
 
 function RewardManager({ onSuccess }: BaseConsoleToolProps) {
-  const { publicClient, walletEVMAddress } = useWalletStore();
+  const { walletEVMAddress } = useWalletStore();
+  const publicClient = useChainPublicClient();
   const { walletClient } = useConnectedWallet();
   const viemChain = useViemChainStore();
 
@@ -105,6 +107,7 @@ function RewardManager({ onSuccess }: BaseConsoleToolProps) {
   const [highlightFunction, setHighlightFunction] = useState<string>("allowFeeRecipients");
 
   const handleAllowFeeRecipients = async () => {
+    if (!publicClient) return;
     if (!walletClient.account) {
       throw new Error("Please connect your wallet first");
     }
@@ -136,6 +139,7 @@ function RewardManager({ onSuccess }: BaseConsoleToolProps) {
   };
 
   const checkFeeRecipientsAllowed = async () => {
+    if (!publicClient) return;
     setIsCheckingFeeRecipients(true);
 
     const result = await publicClient.readContract({
@@ -149,6 +153,7 @@ function RewardManager({ onSuccess }: BaseConsoleToolProps) {
   };
 
   const handleDisableRewards = async () => {
+    if (!publicClient) return;
     if (!walletClient.account) {
       throw new Error("Please connect your wallet first");
     }
@@ -180,6 +185,7 @@ function RewardManager({ onSuccess }: BaseConsoleToolProps) {
   };
 
   const checkCurrentRewardAddress = async () => {
+    if (!publicClient) return;
     setIsCheckingRewardAddress(true);
 
     const result = await publicClient.readContract({
@@ -193,6 +199,7 @@ function RewardManager({ onSuccess }: BaseConsoleToolProps) {
   };
 
   const handleSetRewardAddress = async () => {
+    if (!publicClient) return;
     if (!walletClient.account) {
       throw new Error("Please connect your wallet first");
     }

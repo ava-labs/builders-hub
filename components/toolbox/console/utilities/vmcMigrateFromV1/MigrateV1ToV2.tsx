@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
+import { useChainPublicClient } from "@/components/toolbox/hooks/useChainPublicClient";
 import {
   useViemChainStore,
   useToolboxStore,
@@ -30,7 +31,8 @@ const metadata: ConsoleToolMetadata = {
 };
 
 function MigrateV1ToV2({ onSuccess }: BaseConsoleToolProps) {
-  const { publicClient, walletEVMAddress } = useWalletStore();
+  const { walletEVMAddress } = useWalletStore();
+  const publicClient = useChainPublicClient();
   const { walletClient } = useConnectedWallet();
   const viemChain = useViemChainStore();
   const { validatorManagerAddress, setValidatorManagerAddress } =
@@ -123,6 +125,7 @@ function MigrateV1ToV2({ onSuccess }: BaseConsoleToolProps) {
 
     try {
       if (!viemChain) throw new Error("Chain not selected");
+      if (!publicClient) throw new Error("Public client not ready");
 
       // Ensure we are on the correct chain
       await walletClient.addChain({ chain: viemChain });

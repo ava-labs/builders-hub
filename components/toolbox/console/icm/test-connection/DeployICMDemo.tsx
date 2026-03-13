@@ -2,6 +2,7 @@
 
 import { useToolboxStore, useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
+import { useChainPublicClient } from "@/components/toolbox/hooks/useChainPublicClient";
 import { useState, useEffect } from "react";
 import ICMDemoABI from "@/contracts/example-contracts/compiled/ICMDemo.json";
 import TeleporterMessengerAddress from '@/contracts/icm-contracts-releases/v1.0.0/TeleporterMessenger_Contract_Address_v1.0.0.txt.json';
@@ -176,7 +177,8 @@ console.log("Last message:", lastMessage.toString());`,
 
 function DeployICMDemo({ onSuccess }: BaseConsoleToolProps) {
   const { setIcmReceiverAddress, icmReceiverAddress } = useToolboxStore();
-  const { publicClient, walletEVMAddress } = useWalletStore();
+  const { walletEVMAddress } = useWalletStore();
+  const publicClient = useChainPublicClient();
   const { walletClient } = useConnectedWallet();
   const viemChain = useViemChainStore();
   const [isDeploying, setIsDeploying] = useState(false);
@@ -192,6 +194,7 @@ function DeployICMDemo({ onSuccess }: BaseConsoleToolProps) {
 
   useEffect(() => {
     async function checkTeleporterExists() {
+      if (!publicClient) return;
       try {
         const code = await publicClient.getBytecode({
           address: TeleporterMessengerAddress.content as `0x${string}`,
@@ -204,9 +207,10 @@ function DeployICMDemo({ onSuccess }: BaseConsoleToolProps) {
     }
 
     checkTeleporterExists();
-  }, [selectedL1?.evmChainId]);
+  }, [publicClient, selectedL1?.evmChainId]);
 
   async function handleDeploy() {
+    if (!publicClient) return;
     setIsDeploying(true);
     setIcmReceiverAddress("");
     try {

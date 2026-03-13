@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { formatEther, parseEther } from 'viem';
 import { useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
+import { useChainPublicClient } from "@/components/toolbox/hooks/useChainPublicClient";
 import TeleporterMessengerDeploymentTransaction from '@/contracts/icm-contracts-releases/v1.0.0/TeleporterMessenger_Deployment_Transaction_v1.0.0.txt.json';
 import TeleporterMessengerDeployerAddress from '@/contracts/icm-contracts-releases/v1.0.0/TeleporterMessenger_Deployer_Address_v1.0.0.txt.json';
 import TeleporterMessengerAddress from '@/contracts/icm-contracts-releases/v1.0.0/TeleporterMessenger_Contract_Address_v1.0.0.txt.json';
@@ -45,7 +46,8 @@ const metadata: ConsoleToolMetadata = {
 
 function TeleporterMessenger({ onSuccess }: BaseConsoleToolProps) {
   const [criticalError, setCriticalError] = useState<Error | null>(null);
-  const { publicClient, walletEVMAddress } = useWalletStore();
+  const { walletEVMAddress } = useWalletStore();
+  const publicClient = useChainPublicClient();
   const { walletClient } = useConnectedWallet();
   const viemChain = useViemChainStore();
   const [isDeploying, setIsDeploying] = useState(false);
@@ -65,6 +67,7 @@ function TeleporterMessenger({ onSuccess }: BaseConsoleToolProps) {
   const expectedContractAddress = TeleporterMessengerAddress.content;
 
   const checkDeployerBalance = async () => {
+    if (!publicClient) return;
     setIsCheckingBalance(true);
     try {
       const balance = await publicClient.getBalance({
@@ -87,9 +90,10 @@ function TeleporterMessenger({ onSuccess }: BaseConsoleToolProps) {
 
   useEffect(() => {
     checkDeployerBalance();
-  }, []);
+  }, [publicClient]);
 
   const handleTopUp = async () => {
+    if (!publicClient) return;
     setIsSending(true);
     try {
       const hash = await walletClient.sendTransaction({
@@ -109,6 +113,7 @@ function TeleporterMessenger({ onSuccess }: BaseConsoleToolProps) {
   };
 
   const handleDeploy = async () => {
+    if (!publicClient) return;
     setIsDeploying(true);
     try {
       const hash = await walletClient.sendRawTransaction({
