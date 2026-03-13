@@ -53,7 +53,7 @@ const quickLinks = [
   { href: "/console", label: "Console", icon: Terminal, description: "Developer tools" },
 ];
 
-export default function NotFound({ isAComponent =false}: { isAComponent: boolean }) {
+export default function NotFound({ isAComponent = false, hideReportIssue = false, skipTracking = false}: { isAComponent?: boolean, hideReportIssue?: boolean, skipTracking?: boolean }) {
   const [currentPath, setCurrentPath] = useState<string | null>(null);
   const [suggestedPath, setSuggestedPath] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
@@ -68,23 +68,25 @@ export default function NotFound({ isAComponent =false}: { isAComponent: boolean
       const nearest = findNearestAvailablePath(path);
       setSuggestedPath(nearest);
 
-      // Track 404 with PostHog if available
-      try {
-        import('posthog-js').then((posthogModule) => {
-          const posthog = posthogModule.default;
-          if (posthog && typeof posthog.capture === 'function') {
-            posthog.capture('404_page_not_found', {
-              path: path,
-              referrer: referrer || 'direct',
-              url: window.location.href,
-              suggested_path: nearest,
-            });
-          }
-        }).catch(() => {
+      // Track 404 with PostHog if available and tracking is not disabled
+      if (!skipTracking) {
+        try {
+          import('posthog-js').then((posthogModule) => {
+            const posthog = posthogModule.default;
+            if (posthog && typeof posthog.capture === 'function') {
+              posthog.capture('404_page_not_found', {
+                path: path,
+                referrer: referrer || 'direct',
+                url: window.location.href,
+                suggested_path: nearest,
+              });
+            }
+          }).catch(() => {
+            // PostHog not available, silently ignore
+          });
+        } catch {
           // PostHog not available, silently ignore
-        });
-      } catch {
-        // PostHog not available, silently ignore
+        }
       }
     }
   }, []);
@@ -164,17 +166,18 @@ export default function NotFound({ isAComponent =false}: { isAComponent: boolean
               Back to Home
             </Button>
           </Link>
-          
-          <Link href={issueURL} target="_blank">
-            <Button
-              variant="outline"
-              size="lg"
-              className="w-full sm:w-auto gap-2 px-6"
-            >
-              <Github className="w-4 h-4" />
-              Report Issue
-            </Button>
-          </Link>
+          {!hideReportIssue && (
+            <Link href={issueURL} target="_blank">
+              <Button
+                variant="outline"
+                size="lg"
+                className="w-full sm:w-auto gap-2 px-6"
+              >
+                <Github className="w-4 h-4" />
+                Report Issue
+              </Button>
+            </Link>
+          )}
         </div>
 
         {/* Quick Links */}
