@@ -52,10 +52,20 @@ function MetricCard({ label, value, color, sub }: { label: string; value: string
   );
 }
 
-function DetailRow({ label, value, color }: { label: string; value: string; color?: string }) {
+function DetailRow({ label, value, color, tooltip }: { label: string; value: string; color?: string; tooltip?: string }) {
   return (
     <div className="flex justify-between py-1.5 border-b border-zinc-100 dark:border-zinc-800 last:border-0">
-      <span className="text-sm text-zinc-500 dark:text-zinc-400">{label}</span>
+      <span className="text-sm text-zinc-500 dark:text-zinc-400 flex items-center gap-1">
+        {label}
+        {tooltip && (
+          <span className="relative group">
+            <span className="cursor-help text-zinc-300 dark:text-zinc-600 hover:text-zinc-500 dark:hover:text-zinc-400 text-xs">ⓘ</span>
+            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover:block w-52 px-2.5 py-1.5 text-xs text-white bg-zinc-900 dark:bg-zinc-700 rounded-md shadow-lg z-10 leading-relaxed pointer-events-none">
+              {tooltip}
+            </span>
+          </span>
+        )}
+      </span>
       <span className={`text-sm font-medium ${color || ""}`}>{value}</span>
     </div>
   );
@@ -199,11 +209,11 @@ function ValidatorLookupInner(_props: BaseConsoleToolProps) {
               <h4 className="text-sm font-medium text-zinc-900 dark:text-zinc-100 mb-2 flex items-center gap-1.5">
                 <Shield className="h-3.5 w-3.5 text-zinc-400" /> Staking
               </h4>
-              <DetailRow label="Own Stake" value={formatAvax(data.weight)} />
-              <DetailRow label="Delegated" value={formatAvax(data.delegator_weight)} />
-              <DetailRow label="Delegators" value={String(data.delegator_count)} />
-              <DetailRow label="Delegation Fee" value={`${data.delegation_fee}%`} />
-              <DetailRow label="Potential Reward" value={formatAvax(data.potential_reward)} color="text-emerald-600 dark:text-emerald-400" />
+              <DetailRow label="Own Stake" value={formatAvax(data.weight)} tooltip="The amount of AVAX the validator has staked from their own funds." />
+              <DetailRow label="Delegated" value={formatAvax(data.delegator_weight)} tooltip="Total AVAX delegated to this validator by other token holders." />
+              <DetailRow label="Delegators" value={String(data.delegator_count)} tooltip="Number of unique addresses currently delegating stake to this validator." />
+              <DetailRow label="Delegation Fee" value={`${data.delegation_fee}%`} tooltip="Percentage of delegation rewards the validator keeps as a fee." />
+              <DetailRow label="Potential Reward" value={formatAvax(data.potential_reward)} color="text-emerald-600 dark:text-emerald-400" tooltip="Estimated reward the validator will earn if it maintains sufficient uptime through the staking period." />
             </div>
 
             <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-lg p-4">
@@ -212,22 +222,24 @@ function ValidatorLookupInner(_props: BaseConsoleToolProps) {
               </h4>
               {data.uptime_details && (
                 <>
-                  <DetailRow label="Uptime Observers" value={String(data.uptime_details.count)} />
-                  <DetailRow label="Uptime Avg" value={`${data.uptime_details.avg.toFixed(4)}%`} />
-                  <DetailRow label="Uptime P50" value={`${data.uptime_details.p50.toFixed(4)}%`} />
-                  <DetailRow label="Uptime P95" value={`${data.uptime_details.p95.toFixed(4)}%`} />
+                  <DetailRow label="Uptime Observers" value={String(data.uptime_details.count)} tooltip="Number of peer nodes reporting uptime data for this validator." />
+                  <DetailRow label="Uptime Avg" value={`${data.uptime_details.avg.toFixed(4)}%`} tooltip="Average uptime across all observers. Higher is better — 90%+ is required for rewards." />
+                  <DetailRow label="Uptime P50" value={`${data.uptime_details.p50.toFixed(4)}%`} tooltip="Median (50th percentile) uptime reported by observers. More robust than average as it ignores outliers." />
+                  <DetailRow label="Uptime P95" value={`${data.uptime_details.p95.toFixed(4)}%`} tooltip="95th percentile uptime — the uptime seen by the most optimistic 5% of observers." />
                 </>
               )}
               <DetailRow
                 label="Bench Observers"
                 value={String(data.bench_observers)}
                 color={data.bench_observers > 0 ? "text-yellow-600 dark:text-yellow-400" : "text-emerald-600 dark:text-emerald-400"}
+                tooltip="Number of peers that have benched this validator due to repeated unresponsiveness (failing to reply to messages). Non-zero values may indicate connectivity or performance issues."
               />
-              <DetailRow label="Blocks Proposed (14d)" value={String(data.proposed_14d)} />
+              <DetailRow label="Blocks Proposed (14d)" value={String(data.proposed_14d)} tooltip="Number of blocks this validator successfully proposed in the last 14 days." />
               <DetailRow
                 label="Blocks Missed (14d)"
                 value={String(data.missed_14d)}
                 color={data.missed_14d > 0 ? "text-red-600 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400"}
+                tooltip="Number of block proposal slots this validator missed in the last 14 days. Missed blocks can reduce rewards and indicate downtime."
               />
             </div>
           </div>
