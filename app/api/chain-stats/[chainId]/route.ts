@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { Avalanche } from "@avalanche-sdk/chainkit";
 import { TimeSeriesDataPoint, TimeSeriesMetric, ICMDataPoint, ICMMetric, STATS_CONFIG, getTimestampsFromTimeRange, createTimeSeriesMetric, createICMMetric } from "@/types/stats";
 import { getChainICMData } from "@/lib/icm-clickhouse";
 
@@ -7,9 +6,7 @@ export const dynamic = 'force-dynamic';
 
 const REQUEST_TIMEOUT_MS = 8000;
 const CACHE_CONTROL_HEADER = 'public, max-age=14400, s-maxage=14400, stale-while-revalidate=86400';
-const getRlToken = () => process.env.METRICS_BYPASS_TOKEN || '';
-
-const avalanche = new Avalanche({ network: "mainnet" });
+const EVM_METRICS_URL = process.env.EVM_METRICS_URL || 'https://44.221.18.159.sslip.io';
 
 interface ChainMetrics {
   activeAddresses: {
@@ -68,19 +65,54 @@ async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutM
   }
 }
 
+async function fetchEvmMetric(
+  chainId: string,
+  metric: string,
+  timeInterval: string,
+  startTimestamp: number,
+  endTimestamp: number,
+  pageSize: number,
+  fetchAllPages: boolean
+): Promise<{ value: number; timestamp: number }[]> {
+  const baseUrl = `${EVM_METRICS_URL}/v2/chains/${chainId}/metrics/${metric}`;
+  const allResults: { value: number; timestamp: number }[] = [];
+  let pageToken: string | undefined;
+
+  do {
+    const url = new URL(baseUrl);
+    url.searchParams.set('timeInterval', timeInterval);
+    url.searchParams.set('startTimestamp', String(startTimestamp));
+    url.searchParams.set('endTimestamp', String(endTimestamp));
+    url.searchParams.set('pageSize', String(pageSize));
+    if (pageToken) url.searchParams.set('pageToken', pageToken);
+
+    const res = await fetchWithTimeout(url.toString());
+    if (!res.ok) throw new Error(`evm-metrics ${res.status}: ${res.statusText}`);
+    const data = await res.json();
+
+    if (data.results && Array.isArray(data.results)) {
+      allResults.push(...data.results);
+    }
+
+    pageToken = data.nextPageToken || undefined;
+  } while (fetchAllPages && pageToken);
+
+  return allResults;
+}
+
 async function getTimeSeriesData(
-  metricType: string, 
+  metricType: string,
   chainId: string,
   timeRange: string,
   startTimestamp?: number,
   endTimestamp?: number,
-  pageSize: number = 365, 
+  pageSize: number = 365,
   fetchAllPages: boolean = false
 ): Promise<TimeSeriesDataPoint[]> {
   try {
     let finalStartTimestamp: number;
     let finalEndTimestamp: number;
-    
+
     if (startTimestamp !== undefined && endTimestamp !== undefined) {
       finalStartTimestamp = startTimestamp;
       finalEndTimestamp = endTimestamp;
@@ -89,34 +121,16 @@ async function getTimeSeriesData(
       finalStartTimestamp = timestamps.startTimestamp;
       finalEndTimestamp = timestamps.endTimestamp;
     }
-    
-    let allResults: any[] = [];
-    const rlToken = getRlToken();
-    
-    const params: any = {
-      metric: metricType as any,
-      startTimestamp: finalStartTimestamp,
-      endTimestamp: finalEndTimestamp,
-      timeInterval: "day",
-      pageSize,
-    };
-    
-    params.chainId = chainId === "all" ? "mainnet" : chainId;
-    if (rlToken) params.rltoken = rlToken;
-    
-    const result = await avalanche.metrics.chains.getMetrics(params);
 
-    for await (const page of result) {
-      if (!page?.result?.results || !Array.isArray(page.result.results)) {
-        continue;
-      }
-      allResults = allResults.concat(page.result.results);
-      if (!fetchAllPages) break;
-    }
+    const results = await fetchEvmMetric(
+      chainId, metricType, 'day',
+      finalStartTimestamp, finalEndTimestamp,
+      pageSize, fetchAllPages
+    );
 
-    return allResults
-      .sort((a: any, b: any) => b.timestamp - a.timestamp)
-      .map((result: any) => ({
+    return results
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .map((result) => ({
         timestamp: result.timestamp,
         value: result.value || 0,
         date: new Date(result.timestamp * 1000).toISOString().split('T')[0]
@@ -128,18 +142,18 @@ async function getTimeSeriesData(
 }
 
 async function getActiveAddressesData(
-  chainId: string, 
-  timeRange: string, 
-  interval: 'day' | 'week' | 'month', 
+  chainId: string,
+  timeRange: string,
+  interval: 'day' | 'week' | 'month',
   startTimestampParam?: number,
   endTimestampParam?: number,
-  pageSize: number = 365, 
+  pageSize: number = 365,
   fetchAllPages: boolean = false
 ): Promise<TimeSeriesDataPoint[]> {
   try {
     let startTimestamp: number;
     let endTimestamp: number;
-    
+
     if (startTimestampParam !== undefined && endTimestampParam !== undefined) {
       startTimestamp = startTimestampParam;
       endTimestamp = endTimestampParam;
@@ -148,34 +162,16 @@ async function getActiveAddressesData(
       startTimestamp = timestamps.startTimestamp;
       endTimestamp = timestamps.endTimestamp;
     }
-    
-    let allResults: any[] = [];
-    const rlToken = getRlToken();
-    
-    const params: any = {
-      metric: 'activeAddresses',
-      startTimestamp,
-      endTimestamp,
-      timeInterval: interval,
-      pageSize,
-    };
-    
-    params.chainId = chainId === "all" ? "mainnet" : chainId;
-    if (rlToken) params.rltoken = rlToken;
-    
-    const result = await avalanche.metrics.chains.getMetrics(params);
-    
-    for await (const page of result) {
-      if (!page?.result?.results || !Array.isArray(page.result.results)) {
-        continue;
-      }
-      allResults = allResults.concat(page.result.results);
-      if (!fetchAllPages) break;
-    }
-    
-    return allResults
-      .sort((a: any, b: any) => b.timestamp - a.timestamp)
-      .map((result: any) => ({
+
+    const results = await fetchEvmMetric(
+      chainId, 'activeAddresses', interval,
+      startTimestamp, endTimestamp,
+      pageSize, fetchAllPages
+    );
+
+    return results
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .map((result) => ({
         timestamp: result.timestamp,
         value: result.value || 0,
         date: new Date(result.timestamp * 1000).toISOString().split('T')[0]
@@ -921,7 +917,7 @@ export async function GET(
     const chainId = resolvedParams.chainId;
     console.error(`[GET /api/chain-stats/${chainId}] Unhandled error:`, error);
     return createResponse(
-      { error: 'Failed to fetch chain metrics', details: error instanceof Error ? error.message : 'Unknown error' },
+      { error: 'Failed to fetch chain metrics' },
       { source: 'error', chainId },
       500
     );

@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { Avalanche } from "@avalanche-sdk/chainkit";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { STATS_CONFIG } from "@/types/stats";
 import { getChainICMCount } from "@/lib/icm-clickhouse";
@@ -10,8 +9,7 @@ const SECONDS_PER_DAY = 24 * 60 * 60;
 const CACHE_CONTROL_HEADER = 'public, max-age=14400, s-maxage=14400, stale-while-revalidate=86400';
 const REQUEST_TIMEOUT_MS = 8000;
 const MAX_CONCURRENT_CHAINS = 10;
-
-const avalanche = new Avalanche({ network: "mainnet" });
+const EVM_METRICS_URL = process.env.EVM_METRICS_URL || 'https://44.221.18.159.sslip.io';
 
 const TIME_RANGE_CONFIG = {
   day: { days: 3, secondsInRange: SECONDS_PER_DAY },
@@ -115,26 +113,18 @@ async function getTxCountData(chainId: string, timeRange: TimeRangeKey): Promise
     const config = TIME_RANGE_CONFIG[timeRange];
     const endTimestamp = Math.floor(Date.now() / 1000);
     const startTimestamp = endTimestamp - (config.days * SECONDS_PER_DAY);
-    const rlToken = getRlToken();
-    
-    const result = await avalanche.metrics.chains.getMetrics({
-      chainId,
-      metric: 'txCount' as const,
-      startTimestamp,
-      endTimestamp,
-      timeInterval: "day" as const,
-      pageSize: config.days + 1,
-      ...(rlToken && { rltoken: rlToken }),
-    });
-    
-    const allResults: MetricResult[] = [];
-    for await (const page of result) {
-      if (page?.result?.results && Array.isArray(page.result.results)) {
-        allResults.push(...page.result.results);
-        break;
-      }
-    }
 
+    const url = new URL(`${EVM_METRICS_URL}/v2/chains/${chainId}/metrics/txCount`);
+    url.searchParams.set('timeInterval', 'day');
+    url.searchParams.set('startTimestamp', String(startTimestamp));
+    url.searchParams.set('endTimestamp', String(endTimestamp));
+    url.searchParams.set('pageSize', String(config.days + 1));
+
+    const res = await fetchWithTimeout(url.toString());
+    if (!res.ok) throw new Error(`evm-metrics ${res.status}`);
+    const data = await res.json();
+
+    const allResults: MetricResult[] = data.results || [];
     const sorted = sortByTimestampDesc(allResults);
     if (sorted.length === 0) return 0;
     if (sorted.length === 1) return sorted[0]?.value || 0;
@@ -150,26 +140,18 @@ async function getActiveAddressesData(chainId: string, timeRange: TimeRangeKey):
   try {
     const endTimestamp = Math.floor(Date.now() / 1000);
     const startTimestamp = endTimestamp - (30 * SECONDS_PER_DAY);
-    const rlToken = getRlToken();
-    
-    const result = await avalanche.metrics.chains.getMetrics({
-      chainId,
-      metric: 'activeAddresses' as const,
-      startTimestamp,
-      endTimestamp,
-      timeInterval: timeRange,
-      pageSize: 2,
-      ...(rlToken && { rltoken: rlToken }),
-    });
-    
-    const allResults: MetricResult[] = [];
-    for await (const page of result) {
-      if (page?.result?.results && Array.isArray(page.result.results)) {
-        allResults.push(...page.result.results);
-        break;
-      }
-    }
 
+    const url = new URL(`${EVM_METRICS_URL}/v2/chains/${chainId}/metrics/activeAddresses`);
+    url.searchParams.set('timeInterval', timeRange);
+    url.searchParams.set('startTimestamp', String(startTimestamp));
+    url.searchParams.set('endTimestamp', String(endTimestamp));
+    url.searchParams.set('pageSize', '2');
+
+    const res = await fetchWithTimeout(url.toString());
+    if (!res.ok) throw new Error(`evm-metrics ${res.status}`);
+    const data = await res.json();
+
+    const allResults: MetricResult[] = data.results || [];
     const sorted = sortByTimestampDesc(allResults);
     const dataPoint = sorted.length > 1 ? sorted[1] : sorted[0];
     return dataPoint?.value || 0;
