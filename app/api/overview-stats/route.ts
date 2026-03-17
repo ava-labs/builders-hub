@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { Avalanche } from "@avalanche-sdk/chainkit";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { STATS_CONFIG } from "@/types/stats";
 import { getChainICMCount } from "@/lib/icm-clickhouse";
@@ -10,8 +9,7 @@ const SECONDS_PER_DAY = 24 * 60 * 60;
 const CACHE_CONTROL_HEADER = 'public, max-age=14400, s-maxage=14400, stale-while-revalidate=86400';
 const REQUEST_TIMEOUT_MS = 8000;
 const MAX_CONCURRENT_CHAINS = 10;
-
-const avalanche = new Avalanche({ network: "mainnet" });
+const METRICS_API_URL = process.env.METRICS_API_URL || 'https://44.221.18.159.sslip.io';
 
 const TIME_RANGE_CONFIG = {
   day: { days: 3, secondsInRange: SECONDS_PER_DAY },
@@ -61,8 +59,6 @@ const cachedData = new Map<string, { data: OverviewMetrics; timestamp: number }>
 const chainDataCache = new Map<string, { data: ChainOverviewMetrics; timestamp: number }>();
 const revalidatingKeys = new Set<string>();
 const pendingRequests = new Map<string, Promise<OverviewMetrics | null>>();
-
-const getRlToken = () => process.env.METRICS_BYPASS_TOKEN || '';
 
 async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutMs = REQUEST_TIMEOUT_MS): Promise<Response> {
   const controller = new AbortController();
@@ -115,26 +111,18 @@ async function getTxCountData(chainId: string, timeRange: TimeRangeKey): Promise
     const config = TIME_RANGE_CONFIG[timeRange];
     const endTimestamp = Math.floor(Date.now() / 1000);
     const startTimestamp = endTimestamp - (config.days * SECONDS_PER_DAY);
-    const rlToken = getRlToken();
-    
-    const result = await avalanche.metrics.chains.getMetrics({
-      chainId,
-      metric: 'txCount' as const,
-      startTimestamp,
-      endTimestamp,
-      timeInterval: "day" as const,
-      pageSize: config.days + 1,
-      ...(rlToken && { rltoken: rlToken }),
-    });
-    
-    const allResults: MetricResult[] = [];
-    for await (const page of result) {
-      if (page?.result?.results && Array.isArray(page.result.results)) {
-        allResults.push(...page.result.results);
-        break;
-      }
-    }
 
+    const url = new URL(`${METRICS_API_URL}/v2/chains/${chainId}/metrics/txCount`);
+    url.searchParams.set('timeInterval', 'day');
+    url.searchParams.set('startTimestamp', String(startTimestamp));
+    url.searchParams.set('endTimestamp', String(endTimestamp));
+    url.searchParams.set('pageSize', String(config.days + 1));
+
+    const res = await fetchWithTimeout(url.toString());
+    if (!res.ok) throw new Error(`metrics-api ${res.status}`);
+    const data = await res.json();
+
+    const allResults: MetricResult[] = data.results || [];
     const sorted = sortByTimestampDesc(allResults);
     if (sorted.length === 0) return 0;
     if (sorted.length === 1) return sorted[0]?.value || 0;
@@ -150,26 +138,18 @@ async function getActiveAddressesData(chainId: string, timeRange: TimeRangeKey):
   try {
     const endTimestamp = Math.floor(Date.now() / 1000);
     const startTimestamp = endTimestamp - (30 * SECONDS_PER_DAY);
-    const rlToken = getRlToken();
-    
-    const result = await avalanche.metrics.chains.getMetrics({
-      chainId,
-      metric: 'activeAddresses' as const,
-      startTimestamp,
-      endTimestamp,
-      timeInterval: timeRange,
-      pageSize: 2,
-      ...(rlToken && { rltoken: rlToken }),
-    });
-    
-    const allResults: MetricResult[] = [];
-    for await (const page of result) {
-      if (page?.result?.results && Array.isArray(page.result.results)) {
-        allResults.push(...page.result.results);
-        break;
-      }
-    }
 
+    const url = new URL(`${METRICS_API_URL}/v2/chains/${chainId}/metrics/activeAddresses`);
+    url.searchParams.set('timeInterval', timeRange);
+    url.searchParams.set('startTimestamp', String(startTimestamp));
+    url.searchParams.set('endTimestamp', String(endTimestamp));
+    url.searchParams.set('pageSize', '2');
+
+    const res = await fetchWithTimeout(url.toString());
+    if (!res.ok) throw new Error(`metrics-api ${res.status}`);
+    const data = await res.json();
+
+    const allResults: MetricResult[] = data.results || [];
     const sorted = sortByTimestampDesc(allResults);
     const dataPoint = sorted.length > 1 ? sorted[1] : sorted[0];
     return dataPoint?.value || 0;
@@ -189,15 +169,14 @@ async function getICMData(chainId: string, timeRange: TimeRangeKey): Promise<num
   }
 }
 
+// TODO: migrate to metrics-api when it supports validatorCount (currently a stub)
 async function getValidatorCount(subnetId: string): Promise<number | string> {
   if (!subnetId || subnetId === "N/A") return "N/A";
 
   try {
-    const rlToken = getRlToken();
     const url = new URL('https://metrics.avax.network/v2/networks/mainnet/metrics/validatorCount');
     url.searchParams.set('pageSize', '1');
     url.searchParams.set('subnetId', subnetId);
-    if (rlToken) url.searchParams.set('rltoken', rlToken);
     
     const response = await fetchWithTimeout(url.toString(), { headers: { 'Accept': 'application/json' } });
     if (!response.ok) return "N/A";
