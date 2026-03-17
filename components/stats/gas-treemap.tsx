@@ -572,7 +572,15 @@ export default function GasTreemap() {
         setLoadingStartTime(Date.now());
         setLoadingProgress(0);
         setLoadingPhase(0);
-        const response = await fetch(`/api/dapps/chain-stats?days=${activeDays}`, {
+        let url: string;
+        if (timeRange === "custom" && customRange?.from && customRange?.to) {
+          const startDate = format(customRange.from, 'yyyy-MM-dd');
+          const endDate = format(customRange.to, 'yyyy-MM-dd');
+          url = `/api/dapps/chain-stats?startDate=${startDate}&endDate=${endDate}`;
+        } else {
+          url = `/api/dapps/chain-stats?days=${activeDays}`;
+        }
+        const response = await fetch(url, {
           signal: controller.signal,
         });
         if (response.ok) {
@@ -590,7 +598,7 @@ export default function GasTreemap() {
     fetchData();
 
     return () => controller.abort();
-  }, [activeDays]);
+  }, [activeDays, timeRange, customRange]);
 
   // Loading animation timer
   useEffect(() => {

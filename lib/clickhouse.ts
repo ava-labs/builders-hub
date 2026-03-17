@@ -439,8 +439,14 @@ export interface TotalChainStats {
   totalBurned: number;
 }
 
-export async function getTotalChainGas(days: number): Promise<TotalChainStats> {
-  const timeFilter = days > 0 ? `AND block_time >= now() - INTERVAL ${days} DAY` : '';
+export async function getTotalChainGas(
+  days: number,
+  startDate?: string | null,
+  endDate?: string | null
+): Promise<TotalChainStats> {
+  const timeFilter = (startDate && endDate)
+    ? `AND block_time >= '${startDate}' AND block_time < '${endDate}' + INTERVAL 1 DAY`
+    : (days > 0 ? `AND block_time >= now() - INTERVAL ${days} DAY` : '');
 
   const sql = `
     SELECT

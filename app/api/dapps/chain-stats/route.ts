@@ -73,6 +73,14 @@ export async function GET(request: Request) {
     const daysRaw = parseInt(searchParams.get('days') || '30');
     const days = Number.isFinite(daysRaw) && daysRaw > 0 ? Math.min(daysRaw, 183) : 30;
 
+    // Absolute date params for custom ranges (validated: digits + hyphens only)
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    const startDateRaw = searchParams.get('startDate');
+    const endDateRaw = searchParams.get('endDate');
+    const startDate = (startDateRaw && dateRegex.test(startDateRaw)) ? startDateRaw : null;
+    const endDate = (endDateRaw && dateRegex.test(endDateRaw)) ? endDateRaw : null;
+    const useAbsoluteRange = !!(startDate && endDate);
+
     // Get all known contract addresses grouped by protocol
     const protocolAddresses = new Map<string, string[]>();
     for (const contract of Object.values(CONTRACT_REGISTRY)) {
@@ -86,18 +94,36 @@ export async function GET(request: Request) {
     const tAddressFilter = buildAddressFilter(allAddresses, 't.to');
 
     // Time filters: current period and previous period (for delta)
-    const timeFilter = days > 0 ? `AND block_time >= now() - INTERVAL ${days} DAY` : '';
-    const tTimeFilter = days > 0 ? `AND t.block_time >= now() - INTERVAL ${days} DAY` : '';
-    const prevTimeFilter = days > 0
-      ? `AND block_time >= now() - INTERVAL ${days * 2} DAY AND block_time < now() - INTERVAL ${days} DAY`
-      : '';
-    const tPrevTimeFilter = days > 0
-      ? `AND t.block_time >= now() - INTERVAL ${days * 2} DAY AND t.block_time < now() - INTERVAL ${days} DAY`
-      : '';
-    // For daily stats, use 90 days if all-time, otherwise use the requested range
-    const dailyDays = days > 0 ? days : 90;
-    const dailyTimeFilter = `AND block_time >= now() - INTERVAL ${dailyDays} DAY`;
-    const tDailyTimeFilter = `AND t.block_time >= now() - INTERVAL ${dailyDays} DAY`;
+    let timeFilter: string;
+    let tTimeFilter: string;
+    let prevTimeFilter: string;
+    let tPrevTimeFilter: string;
+    let dailyTimeFilter: string;
+    let tDailyTimeFilter: string;
+
+    if (useAbsoluteRange) {
+      // Absolute: endDate inclusive (full day), previous = same-length window before startDate
+      timeFilter = `AND block_time >= '${startDate}' AND block_time < '${endDate}' + INTERVAL 1 DAY`;
+      tTimeFilter = `AND t.block_time >= '${startDate}' AND t.block_time < '${endDate}' + INTERVAL 1 DAY`;
+      const spanDays = days; // activeDays is passed as `days` param fallback from frontend
+      prevTimeFilter = `AND block_time >= '${startDate}' - INTERVAL ${spanDays} DAY AND block_time < '${startDate}'`;
+      tPrevTimeFilter = `AND t.block_time >= '${startDate}' - INTERVAL ${spanDays} DAY AND t.block_time < '${startDate}'`;
+      dailyTimeFilter = timeFilter;
+      tDailyTimeFilter = tTimeFilter;
+    } else {
+      // Relative: existing now()-based behavior
+      timeFilter = days > 0 ? `AND block_time >= now() - INTERVAL ${days} DAY` : '';
+      tTimeFilter = days > 0 ? `AND t.block_time >= now() - INTERVAL ${days} DAY` : '';
+      prevTimeFilter = days > 0
+        ? `AND block_time >= now() - INTERVAL ${days * 2} DAY AND block_time < now() - INTERVAL ${days} DAY`
+        : '';
+      tPrevTimeFilter = days > 0
+        ? `AND t.block_time >= now() - INTERVAL ${days * 2} DAY AND t.block_time < now() - INTERVAL ${days} DAY`
+        : '';
+      const dailyDays = days > 0 ? days : 90;
+      dailyTimeFilter = `AND block_time >= now() - INTERVAL ${dailyDays} DAY`;
+      tDailyTimeFilter = `AND t.block_time >= now() - INTERVAL ${dailyDays} DAY`;
+    }
 
     // Run queries in parallel
     const [
@@ -149,7 +175,7 @@ export async function GET(request: Request) {
       `),
 
       // 3. Get per-contract stats for the PREVIOUS period (for delta)
-      days > 0
+      (days > 0 || useAbsoluteRange)
         ? queryClickHouse<{
             address: string;
             tx_count: string;
@@ -202,7 +228,7 @@ export async function GET(request: Request) {
       `),
 
       // 5. Get total chain gas (for coverage %)
-      getTotalChainGas(days),
+      getTotalChainGas(days, startDate, endDate),
 
       // 6. Native transfers: current period
       queryClickHouse<{
@@ -254,7 +280,7 @@ export async function GET(request: Request) {
       `),
 
       // 8. Native transfers: previous period (for delta)
-      days > 0
+      (days > 0 || useAbsoluteRange)
         ? queryClickHouse<{
             tx_count: string;
             total_gas: string;
@@ -281,7 +307,7 @@ export async function GET(request: Request) {
         : Promise.resolve({ data: [{ tx_count: '0', total_gas: '0', avax_burned: 0, avax_burned_usd: 0, gas_cost_usd: 0, unique_senders: '0' }], meta: [], rows: 1, statistics: { elapsed: 0, rows_read: 0, bytes_read: 0 } }),
 
       // 9. Contract deploys: previous period (for delta)
-      days > 0
+      (days > 0 || useAbsoluteRange)
         ? queryClickHouse<{
             tx_count: string;
             total_gas: string;
@@ -515,7 +541,7 @@ export async function GET(request: Request) {
         totalChainGas: totalChainStats.totalGas,
         totalChainBurned: totalChainStats.totalBurned,
       },
-      timeRange: days > 0 ? `${days} days` : 'All Time',
+      timeRange: useAbsoluteRange ? `${startDate} to ${endDate}` : (days > 0 ? `${days} days` : 'All Time'),
       lastUpdated: new Date().toISOString(),
     };
 
