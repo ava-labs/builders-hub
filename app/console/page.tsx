@@ -87,26 +87,42 @@ const itemVariants = {
 function BentoCard({
   href,
   className = "",
+  pulseDelay,
   children,
 }: {
   href: string;
   className?: string;
+  pulseDelay?: number;
   children: React.ReactNode;
 }) {
+  const router = useRouter();
+
   return (
     <motion.div variants={itemVariants}>
-      <Link href={href} className="block h-full">
+      <div
+        onClick={() => router.push(href)}
+        className="block h-full cursor-pointer"
+        role="link"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") router.push(href); }}
+      >
         <motion.div
           whileHover={{ y: -2 }}
           transition={{ type: "spring" as const, stiffness: 400, damping: 25 }}
           className={`group relative h-full rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm p-4 transition-all duration-200 hover:border-zinc-300 dark:hover:border-zinc-700 ${className}`}
-          style={{ boxShadow: "0 1px 2px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.03)" }}
+          style={{
+            boxShadow: "0 1px 2px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.03)",
+            ...(pulseDelay !== undefined && {
+              outline: "2px solid transparent",
+              animation: `cardPulse 1.0s ease-in-out ${pulseDelay}s 1`,
+            }),
+          }}
           onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "0 2px 4px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.06)"; }}
           onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "0 1px 2px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.03)"; }}
         >
           {children}
         </motion.div>
-      </Link>
+      </div>
     </motion.div>
   );
 }
@@ -212,6 +228,12 @@ function ConsoleDashboard() {
 
   return (
     <div className="relative -m-8 p-8" style={{ minHeight: "calc(100vh - var(--header-height, 3rem))" }}>
+      <style jsx global>{`
+        @keyframes cardPulse {
+          0%, 100% { outline-color: transparent; }
+          50% { outline-color: rgba(161, 161, 170, 0.3); }
+        }
+      `}</style>
       {/* Grid background */}
       <div
         className="absolute inset-0 opacity-[0.4] dark:opacity-[0.15]"
@@ -261,8 +283,12 @@ function ConsoleDashboard() {
               <motion.div
                 whileHover={{ y: -2 }}
                 transition={{ type: "spring" as const, stiffness: 400, damping: 25 }}
-                className="group h-full rounded-2xl border border-zinc-800 dark:border-zinc-800 bg-zinc-900 dark:bg-zinc-900 p-5 transition-all duration-200 hover:border-zinc-700 dark:hover:border-zinc-700"
-                style={{ boxShadow: "inset 0 1px 0 0 rgba(255,255,255,0.06), 0 2px 8px rgba(0,0,0,0.15), 0 8px 24px rgba(0,0,0,0.1)" }}
+                className="group h-full rounded-2xl border border-zinc-700 dark:border-zinc-700 bg-zinc-800 dark:bg-zinc-800 p-5 transition-all duration-200 hover:border-zinc-600 dark:hover:border-zinc-600"
+                style={{
+                  boxShadow: "inset 0 1px 0 0 rgba(255,255,255,0.06), 0 2px 8px rgba(0,0,0,0.15), 0 8px 24px rgba(0,0,0,0.1)",
+                  outline: "2px solid transparent",
+                  animation: "cardPulse 1.0s ease-in-out 1.0s 2",
+                }}
                 onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "inset 0 1px 0 0 rgba(255,255,255,0.06), 0 4px 12px rgba(0,0,0,0.2), 0 16px 40px rgba(0,0,0,0.15)"; }}
                 onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "inset 0 1px 0 0 rgba(255,255,255,0.06), 0 2px 8px rgba(0,0,0,0.15), 0 8px 24px rgba(0,0,0,0.1)"; }}
               >
@@ -288,21 +314,19 @@ function ConsoleDashboard() {
           </motion.div>
 
           <motion.div className="md:col-span-2" variants={itemVariants}>
-            <Link href="/console/blueprints" className="block h-full">
+            <div className="block h-full cursor-not-allowed">
               <motion.div
-                whileHover={{ y: -2 }}
-                transition={{ type: "spring" as const, stiffness: 400, damping: 25 }}
-                className="group h-full rounded-2xl border border-zinc-200/80 dark:border-zinc-700 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm p-5 transition-all duration-200 hover:border-zinc-300 dark:hover:border-zinc-600"
-                style={{ boxShadow: "0 1px 2px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.03)" }}
-                onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "0 2px 4px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.06)"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "0 1px 2px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.03)"; }}
+                className="group h-full rounded-2xl border border-zinc-200/80 dark:border-zinc-700 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm p-5 opacity-50 pointer-events-none select-none"
+                style={{
+                  boxShadow: "0 1px 2px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.03)",
+                }}
               >
                 <div className="flex items-center gap-2.5 mb-3">
-                  <div className="w-9 h-9 rounded-xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center transition-colors group-hover:bg-zinc-200/80 dark:group-hover:bg-zinc-700/80">
+                  <div className="w-9 h-9 rounded-xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
                     <Sparkles className="w-4.5 h-4.5 text-zinc-600 dark:text-zinc-400" />
                   </div>
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-2 py-0.5 rounded-full">
-                    New
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded-full">
+                    Coming Soon
                   </span>
                 </div>
                 <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-1.5">
@@ -312,12 +336,12 @@ function ConsoleDashboard() {
                   Pre-configured L1 templates for gaming, DeFi, and enterprise
                 </p>
               </motion.div>
-            </Link>
+            </div>
           </motion.div>
 
           {/* Row 2: Faucet (3) + API Keys (3) */}
           <div className="md:col-span-3">
-            <BentoCard href="/console/primary-network/faucet">
+            <BentoCard href="/console/primary-network/faucet" pulseDelay={3.8}>
               <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mb-2 transition-colors group-hover:bg-zinc-200/80 dark:group-hover:bg-zinc-700/80">
                 <img
                   src="/images/avax.png"
@@ -331,7 +355,7 @@ function ConsoleDashboard() {
           </div>
 
           <div className="md:col-span-3">
-            <BentoCard href="/console/utilities/data-api-keys">
+            <BentoCard href="/console/utilities/data-api-keys" pulseDelay={4.7}>
               <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mb-2 transition-colors group-hover:bg-zinc-200/80 dark:group-hover:bg-zinc-700/80">
                 <BookKey className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
               </div>
@@ -342,7 +366,7 @@ function ConsoleDashboard() {
 
           {/* Row 3: Primary Network (2) + Your L1 (2) + Cross-Chain (2) */}
           <div className="md:col-span-2">
-            <BentoCard href="/console/primary-network/node-setup">
+            <BentoCard href="/console/primary-network/node-setup" pulseDelay={5.6}>
               <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mb-2 transition-colors group-hover:bg-zinc-200/80 dark:group-hover:bg-zinc-700/80">
                 <Network className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
               </div>
@@ -356,7 +380,7 @@ function ConsoleDashboard() {
           </div>
 
           <div className="md:col-span-2">
-            <BentoCard href="/console/layer-1/validator-set">
+            <BentoCard href="/console/layer-1/validator-set" pulseDelay={6.5}>
               <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mb-2 transition-colors group-hover:bg-zinc-200/80 dark:group-hover:bg-zinc-700/80">
                 <LayoutDashboard className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
               </div>
@@ -370,7 +394,7 @@ function ConsoleDashboard() {
           </div>
 
           <div className="md:col-span-2">
-            <BentoCard href="/console/icm/setup">
+            <BentoCard href="/console/icm/setup" pulseDelay={7.4}>
               <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mb-2 transition-colors group-hover:bg-zinc-200/80 dark:group-hover:bg-zinc-700/80">
                 <ArrowLeftRight className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
               </div>

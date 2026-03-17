@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useToolboxStore, useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
+import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
 import { Button } from "@/components/toolbox/components/Button";
 import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput";
 import { ResultField } from "@/components/toolbox/components/ResultField";
@@ -42,7 +43,8 @@ interface EnableStakingManagerMintingProps extends BaseConsoleToolProps {
 
 function EnableStakingManagerMinting({ initialTokenType }: EnableStakingManagerMintingProps) {
   const { nativeStakingManagerAddress, erc20StakingManagerAddress } = useToolboxStore();
-  const { publicClient, walletEVMAddress } = useWalletStore();
+  const { walletEVMAddress } = useWalletStore();
+  const chainPublicClient = useChainPublicClient();
   const { setCriticalError } = useCriticalError();
 
   // Auto-detect token type based on which staking manager address is stored from step 1
@@ -66,19 +68,19 @@ function EnableStakingManagerMinting({ initialTokenType }: EnableStakingManagerM
 
   // Check the token's access control pattern (ERC20 only)
   async function checkTokenAccessControl() {
-    if (!stakingTokenAddress || !publicClient || isNative) return;
+    if (!stakingTokenAddress || !chainPublicClient || isNative) return;
 
     setIsChecking(true);
     try {
       // Try to get token info
       try {
         const [name, symbol] = await Promise.all([
-          publicClient.readContract({
+          chainPublicClient.readContract({
             address: stakingTokenAddress as `0x${string}`,
             abi: ExampleERC20.abi,
             functionName: 'name',
           }),
-          publicClient.readContract({
+          chainPublicClient.readContract({
             address: stakingTokenAddress as `0x${string}`,
             abi: ExampleERC20.abi,
             functionName: 'symbol',
@@ -92,7 +94,7 @@ function EnableStakingManagerMinting({ initialTokenType }: EnableStakingManagerM
 
       // Check for OpenZeppelin AccessControl pattern (hasRole, grantRole)
       try {
-        await publicClient.readContract({
+        await chainPublicClient.readContract({
           address: stakingTokenAddress as `0x${string}`,
           abi: [{
             type: 'function',
@@ -115,7 +117,7 @@ function EnableStakingManagerMinting({ initialTokenType }: EnableStakingManagerM
 
       // Check for Ownable pattern (owner function)
       try {
-        await publicClient.readContract({
+        await chainPublicClient.readContract({
           address: stakingTokenAddress as `0x${string}`,
           abi: [{
             type: 'function',
@@ -157,7 +159,7 @@ function EnableStakingManagerMinting({ initialTokenType }: EnableStakingManagerM
     setIsGranting(true);
     try {
       const hash = await exampleERC20.grantRole(MINTER_ROLE, erc20StakingManagerAddress);
-      await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
+      await chainPublicClient!.waitForTransactionReceipt({ hash: hash as `0x${string}` });
       setGrantTxHash(hash);
     } catch (error) {
       setCriticalError(error instanceof Error ? error : new Error(String(error)));

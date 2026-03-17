@@ -37,7 +37,7 @@ export function CliAlternative({ command }: CliAlternativeProps) {
     i++;
   }
 
-  const multiLine = flags.length > 1;
+  const multiLine = false;
 
   return (
     <div>

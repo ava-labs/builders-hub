@@ -42,7 +42,7 @@ export default function SendNotificationsForm() {
   const [title, setTitle] = useState<string>("");
   const [shortDescription, setShortDescription] = useState<string>("");
   const [content, setContent] = useState<string>("");
-  const [contentType, setContentType] = useState<string>("text/plain");
+  const [contentType, setContentType] = useState<string>("");
   const [type, setType] = useState<string>("");
   const [loading, setLoading] = useState(false)
   const [openAudienceDialog, setOpenAudienceDialog] = useState<boolean>(false);
@@ -176,6 +176,8 @@ export default function SendNotificationsForm() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="text/plain">text/plain</SelectItem>
+                <SelectItem value="text/markdown">text/markdown</SelectItem>
+                <SelectItem value="text/html">text/html</SelectItem>
               </SelectContent>
             </Select>
           </div>

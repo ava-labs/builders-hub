@@ -22,6 +22,7 @@ import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-
 import { SDKCodeViewer, type SDKCodeSource } from "@/components/console/sdk-code-viewer"
 import { CliAlternative } from "@/components/console/cli-alternative"
 import { cn } from "@/lib/utils"
+import { ensureCoreNetworkMode, restoreCoreChain } from "@/components/toolbox/coreViem"
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
@@ -115,10 +116,16 @@ function ValidatorBalanceIncrease({ onSuccess }: BaseConsoleToolProps) {
         setLoading(false)
         return
       }
+
+      // Ensure Core Wallet is in the correct network mode for P-Chain ops
+      const previousChainId = await ensureCoreNetworkMode(isTestnet)
+
       const txHash = await coreWalletClient.increaseL1ValidatorBalance({
         validationId: validatorSelection.validationId,
         balanceInAvax: amountNumber,
       })
+
+      if (previousChainId) await restoreCoreChain(previousChainId)
 
       setValidatorTxId(txHash)
       setOperationSuccessful(true)
@@ -327,7 +334,7 @@ function ValidatorBalanceIncrease({ onSuccess }: BaseConsoleToolProps) {
                     Increase Balance
                   </Button>
 
-                  <CliAlternative command={`avalanche validator increase-balance --validation-id ${validatorSelection.validationId || "<validation-id>"} --balance ${amount || "<amount>"} --network ${isTestnet ? "fuji" : "mainnet"}`} />
+                  <CliAlternative command={`platform l1 add-balance --validation-id ${validatorSelection.validationId || "<validation-id>"} --balance ${amount || "<amount>"} --network ${isTestnet ? "fuji" : "mainnet"} --key-name <your-key-name>`} />
                 </div>
               </Step>
             </Steps>

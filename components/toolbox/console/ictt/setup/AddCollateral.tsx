@@ -11,7 +11,7 @@ import { Input, Suggestion } from "@/components/toolbox/components/Input";
 import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput";
 import { AmountInput } from "@/components/toolbox/components/AmountInput";
 import SelectBlockchainId from "@/components/toolbox/components/SelectBlockchainId";
-import { cb58ToHex } from '@/components/toolbox/console/utilities/format-converter/FormatConverter';
+import { cb58ToHex } from '@/components/tools/common/utils/cb58';
 import { utils } from "@avalabs/avalanchejs";
 import ERC20TokenRemoteABI from "@/contracts/icm-contracts/compiled/ERC20TokenRemote.json";
 import NativeTokenRemoteABI from "@/contracts/icm-contracts/compiled/NativeTokenRemote.json";

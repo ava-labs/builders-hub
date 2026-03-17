@@ -8,6 +8,8 @@ import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { Alert } from '@/components/toolbox/components/Alert';
 import { decodeAbiParameters } from 'viem';
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
+import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
+import { ensureCoreNetworkMode, restoreCoreChain } from '@/components/toolbox/coreViem';
 
 interface SubmitPChainTxRegisterL1ValidatorProps {
   subnetIdL1: string;
@@ -30,7 +32,8 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
   onSuccess,
   onError,
 }) => {
-  const { coreWalletClient, pChainAddress, publicClient, isTestnet } = useWalletStore();
+  const { coreWalletClient, pChainAddress, isTestnet } = useWalletStore();
+  const chainPublicClient = useChainPublicClient();
   const walletType = useWalletStore((s) => s.walletType);
   const isCoreWallet = walletType === 'core';
   const { aggregateSignature } = useAvalancheSDKChainkit();
@@ -61,14 +64,14 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
   useEffect(() => {
     const extractWarpMessage = async () => {
       const validTxHash = validateAndCleanTxHash(evmTxHashState);
-      if (!publicClient || !validTxHash) {
+      if (!chainPublicClient || !validTxHash) {
         setUnsignedWarpMessage(null);
         setSignedWarpMessage(null);
         return;
       }
 
       try {
-        const receipt = await publicClient.waitForTransactionReceipt({ hash: validTxHash });
+        const receipt = await chainPublicClient.waitForTransactionReceipt({ hash: validTxHash });
         if (!receipt.logs || receipt.logs.length === 0) {
           throw new Error("Failed to get warp message from transaction receipt.");
         }
@@ -131,7 +134,7 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
     };
 
     extractWarpMessage();
-  }, [evmTxHashState, publicClient]);
+  }, [evmTxHashState, chainPublicClient]);
 
   const handleSubmitPChainTx = async () => {
     setErrorState(null);
@@ -201,6 +204,10 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
         return;
       }
 
+      // Ensure Core Wallet is in the correct network mode for P-Chain ops.
+      // Switching to an L1 chain can silently flip Core into mainnet mode.
+      const previousChainId = await ensureCoreNetworkMode(isTestnet);
+
       const registerL1ValidatorPromise = coreWalletClient!.registerL1Validator({
         balance: validatorBalance.trim(),
         blsProofOfPossession: blsProofOfPossession.trim(),
@@ -209,6 +216,10 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
       notify('registerL1Validator', registerL1ValidatorPromise);
 
       const pChainTxId = await registerL1ValidatorPromise;
+
+      // Restore the L1 chain if we had to switch for the P-Chain op
+      if (previousChainId) await restoreCoreChain(previousChainId);
+
       setTxSuccess(`P-Chain transaction successful! ID: ${pChainTxId}`);
       onSuccess(pChainTxId);
     } catch (err: any) {
@@ -249,15 +260,14 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
 
   const generateCLICommand = () => {
     if (!signedWarpMessage) return '';
-    const nodeUrl = isTestnet
-      ? 'https://api.avax-test.network'
-      : 'https://api.avax.network';
+    const network = isTestnet ? 'fuji' : 'mainnet';
     return [
-      `avalanche contract registerL1Validator \\`,
-      `  --node-url ${nodeUrl} \\`,
-      `  --signed-warp-message "${signedWarpMessage}" \\`,
+      `platform l1 register-validator \\`,
+      `  --message "${signedWarpMessage}" \\`,
+      `  --pop "${blsProofOfPossession || '<BLS_PROOF>'}" \\`,
       `  --balance ${validatorBalance || '<BALANCE_AVAX>'} \\`,
-      `  --bls-proof-of-possession "${blsProofOfPossession || '<BLS_PROOF>'}"`,
+      `  --network ${network} \\`,
+      `  --key-name <your-key-name>`,
     ].join('\n');
   };
 

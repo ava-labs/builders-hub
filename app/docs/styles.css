@@ -299,25 +299,17 @@ header + * {
   }
 }
 
-/* XL screens: Account for TOC sidebar width (286px) when visible */
+/* XL screens: TOC sidebar (286px) is visible.
+   Let fumadocs handle #nd-page width via max-w-(--fd-page-width) and
+   pe-(--fd-toc-width). The TOC is position:fixed and calculates its
+   insetInlineEnd based on --fd-page-width being centered — overriding
+   max-width to 100% breaks that coordination and causes overlap. */
 @media (min-width: 1280px) {
-  /* Override the 1024px+ centering rules to left-align content on XL screens */
-  /* This prevents content from centering and overlapping the TOC sidebar */
   body[data-layout="docs"] #nd-page,
   body[data-layout="docs"] div#nd-page,
   body[data-layout="docs"] article#nd-page,
   [data-route-layout="docs"] #nd-page {
-    margin-left: 0 !important;      /* Reset auto margin - LEFT align */
-    margin-right: 0 !important;     /* Reset auto margin - prevent centering */
-    width: 100% !important;
-    max-width: 100% !important;
-    overflow-x: auto !important;
     box-sizing: border-box !important;
-  }
-
-  /* Children should respect parent width */
-  body[data-layout="docs"] #nd-page > * {
-    max-width: 100% !important;
   }
 }
 

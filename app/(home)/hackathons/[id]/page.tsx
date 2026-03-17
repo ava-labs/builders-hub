@@ -152,7 +152,13 @@ export default async function HackathonPage({
             {hackathon.content.tracks_text && <About hackathon={hackathon} />}
             {hackathon.content.tracks && <Tracks hackathon={hackathon} />}
             <Resources hackathon={hackathon} />
-            {hackathon.content.schedule && <Schedule hackathon={hackathon} />}
+            <Schedule 
+              hackathon={hackathon} 
+              scheduleSource={hackathon.google_calendar_id ? "google-calendar" : "database"}
+              googleCalendarConfig={hackathon.google_calendar_id ? {
+                calendarId: hackathon.google_calendar_id,
+              } : undefined}
+            />
             <Submission hackathon={hackathon} />
             {hackathon.content.speakers && hackathon.content.speakers.length > 0 && (
               <MentorsJudges hackathon={hackathon} />

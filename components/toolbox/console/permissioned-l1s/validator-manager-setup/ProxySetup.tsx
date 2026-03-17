@@ -3,6 +3,7 @@
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 import { useViemChainStore, useToolboxStore } from "@/components/toolbox/stores/toolboxStore";
 import { useSelectedL1 } from "@/components/toolbox/stores/l1ListStore";
+import { useChainPublicClient } from "@/components/toolbox/hooks/useChainPublicClient";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/toolbox/components/Button";
 import ProxyAdminABI from "@/contracts/openzeppelin-4.9/compiled/ProxyAdmin.json";
@@ -51,10 +52,12 @@ const metadata: ConsoleToolMetadata = {
 function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
   const { validatorManagerAddress } = useToolboxStore();
   const selectedL1 = useSelectedL1()();
-  const { publicClient, walletChainId, walletEVMAddress } = useWalletStore();
+  const { walletChainId, walletEVMAddress } = useWalletStore();
   const { data: walletClient } = useWalletClient();
   const viemChain = useViemChainStore();
   const { notify } = useConsoleNotifications();
+
+  const chainPublicClient = useChainPublicClient();
 
   // Upgrade state
   const [proxyAddress, setProxyAddress] = useState<string>(GENESIS_PROXY_ADDRESS);
@@ -106,6 +109,11 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
   }, [proxyAddress, walletChainId]);
 
   async function readProxyInfo(address: string) {
+    if (!chainPublicClient) {
+      setProxyError("Chain not configured. Connect your wallet to the target L1.");
+      return;
+    }
+
     setIsLoadingProxyInfo(true);
     setProxyError("");
     setProxyAdminAddress("");
@@ -113,7 +121,7 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
 
     try {
       // Read admin from EIP-1967 storage slot
-      const adminData = await publicClient.getStorageAt({
+      const adminData = await chainPublicClient.getStorageAt({
         address: address as `0x${string}`,
         slot: ADMIN_SLOT as `0x${string}`,
       });
@@ -128,7 +136,7 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
 
       // Read current implementation
       try {
-        const implementation = await publicClient.readContract({
+        const implementation = await chainPublicClient.readContract({
           address: adminAddress as `0x${string}`,
           abi: ProxyAdminABI.abi,
           functionName: "getProxyImplementation",
@@ -146,7 +154,7 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
   }
 
   async function handleUpgrade() {
-    if (!desiredImplementation || !proxyAddress || !proxyAdminAddress) return;
+    if (!desiredImplementation || !proxyAddress || !proxyAdminAddress || !chainPublicClient) return;
 
     setIsUpgrading(true);
     try {
@@ -163,7 +171,7 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
       notify({ type: "call", name: "Upgrade Proxy" }, upgradePromise, viemChain ?? undefined);
 
       const hash = await upgradePromise;
-      await publicClient.waitForTransactionReceipt({ hash });
+      await chainPublicClient.waitForTransactionReceipt({ hash });
       await readProxyInfo(proxyAddress);
       onSuccess?.();
     } finally {
@@ -172,6 +180,8 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
   }
 
   async function deployProxyAdmin() {
+    if (!chainPublicClient) throw new Error("Chain not configured");
+
     setIsDeployingProxyAdmin(true);
     setNewProxyAdminAddress("");
 
@@ -188,7 +198,7 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
       notify({ type: "deploy", name: "ProxyAdmin" }, deployPromise, viemChain ?? undefined);
 
       const hash = await deployPromise;
-      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      const receipt = await chainPublicClient.waitForTransactionReceipt({ hash });
       if (receipt.contractAddress) {
         setNewProxyAdminAddress(receipt.contractAddress);
       }
@@ -198,7 +208,7 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
   }
 
   async function deployTransparentProxy() {
-    if (!deployImplementationAddress || !newProxyAdminAddress) return;
+    if (!deployImplementationAddress || !newProxyAdminAddress || !chainPublicClient) return;
 
     setIsDeployingProxy(true);
     setNewProxyAddress("");
@@ -216,7 +226,7 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
       notify({ type: "deploy", name: "TransparentUpgradeableProxy" }, deployPromise, viemChain ?? undefined);
 
       const hash = await deployPromise;
-      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      const receipt = await chainPublicClient.waitForTransactionReceipt({ hash });
       if (receipt.contractAddress) {
         setNewProxyAddress(receipt.contractAddress);
         // Auto-fill the upgrade section with the new proxy

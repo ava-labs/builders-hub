@@ -7,6 +7,8 @@ import { Alert } from '@/components/toolbox/components/Alert';
 import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
+import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
+import { ensureCoreNetworkMode, restoreCoreChain } from '@/components/toolbox/coreViem';
 
 interface SubmitPChainTxRemovalProps {
   subnetIdL1: string;
@@ -28,7 +30,8 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
   onSuccess,
   onError,
 }) => {
-  const { coreWalletClient, pChainAddress, publicClient, isTestnet } = useWalletStore();
+  const { coreWalletClient, pChainAddress, isTestnet } = useWalletStore();
+  const chainPublicClient = useChainPublicClient();
   const walletType = useWalletStore((s) => s.walletType);
   const isCoreWallet = walletType === 'core';
   const { aggregateSignature } = useAvalancheSDKChainkit();
@@ -66,7 +69,7 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
   useEffect(() => {
     const extractWarpMessage = async () => {
       const validTxHash = validateAndCleanTxHash(evmTxHash);
-      if (!publicClient || !validTxHash) {
+      if (!chainPublicClient || !validTxHash) {
         setUnsignedWarpMessage(null);
         setEventData(null);
         setSignedWarpMessage(null);
@@ -74,7 +77,7 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
       }
 
       try {
-        const receipt = await publicClient.waitForTransactionReceipt({ hash: validTxHash });
+        const receipt = await chainPublicClient.waitForTransactionReceipt({ hash: validTxHash });
         if (!receipt.logs || receipt.logs.length === 0) {
           throw new Error("Failed to get warp message from transaction receipt.");
         }
@@ -192,7 +195,7 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
     };
 
     extractWarpMessage();
-  }, [evmTxHash, publicClient]);
+  }, [evmTxHash, chainPublicClient]);
 
   const handleSubmitPChainTx = async () => {
     setErrorState(null);
@@ -257,12 +260,17 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
         return;
       }
 
+      // Ensure Core Wallet is in the correct network mode for P-Chain ops
+      const previousChainId = await ensureCoreNetworkMode(isTestnet);
+
       // Step 2: Submit to P-Chain
       const pChainTxIdPromise = coreWalletClient!.setL1ValidatorWeight({
         signedWarpMessage: signedMessage,
       });
       notify('setL1ValidatorWeight', pChainTxIdPromise);
       const pChainTxId = await pChainTxIdPromise;
+
+      if (previousChainId) await restoreCoreChain(previousChainId);
 
       setTxSuccess(`P-Chain transaction successful! ID: ${pChainTxId}`);
       onSuccess(pChainTxId, eventData);
@@ -310,13 +318,12 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
 
   const generateCLICommand = () => {
     if (!signedWarpMessage) return '';
-    const nodeUrl = isTestnet
-      ? 'https://api.avax-test.network'
-      : 'https://api.avax.network';
+    const network = isTestnet ? 'fuji' : 'mainnet';
     return [
-      `avalanche platform setL1ValidatorWeight \\`,
-      `  --node-url ${nodeUrl} \\`,
-      `  --signed-warp-message "${signedWarpMessage}"`,
+      `platform l1 set-weight \\`,
+      `  --message "${signedWarpMessage}" \\`,
+      `  --network ${network} \\`,
+      `  --key-name <your-key-name>`,
     ].join('\n');
   };
 

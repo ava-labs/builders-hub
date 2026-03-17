@@ -9,7 +9,6 @@ import {
   type TextareaHTMLAttributes,
   use,
   useCallback,
-  useDeferredValue,
   useEffect,
   useRef,
   useState,
@@ -27,24 +26,15 @@ import {
   Trash2,
   Loader2,
   Share2,
-  Play,
-  BookOpen,
-  Terminal,
-  Puzzle,
-  FileText,
-  Newspaper,
-  ExternalLink,
   Copy,
   Check,
-  Zap,
-  Brain,
   Pencil,
 } from 'lucide-react';
 import defaultMdxComponents from 'fumadocs-ui/mdx';
 import { cn } from '@/lib/cn';
 import { createProcessor, type Processor } from '@/components/ai/markdown-processor';
 import { MessageFeedback } from '@/components/ai/feedback';
-import { EmbeddedPanel, extractEmbeddableLinks, getEmbedTypeInfo, type EmbeddedReference, type EmbedType } from '@/components/ai/embedded-panel';
+import InlineChatComponent from '@/components/chat/inline-component';
 import Link from 'fumadocs-core/link';
 import { type UIMessage, useChat, type UseChatHelpers } from '@ai-sdk/react';
 
@@ -71,8 +61,8 @@ function extractTextFromMessage(message: UIMessage): string {
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import dynamic from 'next/dynamic';
 import React, { useMemo } from 'react';
-import 'katex/dist/katex.min.css';
 import { marked } from 'marked';
+import 'katex/dist/katex.min.css';
 import posthog from 'posthog-js';
 import { useTheme } from 'next-themes';
 import { useSession } from 'next-auth/react';
@@ -80,20 +70,6 @@ import { useLoginModalTrigger } from '@/hooks/useLoginModal';
 
 import { ShareButton } from '@/components/chat/share-button';
 import { ShareModal } from '@/components/chat/share-modal';
-
-// Hook to detect if we're on large screens (matches Tailwind's lg breakpoint)
-const LG_BREAKPOINT = 1024;
-function useIsLargeScreen() {
-  const [isLarge, setIsLarge] = useState(false);
-  useEffect(() => {
-    const mql = window.matchMedia(`(min-width: ${LG_BREAKPOINT}px)`);
-    const onChange = () => setIsLarge(mql.matches);
-    mql.addEventListener('change', onChange);
-    setIsLarge(mql.matches);
-    return () => mql.removeEventListener('change', onChange);
-  }, []);
-  return isLarge;
-}
 
 const Mermaid = dynamic(() => import('@/components/content-design/mermaid'), {
   ssr: false,
@@ -243,6 +219,24 @@ function Pre(props: ComponentProps<'pre'>) {
   return <DynamicCodeBlock lang={lang} code={(codeProps.children ?? '') as string} />;
 }
 
+// Chat image — renders doc/blog images inline with nice styling
+function ChatImage(props: ComponentProps<'img'>) {
+  const { src, alt, ...rest } = props;
+  if (!src) return null;
+  return (
+    <span className="block my-4">
+      <img
+        src={src}
+        alt={alt || ''}
+        loading="lazy"
+        className="rounded-lg border border-zinc-200 dark:border-zinc-700 max-w-full h-auto shadow-sm"
+        {...rest}
+      />
+      {alt && <span className="block text-xs text-muted-foreground mt-1.5">{alt}</span>}
+    </span>
+  );
+}
+
 function Markdown({ text }: { text: string }) {
   const [rendered, setRendered] = useState<ReactNode>(null);
   useEffect(() => {
@@ -252,7 +246,7 @@ function Markdown({ text }: { text: string }) {
       if (!result && text) {
         processor ??= createProcessor();
         result = await processor
-          .process(text, { ...defaultMdxComponents, pre: Pre, a: Link, img: undefined })
+          .process(text, { ...defaultMdxComponents, pre: Pre, a: Link, img: ChatImage })
           .catch(() => text);
         markdownCache.set(text, result);
       }
@@ -264,23 +258,24 @@ function Markdown({ text }: { text: string }) {
   return <>{rendered || text}</>;
 }
 
-// Configure marked for streaming - synchronous and fast
-marked.setOptions({
-  gfm: true,
-  breaks: true,
-});
-
-// Fast streaming markdown using marked (synchronous)
+// Streaming markdown — throttled to avoid mid-syntax visual breaks.
+// Parses on a 100ms interval instead of every token, so incomplete
+// markdown (unclosed fences, half-written bold) is less likely to render.
 function StreamingMarkdown({ text }: { text: string }) {
-  // Simple direct parsing - no deferred values or throttling
-  const html = useMemo(() => {
-    if (!text) return '';
-    try {
-      return marked.parse(text, { async: false }) as string;
-    } catch {
-      return text;
-    }
-  }, [text]);
+  const [html, setHtml] = useState('');
+  const textRef = useRef(text);
+  textRef.current = text;
+
+  useEffect(() => {
+    const tick = () => {
+      try {
+        setHtml(marked.parse(textRef.current, { async: false }) as string);
+      } catch { /* keep last good render */ }
+    };
+    tick();
+    const id = setInterval(tick, 100);
+    return () => clearInterval(id);
+  }, []);
 
   return (
     <div
@@ -323,7 +318,7 @@ function AIAvatar({ size = 'md' }: { size?: 'sm' | 'md' }) {
   const imgClasses = size === 'sm' ? 'h-4' : 'h-5';
 
   return (
-    <div className={cn(sizeClasses, "rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center")}>
+    <div className={cn(sizeClasses, "flex items-center justify-center")}>
       <img
         src="/small-logo.png"
         alt="AI"
@@ -333,32 +328,15 @@ function AIAvatar({ size = 'md' }: { size?: 'sm' | 'md' }) {
   );
 }
 
-// Get icon for embed type
-function getEmbedTypeIcon(type: EmbedType) {
-  switch (type) {
-    case 'youtube': return Play;
-    case 'console': return Terminal;
-    case 'docs': return FileText;
-    case 'academy': return BookOpen;
-    case 'integration': return Puzzle;
-    case 'blog': return Newspaper;
-    default: return ExternalLink;
-  }
-}
-
-// Chat message
-function ChatMessage({ message, isLast, isStreaming, onRefSelect }: {
+// Chat message — iterates over message parts to render text + inline components
+function ChatMessage({ message, isLast, isStreaming }: {
   message: Message;
   isLast: boolean;
   isStreaming?: boolean;
-  onRefSelect?: (ref: EmbeddedReference) => void;
 }) {
   const isUser = message.role === 'user';
   const textContent = getMessageText(message);
-  // For assistant messages: only remove thinking patterns AFTER streaming completes
-  // During streaming, show raw text to avoid flickering when patterns partially match
   const cleanContent = isUser ? textContent : (isStreaming ? textContent : removeThinkingPatterns(textContent));
-  const embeddableLinks = isUser ? [] : extractEmbeddableLinks(textContent);
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -384,6 +362,9 @@ function ChatMessage({ message, isLast, isStreaming, onRefSelect }: {
     );
   }
 
+  // Render assistant message parts: text + tool invocations
+  const parts = message.parts && message.parts.length > 0 ? message.parts : [];
+
   return (
     <div className="mb-6">
       <div className="flex items-start gap-4">
@@ -391,70 +372,61 @@ function ChatMessage({ message, isLast, isStreaming, onRefSelect }: {
           <AIAvatar />
         </div>
         <div className="flex-1 min-w-0">
-          <div className="prose prose-sm prose-zinc dark:prose-invert max-w-none prose-p:leading-relaxed prose-pre:bg-zinc-900 prose-pre:border prose-pre:border-zinc-800 [&_.katex-display]:overflow-x-auto [&_.katex]:text-sm">
-            {isStreaming ? (
-              // During streaming: fast synchronous markdown with marked
-              <StreamingMarkdown text={cleanContent} />
-            ) : (
-              // After streaming: full markdown with syntax highlighting & KaTeX
-              <Markdown text={cleanContent} />
-            )}
-          </div>
+          {parts.map((part, idx) => {
+            // Text part
+            if (part.type === 'text' && typeof part.text === 'string' && part.text.trim()) {
+              const text = isStreaming ? part.text : removeThinkingPatterns(part.text);
+              if (isStreaming) {
+                return (
+                  <div key={idx} className="prose prose-sm prose-zinc dark:prose-invert max-w-none prose-p:leading-relaxed prose-pre:bg-zinc-900 prose-pre:border prose-pre:border-zinc-800 [&_.katex-display]:overflow-x-auto [&_.katex]:text-sm">
+                    <StreamingMarkdown text={text} />
+                  </div>
+                );
+              }
+              return (
+                <div key={idx} className="prose prose-sm prose-zinc dark:prose-invert max-w-none prose-p:leading-relaxed prose-pre:bg-zinc-900 prose-pre:border prose-pre:border-zinc-800 [&_.katex-display]:overflow-x-auto [&_.katex]:text-sm animate-in fade-in duration-300">
+                  <Markdown text={text} />
+                </div>
+              );
+            }
 
-          {/* Show clickable sources - color-coded by type with clear "view" action */}
-          {embeddableLinks.length > 0 && onRefSelect && !isStreaming && (
-            <div className="mt-4 p-3 rounded-lg bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800">
-              <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1.5">
-                <ExternalLink className="w-3 h-3" />
-                Sources ({embeddableLinks.length}) — click to preview
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {embeddableLinks.map((link, idx) => {
-                  const typeInfo = getEmbedTypeInfo(link.type);
-                  const Icon = getEmbedTypeIcon(link.type);
-                  return (
-                    <button
-                      type="button"
-                      key={idx}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        onRefSelect(link);
-                      }}
-                      className={cn(
-                        "group inline-flex items-center gap-2 pl-2 pr-3 py-1.5 text-xs font-medium",
-                        "rounded-full transition-all duration-200",
-                        "hover:scale-[1.02] active:scale-[0.98]",
-                        "border shadow-sm",
-                        // Type-specific colors
-                        link.type === 'youtube' && "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/40",
-                        link.type === 'console' && "bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-900/40",
-                        link.type === 'integration' && "bg-orange-50 dark:bg-orange-950/30 border-orange-200 dark:border-orange-800 text-orange-700 dark:text-orange-300 hover:bg-orange-100 dark:hover:bg-orange-900/40",
-                        link.type === 'blog' && "bg-pink-50 dark:bg-pink-950/30 border-pink-200 dark:border-pink-800 text-pink-700 dark:text-pink-300 hover:bg-pink-100 dark:hover:bg-pink-900/40",
-                        link.type === 'docs' && "bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/40",
-                        link.type === 'academy' && "bg-purple-50 dark:bg-purple-950/30 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/40",
-                      )}
-                      title={`View ${typeInfo.label}: ${link.title || link.url}`}
-                    >
-                      <span className={cn(
-                        "flex items-center justify-center w-5 h-5 rounded-full",
-                        link.type === 'youtube' && "bg-red-500",
-                        link.type === 'console' && "bg-green-500",
-                        link.type === 'integration' && "bg-orange-500",
-                        link.type === 'blog' && "bg-pink-500",
-                        link.type === 'docs' && "bg-blue-500",
-                        link.type === 'academy' && "bg-purple-500",
-                      )}>
-                        <Icon className="w-3 h-3 text-white" />
-                      </span>
-                      <span className="truncate max-w-[200px]">
-                        {link.title || typeInfo.label}
-                      </span>
-                    </button>
-                  );
-                })}
+            // Tool invocation part — AI SDK v6 uses type "tool-{name}" for static tools
+            // e.g. "tool-render_component", with output (not result) holding the return value
+            const toolPart = part as any;
+            if (
+              (part.type === 'tool-render_component' || (part.type.startsWith('tool-') && toolPart.toolName === 'render_component'))
+              && toolPart.state === 'output-available'
+              && toolPart.output
+            ) {
+              const { component, props } = toolPart.output;
+              return (
+                <InlineChatComponent
+                  key={idx}
+                  componentType={component}
+                  props={props}
+                />
+              );
+            }
+
+            // Other tool invocations (blockchain lookups etc) — don't render
+            if (typeof part.type === 'string' && part.type.startsWith('tool-')) {
+              return null;
+            }
+
+            return null;
+          })}
+
+          {/* Fallback: if no parts rendered text, show cleanContent */}
+          {parts.length === 0 && cleanContent && (
+            isStreaming ? (
+              <div className="prose prose-sm prose-zinc dark:prose-invert max-w-none prose-p:leading-relaxed prose-pre:bg-zinc-900 prose-pre:border prose-pre:border-zinc-800 [&_.katex-display]:overflow-x-auto [&_.katex]:text-sm">
+                <StreamingMarkdown text={cleanContent} />
               </div>
-            </div>
+            ) : (
+              <div className="prose prose-sm prose-zinc dark:prose-invert max-w-none prose-p:leading-relaxed prose-pre:bg-zinc-900 prose-pre:border prose-pre:border-zinc-800 [&_.katex-display]:overflow-x-auto [&_.katex]:text-sm animate-in fade-in duration-300">
+                <Markdown text={cleanContent} />
+              </div>
+            )
           )}
 
           {/* Action buttons - show after streaming completes */}
@@ -542,22 +514,17 @@ function MessageList({ children }: { children: ReactNode }) {
   );
 }
 
-// Thinking mode context
-const ThinkingModeContext = createContext<{
-  thinkingMode: boolean;
-  setThinkingMode: (mode: boolean) => void;
-}>({ thinkingMode: false, setThinkingMode: () => {} });
-
-function useThinkingMode() {
-  return use(ThinkingModeContext);
-}
-
 // Chat input
-function ChatInput() {
-  const { status, sendMessage, stop } = useChatContext();
-  const { thinkingMode, setThinkingMode } = useThinkingMode();
+function ChatInput({ suggestions, onSuggestionClick }: {
+  suggestions?: string[];
+  onSuggestionClick?: (q: string) => void;
+}) {
+  const { status, sendMessage, stop, error } = useChatContext();
   const [inputValue, setInputValue] = useState('');
+  const [dismissedError, setDismissedError] = useState<Error | null>(null);
   const isLoading = status === 'streaming' || status === 'submitted';
+  // Show error if not dismissed
+  const visibleError = error && error !== dismissedError ? error : null;
 
   const onSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -566,25 +533,72 @@ function ChatInput() {
         query_length: inputValue.length,
         query: inputValue.substring(0, 100),
         view: 'fullscreen',
-        thinking_mode: thinkingMode,
       });
-      // Pass thinking mode as a header so the server can adjust response style
-      sendMessage(
-        { text: inputValue },
-        { headers: { 'X-Thinking-Mode': thinkingMode ? 'true' : 'false' } }
-      );
+      sendMessage({ text: inputValue });
       setInputValue('');
     }
   };
 
+  const hasSuggestions = suggestions && suggestions.length > 0 && !isLoading;
+
   return (
     <div className="w-full max-w-4xl mx-auto px-4 pb-4">
+      {/* Follow-up suggestions */}
+      {hasSuggestions && (
+        <div className="flex flex-wrap gap-2 mb-3 justify-center animate-in fade-in slide-in-from-bottom-2 duration-300">
+          {suggestions.map((q, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => onSuggestionClick?.(q)}
+              className={cn(
+                "px-3.5 py-2 text-[13px] rounded-full",
+                "border border-zinc-200 dark:border-zinc-700",
+                "text-muted-foreground hover:text-foreground",
+                "hover:bg-zinc-100 dark:hover:bg-zinc-800",
+                "hover:border-zinc-300 dark:hover:border-zinc-600",
+                "transition-all duration-150",
+              )}
+            >
+              {q}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Error banner */}
+      {visibleError && (
+        <div className="flex items-center justify-between gap-3 mb-3 px-4 py-2.5 rounded-xl text-sm bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400">
+          <span>
+            {visibleError.message?.includes('413') || visibleError.message?.toLowerCase().includes('too long')
+              ? 'Your message is too long. Please shorten it and try again.'
+              : visibleError.message?.includes('429') || visibleError.message?.toLowerCase().includes('rate limit')
+                ? "You've sent too many messages. Please wait a moment and try again."
+                : 'Something went wrong. Please try again.'}
+          </span>
+          <button
+            type="button"
+            onClick={() => setDismissedError(error ?? null)}
+            className="shrink-0 text-red-500 hover:text-red-700 dark:hover:text-red-300 transition-colors"
+            aria-label="Dismiss error"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       <form onSubmit={onSubmit} className="relative">
-        <div className="relative flex items-end bg-zinc-100 dark:bg-zinc-800 rounded-3xl border border-zinc-200 dark:border-zinc-700">
+        <div className={cn(
+          "relative flex items-end rounded-2xl border transition-colors duration-200",
+          "bg-zinc-50 dark:bg-zinc-800/80",
+          "border-zinc-200 dark:border-zinc-700",
+          "focus-within:border-zinc-400 dark:focus-within:border-zinc-500",
+          "focus-within:bg-white dark:focus-within:bg-zinc-800",
+        )}>
           <TextareaInput
             value={inputValue}
-            placeholder="Message Avalanche AI"
-            className="w-full px-5 py-4 pr-28 text-sm"
+            placeholder="Ask anything about Avalanche..."
+            className="w-full px-5 py-4 pr-16 text-sm"
             disabled={isLoading}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={(event) => {
@@ -594,35 +608,18 @@ function ChatInput() {
               }
             }}
           />
-          <div className="absolute right-3 bottom-3 flex items-center gap-2">
-            {/* Thinking mode toggle */}
-            <button
-              type="button"
-              onClick={() => setThinkingMode(!thinkingMode)}
-              disabled={isLoading}
-              className={cn(
-                "p-2 rounded-full transition-all",
-                thinkingMode
-                  ? "bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400"
-                  : "text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700",
-                isLoading && "opacity-50 cursor-not-allowed"
-              )}
-              title={thinkingMode ? "Thinking mode (slower, more thorough)" : "Quick mode (faster responses)"}
-            >
-              {thinkingMode ? <Brain className="w-5 h-5" /> : <Zap className="w-5 h-5" />}
-            </button>
-            {/* Send/Stop button */}
+          <div className="absolute right-3 bottom-3">
             <button
               type={isLoading ? 'button' : 'submit'}
               onClick={isLoading ? stop : undefined}
               disabled={!isLoading && inputValue.length === 0}
               className={cn(
-                "p-2 rounded-full transition-all",
+                "p-2 rounded-xl transition-all duration-150",
                 isLoading
-                  ? "bg-zinc-300 dark:bg-zinc-600 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-400 dark:hover:bg-zinc-500"
+                  ? "bg-zinc-200 dark:bg-zinc-600 text-zinc-500 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-500"
                   : inputValue.length > 0
-                    ? "bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 hover:bg-zinc-700 dark:hover:bg-zinc-200"
-                    : "bg-zinc-300 dark:bg-zinc-600 text-zinc-400 dark:text-zinc-500 cursor-not-allowed"
+                    ? "bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 hover:bg-zinc-700 dark:hover:bg-zinc-200 shadow-sm"
+                    : "bg-zinc-200 dark:bg-zinc-700 text-zinc-400 dark:text-zinc-500 cursor-not-allowed"
               )}
               title={isLoading ? "Stop generating" : "Send message"}
             >
@@ -631,23 +628,15 @@ function ChatInput() {
           </div>
         </div>
       </form>
-      <div className="flex items-center justify-center gap-2 mt-2">
-        {thinkingMode && (
-          <span className="flex items-center gap-1 text-xs text-purple-600 dark:text-purple-400">
-            <Brain className="w-3 h-3" />
-            Thinking mode
-          </span>
-        )}
-        <p className="text-xs text-muted-foreground/50">
-          Avalanche AI can make mistakes. Consider checking important information.
-        </p>
-      </div>
+      <p className="text-center text-xs text-muted-foreground/40 mt-2">
+        Avalanche AI can make mistakes. Consider checking important information.
+      </p>
     </div>
   );
 }
 
-// Chat actions
-function ChatActions() {
+// Chat actions (regenerate + share)
+function ChatActions({ onShare, isShared }: { onShare?: () => void; isShared?: boolean }) {
   const { messages, status, setMessages, regenerate } = useChatContext();
   const isLoading = status === 'streaming';
   if (messages.length === 0) return null;
@@ -655,15 +644,36 @@ function ChatActions() {
   return (
     <div className="flex items-center justify-center gap-3 py-2">
       {!isLoading && messages.at(-1)?.role === 'assistant' && (
-        <button
-          type="button"
-          onClick={() => { posthog.capture('ai_chat_regenerate'); regenerate(); }}
-          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-          title="Regenerate response"
-        >
-          <RefreshCw className="w-4 h-4" />
-          Regenerate
-        </button>
+        <>
+          <button
+            type="button"
+            onClick={() => { posthog.capture('ai_chat_regenerate'); regenerate(); }}
+            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            title="Regenerate response"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Regenerate
+          </button>
+          {onShare && (
+            <>
+              <span className="text-muted-foreground/30">|</span>
+              <button
+                type="button"
+                onClick={onShare}
+                className={cn(
+                  "flex items-center gap-1.5 text-sm transition-colors",
+                  isShared
+                    ? "text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+                title={isShared ? "Manage sharing" : "Share conversation"}
+              >
+                <Share2 className="w-4 h-4" />
+                {isShared ? "Shared" : "Share"}
+              </button>
+            </>
+          )}
+        </>
       )}
     </div>
   );
@@ -1013,11 +1023,6 @@ function ChatPageInner() {
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
   const [isLoadingConversations, setIsLoadingConversations] = useState(false);
 
-  // Thinking mode state (slower, more thorough responses)
-  // Note: Currently UI-only. Server-side implementation can be added later
-  // by reading thinkingMode from localStorage or a custom header.
-  const [thinkingMode, setThinkingMode] = useState(false);
-
   // Auth state
   const { data: session, status: authStatus } = useSession();
   const isAuthenticated = authStatus === 'authenticated';
@@ -1026,14 +1031,6 @@ function ChatPageInner() {
   // Share modal state
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [shareModalConversation, setShareModalConversation] = useState<Conversation | null>(null);
-
-  // Embedded panel state
-  const [embeddedRef, setEmbeddedRef] = useState<EmbeddedReference | null>(null);
-  const [closedRefs, setClosedRefs] = useState<Set<string>>(new Set());
-  const [panelWidth, setPanelWidth] = useState(35); // Percentage width of embedded panel (chat gets 65%)
-  const [isResizing, setIsResizing] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const isLargeScreen = useIsLargeScreen(); // Detect if we're on desktop (lg breakpoint)
 
   // Load conversations from API when authenticated
   useEffect(() => {
@@ -1155,72 +1152,13 @@ function ChatPageInner() {
     }
   }, [isAuthenticated, shareModalConversation]);
 
-  // Handle reference selection from inline source buttons
-  const handleRefSelect = (ref: EmbeddedReference) => {
-    setEmbeddedRef(ref);
-  };
-
-  // Handle closing the panel
-  const handleClosePanel = () => {
-    if (embeddedRef) {
-      setClosedRefs(prev => new Set(prev).add(embeddedRef.url));
-    }
-    setEmbeddedRef(null);
-  };
-
-  // Handle panel resize with refs to avoid stale closures
-  const isResizingRef = useRef(false);
-  const containerRefForResize = containerRef;
-
-  const handleResizeStart = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    isResizingRef.current = true;
-    setIsResizing(true);
-
-    // Prevent text selection and set cursor globally
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
-  }, []);
-
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!isResizingRef.current || !containerRefForResize.current) return;
-
-      e.preventDefault();
-      const containerRect = containerRefForResize.current.getBoundingClientRect();
-      const newWidth = ((containerRect.right - e.clientX) / containerRect.width) * 100;
-      // Clamp between 25% and 75%
-      setPanelWidth(Math.min(75, Math.max(25, newWidth)));
-    };
-
-    const handleMouseUp = () => {
-      if (!isResizingRef.current) return;
-
-      isResizingRef.current = false;
-      setIsResizing(false);
-
-      // Restore cursor and selection
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-    };
-
-    // Always listen - the ref check inside handles when to act
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, []);
-
   const currentConversation = conversations.find(c => c.id === currentConversationId);
 
   const chat = useChat({
     id: currentConversationId || 'new',
     onError(error) {
-      console.error('Chat error:', error);
+      console.error('Chat error:', error.message, error);
+      // Error is automatically exposed via chat.error and displayed in ChatInput
     },
     async onFinish({ message }) {
       const messageText = getMessageText(message);
@@ -1228,15 +1166,6 @@ function ChatPageInner() {
         response_length: messageText.length,
         view: 'fullscreen',
       });
-
-      // Detect embeddable links and auto-open panel with the highest priority link
-      const links = extractEmbeddableLinks(messageText);
-      if (links.length > 0) {
-        const firstLink = links[0]; // Already sorted by priority (youtube > console > etc)
-        if (!closedRefs.has(firstLink.url)) {
-          setEmbeddedRef(firstLink);
-        }
-      }
 
       // Save conversation to database (only if authenticated)
       // Note: chat.messages already contains the completed message when onFinish fires,
@@ -1327,8 +1256,24 @@ function ChatPageInner() {
     openLoginModal(window.location.href);
   };
 
+  // Extract follow-up suggestions from the last assistant message
+  const followUpSuggestions = useMemo(() => {
+    const lastAssistant = [...messages].reverse().find(m => m.role === 'assistant');
+    if (!lastAssistant?.parts || isLoading || isWaitingForStream) return [];
+    for (const part of lastAssistant.parts) {
+      const p = part as any;
+      if (
+        (part.type === 'tool-suggest_followups' || (typeof part.type === 'string' && part.type.startsWith('tool-') && p.toolName === 'suggest_followups'))
+        && p.state === 'output-available'
+        && p.output?.questions
+      ) {
+        return p.output.questions as string[];
+      }
+    }
+    return [];
+  }, [messages, isLoading, isWaitingForStream]);
+
   return (
-    <ThinkingModeContext value={{ thinkingMode, setThinkingMode }}>
     <ChatContext value={chat}>
       {/* Share Modal */}
       {shareModalConversation && (
@@ -1365,104 +1310,18 @@ function ChatPageInner() {
           isLoadingConversations={isLoadingConversations}
         />
 
-        {/* Main content area (chat + embedded panel) */}
-        <div ref={containerRef} className="flex-1 flex min-w-0 relative">
-          {/* Overlay during resize to capture all mouse events (prevents iframe from stealing them) */}
-          {isResizing && (
-            <div className="fixed inset-0 z-50 cursor-col-resize" />
-          )}
-          {/* Chat area */}
-          <div
-            className="flex flex-col min-w-0"
-            style={{ width: embeddedRef && isLargeScreen ? `${100 - panelWidth}%` : '100%' }}
-          >
-            {/* Header with mobile toggle and share button */}
-            <div className="shrink-0 flex items-center justify-between px-3 py-2 border-b border-border">
-              {/* Left: Mobile sidebar toggle */}
-              <div className="flex items-center">
-                {!sidebarOpen && (
-                  <button
-                    onClick={() => setSidebarOpen(true)}
-                    className="p-2 rounded-lg hover:bg-accent transition-colors lg:hidden"
-                    title="Open sidebar"
-                  >
-                    <PanelLeft className="w-5 h-5" />
-                  </button>
-                )}
-                {/* Conversation title on desktop */}
-                {currentConversation && (
-                  <span
-                    className="hidden lg:block text-sm text-muted-foreground truncate max-w-[200px] ml-2"
-                    title={currentConversation.title}
-                  >
-                    {currentConversation.title}
-                  </span>
-                )}
-              </div>
-
-              {/* Right: Share button */}
-              <div className="flex items-center gap-2">
-                {/* Share button */}
-                {messages.length > 0 && (
-                  <button
-                    onClick={async () => {
-                      if (!isAuthenticated) {
-                        // Prompt for login
-                        openLoginModal(window.location.href);
-                        return;
-                      }
-
-                      // If we have a current conversation, open share modal directly
-                      if (currentConversation) {
-                        handleShareConversation(currentConversation);
-                        return;
-                      }
-
-                      // If no conversation saved yet, save it first then open share modal
-                      const titleText = getMessageText(messages[0]);
-                      const title = titleText.slice(0, 50) || 'New chat';
-                      const convToSave: Conversation = {
-                        id: '',
-                        title,
-                        messages,
-                        createdAt: Date.now(),
-                        updatedAt: Date.now(),
-                        isShared: false,
-                        shareToken: null,
-                        sharedAt: null,
-                        expiresAt: null,
-                        viewCount: 0,
-                      };
-
-                      const saved = await saveConversation(convToSave);
-                      if (saved) {
-                        setCurrentConversationId(saved.id);
-                        handleShareConversation(saved);
-                      }
-                    }}
-                    disabled={isLoading || isWaitingForStream}
-                    className={cn(
-                      "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors",
-                      "border border-zinc-200 dark:border-zinc-700",
-                      (isLoading || isWaitingForStream)
-                        ? "opacity-50 cursor-not-allowed"
-                        : "hover:bg-zinc-100 dark:hover:bg-zinc-800",
-                      currentConversation?.isShared && "text-emerald-600 dark:text-emerald-400 border-emerald-300 dark:border-emerald-600"
-                    )}
-                    title={
-                      (isLoading || isWaitingForStream) ? "Wait for response to complete" :
-                      !isAuthenticated ? "Sign in to share" :
-                      currentConversation?.isShared ? "Manage sharing" : "Share conversation"
-                    }
-                  >
-                    <Share2 className="w-4 h-4" />
-                    <span className="hidden sm:inline">
-                      {currentConversation?.isShared ? "Shared" : "Share"}
-                    </span>
-                  </button>
-                )}
-              </div>
-            </div>
+        {/* Main content area */}
+        <div className="flex-1 flex flex-col min-w-0 relative">
+            {/* Mobile sidebar toggle — floats over content */}
+            {!sidebarOpen && (
+              <button
+                onClick={() => setSidebarOpen(true)}
+                className="absolute top-3 left-3 z-10 p-2 rounded-lg hover:bg-accent/80 backdrop-blur-sm transition-colors lg:hidden"
+                title="Open sidebar"
+              >
+                <PanelLeft className="w-5 h-5" />
+              </button>
+            )}
 
             {/* Messages */}
             <main className="flex-1 min-h-0 flex flex-col overflow-hidden">
@@ -1477,11 +1336,41 @@ function ChatPageInner() {
                         message={message}
                         isLast={index === messages.length - 1}
                         isStreaming={isLoading && index === messages.length - 1 && message.role === 'assistant'}
-                        onRefSelect={handleRefSelect}
                       />
                     ))}
                     {(isLoading || isWaitingForStream) && messages[messages.length - 1]?.role === 'user' && <TypingIndicator />}
-                    <ChatActions />
+                    <ChatActions
+                      isShared={currentConversation?.isShared}
+                      onShare={async () => {
+                        if (!isAuthenticated) {
+                          openLoginModal(window.location.href);
+                          return;
+                        }
+                        if (currentConversation) {
+                          handleShareConversation(currentConversation);
+                          return;
+                        }
+                        // Save first if no conversation exists yet
+                        const titleText = getMessageText(messages[0]);
+                        const title = titleText.slice(0, 50) || 'New chat';
+                        const saved = await saveConversation({
+                          id: '',
+                          title,
+                          messages,
+                          createdAt: Date.now(),
+                          updatedAt: Date.now(),
+                          isShared: false,
+                          shareToken: null,
+                          sharedAt: null,
+                          expiresAt: null,
+                          viewCount: 0,
+                        });
+                        if (saved) {
+                          setCurrentConversationId(saved.id);
+                          handleShareConversation(saved);
+                        }
+                      }}
+                    />
                   </div>
                 </MessageList>
               )}
@@ -1489,49 +1378,14 @@ function ChatPageInner() {
 
             {/* Input */}
             <div className="shrink-0 pt-2 pb-4 bg-gradient-to-t from-background via-background to-transparent">
-              <ChatInput />
+              <ChatInput
+                suggestions={followUpSuggestions}
+                onSuggestionClick={handleSuggestionClick}
+              />
             </div>
-          </div>
-
-          {/* Embedded Panel (right side) */}
-          {embeddedRef && (
-            <>
-              {/* Resize handle - wider hit area for easier grabbing */}
-              <div
-                onMouseDown={handleResizeStart}
-                className={cn(
-                  "hidden lg:flex w-2 cursor-col-resize items-center justify-center",
-                  "hover:bg-zinc-200 dark:hover:bg-zinc-800",
-                  "group relative select-none",
-                  isResizing && "bg-zinc-300 dark:bg-zinc-700"
-                )}
-              >
-                {/* Visual indicator */}
-                <div className={cn(
-                  "w-1 h-12 rounded-full",
-                  "bg-zinc-300 dark:bg-zinc-700",
-                  "group-hover:bg-zinc-400 dark:group-hover:bg-zinc-500",
-                  isResizing && "bg-zinc-500 dark:bg-zinc-400"
-                )} />
-              </div>
-
-              {/* Panel - no transitions during resize for smooth dragging */}
-              <div
-                className="hidden lg:flex flex-col border-l border-zinc-200 dark:border-zinc-800"
-                style={{ width: `${panelWidth}%` }}
-              >
-                <EmbeddedPanel
-                  reference={embeddedRef}
-                  onClose={handleClosePanel}
-                  className="flex-1"
-                />
-              </div>
-            </>
-          )}
         </div>
       </div>
     </ChatContext>
-    </ThinkingModeContext>
   );
 }
 

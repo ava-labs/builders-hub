@@ -188,19 +188,20 @@ function PhaseDetailsCards({ phase }: { phase: TimelinePhase }) {
 }
 
 export default function CustomSubmission({ hackathon }: { hackathon: HackathonHeader }) {
-  // Define phase deadlines
+  // Phase deadlines at 11:59 PM NYC time.
+  // Feb dates use EST (UTC-5) = 04:59Z next day.
+  // Mar dates use EDT (UTC-4, DST starts Mar 8) = 03:59Z next day.
   const phaseDeadlines = [
-    new Date("2026-02-20"), // Kick Off
-    new Date("2026-02-25"), // Idea Pitch
-    new Date("2026-03-09"), // Prototype / MVP
-    new Date("2026-03-19"), // GTM Plan & Vision
-    new Date("2026-03-27"), // Final Pitch
+    new Date("2026-02-21T04:59:00Z"), // Kick Off — Feb 20 11:59 PM EST
+    new Date("2026-02-26T04:59:00Z"), // Idea Pitch — Feb 25 11:59 PM EST
+    new Date("2026-03-10T03:59:00Z"), // MVP        — Mar  9 11:59 PM EDT
+    new Date("2026-03-20T03:59:00Z"), // GTM        — Mar 19 11:59 PM EDT
+    new Date("2026-03-28T03:59:00Z"), // Finals     — Mar 27 11:59 PM EDT
   ];
 
   // Helper function to determine phase statuses based on current date
   const getPhaseStatuses = (): ("completed" | "current" | "upcoming")[] => {
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
 
     let currentPhaseIndex = -1;
 
@@ -244,8 +245,8 @@ export default function CustomSubmission({ hackathon }: { hackathon: HackathonHe
       status: statuses[1],
       date: "Feb 25",
       details: {
-        deadline: "February 25, 2026 at 11:59 PM PST",
-        requirements: "Create a 1-minute video clearly explaining your project idea, target problem, solution approach, and value proposition.",
+        deadline: "February 25, 2026 at 11:59 PM EST",
+        requirements: "Create a 2-minute video clearly explaining your project idea, target problem, solution approach, and value proposition.",
         criteria: "Clarity of idea, problem-solution fit, innovation, presentation quality, and potential market impact.",
         support: "Video creation tips, pitch feedback sessions, and storytelling guidance from mentors.",
       },
@@ -255,8 +256,8 @@ export default function CustomSubmission({ hackathon }: { hackathon: HackathonHe
       status: statuses[2],
       date: "March 9",
       details: {
-        deadline: "March 9, 2026 at 11:59 PM PST",
-        requirements: "Functional prototype, GitHub repository with code, technical documentation, and product walkthrough video demonstrating key features.",
+        deadline: "March 9, 2026 at 11:59 PM EST",
+        requirements: "Functional prototype, GitHub repository with code, technical implementaiton details, and product walkthrough video (max 5 minutes) demonstrating key features.",
         criteria: "Technical implementation quality, use of Avalanche technologies, code structure, feature completeness, and UX design.",
         support: "Technical mentorship, code reviews, Avalanche integration help, and development best practices guidance.",
       },
@@ -266,7 +267,7 @@ export default function CustomSubmission({ hackathon }: { hackathon: HackathonHe
       status: statuses[3],
       date: "March 19",
       details: {
-        deadline: "March 19, 2026 at 11:59 PM PST",
+        deadline: "March 19, 2026 at 11:59 PM EST",
         requirements: "Go-to-market plan, growth strategy, target user personas, competitive analysis, and long-term product vision document.",
         criteria: "Market understanding, growth strategy viability, user acquisition plan, business model clarity, and scalability potential.",
         support: "GTM strategy workshops, market research guidance, business model feedback, and ecosystem partnership introductions.",

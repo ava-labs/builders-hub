@@ -1,4 +1,5 @@
 "use client";
+import { useState, useCallback } from "react";
 import { EVMFaucetButton } from "@/components/toolbox/components/ConnectWallet/EVMFaucetButton";
 import { PChainFaucetButton } from "@/components/toolbox/components/ConnectWallet/PChainFaucetButton";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
@@ -14,8 +15,11 @@ import { useTestnetFaucet } from "@/hooks/useTestnetFaucet";
 import { AccountRequirementsConfigKey } from "../../hooks/useAccountRequirements";
 import { useFaucetRateLimit } from "@/hooks/useFaucetRateLimit";
 import { useFaucetBalance } from "@/hooks/useFaucetBalance";
-import { Check, Droplets, ExternalLink, Clock, Wallet, RefreshCw, Loader2 } from "lucide-react";
+import { Check, Droplets, ExternalLink, Clock, Wallet, RefreshCw, Loader2, AlertTriangle } from "lucide-react";
+import { useWalletStore } from "../../stores/walletStore";
+import { useWallet } from "../../hooks/useWallet";
 import Link from "next/link";
+import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 
 function FaucetBalanceDisplay({
   balance,
@@ -121,6 +125,99 @@ function EVMFaucetCard({ chain }: { chain: L1ListItem }) {
   );
 }
 
+function ManualPChainFaucetInput() {
+  const [address, setAddress] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [isClaiming, setIsClaiming] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const { notify } = useConsoleNotifications();
+
+  const handleClaim = useCallback(async () => {
+    const trimmed = address.trim();
+    if (!trimmed) return;
+
+    // Auto-prepend P-chain prefix if user pasted bare address from CLI
+    const normalizedAddress = trimmed.startsWith("P-")
+      ? trimmed
+      : `P-fuji1${trimmed}`;
+
+    setError(null);
+    setIsClaiming(true);
+    setSuccess(false);
+
+    try {
+      const faucetRequest = async () => {
+        const response = await fetch(`/api/pchain-faucet?address=${encodeURIComponent(normalizedAddress)}`);
+        const data = await response.json();
+
+        if (!response.ok) {
+          if (response.status === 429) {
+            throw new Error(data.message || "Rate limit exceeded. Please try again later.");
+          }
+          throw new Error(data.message || `Error ${response.status}: Failed to get tokens`);
+        }
+
+        if (!data.success) {
+          throw new Error(data.message || "Failed to get tokens");
+        }
+
+        return data;
+      };
+
+      const faucetPromise = faucetRequest();
+      notify({ type: "local", name: "P-Chain Manual Faucet Claim" }, faucetPromise);
+
+      await faucetPromise;
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 5000);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to claim tokens");
+    } finally {
+      setIsClaiming(false);
+    }
+  }, [address, notify]);
+
+  return (
+    <div className="mt-3 pt-3 border-t border-zinc-200/80 dark:border-zinc-800">
+      <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-2">
+        Using platform-cli? Paste your address from{" "}
+        <code className="bg-zinc-100 dark:bg-zinc-800 px-1 py-0.5 rounded text-[10px] font-mono">
+          platform wallet balance
+        </code>
+        {" "}&mdash; the <code className="bg-zinc-100 dark:bg-zinc-800 px-1 py-0.5 rounded text-[10px] font-mono">P-fuji1</code> prefix is added automatically.
+      </p>
+      <div className="flex gap-2">
+        <input
+          type="text"
+          value={address}
+          onChange={(e) => {
+            setAddress(e.target.value);
+            setError(null);
+            setSuccess(false);
+          }}
+          placeholder="P-fuji1..."
+          className="flex-1 px-3 py-2 text-xs font-mono rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-500/20"
+        />
+        <button
+          onClick={handleClaim}
+          disabled={isClaiming || !address}
+          className="shrink-0 px-4 py-2 text-xs font-medium bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed rounded-lg"
+        >
+          {isClaiming ? "Claiming..." : success ? "Claimed!" : "Claim"}
+        </button>
+      </div>
+      {error && (
+        <p className="mt-1.5 text-xs text-red-500">{error}</p>
+      )}
+      {success && (
+        <p className="mt-1.5 text-xs text-green-600 dark:text-green-400">
+          Tokens sent successfully!
+        </p>
+      )}
+    </div>
+  );
+}
+
 const metadata: ConsoleToolMetadata = {
   title: "Testnet Faucet",
   description: "Request free test tokens for Fuji testnet and Avalanche L1s",
@@ -132,10 +229,39 @@ const metadata: ConsoleToolMetadata = {
 };
 
 function Faucet({ onSuccess }: BaseConsoleToolProps) {
+  const isTestnet = useWalletStore((s) => s.isTestnet);
+  const { switchChain } = useWallet();
   const l1List = useL1List();
   const { getChainsWithFaucet } = useTestnetFaucet();
   const EVMChainsWithBuilderHubFaucet = getChainsWithFaucet();
   const { balances, isLoading: balancesLoading, error: balancesError, refetch } = useFaucetBalance();
+
+  if (!isTestnet) {
+    return (
+      <div className="max-w-4xl mx-auto not-prose">
+        <div className="rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-8 text-center">
+          <div className="flex justify-center mb-4">
+            <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+              <AlertTriangle className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+            </div>
+          </div>
+          <h3 className="text-lg font-medium text-zinc-900 dark:text-zinc-100 mb-2">
+            Faucet is only available on testnet
+          </h3>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-6">
+            Switch to Fuji testnet to request free test tokens.
+          </p>
+          <button
+            onClick={() => switchChain(43113, true)}
+            className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors rounded-lg"
+          >
+            <Droplets className="w-4 h-4" />
+            Switch to Fuji Testnet
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const cChain = EVMChainsWithBuilderHubFaucet.find(
     (chain) => chain.evmChainId === 43113
@@ -183,7 +309,7 @@ function Faucet({ onSuccess }: BaseConsoleToolProps) {
                 <img
                   src={
                     cChain?.logoUrl ||
-                    "https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/3e4b8ff10b69bfa31e70080a4b142caa/cchain-square.svg"
+                    "https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/3e4b8ff10b69bfa31e70080a4b142cd0/avalanche-avax-logo.svg"
                   }
                   alt="C-Chain"
                   className="w-12 h-12 rounded-lg"
@@ -306,6 +432,7 @@ function Faucet({ onSuccess }: BaseConsoleToolProps) {
             <PChainFaucetButton className="w-full px-4 py-2.5 text-sm font-medium bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed rounded-lg">
               Request Tokens
             </PChainFaucetButton>
+            <ManualPChainFaucetInput />
           </div>
         </div>
       </div>

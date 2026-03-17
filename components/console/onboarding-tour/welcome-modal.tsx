@@ -15,13 +15,28 @@ export function WelcomeModal() {
   const { hasSeenWelcome, hasCompletedTour, startTour, markWelcomeSeen, endTour } = useOnboardingTour();
   const [isOpen, setIsOpen] = React.useState(false);
   const [dontShowAgain, setDontShowAgain] = React.useState(true);
+  const [isHydrated, setIsHydrated] = React.useState(false);
+
+  // Wait for Zustand persist to finish loading from localStorage
+  // Note: .persist.hasHydrated() is only safe to call client-side;
+  // during SSR/prerendering the persist API may not be attached yet.
+  React.useEffect(() => {
+    if (useOnboardingTour.persist?.hasHydrated()) {
+      setIsHydrated(true);
+    } else {
+      return useOnboardingTour.persist?.onFinishHydration(() => {
+        setIsHydrated(true);
+      });
+    }
+  }, []);
 
   React.useEffect(() => {
+    if (!isHydrated) return;
     if (!hasSeenWelcome && !hasCompletedTour) {
       const timer = setTimeout(() => setIsOpen(true), 800);
       return () => clearTimeout(timer);
     }
-  }, [hasSeenWelcome, hasCompletedTour]);
+  }, [isHydrated, hasSeenWelcome, hasCompletedTour]);
 
   const handleStartTour = () => {
     setIsOpen(false);
@@ -37,7 +52,7 @@ export function WelcomeModal() {
     }
   };
 
-  if (hasSeenWelcome || hasCompletedTour) return null;
+  if (!isHydrated || hasSeenWelcome || hasCompletedTour) return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleSkip()}>

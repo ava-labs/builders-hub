@@ -17,10 +17,17 @@ export const RewardCard = ({
   className,
   image,
   is_unlocked,
+  isSecret,
   requirements,
 }: BadgeCardProps) => {
+  const isSecretLocked = isSecret && !is_unlocked;
   const [open, setOpen] = useState(false);
 
+  const imageClass = isSecretLocked
+    ? "brightness-0"
+    : !is_unlocked
+      ? "grayscale opacity-50"
+      : "";
 
   return (
     <>
@@ -29,8 +36,8 @@ export const RewardCard = ({
         style={{ userSelect: "none" }}
       >
         <div
-          className="w-full h-[230px] cursor-pointer flex items-center justify-center"
-          onClick={() => setOpen(true)}
+          className={`w-full h-[230px] flex items-center justify-center ${isSecretLocked ? "cursor-default" : "cursor-pointer"}`}
+          onClick={() => !isSecretLocked && setOpen(true)}
         >
           <div
             className="relative w-[170px] h-[170px] rounded-full overflow-hidden"
@@ -42,8 +49,8 @@ export const RewardCard = ({
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={image || "/wolfie/wolfie-hack.png"}
-              alt={name}
-              className={`w-full h-full object-cover ${!is_unlocked ? "grayscale opacity-50" : ""}`}
+              alt={isSecretLocked ? "???" : name}
+              className={`w-full h-full object-cover ${imageClass}`}
               loading="lazy"
             />
           </div>
@@ -56,7 +63,7 @@ export const RewardCard = ({
               <Lock className="w-3.5 h-3.5 text-zinc-400 flex-shrink-0" />
             )}
             <span className={`text-sm font-medium truncate ${is_unlocked ? "text-gray-900 dark:text-white" : "text-zinc-400 dark:text-zinc-500"}`}>
-              {name}
+              {isSecretLocked ? "???" : name}
             </span>
           </div>
         </div>
@@ -67,10 +74,9 @@ export const RewardCard = ({
           <DialogTitle>{name ?? "Badge details"}</DialogTitle>
         </VisuallyHidden>
         <DialogContent
-       
           onOpenAutoFocus={(e) => e.preventDefault()}
           onCloseAutoFocus={(e) => e.preventDefault()}
-          className="max-w-lg   bg-transparent shadow-none border-none  p-0 flex flex-col items-center"
+          className="max-w-lg bg-transparent shadow-none border-none p-0 flex flex-col items-center"
           style={{ filter: "none", WebkitFilter: "none" }}
         >
           <div style={{ width: "100%", height: 250 }}>
@@ -102,7 +108,7 @@ export const RewardCard = ({
           </div>
 
           {requirements && requirements.length > 0 && (
-            <div >
+            <div>
               <RequirementsPanel requirements={requirements as any} title={name} />
             </div>
           )}

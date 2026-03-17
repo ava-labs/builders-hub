@@ -3,6 +3,7 @@
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 import { useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
 import { useSelectedL1 } from "@/components/toolbox/stores/l1ListStore";
+import { useChainPublicClient } from "@/components/toolbox/hooks/useChainPublicClient";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/toolbox/components/Button";
 import ProxyAdminABI from "@/contracts/openzeppelin-4.9/compiled/ProxyAdmin.json";
@@ -34,7 +35,8 @@ function UpgradeProxy({ onSuccess }: BaseConsoleToolProps) {
     const { validatorManagerAddress } = useToolboxStore();
     const [proxyAdminAddress, setProxyAdminAddress] = useState<`0x${string}` | null>(null);
     const selectedL1 = useSelectedL1()();
-    const { publicClient, walletChainId, walletEVMAddress } = useWalletStore();
+    const { walletChainId, walletEVMAddress } = useWalletStore();
+    const chainPublicClient = useChainPublicClient();
     const { walletClient } = useConnectedWallet();
     const [isUpgrading, setIsUpgrading] = useState(false);
     const [currentImplementation, setCurrentImplementation] = useState<string | null>(null);
@@ -76,7 +78,7 @@ function UpgradeProxy({ onSuccess }: BaseConsoleToolProps) {
         try {
             if (!address) return;
 
-            const data = await publicClient.getStorageAt({
+            const data = await chainPublicClient!.getStorageAt({
                 address: address as `0x${string}`,
                 slot: ADMIN_SLOT as `0x${string}`,
             });
@@ -119,7 +121,7 @@ function UpgradeProxy({ onSuccess }: BaseConsoleToolProps) {
                 return;
             }
 
-            const implementation = await publicClient.readContract({
+            const implementation = await chainPublicClient!.readContract({
                 address: proxyAdminAddress,
                 abi: ProxyAdminABI.abi,
                 functionName: 'getProxyImplementation',
@@ -156,7 +158,7 @@ function UpgradeProxy({ onSuccess }: BaseConsoleToolProps) {
                 proxyAddress as `0x${string}`,
                 desiredImplementation as `0x${string}`
             );
-            await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
+            await chainPublicClient!.waitForTransactionReceipt({ hash: hash as `0x${string}` });
             await checkCurrentImplementation();
             onSuccess?.();
         } finally {

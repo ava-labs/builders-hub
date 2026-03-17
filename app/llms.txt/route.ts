@@ -105,7 +105,7 @@ Structured learning paths and interactive tutorials:
     'blockchain-fundamentals',
     'avalanche-l1',
     'interchain-messaging',
-    'interchain-token-transfer',
+    'erc20-bridge',
     'customizing-evm',
   ];
 

@@ -138,6 +138,7 @@ const data = {
           title: "Blueprints",
           url: "/console/blueprints",
           icon: Sparkles,
+          comingSoon: true,
         },
         {
           title: "Create L1",
@@ -181,6 +182,11 @@ const data = {
           title: "Ethereum Bridge",
           url: "https://core.app/bridge",
           icon: ArrowUpDown,
+        },
+        {
+          title: "Validator Lookup",
+          url: "/console/primary-network/validator-lookup",
+          icon: Search,
         },
         {
           title: "Unit Converter",
@@ -343,31 +349,26 @@ const data = {
         },
       ],
     },
-    // Cross-Chain
+    // Interchain Messaging
     {
       id: "cross-chain",
-      title: "Cross-Chain",
+      title: "Interchain Messaging",
       icon: ArrowLeftRight,
       items: [
         {
-          title: "ICTT Setup",
+          title: "ICM Setup",
+          url: "/console/icm/setup",
+          icon: MessagesSquare,
+        },
+        {
+          title: "ICTT (Token Transfer) Setup",
           url: "/console/ictt/setup",
           icon: Workflow,
         },
         {
-          title: "Token Transfer",
+          title: "Token Transfer Test",
           url: "/console/ictt/token-transfer",
           icon: ArrowLeftRight,
-        },
-        {
-          title: "ICM Setup",
-          url: "/console/icm/setup",
-          icon: SquareTerminal,
-        },
-        {
-          title: "ICM Test",
-          url: "/console/icm/test-connection",
-          icon: MessagesSquare,
         },
       ],
     },

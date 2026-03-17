@@ -271,14 +271,21 @@ svg.lucide.lucide-folder-open {
   }
 }
 
-/* Smooth streaming text rendering */
+/* Streaming markdown — rendered via marked.parse() on a 100ms throttle.
+   These styles ensure code blocks, inline code, and links look correct
+   while the markdown is still being assembled by the LLM. */
 .streaming-markdown {
-  /* Smooth font rendering */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  animation: streamFadeIn 0.3s ease-out;
 }
 
-/* Code block styling during streaming (before syntax highlighting kicks in) */
+@keyframes streamFadeIn {
+  from { opacity: 0.4; }
+  to   { opacity: 1; }
+}
+
+/* Code blocks */
 .streaming-markdown pre {
   background-color: #18181b;
   border: 1px solid #27272a;
@@ -289,37 +296,54 @@ svg.lucide.lucide-folder-open {
 }
 
 .streaming-markdown pre code {
-  background: transparent;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  color: #e4e4e7;
+  background: none;
   padding: 0;
-  font-size: 0.875rem;
-  line-height: 1.7;
-  color: #e4e4e7;
-  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  border-radius: 0;
 }
 
-/* Inline code during streaming */
-.streaming-markdown code:not(pre code) {
-  background-color: #27272a;
-  padding: 0.2em 0.4em;
+/* Inline code */
+.streaming-markdown :not(pre) > code {
+  font-size: 0.8125rem;
+  padding: 0.15em 0.4em;
   border-radius: 0.25rem;
-  font-size: 0.875em;
-  color: #e4e4e7;
-  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  background-color: rgba(0,0,0,0.06);
+  color: inherit;
 }
 
-/* Light mode streaming code blocks */
-:root:not(.dark) .streaming-markdown pre {
-  background-color: #fafafa;
-  border-color: #e4e4e7;
+.dark .streaming-markdown :not(pre) > code {
+  background-color: rgba(255,255,255,0.1);
 }
 
-:root:not(.dark) .streaming-markdown pre code {
-  color: #18181b;
+/* Links */
+.streaming-markdown a {
+  color: #3b82f6;
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
-:root:not(.dark) .streaming-markdown code:not(pre code) {
-  background-color: #f4f4f5;
-  color: #18181b;
+/* Lists */
+.streaming-markdown ul { list-style-type: disc; padding-left: 1.5em; margin: 0.75em 0; }
+.streaming-markdown ol { list-style-type: decimal; padding-left: 1.5em; margin: 0.75em 0; }
+.streaming-markdown li { margin: 0.25em 0; }
+
+/* Headings */
+.streaming-markdown h1,
+.streaming-markdown h2,
+.streaming-markdown h3,
+.streaming-markdown h4 {
+  font-weight: 600;
+  margin-top: 1.25em;
+  margin-bottom: 0.5em;
+  line-height: 1.3;
+}
+
+/* Paragraphs */
+.streaming-markdown p {
+  margin: 0.5em 0;
+  line-height: 1.6;
 }
 
 .bg-fd-foreground\/25 {
@@ -606,8 +630,8 @@ html {
   --accent: oklch(0.14 0 0);
   --accent-foreground: oklch(0.92 0 0);
   --destructive: oklch(0.6 0.02 30);
-  --border: oklch(0.2 0 0);
-  --input: oklch(0.2 0 0);
+  --border: oklch(0.28 0 0);
+  --input: oklch(0.28 0 0);
   --ring: oklch(0.7 0 0);
   --chart-1: oklch(0.6 0 0);
   --chart-2: oklch(0.5 0 0);

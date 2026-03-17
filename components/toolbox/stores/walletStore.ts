@@ -84,7 +84,7 @@ interface WalletActions {
   updateL1Balance: (chainId: string) => Promise<void>;
   updateCChainBalance: () => Promise<void>;
   updateAllBalances: () => Promise<void>;
-  updateAllBalancesWithAllL1s: (l1List?: Array<{ evmChainId: number }>) => Promise<void>;
+  updateAllBalancesWithAllL1s: (l1List?: Array<{ evmChainId: number; rpcUrl?: string }>) => Promise<void>;
 
   // Legacy balance getters for backward compatibility
   pChainBalance: number;

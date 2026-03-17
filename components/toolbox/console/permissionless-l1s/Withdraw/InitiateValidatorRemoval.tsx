@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
+import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
 import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { Button } from '@/components/toolbox/components/Button';
 import { Input } from '@/components/toolbox/components/Input';
@@ -29,7 +30,8 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
     onSuccess,
     onError,
 }) => {
-    const { publicClient, walletEVMAddress } = useWalletStore();
+    const { walletEVMAddress } = useWalletStore();
+    const chainPublicClient = useChainPublicClient();
     const { data: walletClient } = useWalletClient();
     const viemChain = useViemChainStore();
 
@@ -48,7 +50,7 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
         setErrorState(null);
         setTxHash(null);
 
-        if (!walletClient || !publicClient || !viemChain) {
+        if (!walletClient || !chainPublicClient || !viemChain) {
             const msg = "Wallet or chain configuration is not properly initialized.";
             setErrorState(msg);
             onError(msg);
@@ -81,7 +83,7 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
         try {
             // Pre-check validator state
             try {
-                const stakingValidatorInfo = await publicClient.readContract({
+                const stakingValidatorInfo = await chainPublicClient.readContract({
                     address: stakingManagerAddress as `0x${string}`,
                     abi: contractAbi,
                     functionName: 'getStakingValidator',
@@ -97,7 +99,7 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
                 }
 
                 // Get ValidatorManager address to check validator status
-                const settings = await publicClient.readContract({
+                const settings = await chainPublicClient.readContract({
                     address: stakingManagerAddress as `0x${string}`,
                     abi: contractAbi,
                     functionName: 'getStakingManagerSettings',
@@ -123,7 +125,7 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
                     }
                 ];
 
-                const validatorInfo = await publicClient.readContract({
+                const validatorInfo = await chainPublicClient.readContract({
                     address: settings.manager as `0x${string}`,
                     abi: ValidatorManagerAbi,
                     functionName: 'getValidator',
@@ -181,7 +183,7 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
             setTxHash(hash);
 
             // Wait for confirmation
-            const receipt = await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
+            const receipt = await chainPublicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
             if (receipt.status !== 'success') {
                 throw new Error(`Transaction failed with status: ${receipt.status}`);
             }

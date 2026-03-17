@@ -4,6 +4,7 @@ import { readContract } from 'viem/actions';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { useWalletClient } from 'wagmi';
 import ValidatorManagerAbi from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
+import { useChainPublicClient } from '../../useChainPublicClient';
 
 export interface PChainOwner {
   threshold: number;
@@ -91,19 +92,20 @@ export function useValidatorManager(
   contractAddress: string | null,
   abi?: any
 ): ValidatorManagerHook {
-  const { walletEVMAddress, publicClient } = useWalletStore();
+  const { walletEVMAddress } = useWalletStore();
   const viemChain = useViemChainStore();
   const { notify } = useConsoleNotifications();
   const { data: walletClient } = useWalletClient();
+  const chainPublicClient = useChainPublicClient();
 
   const contractAbi = abi ?? ValidatorManagerAbi.abi;
   const isReady = Boolean(contractAddress && walletClient && viemChain);
 
   // Read functions
   const getValidator = async (validationID: string): Promise<ValidatorData> => {
-    if (!publicClient || !contractAddress) throw new Error('Contract not ready');
+    if (!chainPublicClient || !contractAddress) throw new Error('Contract not ready');
 
-    const result = await readContract(publicClient as any, {
+    const result = await readContract(chainPublicClient as any, {
       address: contractAddress as `0x${string}`,
       abi: contractAbi,
       functionName: 'getValidator',
@@ -114,9 +116,9 @@ export function useValidatorManager(
   };
 
   const owner = async (): Promise<string> => {
-    if (!publicClient || !contractAddress) throw new Error('Contract not ready');
+    if (!chainPublicClient || !contractAddress) throw new Error('Contract not ready');
 
-    return await readContract(publicClient as any, {
+    return await readContract(chainPublicClient as any, {
       address: contractAddress as `0x${string}`,
       abi: contractAbi,
       functionName: 'owner',
@@ -125,9 +127,9 @@ export function useValidatorManager(
   };
 
   const l1TotalWeight = async (): Promise<bigint> => {
-    if (!publicClient || !contractAddress) throw new Error('Contract not ready');
+    if (!chainPublicClient || !contractAddress) throw new Error('Contract not ready');
 
-    return await readContract(publicClient as any, {
+    return await readContract(chainPublicClient as any, {
       address: contractAddress as `0x${string}`,
       abi: contractAbi,
       functionName: 'l1TotalWeight',
@@ -136,9 +138,9 @@ export function useValidatorManager(
   };
 
   const subnetID = async (): Promise<string> => {
-    if (!publicClient || !contractAddress) throw new Error('Contract not ready');
+    if (!chainPublicClient || !contractAddress) throw new Error('Contract not ready');
 
-    return await readContract(publicClient as any, {
+    return await readContract(chainPublicClient as any, {
       address: contractAddress as `0x${string}`,
       abi: contractAbi,
       functionName: 'subnetID',
@@ -147,9 +149,9 @@ export function useValidatorManager(
   };
 
   const isValidatorSetInitialized = async (): Promise<boolean> => {
-    if (!publicClient || !contractAddress) throw new Error('Contract not ready');
+    if (!chainPublicClient || !contractAddress) throw new Error('Contract not ready');
 
-    return await readContract(publicClient as any, {
+    return await readContract(chainPublicClient as any, {
       address: contractAddress as `0x${string}`,
       abi: contractAbi,
       functionName: 'isValidatorSetInitialized',
@@ -158,9 +160,9 @@ export function useValidatorManager(
   };
 
   const getNodeValidationID = async (nodeID: string): Promise<string> => {
-    if (!publicClient || !contractAddress) throw new Error('Contract not ready');
+    if (!chainPublicClient || !contractAddress) throw new Error('Contract not ready');
 
-    return await readContract(publicClient as any, {
+    return await readContract(chainPublicClient as any, {
       address: contractAddress as `0x${string}`,
       abi: contractAbi,
       functionName: 'getNodeValidationID',

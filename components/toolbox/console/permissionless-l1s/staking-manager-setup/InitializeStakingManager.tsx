@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
+import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
 import { useToolboxStore, useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
 import { Button } from "@/components/toolbox/components/Button";
 import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput";
@@ -187,7 +188,8 @@ function InitializeNativeStakingManager({ onSuccess }: BaseConsoleToolProps) {
     const [weightToValueFactor, setWeightToValueFactor] = useState<string>("1");
     const [rewardCalculatorAddress, setRewardCalculatorAddress] = useState<string>("");
 
-    const { publicClient, walletEVMAddress } = useWalletStore();
+    const { walletEVMAddress } = useWalletStore();
+    const chainPublicClient = useChainPublicClient();
     const { data: walletClient } = useWalletClient();
     const viemChain = useViemChainStore();
     const { nativeStakingManagerAddress: storedStakingManagerAddress, rewardCalculatorAddress: storedRewardCalculatorAddress } = useToolboxStore();
@@ -235,7 +237,7 @@ function InitializeNativeStakingManager({ onSuccess }: BaseConsoleToolProps) {
 
         setIsChecking(true);
         try {
-            const settings = await publicClient.readContract({
+            const settings = await chainPublicClient!.readContract({
                 address: stakingManagerAddressInput as `0x${string}`,
                 abi: NativeTokenStakingManager.abi,
                 functionName: 'getStakingManagerSettings',
@@ -287,7 +289,7 @@ function InitializeNativeStakingManager({ onSuccess }: BaseConsoleToolProps) {
                 uptimeBlockchainID: hexBlockchainId as `0x${string}`
             };
 
-            const gasEstimate = await publicClient.estimateContractGas({
+            const gasEstimate = await chainPublicClient!.estimateContractGas({
                 address: stakingManagerAddressInput as `0x${string}`,
                 abi: NativeTokenStakingManager.abi,
                 functionName: 'initialize',
@@ -313,7 +315,7 @@ function InitializeNativeStakingManager({ onSuccess }: BaseConsoleToolProps) {
             }, writePromise, viemChain ?? undefined);
 
             const hash = await writePromise;
-            await publicClient.waitForTransactionReceipt({ hash });
+            await chainPublicClient!.waitForTransactionReceipt({ hash });
             await checkIfInitialized();
             onSuccess?.();
         } catch (error) {

@@ -2,6 +2,7 @@
 
 import { useToolboxStore, useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
+import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
 import { useState } from "react";
 import { Button } from "@/components/toolbox/components/Button";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
@@ -49,7 +50,8 @@ function DeployNativeStakingManager({ onSuccess }: BaseConsoleToolProps) {
     nativeStakingManagerAddress,
     setNativeStakingManagerAddress,
   } = useToolboxStore();
-  const { publicClient, walletEVMAddress } = useWalletStore();
+  const { walletEVMAddress } = useWalletStore();
+  const chainPublicClient = useChainPublicClient();
   const { walletClient } = useConnectedWallet();
   const [isDeployingMessages, setIsDeployingMessages] = useState(false);
   const [isDeployingManager, setIsDeployingManager] = useState(false);
@@ -82,7 +84,7 @@ function DeployNativeStakingManager({ onSuccess }: BaseConsoleToolProps) {
     notify({ type: "deploy", name: "ValidatorMessages Library" }, deployPromise, viemChain ?? undefined);
 
     const hash = await deployPromise;
-    const receipt = await publicClient.waitForTransactionReceipt({ hash });
+    const receipt = await chainPublicClient!.waitForTransactionReceipt({ hash });
     if (!receipt.contractAddress) {
       throw new Error("No contract address in receipt");
     }
@@ -109,7 +111,7 @@ function DeployNativeStakingManager({ onSuccess }: BaseConsoleToolProps) {
     notify({ type: "deploy", name: "NativeTokenStakingManager" }, deployPromise, viemChain ?? undefined);
 
     const hash = await deployPromise;
-    const receipt = await publicClient.waitForTransactionReceipt({ hash });
+    const receipt = await chainPublicClient!.waitForTransactionReceipt({ hash });
     if (!receipt.contractAddress) {
       throw new Error("No contract address in receipt");
     }

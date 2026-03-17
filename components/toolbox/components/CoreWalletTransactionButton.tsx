@@ -4,7 +4,13 @@ import { type ReactNode, useState, useCallback } from "react";
 import { Button } from "./Button";
 import { cn } from "../lib/utils";
 import { useWalletStore } from "../stores/walletStore";
-import { Loader2, Terminal, Copy, Check, ExternalLink, ArrowRight } from "lucide-react";
+import { Loader2, Terminal, Copy, Check, ExternalLink, ArrowRight, Download } from "lucide-react";
+
+interface DownloadFileConfig {
+  data: string;
+  filename: string;
+  label?: string;
+}
 
 interface CoreWalletTransactionButtonProps {
   children: ReactNode;
@@ -13,8 +19,33 @@ interface CoreWalletTransactionButtonProps {
   loadingText?: string;
   disabled?: boolean;
   cliCommand?: string;
+  downloadFile?: DownloadFileConfig;
   variant?: "primary" | "secondary" | "outline" | "danger" | "outline-danger" | "light-danger";
   className?: string;
+}
+
+function DownloadFileButton({ data, filename, label }: DownloadFileConfig) {
+  const handleDownload = useCallback(() => {
+    const blob = new Blob([data], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, [data, filename]);
+
+  return (
+    <button
+      onClick={handleDownload}
+      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-border bg-background hover:bg-muted text-foreground transition-colors"
+    >
+      <Download className="w-3 h-3" />
+      {label || `Download ${filename}`}
+    </button>
+  );
 }
 
 function CliCommandBlock({ command }: { command: string }) {
@@ -59,6 +90,7 @@ export function CoreWalletTransactionButton({
   loadingText,
   disabled,
   cliCommand,
+  downloadFile,
   variant = "primary",
   className,
 }: CoreWalletTransactionButtonProps) {
@@ -104,6 +136,11 @@ export function CoreWalletTransactionButton({
               </a>
               <div className="flex-1 h-px bg-border" />
             </div>
+            {downloadFile && downloadFile.data && (
+              <div className="mb-2">
+                <DownloadFileButton {...downloadFile} />
+              </div>
+            )}
             <CliCommandBlock command={cliCommand} />
           </div>
         )}
@@ -128,6 +165,11 @@ export function CoreWalletTransactionButton({
               <ExternalLink className="h-3 w-3" />
             </a>
           </div>
+          {downloadFile && downloadFile.data && (
+            <div className="mb-2">
+              <DownloadFileButton {...downloadFile} />
+            </div>
+          )}
           <CliCommandBlock command={cliCommand} />
         </div>
       ) : (

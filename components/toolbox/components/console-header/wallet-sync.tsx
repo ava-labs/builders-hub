@@ -123,6 +123,12 @@ export function WalletSync() {
   }, [isConnected, address, isCoreConnector])
 
   // Sync chain changes → Zustand store
+  //
+  // Testnet derivation: only the primary-network chain IDs (43113 Fuji,
+  // 43114 Mainnet) definitively signal a network switch.  Any other chain
+  // ID is a custom L1 — switching to an L1 should NEVER flip the
+  // mainnet/testnet flag because Core Wallet's `wallet_getEthereumChain`
+  // unreliably reports `isTestnet: false` for custom L1 testnets.
   useEffect(() => {
     if (!isConnected || !chainId) return
     if (chainId === prevChainIdRef.current) return
@@ -130,17 +136,37 @@ export function WalletSync() {
 
     setWalletChainId(chainId)
 
+    // Determine testnet status from chain ID, preserving current state for L1s
+    const resolveTestnet = (): boolean => {
+      if (chainId === 43113) return true   // Fuji C-Chain
+      if (chainId === 43114) return false  // Mainnet C-Chain
+      // Custom L1 — preserve the current testnet state from the store
+      return useWalletStore.getState().isTestnet
+    }
+    const testnet = resolveTestnet()
+
     if (isCoreConnector) {
-      // Re-fetch chain info from Core for accurate testnet/chainName
+      // Re-create Core client for the new chain and update store.
+      // Pass the resolved testnet flag so the SDK targets the correct
+      // P-Chain endpoint regardless of Core Wallet's mode.
       ;(async () => {
         try {
           const client = await createCoreWalletClient(
-            useWalletStore.getState().walletEVMAddress as `0x${string}`
+            useWalletStore.getState().walletEVMAddress as `0x${string}`,
+            testnet,
           )
           if (client) {
-            const data = await client.getEthereumChain()
-            setIsTestnet(data.isTestnet)
-            setAvalancheNetworkID(data.isTestnet ? networkIDs.FujiID : networkIDs.MainnetID)
+            setCoreWalletClient(client)
+
+            // Re-fetch P-Chain address — the bech32 HRP changes between
+            // networks (P-avax1… on mainnet vs P-fuji1… on testnet).
+            const [data, pAddr] = await Promise.all([
+              client.getEthereumChain().catch(() => ({ chainName: '' } as any)),
+              client.getPChainAddress().catch(() => ''),
+            ])
+            if (pAddr) setPChainAddress(pAddr)
+            setIsTestnet(testnet)
+            setAvalancheNetworkID(testnet ? networkIDs.FujiID : networkIDs.MainnetID)
             setEvmChainName(data.chainName)
           }
         } catch { }
@@ -148,10 +174,9 @@ export function WalletSync() {
         try { updateAllBalances() } catch { }
       })()
     } else {
-      // Derive testnet from well-known Avalanche chain IDs
-      const isTestnet = chainId === 43113
-      setIsTestnet(isTestnet)
-      setAvalancheNetworkID(isTestnet ? networkIDs.FujiID : networkIDs.MainnetID)
+      // Generic EVM wallets: same logic — only C-Chain IDs toggle testnet
+      setIsTestnet(testnet)
+      setAvalancheNetworkID(testnet ? networkIDs.FujiID : networkIDs.MainnetID)
 
       try { updateAllBalances() } catch { }
     }

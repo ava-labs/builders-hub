@@ -8,6 +8,8 @@ import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalanch
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { decodeAbiParameters } from 'viem';
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
+import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
+import { ensureCoreNetworkMode, restoreCoreChain } from '@/components/toolbox/coreViem';
 
 export interface WeightUpdateEventData {
     validationID: `0x${string}`;
@@ -53,7 +55,8 @@ const SubmitPChainTxWeightUpdate: React.FC<SubmitPChainTxWeightUpdateProps> = ({
     onSuccess,
     onError,
 }) => {
-    const { coreWalletClient, pChainAddress, publicClient, isTestnet } = useWalletStore();
+    const { coreWalletClient, pChainAddress, isTestnet } = useWalletStore();
+    const chainPublicClient = useChainPublicClient();
     const walletType = useWalletStore((s) => s.walletType);
     const isCoreWallet = walletType === 'core';
     const { aggregateSignature } = useAvalancheSDKChainkit();
@@ -87,7 +90,7 @@ const SubmitPChainTxWeightUpdate: React.FC<SubmitPChainTxWeightUpdateProps> = ({
     useEffect(() => {
         const extractWarpMessage = async () => {
             const validTxHash = validateAndCleanTxHash(evmTxHash);
-            if (!publicClient || !validTxHash) {
+            if (!chainPublicClient || !validTxHash) {
                 setUnsignedWarpMessage(null);
                 setEventData(null);
                 setSignedWarpMessage(null);
@@ -95,7 +98,7 @@ const SubmitPChainTxWeightUpdate: React.FC<SubmitPChainTxWeightUpdateProps> = ({
             }
 
             try {
-                const receipt = await publicClient.waitForTransactionReceipt({ hash: validTxHash });
+                const receipt = await chainPublicClient.waitForTransactionReceipt({ hash: validTxHash });
                 if (!receipt.logs || receipt.logs.length === 0) {
                     throw new Error("Failed to get warp message from transaction receipt.");
                 }
@@ -205,7 +208,7 @@ const SubmitPChainTxWeightUpdate: React.FC<SubmitPChainTxWeightUpdateProps> = ({
         };
 
         extractWarpMessage();
-    }, [evmTxHash, publicClient]);
+    }, [evmTxHash, chainPublicClient]);
 
     const handleSubmitPChainTx = async () => {
         setErrorState(null);
@@ -259,17 +262,25 @@ const SubmitPChainTxWeightUpdate: React.FC<SubmitPChainTxWeightUpdateProps> = ({
                 return;
             }
 
+            // Ensure Core Wallet is in the correct network mode for P-Chain ops.
+            // Switching to an L1 chain can silently flip Core into mainnet mode.
+            const previousChainId = await ensureCoreNetworkMode(isTestnet);
+
             // Step 2: Submit to P-Chain using setL1ValidatorWeight
             const pChainTxIdPromise = coreWalletClient!.setL1ValidatorWeight({
                 signedWarpMessage: signedMessage,
             });
-            
+
             notify({
                 type: 'local',
                 name: 'Submit P-Chain Transaction'
             }, pChainTxIdPromise);
-            
+
             const pChainTxId = await pChainTxIdPromise;
+
+            // Restore the L1 chain if we had to switch for the P-Chain op
+            if (previousChainId) await restoreCoreChain(previousChainId);
+
             setTxSuccess(pChainTxId);
             onSuccess(pChainTxId, eventData || undefined);
         } catch (err: any) {
@@ -311,13 +322,12 @@ const SubmitPChainTxWeightUpdate: React.FC<SubmitPChainTxWeightUpdateProps> = ({
 
     const generateCLICommand = () => {
         if (!signedWarpMessage) return '';
-        const nodeUrl = isTestnet
-            ? 'https://api.avax-test.network'
-            : 'https://api.avax.network';
+        const network = isTestnet ? 'fuji' : 'mainnet';
         return [
-            `avalanche platform setL1ValidatorWeight \\`,
-            `  --node-url ${nodeUrl} \\`,
-            `  --signed-warp-message "${signedWarpMessage}"`,
+            `platform l1 set-weight \\`,
+            `  --message "${signedWarpMessage}" \\`,
+            `  --network ${network} \\`,
+            `  --key-name <your-key-name>`,
         ].join('\n');
     };
 

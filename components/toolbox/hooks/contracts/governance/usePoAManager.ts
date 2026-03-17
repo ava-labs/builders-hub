@@ -4,6 +4,7 @@ import { readContract } from 'viem/actions';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { useWalletClient } from 'wagmi';
 import PoAManagerAbi from '@/contracts/icm-contracts/compiled/PoAManager.json';
+import { useChainPublicClient } from '../../useChainPublicClient';
 import { PChainOwner, ValidatorData } from '../core/useValidatorManager';
 
 export interface PoAManagerHook {
@@ -41,19 +42,20 @@ export function usePoAManager(
   contractAddress: string | null,
   abi?: any
 ): PoAManagerHook {
-  const { walletEVMAddress, publicClient } = useWalletStore();
+  const { walletEVMAddress } = useWalletStore();
   const viemChain = useViemChainStore();
   const { notify } = useConsoleNotifications();
   const { data: walletClient } = useWalletClient();
+  const chainPublicClient = useChainPublicClient();
 
   const contractAbi = abi ?? PoAManagerAbi.abi;
   const isReady = Boolean(contractAddress && walletClient && viemChain);
 
   // Read functions
   const owner = async (): Promise<string> => {
-    if (!publicClient || !contractAddress) throw new Error('Contract not ready');
+    if (!chainPublicClient || !contractAddress) throw new Error('Contract not ready');
 
-    return await readContract(publicClient as any, {
+    return await readContract(chainPublicClient as any, {
       address: contractAddress as `0x${string}`,
       abi: contractAbi,
       functionName: 'owner',
@@ -62,9 +64,9 @@ export function usePoAManager(
   };
 
   const getValidator = async (validationID: string): Promise<ValidatorData> => {
-    if (!publicClient || !contractAddress) throw new Error('Contract not ready');
+    if (!chainPublicClient || !contractAddress) throw new Error('Contract not ready');
 
-    const result = await readContract(publicClient as any, {
+    const result = await readContract(chainPublicClient as any, {
       address: contractAddress as `0x${string}`,
       abi: contractAbi,
       functionName: 'getValidator',

@@ -10,6 +10,7 @@ import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalle
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 import Link from "next/link";
 import { CoreWalletTransactionButton } from "@/components/toolbox/components/CoreWalletTransactionButton";
+import { ensureCoreNetworkMode, restoreCoreChain } from "@/components/toolbox/coreViem";
 
 const metadata: ConsoleToolMetadata = {
     title: "Create Subnet",
@@ -35,14 +36,20 @@ function CreateSubnet(_props: BaseConsoleToolProps) {
 
         setIsCreatingSubnet(true);
 
-        const createSubnetTx = coreWalletClient.createSubnet({
-            subnetOwners: [pChainAddress]
-        });
-
-        notify('createSubnet', createSubnetTx);
-
         try {
+            // Ensure Core Wallet is in the correct network mode for P-Chain ops
+            const previousChainId = await ensureCoreNetworkMode(isTestnet);
+
+            const createSubnetTx = coreWalletClient.createSubnet({
+                subnetOwners: [pChainAddress]
+            });
+
+            notify('createSubnet', createSubnetTx);
+
             const txID = await createSubnetTx;
+
+            if (previousChainId) await restoreCoreChain(previousChainId);
+
             setSubnetID(txID);
         } finally {
             setIsCreatingSubnet(false);

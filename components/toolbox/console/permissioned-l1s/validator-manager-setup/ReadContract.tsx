@@ -1,7 +1,7 @@
 "use client";
 
 import { useSelectedL1 } from "@/components/toolbox/stores/l1ListStore";
-import { useWalletStore } from "@/components/toolbox/stores/walletStore";
+import { useChainPublicClient } from "@/components/toolbox/hooks/useChainPublicClient";
 import type { AbiEvent } from "viem";
 import { useEffect, useState } from "react";
 import ValidatorManagerABI from "@/contracts/icm-contracts/compiled/ValidatorManager.json";
@@ -46,7 +46,7 @@ function ReadContract({ onSuccess }: BaseConsoleToolProps) {
   const [viewData, setViewData] = useState<ViewData>({});
   const [isReading, setIsReading] = useState(false);
   const [eventLogs, setEventLogs] = useState<Record<string, any[]>>({});
-  const { publicClient } = useWalletStore();
+  const chainPublicClient = useChainPublicClient();
   const [expandedEvents, setExpandedEvents] = useState<Record<string, boolean>>({});
   const selectedL1 = useSelectedL1()();
   const [selectedFunction, setSelectedFunction] = useState<string>("admin");
@@ -88,7 +88,7 @@ function ReadContract({ onSuccess }: BaseConsoleToolProps) {
         if (func.inputs.length > 0) continue;
 
         try {
-          const result = await publicClient.readContract({
+          const result = await chainPublicClient!.readContract({
             address: proxyAddress as `0x${string}`,
             abi: [func],
             functionName: func.name,
@@ -108,7 +108,7 @@ function ReadContract({ onSuccess }: BaseConsoleToolProps) {
       for (const event of events) {
         if (!event.name) continue;
         try {
-          const eventLogs = await publicClient.getLogs({
+          const eventLogs = await chainPublicClient!.getLogs({
             address: proxyAddress as `0x${string}`,
             event: event as AbiEvent,
             fromBlock: 0n,

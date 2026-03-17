@@ -8,45 +8,27 @@ const ProgramTimeline = dynamic(() => import("./ProgramTimeline"), {
   ssr: false,
 });
 
-interface ApplicationData {
-  id: string;
-  firstName: string;
+export interface StageResult {
   projectName: string;
-  createdAt: string;
+  stage1Result: string;
 }
 
 export default function ProgramTimelineWrapper() {
   const { status } = useSession();
-  const [hasApplied, setHasApplied] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isParticipant, setIsParticipant] = useState(false);
+  const [stageResults, setStageResults] = useState<StageResult[]>([]);
 
   useEffect(() => {
-    // Only fetch when authenticated
-    if (status !== "authenticated") {
-      setIsLoading(false);
-      return;
-    }
+    if (status !== "authenticated") return;
 
-    setIsLoading(true);
     fetch("/api/build-games/status")
       .then((res) => res.json())
       .then((data) => {
-        if (data.hasApplied && data.application) {
-          setHasApplied(true);
-        }
+        setIsParticipant(!!data.isParticipant);
+        setStageResults(data.stageResults ?? []);
       })
-      .catch((error) => {
-        console.error("Error fetching application status:", error);
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
+      .catch(() => {});
   }, [status]);
 
-  // Don't render if not authenticated, not applied, or still loading
-  if (status === "loading" || isLoading || !hasApplied) {
-    return null;
-  }
-
-  return <ProgramTimeline />;
+  return <ProgramTimeline isParticipant={isParticipant} stageResults={stageResults} />;
 }
