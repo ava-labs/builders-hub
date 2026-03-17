@@ -1,6 +1,3 @@
-import React from "react";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
   getFilteredHackathons,
@@ -23,6 +20,7 @@ import JoinButton from "@/components/hackathons/hackathon/JoinButton";
 import JoinBannerLink from "@/components/hackathons/hackathon/JoinBannerLink";
 import { createMetadata } from "@/utils/metadata";
 import type { Metadata } from "next";
+import StagesSection from "@/components/hackathons/hackathon/sections/StagesSection";
 
 export const revalidate = 60;
 export const dynamicParams = true;
@@ -40,10 +38,10 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  
+
   try {
     const hackathon = await getHackathon(id);
-    
+
     if (!hackathon) {
       return createMetadata({
         title: 'Hackathon Not Found',
@@ -79,13 +77,13 @@ export default async function HackathonPage({
   const { id } = await params;
   const resolvedSearchParams = await searchParams;
   const utm = resolvedSearchParams?.utm ?? "";
-  
+
   const hackathon = await getHackathon(id);
 
   // Check if user is authenticated and registered
   const session = await getAuthSession();
   let isRegistered = false;
-  
+
   if (session?.user?.email) {
     const registration = await getRegisterForm(session.user.email, id);
     isRegistered = !!registration;
@@ -102,6 +100,7 @@ export default async function HackathonPage({
   ];
 
   if (!hackathon) redirect("/hackathons");
+  console.log("Hackathon data:", hackathon.content);
 
   return (
     <main className="container sm:px-2 py-4 lg:py-16">
@@ -149,11 +148,12 @@ export default async function HackathonPage({
             />
           </div>
           <div className="py-8 sm:p-8 flex flex-col gap-20">
+          <StagesSection stages={hackathon.content.stages} />
             {hackathon.content.tracks_text && <About hackathon={hackathon} />}
             {hackathon.content.tracks && <Tracks hackathon={hackathon} />}
             <Resources hackathon={hackathon} />
-            <Schedule 
-              hackathon={hackathon} 
+            <Schedule
+              hackathon={hackathon}
               scheduleSource={hackathon.google_calendar_id ? "google-calendar" : "database"}
               googleCalendarConfig={hackathon.google_calendar_id ? {
                 calendarId: hackathon.google_calendar_id,

@@ -1,3 +1,5 @@
+import { HackathonStage } from "./hackathon-stage"
+
 export type HackathonStatus = "ENDED" | "ONGOING" | "UPCOMING"
 export type HackathonHeader = {
   id: string
@@ -56,6 +58,7 @@ export type Hackathon = {
   speakers_banner: string
   speakers_text: string
   resources: Resource[]
+  stages: HackathonStage[]
 }
 
 export type ScheduleActivity = {
