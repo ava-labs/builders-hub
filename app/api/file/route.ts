@@ -20,6 +20,25 @@ export const POST = withAuth(async (request: Request, context: any, session: any
 
     const typedFile = file as File;
 
+    // Validate file type
+    const ALLOWED_MIME_TYPES = [
+      'image/png',
+      'image/jpeg',
+      'image/gif',
+      'image/webp',
+      'image/svg+xml',
+      'application/pdf',
+      'video/mp4',
+      'video/quicktime',
+    ];
+
+    if (!ALLOWED_MIME_TYPES.includes(typedFile.type)) {
+      return NextResponse.json(
+        { error: `File type "${typedFile.type}" is not allowed. Accepted types: images, PDFs, and videos.` },
+        { status: 400 }
+      );
+    }
+
     // Validate file size (max 10MB)
     if (!isValidFileSize(typedFile, 10)) {
       return NextResponse.json(

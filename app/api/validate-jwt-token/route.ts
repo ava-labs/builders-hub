@@ -43,7 +43,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({
       valid: true,
       sub,
-      payload: decoded,
     });
   } catch (err: unknown) {
     return NextResponse.json(
