@@ -148,7 +148,11 @@ export default async function HackathonPage({
             />
           </div>
           <div className="py-8 sm:p-8 flex flex-col gap-20">
-          <StagesSection stages={hackathon.content.stages} />
+            {
+              hackathon.content.stages && hackathon.content.stages.length > 0 && (
+                <StagesSection stages={hackathon.content.stages} />
+              )
+            }
             {hackathon.content.tracks_text && <About hackathon={hackathon} />}
             {hackathon.content.tracks && <Tracks hackathon={hackathon} />}
             <Resources hackathon={hackathon} />

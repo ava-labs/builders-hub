@@ -16,6 +16,6 @@ export default function StagesSection({ stages }: Props): JSX.Element {
   };
 
   return (
-    <Stages />
+    <Stages stages={stages} />
   );
 }
