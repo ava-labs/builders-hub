@@ -561,11 +561,71 @@ type SpeakerItemProps = {
   removing: { [key: string]: number | null };
   speakersLength: number;
   onPictureChange: (index: number, url: string) => void;
+  onApplyTemplate: (index: number, template: SpeakerTemplate) => void;
+  speakerTemplates: SpeakerTemplate[];
+  loadingSpeakerTemplates: boolean;
 };
 
-const SpeakerItem = memo(function SpeakerItem({ speaker, index, collapsed, onChange, onDone, onExpand, onRemove, t, language, removing, speakersLength, onPictureChange }: SpeakerItemProps) {
+type SpeakerTemplate = {
+  id: string;
+  name: string;
+  category: string;
+  picture: string;
+  icon: string;
+};
+
+const SpeakerItem = memo(function SpeakerItem({
+  speaker,
+  index,
+  collapsed,
+  onChange,
+  onDone,
+  onExpand,
+  onRemove,
+  t,
+  language,
+  removing,
+  speakersLength,
+  onPictureChange,
+  onApplyTemplate,
+  speakerTemplates,
+  loadingSpeakerTemplates,
+}: SpeakerItemProps) {
+  const [isMounted, setIsMounted] = useState<boolean>(false);
+
+  useEffect((): void => {
+    setIsMounted(true);
+  }, []);
+
+  const selectedTemplateId: string =
+    speakerTemplates.find(
+      (template: SpeakerTemplate) =>
+        template.name === speaker.name &&
+        template.category === speaker.category &&
+        template.picture === speaker.picture
+    )?.id ?? '__none__';
+
+  const handleTemplateChange = (value: string): void => {
+    if (value === '__none__') {
+      return;
+    }
+
+    const selectedTemplate: SpeakerTemplate | undefined = speakerTemplates.find(
+      (template: SpeakerTemplate) => template.id === value
+    );
+
+    if (!selectedTemplate) {
+      return;
+    }
+
+    onApplyTemplate(index, selectedTemplate);
+  };
+
   return (
-    <div className={`border border-zinc-700 rounded-lg p-4 mb-6 bg-zinc-900/40 relative transition-all duration-300 ease-in-out ${removing[`speaker-${index}`] ? 'opacity-0 scale-95 blur-sm' : 'opacity-100 scale-100'}`}>
+    <div
+      className={`border border-zinc-700 rounded-lg p-4 mb-6 bg-zinc-900/40 relative transition-all duration-300 ease-in-out ${removing[`speaker-${index}`] ? 'opacity-0 scale-95 blur-sm' : 'opacity-100 scale-100'
+        }`}
+    >
       {speakersLength > 1 && (
         <button
           type="button"
@@ -576,56 +636,100 @@ const SpeakerItem = memo(function SpeakerItem({ speaker, index, collapsed, onCha
           <Trash className="w-5 h-5" />
         </button>
       )}
+
       <h3 className="text-lg font-semibold mb-2">Speaker {index + 1}</h3>
+
       {collapsed ? (
         <div className="flex justify-end">
-          <button type="button" onClick={() => onExpand(index)} className="flex items-center gap-1 text-zinc-400 hover:text-red-500 cursor-pointer">
+          <button
+            type="button"
+            onClick={() => onExpand(index)}
+            className="flex items-center gap-1 text-zinc-400 hover:text-red-500 cursor-pointer"
+          >
             <ChevronRight className="w-5 h-5" /> {t[language].expand}
           </button>
         </div>
       ) : (
         <>
+          <div className="mb-2 text-zinc-400 text-sm">Default speaker</div>
+
+          <div suppressHydrationWarning>
+            <Select
+              value={selectedTemplateId}
+              onValueChange={handleTemplateChange}
+              disabled={loadingSpeakerTemplates || !isMounted}
+            >
+              <SelectTrigger className="mb-3">
+                <SelectValue
+                  placeholder={
+                    loadingSpeakerTemplates
+                      ? 'Loading speakers...'
+                      : 'Select a default speaker'
+                  }
+                />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">Custom speaker</SelectItem>
+                {isMounted && speakerTemplates.map((template: SpeakerTemplate) => (
+                  <SelectItem key={template.id} value={template.id}>
+                    {template.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="mb-2 text-zinc-400 text-sm">{t[language].speakerIcon}</div>
           <Select
-            value={speaker.icon}
-            onValueChange={(value) => onChange(index, 'icon', value)}
+            value={speaker.icon || '__none__'}
+            onValueChange={(value: string) =>
+              onChange(index, 'icon', value === '__none__' ? '' : value)
+            }
           >
             <SelectTrigger className="mb-3">
               <SelectValue placeholder="Select Icon" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="__none__">No icon</SelectItem>
               <SelectItem value="code">Code</SelectItem>
               <SelectItem value="megaphone">Megaphone</SelectItem>
             </SelectContent>
           </Select>
+
           <div className="mb-2 text-zinc-400 text-sm">{t[language].speakerName}</div>
           <Input
             type="text"
             placeholder="Name"
             value={speaker.name}
-            onChange={(e) => onChange(index, 'name', e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              onChange(index, 'name', e.target.value)
+            }
             className="w-full mb-3"
             required
           />
+
           <div className="mb-2 text-zinc-400 text-sm">{t[language].speakerCompany}</div>
           <Input
             type="text"
             placeholder="Category"
             value={speaker.category}
-            onChange={(e) => onChange(index, 'category', e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              onChange(index, 'category', e.target.value)
+            }
             className="w-full mb-1"
             required
           />
+
           <div className="mb-2 text-zinc-400 text-sm">Picture</div>
           <div className="mb-2">
             <input
               type="file"
               accept="image/*"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                const file: File | undefined = e.target.files?.[0];
                 if (file) {
-                  const reader = new FileReader();
-                  reader.onload = (event) => {
+                  const reader: FileReader = new FileReader();
+                  reader.onload = (event: ProgressEvent<FileReader>) => {
                     onPictureChange(index, event.target?.result as string);
                   };
                   reader.readAsDataURL(file);
@@ -634,16 +738,20 @@ const SpeakerItem = memo(function SpeakerItem({ speaker, index, collapsed, onCha
               className="w-full p-2 border border-zinc-600 rounded bg-zinc-800 text-zinc-200"
             />
           </div>
+
           <div className="mb-2">
             <Input
               type="text"
               placeholder="Or enter Picture URL"
               value={speaker.picture}
-              onChange={e => onPictureChange(index, e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                onPictureChange(index, e.target.value)
+              }
               className="w-full"
             />
           </div>
-          {speaker.picture && speaker.picture.trim() !== "" && (
+
+          {speaker.picture && speaker.picture.trim() !== '' && (
             <div className="mb-2">
               <img
                 src={speaker.picture}
@@ -652,8 +760,13 @@ const SpeakerItem = memo(function SpeakerItem({ speaker, index, collapsed, onCha
               />
             </div>
           )}
+
           <div className="flex justify-end mt-2">
-            <button type="button" onClick={() => onDone(index)} className="bg-green-600 hover:bg-green-700 text-white px-4 py-1 rounded flex items-center gap-1 cursor-pointer">
+            <button
+              type="button"
+              onClick={() => onDone(index)}
+              className="bg-green-600 hover:bg-green-700 text-white px-4 py-1 rounded flex items-center gap-1 cursor-pointer"
+            >
               {t[language].done} <ChevronDown className="w-4 h-4" />
             </button>
           </div>
@@ -753,6 +866,8 @@ const ResourceItem = memo(function ResourceItem({ resource, index, collapsed, on
 });
 
 const HackathonsEdit = () => {
+  const [speakerTemplates, setSpeakerTemplates] = useState<SpeakerTemplate[]>([]);
+  const [loadingSpeakerTemplates, setLoadingSpeakerTemplates] = useState<boolean>(false);
   const { data: session, status } = useSession();
   const [myHackathons, setMyHackathons] = useState<any[]>([]);
   const [loadingHackathons, setLoadingHackathons] = useState<boolean>(true);
@@ -767,6 +882,31 @@ const HackathonsEdit = () => {
   const [formDataLatest, setFormDataLatest] = useState<IDataLatest>(initialData.latest);
   const [cohostsEmails, setCohostsEmails] = useState<string[]>([]);
   const { toast } = useToast();
+
+  const getSpeakers = async (): Promise<void> => {
+    setLoadingSpeakerTemplates(true);
+
+    try {
+      const response = await axios.get('/api/speakers');
+
+      const speakers: SpeakerTemplate[] = Array.isArray(response.data)
+        ? response.data.map((speaker: any): SpeakerTemplate => ({
+          id: String(speaker.id),
+          name: speaker.name ?? '',
+          category: speaker.category ?? '',
+          picture: speaker.picture ?? '',
+          icon: speaker.icon ?? '',
+        }))
+        : [];
+
+      setSpeakerTemplates(speakers);
+    } catch (error: unknown) {
+      console.error('Error loading speakers:', error);
+      setSpeakerTemplates([]);
+    } finally {
+      setLoadingSpeakerTemplates(false);
+    }
+  };
 
   const getMyHackathons = async () => {
     setLoadingHackathons(true);
@@ -793,8 +933,25 @@ const HackathonsEdit = () => {
   useEffect(() => {
     if (status === "authenticated" && session?.user) {
       getMyHackathons();
+      getSpeakers()
     }
   }, [session, status]);
+  const handleApplySpeakerTemplate = useCallback(
+    (idx: number, template: SpeakerTemplate): void => {
+      setFormDataContent((prev: IDataContent) => {
+        const newSpeakers = [...prev.speakers];
+        newSpeakers[idx] = {
+          ...newSpeakers[idx],
+          name: template.name,
+          category: template.category,
+          icon: template.icon,
+          picture: template.picture,
+        };
+        return { ...prev, speakers: newSpeakers };
+      });
+    },
+    []
+  );
 
   const handleSelectHackathon = (hackathon: any) => {
     setIsSelectedHackathon(true);
@@ -2631,6 +2788,9 @@ const HackathonsEdit = () => {
                               removing={removing}
                               speakersLength={formDataContent.speakers.length}
                               onPictureChange={handleSpeakerPictureChange}
+                              onApplyTemplate={handleApplySpeakerTemplate}
+                              speakerTemplates={speakerTemplates}
+                              loadingSpeakerTemplates={loadingSpeakerTemplates}
                             />
                           ))}
                           <div className="flex justify-end">

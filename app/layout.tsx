@@ -40,7 +40,7 @@ export default function Layout({ children }: { children: ReactNode }) {
       suppressHydrationWarning
     >
       <PHProvider>
-        <body className="flex min-h-screen flex-col">
+        <body className="flex min-h-screen flex-col" suppressHydrationWarning>
           {/* Detect embed mode and add class to document for CSS targeting */}
           <Suspense fallback={null}>
             <EmbedModeDetector />
