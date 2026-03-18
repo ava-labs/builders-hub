@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import { useChat, type UIMessage } from '@ai-sdk/react';
-import { MessageSquare, X, ArrowUp, Loader2, Minus, Sparkles } from 'lucide-react';
+import { MessageSquare, X, Loader2, Minus, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/cn';
 
 type BubbleState = 'collapsed' | 'input' | 'expanded';
@@ -35,12 +35,12 @@ export function ChatBubble() {
   const [inputValue, setInputValue] = useState('');
   const [showPrompt, setShowPrompt] = useState(false);
   const [currentPrompt, setCurrentPrompt] = useState(0);
-  const [shouldBounce, setShouldBounce] = useState(false);
+  const [shouldPulse, setShouldPulse] = useState(false);
   const [mounted, setMounted] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const promptTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const bounceIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const pulseIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const { messages, sendMessage, status, setMessages } = useChat({
     id: 'chat-bubble',
@@ -51,34 +51,29 @@ export function ChatBubble() {
 
   const isLoading = status === 'streaming' || status === 'submitted';
 
-  // Prevent hydration mismatch — only render dynamic content after mount
+  // Prevent hydration mismatch
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Hide on /chat and /console pages
-  if (pathname.startsWith('/chat') || pathname.startsWith('/console')) {
-    return null;
-  }
-
-  // Bounce animation every 8-12 seconds when collapsed
+  // Gentle pulse every 8-12 seconds when collapsed
   useEffect(() => {
     if (state !== 'collapsed' || !mounted) return;
 
-    const triggerBounce = () => {
-      setShouldBounce(true);
-      setTimeout(() => setShouldBounce(false), 800);
+    const triggerPulse = () => {
+      setShouldPulse(true);
+      setTimeout(() => setShouldPulse(false), 2000);
     };
 
-    const initialTimeout = setTimeout(triggerBounce, 3000);
+    const initialTimeout = setTimeout(triggerPulse, 3000);
 
-    bounceIntervalRef.current = setInterval(() => {
-      triggerBounce();
+    pulseIntervalRef.current = setInterval(() => {
+      triggerPulse();
     }, 8000 + Math.random() * 4000);
 
     return () => {
       clearTimeout(initialTimeout);
-      if (bounceIntervalRef.current) clearInterval(bounceIntervalRef.current);
+      if (pulseIntervalRef.current) clearInterval(pulseIntervalRef.current);
     };
   }, [state, mounted]);
 
@@ -115,6 +110,11 @@ export function ChatBubble() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Hide on /chat and /console pages — AFTER all hooks to avoid Rules of Hooks violation
+  if (pathname.startsWith('/chat') || pathname.startsWith('/console')) {
+    return null;
+  }
+
   const handleBubbleClick = () => {
     if (state === 'collapsed') {
       setShowPrompt(false);
@@ -132,12 +132,12 @@ export function ChatBubble() {
     setState('collapsed');
   };
 
-  const onSubmit = useCallback(() => {
+  const onSubmit = () => {
     if (!inputValue.trim() || isLoading) return;
     sendMessage({ text: inputValue.trim() });
     setInputValue('');
     setState('expanded');
-  }, [inputValue, isLoading, sendMessage]);
+  };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -180,18 +180,11 @@ export function ChatBubble() {
             "group relative w-14 h-14 rounded-full shadow-lg border flex items-center justify-center transition-all duration-300 hover:scale-110 hover:shadow-xl",
             "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700/50",
             "hover:border-zinc-300 dark:hover:border-zinc-600",
-            shouldBounce && "animate-bounce"
           )}
-          style={shouldBounce ? { animationDuration: '0.8s', animationIterationCount: '2' } : undefined}
+          style={shouldPulse ? { animation: 'bubble-breathe 2s ease-in-out' } : undefined}
         >
           {/* Hover glow */}
           <div className="absolute inset-0 rounded-full bg-zinc-900/0 dark:bg-white/0 group-hover:bg-zinc-900/5 dark:group-hover:bg-white/5 transition-all duration-300" />
-
-          {/* Pulse ring */}
-          <div
-            className="absolute inset-0 rounded-full animate-ping bg-zinc-400/20 dark:bg-zinc-500/20 opacity-0 group-hover:opacity-100"
-            style={{ animationDuration: '2s' }}
-          />
 
           <MessageSquare className="w-6 h-6 text-zinc-700 dark:text-zinc-300 relative z-10 transition-transform group-hover:scale-110" />
         </button>
@@ -216,25 +209,16 @@ export function ChatBubble() {
 
           {/* Input area */}
           <div className="p-3">
-            <div className="relative">
-              <textarea
-                ref={inputRef}
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Type your question..."
-                rows={2}
-                className="w-full bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700/50 rounded-xl px-4 py-3 pr-12 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 resize-none focus:outline-none focus:ring-2 focus:ring-red-500/30 focus:border-red-500/40 dark:focus:ring-red-500/30 dark:focus:border-red-500/40 transition-all"
-              />
-              <button
-                onClick={onSubmit}
-                disabled={!inputValue.trim()}
-                className="absolute right-2 bottom-2 p-2 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-zinc-700 dark:hover:bg-zinc-300 transition-colors"
-              >
-                <ArrowUp className="w-4 h-4" />
-              </button>
-            </div>
-            <p className="text-[11px] text-zinc-400 dark:text-zinc-600 mt-2 text-center">Press Enter to send, Esc to close</p>
+            <textarea
+              ref={inputRef}
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Type your question..."
+              rows={2}
+              className="w-full bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700/50 rounded-xl px-4 py-3 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 resize-none focus:outline-none focus:ring-2 focus:ring-red-500/30 focus:border-red-500/40 dark:focus:ring-red-500/30 dark:focus:border-red-500/40 transition-all"
+            />
+            <p className="text-[11px] text-zinc-400 dark:text-zinc-600 mt-2 text-center">Enter to send · Shift+Enter for new line · Esc to close</p>
           </div>
         </div>
       )}
@@ -323,7 +307,7 @@ export function ChatBubble() {
 
           {/* Input */}
           <div className="p-3 border-t border-zinc-100 dark:border-zinc-800/50 shrink-0">
-            <div className="relative">
+            <div className="relative flex items-end gap-2">
               <textarea
                 ref={inputRef}
                 value={inputValue}
@@ -331,19 +315,13 @@ export function ChatBubble() {
                 onKeyDown={handleKeyDown}
                 placeholder="Type a message..."
                 rows={1}
-                className="w-full bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700/50 rounded-xl px-4 py-3 pr-12 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 resize-none focus:outline-none focus:ring-2 focus:ring-red-500/30 focus:border-red-500/40 dark:focus:ring-red-500/30 dark:focus:border-red-500/40 transition-all"
+                className="flex-1 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700/50 rounded-xl px-4 py-3 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 resize-none focus:outline-none focus:ring-2 focus:ring-red-500/30 focus:border-red-500/40 dark:focus:ring-red-500/30 dark:focus:border-red-500/40 transition-all"
               />
-              <button
-                onClick={onSubmit}
-                disabled={!inputValue.trim() || isLoading}
-                className="absolute right-2 bottom-2 p-2 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-zinc-700 dark:hover:bg-zinc-300 transition-colors"
-              >
-                {isLoading ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <ArrowUp className="w-4 h-4" />
-                )}
-              </button>
+              {isLoading && (
+                <div className="p-2.5">
+                  <Loader2 className="w-4 h-4 animate-spin text-zinc-400" />
+                </div>
+              )}
             </div>
           </div>
         </div>
