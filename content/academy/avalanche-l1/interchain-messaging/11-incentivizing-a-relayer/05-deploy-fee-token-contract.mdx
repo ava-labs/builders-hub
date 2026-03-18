@@ -1,0 +1,47 @@
+---
+title: Deploy Fee Token Contract
+description: Deploy an ERC20 to work as the Fee Token for incentives.
+updated: 2024-06-09
+authors: [andyvargtz]
+icon: Terminal
+---
+
+To add incentives for relayers, we need an ERC20 token on the source chain (Fuji C-Chain). We'll deploy a simple ERC20 token that will be used to pay relayers for delivering our cross-chain messages.
+
+<ToolboxMdxWrapper chain="fuji-c">
+  <DeployExampleERC20 />
+</ToolboxMdxWrapper>
+
+<Steps>
+<Step>
+
+### Save the Token Address
+
+After deploying the token through the interface above, save the token address to use it in the next steps:
+
+```bash
+export FEE_TOKEN_ADDRESS=<your-deployed-token-address>
+```
+
+Replace `<your-deployed-token-address>` with the address shown in the interface after deployment.
+
+</Step>
+<Step>
+
+### Verify Your Token Balance
+
+You can check that you received the initial supply:
+
+```bash
+cast call --rpc-url fuji-c \
+  $FEE_TOKEN_ADDRESS \
+  "balanceOf(address)(uint256)" \
+  $FUNDED_ADDRESS
+```
+
+The balance should show 1,000,000 * 10^18 tokens (1,000,000 tokens with 18 decimals).
+
+</Step>
+</Steps>
+
+These tokens will be used in the next sections to incentivize relayers to deliver your cross-chain messages.

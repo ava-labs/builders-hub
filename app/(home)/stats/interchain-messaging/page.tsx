@@ -19,7 +19,6 @@ import { ICTTDashboard, ICTTTransfersTable } from "@/components/stats/ICTTDashbo
 import ICMFlowChart from "@/components/stats/ICMFlowChart";
 import { LinkableHeading } from "@/components/stats/LinkableHeading";
 import { ChainCategoryFilter, allChains } from "@/components/stats/ChainCategoryFilter";
-import { calculateDateRangeDays, formatXAxisLabel, generateXAxisTicks } from "@/components/stats/chart-axis-utils";
 
 interface AggregatedICMDataPoint {
   timestamp: number;
@@ -1204,20 +1203,40 @@ function ChartCard({
     };
   }, [displayData]);
 
-  const brushRangeDays = useMemo(() => {
-    return calculateDateRangeDays(displayData, "day");
-  }, [displayData]);
+  const formatXAxis = (value: string) => {
+    if (period === "Q") {
+      const parts = value.split("-");
+      if (parts.length === 2) {
+        return `${parts[1]} '${parts[0].slice(-2)}`;
+      }
+      return value;
+    }
+    if (period === "Y") return value;
+    const date = new Date(value);
+    if (period === "M") {
+      return date.toLocaleDateString("en-US", {
+        month: "short",
+        year: "2-digit",
+      });
+    }
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  };
 
-  const totalDataDays = useMemo(() => {
-    return calculateDateRangeDays(aggregatedData, "day");
-  }, [aggregatedData]);
-
-  const formatXAxis = (value: string) => formatXAxisLabel(value, brushRangeDays);
-  const formatBrushXAxis = (value: string) => formatXAxisLabel(value, totalDataDays);
-
-  const xAxisTicks = useMemo(() => {
-    return generateXAxisTicks(displayData, brushRangeDays, "day");
-  }, [displayData, brushRangeDays]);
+  const formatBrushXAxis = (value: string) => {
+    if (period === "Q") {
+      const parts = value.split("-");
+      if (parts.length === 2) {
+        return `${parts[1]} ${parts[0]}`;
+      }
+      return value;
+    }
+    if (period === "Y") return value;
+    const date = new Date(value);
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      year: "numeric",
+    });
+  };
 
   const formatTooltipDate = (value: string) => {
     if (period === "Y") return value;
@@ -1410,8 +1429,8 @@ function ChartCard({
                   tickFormatter={formatXAxis}
                   className="text-xs text-zinc-600 dark:text-zinc-400"
                   tick={{ className: "fill-zinc-600 dark:fill-zinc-400" }}
-                  ticks={xAxisTicks}
-                  interval={0}
+                  minTickGap={80}
+                  interval="preserveStartEnd"
                 />
                 <YAxis
                   tickFormatter={formatYAxisValue}

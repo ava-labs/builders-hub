@@ -1,12 +1,61 @@
 "use client";
-import React, { useState, useEffect, useMemo, useTransition, useRef } from "react";
-import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis, Pie, PieChart, Line, LineChart, Brush, ResponsiveContainer, Tooltip, ComposedChart, Cell } from "recharts";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { useState, useEffect, useMemo, useTransition, useRef } from "react";
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Pie,
+  PieChart,
+  Line,
+  LineChart,
+  Brush,
+  ResponsiveContainer,
+  Tooltip,
+  ComposedChart,
+} from "recharts";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { type ChartConfig, ChartLegendContent, ChartStyle, ChartContainer, ChartTooltip, ChartLegend } from "@/components/ui/chart";
-import { Landmark, Shield, TrendingUp, Monitor, HandCoins, Users, Percent, ArrowUpRight, Twitter, Linkedin, Coins, Download, Camera } from "lucide-react";
-import Link from "next/link";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  type ChartConfig,
+  ChartLegendContent,
+  ChartStyle,
+  ChartContainer,
+  ChartTooltip,
+  ChartLegend,
+} from "@/components/ui/chart";
+import {
+  Landmark,
+  Shield,
+  TrendingUp,
+  Monitor,
+  HandCoins,
+  Users,
+  Percent,
+  ArrowUpRight,
+  Twitter,
+  Linkedin,
+  Coins,
+  Download,
+  Camera,
+} from "lucide-react";
+import { ValidatorWorldMap } from "@/components/stats/ValidatorWorldMap";
 import { L1BubbleNav } from "@/components/stats/l1-bubble.config";
 import { ExplorerDropdown } from "@/components/stats/ExplorerDropdown";
 import { StickyNavBar } from "@/components/stats/StickyNavBar";
@@ -16,17 +65,27 @@ import { SearchInputWithClear } from "@/components/stats/SearchInputWithClear";
 import { SortIcon } from "@/components/stats/SortIcon";
 import { useSectionNavigation } from "@/hooks/use-section-navigation";
 import { LinkableHeading } from "@/components/stats/LinkableHeading";
+import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { ChartSkeletonLoader } from "@/components/ui/chart-skeleton";
-import { TimeSeriesDataPoint, ChartDataPoint, PrimaryNetworkMetrics, VersionCount, L1Chain } from "@/types/stats";
+import {
+  TimeSeriesDataPoint,
+  ChartDataPoint,
+  PrimaryNetworkMetrics,
+  VersionCount,
+  L1Chain,
+} from "@/types/stats";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import { ChartWatermark } from "@/components/stats/ChartWatermark";
 import { StatsBreadcrumb } from "@/components/navigation/StatsBreadcrumb";
 import { ChainIdChips } from "@/components/ui/copyable-id-chip";
 import { AddToWalletButton } from "@/components/ui/add-to-wallet-button";
-import { VersionBreakdownCard, calculateVersionStats, type VersionBreakdownData } from "@/components/stats/VersionBreakdown";
+import {
+  VersionBreakdownCard,
+  calculateVersionStats,
+  type VersionBreakdownData,
+} from "@/components/stats/VersionBreakdown";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { getMAConfig } from "@/utils/chart-utils";
-import { calculateDateRangeDays, formatXAxisLabel, generateXAxisTicks } from "@/components/stats/chart-axis-utils";
 import { useTheme } from "next-themes";
 import { toPng } from "html-to-image";
 
@@ -40,31 +99,6 @@ interface ValidatorData {
   version?: string;
 }
 
-interface P2PValidatorData {
-  node_id: string;
-  p50_uptime: number;
-  weight: number;
-  delegator_count: number;
-  delegator_weight: number;
-  delegation_fee: number;
-  potential_reward: number;
-  bench_observers: number;
-  end_time: string;
-  version: string;
-  tracked_subnets: string;
-  public_ip: string;
-  total_stake: number;
-  days_left: number;
-  miss_rate_14d: number;
-  miss_count_14d: number;
-  block_count_14d: number;
-}
-
-interface MergedValidator extends ValidatorData {
-  p2p?: P2PValidatorData;
-}
-
-
 export default function CChainValidatorMetrics() {
   const [metrics, setMetrics] = useState<PrimaryNetworkMetrics | null>(null);
   const [loading, setLoading] = useState(true);
@@ -73,36 +107,28 @@ export default function CChainValidatorMetrics() {
     []
   );
   const [validators, setValidators] = useState<ValidatorData[]>([]);
-  const [p2pValidators, setP2pValidators] = useState<Map<string, P2PValidatorData>>(new Map());
   const [versionBreakdown, setVersionBreakdown] =
     useState<VersionBreakdownData | null>(null);
   const [availableVersions, setAvailableVersions] = useState<string[]>([]);
   const [minVersion, setMinVersion] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState("");
   const [displayCount, setDisplayCount] = useState(50);
-  const [sortColumn, setSortColumn] = useState<string>("totalStake");
+  const { copiedId, copyToClipboard } = useCopyToClipboard();
+  const [sortColumn, setSortColumn] = useState<string>("amountStaked");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
-  const [stakingAPYData, setStakingAPYData] = useState<{
-    data: { date: string; timestamp: number; supply: number; maxAPY: number; minAPY: number }[];
-    current: { supply: number; totalBurned: number; maxAPY: number; minAPY: number };
-  } | null>(null);
-  const [stakingAPYLoading, setStakingAPYLoading] = useState(true);
 
   const fetchData = async () => {
     try {
       setLoading(true);
-      setStakingAPYLoading(true);
       setError(null);
 
       // Fetch all APIs in parallel
       // Use validator-stats API for version breakdown (same as landing page)
-      const [statsResponse, validatorsResponse, validatorStatsResponse, stakingAPYResponse, p2pResponse] =
+      const [statsResponse, validatorsResponse, validatorStatsResponse] =
         await Promise.all([
           fetch(`/api/primary-network-stats?timeRange=all`),
           fetch("/api/primary-network-validators"),
           fetch("/api/validator-stats?network=mainnet"),
-          fetch('/api/staking-apy'),
-          fetch('/api/validators'),
         ]);
 
       if (!statsResponse.ok) {
@@ -186,33 +212,10 @@ export default function CChainValidatorMetrics() {
         const validatorsList = validatorsData.validators || [];
         setValidators(validatorsList);
       }
-
-      // Process staking APY data
-      if (stakingAPYResponse.ok) {
-        try {
-          const stakingData = await stakingAPYResponse.json();
-          setStakingAPYData(stakingData);
-        } catch (err) {
-          console.error('Error parsing staking APY data:', err);
-        }
-      }
-
-      // Process P2P validators data
-      if (p2pResponse.ok) {
-        try {
-          const p2pData: P2PValidatorData[] = await p2pResponse.json();
-          const p2pMap = new Map<string, P2PValidatorData>();
-          p2pData.forEach((v) => p2pMap.set(v.node_id, v));
-          setP2pValidators(p2pMap);
-        } catch (err) {
-          console.error('Error parsing P2P validators data:', err);
-        }
-      }
     } catch (err) {
       setError(`An error occurred while fetching data`);
     } finally {
       setLoading(false);
-      setStakingAPYLoading(false);
     }
   };
 
@@ -374,62 +377,6 @@ export default function CChainValidatorMetrics() {
     });
     return actualData.sort((a, b) => a.fee - b.fee);
   }, [validators]);
-
-  // Network Health aggregates from P2P data
-  const missRateDistribution = useMemo(() => {
-    if (!p2pValidators.size) return [];
-    const buckets = [
-      { label: "0%", min: 0, max: 0 },
-      { label: "0-1%", min: 0.001, max: 1 },
-      { label: "1-5%", min: 1, max: 5 },
-      { label: "5-10%", min: 5, max: 10 },
-      { label: "10-25%", min: 10, max: 25 },
-      { label: "25-50%", min: 25, max: 50 },
-      { label: "50-100%", min: 50, max: 100 },
-    ];
-    const counts = buckets.map((b) => ({ ...b, count: 0 }));
-    p2pValidators.forEach((v) => {
-      const rate = v.miss_rate_14d;
-      if (rate === 0) { counts[0].count++; return; }
-      for (let i = 1; i < counts.length; i++) {
-        if (rate > counts[i].min && rate <= counts[i].max) { counts[i].count++; break; }
-      }
-    });
-    return counts;
-  }, [p2pValidators]);
-
-  const daysLeftDistribution = useMemo(() => {
-    if (!p2pValidators.size) return [];
-    const buckets = [
-      { label: "< 7d", min: 0, max: 7 },
-      { label: "7-30d", min: 7, max: 30 },
-      { label: "30-90d", min: 30, max: 90 },
-      { label: "90-180d", min: 90, max: 180 },
-      { label: "180-365d", min: 180, max: 365 },
-      { label: "> 365d", min: 365, max: Infinity },
-    ];
-    const counts = buckets.map((b) => ({ ...b, count: 0 }));
-    p2pValidators.forEach((v) => {
-      for (const bucket of counts) {
-        if (v.days_left >= bucket.min && v.days_left < bucket.max) { bucket.count++; break; }
-      }
-    });
-    return counts;
-  }, [p2pValidators]);
-
-  const topBlockProducers = useMemo(() => {
-    if (!p2pValidators.size) return [];
-    return Array.from(p2pValidators.values())
-      .filter((v) => v.block_count_14d > 0)
-      .sort((a, b) => b.block_count_14d - a.block_count_14d)
-      .slice(0, 20)
-      .map((v) => ({
-        nodeId: `${v.node_id.slice(7, 13)}...${v.node_id.slice(-4)}`,
-        fullNodeId: v.node_id,
-        blocks: v.block_count_14d,
-        missRate: v.miss_rate_14d,
-      }));
-  }, [p2pValidators]);
 
   const getChartData = (
     metricKey: keyof Pick<
@@ -628,10 +575,10 @@ export default function CChainValidatorMetrics() {
   // Navigation categories
   const navCategories = [
     { id: "trends", label: "Historical Trends" },
-    { id: "health", label: "Network Health" },
     { id: "rewards", label: "Rewards Distribution" },
     { id: "distribution", label: "Stake Distribution" },
     { id: "versions", label: "Software Versions" },
+    { id: "map", label: "Global Map" },
     { id: "validators", label: "Validator List" },
   ];
 
@@ -663,54 +610,44 @@ export default function CChainValidatorMetrics() {
     }
   };
 
-  // Merge SDK validators with P2P data
-  const mergedValidators: MergedValidator[] = useMemo(() => {
-    return validators.map((v) => ({
-      ...v,
-      p2p: p2pValidators.get(v.nodeId),
-    }));
-  }, [validators, p2pValidators]);
-
   // Filter validators based on search term
-  const filteredValidators = mergedValidators.filter((validator) => {
+  const filteredValidators = validators.filter((validator) => {
     if (!searchTerm) return true;
     const searchLower = searchTerm.toLowerCase();
     return (
       validator.nodeId.toLowerCase().includes(searchLower) ||
       (validator.version &&
-        validator.version.toLowerCase().includes(searchLower)) ||
-      (validator.p2p?.version &&
-        validator.p2p.version.toLowerCase().includes(searchLower))
+        validator.version.toLowerCase().includes(searchLower))
     );
   });
 
   // Sort validators
   const sortedValidators = [...filteredValidators].sort((a, b) => {
-
+    
     let aValue: number = 0;
     let bValue: number = 0;
-
+    
     switch (sortColumn) {
-      case "totalStake":
-        aValue = a.p2p?.total_stake ?? ((parseFloat(a.amountStaked) + parseFloat(a.amountDelegated)) || 0);
-        bValue = b.p2p?.total_stake ?? ((parseFloat(b.amountStaked) + parseFloat(b.amountDelegated)) || 0);
+      case "amountStaked":
+        aValue = parseFloat(a.amountStaked) || 0;
+        bValue = parseFloat(b.amountStaked) || 0;
         break;
-      case "uptime":
-        aValue = a.p2p?.p50_uptime ?? 0;
-        bValue = b.p2p?.p50_uptime ?? 0;
+      case "delegationFee":
+        aValue = parseFloat(a.delegationFee) || 0;
+        bValue = parseFloat(b.delegationFee) || 0;
         break;
-      case "daysLeft":
-        aValue = a.p2p?.days_left ?? 9999;
-        bValue = b.p2p?.days_left ?? 9999;
+      case "delegatorCount":
+        aValue = a.delegatorCount || 0;
+        bValue = b.delegatorCount || 0;
         break;
-      case "missRate":
-        aValue = a.p2p?.miss_rate_14d ?? 0;
-        bValue = b.p2p?.miss_rate_14d ?? 0;
+      case "amountDelegated":
+        aValue = parseFloat(a.amountDelegated) || 0;
+        bValue = parseFloat(b.amountDelegated) || 0;
         break;
       default:
         return 0;
     }
-
+    
     if (sortDirection === "asc") {
       return aValue - bValue;
     }
@@ -731,7 +668,6 @@ export default function CChainValidatorMetrics() {
     setDisplayCount(50);
   }, [searchTerm]);
 
-  // Toggle validator expansion and fetch details
   if (loading) {
     return (
       <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
@@ -1135,158 +1071,6 @@ export default function CChainValidatorMetrics() {
           </div>
         </section>
 
-        {/* Network Health Section */}
-        <section className="space-y-4 sm:space-y-6">
-          <div className="space-y-2">
-            <LinkableHeading as="h2" id="health" className="text-lg sm:text-2xl font-medium text-left">
-              Network Health
-            </LinkableHeading>
-            <p className="text-zinc-500 dark:text-zinc-400 text-sm sm:text-base text-left">
-              Block production reliability and validator lifecycle across the Primary Network (14d)
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-            {/* Miss Rate Distribution */}
-            {loading || !missRateDistribution.length ? (
-              <ChartSkeletonLoader />
-            ) : (
-              <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700">
-                <CardContent className="p-0">
-                  <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
-                    <div className="flex items-center gap-2 sm:gap-3">
-                      <div className="rounded-full p-2 sm:p-3 flex items-center justify-center" style={{ backgroundColor: `${chainConfig.color}20` }}>
-                        <Shield className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: chainConfig.color }} />
-                      </div>
-                      <div>
-                        <h3 className="text-base sm:text-lg font-normal">Block Miss Rate Distribution</h3>
-                        <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
-                          How validators are distributed by their 14-day miss rate
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  <ChartWatermark className="px-4 sm:px-5 py-4 sm:py-5">
-                    <ResponsiveContainer width="100%" height={300}>
-                      <BarChart data={missRateDistribution} margin={{ top: 10, right: 10, left: 10, bottom: 20 }}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                        <XAxis dataKey="label" tick={{ fontSize: 11 }} label={{ value: "Miss Rate Bucket", position: "insideBottom", offset: -10 }} />
-                        <YAxis tick={{ fontSize: 11 }} label={{ value: "Validators", angle: -90, position: "insideLeft", offset: 5 }} />
-                        <Tooltip
-                          content={({ active, payload }) => {
-                            if (!active || !payload?.length) return null;
-                            const d = payload[0].payload;
-                            return (
-                              <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 shadow-lg text-xs">
-                                <p className="font-medium mb-1">Miss Rate: {d.label}</p>
-                                <p>{d.count} validator{d.count !== 1 ? "s" : ""}</p>
-                              </div>
-                            );
-                          }}
-                        />
-                        <Bar dataKey="count" fill={chainConfig.color} radius={[4, 4, 0, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </ChartWatermark>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Validators by Days Left */}
-            {loading || !daysLeftDistribution.length ? (
-              <ChartSkeletonLoader />
-            ) : (
-              <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700">
-                <CardContent className="p-0">
-                  <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
-                    <div className="flex items-center gap-2 sm:gap-3">
-                      <div className="rounded-full p-2 sm:p-3 flex items-center justify-center" style={{ backgroundColor: `${chainConfig.color}20` }}>
-                        <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: chainConfig.color }} />
-                      </div>
-                      <div>
-                        <h3 className="text-base sm:text-lg font-normal">Validators by Remaining Time</h3>
-                        <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
-                          Distribution of validators by days left until validation ends
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  <ChartWatermark className="px-4 sm:px-5 py-4 sm:py-5">
-                    <ResponsiveContainer width="100%" height={300}>
-                      <BarChart data={daysLeftDistribution} margin={{ top: 10, right: 10, left: 10, bottom: 20 }}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                        <XAxis dataKey="label" tick={{ fontSize: 11 }} label={{ value: "Time Remaining", position: "insideBottom", offset: -10 }} />
-                        <YAxis tick={{ fontSize: 11 }} label={{ value: "Validators", angle: -90, position: "insideLeft", offset: 5 }} />
-                        <Tooltip
-                          content={({ active, payload }) => {
-                            if (!active || !payload?.length) return null;
-                            const d = payload[0].payload;
-                            return (
-                              <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 shadow-lg text-xs">
-                                <p className="font-medium mb-1">{d.label}</p>
-                                <p>{d.count} validator{d.count !== 1 ? "s" : ""}</p>
-                              </div>
-                            );
-                          }}
-                        />
-                        <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-                          {daysLeftDistribution.map((entry, index) => (
-                            <Cell key={index} fill={entry.max <= 7 ? "#ef4444" : entry.max <= 30 ? "#eab308" : chainConfig.color} />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </ChartWatermark>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-
-          {/* Top Block Producers */}
-          {!loading && topBlockProducers.length > 0 && (
-            <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700">
-              <CardContent className="p-0">
-                <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
-                  <div className="flex items-center gap-2 sm:gap-3">
-                    <div className="rounded-full p-2 sm:p-3 flex items-center justify-center" style={{ backgroundColor: `${chainConfig.color}20` }}>
-                      <Monitor className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: chainConfig.color }} />
-                    </div>
-                    <div>
-                      <h3 className="text-base sm:text-lg font-normal">Top Block Producers (14d)</h3>
-                      <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
-                        Top 20 validators by blocks produced in the last 14 days
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                <ChartWatermark className="px-4 sm:px-5 py-4 sm:py-5">
-                  <ResponsiveContainer width="100%" height={400}>
-                    <BarChart data={topBlockProducers} layout="vertical" margin={{ top: 10, right: 20, left: 10, bottom: 10 }}>
-                      <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                      <XAxis type="number" tick={{ fontSize: 11 }} />
-                      <YAxis type="category" dataKey="nodeId" tick={{ fontSize: 10, fontFamily: "monospace" }} width={90} />
-                      <Tooltip
-                        content={({ active, payload }) => {
-                          if (!active || !payload?.length) return null;
-                          const d = payload[0].payload;
-                          return (
-                            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 shadow-lg text-xs">
-                              <p className="font-mono font-medium mb-1">{d.fullNodeId}</p>
-                              <p>Blocks: {d.blocks.toLocaleString()}</p>
-                              <p>Miss Rate: {d.missRate.toFixed(2)}%</p>
-                            </div>
-                          );
-                        }}
-                      />
-                      <Bar dataKey="blocks" fill={chainConfig.color} radius={[0, 4, 4, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </ChartWatermark>
-              </CardContent>
-            </Card>
-          )}
-        </section>
-
         {/* Rewards Distribution Section */}
         <section className="space-y-4 sm:space-y-6">
           <div className="space-y-2">
@@ -1332,16 +1116,6 @@ export default function CChainValidatorMetrics() {
               />
             )}
           </div>
-
-          {/* Historical Staking APY Chart */}
-          <StakingAPYChartCard
-            data={stakingAPYData?.data}
-            currentMaxAPY={stakingAPYData?.current.maxAPY}
-            currentMinAPY={stakingAPYData?.current.minAPY}
-            period={globalPeriod}
-            onPeriodChange={handlePeriodChange}
-            isLoading={stakingAPYLoading}
-          />
         </section>
 
         <section className="space-y-4 sm:space-y-6">
@@ -2048,6 +1822,14 @@ export default function CChainValidatorMetrics() {
           )}
         </section>
 
+        {/* Global Validator Distribution Map */}
+        <section className="space-y-4 sm:space-y-6">
+          <LinkableHeading as="h2" id="map" className="text-lg sm:text-2xl font-medium text-left sr-only">
+            Validator Map
+          </LinkableHeading>
+          <ValidatorWorldMap />
+        </section>
+
         {/* All Validators Table */}
         <section className="space-y-4 sm:space-y-6">
           <div className="space-y-2">
@@ -2079,25 +1861,62 @@ export default function CChainValidatorMetrics() {
                 <table className="w-full border-collapse">
                   <thead className="bg-[#fcfcfd] dark:bg-neutral-900">
                     <tr>
-                      <th className="px-4 py-4 text-left"><span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">#</span></th>
-                      <th className="px-4 py-4 text-left"><span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">Node ID</span></th>
-                      <th className="px-4 py-4 text-left"><span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">Version</span></th>
-                      <th className="px-4 py-4 text-right"><span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">Total Staked</span></th>
-                      <th className="px-4 py-4 text-right"><span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">Uptime</span></th>
-                      <th className="px-4 py-4 text-right"><span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">Days Left</span></th>
-                      <th className="px-4 py-4 text-right"><span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">Miss Rate</span></th>
+                      <th className="px-4 py-2 text-left">
+                        <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
+                          #
+                        </span>
+                      </th>
+                      <th className="px-4 py-2 text-left">
+                        <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
+                          Node ID
+                        </span>
+                      </th>
+                      <th className="px-4 py-2 text-right">
+                        <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
+                          Amount Staked
+                        </span>
+                      </th>
+                      <th className="px-4 py-2 text-right">
+                        <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
+                          Delegation Fee
+                        </span>
+                      </th>
+                      <th className="px-4 py-2 text-right">
+                        <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
+                          Delegators
+                        </span>
+                      </th>
+                      <th className="px-4 py-2 text-right">
+                        <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
+                          Amount Delegated
+                        </span>
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="bg-white dark:bg-neutral-950">
                     {[...Array(10)].map((_, rowIndex) => (
-                      <tr key={rowIndex} className="border-b border-slate-100 dark:border-neutral-800 animate-pulse">
-                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-3"><div className="h-4 w-6 bg-zinc-200 dark:bg-zinc-800 rounded" /></td>
-                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-3"><div className="h-4 w-40 bg-zinc-200 dark:bg-zinc-800 rounded" /></td>
-                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-3"><div className="h-4 w-24 bg-zinc-200 dark:bg-zinc-800 rounded" /></td>
-                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-3"><div className="h-4 w-20 bg-zinc-200 dark:bg-zinc-800 rounded ml-auto" /></td>
-                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-3"><div className="h-4 w-16 bg-zinc-200 dark:bg-zinc-800 rounded ml-auto" /></td>
-                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-3"><div className="h-4 w-12 bg-zinc-200 dark:bg-zinc-800 rounded ml-auto" /></td>
-                        <td className="px-4 py-3"><div className="h-4 w-16 bg-zinc-200 dark:bg-zinc-800 rounded ml-auto" /></td>
+                      <tr
+                        key={rowIndex}
+                        className="border-b border-slate-100 dark:border-neutral-800 animate-pulse"
+                      >
+                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-3">
+                          <div className="h-4 w-8 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                        </td>
+                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-3">
+                          <div className="h-4 w-40 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                        </td>
+                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-3">
+                          <div className="h-4 w-24 bg-zinc-200 dark:bg-zinc-800 rounded ml-auto" />
+                        </td>
+                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-3">
+                          <div className="h-4 w-16 bg-zinc-200 dark:bg-zinc-800 rounded ml-auto" />
+                        </td>
+                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-3">
+                          <div className="h-4 w-12 bg-zinc-200 dark:bg-zinc-800 rounded ml-auto" />
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="h-4 w-24 bg-zinc-200 dark:bg-zinc-800 rounded ml-auto" />
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -2111,37 +1930,50 @@ export default function CChainValidatorMetrics() {
                   <table className="w-full border-collapse">
                     <thead className="bg-[#fcfcfd] dark:bg-neutral-900">
                       <tr>
-                        <th className="px-4 py-4 text-left">
-                          <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">#</span>
-                        </th>
-                        <th className="px-4 py-4 text-left">
-                          <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">Node ID</span>
-                        </th>
-                        <th className="px-4 py-4 text-left">
-                          <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">Version</span>
-                        </th>
-                        <th className="px-4 py-4 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors" onClick={() => handleSort("totalStake")}>
-                          <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300 inline-flex items-center justify-end">
-                            Total Staked
-                            <SortIcon column="totalStake" sortColumn={sortColumn} sortDirection={sortDirection} />
+                        <th className="px-4 py-2 text-left">
+                          <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
+                            #
                           </span>
                         </th>
-                        <th className="px-4 py-4 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors" onClick={() => handleSort("uptime")}>
-                          <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300 inline-flex items-center justify-end">
-                            Uptime
-                            <SortIcon column="uptime" sortColumn={sortColumn} sortDirection={sortDirection} />
+                        <th className="px-4 py-2 text-left">
+                          <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
+                            Node ID
                           </span>
                         </th>
-                        <th className="px-4 py-4 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors" onClick={() => handleSort("daysLeft")}>
+                        <th
+                          className="px-4 py-2 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                          onClick={() => handleSort("amountStaked")}
+                        >
                           <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300 inline-flex items-center justify-end">
-                            Days Left
-                            <SortIcon column="daysLeft" sortColumn={sortColumn} sortDirection={sortDirection} />
+                            Amount Staked
+                            <SortIcon column="amountStaked" sortColumn={sortColumn} sortDirection={sortDirection} />
                           </span>
                         </th>
-                        <th className="px-4 py-4 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors" onClick={() => handleSort("missRate")}>
+                        <th
+                          className="px-4 py-2 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                          onClick={() => handleSort("delegationFee")}
+                        >
                           <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300 inline-flex items-center justify-end">
-                            Miss Rate (14d)
-                            <SortIcon column="missRate" sortColumn={sortColumn} sortDirection={sortDirection} />
+                            Delegation Fee
+                            <SortIcon column="delegationFee" sortColumn={sortColumn} sortDirection={sortDirection} />
+                          </span>
+                        </th>
+                        <th
+                          className="px-4 py-2 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                          onClick={() => handleSort("delegatorCount")}
+                        >
+                          <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300 inline-flex items-center justify-end">
+                            Delegators
+                            <SortIcon column="delegatorCount" sortColumn={sortColumn} sortDirection={sortDirection} />
+                          </span>
+                        </th>
+                        <th
+                          className="px-4 py-2 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                          onClick={() => handleSort("amountDelegated")}
+                        >
+                          <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300 inline-flex items-center justify-end">
+                            Amount Delegated
+                            <SortIcon column="amountDelegated" sortColumn={sortColumn} sortDirection={sortDirection} />
                           </span>
                         </th>
                       </tr>
@@ -2150,7 +1982,7 @@ export default function CChainValidatorMetrics() {
                       {displayedValidators.length === 0 ? (
                         <tr>
                           <td
-                            colSpan={7}
+                            colSpan={6}
                             className="text-center py-8 text-neutral-600 dark:text-neutral-400"
                           >
                             {searchTerm
@@ -2159,70 +1991,59 @@ export default function CChainValidatorMetrics() {
                           </td>
                         </tr>
                       ) : (
-                        displayedValidators.map((validator, index) => {
-                          return (
-                            <tr
-                              key={validator.nodeId}
-                              className="border-b border-slate-100 dark:border-neutral-800 transition-colors hover:bg-blue-50/50 dark:hover:bg-neutral-800/50"
-                            >
-                              <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-4">
-                                <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                                  {index + 1}
-                                </span>
-                              </td>
-                              <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-4 font-mono text-xs">
-                                <Link
-                                  href={`/stats/validators/node/${encodeURIComponent(validator.nodeId)}`}
-                                  className="text-blue-600 dark:text-blue-400 hover:underline"
-                                >
-                                  {`${validator.nodeId.slice(0, 12)}...${validator.nodeId.slice(-8)}`}
-                                </Link>
-                              </td>
-                              <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-4 text-xs text-zinc-600 dark:text-zinc-400">
-                                {validator.p2p?.version?.replace("avalanchego/", "") ?? validator.version ?? "—"}
-                              </td>
-                              <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-4 text-right font-mono text-sm">
-                                {validator.p2p
-                                  ? formatValidatorStake(String(validator.p2p.total_stake))
-                                  : formatValidatorStake(validator.amountStaked)}{" "}
-                                AVAX
-                              </td>
-                              <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-4 text-right text-sm">
-                                {validator.p2p ? (
-                                  <span className={
-                                    validator.p2p.p50_uptime >= 99 ? "text-emerald-600 dark:text-emerald-400" :
-                                    validator.p2p.p50_uptime >= 80 ? "text-yellow-600 dark:text-yellow-400" :
-                                    "text-red-600 dark:text-red-400"
-                                  }>
-                                    {validator.p2p.p50_uptime.toFixed(2)}%
-                                  </span>
-                                ) : "—"}
-                              </td>
-                              <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-4 text-right text-sm">
-                                {validator.p2p ? (
-                                  <span className={
-                                    validator.p2p.days_left < 7 ? "text-red-600 dark:text-red-400 font-medium" :
-                                    validator.p2p.days_left < 30 ? "text-yellow-600 dark:text-yellow-400" :
-                                    "text-zinc-700 dark:text-zinc-300"
-                                  }>
-                                    {validator.p2p.days_left}
-                                  </span>
-                                ) : "—"}
-                              </td>
-                              <td className="px-4 py-4 text-right text-sm">
-                                {validator.p2p ? (
-                                  <span className={
-                                    validator.p2p.miss_rate_14d === 0 ? "text-emerald-600 dark:text-emerald-400" :
-                                    validator.p2p.miss_rate_14d < 5 ? "text-yellow-600 dark:text-yellow-400" :
-                                    "text-red-600 dark:text-red-400"
-                                  }>
-                                    {validator.p2p.miss_rate_14d.toFixed(1)}%
-                                  </span>
-                                ) : "—"}
-                              </td>
-                            </tr>
-                          );
-                        })
+                        displayedValidators.map((validator, index) => (
+                          <tr
+                            key={validator.nodeId}
+                            className="border-b border-slate-100 dark:border-neutral-800 transition-colors hover:bg-blue-50/50 dark:hover:bg-neutral-800/50"
+                          >
+                            <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
+                              <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                                {index + 1}
+                              </span>
+                            </td>
+                            <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 font-mono text-xs">
+                              <span
+                                title={
+                                  copiedId === `node-${validator.nodeId}`
+                                    ? "Copied!"
+                                    : `Click to copy: ${validator.nodeId}`
+                                }
+                                onClick={() =>
+                                  copyToClipboard(
+                                    validator.nodeId,
+                                    `node-${validator.nodeId}`
+                                  )
+                                }
+                                className={`cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors ${
+                                  copiedId === `node-${validator.nodeId}`
+                                    ? "text-green-600 dark:text-green-400"
+                                    : ""
+                                }`}
+                              >
+                                {copiedId === `node-${validator.nodeId}`
+                                  ? "Copied!"
+                                  : `${validator.nodeId.slice(
+                                      0,
+                                      12
+                                    )}...${validator.nodeId.slice(-8)}`}
+                              </span>
+                            </td>
+                            <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 text-right font-mono text-sm">
+                              {formatValidatorStake(validator.amountStaked)}{" "}
+                              AVAX
+                            </td>
+                            <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 text-right text-sm">
+                              {parseFloat(validator.delegationFee).toFixed(1)}%
+                            </td>
+                            <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 text-right text-sm">
+                              {validator.delegatorCount}
+                            </td>
+                            <td className="px-4 py-2 text-right font-mono text-sm">
+                              {formatValidatorStake(validator.amountDelegated)}{" "}
+                              AVAX
+                            </td>
+                          </tr>
+                        ))
                       )}
                     </tbody>
                   </table>
@@ -2367,22 +2188,6 @@ function ValidatorChartCard({
   const displayData = brushIndexes
     ? aggregatedData.slice(brushIndexes.startIndex, brushIndexes.endIndex + 1)
     : aggregatedData;
-
-  const brushRangeDays = useMemo(() => {
-    return calculateDateRangeDays(displayData, "day");
-  }, [displayData]);
-
-  const totalDataDays = useMemo(() => {
-    return calculateDateRangeDays(aggregatedData, "day");
-  }, [aggregatedData]);
-
-  const formatXAxis = (value: string) => formatXAxisLabel(value, brushRangeDays);
-  const formatBrushXAxis = (value: string) => formatXAxisLabel(value, totalDataDays);
-
-  const xAxisTicks = useMemo(() => {
-    return generateXAxisTicks(displayData, brushRangeDays, "day");
-  }, [displayData, brushRangeDays]);
-
   const dynamicChange = useMemo(() => {
     if (!displayData || displayData.length < 2) {
       return { change: 0, isPositive: true };
@@ -2416,6 +2221,41 @@ function ValidatorChartCard({
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+  };
+
+  const formatXAxis = (value: string) => {
+    if (period === "Q") {
+      const parts = value.split("-");
+      if (parts.length === 2) {
+        return `${parts[1]} '${parts[0].slice(-2)}`;
+      }
+      return value;
+    }
+    if (period === "Y") return value;
+    const date = new Date(value);
+    if (period === "M") {
+      return date.toLocaleDateString("en-US", {
+        month: "short",
+        year: "2-digit",
+      });
+    }
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  };
+
+  const formatBrushXAxis = (value: string) => {
+    if (period === "Q") {
+      const parts = value.split("-");
+      if (parts.length === 2) {
+        return `${parts[1]} ${parts[0]}`;
+      }
+      return value;
+    }
+    if (period === "Y") return value;
+    const date = new Date(value);
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      year: "numeric",
+    });
   };
 
   const formatTooltipDate = (value: string) => {
@@ -2569,8 +2409,8 @@ function ValidatorChartCard({
                     tickFormatter={formatXAxis}
                     className="text-xs text-gray-600 dark:text-gray-400"
                     tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
-                    ticks={xAxisTicks}
-                    interval={0}
+                    minTickGap={80}
+                    interval="preserveStartEnd"
                   />
                   <YAxis
                     tickFormatter={formatYAxisValue}
@@ -2639,8 +2479,8 @@ function ValidatorChartCard({
                     tickFormatter={formatXAxis}
                     className="text-xs text-gray-600 dark:text-gray-400"
                     tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
-                    ticks={xAxisTicks}
-                    interval={0}
+                    minTickGap={80}
+                    interval="preserveStartEnd"
                   />
                   <YAxis
                     tickFormatter={formatYAxisValue}
@@ -2922,26 +2762,25 @@ function DailyRewardsChartCard({
     URL.revokeObjectURL(url);
   };
 
-  const brushRangeDays = useMemo(() => {
-    return calculateDateRangeDays(displayData, "day");
-  }, [displayData]);
-
-  const totalDataDays = useMemo(() => {
-    return calculateDateRangeDays(aggregatedData, "day");
-  }, [aggregatedData]);
-
-  const formatXAxis = (value: string) => formatXAxisLabel(value, brushRangeDays);
-  const formatBrushXAxis = (value: string) => formatXAxisLabel(value, totalDataDays);
-
-  const xAxisTicks = useMemo(() => {
-    return generateXAxisTicks(displayData, brushRangeDays, "day");
-  }, [displayData, brushRangeDays]);
-
   const formatValue = (value: number): string => {
     if (value >= 1e9) return `${(value / 1e9).toFixed(2)}B`;
     if (value >= 1e6) return `${(value / 1e6).toFixed(2)}M`;
     if (value >= 1e3) return `${(value / 1e3).toFixed(2)}K`;
     return value.toFixed(2);
+  };
+
+  const formatXAxis = (value: string) => {
+    if (period === "Q") {
+      const parts = value.split("-");
+      if (parts.length === 2) return `${parts[1]} '${parts[0].slice(-2)}`;
+      return value;
+    }
+    if (period === "Y") return value;
+    const date = new Date(value);
+    if (period === "M") {
+      return date.toLocaleDateString("en-US", { month: "short", year: "2-digit" });
+    }
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
   };
 
   const formatTooltipDate = (value: string) => {
@@ -2961,6 +2800,12 @@ function DailyRewardsChartCard({
       return `${date.toLocaleDateString("en-US", { month: "short", day: "numeric" })} - ${endDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
     }
     return date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
+  };
+
+  const formatBrushXAxis = (value: string) => {
+    if (period === "Q" || period === "Y") return value;
+    const date = new Date(value);
+    return date.toLocaleDateString("en-US", { month: "short", year: "numeric" });
   };
 
   return (
@@ -3071,8 +2916,8 @@ function DailyRewardsChartCard({
                     tickFormatter={formatXAxis}
                     className="text-xs text-gray-600 dark:text-gray-400"
                     tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
-                    ticks={xAxisTicks}
-                    interval={0}
+                    minTickGap={80}
+                    interval="preserveStartEnd"
                   />
                   <YAxis
                     yAxisId="left"
@@ -3153,395 +2998,6 @@ function DailyRewardsChartCard({
                   >
                     <LineChart>
                       <Line type="monotone" dataKey="value" stroke={color} strokeWidth={1} dot={false} />
-                    </LineChart>
-                  </Brush>
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-// Historical Staking APY Chart Card
-function StakingAPYChartCard({
-  data,
-  currentMaxAPY,
-  currentMinAPY,
-  period,
-  onPeriodChange,
-  isLoading = false,
-}: {
-  data?: { date: string; timestamp: number; supply: number; maxAPY: number; minAPY: number }[];
-  currentMaxAPY?: number;
-  currentMinAPY?: number;
-  period: "D" | "W" | "M" | "Q" | "Y";
-  onPeriodChange: (period: "D" | "W" | "M" | "Q" | "Y") => void;
-  isLoading?: boolean;
-}) {
-  const [brushIndexes, setBrushIndexes] = useState<{
-    startIndex: number;
-    endIndex: number;
-  } | null>(null);
-  const chartContainerRef = useRef<HTMLDivElement>(null);
-  const { resolvedTheme } = useTheme();
-
-  const handleScreenshot = async () => {
-    if (!chartContainerRef.current) return;
-    try {
-      const element = chartContainerRef.current;
-      const bgColor = resolvedTheme === "dark" ? "#0a0a0a" : "#ffffff";
-      const dataUrl = await toPng(element, {
-        quality: 1,
-        pixelRatio: 2,
-        backgroundColor: bgColor,
-        cacheBust: true,
-      });
-      const link = document.createElement("a");
-      link.download = `Staking_APY_${period}_${new Date().toISOString().split("T")[0]}.png`;
-      link.href = dataUrl;
-      link.click();
-    } catch (error) {
-      console.error("Failed to capture screenshot:", error);
-    }
-  };
-
-  // Transform data to chart format
-  const chartData = useMemo(() => {
-    if (!data) return [];
-    return data.map((point) => ({
-      day: point.date,
-      maxAPY: point.maxAPY,
-      minAPY: point.minAPY,
-    }));
-  }, [data]);
-
-  // Aggregate data by period
-  const aggregatedData = useMemo(() => {
-    if (period === "D") return chartData;
-
-    const grouped = new Map<string, { avgMaxAPY: number; avgMinAPY: number; count: number; date: string }>();
-
-    chartData.forEach((point) => {
-      const date = new Date(point.day);
-      let key: string;
-
-      if (period === "W") {
-        const weekStart = new Date(date);
-        weekStart.setDate(date.getDate() - date.getDay());
-        key = weekStart.toISOString().split("T")[0];
-      } else if (period === "M") {
-        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-      } else if (period === "Q") {
-        const quarter = Math.floor(date.getMonth() / 3) + 1;
-        key = `${date.getFullYear()}-Q${quarter}`;
-      } else {
-        key = String(date.getFullYear());
-      }
-
-      if (!grouped.has(key)) {
-        grouped.set(key, { avgMaxAPY: 0, avgMinAPY: 0, count: 0, date: key });
-      }
-
-      const group = grouped.get(key)!;
-      group.avgMaxAPY += point.maxAPY;
-      group.avgMinAPY += point.minAPY;
-      group.count++;
-    });
-
-    return Array.from(grouped.values())
-      .map((group) => ({
-        day: group.date,
-        maxAPY: group.avgMaxAPY / group.count,
-        minAPY: group.avgMinAPY / group.count,
-      }))
-      .sort((a, b) => a.day.localeCompare(b.day));
-  }, [chartData, period]);
-
-  // Initialize brush - show all data since genesis
-  useEffect(() => {
-    if (!aggregatedData || aggregatedData.length === 0) {
-      setBrushIndexes(null);
-      return;
-    }
-
-    // Show all data from the beginning (since genesis) for all periods
-    setBrushIndexes({
-      startIndex: 0,
-      endIndex: aggregatedData.length - 1,
-    });
-  }, [period, aggregatedData]);
-
-  const displayData = useMemo(() => {
-    if (!brushIndexes || !aggregatedData || aggregatedData.length === 0) return [];
-    const start = Math.max(0, Math.min(brushIndexes.startIndex, aggregatedData.length - 1));
-    const end = Math.max(0, Math.min(brushIndexes.endIndex, aggregatedData.length - 1));
-    if (start > end) return [];
-    return aggregatedData.slice(start, end + 1);
-  }, [brushIndexes, aggregatedData]);
-
-  // CSV download function
-  const downloadCSV = () => {
-    if (!displayData || displayData.length === 0) return;
-
-    const headers = ["Date", "Max APY (1 Year %)", "Min APY (2 Weeks %)"];
-    const rows = displayData.map((point) => [point.day, point.maxAPY.toFixed(4), point.minAPY.toFixed(4)].join(","));
-
-    const csvContent = [headers.join(","), ...rows].join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `Staking_APY_${period}_${new Date().toISOString().split("T")[0]}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
-
-  const brushRangeDays = useMemo(() => {
-    return calculateDateRangeDays(displayData, "day");
-  }, [displayData]);
-
-  const totalDataDays = useMemo(() => {
-    return calculateDateRangeDays(aggregatedData, "day");
-  }, [aggregatedData]);
-
-  const formatXAxis = (value: string) => formatXAxisLabel(value, brushRangeDays);
-  const formatBrushXAxis = (value: string) => formatXAxisLabel(value, totalDataDays);
-
-  const xAxisTicks = useMemo(() => {
-    return generateXAxisTicks(displayData, brushRangeDays, "day");
-  }, [displayData, brushRangeDays]);
-
-  const formatTooltipDate = (value: string) => {
-    if (period === "Y") return value;
-    if (period === "Q") {
-      const parts = value.split("-");
-      if (parts.length === 2) return `${parts[1]} ${parts[0]}`;
-      return value;
-    }
-    const date = new Date(value);
-    if (period === "M") {
-      return date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
-    }
-    if (period === "W") {
-      const endDate = new Date(date);
-      endDate.setDate(date.getDate() + 6);
-      return `${date.toLocaleDateString("en-US", { month: "short", day: "numeric" })} - ${endDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
-    }
-    return date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
-  };
-
-  const maxAPYColor = "#10B981"; // Emerald for max APY (1 year)
-  const minAPYColor = "#3B82F6"; // Blue for min APY (2 weeks)
-
-  return (
-    <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700" ref={chartContainerRef}>
-      <CardContent className="p-0">
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center gap-2 sm:gap-3">
-            <div
-              className="rounded-full p-2 sm:p-3 flex items-center justify-center"
-              style={{ backgroundColor: `${maxAPYColor}20` }}
-            >
-              <Percent className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: maxAPYColor }} />
-            </div>
-            <div>
-              <h3 className="text-base sm:text-lg font-normal">Historical Staking APY</h3>
-              <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
-                Estimated APY based on staking duration and current supply
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-1">
-            <Select
-              value={period}
-              onValueChange={(value) => onPeriodChange(value as "D" | "W" | "M" | "Q" | "Y")}
-            >
-              <SelectTrigger className="h-7 w-auto px-2 gap-1 text-xs sm:text-sm border-0 bg-transparent hover:bg-muted focus:ring-0 shadow-none">
-                <SelectValue>
-                  {period === "D" ? "Daily" : period === "W" ? "Weekly" : period === "M" ? "Monthly" : period === "Q" ? "Quarterly" : "Yearly"}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {(["D", "W", "M", "Q", "Y"] as const).map((p) => (
-                  <SelectItem key={p} value={p}>
-                    {p === "D" ? "Daily" : p === "W" ? "Weekly" : p === "M" ? "Monthly" : p === "Q" ? "Quarterly" : "Yearly"}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <button
-              onClick={handleScreenshot}
-              className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
-              title="Download chart as image"
-            >
-              <Camera className="h-4 w-4" />
-            </button>
-            <button
-              onClick={downloadCSV}
-              className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
-              title="Download CSV"
-            >
-              <Download className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-
-        <div className="px-5 pt-6 pb-6">
-          {/* Current Values */}
-          <div className="flex items-center gap-4 sm:gap-8 mb-3 sm:mb-4 pl-2 sm:pl-4 flex-wrap">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: maxAPYColor }} />
-              <span className="text-sm text-muted-foreground">Max (1 Year):</span>
-              {isLoading ? (
-                <div className="h-4 w-14 bg-muted animate-pulse rounded" />
-              ) : (
-                <span className="text-md font-mono">{(currentMaxAPY ?? 0).toFixed(2)}%</span>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: minAPYColor }} />
-              <span className="text-sm text-muted-foreground">Min (2 Weeks):</span>
-              {isLoading ? (
-                <div className="h-4 w-14 bg-muted animate-pulse rounded" />
-              ) : (
-                <span className="text-md font-mono">{(currentMinAPY ?? 0).toFixed(2)}%</span>
-              )}
-            </div>
-          </div>
-
-          {/* Chart */}
-          <ChartWatermark className="mb-6">
-            {isLoading ? (
-              <div className="h-[350px] flex flex-col items-center justify-center gap-4">
-                <div className="relative w-full h-full">
-                  <svg className="absolute inset-0 w-full h-full" viewBox="0 0 400 200" preserveAspectRatio="none">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <line key={`h-${i}`} x1="50" y1={30 + i * 35} x2="390" y2={30 + i * 35} className="stroke-muted" strokeWidth="0.5" strokeDasharray="4 4" />
-                    ))}
-                    <path d="M50,60 C100,65 150,70 200,80 C250,90 300,100 350,110 L390,115" fill="none" className="stroke-muted animate-pulse" strokeWidth="2" strokeLinecap="round" />
-                    <path d="M50,90 C100,95 150,100 200,110 C250,120 300,130 350,140 L390,145" fill="none" className="stroke-muted animate-pulse" strokeWidth="2" strokeLinecap="round" style={{ animationDelay: '150ms' }} />
-                  </svg>
-                  <div className="absolute left-0 top-0 bottom-8 w-12 flex flex-col justify-between py-4">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <div key={i} className="h-3 w-8 bg-muted animate-pulse rounded" style={{ animationDelay: `${i * 100}ms` }} />
-                    ))}
-                  </div>
-                  <div className="absolute bottom-0 left-12 right-0 h-8 flex justify-between items-center px-4">
-                    {Array.from({ length: 6 }).map((_, i) => (
-                      <div key={i} className="h-3 w-12 bg-muted animate-pulse rounded" style={{ animationDelay: `${i * 80}ms` }} />
-                    ))}
-                  </div>
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="flex items-center gap-2 bg-background/80 px-4 py-2 rounded-lg shadow-sm border border-border/50">
-                      <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                      <span className="text-sm text-muted-foreground">Loading APY data...</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ) : displayData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={350}>
-                <LineChart data={displayData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-muted" />
-                  <XAxis
-                    dataKey="day"
-                    tickFormatter={formatXAxis}
-                    className="text-xs text-gray-600 dark:text-gray-400"
-                    tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
-                    ticks={xAxisTicks}
-                    interval={0}
-                  />
-                  <YAxis
-                    tickLine={false}
-                    axisLine={false}
-                    tickFormatter={(value) => `${value.toFixed(1)}%`}
-                    className="text-xs"
-                    tick={{ fontSize: 11 }}
-                    width={50}
-                    domain={['auto', 'auto']}
-                  />
-                  <Tooltip
-                    content={({ active, payload }) => {
-                      if (!active || !payload?.length) return null;
-                      const data = payload[0].payload;
-                      return (
-                        <div className="rounded-lg border bg-background p-3 shadow-lg">
-                          <p className="font-medium text-sm mb-2">{formatTooltipDate(data.day)}</p>
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2">
-                              <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: maxAPYColor }} />
-                              <span className="text-xs text-muted-foreground">Max APY (1 Year):</span>
-                              <span className="text-xs font-mono font-medium">{data.maxAPY.toFixed(2)}%</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: minAPYColor }} />
-                              <span className="text-xs text-muted-foreground">Min APY (2 Weeks):</span>
-                              <span className="text-xs font-mono font-medium">{data.minAPY.toFixed(2)}%</span>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="maxAPY"
-                    stroke={maxAPYColor}
-                    strokeWidth={2}
-                    dot={false}
-                    name="Max APY (1 Year)"
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="minAPY"
-                    stroke={minAPYColor}
-                    strokeWidth={2}
-                    dot={false}
-                    name="Min APY (2 Weeks)"
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="h-[350px] flex items-center justify-center text-muted-foreground">
-                No data available
-              </div>
-            )}
-          </ChartWatermark>
-
-          {/* Brush Slider */}
-          {!isLoading && aggregatedData.length > 0 && brushIndexes && 
-           !isNaN(brushIndexes.startIndex) && !isNaN(brushIndexes.endIndex) &&
-           brushIndexes.startIndex >= 0 && brushIndexes.endIndex < aggregatedData.length &&
-           brushIndexes.startIndex <= brushIndexes.endIndex && (
-            <div className="bg-white dark:bg-black pl-[60px]">
-              <ResponsiveContainer width="100%" height={80}>
-                <LineChart data={aggregatedData} margin={{ top: 0, right: 30, left: 0, bottom: 5 }}>
-                  <Brush
-                    dataKey="day"
-                    height={80}
-                    stroke={maxAPYColor}
-                    fill={`${maxAPYColor}20`}
-                    alwaysShowText={false}
-                    startIndex={brushIndexes.startIndex}
-                    endIndex={brushIndexes.endIndex}
-                    onChange={(e: any) => {
-                      if (e.startIndex !== undefined && e.endIndex !== undefined &&
-                          !isNaN(e.startIndex) && !isNaN(e.endIndex) &&
-                          e.startIndex <= e.endIndex) {
-                        setBrushIndexes({ startIndex: e.startIndex, endIndex: e.endIndex });
-                      }
-                    }}
-                    travellerWidth={8}
-                    tickFormatter={formatBrushXAxis}
-                  >
-                    <LineChart>
-                      <Line type="monotone" dataKey="maxAPY" stroke={maxAPYColor} strokeWidth={1} dot={false} />
                     </LineChart>
                   </Brush>
                 </LineChart>
@@ -3762,20 +3218,19 @@ function TotalWeightStackedChartCard({
     return `${avaxValue.toFixed(2)} AVAX`;
   };
 
-  const brushRangeDays = useMemo(() => {
-    return calculateDateRangeDays(displayData, "day");
-  }, [displayData]);
-
-  const totalDataDays = useMemo(() => {
-    return calculateDateRangeDays(mergedData, "day");
-  }, [mergedData]);
-
-  const formatXAxis = (value: string) => formatXAxisLabel(value, brushRangeDays);
-  const formatBrushXAxis = (value: string) => formatXAxisLabel(value, totalDataDays);
-
-  const xAxisTicks = useMemo(() => {
-    return generateXAxisTicks(displayData, brushRangeDays, "day");
-  }, [displayData, brushRangeDays]);
+  const formatXAxis = (value: string) => {
+    if (period === "Q") {
+      const parts = value.split("-");
+      if (parts.length === 2) return `${parts[1]} '${parts[0].slice(-2)}`;
+      return value;
+    }
+    if (period === "Y") return value;
+    const date = new Date(value);
+    if (period === "M") {
+      return date.toLocaleDateString("en-US", { month: "short", year: "2-digit" });
+    }
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  };
 
   const formatTooltipDate = (value: string) => {
     if (period === "Y") return value;
@@ -3794,6 +3249,12 @@ function TotalWeightStackedChartCard({
       return `${date.toLocaleDateString("en-US", { month: "short", day: "numeric" })} - ${endDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
     }
     return date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
+  };
+
+  const formatBrushXAxis = (value: string) => {
+    if (period === "Q" || period === "Y") return value;
+    const date = new Date(value);
+    return date.toLocaleDateString("en-US", { month: "short", year: "numeric" });
   };
 
   const stakedColor = color;
@@ -3913,8 +3374,8 @@ function TotalWeightStackedChartCard({
                     tickFormatter={formatXAxis}
                     className="text-xs text-gray-600 dark:text-gray-400"
                     tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
-                    ticks={xAxisTicks}
-                    interval={0}
+                    minTickGap={80}
+                    interval="preserveStartEnd"
                   />
                   <YAxis
                     tickFormatter={formatWeight}
@@ -4141,20 +3602,19 @@ function CumulativeRewardsChartCard({
     return value.toFixed(2);
   };
 
-  const brushRangeDays = useMemo(() => {
-    return calculateDateRangeDays(displayData, "day");
-  }, [displayData]);
-
-  const totalDataDays = useMemo(() => {
-    return calculateDateRangeDays(aggregatedData, "day");
-  }, [aggregatedData]);
-
-  const formatXAxis = (value: string) => formatXAxisLabel(value, brushRangeDays);
-  const formatBrushXAxis = (value: string) => formatXAxisLabel(value, totalDataDays);
-
-  const xAxisTicks = useMemo(() => {
-    return generateXAxisTicks(displayData, brushRangeDays, "day");
-  }, [displayData, brushRangeDays]);
+  const formatXAxis = (value: string) => {
+    if (period === "Q") {
+      const parts = value.split("-");
+      if (parts.length === 2) return `${parts[1]} '${parts[0].slice(-2)}`;
+      return value;
+    }
+    if (period === "Y") return value;
+    const date = new Date(value);
+    if (period === "M") {
+      return date.toLocaleDateString("en-US", { month: "short", year: "2-digit" });
+    }
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  };
 
   const formatTooltipDate = (value: string) => {
     if (period === "Y") return value;
@@ -4173,6 +3633,12 @@ function CumulativeRewardsChartCard({
       return `${date.toLocaleDateString("en-US", { month: "short", day: "numeric" })} - ${endDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
     }
     return date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
+  };
+
+  const formatBrushXAxis = (value: string) => {
+    if (period === "Q" || period === "Y") return value;
+    const date = new Date(value);
+    return date.toLocaleDateString("en-US", { month: "short", year: "numeric" });
   };
 
   return (
@@ -4260,8 +3726,8 @@ function CumulativeRewardsChartCard({
                     tickFormatter={formatXAxis}
                     className="text-xs text-gray-600 dark:text-gray-400"
                     tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
-                    ticks={xAxisTicks}
-                    interval={0}
+                    minTickGap={80}
+                    interval="preserveStartEnd"
                   />
                   <YAxis
                     tickFormatter={formatValue}
@@ -4339,3 +3805,4 @@ function CumulativeRewardsChartCard({
     </Card>
   );
 }
+

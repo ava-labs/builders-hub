@@ -1,0 +1,66 @@
+---
+title: APIs vs RPCs
+description: Learn how the AvaCloud Data API differs from RPC calls
+updated: 2024-09-03
+authors: [owenwahlgren]
+icon: Book
+---
+
+Blockchain RPCs and APIs both facilitate interactions with a network, but they differ significantly in how they operate.
+
+### RPCs
+**Blockchain RPCs** allow you to communicate directly with a blockchain node, performing tasks like querying data or submitting transactions. These are low-level, synchronous calls, requiring a deep understanding of the blockchain's structure and specific commands.
+
+To get a more comprehensive understanding of Ethereum's JSON-RPC API, you can refer to the [official Ethereum documentation](https://ethereum.org/en/developers/docs/apis/json-rpc/).
+
+### APIs
+**Blockchain APIs**, like the AvaCloud Data API, abstract away much of the complexity. They offer higher-level, user-friendly endpoints that streamline interactions, making it easier to build and manage blockchain applications without needing in-depth knowledge of the underlying blockchain protocols.
+
+To get a more comprehensive understanding of the AvaCloud Data API, you can refer to the [official AvaCloud Data API documentation](https://developers.avacloud.io/data-api/overview).
+
+### Example Use Case
+For example, querying a user's ERC-20 portfolio using an RPC involves a series of complex calls to retrieve and parse raw blockchain data. 
+Using just RPCs, you would need to:
+
+1. Query every block on the network for transaction logs.
+2. Parse each transaction log to identify ERC-20 token transfers.
+3. Extract the ERC-20 token contract address.
+4. For each ERC-20 token contract, query the user's address to get the balance.
+5. Parse and aggregate the data to present the user's portfolio.
+
+While it may seem simple in theory, this process can be time-consuming and error-prone, especially when dealing with multiple blockchains.
+
+With the AvaCloud Data API, you could simply use a dedicated endpoint such as: 
+```bash
+curl --request GET \
+  --url https://glacier-api.avax.network/v1/chains/{chainId}/addresses/{address}/balances:listErc20 \
+  --header 'x-glacier-api-key: <api-key>'
+```
+
+to get a neatly formatted response with the user's ERC-20 portfolio, significantly reducing development time and complexity.
+
+```json
+{
+  "nextPageToken": "<string>",
+  "erc20TokenBalances": [
+    {
+      "address": "0x71C7656EC7ab88b098defB751B7401B5f6d8976F",
+      "name": "Wrapped AVAX",
+      "symbol": "WAVAX",
+      "decimals": 18,
+      "logoUri": "https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/fdd6326b7a82c8388e4ee9d4be7062d4/avalanche-avax-logo.svg",
+      "ercType": "ERC-20",
+      "price": {
+        "currencyCode": "usd",
+        "value": "42.42"
+      },
+      "chainId": "43114",
+      "balance": "2000000000000000000",
+      "balanceValue": {
+        "currencyCode": "usd",
+        "value": "42.42"
+      }
+    }
+  ]
+}
+```

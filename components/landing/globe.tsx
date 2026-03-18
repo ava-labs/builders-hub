@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import MiniNetworkDiagram, { MiniChainData, MiniICMFlow } from '@/components/stats/MiniNetworkDiagram';
 import l1ChainsData from '@/constants/l1-chains.json';
 
@@ -35,12 +35,7 @@ interface ICMFlowData {
 	messageCount: number;
 }
 
-export interface GlobeData {
-	metrics: OverviewMetrics | null;
-	icmFlows: ICMFlowData[];
-}
-
-// Category-based colors for pulse waves and ICM messages
+// Helper function to get category-based colors
 function getCategoryColor(category?: string): string {
 	switch (category) {
 		case "Primary":
@@ -50,6 +45,7 @@ function getCategoryColor(category?: string): string {
 		case "DeFi":
 			return "#3b82f6"; // Blue
 		case "Enterprise":
+			return "#a855f7"; // Purple
 		case "Institutions":
 			return "#a855f7"; // Purple
 		case "Infrastructure":
@@ -65,7 +61,7 @@ function getCategoryColor(category?: string): string {
 	}
 }
 
-// Generate color from chain name as fallback
+// Helper to generate color from name
 function stringToColor(str: string): string {
 	let hash = 0;
 	for (let i = 0; i < str.length; i++) {
@@ -75,14 +71,40 @@ function stringToColor(str: string): string {
 	return `hsl(${hue}, 70%, 55%)`;
 }
 
-interface SponsorsProps {
-	globeData?: GlobeData;
-}
+export const Sponsors = () => {
+	const [metrics, setMetrics] = useState<OverviewMetrics | null>(null);
+	const [icmFlows, setIcmFlows] = useState<ICMFlowData[]>([]);
+	const [loading, setLoading] = useState(true);
 
-export const Sponsors = ({ globeData }: SponsorsProps) => {
-	const metrics = globeData?.metrics || null;
-	const icmFlows = globeData?.icmFlows || [];
-	const loading = !globeData;
+	// Fetch real data from API
+	useEffect(() => {
+		const fetchData = async () => {
+			try {
+				// Fetch chain metrics and ICM flows in parallel
+				const [metricsResponse, icmResponse] = await Promise.all([
+					fetch('/api/overview-stats?timeRange=day'),
+					fetch('/api/icm-flow?days=30'),
+				]);
+
+				if (metricsResponse.ok) {
+					const data = await metricsResponse.json();
+					setMetrics(data);
+				}
+
+				if (icmResponse.ok) {
+					const icmData = await icmResponse.json();
+					if (icmData.flows && Array.isArray(icmData.flows)) {
+						setIcmFlows(icmData.flows);
+					}
+				}
+			} catch (err) {
+				console.error('Failed to fetch chain data for globe:', err);
+			} finally {
+				setLoading(false);
+			}
+		};
+		fetchData();
+	}, []);
 
 	// Transform API data to MiniChainData format
 	const chainData: MiniChainData[] = useMemo(() => {
@@ -241,7 +263,7 @@ export const Sponsors = ({ globeData }: SponsorsProps) => {
 				icmFlows={icmFlowsData}
 				containerSize={650}
 				autoRotate={true}
-				autoRotateSpeed={0.1}
+				autoRotateSpeed={0.12}
 				className="mx-auto"
 			/>
 		</div>

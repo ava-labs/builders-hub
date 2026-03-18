@@ -1,0 +1,40 @@
+---
+title: Interchain Messaging Registry
+description: Learn about the Interchain Messaging Registry to manage multiple Interchain Messaging versions.
+updated: 2024-05-31
+authors: [martineckardt]
+icon: Book
+---
+
+When sending a message from the source chain we are calling the Interchain Messaging contract:
+
+<img src="/common-images/teleporter/teleporter-source.png" width="400" class="mx-auto"/>
+
+The TeleporterMessenger contract is non-upgradable. Once a version of the contract is deployed it cannot be changed. This is with the intention of preventing any changes to the deployed contract that could potentially introduce bugs or vulnerabilities. However, there could still be new versions of TeleporterMessenger contracts needed to be deployed in the future.
+
+So far we used a fixed address for the TeleporterMessenger in all of our contracts. It is hardcoded in our contract. This is not a good practice, as it makes the contract less flexible and harder to upgrade.
+
+```solidity
+contract SenderOnCChain {
+
+    ITeleporterMessenger public immutable teleporterMessenger = ITeleporterMessenger(0x253b2784c75e510dD0fF1da844684a1aC0aa5fcf); // [!code highlight]
+
+    function sendMessage(
+        address destinationAddress,
+        string calldata message
+    ) external {
+        teleporterMessenger.sendCrossChainMessage(
+            // ...
+        );
+    }
+}
+```
+
+While we could manually update the address of the used TeleporterMessenger in our contract, TeleporterRegistry provides us an easy way to use the latest version of TeleporterMessenger.
+
+## What you will learn
+
+In this section, you will explore the following topics:
+
+- How the Interchain Messaging Registry works
+- How to retrieve the latest version of the TeleporterMessenger on a blockchain

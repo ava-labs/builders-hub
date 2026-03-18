@@ -13,14 +13,13 @@ import { LoadingButton } from "../ui/loading-button";
 import SocialLogin from "./social-login/SocialLogin";
 import { VerifyEmail } from "./verify/VerifyEmail";
 import { useLoginModalState } from '@/hooks/useLoginModal';
-import { EmbeddedBrowserWarning } from './EmbeddedBrowserWarning';
 
 const formSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
 });
 
 export function LoginModal() {
-  const { isOpen, callbackUrl = "/", closeLoginModal } = useLoginModalState();
+  const { isOpen, callbackUrl = "/", closeLoginModal, subscribeToChanges } = useLoginModalState();
   const [isVerifying, setIsVerifying] = useState(false);
   const [email, setEmail] = useState("");
 
@@ -29,13 +28,10 @@ export function LoginModal() {
     defaultValues: { email: "" },
   });
 
-  // Handle modal close - just close the modal, stay on current page
-  // User can click Apply again to restart the login flow
-  const handleClose = (open: boolean) => {
-    if (!open) {
-      closeLoginModal();
-    }
-  };
+  // Subscribe to modal state changes
+  useEffect(() => {
+    return subscribeToChanges();
+  }, [subscribeToChanges]);
 
   // Reset form when modal opens/closes
   useEffect(() => {
@@ -62,7 +58,7 @@ export function LoginModal() {
   if (!isOpen) return null;
 
   return (
-    <Dialog.Root open={true} onOpenChange={handleClose}>
+    <Dialog.Root open={true} onOpenChange={closeLoginModal}>
       <Dialog.Portal>
         <DialogOverlay />
         <DialogContent 
@@ -104,9 +100,6 @@ export function LoginModal() {
                     Enter your email to receive a sign-in code
                   </p>
                 </div>
-
-                {/* Embedded Browser Warning */}
-                <EmbeddedBrowserWarning />
 
                 {/* Form */}
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">

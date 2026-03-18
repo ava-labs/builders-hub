@@ -1,0 +1,54 @@
+---
+title: Recap of Bytes, Encoding and Decoding
+description: Recap message encoding/decoding.
+updated: 2024-05-31
+authors: [martineckardt]
+icon: BookOpen
+---
+
+When we send an interchain message, we are just sending a single value of type bytes. This value can contain multiple values of various types (e.g. string, uint & address) using encoding and decoding. 
+
+In this section we will recap these topics:
+
+- **Bytes:** What is this data type and why are we using it? 
+- **Encoding:** How do we turn values into bytes?
+- **Decoding:** How can we turn the bytes back into the values?
+
+We will use these concepts a lot going forward for our messages we send, so make sure you read this carefully.
+
+## Bytes
+In Solidity, the bytes data type serves as a versatile container for encoding multiple values of different types into a single unified value. You can think of it as a flexible box that can hold various forms of data, such as integers, text, images, or any binary information. The bytes data type allows you to mix and match these different types of data and put them all in one box.
+
+This makes it a pragmatic choice for encapsulating diverse data and data type ensures that all the data is efficiently packaged into a single unit for transfer, and recipients can decode and extract the individual components as needed.
+
+## Encoding & Decoding
+
+In Solidity we can use the functions `abi.encode()` and `abi.decode()` for encoding and decoding. These are part of the solidity language, so we do not need to import anything to use them.
+
+![Encoding and Decoding](/common-images/solidity/encoding-decoding.png)
+
+### Encoding
+When we encode data, we convert it into a byte array. This is useful when we want to send data from one contract to another. We can encode multiple values into a single byte array, which can then be decoded by the receiving contract.
+
+```solidity
+string memory someString = "test";
+uint someNumber = 42;
+
+bytes message = abi.encode(someString, someNumber);
+```
+
+This single value message here we can now use as a message for Teleporter.
+
+### Decoding
+When we decode data, we convert it from a byte array back into its original form. This is useful when we receive data from another contract. We can decode the byte array into its original values.
+
+```solidity
+( 
+  string memory someString,
+  uint someNumber
+) = abi.decode(message, (string, uint));
+```
+
+This will give us back the original values that we encoded before. Note that we do need to know the types of the values and their order that we encoded to decode them correctly.
+
+<Quiz quizId="303"/>

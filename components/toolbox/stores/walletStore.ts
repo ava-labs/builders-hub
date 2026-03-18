@@ -7,9 +7,6 @@ import { zeroAddress } from 'viem';
 import { balanceService } from '../services/balanceService';
 import { useMemo } from 'react';
 
-// Wallet type: 'core' for Core Wallet (window.avalanche), 'generic-evm' for any other EVM wallet (window.ethereum)
-export type WalletType = 'core' | 'generic-evm' | null;
-
 // Types for better type safety
 interface WalletState {
   // Core wallet state
@@ -39,12 +36,6 @@ interface WalletState {
     l1Chains: Record<string, boolean>; // Key: chainId, Value: loading state
   };
   bootstrapped: boolean;
-
-  // What kind of wallet is connected
-  walletType: WalletType;
-
-  // Selected ERC20 token (null means native token)
-  selectedToken: string | null; // Token address or null for native
 
 
 }
@@ -84,7 +75,7 @@ interface WalletActions {
   updateL1Balance: (chainId: string) => Promise<void>;
   updateCChainBalance: () => Promise<void>;
   updateAllBalances: () => Promise<void>;
-  updateAllBalancesWithAllL1s: (l1List?: Array<{ evmChainId: number; rpcUrl?: string }>) => Promise<void>;
+  updateAllBalancesWithAllL1s: (l1List?: Array<{ evmChainId: number }>) => Promise<void>;
 
   // Legacy balance getters for backward compatibility
   pChainBalance: number;
@@ -100,12 +91,6 @@ interface WalletActions {
 
   getBootstrapped: () => boolean;
   setBootstrapped: (bootstrapped: boolean) => void;
-  
-  // Wallet type
-  setWalletType: (walletType: WalletType) => void;
-
-  // Token selection
-  setSelectedToken: (tokenAddress: string | null) => void;
 
 
 }
@@ -140,8 +125,6 @@ export const useWalletStore = create<WalletStore>((set, get) => {
       l1Chains: {},
     },
     bootstrapped: false,
-    walletType: null,
-    selectedToken: null,
 
     // Actions
     updateWalletConnection: (data: { coreWalletClient?: CoreWalletClientType | null; walletEVMAddress?: string; walletChainId?: number; pChainAddress?: string; coreEthAddress?: string; }) => {
@@ -253,10 +236,6 @@ export const useWalletStore = create<WalletStore>((set, get) => {
     getBootstrapped: () => get().bootstrapped,
     setBootstrapped: (bootstrapped: boolean) => set({ bootstrapped: bootstrapped }),
 
-    setWalletType: (walletType: WalletType) => set({ walletType }),
-
-    setSelectedToken: (tokenAddress: string | null) => set({ selectedToken: tokenAddress }),
-
   };
 
   // Set up balance service callbacks
@@ -302,9 +281,6 @@ export const useNetworkInfo = () => {
     };
   }, [isTestnet, chainId, avalancheNetworkID, evmChainName]);
 };
-
-// Wallet type selectors
-export const useWalletType = () => useWalletStore((state) => state.walletType);
 
 // Selector for specific L1 balance
 export const useL1Balance = (chainId: string) => useWalletStore((state) => state.balances.l1Chains[chainId] || 0);

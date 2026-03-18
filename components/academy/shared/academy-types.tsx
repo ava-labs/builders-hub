@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react';
+
 export type AcademyPathType = 'avalanche' | 'entrepreneur' | 'blockchain';
 
 type BlogFeature = {
@@ -19,7 +21,10 @@ export interface AcademyLandingPageConfig {
     heroAccentWords?: string[];
     heroDescription: string;
     pathType: AcademyPathType;
+    customContent?: ReactNode;
+    showBlogs?: boolean;
     features?: {
+        codebaseBlogs?: BlogFeature;
         highlights?: BlogFeature;
     };
 }

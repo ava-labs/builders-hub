@@ -1,6 +1,6 @@
 ---
-title: Run AvalancheGo with Docker
-description: Learn how to run an Avalanche node using the official AvalancheGo Docker image.
+title: Build AvalancheGo Docker Image
+description: Learn how to build a Docker image for AvalancheGo.
 ---
 
 <Callout type="info">
@@ -9,127 +9,61 @@ For an easier way to set up and run a node, try the [Avalanche Console Node Setu
 
 ## Prerequisites
 
-- [Docker](https://docs.docker.com/get-docker/) installed and running
+Before beginning, you must ensure that:
+- Docker is installed on your system
+- You need to clone the [AvalancheGo repository](https://github.com/ava-labs/avalanchego)
+- You need to install [GCC](https://gcc.gnu.org/) and [Go](https://go.dev/doc/install)
+- Docker daemon is running on your machine
 
-Verify your Docker installation:
+You can verify your Docker installation by running:
 ```bash
 docker --version
 ```
 
-## Quick Start
+## Building the Docker Image
 
-Pull and run the latest AvalancheGo release:
+To build the Docker image for the latest `avalanchego` branch:
 
-```bash
-docker run -d \
-  --name avalanchego \
-  -p 9650:9650 \
-  -p 9651:9651 \
-  -v ~/.avalanchego:/root/.avalanchego \
-  avaplatform/avalanchego:v1.14.1
-```
+1. Navigate to the project directory
+2. Execute the build script:
+   ```bash
+   ./scripts/build_image.sh
+   ```
 
-This will start an AvalancheGo node and begin syncing with the Avalanche network.
+This script will create a Docker image containing the latest version of AvalancheGo.
 
-<Callout type="warn">
-Replace `v1.14.1` with the latest release version from the [AvalancheGo releases page](https://github.com/ava-labs/avalanchego/releases).
-</Callout>
+## Verifying the Build
 
-## What This Command Does
-
-| Flag | Purpose |
-|------|---------|
-| `-d` | Runs the container in the background (detached mode) |
-| `--name avalanchego` | Names the container for easy reference |
-| `-p 9650:9650` | Exposes the HTTP API port |
-| `-p 9651:9651` | Exposes the P2P staking port |
-| `-v ~/.avalanchego:/root/.avalanchego` | Persists chain data and node configuration to your host machine |
-
-<Callout type="info">
-The volume mount (`-v`) is important. Without it, chain data is lost when the container is removed and the node will need to re-sync from scratch.
-</Callout>
-
-## Check Node Status
-
-Once the container is running, check that the node is bootstrapping:
+After the build completes, verify the image was created successfully:
 
 ```bash
-curl -X POST --data '{
-    "jsonrpc":"2.0",
-    "id"     :1,
-    "method" :"info.isBootstrapped",
-    "params": {
-        "chain": "X"
-    }
-}' -H 'content-type:application/json;' 127.0.0.1:9650/ext/info
+docker image ls
 ```
 
-The response will show `"isBootstrapped": true` once the node has finished syncing.
+You should see an image with:
+- Repository: `avaplatform/avalanchego`
+- Tag: `xxxxxxxx` (where `xxxxxxxx` is the shortened commit hash of the source code used for the build)
 
-## View Logs
+## Running AvalancheGo Node
+
+To start an AvalancheGo node, run the following command:
 
 ```bash
-docker logs -f avalanchego
+docker run -ti -p 9650:9650 -p 9651:9651 avaplatform/avalanchego:xxxxxxxx /avalanchego/build/avalanchego
 ```
 
-## Stop and Restart
+This command:
+- Creates an interactive container (`-ti`)
+- Maps the following ports:
+  - `9650`: HTTP API port
+  - `9651`: P2P networking port
+- Uses the built AvalancheGo image
+- Executes the AvalancheGo binary inside the container
 
-```bash
-docker stop avalanchego
-docker start avalanchego
-```
+## Port Configuration
 
-## Upgrade to a New Version
+The default ports used by AvalancheGo are:
+- `9650`: HTTP API
+- `9651`: P2P networking
 
-To upgrade AvalancheGo, stop the current container, remove it, and run the new version:
-
-```bash
-docker stop avalanchego
-docker rm avalanchego
-docker run -d \
-  --name avalanchego \
-  -p 9650:9650 \
-  -p 9651:9651 \
-  -v ~/.avalanchego:/root/.avalanchego \
-  avaplatform/avalanchego:<NEW_VERSION>
-```
-
-Your chain data is preserved in `~/.avalanchego` on the host, so the node will resume from where it left off.
-
-## Pass Configuration Flags
-
-You can pass any [AvalancheGo configuration flags](/docs/nodes/configure/avalanchego-config-flags) directly after the image name:
-
-```bash
-docker run -d \
-  --name avalanchego \
-  -p 9650:9650 \
-  -p 9651:9651 \
-  -v ~/.avalanchego:/root/.avalanchego \
-  avaplatform/avalanchego:v1.14.1 \
-  --http-host=0.0.0.0 \
-  --public-ip-resolution-service=opendns
-```
-
-## Connect to Fuji Testnet
-
-To run a node on the Fuji testnet instead of Mainnet:
-
-```bash
-docker run -d \
-  --name avalanchego-fuji \
-  -p 9650:9650 \
-  -p 9651:9651 \
-  -v ~/.avalanchego-fuji:/root/.avalanchego \
-  avaplatform/avalanchego:v1.14.1 \
-  --network-id=fuji
-```
-
-## Port Reference
-
-| Port | Protocol | Purpose |
-|------|----------|---------|
-| `9650` | TCP | HTTP API (RPC calls) |
-| `9651` | TCP | P2P networking and staking |
-
-Ensure these ports are open in your firewall. Port `9651` must be reachable from the internet for your node to participate in the network.
+Ensure these ports are available on your host machine and not blocked by firewalls.

@@ -6,7 +6,6 @@
     "core-components",
     "consensus",
     "virtual-machines",
-    "networking",
-    "...execution"
+    "networking"
   ]
 }

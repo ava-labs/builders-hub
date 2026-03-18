@@ -9,7 +9,7 @@ export enum MemberStatus {
 
 export interface Project {
   id: string;
-  hackaton_id?: string,
+  hackaton_id: string,
   project_name: string;
   short_description: string;
   full_description?: string;
@@ -26,9 +26,6 @@ export interface Project {
   demo_video_link?: string;
   screenshots?: string[];
   tracks: string[];
-  categories?: string[];
-  other_category?: string;
-  deployed_addresses?: Array<{ address: string; tag?: string }>;
   members?:Member[]
   user_id?:string
   isDraft?:boolean

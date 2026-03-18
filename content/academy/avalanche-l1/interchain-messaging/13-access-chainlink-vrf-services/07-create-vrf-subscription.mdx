@@ -1,0 +1,63 @@
+---
+title: Create Chainlink VRF Subscription
+description: Learn how to create a Chainlink VRF subscription to enable cross-chain randomness requests.
+updated: 2024-10-21
+authors: [0xstt]
+icon: BookOpen
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+Before you can request random words using Chainlink VRF, you need to set up a **Chainlink VRF subscription**. This subscription allows you to fund requests for randomness and manage the list of consumers that are authorized to use the VRF service.
+
+<Steps>
+<Step>
+
+## Access Chainlink's VRF Subscription Manager
+
+To create a subscription, go to the Chainlink VRF Subscription Manager on the network where you plan to request VRF (e.g., Avalanche Fuji). You can access the manager here: [VRF | Subscription Management for Fuji](https://vrf.chain.link/fuji).
+![](/common-images/chainlink-vrf/visit-subscription-management.png)
+
+</Step>
+<Step>
+
+## Create a New Subscription
+
+Once on the subscription manager, create a new subscription. The subscription will have a unique ID, which you'll need to reference in your `CrossChainVRFWrapper` contract. This ID is used to track your random word requests and the balance associated with them.
+![](/common-images/chainlink-vrf/create-subscription.png)
+
+</Step>
+<Step>
+
+## Fund the Subscription
+
+After creating the subscription, you need to fund it with LINK tokens. These tokens are used to pay for the randomness requests made through Chainlink VRF. Make sure your subscription has enough funds to cover your requests.
+You can get testnet LINK tokens from the Fuji Faucet: [Chainlink Faucet for Fuji](https://faucets.chain.link/fuji)
+
+![](/common-images/chainlink-vrf/faucet.png)
+
+![](/common-images/chainlink-vrf/add-funds.png)
+
+</Step>
+<Step>
+
+## Add Consumers
+
+After funding your subscription, add the `CrossChainVRFWrapper` contract `($VRF_WRAPPER)` as a consumer. This step authorizes the contract to make randomness requests on behalf of your subscription. You can add other consumers, such as other contracts or addresses, depending on your use case.
+![](/common-images/chainlink-vrf/add-consumer.png)
+
+</Step>
+<Step>
+
+## Save Subscription ID
+
+After completing these steps, save your subscription ID. You will need this ID when configuring the `CrossChainVRFWrapper` contract to request random words.
+
+```bash
+export VRF_SUBSCRIPTION_ID=<subscription_id>
+```
+
+</Step>
+</Steps>
+
+---

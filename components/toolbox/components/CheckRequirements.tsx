@@ -235,7 +235,11 @@ export const CheckRequirements = ({
                                                             onClick={() => handleAction(actionGroup.requirement)}
                                                             size="sm"
                                                             variant="default"
-                                                            className="cursor-pointer"
+                                                            className={`cursor-pointer ${
+                                                                actionGroup.requirement.id === 'core-wallet-connected'
+                                                                    ? 'bg-black text-white hover:bg-gray-800' 
+                                                                    : ''
+                                                            }`}
                                                         >
                                                             {actionGroup.action.label}
                                                         </Button>

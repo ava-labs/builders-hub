@@ -1,0 +1,47 @@
+---
+title: Request Random Words
+description: Learn how to request random words using CrossChainVRFConsumer.
+updated: 2024-10-21
+authors: [0xstt]
+icon: Terminal
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+In this section, you will learn how to request random words from Chainlink VRF using both the `CrossChainVRFConsumer` contracts.
+
+<Steps>
+<Step>
+
+## Authorize an Address to Request Random Words
+
+After deploying the `CrossChainVRFWrapper` contract, the first step is to authorize an address to make requests for random words. This ensures that only specific addresses linked to a subscription can request VRF.
+
+- Use the `addAuthorizedAddress` function to authorize a specific address with a given subscription ID. This step allows the address to make random word requests through the wrapper.
+
+```bash
+cast send --rpc-url <RPC_URL> --private-key <PRIVATE_KEY> $VRF_WRAPPER "addAuthorizedAddress(address caller, uint256 subscriptionId)" $VRF_CONSUMER $VRF_SUBSCRIPTION_ID
+```
+
+</Step>
+<Step>
+
+## Request Random Words from `CrossChainVRFConsumer`
+
+Once the address is authorized, the next step is to send a request for random words from the `CrossChainVRFConsumer` contract on the unsupported L1. This request is then sent to the `CrossChainVRFWrapper` via a cross-chain message.
+
+```bash
+cast send --rpc-url <RPC_URL> --private-key <PRIVATE_KEY> $VRF_CONSUMER "requestRandomWords(bytes32 keyHash, uint16 requestConfirmations, uint32 callbackGasLimit, uint32 numWords, bool nativePayment, uint32 requiredGasLimit)" <KEY_HASH> <CONFIRMATIONS> <GAS_LIMIT> <NUM_WORDS> <NATIVE_PAYMENT> <REQUIRED_GAS_LIMIT>
+```
+
+Replace the placeholders with:
+
+- `<KEY_HASH>`: The VRF key hash used for random word generation.
+- `<CONFIRMATIONS>`: Number of confirmations required for the request.
+- `<GAS_LIMIT>`: The gas limit for the VRF callback function.
+- `<NUM_WORDS>`: The number of random words requested.
+- `<NATIVE_PAYMENT>`: Indicates whether the payment will be made in the native token.
+- `<REQUIRED_GAS_LIMIT>`: The gas limit required for the cross-chain message to be processed.
+
+</Step>
+</Steps>

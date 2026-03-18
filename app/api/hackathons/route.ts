@@ -6,7 +6,7 @@ import {
 } from '@/server/services/hackathons';
 import { HackathonStatus } from '@/types/hackathons';
 import { getUserById } from '@/server/services/getUser';
-import { withAuthRole } from '@/lib/protectedRoute';
+import { env } from 'process';
 
 
 
@@ -22,7 +22,6 @@ export async function GET(req: NextRequest) {
       date: searchParams.get('date') || undefined,
       status: searchParams.get('status') as HackathonStatus || undefined,
       search: searchParams.get('search') || undefined,
-      event: searchParams.get('event') || undefined,
     };
     
     if (userId) {
@@ -40,12 +39,8 @@ export async function GET(req: NextRequest) {
       
       // If user is devrel, show all hackathons; otherwise filter by user ID
       const createdByFilter = isDevrel ? undefined : userId;
-
+      
       options.created_by = createdByFilter || undefined;
-      // Only narrow by cohost email for non-devrel users; devrel should see all
-      if (!isDevrel) {
-        options.cohost_email = user.email || undefined;
-      }
       options.include_private = isDevrel || isTeam1Admin || isHackathonCreator; // These roles can see private hackathons
       
       console.log('API GET /hackathons:', { userId, isDevrel, isTeam1Admin, isHackathonCreator, createdByFilter, options });
@@ -67,8 +62,10 @@ export async function GET(req: NextRequest) {
   }
 }
 
-export const POST = withAuthRole('devrel', async (req: NextRequest, context: any, session: any) => {
+export async function POST(req: NextRequest) {
   try {
+    if (req.headers.get("x-api-key") != env.APIKEY)
+      throw new Error('Unauthorized')
     const body = await req.json();
     const newHackathon = await createHackathon(body);
 
@@ -84,5 +81,5 @@ export const POST = withAuthRole('devrel', async (req: NextRequest, context: any
       { status: wrappedError.cause == 'ValidationError' ? 400 : 500 }
     );
   }
-});
+}
 

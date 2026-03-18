@@ -1,0 +1,238 @@
+---
+title: Modifying the Code
+description: Lets modify the code to implement the Data API.
+updated: 2024-09-13
+authors: [owenwahlgren]
+icon: Book
+---
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+In this section, we will modify the code to implement the Data API. 
+
+### Modify Backend `src/app/api/wallet/route.ts`
+<Steps>
+<Step>
+First we will implement the `getBlockHeight` function. This function is the same as the one in ERC20 Balance App, but we will repeat it for the sake of the tutorial. The goal of this function is to fetch recent blocks from the Data API then to return the highest block in the first position.
+
+<Accordions>
+<Accordion title="Hint">
+Reference the [AvaCloud SDK documentation](https://developers.avacloud.io/data-api/evm-blocks/list-latest-blocks) to see how to fetch the latest blocks.
+</Accordion>
+<Accordion title="Solution">
+```tsx title="src/app/api/wallet/route.ts"
+async function getBlockHeight() {
+    const result = await avaCloudSDK.data.evm.blocks.getLatestBlocks({
+        pageSize: 1,
+      });
+    return result.result.blocks[0].blockNumber
+}
+```
+</Accordion>
+</Accordions>
+</Step>
+<Step>
+Next we will implement the `listERC721Balances` function. The goal of this function is to fetch the ERC-721 token balances for a given address.
+<Accordions>
+<Accordion title="Hint">
+Reference the [AvaCloud SDK documentation](https://developers.avacloud.io/data-api/evm-balances/list-erc-721-balances) to see how to fetch ERC-721 token balances.
+Note the `Erc721TokenBalance` type that is imported, we should use this to combine paged results.
+</Accordion>
+<Accordion title="Solution">
+```tsx title="src/app/api/wallet/route.ts"
+const listERC721Balances = async (address: string) => {
+    const result = await avaCloudSDK.data.evm.balances.listErc721Balances({
+        pageSize: 10,
+        address: address,
+      });
+    const balances: Erc721TokenBalance[] = [];
+    for await (const page of result) {
+        balances.push(...page.result.erc721TokenBalances);
+    }
+    return balances
+}
+```
+</Accordion>
+</Accordions>
+</Step>
+<Step>
+Now we will implement the `listErc1155Balances` function. The goal of this function is to fetch the ERC-1155 token balances for a given address.
+<Accordions>
+<Accordion title="Hint">
+Reference the [AvaCloud SDK documentation](https://developers.avacloud.io/data-api/evm-balances/list-erc-1155-balances) to see how to fetch ERC-1155 token balances.
+Note the `Erc1155TokenBalance` type that is imported, we should use this to combine paged results.
+</Accordion>
+<Accordion title="Solution">
+```tsx title="src/app/api/wallet/route.ts"
+const listErc1155Balances = async (address: string) => {
+    const result = await avaCloudSDK.data.evm.balances.listErc1155Balances({
+        pageSize: 10,
+        address: address,
+      });
+    const balances: Erc1155TokenBalance[] = [];
+    for await (const page of result) {
+        balances.push(...page.result.erc1155TokenBalances);
+    }
+    return balances
+}
+```
+</Accordion>
+</Accordions>
+</Step>
+
+<Step>
+Finally we will implement the `listRecentTransactions` function. The goal of this function is to fetch recent transactions for a given address given a block start and end.
+<Accordions>
+<Accordion title="Hint">
+Reference the [AvaCloud SDK documentation](https://developers.avacloud.io/data-api/evm-transactions/list-transactions) to see how to fetch recent transactions.
+Note the `TransactionDetails` type that is imported, we should use this to combine and sort paged results.
+</Accordion>
+<Accordion title="Solution">
+```tsx title="src/app/api/wallet/route.ts"
+const listRecentTransactions = async (address: string) => {
+    const blockHeight = await getBlockHeight()
+    const result = await avaCloudSDK.data.evm.transactions.listTransactions({
+        pageSize: 10,
+        startBlock: blockHeight - 100000,
+        endBlock: blockHeight,
+        address: address,
+        sortOrder: "desc",
+      });
+    const transactions: TransactionDetails = {
+        erc20Transfers: [],
+        erc721Transfers: [],
+        erc1155Transfers: [],
+        nativeTransaction: {
+            blockNumber: '',
+            blockTimestamp: 0,
+            blockHash: '',
+            blockIndex: 0,
+            txHash: '',
+            txStatus: '',
+            txType: 0,
+            gasLimit: '',
+            gasUsed: '',
+            gasPrice: '',
+            nonce: '',
+            from: {
+                name: undefined,
+                symbol: undefined,
+                decimals: undefined,
+                logoUri: undefined,
+                address: ''
+            },
+            to: {
+                name: undefined,
+                symbol: undefined,
+                decimals: undefined,
+                logoUri: undefined,
+                address: ''
+            },
+            value: ''
+        },
+    }
+    for await (const page of result) {
+        for (const transaction of page.result.transactions) {
+            if (transaction.erc20Transfers) {
+                if (transactions.erc20Transfers) {
+                    transactions.erc20Transfers.push(...transaction.erc20Transfers);
+                }
+            } 
+            else if (transaction.erc721Transfers) {
+                if (transactions.erc721Transfers) {
+                    transactions.erc721Transfers.push(...transaction.erc721Transfers);
+                }
+            }
+            else if (transaction.erc1155Transfers) {
+                if (transactions.erc1155Transfers) {
+                    transactions.erc1155Transfers.push(...transaction.erc1155Transfers);
+                }
+            }
+        }
+    }
+    return transactions
+}
+```
+</Accordion>
+</Accordions>
+</Step>
+
+
+</Steps>
+### Modify Frontend `src/app/basic-wallet/page.tsx`
+Now we will modify the frontend to make calls to our backend.
+<Steps>
+<Step>
+</Step>
+<Step>
+First we will implement the `fetchERC20Balances` function. The goal of this function is to make a call to our backend to get the user's ERC-20 token balances.
+<Accordions>
+<Accordion title="Hint">
+Make a call to our backend first for the most recent block height, then our `listErc20Balances` API. Finally return the results.
+</Accordion>
+<Accordion title="Solution">
+```tsx title="src/app/basic-wallet/page.tsx"
+const fetchERC20Balances = async (address: string) => {
+    const blockResult = await fetch("api/balance?method=getBlockHeight");
+    const blockNumber = await blockResult.json();
+    const balanceResult = await fetch("api/balance?method=listErc20Balances&address=" + address + "&blockNumber=" + blockNumber);
+    const balances = await balanceResult.json();
+    return balances as Erc20TokenBalance[];
+};
+```
+</Accordion>
+</Accordions>
+</Step>
+<Step>
+Next we will implement the `fetchERC721Balances` function. The goal of this function is to call our `listErc721Balances` function on the backend and return it as a `Erc721TokenBalance` array.
+<Accordions>
+<Accordion title="Hint">
+Make a call to our backend then parse the result as json. Return it as `Erc721TokenBalance[]`.
+</Accordion>
+<Accordion title="Solution">
+```tsx title="src/app/basic-wallet/page.tsx"
+const fetchERC721Balances = async (address: string) => {
+    const result = await fetch(`api/wallet?method=listERC721Balances&address=${address}`);
+    const balances = await result.json();
+    return balances as Erc721TokenBalance[];
+  }
+```
+</Accordion>
+</Accordions>
+</Step>
+
+<Step>
+Now we will implement the `fetchERC1155Balances` function. The goal of this function is to call our `listERC1155Balances` function on the backend and return it as a `Erc1155TokenBalance` array.
+<Accordions>
+<Accordion title="Hint">
+Make a call to our backend then parse the result as json. Return it as `Erc1155TokenBalance[]`.
+</Accordion>
+<Accordion title="Solution">
+```tsx title="src/app/basic-wallet/page.tsx"
+const fetchERC1155Balances = async (address: string) => {
+    const result = await fetch(`api/wallet?method=listERC1155Balances&address=${address}`);
+    const balances = await result.json();
+    return balances as Erc1155TokenBalance[];
+  }
+```
+</Accordion>
+</Accordions>
+</Step>
+
+<Step>
+Finally we will implement the `fetchRecentTransactions` function. The goal of this function is to call our `listRecentTransactions` function on the backend and return it as an object of type `TransactionDetails`.
+<Accordions>
+<Accordion title="Hint">
+Make a call to our backend then parse the result as json. Return it as type of `TransactionDetails`.
+</Accordion>
+<Accordion title="Solution">
+```tsx title="src/app/basic-wallet/page.tsx"
+const fetchRecentTransactions = async (address: string) => {
+    const result = await fetch(`api/wallet?method=listRecentTransactions&address=${address}`);
+    const transactions = await result.json();
+    return transactions as TransactionDetails;
+  }
+```
+</Accordion>
+</Accordions>
+</Step>
+</Steps>

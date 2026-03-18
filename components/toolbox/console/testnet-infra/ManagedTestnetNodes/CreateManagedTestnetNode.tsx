@@ -12,6 +12,7 @@ import { CodeBlock, Pre } from 'fumadocs-ui/components/codeblock';
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import SelectSubnet from "@/components/toolbox/components/SelectSubnet";
 import { ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
+import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 import { AccountRequirementsConfigKey } from "@/components/toolbox/hooks/useAccountRequirements";
 
@@ -19,6 +20,7 @@ const metadata: ConsoleToolMetadata = {
     title: "Create Managed Testnet Node",
     description: "An L1 is a network of Avalanche nodes. To make it easy to play around with L1s, we created this tool to spin up a free testnet node. These nodes will shut down after 3 days. They are suitable for quick testing. For production settings or extended testing, see the self-hosted below. You need a Builder Hub Account to use this tool.",
     toolRequirements: [
+        WalletRequirementsConfigKey.TestnetRequired,
         AccountRequirementsConfigKey.UserLoggedIn
     ],
     githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
@@ -99,8 +101,8 @@ function CreateManagedTestnetNodeBase() {
     return (
         <Steps>
             <Step>
-                <h2 className="text-sm font-semibold">Step 1: Select Subnet</h2>
-                <p className="text-sm text-muted-foreground mb-4">
+                <h2 className="text-lg font-semibold">Step 1: Select Subnet</h2>
+                <p className="text-sm text-gray-500 mb-8">
                     Enter the Subnet ID of the blockchain you want to create a node for.
                 </p>
                 <SelectSubnet
@@ -113,8 +115,8 @@ function CreateManagedTestnetNodeBase() {
             </Step>
 
             <Step>
-                <h2 className="text-sm font-semibold">Step 2: Create Node</h2>
-                <p className="text-sm text-muted-foreground mb-4">
+                <h2 className="text-lg font-semibold">Step 2: Create Node</h2>
+                <p className="text-sm text-gray-500 mb-8">
                     Review the details and create your managed testnet node.
                 </p>
                 <Button
@@ -127,8 +129,8 @@ function CreateManagedTestnetNodeBase() {
             </Step>
 
             <Step>
-                <h2 className="text-sm font-semibold">Step 3: Add to Wallet</h2>
-                <p className="text-sm text-muted-foreground mb-4">
+                <h2 className="text-lg font-semibold">Step 3: Add to Wallet</h2>
+                <p className="text-sm text-gray-500 mb-8">
                     Add the new node's RPC to your wallet.
                 </p>
                 {createdNode && (
@@ -151,8 +153,8 @@ function CreateManagedTestnetNodeBase() {
                 </Button>
             </Step>
             <Step>
-                <h2 className="text-sm font-semibold">Step 4: Open Testnet Node Manager</h2>
-                <p className="text-sm text-muted-foreground mb-4">
+                <h2 className="text-lg font-semibold">Step 4: Open Testnet Node Manager</h2>
+                <p className="text-sm text-gray-500 mb-8">
                     To view this node and other that you have created, open the Testnet Node Manager.
                 </p>
                 <Link href="/console/testnet-infra/nodes" target="_blank">

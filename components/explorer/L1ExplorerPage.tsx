@@ -16,7 +16,6 @@ import l1ChainsData from "@/constants/l1-chains.json";
 import { ChainChip, ChainInfo } from "@/components/stats/ChainChip";
 import { getL1ListStore, L1ListItem } from "@/components/toolbox/stores/l1ListStore";
 import { convertL1ListItemToL1Chain } from "@/components/explorer/utils/chainConverter";
-import { formatMarketCap } from "@/lib/utils/format-market-cap";
 
 // Get chain info from hex blockchain ID (checks both static and custom chains)
 function getChainFromBlockchainId(hexBlockchainId: string): ChainInfo | null {
@@ -175,6 +174,13 @@ function formatNumber(num: number): string {
 }
 
 
+function formatMarketCap(num: number): string {
+  if (num >= 1e12) return `$${(num / 1e12).toFixed(2)}T`;
+  if (num >= 1e9) return `$${(num / 1e9).toFixed(2)}B`;
+  if (num >= 1e6) return `$${(num / 1e6).toFixed(2)}M`;
+  if (num >= 1e3) return `$${(num / 1e3).toFixed(2)}K`;
+  return `$${num.toLocaleString()}`;
+}
 
 // Token symbol display component
 function TokenDisplay({ symbol }: { symbol?: string }) {

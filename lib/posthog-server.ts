@@ -99,7 +99,6 @@ const MAX_CONTENT_LENGTH = 500;
  * @param options.latencyMs - Response latency in milliseconds
  * @param options.traceId - Optional trace ID for request correlation
  * @param options.httpStatus - HTTP status code of the AI request (default: 200)
- * @param options.thinkingMode - Whether thinking mode (in-depth) was used
  */
 export async function captureAIGeneration({
   distinctId,
@@ -112,7 +111,6 @@ export async function captureAIGeneration({
   latencyMs,
   traceId,
   httpStatus = 200,
-  thinkingMode = false,
 }: {
   distinctId?: string;
   model: string;
@@ -124,7 +122,6 @@ export async function captureAIGeneration({
   latencyMs: number;
   traceId?: string;
   httpStatus?: number;
-  thinkingMode?: boolean;
 }) {
   if (!POSTHOG_API_KEY) {
     if (!hasLoggedMissingKey) {
@@ -166,7 +163,6 @@ export async function captureAIGeneration({
           $ai_latency: latencyMs / 1000, // Convert to seconds
           $ai_trace_id: traceId,
           $ai_http_status: httpStatus,
-          thinking_mode: thinkingMode, // Track response mode preference
         },
         timestamp: new Date().toISOString(),
       }),

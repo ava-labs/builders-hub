@@ -1,0 +1,54 @@
+---
+title: Fee Data Flow
+description: Learn the logic behind the fee incentivization.
+updated: 2024-06-09
+authors: [andyvargtz]
+icon: BookOpen
+---
+
+The basic idea of incentivizing an external AWM Relayer to relay our message is to deposit an amount of an ERC-20 token into the Interchain Messaging contract as a reward for whichever relayer delivers our message.
+
+Let's see how the fees are transferred from the user at the very beginning of sending a Cross Chain message, up to the point where the relayer is able to claim the fee.
+![AWM Relayer with fees data flow](/common-images/teleporter/teleporter-fees-receipt.png)
+
+
+We are using the following emoji guide to show the actors of each action:
+
+
+**👩 User**
+
+**📜 Cross-Chain dApp**
+
+**👾 TeleporterMessenger**
+
+**🛸 Relayer**
+
+### Previous to Sending the Message:
+
+- 👩 The message sender (user) requires to approve the Cross-Avalanche L1 dApp as a spender on the ERC20 contract to be used as fee.
+
+### Sending the Message:
+
+- 👩 User sends a message.
+- 📜 Fee funds (previously approved) are transferred from the user's wallet to the Cross-Chain dApp.
+- 📜 Cross-Chain dApp approves the Interchain Messaging Contract to spend the ERC20 fee tokens.
+- 👾 Fee tokens are transferred into the Interchain Messaging Contract.
+- 👾 Interchain Messaging assigns a unique ID to the Message and keeps track of the fee Info.
+- 🛸 Relayer can now pick and deliver the Message.
+
+### Message Delivered in the Destination Chain:
+
+- 👾 Interchain Messaging in the Destination Chain generates a receipt with the `messageID` and Relayer address who delivered the message.
+- Receipt is sent back to the Source Chain.
+- 🛸 Relayers can send the receipts back to the Source Chain themselves or wait until a new (unrelated) message is sent now from the once Destination Chain to the former Source chain. Messages include up to 5 pending receipts in a message.
+
+### Once Message is Received in the Source Chain:
+
+- 👾 The Interchain Messaging marks the `messageID` as received and increases the Relayer redeemable reward.
+- 🛸 The relayer can now claim its unlocked rewards.
+
+As you can see, there are just a few actions you as a cross-chain dApp developer need to implement so dApp works smoothly with fees, everything else is being done by the Interchain Messaging contract and the Relayer.
+
+If you run your own relayer, you don't have to attach any fees.
+
+<Quiz quizId="315"/>

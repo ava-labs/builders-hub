@@ -108,7 +108,7 @@ export default async function HackathonPage({
       <div className="pl-4 flex gap-4 items-center">
         <Image
           src={
-            hackathon.icon?.trim().length > 0
+            hackathon.icon.trim().length > 0
               ? hackathon.icon
               : "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/hackathon-images/project-logo-ILfO9EujWnQj1xMZpIIWTZ8mc87I7f.png"
           }
@@ -152,13 +152,7 @@ export default async function HackathonPage({
             {hackathon.content.tracks_text && <About hackathon={hackathon} />}
             {hackathon.content.tracks && <Tracks hackathon={hackathon} />}
             <Resources hackathon={hackathon} />
-            <Schedule 
-              hackathon={hackathon} 
-              scheduleSource={hackathon.google_calendar_id ? "google-calendar" : "database"}
-              googleCalendarConfig={hackathon.google_calendar_id ? {
-                calendarId: hackathon.google_calendar_id,
-              } : undefined}
-            />
+            {hackathon.content.schedule && <Schedule hackathon={hackathon} />}
             <Submission hackathon={hackathon} />
             {hackathon.content.speakers && hackathon.content.speakers.length > 0 && (
               <MentorsJudges hackathon={hackathon} />

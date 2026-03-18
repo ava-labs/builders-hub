@@ -2,7 +2,6 @@ import { HackathonHeader } from "@/types/hackathons";
 import React from "react";
 import { Separator } from "@/components/ui/separator";
 import { MDXRemote } from "next-mdx-remote/rsc";
-import { sanitizeHtml } from "@/utils/sanitizeMarkdown";
 
 function About({ hackathon }: { hackathon: HackathonHeader }) {
   return (
@@ -35,7 +34,7 @@ export function AboutPreview({ hackathon }: { hackathon: any }) {
     formatted = formatted.replace(/\n\n/g, '</p><p class="mb-4">');
     formatted = formatted.replace(/\n/g, '<br/>');
     formatted = `<p class="mb-4">${formatted}</p>`;
-    return sanitizeHtml(formatted);
+    return formatted;
   };
 
   return (

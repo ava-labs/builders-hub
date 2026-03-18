@@ -1,0 +1,115 @@
+---
+title: Understanding the Code
+description: Before we start coding, let's take a look at the code we will be working with.
+updated: 2024-09-13
+authors: [owenwahlgren]
+icon: Book
+---
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+There will be two main files that we will be working with in this section.
+
+<Steps>
+<Step>
+
+### `Page.tsx`
+This is the code that will be rendered on the client side, as distinguished by `"use client";` at the top of the file. It contains the React components that will be displayed to the user and is responsible for making the API calls to our backend, which in turn calls the Data API.
+
+It is important to understand that when you `"use client"` in a NextJS project, it will be rendered on the client side. This means that the code will be executed in the user's browser and not on the server. This is important to keep in mind when working with sensitive data or when you want to keep your API keys secure.
+
+Besides this, we have two main functions that we will be working with in this file:
+
+<Steps>
+<Step>
+
+```tsx title="src/app/balance-app/page.tsx"
+const handleSetAddress = async () => {
+  //
+  // TODO: Implement handleSetAddress
+  //
+};
+```
+`handleSetAddress` is a simple function that will be called when the user clicks the "Set Address" button. It will ensure the address is valid then set the inputted address to the React State. Next, we call our next function `fetchERC20Balances` to get the user's balance.
+
+</Step>
+<Step>
+
+```tsx title="src/app/balance-app/page.tsx"
+const fetchERC20Balances = async (address: string) => {
+  //
+  // TODO: Implement fetchERC20Balances
+  //
+};
+```
+
+`fetchERC20Balances` is a function that will make a call to our backend to get the user's ERC-20 token balances. It will first get the current block height, then call the `listErc20Balances` method on our backend with the user's address and the block height. It will then return the balances as an array of `Erc20TokenBalance` objects.
+
+</Step>
+</Steps>
+
+</Step>
+<Step>
+
+### `Route.ts`
+This code will be executed on the server side, as distinguished by `"use server";` at the top of the file. It contains the code that will be executed on the server side and is responsible for making the API calls to the Data API.
+
+There are a few key components to understand in this file:
+
+<Steps>
+<Step>
+```tsx title="src/app/api/balance/route.ts"
+import { AvaCloudSDK } from "@avalabs/avacloud-sdk";
+const avaCloudSDK = new AvaCloudSDK({
+  apiKey: process.env.AVACLOUD_API_KEY,
+  chainId: "43114", // Avalanche Mainnet
+  network: "mainnet",
+});
+```
+Here we initialize the `AvaCloudSDK` with our AvaCloud API key and the chainId of `43114` for the Avalanche Mainnet. This will allow us to make calls to the Data API.
+</Step>
+<Step>
+
+```tsx title="src/app/api/balance/route.ts"
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url)
+  const method = searchParams.get('method')
+  try {
+    let result
+    switch (method) {
+      case 'getBlockHeight':
+        result = await getBlockHeight()
+        break
+      case 'listErc20Balances':
+        const address: string = searchParams.get('address')!
+        const blockNumber: string = searchParams.get('blockNumber')!
+        result = await listErc20Balances(address, blockNumber);
+        break
+      default:
+        return NextResponse.json({ error: 'Invalid method' }, { status: 400 })
+    }
+    return NextResponse.json(result)
+  } catch (error) {
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
+  }
+}
+```
+Here we define the internal API methods for our backend. We have two methods that we will be working with in this section: `getBlockHeight` and `listErc20Balances`. We create both of these methods internally, then forward the request to the Data API. We then return the result to the client.
+</Step>
+<Step>
+```tsx title="src/app/api/balance/route.ts"
+async function getBlockHeight() {
+   //
+   // TODO: Implement getBlockHeight
+   //
+}
+async function listErc20Balances(address: string, blockNumber: string) {
+   //
+   // TODO: Implement listErc20Balances
+   //
+}
+```
+In the next section, we will implement the `listErc20Balances` and `getBlockHeight` function to call the Data API through the AvaCloudSDK.
+</Step>
+</Steps>
+</Step> 
+</Steps> 

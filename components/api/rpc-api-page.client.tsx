@@ -77,15 +77,15 @@ export function BodyFieldWithExpandedParams({
                 type={propSchema.type === 'integer' || propSchema.type === 'number' ? 'number' : 'text'}
                 value={(() => {
                   const pathParts = fieldPath.split('.');
-                  let currentVal = field.value;
+                  let value = field.value;
                   for (const part of pathParts) {
-                    if (currentVal && typeof currentVal === 'object' && part in currentVal) {
-                      currentVal = (currentVal as Record<string, any>)[part];
+                    if (value && typeof value === 'object' && part in value) {
+                      value = (value as Record<string, any>)[part];
                     } else {
                       return propSchema.default || '';
                     }
                   }
-                  return currentVal || '';
+                  return value || '';
                 })()}
                 onChange={(e) => {
                   const newValue = propSchema.type === 'integer' || propSchema.type === 'number'

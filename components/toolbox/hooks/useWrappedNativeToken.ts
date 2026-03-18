@@ -6,7 +6,7 @@ import WrappedNativeToken from '@/contracts/icm-contracts/compiled/WrappedNative
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { useERC20Token } from './useERC20Token';
 import type { ERC20TokenHook } from './useERC20Token';
-import { useWalletClient } from 'wagmi';
+import { useWallet } from './useWallet';
 
 export type WrappedNativeTokenHook = ERC20TokenHook & {
   deposit: (amount: string) => Promise<string>;
@@ -14,21 +14,21 @@ export type WrappedNativeTokenHook = ERC20TokenHook & {
 };
 
 export function useWrappedNativeToken(): WrappedNativeTokenHook {
-  const { walletEVMAddress } = useWalletStore();
+  const { coreWalletClient, walletEVMAddress } = useWalletStore();
   const viemChain = useViemChainStore();
   const contractAddress = useWrappedNativeTokenAddress();
   const { notify } = useConsoleNotifications();
-  const { data: walletClient } = useWalletClient();
+  const { avalancheWalletClient } = useWallet();
 
   // Use the generic ERC20 hook for standard ERC20 functions
   const erc20Token = useERC20Token(contractAddress, WrappedNativeToken.abi);
 
   const deposit = async (amount: string): Promise<string> => {
-    if (!walletClient || !contractAddress || !walletEVMAddress || !viemChain) {
+    if (!avalancheWalletClient || !contractAddress || !walletEVMAddress || !viemChain) {
       throw new Error('Wallet not connected or contract not ready');
     }
 
-    const writePromise = walletClient!.writeContract({
+    const writePromise = avalancheWalletClient.writeContract({
       address: contractAddress as `0x${string}`,
       abi: WrappedNativeToken.abi,
       functionName: 'deposit',
@@ -46,11 +46,11 @@ export function useWrappedNativeToken(): WrappedNativeTokenHook {
   };
 
   const withdraw = async (amount: string): Promise<string> => {
-    if (!walletClient || !contractAddress || !walletEVMAddress || !viemChain) {
+    if (!avalancheWalletClient || !contractAddress || !walletEVMAddress || !viemChain) {
       throw new Error('Wallet not connected or contract not ready');
     }
 
-    const writePromise = walletClient!.writeContract({
+    const writePromise = avalancheWalletClient.writeContract({
       address: contractAddress as `0x${string}`,
       abi: WrappedNativeToken.abi,
       functionName: 'withdraw',

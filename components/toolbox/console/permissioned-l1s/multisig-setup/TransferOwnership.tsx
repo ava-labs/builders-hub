@@ -5,6 +5,7 @@ import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/toolbox/components/Button";
 import { ResultField } from "@/components/toolbox/components/ResultField";
+import ValidatorManagerABI from "@/contracts/icm-contracts/compiled/ValidatorManager.json";
 import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput";
 import SelectSubnetId from "@/components/toolbox/components/SelectSubnetId";
 import { useValidatorManagerDetails } from "@/components/toolbox/hooks/useValidatorManagerDetails";
@@ -14,10 +15,9 @@ import { Info } from "lucide-react";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
 import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
+import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 import { Alert } from "@/components/toolbox/components/Alert";
-import { useValidatorManager } from "@/components/toolbox/hooks/contracts";
-import { useChainPublicClient } from "@/components/toolbox/hooks/useChainPublicClient";
 
 const metadata: ConsoleToolMetadata = {
     title: "Transfer Validator Manager Ownership",
@@ -34,9 +34,8 @@ export interface TransferOwnershipProps extends BaseConsoleToolProps {
 
 function TransferOwnership({ onSuccess, defaultNewOwnerAddress }: TransferOwnershipProps) {
     const [criticalError, setCriticalError] = useState<Error | null>(null);
-    const { walletEVMAddress } = useWalletStore();
-    const chainPublicClient = useChainPublicClient();
-    const { walletClient } = useConnectedWallet();
+    const { publicClient, walletEVMAddress } = useWalletStore();
+    const { coreWalletClient } = useConnectedWallet();
     const [isTransferring, setIsTransferring] = useState(false);
     const [selectedSubnetId, setSelectedSubnetId] = useState<string>('');
     const [newOwnerAddress, setNewOwnerAddress] = useState<string>(defaultNewOwnerAddress || '');
@@ -67,8 +66,7 @@ function TransferOwnership({ onSuccess, defaultNewOwnerAddress }: TransferOwners
         isLoadingOwnership,
         isOwnerContract
     } = validatorManagerData;
-
-    const validatorManager = useValidatorManager(validatorManagerAddress || null);
+    const { notify } = useConsoleNotifications();
     // Ownership check
     const isCurrentUserOwner = contractOwner && walletEVMAddress &&
         contractOwner.toLowerCase() === walletEVMAddress.toLowerCase();
@@ -83,7 +81,7 @@ function TransferOwnership({ onSuccess, defaultNewOwnerAddress }: TransferOwners
     // Check if new owner address is a contract
     useEffect(() => {
         const checkNewOwnerType = async () => {
-            if (!newOwnerAddress.trim() || !chainPublicClient) {
+            if (!newOwnerAddress.trim() || !publicClient) {
                 setIsNewOwnerContract(false);
                 setIsCheckingNewOwner(false);
                 return;
@@ -98,7 +96,7 @@ function TransferOwnership({ onSuccess, defaultNewOwnerAddress }: TransferOwners
 
             setIsCheckingNewOwner(true);
             try {
-                const bytecode = await chainPublicClient.getBytecode({
+                const bytecode = await publicClient.getBytecode({
                     address: newOwnerAddress as `0x${string}`
                 });
                 const isContract = !!bytecode && bytecode !== '0x';
@@ -113,16 +111,30 @@ function TransferOwnership({ onSuccess, defaultNewOwnerAddress }: TransferOwners
 
         const timeoutId = setTimeout(checkNewOwnerType, 500); // Debounce
         return () => clearTimeout(timeoutId);
-    }, [newOwnerAddress, chainPublicClient]);
+    }, [newOwnerAddress, publicClient]);
 
     async function handleTransferOwnership() {
         setIsTransferring(true);
-        if (!walletClient.account) {
+        if (!coreWalletClient.account) {
             throw new Error('No wallet account connected');
         }
         try {
-            const hash = await validatorManager.transferOwnership(newOwnerAddress);
-            const receipt = await chainPublicClient!.waitForTransactionReceipt({ hash: hash as `0x${string}` });
+            const transferPromise = coreWalletClient.writeContract({
+                address: validatorManagerAddress as `0x${string}`,
+                abi: ValidatorManagerABI.abi,
+                functionName: 'transferOwnership',
+                args: [newOwnerAddress],
+                account: coreWalletClient.account,
+                chain: viemChain ?? undefined,
+            });
+
+            notify({
+                type: 'call',
+                name: 'Transfer Ownership'
+            }, transferPromise, viemChain ?? undefined);
+
+            const hash = await transferPromise;
+            const receipt = await publicClient.waitForTransactionReceipt({ hash });
 
             if (!receipt.status || receipt.status !== 'success') {
                 throw new Error('Transfer failed');

@@ -1,0 +1,101 @@
+---
+title: Bringing Chainlink VRF to Unsupported L1s (Consumer)
+description: Learn how to request VRF from an unsupported L1 using CrossChainVRFConsumer.
+updated: 2024-10-21
+authors: [0xstt]
+icon: BookOpen
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+The `CrossChainVRFConsumer` contract enables DApps on an unsupported L1 to request random words from Chainlink VRF using a cross-chain communication mechanism. Since Chainlink does not natively support all blockchains, this setup allows developers to access Chainlink's VRF service even on networks that don’t have direct support.
+
+<Steps>
+<Step>
+
+## Requesting Random Words
+
+The `CrossChainVRFConsumer` contract sends a cross-chain message to the `CrossChainVRFWrapper` on a Chainlink-supported L1, requesting random words. This request is sent using `TeleporterMessenger`, which handles cross-chain communication.
+
+<Accordions>
+<Accordion title="Implementation">
+```solidity
+function requestRandomWords(
+    bytes32 keyHash,
+    uint16 requestConfirmations,
+    uint32 callbackGasLimit,
+    uint32 numWords,
+    bool nativePayment,
+    uint32 requiredGasLimit
+) external {
+    // Create CrossChainRequest struct
+    CrossChainRequest memory crossChainRequest = CrossChainRequest({
+        keyHash: keyHash,
+        requestConfirmations: requestConfirmations,
+        callbackGasLimit: callbackGasLimit,
+        numWords: numWords,
+        nativePayment: nativePayment
+    });
+    // Send Teleporter message
+    bytes memory encodedMessage = abi.encode(crossChainRequest);
+    TeleporterMessageInput memory messageInput = TeleporterMessageInput({
+        destinationBlockchainID: DATASOURCE_BLOCKCHAIN_ID, 
+        destinationAddress: vrfRequesterContract,
+        feeInfo: TeleporterFeeInfo({ feeTokenAddress: address(0), amount: 0 }),
+        requiredGasLimit: requiredGasLimit,
+        allowedRelayerAddresses: new address[](0),
+        message: encodedMessage
+    });
+    teleporterMessenger.sendCrossChainMessage(messageInput);
+}
+```
+</Accordion>
+</Accordions>
+
+</Step>
+
+<Step>
+
+## Processing the Request
+Once the request is received by the `CrossChainVRFWrapper`, it interacts with the Chainlink VRF Coordinator to request the random words on behalf of the consumer on the unsupported L1.
+
+</Step>
+
+<Step>
+
+## Receiving Random Words
+
+Once Chainlink fulfills the request, the `CrossChainVRFWrapper` sends the random words back to the `CrossChainVRFConsumer` via a cross-chain message, enabling the DApp on the unsupported L1 to use them.
+
+<Accordions>
+<Accordion title="Implementation">
+```solidity
+function receiveTeleporterMessage(
+    bytes32 originChainID,
+    address originSenderAddress,
+    bytes calldata message
+) external {
+    require(originChainID == DATASOURCE_BLOCKCHAIN_ID, "Invalid originChainID");
+    require(msg.sender == address(teleporterMessenger), "Caller is not the TeleporterMessenger");
+    require(originSenderAddress == vrfRequesterContract, "Invalid sender");
+    
+    // Decode the message to get the request ID and random words
+    CrossChainResponse memory response = abi.decode(message, (CrossChainResponse));
+    
+    // Fulfill the request by calling the internal function
+    fulfillRandomWords(response.requestId, response.randomWords);
+}
+
+function fulfillRandomWords(uint256 requestId, uint256[] memory randomWords) internal {
+    // Logic to handle the fulfillment of random words
+    // Implement your custom logic here
+
+    // Emit event for received random words
+    emit RandomWordsReceived(requestId);
+}
+```
+</Accordion>
+</Accordions>
+
+</Step>
+</Steps>

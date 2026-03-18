@@ -188,8 +188,7 @@ export default function HackathonPage() {
       ],
       resources: [
         { name: 'InterChain Messaging', url: 'https://academy.avax.network/course/interchain-messaging' },
-        { name: 'ERC20 Bridge', url: 'https://academy.avax.network/course/erc20-bridge' },
-        { name: 'Native Token Bridge', url: 'https://academy.avax.network/course/native-token-bridge' },
+        { name: 'InterChain Token Transfer', url: 'https://academy.avax.network/course/interchain-token-transfer' },
         { name: 'Cross-Chain Communication', url: 'https://build.avax.network/docs/build/avalanchego/cross-chain' }
       ]
     },
@@ -282,7 +281,12 @@ export default function HackathonPage() {
               </p>
               <div className="mb-6">
                 <p className="text-lg text-gray-600 dark:text-gray-400">
-                  Top participants may earn access to exclusive resources, mentorship, and ecosystem partnerships.
+                  Top participants may earn a fast track interview in the{" "}
+                  <Link href="https://codebase.avax.network/" passHref>
+                    <strong className="text-yellow-500 hover:underline">
+                    Codebase Incubator Program
+                    </strong>
+                  </Link>, gaining access to exclusive resources and mentorship.
                 </p>
               </div>
             </div>

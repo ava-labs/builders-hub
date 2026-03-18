@@ -3,7 +3,6 @@
 import { Track } from "@/types/hackathons";
 import { DynamicIcon } from "lucide-react/dynamic";
 import React from "react";
-import { sanitizeHtml } from "@/utils/sanitizeMarkdown";
 
 type Props = {
   track: Track | null;
@@ -24,7 +23,7 @@ export default function TrackDialogContent({ track }: Props) {
     formatted = formatted.replace(/\n\n/g, '</p><p class="mb-4 text-zinc-50">');
     formatted = formatted.replace(/\n/g, '<br/>');
     formatted = `<p class="mb-4 text-zinc-50">${formatted}</p>`;
-    return sanitizeHtml(formatted);
+    return formatted;
   };
 
   return (

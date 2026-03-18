@@ -1,0 +1,40 @@
+---
+title: Send a Message
+description: Send your first Cross-Chain message with Teleporter.
+updated: 2024-05-31
+authors: [martineckardt]
+icon: Terminal
+---
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+The final step, is to send the message between the two chains. Assuming everything went smooth so far, your local C-chain and your Avalanche L1 will have their corresponding parts of the sender/receiver deployed on them.
+
+<Steps>
+<Step>
+
+### Send a Message
+
+```bash
+cast send --rpc-url fuji-c --private-key $PK $SENDER_ADDRESS "sendMessage(address,string)" $RECEIVER_ADDRESS "Hello"
+```
+
+A relayer will now take the message and deliver it to the destination.
+
+</Step>
+<Step>
+
+### Verify Message was Received
+
+Now let's check if the "Hello" string sent from our C-chain was actually stored properly on the `lastMessage` variable on our Avalanche L1. Run the following command replacing the receiver contract address.
+
+```bash
+cast call --rpc-url fuji-dispatch $RECEIVER_ADDRESS "lastMessage()(string)"
+```
+
+If the output says `Hello` then the message was successfully delivered and processed.
+
+</Step>
+</Steps>
+
+
+Congratulations 🎉 You have just sent your first cross-chain message. This will be one of many to come!

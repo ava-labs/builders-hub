@@ -54,9 +54,7 @@ export async function createDbNode(params: {
   const { userId, subnetId, blockchainId, newestNode, chainName } = params;
 
   const existingNode = await prisma.nodeRegistration.findFirst({
-    // Only treat nodes as "existing" if they're still within the 3-day TTL window.
-    // We intentionally do NOT mutate rows to mark them expired; expiry is time-based via `expires_at`.
-    where: { user_id: userId, subnet_id: subnetId, node_index: newestNode.nodeIndex, expires_at: { gt: new Date() } }
+    where: { user_id: userId, subnet_id: subnetId, node_index: newestNode.nodeIndex }
   });
   // If an inactive record exists for this index, revive/update it instead of conflicting
   if (existingNode && existingNode.status !== 'active') {
@@ -105,10 +103,8 @@ export async function createDbNode(params: {
 }
 
 export async function getUserNodes(userId: string) {
-  // Fetch only active nodes that are still within the TTL window.
-  // We intentionally do NOT mutate rows to mark them expired; expiry is time-based via `expires_at`.
   const nodes = await prisma.nodeRegistration.findMany({
-    where: { user_id: userId, status: 'active', expires_at: { gt: new Date() } },
+    where: { user_id: userId, status: 'active' },
     orderBy: { created_at: 'desc' }
   });
   return nodes;

@@ -1,0 +1,58 @@
+---
+title: Scaling with TokenRemote
+description: Learn how to handle token scaling with TokenRemote contracts when bridging assets with different decimal systems.
+updated: 2024-10-04
+authors: [owenwahlgren]
+icon: Calculator
+---
+
+## Math Example
+
+Token scaling is a crucial part of cross-chain token transfers, especially when dealing with varying decimal denominations between the home and remote assets. This chapter will provide a math example to demonstrate how the scaling works with `TokenRemote` contracts.
+
+In this example, let's assume we are bridging an ERC-20 token from a home chain where the token uses 6 decimal places to a remote chain as the native token that uses 18 decimal places (e.g., USDC on Avalanche). 
+
+The key variables here are:
+- `_homeTokenDecimals = 6`
+- `_tokenDecimals = 18`
+- `_tokenMultiplier` is calculated as:
+
+<Mermaid chart={`
+sequenceDiagram
+    participant Home as TokenHome.sol (_homeTokenDecimals)
+    participant Remote as TokenRemote.sol (_tokenDecimals)
+    participant Multiplier as Token Multiplier (_tokenMultiplier)
+    
+    Home->>Remote: Calculate _tokenDecimals - _homeTokenDecimals
+    Remote->>Multiplier: 18 - 6 = 12
+    Multiplier-->>Multiplier: 10^12
+`} />
+
+This multiplier helps scale the token amounts when transferring between chains.
+
+### Scenario 1: Transferring from Home (6 decimals) to Remote (18 decimals)
+
+When transferring tokens from the home chain (6 decimals) to the remote chain (18 decimals), the token amount is multiplied by `_tokenMultiplier` to normalize the denomination. If `multiplyOnRemote = true`, we perform the following:
+
+For example, if we transfer **100 USDC** (which is represented as `100 × 10^6` in the 6-decimal system), it will be scaled as follows on the remote chain:
+
+```
+100 × 10^6 × 10^{12} = 100 × 10^{18}
+```
+Thus, the value on the remote chain would be 100 × 10^{18}, equivalent to 100 USDC in 18 decimals.
+
+### Scenario 2: Transferring from Remote (18 decimals) to Home (6 decimals)
+
+When transferring tokens back from the remote chain (18 decimals) to the home chain (6 decimals), the token amount is divided by `_tokenMultiplier`. If `multiplyOnRemote = true`, the reverse scaling applies:
+
+For example, transferring `100 × 10^{18}` (which is 100 USDC in the 18-decimal system) back to the home chain would scale down:
+
+```
+100 × 10^{18} ÷ 10^{12} = 100 × 10^6
+```
+
+This results in 100 × 10^6 USDC, which correctly represents 100 USDC in the 6-decimal system.
+
+By applying this multiplier, tokens retain their value across chains with different decimal systems.
+
+<Quiz quizId="126" />

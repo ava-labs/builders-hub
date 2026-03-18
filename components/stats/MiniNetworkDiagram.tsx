@@ -70,7 +70,7 @@ interface Particle {
   speed: number;
 }
 
-// Generate consistent color from string (fallback)
+// Generate consistent color from string
 function stringToColor(str: string): string {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
@@ -153,10 +153,15 @@ export default function MiniNetworkDiagram({
   
   const [dimensions, setDimensions] = useState({ width: containerSize, height: containerSize });
   const [hoveredNode, setHoveredNode] = useState<ChainNode | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const [dpr, setDpr] = useState(1); // Device pixel ratio for Retina/HiDPI support
-
-  // Extra space at bottom for buttons
+  
+  // Extra space at bottom for buttons and hint text
   const BOTTOM_CONTROLS_HEIGHT = 60;
+  
+  const dragStartRef = useRef({ x: 0, y: 0 });
+  const lastDragPosRef = useRef({ x: 0, y: 0 });
+  const dragVelocityRef = useRef({ x: 0, y: 0 });
 
   // Helper to proxy external images through Next.js image optimization to avoid CORS
   const getProxiedImageUrl = useCallback((url: string): string => {
@@ -255,7 +260,7 @@ export default function MiniNetworkDiagram({
       const angleOffset = ringIndex * (Math.PI / 5); // Offset each ring
       
       const x = centerX + Math.cos(angle + angleOffset) * ringRadius;
-      const y = centerY + Math.sin(angle + angleOffset) * ringRadius * 0.92; // Subtle ellipse
+      const y = centerY + Math.sin(angle + angleOffset) * ringRadius * 0.85; // Slightly elliptical
       
       // Size based on validator count (normalized)
       const validatorRatio = chain.validatorCount ? Math.sqrt(chain.validatorCount / maxValidators) : 0.3;
@@ -329,6 +334,26 @@ export default function MiniNetworkDiagram({
       });
     }
     
+    // Fallback: if no ICM data or very few connections, connect to primary
+    if (connections.length < 5) {
+      const primaryIndex = nodes.findIndex(n => n.isPrimary);
+      if (primaryIndex >= 0) {
+        nodes.forEach((_, index) => {
+          if (index !== primaryIndex && !connections.some(c => 
+            (c.from === primaryIndex && c.to === index) || 
+            (c.from === index && c.to === primaryIndex)
+          )) {
+            connections.push({
+              from: primaryIndex,
+              to: index,
+              opacity: 0.12,
+              messageCount: 0,
+            });
+          }
+        });
+      }
+    }
+    
     return connections;
   }, []);
 
@@ -345,13 +370,13 @@ export default function MiniNetworkDiagram({
         : 1;
       
       // Faster particles for higher traffic
-      const baseSpeed = 0.002 + ratio * 0.004;
-
+      const baseSpeed = 0.001 + ratio * 0.002;
+      
       for (let i = 0; i < count; i++) {
         particles.push({
           connectionIndex: index,
           progress: Math.random(),
-          speed: baseSpeed + Math.random() * 0.002,
+          speed: baseSpeed + Math.random() * 0.001,
         });
       }
     });
@@ -445,12 +470,29 @@ export default function MiniNetworkDiagram({
       ctx.resetTransform();
       ctx.scale(dpr, dpr);
 
-      // Calculate rotation - auto-rotate, pause when hovering
+      // Calculate rotation
       let deltaRotation = 0;
+
+      // Pause movement when hovering a chain
       const isHovering = hoveredNodeRef.current !== null;
 
-      if (!isHovering && autoRotate) {
-        deltaRotation = autoRotateSpeed * 0.01;
+      if (isDragging) {
+        // While dragging, apply drag velocity directly for responsive rotation
+        deltaRotation = dragVelocityRef.current.x * 0.02;
+      } else if (!isHovering) {
+        // When not dragging and not hovering, apply auto-rotation
+        if (autoRotate) {
+          deltaRotation = autoRotateSpeed * 0.01;
+        }
+
+        // Apply momentum decay after release
+        if (Math.abs(dragVelocityRef.current.x) > 0.01) {
+          deltaRotation += dragVelocityRef.current.x * 0.015;
+          dragVelocityRef.current = {
+            x: dragVelocityRef.current.x * 0.96,
+            y: dragVelocityRef.current.y * 0.96
+          };
+        }
       }
 
       rotationRef.current += deltaRotation;
@@ -470,57 +512,57 @@ export default function MiniNetworkDiagram({
       const nodes = nodesRef.current;
       const connections = connectionsRef.current;
 
-      // Draw connections with category colors
+      // Draw connections
       connections.forEach((conn, i) => {
         const fromNode = nodes[conn.from];
         const toNode = nodes[conn.to];
         if (!fromNode || !toNode) return;
 
         const pulse = 0.6 + 0.2 * Math.sin(time * 1.5 + i * 0.5);
-
+        
         ctx.beginPath();
         ctx.moveTo(fromNode.x, fromNode.y);
         ctx.lineTo(toNode.x, toNode.y);
-
+        
         const gradient = ctx.createLinearGradient(
           fromNode.x, fromNode.y, toNode.x, toNode.y
         );
-        const baseOpacity = conn.opacity * pulse * 1.5;
+        const baseOpacity = conn.opacity * pulse * 1.5; // More visible
         gradient.addColorStop(0, toRgba(fromNode.color, baseOpacity));
         gradient.addColorStop(0.5, toRgba(fromNode.color, baseOpacity * 0.6));
         gradient.addColorStop(1, toRgba(toNode.color, baseOpacity));
-
+        
         ctx.strokeStyle = gradient;
         ctx.lineWidth = 1.5;
         ctx.stroke();
       });
 
-      // Draw particles with category colors
+      // Draw particles
       particlesRef.current.forEach((particle) => {
         const conn = connections[particle.connectionIndex];
         if (!conn) return;
-
+        
         const fromNode = nodes[conn.from];
         const toNode = nodes[conn.to];
         if (!fromNode || !toNode) return;
-
+        
         const x = fromNode.x + (toNode.x - fromNode.x) * particle.progress;
         const y = fromNode.y + (toNode.y - fromNode.y) * particle.progress;
-
+        
         // Interpolate color along the connection
         const particleColor = particle.progress < 0.5 ? fromNode.color : toNode.color;
-
+        
         // Particle glow
         ctx.beginPath();
         ctx.arc(x, y, 5, 0, Math.PI * 2);
         ctx.fillStyle = toRgba(particleColor, 0.2);
         ctx.fill();
-
+        
         ctx.beginPath();
         ctx.arc(x, y, 3, 0, Math.PI * 2);
         ctx.fillStyle = toRgba(particleColor, 0.5);
         ctx.fill();
-
+        
         ctx.beginPath();
         ctx.arc(x, y, 1.5, 0, Math.PI * 2);
         ctx.fillStyle = toRgba(particleColor, 0.9);
@@ -538,132 +580,131 @@ export default function MiniNetworkDiagram({
         const scale = isHovered ? 1.15 : 1;
         const radius = node.radius * scale;
 
-        // TPS-based pulse wave effect (expanding rings) - uses category color
+        // TPS-based pulse wave effect (expanding rings)
         const tpsRatio = Math.sqrt((node.tps || 0) / maxTps);
-
+        
         // Draw pulse waves for ANY chain with TPS > 0 (normalized relative to others)
         if ((node.tps || 0) > 0) {
-          const pulseSpeed = 0.6 + tpsRatio * 2.0;
+          const pulseSpeed = 0.6 + tpsRatio * 2.0; // Match NetworkDiagram speed
+          // Dynamic wave count: min 3, max 6, scaled by TPS ratio
           const minWaves = 3;
           const maxWaves = 6;
           const minDistance = 18;
           const maxDistance = 32;
           const fadeCurve = 1.5;
           const numWaves = Math.round(minWaves + tpsRatio * (maxWaves - minWaves));
-
+          
           for (let w = 0; w < numWaves; w++) {
+            // Each wave is offset in phase (evenly distributed)
             const wavePhase = (time * pulseSpeed + w * (Math.PI * 2 / numWaves)) % (Math.PI * 2);
-            const waveProgress = wavePhase / (Math.PI * 2);
-
+            const waveProgress = wavePhase / (Math.PI * 2); // 0 to 1
+            
+            // Wave expands from chain edge outward
             const waveRadius = radius + waveProgress * (minDistance + tpsRatio * (maxDistance - minDistance));
+            // Wave fades out as it expands
             const waveAlpha = Math.pow(1 - waveProgress, fadeCurve) * (0.35 + tpsRatio * 0.25);
-
+            
             if (waveAlpha > 0.02) {
               ctx.beginPath();
               ctx.arc(node.x, node.y, waveRadius, 0, Math.PI * 2);
               ctx.strokeStyle = toRgba(node.color, waveAlpha);
-              ctx.lineWidth = 1.5 + (1 - waveProgress) * 1.5;
+              ctx.lineWidth = 1.5 + (1 - waveProgress) * 1.5; // Thicker at start, thinner as expands
               ctx.stroke();
             }
           }
         }
 
-        // Glow behind logo for contrast/visibility
-        const glowRadius = radius * 1.4;
-        const glowGradient = ctx.createRadialGradient(
-          node.x, node.y, radius * 0.3,
-          node.x, node.y, glowRadius
-        );
-        if (isDarkMode) {
-          // Dark mode: soft white glow for contrast
-          glowGradient.addColorStop(0, isHovered ? 'rgba(255, 255, 255, 0.25)' : 'rgba(255, 255, 255, 0.15)');
-          glowGradient.addColorStop(0.5, isHovered ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.05)');
+        // Outer glow
+        if (isHovered || node.isPrimary) {
+          const glowRadius = radius + (node.isPrimary ? 18 : 14);
+          const glowGradient = ctx.createRadialGradient(
+            node.x, node.y, radius * 0.5,
+            node.x, node.y, glowRadius
+          );
+          glowGradient.addColorStop(0, toRgba(node.color, node.isPrimary ? 0.4 : 0.3));
+          glowGradient.addColorStop(0.5, toRgba(node.color, 0.15));
           glowGradient.addColorStop(1, 'transparent');
-        } else {
-          // Light mode: soft shadow for depth
-          glowGradient.addColorStop(0, isHovered ? 'rgba(0, 0, 0, 0.08)' : 'rgba(0, 0, 0, 0.04)');
-          glowGradient.addColorStop(0.5, isHovered ? 'rgba(0, 0, 0, 0.03)' : 'rgba(0, 0, 0, 0.015)');
-          glowGradient.addColorStop(1, 'transparent');
+          ctx.beginPath();
+          ctx.arc(node.x, node.y, glowRadius, 0, Math.PI * 2);
+          ctx.fillStyle = glowGradient;
+          ctx.fill();
         }
+
+        // Node circle - more vibrant fill
         ctx.beginPath();
-        ctx.arc(node.x, node.y, glowRadius, 0, Math.PI * 2);
-        ctx.fillStyle = glowGradient;
+        ctx.arc(node.x, node.y, radius, 0, Math.PI * 2);
+        ctx.fillStyle = toRgba(node.color, isHovered ? 0.25 : 0.15);
         ctx.fill();
 
-        // Logo - clipped to circle, scaled to fit
+        // White inner fill for logo contrast
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, radius * 0.85, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+        ctx.fill();
+
+        // Border - vibrant color
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, radius, 0, Math.PI * 2);
+        ctx.strokeStyle = isHovered 
+          ? toRgba(node.color, 1) 
+          : toRgba(node.color, 0.8);
+        ctx.lineWidth = isHovered ? 3 : 2.5;
+        ctx.stroke();
+
+        // Logo
         const logoImg = logoImagesRef.current.get(node.id);
         if (logoImg && logoImg.complete && logoImg.naturalWidth > 0) {
+          const logoSize = radius * 1.3;
           ctx.save();
           ctx.beginPath();
-          ctx.arc(node.x, node.y, radius, 0, Math.PI * 2);
+          ctx.arc(node.x, node.y, radius * 0.7, 0, Math.PI * 2);
           ctx.clip();
-
-          // Scale logo to cover the circle (like CSS object-fit: cover)
-          const imgAspect = logoImg.naturalWidth / logoImg.naturalHeight;
-          const targetSize = radius * 2; // Diameter of circle
-          let drawWidth, drawHeight;
-
-          if (imgAspect > 1) {
-            // Wider than tall - fit height, crop width
-            drawHeight = targetSize;
-            drawWidth = targetSize * imgAspect;
-          } else {
-            // Taller than wide - fit width, crop height
-            drawWidth = targetSize;
-            drawHeight = targetSize / imgAspect;
-          }
-
           ctx.drawImage(
             logoImg,
-            node.x - drawWidth / 2,
-            node.y - drawHeight / 2,
-            drawWidth,
-            drawHeight
+            node.x - logoSize / 2,
+            node.y - logoSize / 2,
+            logoSize,
+            logoSize
           );
           ctx.restore();
         } else {
-          // Fallback: simple circle with letter
-          ctx.beginPath();
-          ctx.arc(node.x, node.y, radius * 0.8, 0, Math.PI * 2);
-          ctx.fillStyle = isDarkMode ? 'rgba(63, 63, 70, 0.9)' : 'rgba(228, 228, 231, 0.9)';
-          ctx.fill();
-
-          ctx.font = `bold ${radius * 1.0}px Inter, system-ui, sans-serif`;
+          // Fallback letter
+          ctx.font = `bold ${radius * 0.8}px Inter, system-ui, sans-serif`;
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
-          ctx.fillStyle = isDarkMode ? 'rgba(228, 228, 231, 0.9)' : 'rgba(63, 63, 70, 0.9)';
+          ctx.fillStyle = toRgba(node.color, 0.9);
           ctx.fillText(node.name.charAt(0), node.x, node.y);
         }
 
-        // Label (skip for primary/center node)
-        if (!node.isPrimary) {
-          const labelY = node.y + radius + 12;
-          ctx.font = `${isHovered ? 'bold ' : ''}${Math.max(9, Math.min(11, radius / 2))}px Inter, system-ui, sans-serif`;
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-
-          // Theme-aware text color with shadow for readability
-          if (isDarkMode) {
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-            ctx.shadowBlur = 4;
-            ctx.shadowOffsetX = 0;
-            ctx.shadowOffsetY = 1;
-            ctx.fillStyle = isHovered ? 'rgba(255, 255, 255, 1)' : 'rgba(255, 255, 255, 0.9)';
-          } else {
-            ctx.shadowColor = 'rgba(255, 255, 255, 0.8)';
-            ctx.shadowBlur = 3;
-            ctx.shadowOffsetX = 0;
-            ctx.shadowOffsetY = 1;
-            ctx.fillStyle = isHovered ? 'rgba(30, 30, 50, 1)' : 'rgba(30, 30, 50, 0.9)';
-          }
-          ctx.fillText(node.name, node.x, labelY);
-
-          // Reset shadow
-          ctx.shadowColor = 'transparent';
-          ctx.shadowBlur = 0;
+        // Label
+        const labelY = node.y + radius + 12;
+        ctx.font = `${isHovered ? 'bold ' : ''}${Math.max(9, Math.min(11, radius / 2))}px Inter, system-ui, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        
+        // Theme-aware text color with shadow for readability
+        if (isDarkMode) {
+          // Dark mode: light text with dark shadow
+          ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+          ctx.shadowBlur = 4;
           ctx.shadowOffsetX = 0;
-          ctx.shadowOffsetY = 0;
+          ctx.shadowOffsetY = 1;
+          ctx.fillStyle = isHovered ? toRgba(node.color, 1) : 'rgba(255, 255, 255, 0.9)';
+        } else {
+          // Light mode: dark text with light shadow
+          ctx.shadowColor = 'rgba(255, 255, 255, 0.8)';
+          ctx.shadowBlur = 3;
+          ctx.shadowOffsetX = 0;
+          ctx.shadowOffsetY = 1;
+          ctx.fillStyle = isHovered ? toRgba(node.color, 1) : 'rgba(30, 30, 50, 0.9)';
         }
+        ctx.fillText(node.name, node.x, labelY);
+        
+        // Reset shadow
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
       });
 
       animationRef.current = requestAnimationFrame(draw);
@@ -676,7 +717,7 @@ export default function MiniNetworkDiagram({
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [dimensions, autoRotate, autoRotateSpeed, simulatePhysics, isDarkMode, dpr]);
+  }, [dimensions, isDragging, autoRotate, autoRotateSpeed, simulatePhysics, isDarkMode, dpr]);
 
   // Mouse/touch handlers
   const getNodeAtPosition = useCallback((x: number, y: number): number | null => {
@@ -700,10 +741,17 @@ export default function MiniNetworkDiagram({
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
+    if (isDragging) {
+      const dx = x - lastDragPosRef.current.x;
+      dragVelocityRef.current = { x: dx, y: 0 };
+      lastDragPosRef.current = { x, y };
+      return;
+    }
+
     const nodeIndex = getNodeAtPosition(x, y);
     hoveredNodeRef.current = nodeIndex;
     setHoveredNode(nodeIndex !== null ? nodesRef.current[nodeIndex] : null);
-  }, [getNodeAtPosition]);
+  }, [isDragging, getNodeAtPosition]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
@@ -714,7 +762,7 @@ export default function MiniNetworkDiagram({
     const y = e.clientY - rect.top;
 
     const nodeIndex = getNodeAtPosition(x, y);
-
+    
     if (nodeIndex !== null) {
       const node = nodesRef.current[nodeIndex];
       if (node.link) {
@@ -723,15 +771,25 @@ export default function MiniNetworkDiagram({
         const chain = chains.find(c => c.id === node.id);
         if (chain) onChainClick(chain);
       }
+    } else {
+      setIsDragging(true);
+      dragStartRef.current = { x, y };
+      lastDragPosRef.current = { x, y };
+      dragVelocityRef.current = { x: 0, y: 0 };
     }
   }, [getNodeAtPosition, chains, onChainClick]);
 
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
   const handleMouseLeave = useCallback(() => {
+    setIsDragging(false);
     hoveredNodeRef.current = null;
     setHoveredNode(null);
   }, []);
 
-  // Touch handlers - only handle taps on nodes
+  // Touch handlers
   const handleTouchStart = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -742,7 +800,7 @@ export default function MiniNetworkDiagram({
     const y = touch.clientY - rect.top;
 
     const nodeIndex = getNodeAtPosition(x, y);
-
+    
     if (nodeIndex !== null) {
       const node = nodesRef.current[nodeIndex];
       if (node.link) {
@@ -751,8 +809,32 @@ export default function MiniNetworkDiagram({
         const chain = chains.find(c => c.id === node.id);
         if (chain) onChainClick(chain);
       }
+    } else {
+      setIsDragging(true);
+      dragStartRef.current = { x, y };
+      lastDragPosRef.current = { x, y };
     }
   }, [getNodeAtPosition, chains, onChainClick]);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
+    if (!isDragging) return;
+    
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const touch = e.touches[0];
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top;
+
+    const dx = x - lastDragPosRef.current.x;
+    dragVelocityRef.current = { x: dx, y: 0 };
+    lastDragPosRef.current = { x, y };
+  }, [isDragging]);
+
+  const handleTouchEnd = useCallback(() => {
+    setIsDragging(false);
+  }, []);
 
   if (chains.length === 0) {
     return (
@@ -798,15 +880,19 @@ export default function MiniNetworkDiagram({
         width={dimensions.width * dpr}
         height={dimensions.height * dpr}
         style={{ width: dimensions.width, height: dimensions.height }}
-        className={`${hoveredNode ? 'cursor-pointer' : 'cursor-default'}`}
+        className={`${isDragging ? 'cursor-grabbing' : hoveredNode ? 'cursor-pointer' : 'cursor-grab'} touch-none`}
         onMouseMove={handleMouseMove}
         onMouseDown={handleMouseDown}
+        onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseLeave}
         onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchEnd}
       />
       
       {/* Hover tooltip */}
-      {hoveredNode && (
+      {hoveredNode && !hoveredNode.isPrimary && (
         <div 
           className="absolute pointer-events-none z-50 px-2.5 py-1.5 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-sm border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg"
           style={{
@@ -821,20 +907,25 @@ export default function MiniNetworkDiagram({
         </div>
       )}
       
-      {/* Bottom bar with CTAs */}
-      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-2">
-        <a
-          href="/stats/overview"
-          className="px-3 py-1.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-full text-[11px] font-medium hover:opacity-80 transition-opacity"
-        >
-          View Stats
-        </a>
-        <a
-          href="/explorer"
-          className="px-3 py-1.5 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-full text-[11px] font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-        >
-          Explorer
-        </a>
+      {/* Bottom bar with CTAs and hint */}
+      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2">
+        <div className="flex items-center gap-2">
+          <a 
+            href="/stats/overview" 
+            className="px-3 py-1.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-full text-[11px] font-medium hover:opacity-80 transition-opacity"
+          >
+            View Stats
+          </a>
+          <a 
+            href="/explorer"
+            className="px-3 py-1.5 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-full text-[11px] font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+          >
+            Explorer
+          </a>
+        </div>
+        <span className="text-[10px] text-zinc-400 dark:text-zinc-500">
+          Drag to rotate
+        </span>
       </div>
     </div>
   );

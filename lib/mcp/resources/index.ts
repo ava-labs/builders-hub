@@ -1,1 +1,0 @@
-export { docsResources } from './docs';

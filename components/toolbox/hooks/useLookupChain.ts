@@ -1,8 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import { useWallet } from './useWallet';
 import { utils } from "@avalabs/avalanchejs";
-import { getBlockchainInfo, getChainDetails } from '../coreViem/utils/glacier';
+import { getBlockchainInfo } from '../coreViem/utils/glacier';
 
 interface LookupResult {
     rpcUrl: string;
@@ -13,11 +14,12 @@ export function useLookupChain() {
     const [anyChainId, setAnyChainId] = useState("");
     const [error, setError] = useState("");
     const [isLookingUp, setIsLookingUp] = useState(false);
+    const { switchChain, client: coreWalletClient } = useWallet();
 
     const lookup = async (): Promise<LookupResult | null> => {
         setError("");
         setIsLookingUp(true);
-
+        
         try {
             let evmChainId: number;
 
@@ -35,12 +37,18 @@ export function useLookupChain() {
                 }
             }
 
-            // Use Glacier API to get chain details instead of Core-specific getEthereumChain
-            const chainDetails = await getChainDetails(String(evmChainId));
+            await switchChain(evmChainId);
+            
+            // Get chain info and verify the switch was successful
+            const evmInfo = await coreWalletClient!.getEthereumChain();
+            if (parseInt(evmInfo.chainId, 16) !== evmChainId) {
+                setError("Chain not found in wallet.");
+                return null;
+            }
 
             return {
-                rpcUrl: chainDetails.rpcUrl,
-                coinName: chainDetails.networkToken?.symbol || chainDetails.networkToken?.name || 'COIN'
+                rpcUrl: evmInfo.rpcUrls[0],
+                coinName: evmInfo.nativeCurrency.name
             };
         } catch (e) {
             console.error("Failed to lookup chain:", e);

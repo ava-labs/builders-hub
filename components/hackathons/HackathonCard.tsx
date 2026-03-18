@@ -1,4 +1,4 @@
-import { Trophy, Tag } from "lucide-react";
+import { Trophy, UserRound } from "lucide-react";
 import { CalendarIcon } from "lucide-react";
 import { MapPinIcon } from "lucide-react";
 import Image from "next/image";
@@ -8,39 +8,23 @@ import { Button } from "../ui/button";
 import HackathonStatus from "./hackathon/HackathonStatus";
 import { Badge } from "../ui/badge";
 
-function labelForEventType(eventType: string) {
-  if (eventType === "hackathon") return "Hackathon";
-  if (eventType === "workshop") return "Workshop";
-  if (eventType === "bootcamp") return "Bootcamp";
-  return eventType.charAt(0).toUpperCase() + eventType.slice(1);
-}
-
 export default function HackathonCard({
   hackathon,
-  basePath = '/hackathons',
 }: {
   hackathon: HackathonHeader;
-  basePath?: string;
 }) {
-  const BUILD_GAMES_HACKATHON_ID = '249d2911-7931-4aa0-a696-37d8370b79f9';
-  const eventType = (hackathon.event || 'hackathon').toLowerCase();
-  const isHackathon = eventType === 'hackathon';
-  const getHackathonLink = () => {
-    if (hackathon.id === BUILD_GAMES_HACKATHON_ID) {
-      return '/build-games';
-    }
-    // For workshops or bootcamps, use /events as the base path
-    const isWorkshopOrBootcamp = eventType === 'workshop' || eventType === 'bootcamp';
-    const defaultPath = isWorkshopOrBootcamp ? '/events' : basePath;
-    return hackathon.custom_link || `${defaultPath}/${hackathon.id}`;
-  };
-
   return (
     <div
       key={hackathon.id}
-      className="flex rounded-lg shadow-lg h-[400px] md:h-[340px] border border-zinc-300 dark:border-transparent"
-    >
-      <Link href={getHackathonLink()}>
+      className="flex rounded-lg shadow-lg h-400px md:h-[340px] border border-zinc-300 dark:border-transparent"
+    >      
+      <Link
+        href={
+          hackathon.custom_link
+            ? hackathon.custom_link
+            : `/hackathons/${hackathon.id}`
+        }
+      >
         <Image
           src={
             hackathon.small_banner?.trim().length > 0
@@ -48,9 +32,9 @@ export default function HackathonCard({
               : "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/hackathon-images/hackathon-mock-dgUJCbkFtJZtWgg7zxIAATwEnCntMt.png"
           }
           alt="Avalanche Logo"
-          className="rounded-l-md hidden md:block h-full w-[200px] object-cover"
+          className="rounded-l-md hidden md:block h-full"
           width={200}
-          height={340}
+          height={280}
         />
       </Link>
 
@@ -97,18 +81,16 @@ export default function HackathonCard({
           </p>
         </div>
         <div className="flex flex-wrap gap-y-2 justify-around items-center text-gray-300 text-sm py-[10px]">
-          {isHackathon && (
-            <div className="flex items-center gap-1 md:gap-2">
-              <Trophy className="h-4 w-4 dark:stroke-zinc-50 stroke-zinc-900" />
-              <span className="font-medium dark:text-zinc-50 text-zinc-900">
-                ${(hackathon.total_prizes ?? 0).toLocaleString("en-US")}
-              </span>
-            </div>
-          )}
           <div className="flex items-center gap-1 md:gap-2">
-            <Tag className="h-4 w-4 dark:stroke-zinc-50 stroke-zinc-900" />
+            <Trophy className="h-4 w-4 dark:stroke-zinc-50 stroke-zinc-900" />
             <span className="font-medium dark:text-zinc-50 text-zinc-900">
-              {labelForEventType(eventType)}
+              ${hackathon.total_prizes.toLocaleString("en-US")}
+            </span>
+          </div>
+          <div className="flex items-center gap-1 md:gap-2">
+            <UserRound className="h-4 w-4 dark:stroke-zinc-50 stroke-zinc-900" />
+            <span className="font-medium dark:text-zinc-50 text-zinc-900">
+              {hackathon.participants}
             </span>
           </div>
           <div className="flex items-center gap-1 md:gap-2">
@@ -121,7 +103,11 @@ export default function HackathonCard({
         <Button asChild variant="red" className="w-full py-2 px-4">
           <Link
             className="text-sm text-zinc-50"
-            href={getHackathonLink()}
+            href={
+              hackathon.custom_link
+                ? hackathon.custom_link
+                : `/hackathons/${hackathon.id}`
+            }
             target={hackathon.custom_link ? "_blank" : "_self"}
           >
             LEARN MORE

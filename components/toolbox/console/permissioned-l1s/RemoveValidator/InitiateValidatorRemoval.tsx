@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { Button } from '@/components/toolbox/components/Button';
 import SelectValidationID, { ValidationSelection } from '@/components/toolbox/components/SelectValidationID';
+import validatorManagerAbi from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
 import { Success } from '@/components/toolbox/components/Success';
 import { Alert } from '@/components/toolbox/components/Alert';
 import { MultisigOption } from '@/components/toolbox/components/MultisigOption';
-import { useValidatorManager } from '@/components/toolbox/hooks/contracts';
-import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
+import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 
 interface InitiateValidatorRemovalProps {
   subnetId: string;
@@ -33,15 +34,13 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
   initialValidationId,
   ownershipState,
 }) => {
-  const { walletEVMAddress: connectedAddress } = useWalletStore();
-  const chainPublicClient = useChainPublicClient();
+  const { coreWalletClient, publicClient } = useWalletStore();
+  const viemChain = useViemChainStore();
+  const { notify } = useConsoleNotifications();
   const [validation, setValidation] = useState<ValidationSelection>({
     validationId: initialValidationId || '',
     nodeId: initialNodeId || ''
   });
-
-  // Initialize validator manager hook
-  const validatorManager = useValidatorManager(validatorManagerAddress || null);
   const [componentKey, setComponentKey] = useState<number>(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setErrorState] = useState<string | null>(null);
@@ -90,8 +89,8 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
     setErrorState(null);
     setTxSuccess(null);
 
-    if (!connectedAddress) {
-      setErrorState("Wallet not connected");
+    if (!coreWalletClient) {
+      setErrorState("Core wallet not found");
       return;
     }
 
@@ -101,16 +100,28 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
 
     setIsProcessing(true);
     try {
+      const [account] = await coreWalletClient.requestAddresses();
 
       let hash;
       let receipt;
 
       try {
-        // Use validator manager hook - notification happens automatically
-        hash = await validatorManager.initiateValidatorRemoval(validation.validationId);
-
+        // Try initiateValidatorRemoval directly (no simulation first)
+        const writePromise = coreWalletClient.writeContract({
+          address: validatorManagerAddress as `0x${string}`,
+          abi: validatorManagerAbi.abi,
+          functionName: 'initiateValidatorRemoval',
+          args: [validation.validationId],
+          account,
+          chain: viemChain
+        });
+        notify({
+          type: 'call',
+          name: 'Initiate Validator Removal'
+        }, writePromise, viemChain ?? undefined);
+        hash = await writePromise;
         // Wait for transaction receipt to check if it was successful
-        receipt = await chainPublicClient!.waitForTransactionReceipt({ hash: hash as `0x${string}` });
+        receipt = await publicClient.waitForTransactionReceipt({ hash });
 
         if (receipt.status === 'reverted') {
           setErrorState(`Transaction reverted. Hash: ${hash}`);
@@ -120,7 +131,7 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
 
         setTxSuccess(`Transaction successful! Hash: ${hash}`);
         onSuccess({
-          txHash: hash as `0x${string}`,
+          txHash: hash,
           nodeId: validation.nodeId,
           validationId: validation.validationId,
         });
@@ -128,8 +139,21 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
       } catch (txError) {
         // Use resendValidatorRemovalMessage as fallback
         try {
-          const fallbackHash = await validatorManager.resendValidatorRemovalMessage(validation.validationId);
-          const fallbackReceipt = await chainPublicClient!.waitForTransactionReceipt({ hash: fallbackHash as `0x${string}` });
+          const fallbackPromise = coreWalletClient.writeContract({
+            address: validatorManagerAddress as `0x${string}`,
+            abi: validatorManagerAbi.abi,
+            functionName: 'resendValidatorRemovalMessage',
+            args: [validation.validationId],
+            account,
+            chain: viemChain
+          });
+          notify({
+            type: 'call',
+            name: 'Resend Validator Removal Message'
+          }, fallbackPromise, viemChain ?? undefined);
+          
+          const fallbackHash = await fallbackPromise;
+          const fallbackReceipt = await publicClient.waitForTransactionReceipt({ hash: fallbackHash });
 
           if (fallbackReceipt.status === 'reverted') {
             setErrorState(`Fallback transaction reverted. Hash: ${fallbackHash}`);
@@ -139,7 +163,7 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
 
           setTxSuccess(`Fallback transaction successful! Hash: ${fallbackHash}`);
           onSuccess({
-            txHash: fallbackHash as `0x${string}`,
+            txHash: fallbackHash,
             nodeId: validation.nodeId,
             validationId: validation.validationId,
           });

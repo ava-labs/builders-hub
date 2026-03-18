@@ -5,7 +5,6 @@ import type { ReactNode } from 'react';
 import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared';
 import { ActiveNavHighlighter } from '@/components/navigation/active-nav-highlighter';
 import { useDynamicBlogMenu } from '@/components/navigation/dynamic-blog-menu';
-import { CustomCountdownBanner } from '@/components/ui/custom-countdown-banner';
 
 interface LayoutWrapperProps {
   children: ReactNode;
@@ -29,8 +28,8 @@ export function LayoutWrapper({ children, baseOptions }: LayoutWrapperProps) {
   return (
     <>
       <ActiveNavHighlighter />
-      <CustomCountdownBanner />
       <HomeLayout {...updatedOptions}>{children}</HomeLayout>
     </>
   );
 }
+

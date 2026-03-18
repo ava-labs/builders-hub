@@ -5,15 +5,8 @@ import { Area, AreaChart, Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, 
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { getMAConfig, calculateMovingAverage } from "@/utils/chart-utils";
-import { Users, Activity, FileText, MessageCircleMore, TrendingUp, UserPlus, Hash, Code2, Gauge, DollarSign, Clock, Fuel, ArrowUpRight, Twitter, Linkedin, Download, Camera, Sparkles } from "lucide-react";
-import { ImageExportStudio } from "@/components/stats/image-export";
+import { Users, Activity, FileText, MessageCircleMore, TrendingUp, UserPlus, Hash, Code2, Gauge, DollarSign, Clock, Fuel, ArrowUpRight, Twitter, Linkedin, Download, Camera } from "lucide-react";
 import { ChainIdChips } from "@/components/ui/copyable-id-chip";
 import { AddToWalletButton } from "@/components/ui/add-to-wallet-button";
 import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
@@ -25,15 +18,13 @@ import { MobileSocialLinks } from "@/components/stats/MobileSocialLinks";
 import { LinkableHeading } from "@/components/stats/LinkableHeading";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import { ChartWatermark } from "@/components/stats/ChartWatermark";
-import { calculateDateRangeDays, formatXAxisLabel, generateXAxisTicks } from "@/components/stats/chart-axis-utils";
 import { StatsBreadcrumb } from "@/components/navigation/StatsBreadcrumb";
 import { ChainCategoryFilter, allChains } from "@/components/stats/ChainCategoryFilter";
-import { BaasProviderList } from "@/components/stats/BaasProviderBadge";
 import { useSectionNavigation } from "@/hooks/use-section-navigation";
 import { useTheme } from "next-themes";
 import { toPng } from "html-to-image";
 import l1ChainsData from "@/constants/l1-chains.json";
-import { L1Chain, BaasProvider } from "@/types/stats";
+import { L1Chain } from "@/types/stats";
 
 interface TimeSeriesDataPoint {
   date: string;
@@ -103,7 +94,6 @@ interface ChainMetricsPageProps {
   }>;
   blockchainId?: string;
   subnetId?: string;
-  baasProviders?: BaasProvider[];
 }
 
 export default function ChainMetricsPage({
@@ -120,7 +110,6 @@ export default function ChainMetricsPage({
   explorers: explorersProp,
   blockchainId: blockchainIdProp,
   subnetId: subnetIdProp,
-  baasProviders,
 }: ChainMetricsPageProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -686,27 +675,24 @@ export default function ChainMetricsPage({
     >();
 
     rawData.forEach((point) => {
-      // Parse date string directly to avoid timezone issues
-      // point.day is in format "YYYY-MM-DD"
-      const [year, month, day] = point.day.split("-").map(Number);
+      const date = new Date(point.day);
       let key: string;
 
       if (period === "W") {
-        const date = new Date(year, month - 1, day);
-        const weekStartDay = day - date.getDay();
-        const weekStart = new Date(year, month - 1, weekStartDay);
-        const wy = weekStart.getFullYear();
-        const wm = String(weekStart.getMonth() + 1).padStart(2, "0");
-        const wd = String(weekStart.getDate()).padStart(2, "0");
-        key = `${wy}-${wm}-${wd}`;
+        const weekStart = new Date(date);
+        weekStart.setDate(date.getDate() - date.getDay());
+        key = weekStart.toISOString().split("T")[0];
       } else if (period === "M") {
-        key = `${year}-${String(month).padStart(2, "0")}`;
+        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
+          2,
+          "0"
+        )}`;
       } else if (period === "Q") {
-        const quarter = Math.floor((month - 1) / 3) + 1;
-        key = `${year}-Q${quarter}`;
+        const quarter = Math.floor(date.getMonth() / 3) + 1;
+        key = `${date.getFullYear()}-Q${quarter}`;
       } else {
         // Y
-        key = String(year);
+        key = String(date.getFullYear());
       }
 
       if (!grouped.has(key)) {
@@ -828,9 +814,10 @@ export default function ChainMetricsPage({
       title: "Gas Per Second",
       icon: Gauge,
       metricKey: "avgGps" as const,
-      description: "Average gas per second",
+      secondaryMetricKey: "maxGps" as const,
+      description: "Average and peak gas per second",
       color: themeColor,
-      chartType: "area" as const,
+      chartType: "dual" as const,
     },
     {
       title: "Transactions Per Second",
@@ -842,32 +829,21 @@ export default function ChainMetricsPage({
       chartType: "dual" as const,
     },
     {
+      title: "Gas Price",
+      icon: DollarSign,
+      metricKey: "avgGasPrice" as const,
+      secondaryMetricKey: "maxGasPrice" as const,
+      description: "Average and peak gas price over time",
+      color: themeColor,
+      chartType: "dual" as const,
+    },
+    {
       title: "Fees Paid",
       icon: DollarSign,
       metricKey: "feesPaid" as const,
       description: "Total transaction fees over time",
       color: themeColor,
       chartType: "bar" as const,
-      isCurrency: true,
-    },
-    {
-      title: "Avg Gas Price",
-      icon: DollarSign,
-      metricKey: "avgGasPrice" as const,
-      description: "Average gas price over time",
-      color: themeColor,
-      chartType: "bar" as const,
-      showMovingAverage: true,
-      isCurrency: true,
-    },
-    {
-      title: "Max Gas Price",
-      icon: DollarSign,
-      metricKey: "maxGasPrice" as const,
-      description: "Peak gas price over time",
-      color: "#a855f7",
-      chartType: "area" as const,
-      isCurrency: true,
     },
     {
       title: "Interchain Messages",
@@ -920,165 +896,11 @@ export default function ChainMetricsPage({
     {
       id: "performance",
       label: "Performance",
-      metricKeys: ["gasUsed", "avgGps", "avgTps"],
+      metricKeys: ["gasUsed", "avgGps", "avgTps", "avgGasPrice"],
     },
-    { id: "fees", label: "Fees", metricKeys: ["feesPaid", "avgGasPrice", "maxGasPrice"] },
+    { id: "fees", label: "Fees", metricKeys: ["feesPaid"] },
     { id: "interchain", label: "Interchain", metricKeys: ["icmMessages"] },
   ];
-
-  // export all metrics as csv
-  const downloadAllMetricsCSV = useCallback(() => {
-    if (!metrics) return;
-
-    const rows: string[] = [];
-    const periodLabel = globalPeriod === "D" ? "Daily" : globalPeriod === "W" ? "Weekly" : globalPeriod === "M" ? "Monthly" : globalPeriod === "Q" ? "Quarterly" : "Yearly";
-    
-    // metadata headers
-    rows.push(`# ${chainName} Metrics Export`);
-    rows.push(`# Generated: ${new Date().toISOString()}`);
-    rows.push(`# Period: ${periodLabel}`);
-    rows.push(`# Chain ID: ${chainId}`);
-    rows.push("");
-
-    const getAllDates = (): string[] => {
-      const dateSet = new Set<string>();
-
-      // active addresses
-      if (metrics.activeAddresses) {
-        const activeData = globalPeriod === "W" ? metrics.activeAddresses.weekly?.data : globalPeriod === "M" || globalPeriod === "Q" || globalPeriod === "Y" ? metrics.activeAddresses.monthly?.data : metrics.activeAddresses.daily?.data;
-        activeData?.forEach((p) => dateSet.add(p.date));
-      }
-      
-      // other metrics
-      const metricKeys: (keyof Omit<CChainMetrics, "last_updated" | "icmMessages" | "activeAddresses">)[] = [
-        "activeSenders", "txCount", "cumulativeAddresses", "cumulativeDeployers",
-        "cumulativeTxCount", "cumulativeContracts", "contracts", "deployers",
-        "gasUsed", "avgGps", "maxGps", "avgTps", "maxTps", "avgGasPrice", 
-        "maxGasPrice", "feesPaid"
-      ];
-
-      metricKeys.forEach((key) => {
-        const metric = metrics[key];
-        if (metric?.data) {
-          metric.data.forEach((p) => dateSet.add(p.date));
-        }
-      });
-      
-      // ICM messages
-      if (metrics.icmMessages?.data) {
-        metrics.icmMessages.data.forEach((p) => dateSet.add(p.date));
-      }
-      
-      return Array.from(dateSet).sort();
-    };
-
-    const buildDateMap = (data: { date: string; value: number | string }[] | undefined): Map<string, number | string> => {
-      const map = new Map<string, number | string>();
-      data?.forEach((p) => map.set(p.date, p.value));
-      return map;
-    };
-
-    const buildICMDateMap = (data: { date: string; messageCount: number }[] | undefined): Map<string, number> => {
-      const map = new Map<string, number>();
-      data?.forEach((p) => map.set(p.date, p.messageCount));
-      return map;
-    };
-
-    const allDates = getAllDates();
-
-    const activeAddressesData = globalPeriod === "W" ? metrics.activeAddresses?.weekly?.data  : globalPeriod === "M" || globalPeriod === "Q" || globalPeriod === "Y" ? metrics.activeAddresses?.monthly?.data : metrics.activeAddresses?.daily?.data;
-    const dataMapActiveAddresses = buildDateMap(activeAddressesData);
-    const dataMapActiveSenders = buildDateMap(metrics.activeSenders?.data);
-    const dataMapTxCount = buildDateMap(metrics.txCount?.data);
-    const dataMapCumulativeAddresses = buildDateMap(metrics.cumulativeAddresses?.data);
-    const dataMapCumulativeTxCount = buildDateMap(metrics.cumulativeTxCount?.data);
-    const dataMapCumulativeContracts = buildDateMap(metrics.cumulativeContracts?.data);
-    const dataMapContracts = buildDateMap(metrics.contracts?.data);
-    const dataMapDeployers = buildDateMap(metrics.deployers?.data);
-    const dataMapCumulativeDeployers = buildDateMap(metrics.cumulativeDeployers?.data);
-    const dataMapGasUsed = buildDateMap(metrics.gasUsed?.data);
-    const dataMapAvgGps = buildDateMap(metrics.avgGps?.data);
-    const dataMapMaxGps = buildDateMap(metrics.maxGps?.data);
-    const dataMapAvgTps = buildDateMap(metrics.avgTps?.data);
-    const dataMapMaxTps = buildDateMap(metrics.maxTps?.data);
-    const dataMapAvgGasPrice = buildDateMap(metrics.avgGasPrice?.data);
-    const dataMapMaxGasPrice = buildDateMap(metrics.maxGasPrice?.data);
-    const dataMapFeesPaid = buildDateMap(metrics.feesPaid?.data);
-    const dataMapICM = buildICMDateMap(metrics.icmMessages?.data);
-
-    rows.push("=== CURRENT SUMMARY ===");
-    rows.push("Metric,Current Value");
-
-    // dynamic period prefix
-    const periodPrefix = globalPeriod === "W" ? "Weekly" : globalPeriod === "M" ? "Monthly" : globalPeriod === "Q" ? "Quarterly" : globalPeriod === "Y" ? "Yearly" : "Daily";
-
-    const activeAddressLabel = `${periodPrefix} Active Addresses`;
-    const activeAddressCurrent = globalPeriod === "W" ? metrics.activeAddresses?.weekly?.current_value : globalPeriod === "M" || globalPeriod === "Q" || globalPeriod === "Y" ? metrics.activeAddresses?.monthly?.current_value : metrics.activeAddresses?.daily?.current_value;
-
-    rows.push(`${activeAddressLabel},${activeAddressCurrent ?? "N/A"}`);
-    rows.push(`${periodPrefix} Active Senders,${metrics.activeSenders?.current_value ?? "N/A"}`);
-    rows.push(`${periodPrefix} Transactions,${metrics.txCount?.current_value ?? "N/A"}`);
-    rows.push(`Total Addresses,${metrics.cumulativeAddresses?.current_value ?? "N/A"}`);
-    rows.push(`Total Transactions,${metrics.cumulativeTxCount?.current_value ?? "N/A"}`);
-    rows.push(`Total Contracts Deployed,${metrics.cumulativeContracts?.current_value ?? "N/A"}`);
-    rows.push(`${periodPrefix} Contracts Deployed,${metrics.contracts?.current_value ?? "N/A"}`);
-    rows.push(`${periodPrefix} Contract Deployers,${metrics.deployers?.current_value ?? "N/A"}`);
-    rows.push(`Total Contract Deployers,${metrics.cumulativeDeployers?.current_value ?? "N/A"}`);
-    rows.push(`${periodPrefix} Gas Used,${metrics.gasUsed?.current_value ?? "N/A"}`);
-    rows.push(`Avg Gas Per Second,${metrics.avgGps?.current_value ?? "N/A"}`);
-    rows.push(`Max Gas Per Second,${metrics.maxGps?.current_value ?? "N/A"}`);
-    rows.push(`Avg TPS,${metrics.avgTps?.current_value ?? "N/A"}`);
-    rows.push(`Max TPS,${metrics.maxTps?.current_value ?? "N/A"}`);
-    rows.push(`Avg Gas Price (nAVAX),${metrics.avgGasPrice?.current_value ?? "N/A"}`);
-    rows.push(`Max Gas Price (nAVAX),${metrics.maxGasPrice?.current_value ?? "N/A"}`);
-    rows.push(`${periodPrefix} Fees Paid,${metrics.feesPaid?.current_value ?? "N/A"}`);
-    rows.push(`${periodPrefix} Interchain Messages,${metrics.icmMessages?.current_value ?? "N/A"}`);
-    rows.push("");
-
-    rows.push("=== TIME SERIES DATA ===");
-    const headers = ["Date", activeAddressLabel, `${periodPrefix} Active Senders`, `${periodPrefix} Transactions`, "Total Addresses", "Total Transactions", "Total Contracts", `${periodPrefix} Contracts Deployed`, `${periodPrefix} Contract Deployers`, "Total Deployers", `${periodPrefix} Gas Used`, "Avg GPS", "Max GPS", "Avg TPS", "Max TPS", "Avg Gas Price (nAVAX)", "Max Gas Price (nAVAX)", `${periodPrefix} Fees Paid`, `${periodPrefix} Interchain Messages`];
-    rows.push(headers.join(","));
-
-    const sortedDates = [...allDates].sort().reverse();
-
-    sortedDates.forEach((date) => {
-      const row = [
-        date,
-        dataMapActiveAddresses.get(date) ?? "",
-        dataMapActiveSenders.get(date) ?? "",
-        dataMapTxCount.get(date) ?? "",
-        dataMapCumulativeAddresses.get(date) ?? "",
-        dataMapCumulativeTxCount.get(date) ?? "",
-        dataMapCumulativeContracts.get(date) ?? "",
-        dataMapContracts.get(date) ?? "",
-        dataMapDeployers.get(date) ?? "",
-        dataMapCumulativeDeployers.get(date) ?? "",
-        dataMapGasUsed.get(date) ?? "",
-        dataMapAvgGps.get(date) ?? "",
-        dataMapMaxGps.get(date) ?? "",
-        dataMapAvgTps.get(date) ?? "",
-        dataMapMaxTps.get(date) ?? "",
-        dataMapAvgGasPrice.get(date) ?? "",
-        dataMapMaxGasPrice.get(date) ?? "",
-        dataMapFeesPaid.get(date) ?? "",
-        dataMapICM.get(date) ?? "",
-      ];
-      rows.push(row.join(","));
-    });
-
-    const csvContent = rows.join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    const filename = `${chainSlug || chainName.toLowerCase().replace(/\s+/g, "-")}-metrics-${periodPrefix.toLowerCase()}-${new Date().toISOString().split("T")[0]}.csv`;
-    link.setAttribute("href", url);
-    link.setAttribute("download", filename);
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  }, [metrics, globalPeriod, chainName, chainId, chainSlug]);
 
   // Section navigation using reusable hook
   const { activeSection, scrollToSection } = useSectionNavigation({
@@ -1358,20 +1180,17 @@ export default function ChainMetricsPage({
                   socials={socials}
                   explorers={explorers}
                 />
-                {(baasProviders?.length || category) && (
-                  <div className="flex items-center gap-2 mt-3 flex-wrap">
-                    <BaasProviderList providers={baasProviders} />
-                    {category && (
-                      <span
-                        className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium"
-                        style={{
-                          backgroundColor: `${themeColor}15`,
-                          color: themeColor,
-                        }}
-                      >
-                        {category}
-                      </span>
-                    )}
+                {category && (
+                  <div className="mt-3">
+                    <span
+                      className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium"
+                      style={{
+                        backgroundColor: `${themeColor}15`,
+                        color: themeColor,
+                      }}
+                    >
+                      {category}
+                    </span>
                   </div>
                 )}
 
@@ -1459,7 +1278,6 @@ export default function ChainMetricsPage({
                     />
                   </div>
                 )}
-
               </div>
             </div>
           </div>
@@ -1472,20 +1290,7 @@ export default function ChainMetricsPage({
         activeSection={activeSection}
         onNavigate={scrollToSection}
       >
-        <div className="flex items-center">
-          <PeriodSelector selected={globalPeriod} onChange={handlePeriodChange} />
-          <div className="ml-3 sm:ml-4 pl-3 sm:pl-4 border-l border-zinc-200 dark:border-zinc-700">
-            <button
-              onClick={downloadAllMetricsCSV}
-              disabled={!metrics || loading}
-              className="flex items-center gap-1.5 px-2 sm:px-3 py-1 text-xs sm:text-sm font-medium text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
-              title="Download all metrics as CSV"
-            >
-              <Download className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-              <span className="hidden sm:inline">Export</span>
-            </button>
-          </div>
-        </div>
+        <PeriodSelector selected={globalPeriod} onChange={handlePeriodChange} />
       </StickyNavBar>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-12 sm:space-y-16">
@@ -1710,14 +1515,6 @@ export default function ChainMetricsPage({
                       }
                       formatYAxisValue={formatNumber}
                       allowedPeriods={allowedPeriods}
-                      chainId={chainId}
-                      chainName={chainName}
-                      allChartConfigs={chartConfigs.map((c) => ({
-                        metricKey: c.metricKey,
-                        title: c.title,
-                        description: c.description,
-                        color: c.color,
-                      }))}
                     />
                   );
                 })}
@@ -1792,14 +1589,6 @@ export default function ChainMetricsPage({
                         }
                         formatYAxisValue={formatNumber}
                         allowedPeriods={allowedPeriods}
-                        chainId={chainId}
-                        chainName={chainName}
-                        allChartConfigs={chartConfigs.map((c) => ({
-                          metricKey: c.metricKey,
-                          title: c.title,
-                          description: c.description,
-                          color: c.color,
-                        }))}
                       />
                     );
                   }
@@ -1826,6 +1615,7 @@ export default function ChainMetricsPage({
                   "gasUsed",
                   "avgGps",
                   "avgTps",
+                  "avgGasPrice",
                 ]).map((config) => {
                   const period = chartPeriods[config.metricKey];
                   const rawData = getChartData(
@@ -1897,14 +1687,6 @@ export default function ChainMetricsPage({
                       }
                       formatYAxisValue={formatNumber}
                       allowedPeriods={allowedPeriods}
-                      chainId={chainId}
-                      chainName={chainName}
-                      allChartConfigs={chartConfigs.map((c) => ({
-                        metricKey: c.metricKey,
-                        title: c.title,
-                        description: c.description,
-                        color: c.color,
-                      }))}
                     />
                   );
                 })}
@@ -1926,7 +1708,7 @@ export default function ChainMetricsPage({
                 </p>
               </div>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-                {getChartsByCategory(["feesPaid", "avgGasPrice", "maxGasPrice"]).map((config) => {
+                {getChartsByCategory(["feesPaid"]).map((config) => {
                   const period = chartPeriods[config.metricKey];
                   const rawData = getChartData(
                     config.metricKey as keyof Omit<
@@ -1943,32 +1725,14 @@ export default function ChainMetricsPage({
                     config.metricKey
                   );
 
-                  // Handle secondary data for dual charts (Gas Price)
-                  let secondaryData = null;
-                  let secondaryCurrentValue = null;
-                  if (
-                    config.chartType === "dual" &&
-                    config.secondaryMetricKey
-                  ) {
-                    secondaryData = getChartData(config.secondaryMetricKey);
-                    secondaryCurrentValue = getCurrentValue(
-                      config.secondaryMetricKey
-                    );
-                  }
-
-                  // Determine allowed periods - Gas Price only available on Daily
-                  let allowedPeriods: ("D" | "W" | "M" | "Q" | "Y")[] = [
+                  // All periods allowed for fees
+                  const allowedPeriods: ("D" | "W" | "M" | "Q" | "Y")[] = [
                     "D",
                     "W",
                     "M",
                     "Q",
                     "Y",
                   ];
-                  if (
-                    ["avgGasPrice", "maxGasPrice"].includes(config.metricKey)
-                  ) {
-                    allowedPeriods = ["D"];
-                  }
 
                   return (
                     <ChartCard
@@ -1976,10 +1740,10 @@ export default function ChainMetricsPage({
                       config={config}
                       rawData={rawData}
                       cumulativeData={null}
-                      secondaryData={secondaryData}
+                      secondaryData={null}
                       period={period}
                       currentValue={currentValue}
-                      secondaryCurrentValue={secondaryCurrentValue}
+                      secondaryCurrentValue={null}
                       onPeriodChange={(newPeriod) =>
                         setChartPeriods((prev) => ({
                           ...prev,
@@ -1991,15 +1755,7 @@ export default function ChainMetricsPage({
                       }
                       formatYAxisValue={formatNumber}
                       allowedPeriods={allowedPeriods}
-                      showMovingAverage={config.showMovingAverage || config.metricKey === "feesPaid"}
-                      chainId={chainId}
-                      chainName={chainName}
-                      allChartConfigs={chartConfigs.map((c) => ({
-                        metricKey: c.metricKey,
-                        title: c.title,
-                        description: c.description,
-                        color: c.color,
-                      }))}
+                      showMovingAverage={true}
                     />
                   );
                 })}
@@ -2046,14 +1802,6 @@ export default function ChainMetricsPage({
                         formatTooltipValue(value, config.metricKey)
                       }
                       formatYAxisValue={formatNumber}
-                      chainId={chainId}
-                      chainName={chainName}
-                      allChartConfigs={chartConfigs.map((c) => ({
-                        metricKey: c.metricKey,
-                        title: c.title,
-                        description: c.description,
-                        color: c.color,
-                      }))}
                     />
                   );
                 })}
@@ -2091,10 +1839,6 @@ function ChartCard({
   formatYAxisValue,
   allowedPeriods = ["D", "W", "M", "Q", "Y"],
   showMovingAverage = false,
-  // Collage mode props
-  chainId,
-  chainName,
-  allChartConfigs,
 }: {
   config: any;
   rawData: any[];
@@ -2108,10 +1852,6 @@ function ChartCard({
   formatYAxisValue: (value: number) => string;
   allowedPeriods?: ("D" | "W" | "M" | "Q" | "Y")[];
   showMovingAverage?: boolean;
-  // Collage mode props
-  chainId?: string;
-  chainName?: string;
-  allChartConfigs?: { metricKey: string; title: string; description: string; color: string }[];
 }) {
   // Get moving average config based on period
   const maConfig = useMemo(() => getMAConfig(period), [period]);
@@ -2121,7 +1861,6 @@ function ChartCard({
   } | null>(null);
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const { resolvedTheme } = useTheme();
-  const [showImageStudio, setShowImageStudio] = useState(false);
 
   // Screenshot handler for downloading chart as image
   const handleScreenshot = async () => {
@@ -2176,29 +1915,24 @@ function ChartCard({
     >();
 
     rawData.forEach((point) => {
-      // Parse date string directly to avoid timezone issues
-      // point.day is in format "YYYY-MM-DD" or "YYYY-MM" (already aggregated)
-      const parts = point.day.split("-").map(Number);
-      const [year, month] = parts;
-      const day = parts[2] || 1;
+      const date = new Date(point.day);
       let key: string;
 
       if (period === "W") {
-        const date = new Date(year, month - 1, day);
-        const weekStartDay = day - date.getDay();
-        const weekStart = new Date(year, month - 1, weekStartDay);
-        const wy = weekStart.getFullYear();
-        const wm = String(weekStart.getMonth() + 1).padStart(2, "0");
-        const wd = String(weekStart.getDate()).padStart(2, "0");
-        key = `${wy}-${wm}-${wd}`;
+        const weekStart = new Date(date);
+        weekStart.setDate(date.getDate() - date.getDay());
+        key = weekStart.toISOString().split("T")[0];
       } else if (period === "M") {
-        key = `${year}-${String(month).padStart(2, "0")}`;
+        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
+          2,
+          "0"
+        )}`;
       } else if (period === "Q") {
-        const quarter = Math.floor((month - 1) / 3) + 1;
-        key = `${year}-Q${quarter}`;
+        const quarter = Math.floor(date.getMonth() / 3) + 1;
+        key = `${date.getFullYear()}-Q${quarter}`;
       } else {
         // Y
-        key = String(year);
+        key = String(date.getFullYear());
       }
 
       if (!grouped.has(key)) {
@@ -2231,28 +1965,24 @@ function ChartCard({
     const grouped = new Map<string, { maxValue: number; date: string }>();
 
     cumulativeData.forEach((point) => {
-      // Parse date string directly to avoid timezone issues
-      const parts = point.day.split("-").map(Number);
-      const [year, month] = parts;
-      const day = parts[2] || 1;
+      const date = new Date(point.day);
       let key: string;
 
       if (period === "W") {
-        const date = new Date(year, month - 1, day);
-        const weekStartDay = day - date.getDay();
-        const weekStart = new Date(year, month - 1, weekStartDay);
-        const wy = weekStart.getFullYear();
-        const wm = String(weekStart.getMonth() + 1).padStart(2, "0");
-        const wd = String(weekStart.getDate()).padStart(2, "0");
-        key = `${wy}-${wm}-${wd}`;
+        const weekStart = new Date(date);
+        weekStart.setDate(date.getDate() - date.getDay());
+        key = weekStart.toISOString().split("T")[0];
       } else if (period === "M") {
-        key = `${year}-${String(month).padStart(2, "0")}`;
+        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
+          2,
+          "0"
+        )}`;
       } else if (period === "Q") {
-        const quarter = Math.floor((month - 1) / 3) + 1;
-        key = `${year}-Q${quarter}`;
+        const quarter = Math.floor(date.getMonth() / 3) + 1;
+        key = `${date.getFullYear()}-Q${quarter}`;
       } else {
         // Y
-        key = String(year);
+        key = String(date.getFullYear());
       }
 
       if (!grouped.has(key)) {
@@ -2281,28 +2011,24 @@ function ChartCard({
     >();
 
     secondaryData.forEach((point) => {
-      // Parse date string directly to avoid timezone issues
-      const parts = point.day.split("-").map(Number);
-      const [year, month] = parts;
-      const day = parts[2] || 1;
+      const date = new Date(point.day);
       let key: string;
 
       if (period === "W") {
-        const date = new Date(year, month - 1, day);
-        const weekStartDay = day - date.getDay();
-        const weekStart = new Date(year, month - 1, weekStartDay);
-        const wy = weekStart.getFullYear();
-        const wm = String(weekStart.getMonth() + 1).padStart(2, "0");
-        const wd = String(weekStart.getDate()).padStart(2, "0");
-        key = `${wy}-${wm}-${wd}`;
+        const weekStart = new Date(date);
+        weekStart.setDate(date.getDate() - date.getDay());
+        key = weekStart.toISOString().split("T")[0];
       } else if (period === "M") {
-        key = `${year}-${String(month).padStart(2, "0")}`;
+        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
+          2,
+          "0"
+        )}`;
       } else if (period === "Q") {
-        const quarter = Math.floor((month - 1) / 3) + 1;
-        key = `${year}-Q${quarter}`;
+        const quarter = Math.floor(date.getMonth() / 3) + 1;
+        key = `${date.getFullYear()}-Q${quarter}`;
       } else {
         // Y
-        key = String(year);
+        key = String(date.getFullYear());
       }
 
       if (!grouped.has(key)) {
@@ -2360,16 +2086,6 @@ function ChartCard({
     return aggregatedData.slice(start, end + 1);
   }, [brushIndexes, aggregatedData]);
 
-  // Calculate the number of days in the brush range for dynamic x-axis formatting
-  const brushRangeDays = useMemo(() => {
-    return calculateDateRangeDays(displayData, "day");
-  }, [displayData]);
-
-  // Calculate the total days in the full data for brush slider formatting
-  const totalDataDays = useMemo(() => {
-    return calculateDateRangeDays(aggregatedData || [], "day");
-  }, [aggregatedData]);
-
   // Merge actual cumulative transaction data with daily data
   const displayDataWithCumulative = useMemo(() => {
     let result = displayData;
@@ -2426,15 +2142,40 @@ function ChartCard({
     };
   }, [displayData]);
 
-  const formatXAxis = (value: string) => formatXAxisLabel(value, brushRangeDays);
+  const formatXAxis = (value: string) => {
+    if (period === "Q") {
+      const parts = value.split("-");
+      if (parts.length === 2) {
+        return `${parts[1]} '${parts[0].slice(-2)}`;
+      }
+      return value;
+    }
+    if (period === "Y") return value;
+    const date = new Date(value);
+    if (period === "M") {
+      return date.toLocaleDateString("en-US", {
+        month: "short",
+        year: "2-digit",
+      });
+    }
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  };
 
-  // Formatter for the brush slider - uses total data range
-  const formatBrushXAxis = (value: string) => formatXAxisLabel(value, totalDataDays);
-
-  // Generate custom ticks aligned to meaningful boundaries
-  const xAxisTicks = useMemo(() => {
-    return generateXAxisTicks(displayData, brushRangeDays, "day");
-  }, [displayData, brushRangeDays]);
+  const formatBrushXAxis = (value: string) => {
+    if (period === "Q") {
+      const parts = value.split("-");
+      if (parts.length === 2) {
+        return `${parts[1]} ${parts[0]}`;
+      }
+      return value;
+    }
+    if (period === "Y") return value;
+    const date = new Date(value);
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      year: "numeric",
+    });
+  };
 
   const formatTooltipDate = (value: string) => {
     if (period === "Y") {
@@ -2449,38 +2190,32 @@ function ChartCard({
       return value;
     }
 
+    const date = new Date(value);
+
     if (period === "M") {
-      // Parse "YYYY-MM" directly to avoid timezone issues
-      const [year, month] = value.split("-").map(Number);
-      const monthNames = [
-        "January", "February", "March", "April", "May", "June",
-        "July", "August", "September", "October", "November", "December",
-      ];
-      return `${monthNames[month - 1]} ${year}`;
+      return date.toLocaleDateString("en-US", {
+        month: "long",
+        year: "numeric",
+      });
     }
 
     if (period === "W") {
-      // Parse "YYYY-MM-DD" directly to avoid timezone issues
-      const [year, month, day] = value.split("-").map(Number);
-      const date = new Date(year, month - 1, day);
-      const endDate = new Date(year, month - 1, day + 6);
+      const endDate = new Date(date);
+      endDate.setDate(date.getDate() + 6);
 
       const startMonth = date.toLocaleDateString("en-US", { month: "long" });
       const endMonth = endDate.toLocaleDateString("en-US", { month: "long" });
       const startDay = date.getDate();
       const endDay = endDate.getDate();
-      const endYear = endDate.getFullYear();
+      const year = endDate.getFullYear();
 
       if (startMonth === endMonth) {
-        return `${startMonth} ${startDay}-${endDay}, ${endYear}`;
+        return `${startMonth} ${startDay}-${endDay}, ${year}`;
       } else {
-        return `${startMonth} ${startDay} - ${endMonth} ${endDay}, ${endYear}`;
+        return `${startMonth} ${startDay} - ${endMonth} ${endDay}, ${year}`;
       }
     }
 
-    // Daily: parse "YYYY-MM-DD" directly
-    const [year, month, day] = value.split("-").map(Number);
-    const date = new Date(year, month - 1, day);
     return date.toLocaleDateString("en-US", {
       day: "numeric",
       month: "long",
@@ -2490,8 +2225,8 @@ function ChartCard({
 
   const Icon = config.icon;
 
-  // export single chart data as csv
-  const downloadChartCSV = () => {
+  // CSV download function
+  const downloadCSV = () => {
     if (!displayDataWithCumulative || displayDataWithCumulative.length === 0)
       return;
 
@@ -2600,28 +2335,15 @@ function ChartCard({
                   ))}
               </SelectContent>
             </Select>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
-                  title="Image options"
-                >
-                  <Camera className="h-4 w-4" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem onClick={() => setShowImageStudio(true)}>
-                  <Sparkles className="h-4 w-4 mr-2" />
-                  Open in studio
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleScreenshot}>
-                  <Download className="h-4 w-4 mr-2" />
-                  Download as image
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
             <button
-              onClick={downloadChartCSV}
+              onClick={handleScreenshot}
+              className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
+              title="Download chart as image"
+            >
+              <Camera className="h-4 w-4" />
+            </button>
+            <button
+              onClick={downloadCSV}
               className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
               title="Download CSV"
             >
@@ -2831,8 +2553,8 @@ function ChartCard({
                           tick={{
                             className: "fill-gray-600 dark:fill-gray-400",
                           }}
-                          ticks={xAxisTicks}
-                          interval={0}
+                          minTickGap={80}
+                          interval="preserveStartEnd"
                         />
                         <YAxis
                           yAxisId="left"
@@ -2933,8 +2655,8 @@ function ChartCard({
                           tick={{
                             className: "fill-gray-600 dark:fill-gray-400",
                           }}
-                          ticks={xAxisTicks}
-                          interval={0}
+                          minTickGap={80}
+                          interval="preserveStartEnd"
                         />
                         <YAxis
                           tickFormatter={formatYAxisValue}
@@ -3008,8 +2730,8 @@ function ChartCard({
                           tick={{
                             className: "fill-gray-600 dark:fill-gray-400",
                           }}
-                          ticks={xAxisTicks}
-                          interval={0}
+                          minTickGap={80}
+                          interval="preserveStartEnd"
                         />
                         <YAxis
                           tickFormatter={formatYAxisValue}
@@ -3084,8 +2806,8 @@ function ChartCard({
                           tick={{
                             className: "fill-gray-600 dark:fill-gray-400",
                           }}
-                          ticks={xAxisTicks}
-                          interval={0}
+                          minTickGap={80}
+                          interval="preserveStartEnd"
                         />
                         <YAxis
                           tickFormatter={formatYAxisValue}
@@ -3142,8 +2864,8 @@ function ChartCard({
                           tick={{
                             className: "fill-gray-600 dark:fill-gray-400",
                           }}
-                          ticks={xAxisTicks}
-                          interval={0}
+                          minTickGap={80}
+                          interval="preserveStartEnd"
                         />
                         <YAxis
                           tickFormatter={formatYAxisValue}
@@ -3228,8 +2950,8 @@ function ChartCard({
                           tick={{
                             className: "fill-gray-600 dark:fill-gray-400",
                           }}
-                          ticks={xAxisTicks}
-                          interval={0}
+                          minTickGap={80}
+                          interval="preserveStartEnd"
                         />
                         <YAxis
                           tickFormatter={formatYAxisValue}
@@ -3337,45 +3059,6 @@ function ChartCard({
           )}
         </div>
       </CardContent>
-
-      {/* Image Export Studio Modal */}
-      <ImageExportStudio
-        isOpen={showImageStudio}
-        onClose={() => setShowImageStudio(false)}
-        period={period}
-        onPeriodChange={onPeriodChange}
-        allowedPeriods={allowedPeriods}
-        dataArray={aggregatedData}
-        seriesInfo={[{
-          id: "value",
-          name: config.title,
-          color: config.color,
-          yAxis: "left",
-        }]}
-        chartData={{
-          title: config.title,
-          source: "Avalanche Metrics",
-          sourceDescription: config.description,
-          chainName: chainName || "Avalanche",
-          metricValue: currentValue !== undefined && currentValue !== null
-            ? typeof currentValue === 'number'
-              ? (() => {
-                  const prefix = config.isCurrency ? '$' : '';
-                  if (currentValue >= 1e9) return `${prefix}${(currentValue / 1e9).toFixed(1)}B`;
-                  if (currentValue >= 1e6) return `${prefix}${(currentValue / 1e6).toFixed(1)}M`;
-                  if (currentValue >= 1e3) return `${prefix}${(currentValue / 1e3).toFixed(1)}K`;
-                  return currentValue.toLocaleString();
-                })()
-              : String(currentValue)
-            : undefined,
-          metricLabel: "Latest",
-          pageUrl: typeof window !== "undefined" ? window.location.href : undefined,
-        }}
-        // Collage mode props
-        chainId={chainId}
-        chainName={chainName || "Avalanche"}
-        availableMetrics={allChartConfigs}
-      />
     </Card>
   );
 }

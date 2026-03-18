@@ -1,0 +1,115 @@
+---
+title: Modifying the Code
+description: Lets modify the code to implement the Data API.
+updated: 2024-10-09
+authors: [owenwahlgren]
+icon: Book
+---
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+In this section we will modify the code to implement the Data API.
+
+### Modify Backend `src/app/api/explorer/route.ts`
+
+<Steps>
+<Step>
+First we will implement the `getRecentBlocks` function. The goal of this function is to fetch recent blocks from the Data API with all its information.
+
+<Accordions>
+<Accordion title="Hint">
+Reference the [AvaCloud SDK documentation](https://developers.avacloud.io/data-api/evm-blocks/list-latest-blocks) to see how to fetch the latest blocks.
+</Accordion>
+<Accordion title="Solution">
+```tsx title="src/app/api/explorer/route.ts"
+const getRecentBlocks = async () => {
+    const result = await avaCloudSDK.data.evm.blocks.getLatestBlocks({
+        pageSize: 1,
+      });
+
+    let count = 0;
+    const blocks: EvmBlock[] = [];
+    for await (const page of result) {
+        if (count === 20) {
+            break;
+        }
+        blocks.push(...page.result.blocks);
+        count++;
+    }
+    return blocks
+}
+```
+</Accordion>
+</Accordions>
+</Step>
+<Step>
+Next we will implement the `getRecentTransactions` function. The goal of this function is to fetch all native token transfers from the Data API.
+<Accordions>
+<Accordion title="Hint">
+Reference the [AvaCloud SDK documentation](https://developers.avacloud.io/data-api/evm-transactions/list-latest-transactions) to see how to fetch latest transactions.
+Note the `NativeTransaction` type that is imported, we should use this to combine paged results.
+</Accordion>
+<Accordion title="Solution">
+```tsx title="src/app/api/explorer/route.ts"
+const getRecentTransactions = async () => {
+    const result = await avaCloudSDK.data.evm.transactions.listLatestTransactions({
+        pageSize: 3,
+    });
+
+    let count = 0;
+    const transactions: NativeTransaction[] = [];
+    for await (const page of result) {
+        if (count === 20) {
+            break;
+        }
+        transactions.push(...page.result.transactions);
+        count++;
+    }
+    return transactions;
+}
+```
+</Accordion>
+</Accordions>
+</Step>
+</Steps>
+### Modify Frontend `src/app/basic-explorer/page.tsx`
+
+<Steps>
+<Step>
+</Step>
+<Step>
+First we will implement the `fetchRecentTransactions` function. The goal of this function is to make a call to our backend to get recent transactions.
+<Accordions>
+<Accordion title="Hint">
+Make a call to our backend first for our `getRecentTransactions` method. Finally return the results.
+</Accordion>
+<Accordion title="Solution">
+```tsx title="src/app/basic-explorer/page.tsx"
+  const fetchRecentTransactions = async () => {
+    const response = await fetch(`/api/explorer?method=getRecentTransactions`)
+    const data = await response.json()
+    return data as NativeTransaction[]
+  }
+```
+</Accordion>
+</Accordions>
+</Step>
+<Step>
+Next we will implement the `fetchRecentBlocks` function. The goal of this function is to make a call to our backend to get recent block information.
+<Accordions>
+<Accordion title="Hint">
+Make a call to our backend first for our `getRecentBlocks` method. Finally return the results.
+</Accordion>
+<Accordion title="Solution">
+```tsx title="src/app/basic-explorer/page.tsx"
+const fetchRecentBlocks = async () => {
+    const response = await fetch(`/api/explorer?method=getRecentBlocks`)
+    const data = await response.json()
+    return data as EvmBlock[]
+  }
+```
+</Accordion>
+</Accordions>
+</Step>
+
+
+</Steps>

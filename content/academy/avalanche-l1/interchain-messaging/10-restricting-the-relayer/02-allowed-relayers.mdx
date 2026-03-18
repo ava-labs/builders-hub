@@ -1,0 +1,62 @@
+---
+title: Allowed Relayer
+description: Learn about the basics of Avalanche.
+updated: 2024-05-31
+authors: [martineckardt]
+icon: BookOpen
+---
+
+In this segment, we'll delve into the mechanisms of restricting relayers for transmitting messages across Avalanche L1s. While the security in AWM and Interchain Messaging doesn't rely at all on the Relayer, there might be some reasons why you would want to restrict the delivery of the message to certain Relayers. 
+
+The more obvious one is when you run your own Relayer, and don't want to incentivize any other to ensure your message gets to the destination. On following sections you will learn how to run your own Relayer so you can restrict the messages to your own.
+
+Let's look at the `TeleporterMessageInput` structure included when we call the `sendCrossChainMessage` one more time.
+
+```solidity
+struct TeleporterMessageInput {
+    bytes32 destinationBlockchainID;
+    address destinationAddress;
+    TeleporterFeeInfo feeInfo;
+    uint256 requiredGasLimit;
+    address[] allowedRelayerAddresses;
+    bytes message;
+}
+
+interface ITeleporterMessenger {
+    function sendCrossChainMessage(TeleporterMessageInput calldata messageInput)
+        external
+        returns (bytes32);
+}
+```
+
+As you can see the `TeleporterMessageInput` allows you to specify an array of addresses for the allowed relayers. Previously we have set that to an empty array, which means that any relayer can pick up the message.
+
+```solidity
+messenger.sendCrossChainMessage( 
+    TeleporterMessageInput({
+        // BlockchainID of Dispatch L1
+        destinationBlockchainID: 0x9f3be606497285d0ffbb5ac9ba24aa60346a9b1812479ed66cb329f394a4b1c7,
+        destinationAddress: destinationAddress, 
+        feeInfo: TeleporterFeeInfo({feeTokenAddress: address(0), amount: 0}),
+        requiredGasLimit: 100000,
+        allowedRelayerAddresses: new address[](0), // [!code highlight]
+        message: abi.encode(message)
+    })
+);
+```
+
+If you want to restrict the message to a certain relayer, you can simply add the address of the relayer to the array. A Relayer will be identified by the reward address it is associating each time it delivers a message.
+
+```solidity
+messenger.sendCrossChainMessage( 
+    TeleporterMessageInput({
+        // BlockchainID of Dispatch L1
+        destinationBlockchainID: 0x9f3be606497285d0ffbb5ac9ba24aa60346a9b1812479ed66cb329f394a4b1c7,
+        destinationAddress: destinationAddress, 
+        feeInfo: TeleporterFeeInfo({feeTokenAddress: address(0), amount: 0}),
+        requiredGasLimit: 100000,
+        allowedRelayerAddresses: [0x321f6B73b6dFdE5C73731C39Fd9C89c7788D5EBc], // [!code highlight]
+        message: abi.encode(message)
+    })
+);
+```

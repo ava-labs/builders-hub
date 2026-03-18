@@ -32,8 +32,6 @@ const generateVMConfig = (
       ...baseConfig,
       "log-level": "debug",
       "warp-api-enabled": true,
-      // Note: internal-personal is intentionally excluded -- it exposes wallet
-      // management RPCs (personal_unlockAccount, etc.) dangerous on public nodes.
       "eth-apis": [
         "eth",
         "eth-filter",
@@ -45,6 +43,7 @@ const generateVMConfig = (
         "internal-transaction",
         "internal-debug",
         "internal-account",
+        "internal-personal",
         "debug",
         "debug-tracer",
         "debug-file-tracer",

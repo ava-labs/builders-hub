@@ -1,0 +1,108 @@
+---
+title: Modifying the Code
+description: Lets modify the code to implement the Data API.
+updated: 2024-09-13
+authors: [owenwahlgren]
+icon: Book
+---
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+In this section we will modify the code to implement the Data API.
+
+### Modify Backend `src/app/api/balance/route.ts`
+
+<Steps>
+<Step>
+First we will implement the `getBlockHeight` function. The goal of this function is to fetch recent blocks from the Data API then to return the highest block in the first position.
+
+<Accordions>
+<Accordion title="Hint">
+Reference the [AvaCloud SDK documentation](https://developers.avacloud.io/data-api/evm-blocks/list-latest-blocks) to see how to fetch the latest blocks.
+</Accordion>
+<Accordion title="Solution">
+```tsx title="src/app/api/balance/route.ts"
+async function getBlockHeight() {
+    const result = await avaCloudSDK.data.evm.blocks.getLatestBlocks({
+        pageSize: 1,
+      });
+    return result.result.blocks[0].blockNumber
+}
+```
+</Accordion>
+</Accordions>
+</Step>
+<Step>
+Next we will implement the `listErc20Balances` function. The goal of this function is to fetch the ERC-20 token balances for a given address at a specific block height.
+<Accordions>
+<Accordion title="Hint">
+Reference the [AvaCloud SDK documentation](https://developers.avacloud.io/data-api/evm-balances/list-erc-20-balances) to see how to fetch ERC-20 token balances.
+Note the `Erc20TokenBalance` type that is imported, we should use this to combine paged results.
+</Accordion>
+<Accordion title="Solution">
+```tsx title="src/app/api/balance/route.ts"
+async function listErc20Balances(address: string, blockNumber: string) {
+    const result = await avaCloudSDK.data.evm.balances.listErc20Balances({
+        blockNumber: blockNumber,
+        pageSize: 10,
+        address: address,
+      });
+    const balances: Erc20TokenBalance[] = [];
+    for await (const page of result) {
+        balances.push(...page.result.erc20TokenBalances);
+    }
+    return balances
+}
+```
+</Accordion>
+</Accordions>
+</Step>
+</Steps>
+### Modify Frontend `src/app/balance-app/page.tsx`
+
+<Steps>
+<Step>
+</Step>
+<Step>
+First we will implement the `fetchERC20Balances` function. The goal of this function is to make a call to our backend to get the user's ERC-20 token balances.
+<Accordions>
+<Accordion title="Hint">
+Make a call to our backend first for the most recent block height, then our `listErc20Balances` API. Finally return the results.
+</Accordion>
+<Accordion title="Solution">
+```tsx title="src/app/balance-app/page.tsx"
+const fetchERC20Balances = async (address: string) => {
+    const blockResult = await fetch("api/balance?method=getBlockHeight");
+    const blockNumber = await blockResult.json();
+    const balanceResult = await fetch("api/balance?method=listErc20Balances&address=" + address + "&blockNumber=" + blockNumber);
+    const balances = await balanceResult.json();
+    return balances as Erc20TokenBalance[];
+};
+```
+</Accordion>
+</Accordions>
+</Step>
+<Step>
+Next we will implement the `handleSetAddress` function. The goal of this function is to set the address in the state and fetch the ERC-20 token balances for that address using our `fetchERC20Balances` function.
+<Accordions>
+<Accordion title="Hint">
+First make sure the address is valid, then update the state for `Address` and `Balances`
+</Accordion>
+<Accordion title="Solution">
+```tsx title="src/app/balance-app/page.tsx"
+const handleSetAddress = async () => {
+    const addressInput = document.getElementById("address") as HTMLInputElement;
+    const address = addressInput.value;
+    const addressPattern = /^0x[a-fA-F0-9]{40}$/;  
+
+    if (addressInput && addressPattern.test(address)) {
+      setAddress(address);
+      setBalances(await fetchERC20Balances(address));
+    }
+};
+```
+</Accordion>
+</Accordions>
+</Step>
+
+
+</Steps>

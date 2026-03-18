@@ -1,0 +1,31 @@
+---
+title: ICM Basics
+description: Learn about the Avalanche Interchain Messaging basics.
+updated: 2024-05-31
+authors: [martineckardt]
+icon: Book
+---
+
+<YouTube id="7QZ7_qZfQOA" />
+
+Teleporter enables you to send messages from one blockchain to another blockchain in the Avalanche network by simply calling the `sendCrossChainMessage` on the `TeleporterMessenger` contract. This invokes a smart contract on another Avalanche L1, where the called contract implements the `ITeleporterReceiver` interface to receive messages on the destination Avalanche L1. We will look at what happens under the hood in a later chapter.
+
+![](/common-images/teleporter/teleporter-source-destination.png)
+
+## What You Will Learn
+
+In this section, you will go through the following topics:
+
+- **Recap: Bytes, Encoding, and Decoding:** Understand how data is encoded and decoded in bytes
+- **Sending messages:** Write your first simple sender contract
+- **Receiving messages:** Write your first simple receiver contract
+
+## Exercise
+You will apply your learned knowledge by building your first Cross-Chain application! This application will be deployed on two chains: the Fuji testnet (C-Chain) and the Dispatch test L1.
+
+Therefore, you will deploy two contracts:
+
+- **Sender on Fuji C-Chain:** Send a message with a simple string
+- **Receiver on Dispatch test L1:** Receives the message and saves the most recent string
+
+At the end of the section, you will be adapting the example to build an 'Adder'. This application is similar to the example above, but the message will include a number. The receiving contract keeps track of the sum of all sent numbers. 

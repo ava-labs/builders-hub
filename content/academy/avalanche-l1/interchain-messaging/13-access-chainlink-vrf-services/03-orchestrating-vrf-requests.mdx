@@ -1,0 +1,126 @@
+---
+title: Orchestrating VRF Requests Over Multiple Chains (Wrapper)
+description: Learn how the CrossChainVRFWrapper contract on a Chainlink-supported L1 handles cross-chain requests for VRF.
+updated: 2024-10-21
+authors: [0xstt]
+icon: BookOpen
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+The `CrossChainVRFWrapper` contract plays a critical role in handling requests for randomness from an unsupported L1. It is deployed on a **Chainlink-supported network** (like Avalanche Fuji) and serves as the intermediary that interacts with Chainlink VRF to request random words.
+
+Here’s how it functions as the provider for VRF services:
+
+## Receives Cross-Chain Messages
+
+<Steps>
+<Step>
+
+When the `CrossChainVRFConsumer` on the unsupported L1 initiates a request for randomness, it sends a cross-chain message via the `TeleporterMessenger` to the `CrossChainVRFWrapper` on the supported network.
+
+</Step>
+<Step>
+
+The `CrossChainVRFWrapper` verifies that the request came from an authorized address. This is essential to ensure that only verified consumers can request randomness.
+
+</Step>
+<Step>
+
+Upon receiving a valid request, the **VRFWrapper** calls **Chainlink VRF** and sends the request with the required parameters, such as the number of random words, request confirmations, and gas limits.
+
+</Step>
+<Step>
+
+The `CrossChainVRFWrapper` keeps track of all pending requests using a mapping, associating each request ID with its destination (the L1 where the `CrossChainVRFConsumer` resides). This ensures that the random words are returned to the correct destination once fulfilled.
+
+</Step>
+</Steps>
+
+<Accordions>
+<Accordion title="Implementation">
+```solidity
+function receiveTeleporterMessage(
+    bytes32 originChainID,
+    address originSenderAddress,
+    bytes calldata message
+) external {
+    require(msg.sender == address(teleporterMessenger), "Caller is not the TeleporterMessenger");
+    // Verify that the origin sender address is authorized
+    require(authorizedSubscriptions[originSenderAddress].isAuthorized, "Origin sender is not authorized");
+    uint256 subscriptionId = authorizedSubscriptions[originSenderAddress].subscriptionId;
+    // Verify that the subscription ID belongs to the correct owner
+    (,,,, address[] memory consumers) = s_vrfCoordinator.getSubscription(subscriptionId);
+    // Check wrapper contract is a consumer of the subscription
+    bool isConsumer = false;
+    for (uint256 i = 0; i < consumers.length; i++) {
+        if (consumers[i] == address(this)) {
+            isConsumer = true;
+            break;
+        }
+    }
+    require(isConsumer, "Contract is not a consumer of this subscription");
+    // Decode message to get the VRF parameters
+    CrossChainRequest memory vrfMessage = abi.decode(message, (CrossChainRequest));
+    // Request random words
+    VRFV2PlusClient.RandomWordsRequest memory req = VRFV2PlusClient.RandomWordsRequest({
+        keyHash: vrfMessage.keyHash,
+        subId: subscriptionId,
+        requestConfirmations: vrfMessage.requestConfirmations,
+        callbackGasLimit: vrfMessage.callbackGasLimit,
+        numWords: vrfMessage.numWords,
+        extraArgs: VRFV2PlusClient._argsToBytes(VRFV2PlusClient.ExtraArgsV1({nativePayment: vrfMessage.nativePayment}))
+    });
+    uint256 requestId = s_vrfCoordinator.requestRandomWords(req);
+    pendingRequests[requestId] = CrossChainReceiver({
+        destinationBlockchainId: originChainID,
+        destinationAddress: originSenderAddress
+    });
+}   
+```
+</Accordion>
+</Accordions>
+
+## Handles Callback from Chainlink VRF
+
+<Steps>
+<Step>
+
+When **Chainlink VRF** fulfills the randomness request, the `CrossChainVRFWrapper` receives the random words through a callback function. This ensures that the request has been successfully processed.
+
+</Step>
+<Step>
+
+After receiving the random words, the `CrossChainVRFWrapper` encodes the result and sends it back as a cross-chain message to the `CrossChainVRFConsumer` on the unsupported L1. This is done using the `TeleporterMessenger`.
+
+</Step>
+</Steps>
+
+<Accordions>
+<Accordion title="Implementation">
+```solidity
+function fulfillRandomWords(uint256 requestId, uint256[] calldata randomWords) internal override {
+    require(pendingRequests[requestId].destinationAddress != address(0), "Invalid request ID");
+    // Create CrossChainResponse struct
+    CrossChainResponse memory crossChainResponse = CrossChainResponse({
+        requestId: requestId,
+        randomWords: randomWords
+    });
+    bytes memory encodedMessage = abi.encode(crossChainResponse);
+    // Send cross chain message using ITeleporterMessenger interface
+    TeleporterMessageInput memory messageInput = TeleporterMessageInput({
+        destinationBlockchainID: pendingRequests[requestId].destinationBlockchainId,
+        destinationAddress: pendingRequests[requestId].destinationAddress,
+        feeInfo: TeleporterFeeInfo({ feeTokenAddress: address(0), amount: 0 }),
+        requiredGasLimit: 100000,
+        allowedRelayerAddresses: new address[](0),
+        message: encodedMessage
+    });
+    teleporterMessenger.sendCrossChainMessage(messageInput);
+    delete pendingRequests[requestId];
+}
+```
+</Accordion>
+</Accordions>
+
+In summary, the `CrossChainVRFWrapper` contract acts as the **bridge** between the unsupported L1 and Chainlink’s VRF services, ensuring that random words are requested, fulfilled, and delivered back across chains efficiently.

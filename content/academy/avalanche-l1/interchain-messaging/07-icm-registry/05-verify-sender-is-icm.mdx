@@ -1,0 +1,56 @@
+---
+title: Verify if Sender is Interchain Messaging
+description: Safety verification of the message sender
+updated: 2024-05-31
+authors: [martineckardt]
+icon: BookOpen
+---
+
+We can also leverage the registry to check if `msg.sender` is a registered Interchain Messaging contract. Previously, we hardcoded this check in the contract:
+
+```solidity
+import "@teleporter/ITeleporterMessenger.sol";
+import "@teleporter/ITeleporterReceiver.sol";
+
+contract ReceiverOnDispatch is ITeleporterReceiver {
+    ITeleporterMessenger public immutable messenger = ITeleporterMessenger(0x253b2784c75e510dD0fF1da844684a1aC0aa5fcf);
+
+    string public lastMessage;
+
+    function receiveTeleporterMessage(bytes32, address, bytes calldata message) external {
+        // Only the Interchain Messaging receiver can deliver a message. // [!code highlight:2]
+        require(msg.sender == address(messenger), "ReceiverOnDispatch: unauthorized TeleporterMessenger");
+
+        // Store the message.
+        lastMessage = abi.decode(message, (string));
+    }
+}
+```
+
+If there was now a new Interchain Messaging contract version that would be used for sending messages, we would have to update the contract.
+
+Instead, we can use the registry to check if the sender is a registered Interchain Messaging contract. 
+
+```solidity
+pragma solidity ^0.8.18;
+
+import "@teleporter/upgrades/TeleporterRegistry.sol";
+import "@teleporter/ITeleporterMessenger.sol";
+import "@teleporter/ITeleporterReceiver.sol";
+
+contract ReceiverOnDispatchWithRegistry is ITeleporterReceiver {
+    // The Interchain Messaging registry contract manages different Interchain Messaging contract versions.
+    TeleporterRegistry public immutable teleporterRegistry = // [!code highlight:2]
+        TeleporterRegistry(0xF86Cb19Ad8405AEFa7d09C778215D2Cb6eBfB228); 
+
+    string public lastMessage;
+
+    function receiveTeleporterMessage(bytes32, address, bytes calldata message) external {
+        // Only a Interchain Messaging Messenger registered in the registry can deliver a message. // [!code highlight:3]
+        // Function throws an error if msg.sender is not registered.
+        teleporterRegistry.getVersionFromAddress(msg.sender);
+
+        // Store the message.
+        lastMessage = abi.decode(message, (string));
+    }
+}

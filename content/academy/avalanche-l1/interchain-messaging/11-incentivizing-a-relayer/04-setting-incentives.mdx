@@ -1,0 +1,43 @@
+---
+title: Setting Incentives
+description: Learn where incentives details need to be included
+updated: 2024-06-09
+authors: [andyvargtz]
+icon: BookOpen
+---
+
+As we studied in previous lessons, the `sendCrossChainMessage` function takes `TeleporterMessageInput` struct as an input. The fields feeInfo in the `TeleporterMessageInput` will be a `TeleporterFeeInfo` struct formed by the ERC20 contract address in which the fee will be paid, as well as the amount of tokens to incentivize the relayer. This amount needs to be set in wei units. 
+
+Let's take a look at it:
+
+```solidity
+// (c) 2023, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
+
+// SPDX-License-Identifier: Ecosystem
+
+pragma solidity 0.8.18;
+
+struct TeleporterMessageInput {
+    bytes32 destinationBlockchainID;
+    address destinationAddress;
+    TeleporterFeeInfo feeInfo; // [!code highlight]
+    uint256 requiredGasLimit; 
+    address[] allowedRelayerAddresses;
+    bytes message;
+}
+
+struct TeleporterFeeInfo {
+    address contractAddress; // [!code highlight]
+    uint256 amount; // [!code highlight]
+}
+
+interface ITeleporterMessenger {
+    function sendCrossChainMessage(TeleporterMessageInput calldata messageInput)
+        external
+    returns (bytes32);
+}
+```
+As you can see, the `TeleporterMessageInput` now needs to include the ERC20 address that will pay the incentives and the amount, all this as part of the `TeleporterFeeInfo`
+
+

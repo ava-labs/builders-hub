@@ -7,18 +7,14 @@ description: This tutorial will show you how to add a node to the validator set 
 
 The [Primary Network](/docs/primary-network)
 is inherent to the Avalanche platform and validates Avalanche's built-in
-blockchains. In this tutorial, we'll add a node to the Primary Network on Avalanche using one of three methods: the [Core web](https://core.app) interface, the [platform-cli](/docs/tooling/platform-cli) command-line tool, or [Avalanche SDK](/docs/tooling/avalanche-sdk) programmatically. You can also use the interactive [Builder Console staking tool](https://build.avax.network/console/primary-network/stake).
+blockchains. In this
+tutorial, we'll add a node to the Primary Network on Avalanche.
 
 The P-Chain manages metadata on Avalanche. This includes tracking which nodes
 are in which Avalanche L1s, which blockchains exist, and which Avalanche L1s are validating
 which blockchains. To add a validator, we'll issue
 [transactions](http://support.avalabs.org/en/articles/4587384-what-is-a-transaction)
 to the P-Chain.
-
-<Callout type="info">
-You can also add a validator using the interactive [Builder Console staking tool](https://build.avax.network/console/primary-network/stake),
-which provides a guided web interface for staking operations.
-</Callout>
 
 <Callout type="warn">
 Note that once you issue the transaction to add a node as a validator, there is
@@ -105,127 +101,9 @@ to check that your node's id is included in the response.
 
 That's it!
 
-## Add a Validator with platform-cli
+## Add a Validator with AvalancheJS
 
-[platform-cli](/docs/tooling/platform-cli) is a lightweight CLI tool for P-Chain operations that provides the simplest command-line workflow for staking.
-
-### Install platform-cli
-
-```bash
-curl -sSfL https://build.avax.network/install/platform-cli | sh
-```
-
-For full installation details, see the [platform-cli documentation](/docs/tooling/platform-cli).
-
-### Retrieve Node ID and BLS Credentials
-
-You can use the same `info.getNodeID` API call shown in the Core extension section above. Alternatively, platform-cli can fetch BLS credentials directly from a running node:
-
-```bash
-platform node info --ip <YOUR_NODE_IP>:9650
-```
-
-See the [platform-cli command reference](/docs/tooling/platform-cli/command-reference) for all available node commands. You can also look up the full response format in the [Info RPC docs](/docs/rpcs/other/info-rpc#infogetnodeid).
-
-### Generate or Import a Key
-
-Generate a new key:
-
-```bash
-platform keys generate --name mykey
-```
-
-Or import an existing private key:
-
-```bash
-platform keys import --name mykey --private-key <PRIVATE_KEY>
-```
-
-You can also use a **Ledger hardware wallet** instead of a stored key. Pass `--ledger` in place of `--key-name` when running `platform validator add`.
-
-### Add Validator
-
-**Fuji Testnet — manual BLS:**
-
-```bash
-platform validator add \
-  --node-id <YOUR_NODE_ID> \
-  --stake 1 \
-  --duration 336h \
-  --delegation-fee 0.02 \
-  --bls-public-key <BLS_PUBLIC_KEY> \
-  --bls-pop <BLS_PROOF_OF_POSSESSION> \
-  --key-name mykey \
-  --network fuji
-```
-
-**Fuji Testnet — auto-fetch BLS from running node:**
-
-```bash
-platform validator add \
-  --node-id <YOUR_NODE_ID> \
-  --stake 1 \
-  --duration 336h \
-  --delegation-fee 0.02 \
-  --node-endpoint http://<YOUR_NODE_IP>:9650 \
-  --key-name mykey \
-  --network fuji
-```
-
-**Mainnet:**
-
-```bash
-platform validator add \
-  --node-id <YOUR_NODE_ID> \
-  --stake 2000 \
-  --duration 336h \
-  --delegation-fee 0.02 \
-  --node-endpoint http://<YOUR_NODE_IP>:9650 \
-  --key-name mykey \
-  --network mainnet
-```
-
-**Mainnet with Ledger:**
-
-```bash
-platform validator add \
-  --node-id <YOUR_NODE_ID> \
-  --stake 2000 \
-  --duration 336h \
-  --delegation-fee 0.02 \
-  --node-endpoint http://<YOUR_NODE_IP>:9650 \
-  --ledger \
-  --network mainnet
-```
-
-#### Key Flags
-
-| Flag | Description |
-|------|-------------|
-| `--node-id` | Your node's NodeID (from `info.getNodeID`) |
-| `--stake` | Amount in AVAX (min 1 on Fuji, 2000 on Mainnet) |
-| `--duration` | Validation duration (min `336h` = 14 days) |
-| `--delegation-fee` | Percentage retained by validator (min `0.02` = 2%) |
-| `--bls-public-key` | BLS public key from node |
-| `--bls-pop` | BLS proof of possession from node |
-| `--node-endpoint` | Alternative to manual BLS — fetches credentials from running node |
-| `--reward-address` | Optional: specify a different reward address |
-| `--network` | `fuji`, `mainnet`, or `local` |
-| `--key-name` | Name of the stored key to sign the transaction with |
-
-For the full flag reference, see the [platform-cli staking docs](/docs/tooling/platform-cli/staking).
-
-### Verify Validator Status
-
-Use the same verification steps as the Core extension section: call
-[`platform.getPendingValidators`](/docs/rpcs/p-chain#platformgetpendingvalidators)
-before the validation start time, or
-[`platform.getCurrentValidators`](/docs/rpcs/p-chain#platformgetcurrentvalidators)
-once the validation period has started. See the [Info RPC docs](/docs/rpcs/other/info-rpc) for additional node status methods.
-
-## Add a Validator with Avalanche SDK
-
-We can also add a node to the validator set using the [Avalanche SDK](/docs/tooling/avalanche-sdk).
+We can also add a node to the validator set using [AvalancheJS](/docs/tooling/avalanche-sdk).
 
 ### Install AvalancheJS
 

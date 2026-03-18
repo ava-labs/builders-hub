@@ -31,11 +31,6 @@ import {
   VersionBreakdownInline,
   type VersionBreakdownData,
 } from "@/components/stats/VersionBreakdown";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 
 type SortColumn =
   | "name"
@@ -552,17 +547,10 @@ export default function ValidatorStatsPage() {
                     chains
                   </span>
                 </div>
-                <div className="flex items-baseline">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span className="text-2xl sm:text-3xl md:text-4xl font-semibold tabular-nums text-zinc-900 dark:text-white cursor-default">
-                        {formatNumber(aggregatedStats.totalNodes)}
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      {aggregatedStats.totalNodes.toLocaleString()} validators
-                    </TooltipContent>
-                  </Tooltip>
+                <div>
+                  <span className="text-2xl sm:text-3xl md:text-4xl font-semibold tabular-nums text-zinc-900 dark:text-white">
+                    {formatNumber(aggregatedStats.totalNodes)}
+                  </span>
                   <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 ml-1 sm:ml-2">
                     validators
                   </span>

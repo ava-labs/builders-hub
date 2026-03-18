@@ -1,4 +1,5 @@
-import { type LinkItemType, MainItemType, type BaseLayoutProps } from 'fumadocs-ui/layouts/shared';
+import { type LinkItemType } from 'fumadocs-ui/layouts/docs';
+import { MainItemType, type BaseLayoutProps } from 'fumadocs-ui/layouts/shared';
 import { AvalancheLogo } from '@/components/navigation/avalanche-logo';
 import {
   Sprout,
@@ -23,12 +24,12 @@ import {
   Ticket,
   Earth,
   ArrowLeftRight,
+  Triangle,
   GraduationCap,
   BookOpen,
   Code,
   GitBranch,
   DraftingCompass,
-  Gamepad2,
 } from 'lucide-react';
 import Image from 'next/image';
 import { UserButtonWrapper } from '@/components/login/user-button/UserButtonWrapper';
@@ -192,12 +193,6 @@ export const explorerMenu: MainItemType = {
   type: "main",
   text: "Explorer",
   url: "/explorer"
-};
-
-export const chatMenu: MainItemType = {
-  type: "main",
-  text: "Chat",
-  url: "/chat"
 };
 
 export const docsMenu: LinkItemType = {
@@ -368,11 +363,11 @@ export const consoleMenu: LinkItemType = {
         banner: (
           <div className='-mx-3 -mt-3'>
             <Image
-              src="https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builder-console-megamenu"
-              alt='Builder Console Preview'
-              width={900}
-              height={400}
-              className='rounded-t-lg object-cover w-full h-auto'
+              src="/builderhub-console.png"
+              alt='L1 Launcher Preview'
+              width={500}
+              height={140}
+              className='rounded-t-lg object-cover'
               style={{
                 maskImage: 'linear-gradient(to bottom,white 60%,transparent)',
               }}
@@ -429,7 +424,7 @@ export const grantsMenu: LinkItemType = {
         banner: (
           <div className='-mx-3 -mt-3'>
             <Image
-              src={"https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/9000-logo-FYhqyinnspUefGJcGgj9AcT116yq98.png"}
+              src={"https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/codebase-banner-VKmQyN5sPojnIOU09p0lCkUgR6YTpQ.png"}
               alt='Preview'
               width={900}
               height={400}
@@ -442,11 +437,11 @@ export const grantsMenu: LinkItemType = {
         ),
         className: 'md:row-span-2',
       },
-      icon: <MessageSquareQuote />,
-      text: 'Retro9000',
+      icon: <BriefcaseBusiness />,
+      text: 'Codebase',
       description:
-        'Build innovative projects on Avalanche. Get rewarded for your creativity and impact.',
-      url: 'https://retro9000.avax.network',
+        'We help transform good ideas into great web3 companies & ambitious builders into extraordinary founders.',
+      url: '/codebase',
     },
     {
       icon: <Cpu />,
@@ -466,6 +461,16 @@ export const grantsMenu: LinkItemType = {
       url: '/grants/infrabuidlai',
       menu: {
         className: 'lg:col-start-2',
+      },
+    },
+    {
+      icon: <MessageSquareQuote />,
+      text: 'Retro9000',
+      description:
+        'Build innovative projects on Avalanche. Get rewarded for your creativity.',
+      url: 'https://retro9000.avax.network',
+      menu: {
+        className: 'lg:col-start-3 lg:row-start-1',
       },
     },
     {
@@ -521,7 +526,7 @@ export const eventsMenu: LinkItemType = {
         banner: (
           <div className='-mx-3 -mt-3'>
             <Image
-              src={"https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Hackathon_assets/BuildGames_2026/BuildGames_banner1"}
+              src={"https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/local_events_team1-UJLssyvek3G880Q013A94SdMKxiLRq.jpg"}
               alt='Preview'
               width={900}
               height={400}
@@ -534,18 +539,18 @@ export const eventsMenu: LinkItemType = {
         ),
         className: 'md:row-span-2',
       },
-      icon: <Gamepad2 />,
-      text: 'BuildGames',
-      description:
-        "Avalanche's flagship online builder competition for crypto-native talent. Six fast-paced weeks to turn your next big idea into a real product on Avalanche. If you've been waiting for a reason to build, this is it.",
-      url: '/build-games',
-    },
-    {
       icon: <Earth />,
       text: 'Community driven events',
       description:
         'Check out and join the global meetups, workshops and events organized by Avalanche Team1',
       url: 'https://lu.ma/Team1?utm_source=builder_hub',
+    },
+    {
+      icon: <Ticket />,
+      text: 'Avalanche Calendar',
+      description:
+        'Explore upcoming Avalanche events, meetups, and community gatherings. Stay connected with the latest happenings in the ecosystem.',
+      url: 'https://lu.ma/calendar/cal-Igl2DB6quhzn7Z4',
       menu: {
         className: 'lg:col-start-3 lg:row-start-1',
       },
@@ -581,7 +586,6 @@ export const baseOptions: BaseLayoutProps = {
   links: [
     academyMenu,
     blogMenu,
-    chatMenu,
     consoleMenu,
     docsMenu,
     eventsMenu,

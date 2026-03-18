@@ -13,15 +13,14 @@ import {
   FormControl,
   FormMessage,
 } from "@/components/ui/form";
+import { SubmissionForm } from "../hooks/useSubmissionFormSecure";
 import { FormLabelWithCheck } from "./FormLabelWithCheck";
 
 interface MultiLinkInputProps {
-  name: string;
+  name: keyof SubmissionForm;
   label: string;
   placeholder: string;
   validationMessage?: string;
-  /** When true, renders a plain FormLabel instead of FormLabelWithCheck. */
-  plainLabel?: boolean;
 }
 
 export const MultiLinkInput: React.FC<MultiLinkInputProps> = ({
@@ -29,25 +28,18 @@ export const MultiLinkInput: React.FC<MultiLinkInputProps> = ({
   label,
   placeholder,
   validationMessage,
-  plainLabel = false,
 }) => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const form = useFormContext<any>();
+  const form = useFormContext<SubmissionForm>();
   const [newLink, setNewLink] = React.useState("");
 
   const handleAddLink = async () => {
     if (!newLink) return;
 
     try {
-      // Auto-format URL by prepending https:// if needed
-      let formattedLink = newLink.trim();
-      if (!formattedLink.startsWith('http://') && !formattedLink.startsWith('https://')) {
-        formattedLink = `https://${formattedLink}`;
-      }
-
-      const url = new URL(formattedLink);
-
-
+      
+      const url = new URL(newLink);
+      
+      
       if (name === 'demo_link' && (
         url.hostname.includes('youtube.com') ||
         url.hostname.includes('youtu.be') ||
@@ -61,9 +53,9 @@ export const MultiLinkInput: React.FC<MultiLinkInputProps> = ({
       }
 
       const currentLinks = (form.getValues(name) as string[]) || [];
-
-
-      if (currentLinks.includes(formattedLink)) {
+      
+      
+      if (currentLinks.includes(newLink)) {
         form.setError(name, {
           type: 'manual',
           message: 'This link has already been added'
@@ -71,12 +63,12 @@ export const MultiLinkInput: React.FC<MultiLinkInputProps> = ({
         return;
       }
 
-      form.setValue(name, [...currentLinks, formattedLink], { shouldValidate: true });
+      form.setValue(name, [...currentLinks, newLink], { shouldValidate: true });
       setNewLink("");
     } catch (error) {
       form.setError(name, {
         type: 'manual',
-        message: 'Please enter a valid URL'
+        message: 'Please enter a valid URL (e.g., https://github.com/user/repo)'
       });
     }
   };
@@ -102,14 +94,10 @@ export const MultiLinkInput: React.FC<MultiLinkInputProps> = ({
       name={name}
       render={({ field, fieldState }) => (
         <FormItem>
-          {plainLabel ? (
-            <FormLabel>{label}</FormLabel>
-          ) : (
-            <FormLabelWithCheck
-              label={label}
-              checked={!!field.value && (field.value as string[]).length > 0}
-            />
-          )}
+          <FormLabelWithCheck
+            label={label}
+            checked={!!field.value && (field.value as string[]).length > 0}
+          />
           <FormControl>
             <div className="space-y-2">
               <Input

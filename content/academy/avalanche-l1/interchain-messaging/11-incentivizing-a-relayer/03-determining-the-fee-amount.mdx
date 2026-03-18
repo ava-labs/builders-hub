@@ -1,0 +1,63 @@
+---
+title: Determining the Fee
+description: Calculate a fair incentive amount.
+updated: 2024-06-09
+authors: [andyvargtz]
+icon: BookOpen
+---
+
+## Economic Considerations for Relayers
+
+### Determining Relayer Incentives
+
+The first question to address is: How much should you pay a Relayer to ensure they are incentivized to deliver the message? The answer is straightforward but requires some analysis. The incentive should at least cover the expenses the Relayer will incur by delivering your message.
+
+As mentioned in previous lessons, a message will be considered delivered in the destination Chain if the Relayer sends at least the `requiredGasLimit` stated in the message, regardless of whether the execution succeeds or fails. Thus, the associated cost in $USD (or another asset like AVAX) that the Relayer will face to deliver your message is:  
+
+*Cost = requiredGasLimit * gas_price_in_native_token * native_token_price*
+
+While the income the Relayer will be paid for delivering your message is:  
+
+*Income = Fee_Amount * ERC20_Price*
+
+Excluding the Relayer's hosting costs, any Fee amount where *Costs < Income* will be profitable for the Relayer. Different types of messages or actions available in a cross-chain dApp may require different amounts of gas to deliver successfully. For instance, in a cross-chain ERC20 minter, creating the token contract is more expensive than minting new tokens, simply because creation requires deploying a new contract. Thus, it makes sense to reward the Relayer with a higher amount for delivering a creation message compared to a minting message (assuming both `requiredGasLimit` are set accordingly).
+
+### Example Calculation
+
+Let's calculate the minimum fee that could incentivize a Relayer to pick and deliver a message.
+
+To simplify, consider the following assumptions:
+- We are sending a message from C-Chain to Dispatch.
+- ERC20 incentives will be paid in TLP.
+- DIS is the fee token in Bulletin.
+- Assume *DIS_price = TLP_price*.
+- Relayer will only take your message if it can make at least 10% profit.
+- The `requiredGasLimit` for sending our message is 10,000 gas units.
+- Gas price in Dispatch = 50 nDIS (DIS * 10^-9).
+
+### Calculating the Fee
+
+The cost of relaying this message will be:  
+
+*Cost = 10,000 * 50 * DIS_price*
+
+The Relayer will take your message only if it can make a 10% profit:  
+
+*Income = 1.1 * Cost*
+
+Therefore:  
+
+*TLP_price * Amount = 1.1 * 10,000 * 50 * DIS_price*
+
+Knowing that *TLP_price = DIS_price*:  
+
+*Amount = 1.1 * 10,000 * 50*
+
+Then:  
+
+*Amount = 550,000 nTLP*  
+*Amount = 550,000,000,000,000 weiTLP*
+
+All amounts in Solidity need to be declared in wei, so use a unit converter to convert from nTLP to wei (10^-18).
+
+<Quiz quizId="316"/>

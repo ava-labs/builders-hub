@@ -1,0 +1,46 @@
+---
+title: Retrieving Interchain Messenger from the Registry
+description: Use Registry in a Cross-Chain dApp.
+updated: 2024-05-31
+authors: [martineckardt]
+icon: BookOpen
+---
+
+Let's now integrate the registry into a smart contract. Let's go back to the very simple string sending contract from the beginning:
+
+```solidity title="contracts/interchain-messaging/registry/SenderOnCChainWithRegistry.sol"
+pragma solidity ^0.8.18;
+
+import "@teleporter/upgrades/TeleporterRegistry.sol"; // [!code highlight]
+import "@teleporter/ITeleporterMessenger.sol";
+
+contract SenderOnCChain {
+    // The Interchain Messaging registry contract manages different Interchain Messaging contract versions. // [!code highlight:3]
+    TeleporterRegistry public immutable teleporterRegistry = TeleporterRegistry(0xF86Cb19Ad8405AEFa7d09C778215D2Cb6eBfB228);
+
+    /**
+     * @dev Sends a message to another chain.
+     */
+    function sendMessage(address destinationAddress, string calldata message) external {
+        ITeleporterMessenger messenger = teleporterRegistry.getLatestTeleporter();  // [!code highlight]
+
+        messenger.sendCrossChainMessage(
+            TeleporterMessageInput({
+                // BlockchainID of Dispatch L1
+                destinationBlockchainID: 0x9f3be606497285d0ffbb5ac9ba24aa60346a9b1812479ed66cb329f394a4b1c7,
+                destinationAddress: destinationAddress,
+                feeInfo: TeleporterFeeInfo({feeTokenAddress: address(0), amount: 0}),
+                requiredGasLimit: 100000,
+                allowedRelayerAddresses: new address[](0),
+                message: abi.encode(message)
+            })
+        );
+    }
+}
+```
+
+The key things to understand:
+
+- We are importing the `ITeleporterRegistry.sol` interface
+- We have a variable for the registry address instead of the messenger address
+- Before sending the message we get the latest version from the registry

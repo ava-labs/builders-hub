@@ -5,7 +5,6 @@ import { parseEther, formatEther } from 'viem';
 import { readContract } from 'viem/actions';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { useWallet } from './useWallet';
-import { useWalletClient } from 'wagmi';
 
 export interface ERC20TokenHook {
   allowance: (owner: string, spender: string) => Promise<string>;
@@ -27,13 +26,12 @@ export interface ERC20TokenHook {
  * @param abi - The ABI of the ERC20 token contract
  */
 export function useERC20Token(tokenAddress: string | null, abi: any): ERC20TokenHook {
-  const { walletEVMAddress } = useWalletStore();
+  const { coreWalletClient, walletEVMAddress } = useWalletStore();
   const viemChain = useViemChainStore();
   const { notify } = useConsoleNotifications();
   const { avalancheWalletClient } = useWallet();
-  const { data: walletClient } = useWalletClient();
 
-  const isReady = Boolean(tokenAddress && walletClient && viemChain);
+  const isReady = Boolean(tokenAddress && avalancheWalletClient && viemChain);
 
   const allowance = async (owner: string, spender: string): Promise<string> => {
     if (!avalancheWalletClient || !tokenAddress) throw new Error('Contract not ready');
@@ -109,18 +107,17 @@ export function useERC20Token(tokenAddress: string | null, abi: any): ERC20Token
 
   // Write functions (payable/nonpayable)
   const approve = async (spender: string, amount: string): Promise<string> => {
-    if (!walletClient || !tokenAddress || !walletEVMAddress || !viemChain) {
+    if (!coreWalletClient || !tokenAddress || !walletEVMAddress || !viemChain) {
       throw new Error('Wallet not connected or contract not ready');
     }
 
-    const writePromise = walletClient!.writeContract({
+    const writePromise = coreWalletClient.writeContract({
       address: tokenAddress as `0x${string}`,
       abi: abi,
       functionName: 'approve',
       args: [spender, parseEther(amount)],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`,
-      gas: BigInt(1_000_000),
+      account: walletEVMAddress as `0x${string}`
     });
 
     notify({
@@ -132,18 +129,17 @@ export function useERC20Token(tokenAddress: string | null, abi: any): ERC20Token
   };
 
   const transfer = async (to: string, amount: string): Promise<string> => {
-    if (!walletClient || !tokenAddress || !walletEVMAddress || !viemChain) {
+    if (!coreWalletClient || !tokenAddress || !walletEVMAddress || !viemChain) {
       throw new Error('Wallet not connected or contract not ready');
     }
 
-    const writePromise = walletClient!.writeContract({
+    const writePromise = coreWalletClient.writeContract({
       address: tokenAddress as `0x${string}`,
       abi: abi,
       functionName: 'transfer',
       args: [to, parseEther(amount)],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`,
-      gas: BigInt(1_000_000),
+      account: walletEVMAddress as `0x${string}`
     });
 
     notify({
@@ -155,18 +151,17 @@ export function useERC20Token(tokenAddress: string | null, abi: any): ERC20Token
   };
 
   const transferFrom = async (from: string, to: string, amount: string): Promise<string> => {
-    if (!walletClient || !tokenAddress || !walletEVMAddress || !viemChain) {
+    if (!coreWalletClient || !tokenAddress || !walletEVMAddress || !viemChain) {
       throw new Error('Wallet not connected or contract not ready');
     }
 
-    const writePromise = walletClient!.writeContract({
+    const writePromise = coreWalletClient.writeContract({
       address: tokenAddress as `0x${string}`,
       abi: abi,
       functionName: 'transferFrom',
       args: [from, to, parseEther(amount)],
       chain: viemChain,
-      account: walletEVMAddress as `0x${string}`,
-      gas: BigInt(1_000_000),
+      account: walletEVMAddress as `0x${string}`
     });
 
     notify({

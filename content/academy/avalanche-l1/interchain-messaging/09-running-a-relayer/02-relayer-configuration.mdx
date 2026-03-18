@@ -1,0 +1,152 @@
+---
+title: Configuration Breakdown
+description: Understand the Relayer Configuration  
+updated: 2024-05-31
+authors: [martineckardt]
+icon: BookOpen
+---
+
+A relayer is configured to relayer messages between certain source and destination L1s. Therefore, the configuration consists of three parts:
+- **General Config:** Configuration independent of the source and destination L1s concerning the network as a whole
+- **Source Blockchain Configs:** All parameters necessary for the relayer to pick up the messages 
+- **Destination Blockchain Configs:** All parameters necessary to deliver the messages
+
+Let's go through an example JSON understanding the different values you will configure with the Toolbox in the next section:
+
+## General Config
+
+The general config contains among others the following parameters:
+
+```json
+{
+  "p-chain-api": {
+    "base-url": "http://127.0.0.1:9650",
+    "query-parameters": {},
+    "http-headers": null
+  },
+  "info-api": {
+    "base-url": "http://127.0.0.1:9650",
+    "query-parameters": {},
+    "http-headers": null
+  	},  
+   	// ...
+}
+```
+
+- **info-api-url:** The URL of the [Info API](/docs/api-reference/info-api) node to which the relayer will connect to to receive information like the NetworkID.
+- **p-chain-api-url:** The URL of the Avalanche [P-Chain API](/docs/api-reference/p-chain/api) node to which the relayer will connect to query the validator sets. 
+
+## Source Blockchain Configs
+
+Next is the configuration for our source blockchain. This is the configuration of the blockchain where messages will be initiated and picked up. The relayer will aggregate the signatures of the validators of that L1. 
+
+```json
+{
+  // General Config ...
+
+  "source-blockchains": [
+	{
+      "subnet-id": "11111111111111111111111111111111LpoYY",
+      "blockchain-id": "epm5fG6Pn1Y5rBHdTe36aZYeLqpXugreyHLZB5dV81rVTs7Ku",
+      "vm": "evm",
+      "rpc-endpoint": {
+        "base-url": "http://127.0.0.1:9650/ext/bc/epm5fG6Pn1Y5rBHdTe36aZYeLqpXugreyHLZB5dV81rVTs7Ku/rpc",
+        "query-parameters": null,
+        "http-headers": null
+      },
+      "ws-endpoint": {
+        "base-url": "ws://127.0.0.1:9650/ext/bc/epm5fG6Pn1Y5rBHdTe36aZYeLqpXugreyHLZB5dV81rVTs7Ku/ws",
+        "query-parameters": null,
+        "http-headers": null
+      },
+      "message-contracts": {
+        "0x0000000000000000000000000000000000000000": {
+          "message-format": "off-chain-registry",
+          "settings": {
+            "teleporter-registry-address": "0x17aB05351fC94a1a67Bf3f56DdbB941aE6c63E25"
+          }
+        },
+        "0x253b2784c75e510dD0fF1da844684a1aC0aa5fcf": {
+          "message-format": "teleporter",
+          "settings": {
+            "reward-address": "0xbAE6Ff34d6Da45128C1ddFEDA008e55A328f5665"
+          }
+        }
+      }
+    }
+  ]
+
+  // Destination Blockchains
+}
+```
+
+- **subnet-id:** The Blockchain ID of the L1 that the source blockchain is part of. In this example this is the Blockchain ID of the Primary Network.
+- **blockchain-id:** The blockchain ID of the source. In this example this is the blockchain ID of Fuji's C-Chain.
+- **vm:** A string specifying the virtual machine of the destination L1's blockchain. Currently, only the EVM is supported, but this field has been added in anticipation of communication between blockchains powered by different virtual machines in the future.
+- **rpc-endpoint:** An API Config containing:
+<div class="pl-6">
+- **base-url:** RPC endpoint of the source L1's API node.
+- **query-parameters:** Additional query parameters to include in the API requests
+- **http-headers:** Additional HTTP headers to include in the API requests
+</div>
+- **wss-endpoint:** An API Config containing:
+<div class="pl-6">
+- **base-url**: The WebSocket endpoint of the source L1's API node
+- **query-parameters:** Additional query parameters to include in the API requests
+- **http-headers:** Additional HTTP headers to include in the API requests
+</div>
+- **message-contracts:** A map of contract addresses to the config options of the protocol (e.g. Teleporter) at that address. Each MessageProtocolConfig consists of a unique message-format name, and the raw JSON settings. "0x253b2784c75e510dD0fF1da844684a1aC0aa5fcf" is the address of the TeleporterMessenger on the Fuji C-Chain.
+<div class="pl-6">
+- **message-format:** should be set to Teleporter. Additional message formats next to Interchain Messaging may be developed in the future 
+- **settings > reward-address:** The address that will be rewarded if an L1 is incentivizing relayers to send messages on it's behalf. This is the address of the wallet you will create for this relayer. 
+</div>
+
+## Destination Blockchains
+
+Next is the configuration for our destination blockchain. This is the configuration of the blockchain where messages will be sent to. The relayer will aggregate the signatures of the validators of that L1. 
+```json
+{
+  "destination-blockchains": [
+    {
+      "subnet-id": "11111111111111111111111111111111LpoYY",
+      "blockchain-id": "epm5fG6Pn1Y5rBHdTe36aZYeLqpXugreyHLZB5dV81rVTs7Ku",
+      "vm": "evm",
+      "rpc-endpoint": {
+        "base-url": "http://127.0.0.1:9650/ext/bc/epm5fG6Pn1Y5rBHdTe36aZYeLqpXugreyHLZB5dV81rVTs7Ku/rpc",
+        "query-parameters": null,
+        "http-headers": null
+      },
+      "kms-key-id": "",
+      "kms-aws-region": "",
+      "account-private-key": "6dc6ba26b9b17f82b7b44fc316857a35ff201613072d500231ce3f2ee235bc16"
+    },
+  ],
+}
+```
+
+For each destination L1, the relayer has the following config parameter:
+
+- **subnet-id:** The ID of the L1 that the destination blockchain is part of. 
+- **blockchain-id:** The blockchain ID of the destination blockchain. This is the Blockchain ID of Fuji's Dispatch L1.
+- **vm:** A string specifying the virtual machine of the destination L1's blockchain. Currently, only the EVM is supported, but this field has been added in anticipation of communication between blockchains powered by different virtual machines in the future.
+- **rpc-endpoint:** The RPC endpoint of the destination L1's API node. Used in favor of api-node-host, api-node-port, and encrypt-connection when constructing the endpoint.
+- **kms-key-id:** The ID of the KMS key to use for signing transactions on the destination blockchain. Only one of account-private-key or kms-key-id should be provided. If kms-key-id is provided, then kms-aws-region is required. Please note that the private key in KMS should be exclusive to the relayer. 
+- **kms-aws-region:** The AWS region in which the KMS key is located. Required if kms-key-id is provided. 
+- **account-private-key:** A private key for a wallet that holds gas tokens on the destination L1. This is required so the relayer can sign the transaction that delivers the warp message.
+
+If you have been following all the course up to this point with the Avalanche-starter-kit and Avalanche-CLI will provide you with a relayer already funded to perform transactions between the local C-chain and your own chain
+
+Some configuration fields have been omitted for the purpose of this exercise. If you are interested to read the extensive list of relayer configurations, you can visit the awm-relayer GitHub repository [here](https://github.com/ava-labs/awm-relayer/tree/main?tab=readme-ov-file#configuration).
+
+## Two-Way Messaging
+
+The relayer can be configured to support two-way messaging between multiple Layer 1 blockchains. This means you can use a single relayer instance to handle communication in both directions between your chains. The key points to remember are:
+
+<Callout type="warn" title="The relayer needs sufficient funds on both chains to deliver messages in both directions" />
+
+To enable two-way communication:
+- Add both chains to the `source-blockchains` array to listen for messages on both sides
+- Add both chains to the `destination-blockchains` array to deliver messages to both sides
+- Ensure the relayer account has enough funds on both chains for transaction fees
+
+The ICM Relayer component in the Toolbox automatically handles this configuration for you, making it easy to set up two-way messaging between your chains.

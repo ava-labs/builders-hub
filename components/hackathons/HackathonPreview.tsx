@@ -150,7 +150,6 @@ export default function HackathonPreview({ hackathonData, isRegistered = false, 
     top_most: false,
     custom_link: undefined,
     created_by: '',
-    cohosts: [],
     is_public: hackathonData.is_public ?? true,
     content: {
       tracks_text: hackathonData.content?.tracks_text || '',
@@ -265,10 +264,9 @@ export default function HackathonPreview({ hackathonData, isRegistered = false, 
                 <Tracks hackathon={transformedHackathon} />
               )}
               <Resources hackathon={transformedHackathon} />
-              <Schedule 
-                hackathon={transformedHackathon} 
-                scheduleSource="database"
-              />
+              {transformedHackathon.content.schedule && transformedHackathon.content.schedule.length > 0 && (
+                <Schedule hackathon={transformedHackathon} />
+              )}
               <SubmissionPreview hackathon={transformedHackathon} />
               {transformedHackathon.content.speakers && transformedHackathon.content.speakers.length > 0 && (
                 <MentorsJudges hackathon={transformedHackathon} />

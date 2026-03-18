@@ -1,0 +1,37 @@
+---
+title: Features
+description: Learn about the features of the AvaCloud API.
+updated: 2024-09-03
+authors: [owenwahlgren]
+icon: Book
+---
+
+## What is the Data API?
+
+The Data API provides web3 application developers with multi-chain data related to Avalanche’s primary network, Avalanche L1s, and Ethereum. With the Data API, you can easily build products that leverage real-time and historical transaction and transfer history, native and token balances, and various types of token metadata.
+
+### Data API Features
+- **Extensive L1 Support**: Gain access to data from over 100+ L1s across both mainnet and testnet. If an L1 is listed on the [Avalanche Explorer](https://subnets.avax.network/stats/), you can query its data using the Data API.
+- **Transactions and UTXOs**: Easily retrieve details related to transactions, UTXOs, and token transfers from Avalanche EVMs, Ethereum, and Avalanche’s Primary Network (P-Chain, X-Chain and C-Chain).
+- **Blocks**: Retrieve latest blocks and block details
+- **Balances**: Fetch balances of native, ERC-20, ERC-721, and ERC-1155 tokens along with relevant metadata.
+- **Tokens**: Augment your user experience with asset details.
+- **Staking**: Get staking related data for active and historical validations.
+
+## What is the Metrics API?
+The Metrics API equips web3 developers with a robust suite of tools to access and analyze on-chain activity across Avalanche’s primary network, Avalanche L1s, and other supported EVM chains. This API delivers comprehensive metrics and analytics, enabling you to seamlessly integrate historical data on transactions, gas consumption, throughput, staking, and more into your applications.
+
+The Metrics API, along with the Data API are the driving force behind every graph you see on the [Avalanche Explorer](https://subnets.avax.network/stats/). From transaction trends to staking insights, the visualizations and data presented are all powered by these APIs, offering real-time and historical insights that are essential for building sophisticated, data-driven blockchain products.
+
+### Metrics API Features
+- **Chain Throughput**: Retrieve detailed metrics on gas consumption, Transactions Per Second (TPS), and gas prices, including rolling windows of data for granular analysis.
+- **Cumulative Metrics**: Access cumulative data on addresses, contracts, deployers, and transaction counts, providing insights into network growth over time.
+- **Staking Information**: Obtain staking-related data, including the number of validators and delegators, along with their respective weights, across different L1s.
+- **Blockchains and L1s**: Get information about supported blockchains, including EVM Chain IDs, blockchain IDs, and L1s associations, facilitating multi-chain analytics.
+- **Composite Queries**: Perform advanced queries by combining different metric types and conditions, enabling detailed and customizable data retrieval.
+
+## What is the AvaCloudSDK?
+
+The [AvaCloud SDK](https://developers.avacloud.io/avacloud-sdk/getting-started) provides web3 application developers with multi-chain data related to Avalanche’s primary network, Avalanche L1s, and Ethereum. With the Data API, you can easily build products that leverage real-time and historical transaction and transfer history, native and token balances, and various types of token metadata.
+
+The SDK is currently available in TypeScript, with more languages coming soon. If you are interested in a language that is not listed, please reach out to us in the [`#dev-tools`](https://discord.com/login?redirect_to=%2Flogin%3Fredirect_to%3D%252Fchannels%252F578992315641626624%252F1280920394236297257) channel in the [Avalanche Discord](https://discord.com/invite/avax).

@@ -65,9 +65,8 @@ export function DocsSubNav() {
 
   return (
     <div
-      className="fixed z-[30] w-full border-b border-border bg-background"
+      className="fixed top-14 z-[30] w-full border-b border-border bg-background"
       id="docs-subnav"
-      style={{ top: "calc(var(--fd-banner-height, 0px) + 3.5rem)" }}
     >
       <div className="flex h-12 items-center gap-1 lg:gap-2 overflow-x-auto relative pl-8 pr-4 md:pl-16 md:pr-4 justify-start">
         {tabs.map((tab) => {
@@ -81,7 +80,9 @@ export function DocsSubNav() {
             <span className="flex items-center gap-1">
               {tab.label}
               {showChevron && (
-                <ChevronDown className="h-3 w-3 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                <ChevronDown
+                  className="h-3 w-3 transition-transform duration-200 group-data-[state=open]:rotate-180"
+                />
               )}
             </span>
           );
@@ -105,7 +106,9 @@ export function DocsSubNav() {
           if (hasItems && !isMobile) {
             return (
               <HoverCard key={tab.href} openDelay={100} closeDelay={200}>
-                <HoverCardTrigger asChild>{LinkElement}</HoverCardTrigger>
+                <HoverCardTrigger asChild>
+                  {LinkElement}
+                </HoverCardTrigger>
                 <HoverCardContent className="w-80" align="start">
                   <div className="grid gap-2">
                     {tab.items?.map((item) => (
@@ -118,18 +121,8 @@ export function DocsSubNav() {
                           {item.icon}
                         </div>
                         <div className="grid gap-0.5">
-                          <p className="text-sm font-medium leading-none flex items-center gap-1.5">
+                          <p className="text-sm font-medium leading-none">
                             {item.title}
-                            {item.badge && (
-                              <span className={cn(
-                                "inline-flex items-center rounded-sm px-1.5 py-0.5 text-[10px] font-bold uppercase leading-none tracking-wide text-white ring-1",
-                                item.badge === 'Deprecated'
-                                  ? "bg-zinc-500 shadow-[0_1px_3px_rgba(113,113,122,0.4)] ring-zinc-400/50"
-                                  : "bg-red-500 shadow-[0_1px_3px_rgba(239,68,68,0.4)] ring-red-400/50"
-                              )} style={{ fontStyle: 'italic', letterSpacing: '0.05em' }}>
-                                {item.badge}
-                              </span>
-                            )}
                           </p>
                           <p className="text-xs text-muted-foreground line-clamp-2">
                             {item.description}

@@ -1,0 +1,49 @@
+---
+title: Send a Roundtrip Message
+description: Send roundtrip message
+updated: 2024-05-31
+authors: [martineckardt]
+icon: BookOpen
+---
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+Alright, now let's send the message:
+
+<Steps>
+<Step>
+### Send the Message:
+
+```bash 
+cast send --rpc-url fuji-c --private-key $PK $SENDER_ADDRESS "sendMessage(address)" $RECEIVER_ADDRESS
+```
+
+</Step>
+<Step>
+
+### Verify Message Receipt
+
+To check whether the message has been received, we can call the `roundtripMessage()` function on the sender contract. 
+
+```bash
+cast call --rpc-url fuji-c $SENDER_ADDRESS "roundtripMessage()(string)"
+```
+If successful, you should see the following output:
+```bash
+"Hello World!"
+```
+
+</Step>
+{/* TODO: Add instructions for setting up and running the relayer in Docker before this section
+<Step>
+
+### Check the Relayer Logs
+
+To understand in more detail what happened, check out the relayer logs:
+
+```bash
+avalanche interchain relayer logs
+```
+
+</Step>
+*/}
+</Steps>

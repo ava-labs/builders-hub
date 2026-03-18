@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { TransferableOutput, addTxSignatures, pvm, utils, Context } from "@avalabs/avalanchejs";
 import { getAuthSession } from '@/lib/auth/authSession';
 import { checkAndReserveFaucetClaim, completeFaucetClaim, cancelFaucetClaim } from '@/lib/faucet/rateLimit';
-import { checkAndAwardConsoleBadges } from '@/server/services/consoleBadge/consoleBadgeService';
-import type { AwardedConsoleBadge } from '@/server/services/consoleBadge/types';
 
 const SERVER_PRIVATE_KEY = process.env.SERVER_PRIVATE_KEY;
 const FAUCET_P_CHAIN_ADDRESS = process.env.FAUCET_P_CHAIN_ADDRESS;
@@ -120,18 +118,13 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     await completeFaucetClaim(claimId, tx.txID);
 
-    let awardedBadges: AwardedConsoleBadge[] = [];
-    try { awardedBadges = await checkAndAwardConsoleBadges(session.user.id, 'faucet_claim'); }
-    catch (e) { console.error('Badge check failed:', e); }
-
     return NextResponse.json({
       success: true,
       txID: tx.txID,
       sourceAddress: FAUCET_P_CHAIN_ADDRESS,
       destinationAddress,
       amount: FIXED_AMOUNT,
-      message: `Successfully transferred ${FIXED_AMOUNT} AVAX`,
-      awardedBadges,
+      message: `Successfully transferred ${FIXED_AMOUNT} AVAX`
     });
 
   } catch (error) {

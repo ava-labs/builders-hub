@@ -1,0 +1,21 @@
+---
+title: Incentivizing a Relayer
+description: Learn how to add Relayer Incentives.
+updated: 2024-06-09
+authors: [andyvargtz]
+icon: Book
+---
+
+You already mastered how to send messages from one chain to another, but we have been working under the assumption that all messages will be picked by the Relayers. That is not always true, and external Relayers might want to have something in exchange for their services.
+
+Relayer fees are an optional way to incentivize relayers to deliver a Interchain Messaging message to its destination chain. They are not strictly necessary, and may be omitted if a relayer is willing to relay messages with no fee, such as with a self-hosted relayer. If the relayer is not self hosted though, user will need to incentivize them, since they need to pay the transaction fees on the destination chain
+
+## What you will learn
+
+- What is the data flow for fees
+- How to calculate an adecuate incentive amount
+- How to implement those incentives
+
+## Exercises
+
+In this section you will apply the learned knowledge by calculating and adding fees to our basic send-receive contracts used in the [Interchain Messaging Basics chapter](/academy/interchain-messaging/04-icm-basics/01-icm-basics).

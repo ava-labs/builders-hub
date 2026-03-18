@@ -1,0 +1,40 @@
+---
+title: Deploy Native Token Home
+description: Deploy the NativeTokenHome contract on the Avalanche L1 blockchain.
+updated: 2024-05-31
+authors: [owenwahlgren]
+icon: Book
+---
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+<Callout>
+For this guide, we'll be using the Avalanche Fuji testnet, which already has a wrapped native asset (WAVAX). If you're creating your own L1 blockchain, you'll need to deploy your own wrapped native asset first.
+</Callout>
+
+<Steps>
+<Step>
+### Deploy NativeTokenHome
+
+Use our toolbox to deploy the NativeTokenHome contract:
+
+<Callout>
+Make sure you have:
+1. Connected your Core Wallet to the Fuji testnet
+2. Have enough test AVAX for gas fees
+3. Select "Native Token" as the transferrer type in the toolbox
+</Callout>
+
+<ToolboxMdxWrapper enforceChainId={43113}>
+    <DeployTokenHome />
+</ToolboxMdxWrapper>
+</Step>
+<Step>
+### Save the Native Token Home Address
+
+After deployment, you'll need to save the contract address for future steps. You can find it in the deployment confirmation in the toolbox.
+
+<Callout title="Note" type="info">
+Keep this address handy as you'll need it for the next steps in the bridging process.
+</Callout>
+</Step>
+</Steps>

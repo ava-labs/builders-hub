@@ -26,8 +26,6 @@ This section walks through the full lifecycle of an eERC, from deployment to int
 - Register auditors in the **Registrar Contract**.
 - Provide them with decryption permissions for compliance scenarios.
 
-<Quiz quizId="2023"/>
-
 ---
 
 ## 2. About the zk-Proof Type
@@ -48,16 +46,12 @@ If a developer wants to change the proving system (e.g., to PLONK or Halo2), the
 
 > **Avalanche Tip:** Groth16 is optimal for most L1 and C-Chain deployments due to its low gas cost and existing integration in the eERC stack.
 
-<Quiz quizId="2024"/>
-
 ---
 
 ## 3. Encryption & Hashing Details
 - **Curve**: BabyJubJub for zk-friendliness.
 - **ElGamal**: ElGamal for balance and transfer amounts.
 - **Poseidon**: Poseidon Cipher Text for proof inputs and Merkle trees.
-
-<Quiz quizId="2025"/>
 
 ---
 
@@ -96,14 +90,12 @@ npm run converter:core
 ```bash
 npm run converter:register
 ```
-
+ 
 - Change `WALLET_NUMBER = 1;` to `WALLET_NUMBER = 2;` to register PRIVATE_KEY_2 in the `scripts/converter/03_register-user.ts` file
 
 ```bash
 npm run converter:register
 ```
-
-<Quiz quizId="2026"/>
 
 ### Step 6: Set auditor
 
@@ -125,7 +117,7 @@ npm run converter:faucet
 
 ### Step 8: Deposit tokens
 
-#### To PRIVATE_KEY_1
+#### To PRIVATE_KEY_1 
 
 - Change `WALLET_NUMBER = 2;` to `WALLET_NUMBER = 1;` to get token balance from PRIVATE_KEY_1 in `scripts/converter/08_check_balance.ts` file
 - Let's check our first balance
@@ -140,8 +132,6 @@ npm run converter:deposit
 ```bash
 npm run converter:balance
 ```
-
-<Quiz quizId="2027"/>
 
 #### To PRIVATE_KEY_2
 
@@ -165,8 +155,6 @@ npm run converter:balance
 ```bash
 npm run converter:transfer
 ```
-
-<Quiz quizId="2028"/>
 
 ### Step 10: Withdraw tokens from `PRIVATE_KEY_2`
 
@@ -198,12 +186,8 @@ npm run converter:balance
 
 - Follow the flow by yourself and reach out to us at https://t.me/avalancheacademy
 
-<Quiz quizId="2029"/>
-
 ## 6. Considerations for Production
 
-- **Gas Costs**: Proof verification adds overhead; optimize circuits.
-- **Auditor Key Rotation**: Plan for secure revocation and re-assignment.
+- **Gas Costs**: Proof verification adds overhead; optimize circuits.  
+- **Auditor Key Rotation**: Plan for secure revocation and re-assignment.  
 - **Compliance**: Align privacy settings with jurisdictional requirements.
-
-<Quiz quizId="2030"/>

@@ -56,7 +56,7 @@ export function DocsLayoutWrapper({
     } else if (pathname.startsWith('/docs')) {
       document.body.setAttribute('data-docs-section', 'documentation');
     }
-
+    
     return () => {
       document.body.removeAttribute('data-docs-section');
       document.body.removeAttribute('data-layout');
@@ -98,14 +98,6 @@ export function DocsLayoutWrapper({
   const docsOptions: DocsLayoutProps = {
     tree: pageTree,
     nav: {
-      enabled: false,
-    },
-    // Disable fumadocs search toggle - we use our own search in the main header
-    searchToggle: {
-      enabled: false,
-    },
-    // Disable fumadocs theme switch - we use our own in the main header
-    themeSwitch: {
       enabled: false,
     },
     sidebar: {

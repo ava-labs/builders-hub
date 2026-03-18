@@ -10,15 +10,16 @@ documentation: https://docs.privy.io/
 ---
 
 ## What is Privy?
-Privy is a tool for onboarding users to web3, regardless of whether they already have a wallet, across mobile and desktop.
+Privy is a simple tool to easily onboard all your users to web3, regardless of whether they already have a wallet, across mobile and desktop.
 
 ## Terminology
+Before we dive into the guide, let's first understand the terminology.
 
 
 | Term | Meaning |
 | -------- | ------- |
-| Social Login | A form of single sign-on (SSO) that lets users log in using credentials from Google, X (formerly Twitter), Apple, or other social platforms instead of creating a new username and password. |
-| Magic Link | A passwordless authentication method where users log in by clicking a unique, time-sensitive link sent to their email address, removing the need for a password. |
+| Social Login | Social Login is a form of single sign-on (SSO) that allows users to log into a third-party website or app using their existing credentials from a social media platform, such as Google, X (formerly Twitter), or Apple. Instead of creating a new username and password, users can authenticate themselves through their social media accounts, streamlining the login process. |
+| Magic Link | A Magic Link is a form of passwordless authentication where users can log into an application or website by clicking a unique, time-sensitive link sent to their email address. This method eliminates the need for a traditional username and password combination, making the login process simpler and more user-friendly. |
 | Next.js  | Next.js’ Pages Router is a full-stack React framework. It’s versatile and lets you create React apps of any size—from a mostly static blog to a complex dynamic application. |
 
 
@@ -224,3 +225,6 @@ const transfer = () => {
 When we click on the `Send Test Transfer via Privy` button, this modal appears. Users can see the following details related to the transaction.
 
 
+## Conclusion
+
+What we achieved is the creation of a simple React project that integrates Privy. Our application can now easily onboard new users to our Web3 application without needing them to install a Web3 wallet extension, regardless of which chain they are on

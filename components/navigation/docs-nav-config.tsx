@@ -1,4 +1,3 @@
-import React from 'react';
 import {
   Network,
   Layers,
@@ -14,20 +13,10 @@ import {
   Milestone,
   Book,
   Eye,
-  Bot,
-  AppWindow,
-  Cloud
+  Bot
 } from 'lucide-react';
 
-export type NavOption = {
-  title: string;
-  description: string;
-  badge?: string;
-  icon: React.ReactNode;
-  url: string;
-};
-
-export const documentationOptions: NavOption[] = [
+export const documentationOptions = [
   {
     title: 'Primary Network',
     description: 'C-Chain, P-Chain, and X-Chain',
@@ -48,7 +37,7 @@ export const documentationOptions: NavOption[] = [
   },
 ];
 
-export const nodesOptions: NavOption[] = [
+export const nodesOptions = [
   {
     title: 'AvalancheGo Node',
     description: 'Run nodes and validators',
@@ -87,7 +76,7 @@ export const nodesOptions: NavOption[] = [
   },
 ];
 
-export const apiReferenceOptions: NavOption[] = [
+export const apiReferenceOptions = [
   {
     title: 'Data API',
     description: 'Access blockchain data',
@@ -108,40 +97,18 @@ export const apiReferenceOptions: NavOption[] = [
   },
 ];
 
-export const toolingOptions: NavOption[] = [
-  {
-    title: 'AI & LLM',
-    description: 'Integrate docs with AI apps and LLMs',
-    badge: 'New',
-    icon: <Bot className="w-5 h-5" />,
-    url: '/docs/tooling/ai-llm',
-  },
-  {
-    title: 'Builder Console',
-    description: 'Interactive tools with Core wallet in browser',
-    badge: 'New',
-    icon: <AppWindow className="w-5 h-5" />,
-    url: '/console',
-  },
-  {
-    title: 'Platform CLI',
-    description: 'P-Chain operations: staking, subnets, transfers',
-    badge: 'New',
-    icon: <Terminal className="w-5 h-5" />,
-    url: '/docs/tooling/platform-cli',
-  },
-  {
-    title: 'Avalanche Deploy',
-    description: 'Cloud playbooks for L1s and validators',
-    badge: 'New',
-    icon: <Cloud className="w-5 h-5" />,
-    url: '/docs/tooling/avalanche-deploy',
-  },
+export const toolingOptions = [
   {
     title: 'Avalanche-SDK',
-    description: 'TypeScript SDK for Avalanche',
+    description: 'Software development kit for Avalanche',
     icon: <Package className="w-5 h-5" />,
     url: '/docs/tooling/avalanche-sdk',
+  },
+  {
+    title: 'Avalanche-CLI',
+    description: 'Command-line interface for Avalanche',
+    icon: <Terminal className="w-5 h-5" />,
+    url: '/docs/tooling/avalanche-cli',
   },
   {
     title: 'tmpnet',
@@ -156,16 +123,15 @@ export const toolingOptions: NavOption[] = [
     url: '/docs/tooling/avalanche-postman',
   },
   {
-    title: 'Avalanche-CLI',
-    description: 'Command-line interface for Avalanche',
-    badge: 'Deprecated',
-    icon: <Terminal className="w-5 h-5" />,
-    url: '/docs/tooling/avalanche-cli',
+    title: 'AI & LLM',
+    description: 'Integrate docs with AI apps and LLMs',
+    icon: <Bot className="w-5 h-5" />,
+    url: '/docs/tooling/ai-llm',
   },
 ];
 
 
-export const acpsOptions: NavOption[] = [
+export const acpsOptions = [
   {
     title: 'Streaming Asynchronous Execution',
     description: 'ACP-194',

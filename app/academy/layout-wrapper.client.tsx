@@ -8,7 +8,6 @@ import { NavbarDropdownInjector } from '@/components/navigation/navbar-dropdown-
 import { ForceMobileSidebar } from '@/components/navigation/force-mobile-sidebar';
 import { DocsNavbarToggle } from '@/components/navigation/docs-navbar-toggle';
 import { AcademyLayoutClient } from './layout.client';
-import { AcademyBubbleNav } from '@/components/academy/shared/academy-bubble-nav';
 
 type Tree = DocsLayoutProps['tree'];
 
@@ -61,7 +60,6 @@ export function AcademyDocsLayoutWrapper({
             <ForceMobileSidebar />
             <AcademyLayoutClient />
             <DocsNavbarToggle />
-            <AcademyBubbleNav />
             <DocsLayout {...academyOptions}>
                 <span
                     className="absolute inset-0 z-[-1] h-[64rem] max-h-screen overflow-hidden"

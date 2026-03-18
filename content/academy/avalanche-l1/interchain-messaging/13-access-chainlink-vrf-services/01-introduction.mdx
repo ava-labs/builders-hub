@@ -1,0 +1,19 @@
+---
+title: Introduction
+description: Learn how to use ICM to access Chainlink VRF services on L1 networks that do not have direct Chainlink support.
+updated: 2024-10-21
+authors: [0xstt]
+icon: Book
+---
+
+As decentralized applications (dApps) expand across multiple blockchains, some Layer 1 (L1) networks lack direct support from essential services like **Chainlink VRF (Verifiable Random Functions)**. This presents a significant challenge for developers who rely on verifiable randomness for use cases such as gaming, lotteries, NFT minting, and other decentralized functions that require unbiased, unpredictable random numbers.
+
+The challenge arises because not every L1 network has integrated with Chainlink, meaning developers on those chains are left without native access to VRF services. Without verifiable randomness, critical aspects of dApps, such as fairness and security, can be compromised.
+
+### Why ICM is Necessary
+
+To address this gap, **Interchain Messaging (ICM)** provides a solution by allowing L1 networks that don’t have direct Chainlink support to still access these services. Through ICM, any blockchain can request VRF outputs from a Chainlink-supported network (e.g., Fuji) and receive the results securely on their own L1. 
+
+This cross-chain solution unlocks the ability to use Chainlink VRF on unsupported networks, bypassing the need for native integration and ensuring that dApp developers can continue building secure and fair decentralized applications.
+
+In the following sections, we will explore how to use ICM to access Chainlink VRF services across different chains by deploying two key smart contracts: one on the Chainlink-supported network and another on the target L1.

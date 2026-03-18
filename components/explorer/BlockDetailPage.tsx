@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Box, Clock, Fuel, Hash, ArrowLeft, ArrowRight, ChevronUp, ChevronDown, Layers, FileText, ArrowRightLeft, Info, Activity, ArrowUpRight } from "lucide-react";
+import { Box, Clock, Fuel, Hash, ArrowLeft, ArrowRight, ChevronUp, ChevronDown, Layers, FileText, ArrowRightLeft, Info, ExternalLink } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { DetailRow, CopyButton } from "@/components/explorer/DetailRow";
@@ -11,15 +11,6 @@ import { useExplorer } from "@/components/explorer/ExplorerContext";
 import { decodeFunctionInput } from "@/abi/event-signatures.generated";
 import { formatTokenValue, formatUsdValue } from "@/utils/formatTokenValue";
 import { formatPrice } from "@/utils/formatPrice";
-
-interface ACP176FeeState {
-  gasCapacity: string;
-  gasExcess: string;
-  targetExcess: string;
-  targetGasPerSecond: string;
-  maxCapacity: string;
-  gasPrice: string;
-}
 
 interface BlockDetail {
   number: string;
@@ -34,7 +25,6 @@ interface BlockDetail {
   gasLimit: string;
   baseFeePerGas?: string;
   gasFee?: string; // Gas fee in native token
-  feeState?: ACP176FeeState; // ACP-176 dynamic fee state
   size?: string;
   nonce?: string;
   difficulty?: string;
@@ -379,23 +369,26 @@ export default function BlockDetailPage({
                 <DetailRow
                   icon={<Clock className="w-4 h-4" />}
                   label={
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <a
-                          href="https://build.avax.network/docs/acps/226-dynamic-minimum-block-times#timestampmilliseconds"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-0.5 underline decoration-dashed underline-offset-2 decoration-zinc-400 dark:decoration-zinc-500 hover:decoration-zinc-600 dark:hover:decoration-zinc-300 transition-colors"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          Timestamp
-                          <ArrowUpRight className="w-3.5 h-3.5" />
-                        </a>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p className="text-xs">Millisecond precision timestamp per ACP-226</p>
-                      </TooltipContent>
-                    </Tooltip>
+                    <>
+                      Timestamp
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <a
+                            href="https://build.avax.network/docs/acps/226-dynamic-minimum-block-times#timestampmilliseconds"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-0.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors ml-1"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Info className="w-3.5 h-3.5" />
+                            <ExternalLink className="w-2.5 h-2.5" />
+                          </a>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="text-xs">Millisecond precision timestamp per ACP-226</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </>
                   }
                   themeColor={themeColor}
                   value={
@@ -471,23 +464,7 @@ export default function BlockDetailPage({
               {/* Gas Limit */}
               <DetailRow
                 icon={<Layers className="w-4 h-4" />}
-                label={
-                  <>
-                    Gas Limit
-                    {block?.feeState && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className="inline-flex ml-1 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors">
-                            <Info className="w-3.5 h-3.5" />
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent className="max-w-xs">
-                          <p className="text-xs">Max gas capacity for this block. On C-Chain this is dynamic (Target x 10) and represents how much gas can be consumed if the chain runs at 2x target rate for 5 seconds.</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    )}
-                  </>
-                }
+                label="Gas Limit"
                 themeColor={themeColor}
                 value={
                   <span className="text-sm text-zinc-900 dark:text-white">
@@ -495,73 +472,6 @@ export default function BlockDetailPage({
                   </span>
                 }
               />
-
-              {/* ACP-176 Fee State */}
-              {block?.feeState && (
-                <DetailRow
-                  icon={<Activity className="w-4 h-4" />}
-                  label={
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <a
-                          href="https://build.avax.network/docs/acps/176-dynamic-evm-gas-limit-and-price-discovery-updates"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-0.5 underline decoration-dashed underline-offset-2 decoration-zinc-400 dark:decoration-zinc-500 hover:decoration-zinc-600 dark:hover:decoration-zinc-300 transition-colors"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          Fee State
-                          <ArrowUpRight className="w-3.5 h-3.5" />
-                        </a>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p className="text-xs">Dynamic fee state per ACP-176</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  }
-                  themeColor={themeColor}
-                  value={
-                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className="inline-flex items-center gap-1.5 text-zinc-900 dark:text-white">
-                            <span className="text-zinc-500 dark:text-zinc-400">Target: </span>
-                            {(parseInt(block.feeState.targetGasPerSecond) / 1_000_000).toFixed(2)}M gas/s
-                            <Info className="w-3.5 h-3.5 text-zinc-400 dark:text-zinc-500" />
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent className="max-w-xs">
-                          <p className="text-xs">How much gas the network aims to process per second. When actual usage goes above this, fees go up. When below, fees go down.</p>
-                        </TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className="inline-flex items-center gap-1.5 text-zinc-900 dark:text-white">
-                            <span className="text-zinc-500 dark:text-zinc-400">Capacity: </span>
-                            {parseInt(block.feeState.gasCapacity).toLocaleString()}
-                            <Info className="w-3.5 h-3.5 text-zinc-400 dark:text-zinc-500" />
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent className="max-w-xs">
-                          <p className="text-xs">How much gas is available right now. This refills gradually over time and gets used up as transactions are processed.</p>
-                        </TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className="inline-flex items-center gap-1.5 text-zinc-900 dark:text-white">
-                            <span className="text-zinc-500 dark:text-zinc-400">Gas Price: </span>
-                            {(parseInt(block.feeState.gasPrice) / 1e9).toFixed(4)} Gwei
-                            <Info className="w-3.5 h-3.5 text-zinc-400 dark:text-zinc-500" />
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent className="max-w-xs">
-                          <p className="text-xs">The minimum fee per unit of gas. Automatically increases during high demand and decreases when the network is quiet.</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </div>
-                  }
-                />
-              )}
 
               {/* Base Fee Per Gas */}
               {block?.baseFeePerGas && (

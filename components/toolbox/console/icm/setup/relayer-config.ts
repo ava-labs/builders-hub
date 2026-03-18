@@ -34,6 +34,7 @@ export const genConfigCommand = (
         "source-blockchains": sources.map(source => ({
             "subnet-id": source.subnetId,
             "blockchain-id": source.blockchainId,
+            "vm": "evm",
             "rpc-endpoint": {
                 "base-url": source.rpcUrl,
             },
@@ -52,6 +53,7 @@ export const genConfigCommand = (
         "destination-blockchains": destinations.map(destination => ({
             "subnet-id": destination.subnetId,
             "blockchain-id": destination.blockchainId,
+            "vm": "evm",
             "rpc-endpoint": {
                 "base-url": destination.rpcUrl
             },
@@ -108,6 +110,7 @@ export const generateRelayerConfig = (
         "source-blockchains": sources.map(source => ({
             "subnet-id": source.subnetId,
             "blockchain-id": source.blockchainId,
+            "vm": "evm",
             "rpc-endpoint": {
                 "base-url": source.rpcUrl,
             },
@@ -126,6 +129,7 @@ export const generateRelayerConfig = (
         "destination-blockchains": destinations.map(destination => ({
             "subnet-id": destination.subnetId,
             "blockchain-id": destination.blockchainId,
+            "vm": "evm",
             "rpc-endpoint": {
                 "base-url": destination.rpcUrl
             },

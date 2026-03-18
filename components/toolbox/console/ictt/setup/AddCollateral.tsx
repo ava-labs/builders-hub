@@ -1,7 +1,6 @@
 "use client";
 
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
-import { useWalletClient } from 'wagmi';
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { Button } from "@/components/toolbox/components/Button";
 import { Success } from "@/components/toolbox/components/Success";
@@ -10,9 +9,8 @@ import { createPublicClient, http, formatUnits, parseUnits, Address, Chain } fro
 import { Input, Suggestion } from "@/components/toolbox/components/Input";
 import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput";
 import { AmountInput } from "@/components/toolbox/components/AmountInput";
-import SelectBlockchainId from "@/components/toolbox/components/SelectBlockchainId";
-import { cb58ToHex } from '@/components/tools/common/utils/cb58';
 import { utils } from "@avalabs/avalanchejs";
+import SelectBlockchainId from "@/components/toolbox/components/SelectBlockchainId";
 import ERC20TokenRemoteABI from "@/contracts/icm-contracts/compiled/ERC20TokenRemote.json";
 import NativeTokenRemoteABI from "@/contracts/icm-contracts/compiled/NativeTokenRemote.json";
 import ERC20TokenHomeABI from "@/contracts/icm-contracts/compiled/ERC20TokenHome.json";
@@ -25,10 +23,6 @@ import { RadioGroup } from "@/components/toolbox/components/RadioGroup";
 import { ConsoleToolMetadata, withConsoleToolMetadata } from "@/components/toolbox/components/WithConsoleToolMetadata";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
-import versions from "@/scripts/versions.json";
-import { ContractFunctionViewer } from "@/components/console/contract-function-viewer";
-
-const ICM_COMMIT = versions["ava-labs/icm-contracts"];
 
 const metadata: ConsoleToolMetadata = {
     title: "Add Collateral",
@@ -42,8 +36,7 @@ const metadata: ConsoleToolMetadata = {
 function AddCollateral() {
     const [criticalError, setCriticalError] = useState<Error | null>(null);
     const { nativeTokenRemoteAddress } = useToolboxStore();
-    const { walletEVMAddress } = useWalletStore();
-    const { data: walletClient } = useWalletClient();
+    const { coreWalletClient, walletEVMAddress } = useWalletStore();
     const { notify } = useConsoleNotifications();
     const viemChain = useViemChainStore();
     const selectedL1 = useSelectedL1()();
@@ -280,7 +273,7 @@ function AddCollateral() {
             }
 
             // 3. Get Collateral Info - get remote blockchain ID hex from current chain
-            const remoteBlockchainIDHex = cb58ToHex(selectedL1.id);
+            const remoteBlockchainIDHex = utils.bufferToHex(utils.base58check.decode(selectedL1.id));
             const settings = await homePublicClient.readContract({
                 address: tokenHomeAddress as Address,
                 abi: ERC20TokenHomeABI.abi,
@@ -333,7 +326,7 @@ function AddCollateral() {
     }, [fetchStatus]);
 
     const handleApprove = async () => {
-        if (!sourceL1?.rpcUrl || !walletClient?.account || !tokenHomeAddress || !tokenAddress || tokenDecimals === null || !amount || !sourceL1ViemChain) {
+        if (!sourceL1?.rpcUrl || !coreWalletClient?.account || !tokenHomeAddress || !tokenAddress || tokenDecimals === null || !amount || !sourceL1ViemChain) {
             setLocalError("Missing required information for approval.");
             return;
         }
@@ -354,11 +347,11 @@ function AddCollateral() {
                 abi: ExampleERC20ABI.abi,
                 functionName: 'approve',
                 args: [tokenHomeAddress as Address, amountParsed],
-                account: walletClient!.account,
+                account: coreWalletClient.account,
                 chain: sourceL1ViemChain,
             });
 
-            const writePromise = walletClient!.writeContract(request);
+            const writePromise = coreWalletClient.writeContract(request);
             notify({
                 type: 'call',
                 name: 'Approve Tokens'
@@ -379,7 +372,7 @@ function AddCollateral() {
     };
 
     const handleAddCollateral = async () => {
-        if (!sourceL1?.rpcUrl || !walletClient?.account || !tokenHomeAddress || tokenDecimals === null || !amount || !remoteContractAddress || !selectedL1 || !sourceL1ViemChain || !tokenType) {
+        if (!sourceL1?.rpcUrl || !coreWalletClient?.account || !tokenHomeAddress || tokenDecimals === null || !amount || !remoteContractAddress || !selectedL1 || !sourceL1ViemChain || !tokenType) {
             setLocalError("Missing required information to add collateral.");
             return;
         }
@@ -402,8 +395,8 @@ function AddCollateral() {
                 return;
             }
 
-            const remoteBlockchainIDHex = cb58ToHex(selectedL1.id);
-
+            const remoteBlockchainIDHex = utils.bufferToHex(utils.base58check.decode(selectedL1.id));
+            
             // Use appropriate ABI and parameters based on token type
             const tokenHomeABI = tokenType === 'native' ? NativeTokenHomeABI.abi : ERC20TokenHomeABI.abi;
             
@@ -425,7 +418,7 @@ function AddCollateral() {
             
             const { request } = await publicClient.simulateContract(simulateParams);
 
-            const writePromise = walletClient!.writeContract({
+            const writePromise = coreWalletClient.writeContract({
                 ...request,
                 account: walletEVMAddress as `0x${string}`,
             });
@@ -482,8 +475,7 @@ function AddCollateral() {
     }, [nativeTokenRemoteAddress, selectedL1?.name]);
 
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-        <div className="space-y-4">
+        <div className="mt-8 space-y-4">
 
             <EVMAddressInput
                 label={`Native Token Remote Contract Address (on ${selectedL1?.name})`}
@@ -558,7 +550,7 @@ function AddCollateral() {
             )}
 
             {tokenAddress && tokenSymbol && tokenDecimals !== null && (
-                <div className="p-3 border border-zinc-200/80 dark:border-zinc-800 rounded-xl text-sm space-y-1 bg-zinc-100 dark:bg-zinc-800">
+                <div className="p-3 border rounded-md text-sm space-y-1 bg-gray-100 dark:bg-gray-800">
                     <div>Collateral Token: <code className="font-mono">{tokenSymbol}</code></div>
                     <div>Token Address: <code className="font-mono">{tokenAddress}</code></div>
                     <div>Token Decimals: <code className="font-mono">{tokenDecimals}</code></div>
@@ -619,7 +611,7 @@ function AddCollateral() {
                 }
             />
 
-            {localError && <div className="text-red-500 mt-2 p-2 border border-red-300 rounded-lg">{localError}</div>}
+            {localError && <div className="text-red-500 mt-2 p-2 border border-red-300 rounded">{localError}</div>}
 
             <div className="flex gap-2 pt-2 border-t mt-4 flex-wrap">
                 {tokenType === 'erc20' && (
@@ -656,26 +648,6 @@ function AddCollateral() {
             {lastAddCollateralTxId && (
                 <Success label="Add Collateral Transaction ID" value={lastAddCollateralTxId} />
             )}
-        </div>
-
-        <ContractFunctionViewer
-            sources={[
-                {
-                    filename: "ERC20TokenHome.sol",
-                    sourceUrl: `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/ictt/TokenHome/ERC20TokenHome.sol`,
-                    githubUrl: `https://github.com/ava-labs/icm-contracts/blob/${ICM_COMMIT}/contracts/ictt/TokenHome/ERC20TokenHome.sol`,
-                    highlightFunction: "addCollateral",
-                },
-                {
-                    filename: "NativeTokenHome.sol",
-                    sourceUrl: `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/ictt/TokenHome/NativeTokenHome.sol`,
-                    githubUrl: `https://github.com/ava-labs/icm-contracts/blob/${ICM_COMMIT}/contracts/ictt/TokenHome/NativeTokenHome.sol`,
-                    highlightFunction: "addCollateral",
-                },
-            ]}
-            showFunctionOnly={true}
-            description="Adds collateral tokens to back the remote bridge's initial reserve imbalance"
-        />
         </div>
     );
 }

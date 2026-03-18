@@ -3,7 +3,6 @@
 import { useState, useCallback } from "react";
 import { NodeRegistration, RegisterSubnetResponse } from "@/components/toolbox/console/testnet-infra/ManagedTestnetNodes/types";
 import posthog from 'posthog-js';
-import { useConsoleBadgeNotificationStore } from '@/stores/consoleBadgeNotificationStore';
 
 export function useManagedTestnetNodes() {
     const [nodes, setNodes] = useState<NodeRegistration[]>([]);
@@ -64,10 +63,6 @@ export function useManagedTestnetNodes() {
 
             if (data.error) {
                 throw new Error(data.message || data.error || 'Registration failed');
-            }
-
-            if (data.awardedBadges?.length > 0) {
-                useConsoleBadgeNotificationStore.getState().addBadges(data.awardedBadges);
             }
 
             if (data.builder_hub_response) {

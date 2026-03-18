@@ -7,8 +7,6 @@ interface QuizDB {
       selectedAnswers: number[]
       isAnswerChecked: boolean
       isCorrect: boolean
-      attemptCount?: number
-      lastAttemptAt?: number
     }
   }
   flashcardProgress: {

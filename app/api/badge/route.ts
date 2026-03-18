@@ -1,6 +1,5 @@
 import { withAuth } from "@/lib/protectedRoute";
-import { getBadgeByCourseId } from "@/server/services/badge";
-
+import { getBadgeByCourseId } from "@/server/services/rewardBoard";
 import { NextResponse } from "next/server";
 
 export const GET = withAuth(async (request) => {

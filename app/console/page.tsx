@@ -2,26 +2,9 @@
 
 import { useSession } from "next-auth/react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState, useCallback, Suspense } from "react";
-import {
-  ChevronRight,
-  Layers,
-  Sparkles,
-  BookKey,
-  LayoutDashboard,
-  ArrowLeftRight,
-  Network,
-  Users,
-  Settings,
-  MessagesSquare,
-  ArrowUpDown,
-  Terminal,
-  Copy,
-  Check,
-} from "lucide-react";
+import { useEffect, Suspense } from "react";
+import { ChevronRight, Layers, Users, MessagesSquare, ArrowUpDown, Settings, Droplets } from "lucide-react";
 import Link from "next/link";
-import { motion } from "framer-motion";
-import { EcosystemMarquee } from "@/components/console/ecosystem-marquee";
 
 function RedirectLogic() {
   const { data: session, status } = useSession();
@@ -32,20 +15,8 @@ function RedirectLogic() {
   useEffect(() => {
     // Note: PostHog tracking is handled by the layout's TrackNewUser component
     // This component only handles the redirect logic to avoid duplicate tracking
-    //
-    // IMPORTANT: Don't redirect if user is a "pending" user (hasn't accepted terms yet)
-    // The LoginModalWrapper will handle showing Terms and BasicProfile modals
-    // Only redirect after they've completed the full registration flow
     if (status === "authenticated" && session?.user?.is_new_user) {
-      // Check if this is a pending user who hasn't accepted terms yet
-      const isPendingUser = session.user.id?.startsWith("pending_");
-      if (isPendingUser) {
-        // Let LoginModalWrapper handle the Terms/BasicProfile flow
-        // Don't redirect - the modals will appear
-        return;
-      }
-
-      // Redirect existing new users (who have accepted terms but notifications is null) to profile page
+      // Redirect new users to profile page
       if (pathname !== "/profile") {
         // Store the original URL with search params (including UTM) in localStorage
         const originalUrl = `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
@@ -68,355 +39,238 @@ function RedirectIfNewUser() {
   );
 }
 
-const containerVariants = {
-  hidden: {},
-  visible: {
-    transition: { staggerChildren: 0.08, delayChildren: 0.1 },
-  },
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { type: "spring" as const, stiffness: 200, damping: 20 },
-  },
-};
-
-function BentoCard({
-  href,
-  className = "",
-  pulseDelay,
-  children,
-}: {
-  href: string;
-  className?: string;
-  pulseDelay?: number;
-  children: React.ReactNode;
-}) {
-  const router = useRouter();
-
-  return (
-    <motion.div variants={itemVariants}>
-      <div
-        onClick={() => router.push(href)}
-        className="block h-full cursor-pointer"
-        role="link"
-        tabIndex={0}
-        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") router.push(href); }}
-      >
-        <motion.div
-          whileHover={{ y: -2 }}
-          transition={{ type: "spring" as const, stiffness: 400, damping: 25 }}
-          className={`group relative h-full rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm p-4 transition-all duration-200 hover:border-zinc-300 dark:hover:border-zinc-700 ${className}`}
-          style={{
-            boxShadow: "0 1px 2px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.03)",
-            ...(pulseDelay !== undefined && {
-              outline: "2px solid transparent",
-              animation: `cardPulse 1.0s ease-in-out ${pulseDelay}s 1`,
-            }),
-          }}
-          onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "0 2px 4px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.06)"; }}
-          onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "0 1px 2px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.03)"; }}
-        >
-          {children}
-        </motion.div>
-      </div>
-    </motion.div>
-  );
-}
-
-function SubLink({
-  href,
-  icon: Icon,
-  label,
-}: {
-  href: string;
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-}) {
-  return (
-    <Link
-      href={href}
-      className="flex items-center gap-2 text-sm rounded-md px-2 py-1.5 -mx-2 transition-colors text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 hover:text-zinc-700 dark:hover:text-zinc-200"
-      onClick={(e) => e.stopPropagation()}
-    >
-      <Icon className="w-3.5 h-3.5" />
-      <span>{label}</span>
-    </Link>
-  );
-}
-
-const INSTALL_CMD = "curl -sSfL https://build.avax.network/install/platform-cli | sh";
-
-function CliInstallSnippet() {
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = useCallback(async () => {
-    await navigator.clipboard.writeText(INSTALL_CMD);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }, []);
-
-  return (
-    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 rounded-xl px-4 py-3">
-      <p className="text-sm text-zinc-500 dark:text-zinc-400 shrink-0">
-        <span className="hidden sm:inline">Don&apos;t have Core? </span>
-        <span className="sm:hidden">No Core? </span>
-        Use the{" "}
-        <span className="font-medium text-zinc-700 dark:text-zinc-300">Platform CLI</span>
-      </p>
-      <div className="flex items-center gap-2 flex-1 min-w-0 rounded-lg bg-zinc-100 dark:bg-zinc-800/80 px-3 py-2 overflow-x-auto w-full sm:w-auto">
-        <span className="text-xs text-zinc-400 dark:text-zinc-500 select-none font-mono shrink-0">$</span>
-        <code className="text-sm font-mono whitespace-nowrap text-zinc-600 dark:text-zinc-300">
-          curl -sSfL build.avax.network/install/platform-cli | sh
-        </code>
-        <button
-          onClick={handleCopy}
-          className="ml-auto p-1 rounded text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors shrink-0"
-          aria-label="Copy install command"
-        >
-          {copied ? (
-            <Check className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400" />
-          ) : (
-            <Copy className="w-3.5 h-3.5" />
-          )}
-        </button>
-      </div>
-    </div>
-  );
-}
-
 function ConsoleDashboard() {
-  const ecosystemChains = [
-    // Gaming
-    { name: "FIFA", image: "https://images.ctfassets.net/gcj8jwzm6086/27QiWdtdwCaIeFbYhA47KG/5b4245767fc39d68b566f215e06c8f3a/FIFA_logo.png", link: "https://collect.fifa.com/" },
-    { name: "MapleStory", image: "https://images.ctfassets.net/gcj8jwzm6086/Uu31h98BapTCwbhHGBtFu/6b72f8e30337e4387338c82fa0e1f246/MSU_symbol.png", link: "https://maplestoryuniverse.com/" },
-    { name: "Beam", image: "https://images.ctfassets.net/gcj8jwzm6086/2ZXZw0POSuXhwoGTiv2fzh/5b9d9e81acb434461da5addb1965f59d/chain-logo.png", link: "https://onbeam.com/" },
-    { name: "DeFi Kingdoms", image: "https://images.ctfassets.net/gcj8jwzm6086/6ee8eu4VdSJNo93Rcw6hku/2c6c5691e8a7c3b68654e5a4f219b2a2/chain-logo.png", link: "https://defikingdoms.com/" },
-    { name: "Gunzilla", image: "https://images.ctfassets.net/gcj8jwzm6086/3z2BVey3D1mak361p87Vu/ca7191fec2aa23dfa845da59d4544784/unnamed.png", link: "https://gunzillagames.com/" },
-    { name: "PLAYA3ULL", image: "https://images.ctfassets.net/gcj8jwzm6086/27mn0a6a5DJeUxcJnZr7pb/8a28d743d65bf35dfbb2e63ba2af7f61/brandmark_-_square_-_Sam_Thompson.png", link: "https://playa3ull.games/" },
-    { name: "Blitz", image: "https://images.ctfassets.net/gcj8jwzm6086/5ZhwQeXUwtVZPIRoWXhgrw/03d0ed1c133e59f69bcef52e27d1bdeb/image__2___2_.png", link: "https://blitz.gg/" },
-    { name: "Shrapnel", image: "https://images.ctfassets.net/gcj8jwzm6086/3vru4toe9KAyUXpn5XQthq/714286de3f35ee92426853037e985f77/chain-logo.png", link: "https://shrapnel.com/" },
-    { name: "PLYR", image: "https://images.ctfassets.net/gcj8jwzm6086/5K1xUbrhZPhSOEtsHoghux/b64edf007db24d8397613f7d9338260a/logomark_fullorange.svg", link: "https://plyr.network/" },
-    { name: "Tiltyard", image: "https://images.ctfassets.net/gcj8jwzm6086/5iZkicfOvjuwJYQqqCQN4y/9bdb761652d929459610c8b2da862cd5/android-chrome-512x512.png", link: "https://tiltyard.gg/" },
-    { name: "Artery", image: "https://images.ctfassets.net/gcj8jwzm6086/7plQHTCA1MePklfF2lDgaE/1f4d00bf534a1ae180b3ea1de76308c8/SLIR8rz7_400x400.jpg", link: "https://studioartery.com/" },
-    { name: "Hatchyverse", image: "https://dashboard-assets.dappradar.com/document/8825/hatchyverse-project-games-8825-logo_aaafc4cafbea89ae57991f888d963abb.png", link: "https://hatchyverse.com/" },
-    // DeFi & Finance
-    { name: "Dexalot", image: "https://images.ctfassets.net/gcj8jwzm6086/6tKCXL3AqxfxSUzXLGfN6r/be31715b87bc30c0e4d3da01a3d24e9a/dexalot-subnet.png", link: "https://dexalot.com/" },
-    { name: "StraitsX", image: "https://images.ctfassets.net/gcj8jwzm6086/3jGGJxIwb3GjfSEJFXkpj9/2ea8ab14f7280153905a29bb91b59ccb/icon.png", link: "https://straitsx.com/" },
-    { name: "Blaze", image: "https://images.ctfassets.net/gcj8jwzm6086/6Whg7jeebEhQfwGAXEsGVh/ecbb11c6c54af7ff3766b58433580721/2025-04-10_16.28.46.jpg", link: "https://blaze.stream/" },
-    // Infrastructure & Enterprise
-    { name: "Lamina1", image: "https://images.ctfassets.net/gcj8jwzm6086/5KPky47nVRvtHKYV0rQy5X/e0d153df56fd1eac204f58ca5bc3e133/L1-YouTube-Avatar.png", link: "https://lamina1.com/" },
-    { name: "UPTN", image: "https://images.ctfassets.net/gcj8jwzm6086/5jmuPVLmmUSDrfXxbIrWwo/4bdbe8d55b775b613156760205d19f9f/symbol_UPTN_-_js_won.png", link: "https://uptn.io/" },
-    { name: "Innovo", image: "https://images.ctfassets.net/gcj8jwzm6086/5wd9o1kxI1nG0Kb2LrEooJ/9e14075a20dc67c4ba5ab0ca404192b8/1675173474597.png", link: "https://innovomarkets.com/" },
-    { name: "Coqnet", image: "https://images.ctfassets.net/gcj8jwzm6086/1r0LuDAKrZv9jgKqaeEBN3/9a7efac3099b861366f9e776e6131617/Isotipo_coq.png", link: "https://coq.fi/" },
-    { name: "Intersect", image: "https://images.ctfassets.net/gcj8jwzm6086/4mDZ5q3a5lxHJcBLTORuMr/b47935fa6007cb3430acabef7e13e9ca/explorer.png", link: "https://intersect.io/" },
-    { name: "Watr", image: "https://f005.backblazeb2.com/file/tracehawk-prod/logo/watr/Light.svg", link: "https://watr.org/" },
-    { name: "Hashfire", image: "https://images.ctfassets.net/gcj8jwzm6086/4TCWxdtzvtZ8iD4255nAgU/e4d12af0a594bcf38b53a27e6beb07a3/FlatIcon_Large_.png", link: "https://hashfire.xyz/" },
-    { name: "Space", image: "https://images.ctfassets.net/gcj8jwzm6086/27oUMNb9hSTA7HfFRnqUtZ/2f80e6b277f4b4ee971675b5f73c06bf/Space_Symbol_256X256__v2.svg", link: "https://space.id/" },
-    { name: "Numi", image: "https://images.ctfassets.net/gcj8jwzm6086/411JTIUnbER3rI5dpOR54Y/3c0a8e47d58818a66edd868d6a03a135/numine_main_icon.png", link: "https://numine.io/" },
-    { name: "Feature", image: "https://images.ctfassets.net/gcj8jwzm6086/2hWSbxXPv2QTPCtCaEp7Kp/522b520e7e5073f7e7459f9bd581bafa/FTR_LOGO_-_FLAT_BLACK.png", link: "https://feature.io/" },
-    { name: "Kali Chain", image: "https://images.ctfassets.net/gcj8jwzm6086/r9EB5XcOIS39mZlXrFAsO/9bb66b54f61d0566588056782865aed2/logoKalichain.png", link: "https://kalichain.com/" },
-    { name: "Orange", image: "https://images.ctfassets.net/gcj8jwzm6086/4jmmb8oMQwW5My8YYcEmAx/ee1f1cef8766cc934e9190c5c1c7fa21/Orange_Logo_Mark_Slightly_Padded.png", link: "https://orangeweb3.com/" },
-    { name: "Zeroone", image: "https://images.ctfassets.net/gcj8jwzm6086/1lOFyhAJ0JkDkAmpeCznxL/9729fd9e4e75009f38a0e2c564259ead/icon-512.png", link: "https://zeroone.art/" },
-    { name: "Titan", image: "https://images.ctfassets.net/gcj8jwzm6086/5m6pgoG1znzD3CA0HEh7D0/6850391f9ba90d9a97e37790b32f89ba/TITAN_mainnet_logo.png", link: "https://www.avax.network/about/blog/titan-content-launches-2gathr-on-avalanche" },
-    { name: "Turf Network", image: "https://images.ctfassets.net/gcj8jwzm6086/2OGwSmo36iWhvmPfgUUnEb/0812275eac56a8d82907fb96d96002bc/with_green_background.png", link: "https://turf.network/" },
-    { name: "Quboid", image: "https://images.ctfassets.net/gcj8jwzm6086/5jRNt6keCaCe0Z35ZQbwtL/94f81aa95f9d9229111693aa6a705437/Quboid_Logo.jpg", link: "https://qubo.id/" },
+  // Primary tier - Most important partnerships (larger display)
+  const primaryNetworks = [
+    {
+      name: "FIFA Blockchain",
+      image: "https://images.ctfassets.net/gcj8jwzm6086/27QiWdtdwCaIeFbYhA47KG/5b4245767fc39d68b566f215e06c8f3a/FIFA_logo.png",
+      link: "https://collect.fifa.com/",
+      type: "Gaming"
+    },
+    {
+      name: "MapleStory Henesys",
+      image: "https://images.ctfassets.net/gcj8jwzm6086/Uu31h98BapTCwbhHGBtFu/6b72f8e30337e4387338c82fa0e1f246/MSU_symbol.png",
+      link: "https://nexon.com",
+      type: "Gaming"
+    },
+    {
+      name: "Dexalot Exchange",
+      image: "https://images.ctfassets.net/gcj8jwzm6086/6tKCXL3AqxfxSUzXLGfN6r/be31715b87bc30c0e4d3da01a3d24e9a/dexalot-subnet.png",
+      link: "https://dexalot.com/",
+      type: "DeFi"
+    },
+    {
+      name: "DeFi Kingdoms",
+      image: "https://images.ctfassets.net/gcj8jwzm6086/6ee8eu4VdSJNo93Rcw6hku/2c6c5691e8a7c3b68654e5a4f219b2a2/chain-logo.png",
+      link: "https://defikingdoms.com/",
+      type: "Gaming"
+    },
+    {
+      name: "Lamina1",
+      image: "https://images.ctfassets.net/gcj8jwzm6086/5KPky47nVRvtHKYV0rQy5X/e0d153df56fd1eac204f58ca5bc3e133/L1-YouTube-Avatar.png",
+      link: "https://lamina1.com/",
+      type: "Creative"
+    },
+    {
+      name: "Green Dot Deloitte",
+      image: "https://images.ctfassets.net/gcj8jwzm6086/zDgUqvR4J10suTQcNZ3dU/842b9f276bef338e68cb5d9f119cf387/green-dot.png",
+      link: "https://www2.deloitte.com/us/en/pages/about-deloitte/solutions/future-forward-blockchain-alliances.html",
+      type: "Enterprise"
+    }
   ];
 
-  return (
-    <div className="relative -m-8 p-8" style={{ minHeight: "calc(100vh - var(--header-height, 3rem))" }}>
-      <style jsx global>{`
-        @keyframes cardPulse {
-          0%, 100% { outline-color: transparent; }
-          50% { outline-color: rgba(161, 161, 170, 0.3); }
-        }
-      `}</style>
-      {/* Grid background */}
-      <div
-        className="absolute inset-0 opacity-[0.4] dark:opacity-[0.15]"
-        style={{
-          backgroundImage: `
-            linear-gradient(to right, rgb(148 163 184 / 0.3) 1px, transparent 1px),
-            linear-gradient(to bottom, rgb(148 163 184 / 0.3) 1px, transparent 1px)
-          `,
-          backgroundSize: '24px 24px',
-        }}
-      />
+  // Secondary tier - Important but smaller display
+  const secondaryNetworks = [
+    {
+      name: "Beam Gaming",
+      image: "https://images.ctfassets.net/gcj8jwzm6086/2ZXZw0POSuXhwoGTiv2fzh/5b9d9e81acb434461da5addb1965f59d/chain-logo.png",
+      link: "https://onbeam.com/",
+      type: "Gaming"
+    },
+    {
+      name: "KOROSHI Gaming",
+      image: "https://images.ctfassets.net/gcj8jwzm6086/1cZxf8usDbuJng9iB3fkFd/1bc34bc28a2c825612eb697a4b72d29d/2025-03-30_07.28.32.jpg",
+      link: "https://www.thekoroshi.com/",
+      type: "Gaming"
+    },
+    {
+      name: "Gunzilla Games",
+      image: "https://images.ctfassets.net/gcj8jwzm6086/3z2BVey3D1mak361p87Vu/ca7191fec2aa23dfa845da59d4544784/unnamed.png",
+      link: "https://gunzillagames.com/en/",
+      type: "Gaming"
+    },
+    {
+      name: "PLAYA3ULL Games",
+      image: "https://images.ctfassets.net/gcj8jwzm6086/27mn0a6a5DJeUxcJnZr7pb/8a28d743d65bf35dfbb2e63ba2af7f61/brandmark_-_square_-_Sam_Thompson.png",
+      link: "https://playa3ull.games/",
+      type: "Gaming"
+    },
+    {
+      name: "StraitsX",
+      image: "https://images.ctfassets.net/gcj8jwzm6086/3jGGJxIwb3GjfSEJFXkpj9/2ea8ab14f7280153905a29bb91b59ccb/icon.png",
+      link: "https://www.straitsx.com/",
+      type: "DeFi"
+    },
+    {
+      name: "CX Chain",
+      image: "https://images.ctfassets.net/gcj8jwzm6086/3wVuWA4oz9iMadkIpywUMM/377249d5b8243e4dfa3a426a1af5eaa5/14.png",
+      link: "https://node.cxchain.xyz/",
+      type: "Gaming"
+    }
+  ];
 
-      <div className="relative max-w-6xl mx-auto">
-        {/* Ecosystem Marquee */}
-        <motion.div
-          className="mb-6 pt-1"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3, duration: 0.6 }}
-        >
-          <div className="flex items-center justify-between mb-2.5">
-            <h3 className="text-sm font-medium text-zinc-400 dark:text-zinc-500">
-              Built on Avalanche
-            </h3>
+  // Combine primary and secondary networks, limiting to 12 for display
+  const ecosystemChains = [...primaryNetworks, ...secondaryNetworks].slice(0, 12);
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold text-foreground mb-2">Welcome to Builder Console</h2>
+        <p className="text-muted-foreground">
+          Manage your Avalanche L1s, validators, and deployments from one central location.
+        </p>
+      </div>
+
+      {/* Call to Action Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+        {/* Primary Network Actions */}
+        <Link href="/console/primary-network/node-setup" className="group block">
+          <div className="p-6 rounded-lg border bg-card hover:bg-accent/50 transition-all duration-200 cursor-pointer h-full">
+            <div className="flex items-start justify-between mb-4">
+              <div className="p-2 rounded-lg bg-muted">
+                <Settings className="w-5 h-5 text-muted-foreground" />
+              </div>
+              <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+            </div>
+            <h3 className="font-semibold text-foreground mb-2">Setup Primary Network Node</h3>
+            <p className="text-sm text-muted-foreground mb-4">Configure and deploy your Avalanche Primary Network node infrastructure</p>
+            <div className="text-xs text-muted-foreground font-medium">Get Started →</div>
+          </div>
+        </Link>
+
+        {/* Layer 1 Creation */}
+        <Link href="/console/layer-1/create" className="group block">
+          <div className="p-6 rounded-lg border bg-card hover:bg-accent/50 transition-all duration-200 cursor-pointer h-full">
+            <div className="flex items-start justify-between mb-4">
+              <div className="p-2 rounded-lg bg-muted">
+                <Layers className="w-5 h-5 text-muted-foreground" />
+              </div>
+              <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+            </div>
+            <h3 className="font-semibold text-foreground mb-2">Create New L1</h3>
+            <p className="text-sm text-muted-foreground mb-4">Launch your custom Layer 1 blockchain with custom configurations</p>
+            <div className="text-xs text-muted-foreground font-medium">Create L1 →</div>
+          </div>
+        </Link>
+
+        {/* Validator Management */}
+        <Link href="/console/permissioned-l1s/add-validator" className="group block">
+          <div className="p-6 rounded-lg border bg-card hover:bg-accent/50 transition-all duration-200 cursor-pointer h-full">
+            <div className="flex items-start justify-between mb-4">
+              <div className="p-2 rounded-lg bg-muted">
+                <Users className="w-5 h-5 text-muted-foreground" />
+              </div>
+              <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+            </div>
+            <h3 className="font-semibold text-foreground mb-2">Manage Validators</h3>
+            <p className="text-sm text-muted-foreground mb-4">Add, remove, and configure validators for your L1 networks</p>
+            <div className="text-xs text-muted-foreground font-medium">Manage →</div>
+          </div>
+        </Link>
+
+        {/* Interchain Messaging */}
+        <Link href="/console/icm/setup" className="group block">
+          <div className="p-6 rounded-lg border bg-card hover:bg-accent/50 transition-all duration-200 cursor-pointer h-full">
+            <div className="flex items-start justify-between mb-4">
+              <div className="p-2 rounded-lg bg-muted">
+                <MessagesSquare className="w-5 h-5 text-muted-foreground" />
+              </div>
+              <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+            </div>
+            <h3 className="font-semibold text-foreground mb-2">Setup Cross-Chain Messaging</h3>
+            <p className="text-sm text-muted-foreground mb-4">Enable communication between your L1s with Interchain Messaging</p>
+            <div className="text-xs text-muted-foreground font-medium">Setup ICM →</div>
+          </div>
+        </Link>
+
+        {/* Token Transfer */}
+        <Link href="/console/ictt/setup" className="group block">
+          <div className="p-6 rounded-lg border bg-card hover:bg-accent/50 transition-all duration-200 cursor-pointer h-full">
+            <div className="flex items-start justify-between mb-4">
+              <div className="p-2 rounded-lg bg-muted">
+                <ArrowUpDown className="w-5 h-5 text-muted-foreground" />
+              </div>
+              <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+            </div>
+            <h3 className="font-semibold text-foreground mb-2">Bridge Setup</h3>
+            <p className="text-sm text-muted-foreground mb-4">Configure token bridges for seamless cross-chain transfers</p>
+            <div className="text-xs text-muted-foreground font-medium">Setup Bridge →</div>
+          </div>
+        </Link>
+
+        {/* Testnet Faucet */}
+        <Link href="/console/primary-network/faucet" className="group block">
+          <div className="p-6 rounded-lg border bg-card hover:bg-accent/50 transition-all duration-200 cursor-pointer h-full">
+            <div className="flex items-start justify-between mb-4">
+              <div className="p-2 rounded-lg bg-muted">
+                <Droplets className="w-5 h-5 text-muted-foreground" />
+              </div>
+              <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+            </div>
+            <h3 className="font-semibold text-foreground mb-2">Get Test Tokens</h3>
+            <p className="text-sm text-muted-foreground mb-4">Access the testnet faucet to get AVAX for development and testing</p>
+            <div className="text-xs text-muted-foreground font-medium">Get Tokens →</div>
+          </div>
+        </Link>
+      </div>
+
+      {/* Ecosystem Section */}
+      <div className="mb-12">
+        <h2 className="text-2xl font-bold text-foreground mb-6 text-center">
+          Explore Avalanche L1s
+        </h2>
+        <div className="flex flex-wrap justify-center gap-3">
+          {ecosystemChains.map((chain, index) => (
             <a
-              href="https://build.avax.network/stats/l1"
+              key={index}
+              href={chain.link}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
+              className="group flex items-center gap-3 px-4 py-2.5 rounded-full bg-card border border-border hover:bg-accent hover:border-accent-foreground/20 transition-all duration-300 hover:scale-105"
+              title={`${chain.name}${chain.type ? ` - ${chain.type}` : ''}`}
             >
-              View all →
-            </a>
-          </div>
-          <EcosystemMarquee chains={ecosystemChains} rows={2} />
-        </motion.div>
-
-        {/* Bento Grid */}
-        <motion.div
-          className="grid grid-cols-1 md:grid-cols-6 gap-3 mb-6"
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-        >
-          {/* Row 1: Create L1 (span-4) + Blueprints (span-2) */}
-          <motion.div className="md:col-span-4" variants={itemVariants}>
-            <Link href="/console/layer-1/create" className="block h-full">
-              <motion.div
-                whileHover={{ y: -2 }}
-                transition={{ type: "spring" as const, stiffness: 400, damping: 25 }}
-                className="group h-full rounded-2xl border border-zinc-700 dark:border-zinc-700 bg-zinc-800 dark:bg-zinc-800 p-5 transition-all duration-200 hover:border-zinc-600 dark:hover:border-zinc-600"
-                style={{
-                  boxShadow: "inset 0 1px 0 0 rgba(255,255,255,0.06), 0 2px 8px rgba(0,0,0,0.15), 0 8px 24px rgba(0,0,0,0.1)",
-                  outline: "2px solid transparent",
-                  animation: "cardPulse 1.0s ease-in-out 1.0s 2",
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "inset 0 1px 0 0 rgba(255,255,255,0.06), 0 4px 12px rgba(0,0,0,0.2), 0 16px 40px rgba(0,0,0,0.15)"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "inset 0 1px 0 0 rgba(255,255,255,0.06), 0 2px 8px rgba(0,0,0,0.15), 0 8px 24px rgba(0,0,0,0.1)"; }}
-              >
-                <div className="flex items-start justify-between h-full">
-                  <div>
-                    <div className="w-9 h-9 rounded-xl bg-white/[0.08] flex items-center justify-center mb-3 transition-colors group-hover:bg-white/[0.14]">
-                      <Layers className="w-5 h-5 text-zinc-300 transition-colors group-hover:text-white" />
-                    </div>
-                    <h2 className="text-xl font-semibold text-white dark:text-white mb-1.5">
-                      Create L1
-                    </h2>
-                    <p className="text-zinc-400 dark:text-zinc-400 text-sm max-w-sm leading-relaxed">
-                      Launch a new Layer 1 blockchain with custom validators, tokenomics, and governance
-                    </p>
-
-                  </div>
-                  <div className="flex items-center self-center ml-4">
-                    <ChevronRight className="w-5 h-5 text-zinc-600 transition-all duration-200 group-hover:text-zinc-400 group-hover:translate-x-1" />
-                  </div>
-                </div>
-              </motion.div>
-            </Link>
-          </motion.div>
-
-          <motion.div className="md:col-span-2" variants={itemVariants}>
-            <div className="block h-full cursor-not-allowed">
-              <motion.div
-                className="group h-full rounded-2xl border border-zinc-200/80 dark:border-zinc-700 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm p-5 opacity-50 pointer-events-none select-none"
-                style={{
-                  boxShadow: "0 1px 2px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.03)",
-                }}
-              >
-                <div className="flex items-center gap-2.5 mb-3">
-                  <div className="w-9 h-9 rounded-xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
-                    <Sparkles className="w-4.5 h-4.5 text-zinc-600 dark:text-zinc-400" />
-                  </div>
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded-full">
-                    Coming Soon
-                  </span>
-                </div>
-                <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-1.5">
-                  Blueprints
-                </h2>
-                <p className="text-zinc-500 dark:text-zinc-400 text-sm leading-relaxed">
-                  Pre-configured L1 templates for gaming, DeFi, and enterprise
-                </p>
-              </motion.div>
-            </div>
-          </motion.div>
-
-          {/* Row 2: Faucet (3) + API Keys (3) */}
-          <div className="md:col-span-3">
-            <BentoCard href="/console/primary-network/faucet" pulseDelay={3.8}>
-              <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mb-2 transition-colors group-hover:bg-zinc-200/80 dark:group-hover:bg-zinc-700/80">
-                <img
-                  src="/images/avax.png"
-                  alt="AVAX"
-                  className="w-4 h-4 opacity-50 dark:opacity-40 grayscale group-hover:opacity-70 dark:group-hover:opacity-60 transition-opacity"
+              <div className="w-8 h-8 flex items-center justify-center flex-shrink-0">
+                <img 
+                  src={chain.image} 
+                  alt={chain.name}
+                  className="w-full h-full object-contain filter dark:brightness-90 group-hover:scale-110 transition-transform duration-300 rounded-full"
+                  onError={(e) => {
+                    // Fallback to a placeholder if image fails to load
+                    e.currentTarget.style.display = 'none';
+                    e.currentTarget.parentElement!.innerHTML = `<div class="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs font-bold text-muted-foreground">${chain.name.substring(0, 2).toUpperCase()}</div>`;
+                  }}
                 />
               </div>
-              <h3 className="font-medium text-zinc-900 dark:text-zinc-100 mb-0.5">Testnet Faucet</h3>
-              <p className="text-sm text-zinc-500 dark:text-zinc-400">Get test AVAX for development</p>
-            </BentoCard>
-          </div>
-
-          <div className="md:col-span-3">
-            <BentoCard href="/console/utilities/data-api-keys" pulseDelay={4.7}>
-              <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mb-2 transition-colors group-hover:bg-zinc-200/80 dark:group-hover:bg-zinc-700/80">
-                <BookKey className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
-              </div>
-              <h3 className="font-medium text-zinc-900 dark:text-zinc-100 mb-0.5">Data API Keys</h3>
-              <p className="text-sm text-zinc-500 dark:text-zinc-400">Manage your API access keys</p>
-            </BentoCard>
-          </div>
-
-          {/* Row 3: Primary Network (2) + Your L1 (2) + Cross-Chain (2) */}
-          <div className="md:col-span-2">
-            <BentoCard href="/console/primary-network/node-setup" pulseDelay={5.6}>
-              <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mb-2 transition-colors group-hover:bg-zinc-200/80 dark:group-hover:bg-zinc-700/80">
-                <Network className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
-              </div>
-              <h3 className="font-medium text-zinc-900 dark:text-zinc-100">Primary Network</h3>
-              <div className="space-y-0 mt-2 pt-2 border-t border-zinc-100 dark:border-zinc-800">
-                <SubLink href="/console/primary-network/node-setup" icon={Settings} label="Node Setup" />
-                <SubLink href="/console/primary-network/stake" icon={Users} label="Stake AVAX" />
-                <SubLink href="/console/primary-network/c-p-bridge" icon={ArrowUpDown} label="C/P Bridge" />
-              </div>
-            </BentoCard>
-          </div>
-
-          <div className="md:col-span-2">
-            <BentoCard href="/console/layer-1/validator-set" pulseDelay={6.5}>
-              <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mb-2 transition-colors group-hover:bg-zinc-200/80 dark:group-hover:bg-zinc-700/80">
-                <LayoutDashboard className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
-              </div>
-              <h3 className="font-medium text-zinc-900 dark:text-zinc-100">Your L1</h3>
-              <div className="space-y-0 mt-2 pt-2 border-t border-zinc-100 dark:border-zinc-800">
-                <SubLink href="/console/layer-1/validator-set" icon={Users} label="Validators" />
-                <SubLink href="/console/l1-tokenomics/fee-manager" icon={Settings} label="Tokenomics" />
-                <SubLink href="/console/layer-1/performance-monitor" icon={ChevronRight} label="Performance" />
-              </div>
-            </BentoCard>
-          </div>
-
-          <div className="md:col-span-2">
-            <BentoCard href="/console/icm/setup" pulseDelay={7.4}>
-              <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mb-2 transition-colors group-hover:bg-zinc-200/80 dark:group-hover:bg-zinc-700/80">
-                <ArrowLeftRight className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
-              </div>
-              <h3 className="font-medium text-zinc-900 dark:text-zinc-100">Cross-Chain</h3>
-              <div className="space-y-0 mt-2 pt-2 border-t border-zinc-100 dark:border-zinc-800">
-                <SubLink href="/console/icm/setup" icon={MessagesSquare} label="ICM Setup" />
-                <SubLink href="/console/ictt/setup" icon={ArrowUpDown} label="ICTT Bridge" />
-                <SubLink href="/console/ictt/token-transfer" icon={ArrowUpDown} label="Token Transfer" />
-              </div>
-            </BentoCard>
-          </div>
-        </motion.div>
-
-        {/* CLI Install — secondary action at bottom */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.6, duration: 0.5 }}
-        >
-          <CliInstallSnippet />
-        </motion.div>
-
+              <span className="text-sm font-medium text-foreground group-hover:text-accent-foreground transition-colors duration-200 whitespace-nowrap">
+                {chain.name}
+              </span>
+            </a>
+          ))}
+        </div>
+        <div className="text-center mt-6">
+          <a
+            href="https://subnets.avax.network/subnets/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-foreground transition-colors duration-200"
+          >
+            View all ecosystem projects
+            <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </a>
+        </div>
       </div>
     </div>
   );

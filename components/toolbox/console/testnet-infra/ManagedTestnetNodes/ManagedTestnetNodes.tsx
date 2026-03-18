@@ -16,11 +16,13 @@ import { toast } from "@/hooks/use-toast";
 import { ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 import { AccountRequirementsConfigKey } from "@/components/toolbox/hooks/useAccountRequirements";
+import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 
 const metadata: ConsoleToolMetadata = {
     title: "Managed Testnet Nodes",
     description: "Manage your hosted testnet nodes.",
     toolRequirements: [
+        WalletRequirementsConfigKey.TestnetRequired,
         AccountRequirementsConfigKey.UserLoggedIn
     ],
     githubUrl: generateConsoleToolGitHubUrl(import.meta.url)

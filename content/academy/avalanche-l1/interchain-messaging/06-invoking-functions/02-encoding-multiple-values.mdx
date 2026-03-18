@@ -1,0 +1,93 @@
+---
+title: Encoding of multiple Values
+description: Learn how to encode multiple function parameters
+updated: 2024-05-31
+authors: [martineckardt]
+icon: BookOpen
+---
+
+In this section, we will learn how to pack multiple values into a single message.
+
+![](/common-images/teleporter/message-multiple-parameters.png)
+
+We can use `abi.encode()` to encode multiple values into a single byte array:
+
+```solidity
+bytes message = abi.encode(
+      someString,
+      someNumber,
+      someAddress
+  );
+```
+
+Here we can see how the function `abi.encode()` is used to turn multiple values `(someString, someNumber & someAddress)` of various types `(string, uint & address)` into a single value of the type bytes called `message`. This bytearray can then be sent to the destination chain using the Teleporter. 
+
+```solidity
+function sendMessage(address destinationAddress) external returns (uint256 messageID) {
+  string someString = "test";
+  uint someNumber = 43;
+  address someAddress = address(0);
+
+  bytes message = abi.encode( // [!code highlight:4]
+      someString,
+      someNumber,
+      someAddress
+  );
+
+  return teleporterMessenger.sendCrossChainMessage(
+      TeleporterMessageInput({
+        destinationChainID: destinationChainID,
+        destinationAddress: destinationAddress,
+        feeInfo: TeleporterFeeInfo({
+          feeTokenAddress: feeContractAddress,
+          amount: adjustedFeeAmount
+        }),
+        requiredGasLimit: requiredGasLimit,
+        allowedRelayerAddresses: new address[](0),
+        message: message // [!code highlight]
+      })
+  );
+}
+```
+
+The receiving contract can then decode the byte array back into its original values:
+
+```solidity
+function receiveTeleporterMessage(
+  bytes32 originChainID,
+  address originSenderAddress,
+  bytes calldata message
+) external {
+  // Only the Interchain Messaging receiver can deliver a message.
+  if (msg.sender != address(teleporterMessenger)) {
+    revert Unauthorized();
+  }
+
+  // Decoding the function parameters // [!code highlight:6]
+  (
+    string someString,
+    uint256 someNumber,
+    address someAddress
+  ) = abi.decode(message, (string, uint256, address));
+  
+  // Calling the internal function
+  _someFunction(someString, someNumber, someAddress) // [!code highlight]
+  
+}
+
+function _someFunction(string someString, uint256 someNumber, address someAddress) private {
+  // Do something
+}
+```
+
+
+Here we are using `abi.decode()` to unpack the three values `(someString, someNumber & someAddress)` from the parameter `message` of the type `bytes`. As you can see, we need to provide the message as well as the types of values encoded in the message. It is important to note the types must be the same order as parameters to `abi.decode()`. 
+
+```solidity
+(
+  string memory someString,
+  uint someNumber,
+  address someAddress
+) = abi.decode(message, (string, uint, address));  // [!code highlight]
+``` 
+<Quiz quizId="306"/>

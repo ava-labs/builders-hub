@@ -3,9 +3,7 @@
 import React, { useState, useEffect, memo, useCallback } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
 import { Plus, Trash, ChevronDown, ChevronRight, ExternalLink } from 'lucide-react';
 import { t } from './translations';
 import { useSession, SessionProvider } from "next-auth/react";
@@ -13,9 +11,6 @@ import axios from 'axios';
 import { initialData, IDataMain, IDataContent, IDataLatest, ITrack, ISchedule, ISpeaker, IResource, IPartner } from './initials';
 import { LanguageButton } from './language-button';
 import HackathonPreview from '@/components/hackathons/HackathonPreview';
-import { EmailListInput } from '@/components/common/EmailListInput';
-import { useToast } from '@/hooks/use-toast';
-import { Toaster } from '@/components/ui/toaster';
 
 function toLocalDatetimeString(isoString: string) {
   if (!isoString) return '';
@@ -49,7 +44,7 @@ const MyHackathonsList = ({ myHackathons, language, onSelect, selectedId, isDevr
     return (
       <div className="mb-6">
         <h2 className="text-xl font-semibold mb-2">
-          {isDevrel ? (language === 'en' ? 'All Hackathons' : 'Todos los Hackathons') : t[language].myHackathons}
+          {isDevrel ? (language === 'en' ? 'All Active Hackathons' : 'Todos los Hackathons Activos') : t[language].myHackathons}
         </h2>
         <div className="flex justify-center items-center py-8">
           <svg className="animate-spin h-8 w-8 text-red-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -64,7 +59,7 @@ const MyHackathonsList = ({ myHackathons, language, onSelect, selectedId, isDevr
   return (
     <div className="mb-6">
       <h2 className="text-xl font-semibold mb-2">
-        {isDevrel ? (language === 'en' ? 'All Hackathons' : 'Todos los Hackathons') : t[language].myHackathons}
+        {isDevrel ? (language === 'en' ? 'All Active Hackathons' : 'Todos los Hackathons Activos') : t[language].myHackathons}
       </h2>
       <ul className="flex flex-wrap gap-2">
         {myHackathons.map((hackathon) => (
@@ -451,14 +446,16 @@ type ScheduleItemProps = {
 const ScheduleItem = memo(function ScheduleItem({ event, index, collapsed, onChange, onDone, onExpand, onRemove, t, language, removing, scheduleLength, toLocalDatetimeString }: ScheduleItemProps) {
   return (
     <div className={`border border-zinc-700 rounded-lg p-4 mb-6 bg-zinc-900/40 relative transition-all duration-300 ease-in-out ${removing[`schedule-${index}`] ? 'opacity-0 scale-95 blur-sm' : 'opacity-100 scale-100'}`}>
-      <button
-        type="button"
-        onClick={() => onRemove(index)}
-        className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg p-2 transition-transform duration-200 hover:scale-110 flex items-center justify-center cursor-pointer"
-        title={t[language].removeSchedule}
-      >
-        <Trash className="w-5 h-5" />
-      </button>
+      {scheduleLength > 1 && (
+        <button
+          type="button"
+          onClick={() => onRemove(index)}
+          className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg p-2 transition-transform duration-200 hover:scale-110 flex items-center justify-center cursor-pointer"
+          title={t[language].removeSchedule}
+        >
+          <Trash className="w-5 h-5" />
+        </button>
+      )}
       <h3 className="text-lg font-semibold mb-2">Schedule {index + 1}</h3>
       {collapsed ? (
         <div className="flex justify-end">
@@ -765,8 +762,6 @@ const HackathonsEdit = () => {
     partners: [{ name: '', logo: '' }],
   });
   const [formDataLatest, setFormDataLatest] = useState<IDataLatest>(initialData.latest);
-  const [cohostsEmails, setCohostsEmails] = useState<string[]>([]);
-  const { toast } = useToast();
 
   const getMyHackathons = async () => {
     setLoadingHackathons(true);
@@ -780,9 +775,14 @@ const HackathonsEdit = () => {
         }
       );
       if (response.data?.hackathons?.length > 0) {
-        const hackathons = response.data.hackathons;
-        console.log({response: hackathons });
-        setMyHackathons(hackathons);
+        const currentDate = new Date();
+        const unfinishedHackathons = response.data.hackathons.filter((hackathon: any) => {
+          if (!hackathon.end_date) return true; 
+          const endDate = new Date(hackathon.end_date);
+          return endDate > currentDate;
+        });
+        console.log({response: response.data.hackathons, unfinishedHackathons});
+        setMyHackathons(unfinishedHackathons);
       }
     } catch (error) {
       console.error('Error loading hackathons:', error);
@@ -792,7 +792,11 @@ const HackathonsEdit = () => {
   }
   useEffect(() => {
     if (status === "authenticated" && session?.user) {
-      getMyHackathons();
+      if (session.user.custom_attributes?.includes("hackathonCreator") || 
+          session.user.custom_attributes?.includes("team1-admin") ||
+          session.user.custom_attributes?.includes("devrel")) {
+        getMyHackathons()
+      }
     }
   }, [session, status]);
 
@@ -852,13 +856,7 @@ const HackathonsEdit = () => {
       banner: hackathon.banner ?? '',
       icon: hackathon.icon ?? '',
       small_banner: hackathon.small_banner ?? '',
-      custom_link: hackathon.custom_link ?? null,
-      top_most: hackathon.top_most ?? false,
-      event: hackathon.event ?? 'hackathon',
-      new_layout: hackathon.new_layout ?? false,
-      google_calendar_id: hackathon.google_calendar_id ?? null,
     });
-    setCohostsEmails(hackathon.cohosts ?? []);
     setShowForm(true);
   };
 
@@ -885,47 +883,11 @@ const HackathonsEdit = () => {
   const [scrollTarget, setScrollTarget] = useState<string | undefined>();
   const [rawTrackText, setRawTrackText] = useState<string>('');
   const [rawTrackDescriptions, setRawTrackDescriptions] = useState<{ [key: number]: string }>({});
-  const [hasEditPermission, setHasEditPermission] = useState<boolean>(false);
-  const [dateRangeError, setDateRangeError] = useState<string | null>(null);
-
-  const getDateRangeError = (start: string, end: string): string | null => {
-    if (!start?.trim() || !end?.trim()) return null;
-    const startTime = new Date(start).getTime();
-    const endTime = new Date(end).getTime();
-    if (isNaN(startTime) || isNaN(endTime)) return null;
-    return endTime > startTime ? null : t[language].endDateBeforeStartDateError;
-  };
 
   const scrollToSection = (section: string) => {
     setScrollTarget(section);
     setTimeout(() => setScrollTarget(undefined), 1000);
   };
-
-  useEffect(() => {
-    if (!session?.user) {
-      setHasEditPermission(false);
-      return;
-    }
-    const customAttributes: string[] = session.user.custom_attributes || [];
-    const isSpecialRole =
-      customAttributes.includes("hackathonCreator") ||
-      customAttributes.includes("team1-admin") ||
-      customAttributes.includes("devrel");
-    
-    // If no hackathon is selected, allow editing only for special roles (for creating new hackathons)
-    if (!selectedHackathon) {
-      setHasEditPermission(isSpecialRole);
-      return;
-    }
-    
-    // If hackathon is selected, check if user is creator/updater, special role, or cohost
-    const userEmail = session.user.email || "";
-    const isCohost =
-      !!userEmail && Array.isArray(selectedHackathon.cohosts)
-        ? selectedHackathon.cohosts.includes(userEmail)
-        : false;
-    setHasEditPermission(isSpecialRole || isCohost);
-  }, [selectedHackathon, session]);
 
   const convertToMarkdown = (text: string) => {
     if (!text) return '';
@@ -933,10 +895,23 @@ const HackathonsEdit = () => {
     return paragraphs
       .map(paragraph => {
         const trimmed = paragraph.trim();
-        return trimmed;
+        if (!trimmed) return '';
+        if (trimmed.startsWith('#')) {
+          return trimmed;
+        }
+        if (trimmed.startsWith('-') || trimmed.startsWith('*')) {
+          return trimmed;
+        }
+        if (trimmed.startsWith('---')) {
+          return trimmed;
+        }
+        if (trimmed.includes('**') || trimmed.includes('*') || trimmed.includes('`')) {
+          return trimmed;
+        }
+        return trimmed.replace(/\n/g, '\\n');
       })
       .filter(p => p.length > 0)
-      .join('\n\n');
+      .join('\\n\\n');
   };
 
   const convertToHTML = (text: string) => {
@@ -1140,8 +1115,10 @@ const HackathonsEdit = () => {
   };
 
   const removeSchedule = (index: number) => {
-    const newSchedule = formDataContent.schedule.filter((_, i) => i !== index);
-    setFormDataContent({ ...formDataContent, schedule: newSchedule });
+    if (formDataContent.schedule.length > 1) {
+      const newSchedule = formDataContent.schedule.filter((_, i) => i !== index);
+      setFormDataContent({ ...formDataContent, schedule: newSchedule });
+    }
   };
 
   const removeSpeaker = (index: number) => {
@@ -1166,13 +1143,13 @@ const HackathonsEdit = () => {
     const latest = { ...formDataLatest };
     latest.start_date = toIso8601(latest.start_date);
     latest.end_date = toIso8601(latest.end_date);
-    latest.google_calendar_id = formDataLatest.google_calendar_id?.trim() || null;
     return {
       ...formDataMain,
       content,
       ...latest,
-      cohosts: cohostsEmails,
-      custom_link: formDataLatest.custom_link ? formDataLatest.custom_link : null,
+      top_most: true,
+      organizers: null,
+      custom_link: null,
       status: selectedHackathon?.status ?? "UPCOMING"
     };
   };
@@ -1275,13 +1252,6 @@ const HackathonsEdit = () => {
 
   const doSubmit = async () => {
     setLoading(true);
-    const dateErr = getDateRangeError(formDataLatest.start_date, formDataLatest.end_date);
-    if (dateErr) {
-      setDateRangeError(dateErr);
-      setLoading(false);
-      return;
-    }
-    setDateRangeError(null);
     let dataToSend 
     if (isSelectedHackathon)
       dataToSend= {...getDataToSend(), updated_by: session?.user?.id};
@@ -1302,16 +1272,12 @@ const HackathonsEdit = () => {
           method: 'POST', 
           headers: {
             'Content-Type': 'application/json',
+            'x-api-key': process.env.APIKEY ?? '',
           },
           body: JSON.stringify(dataToSend),
         });
         
         if (response.status === 200) {
-          toast({
-            title: 'Event created',
-            description: 'Your event has been created successfully.',
-            variant: 'success',
-          });
           setShowUpdateModal(true);
           setFieldsToUpdate([{
             key: 'success',
@@ -1325,21 +1291,9 @@ const HackathonsEdit = () => {
           setIsSelectedHackathon(false);
           setSelectedHackathon(null);
           await getMyHackathons();
-        } else {
-          const data = await response.json().catch(() => ({}));
-          toast({
-            title: 'Error creating event',
-            description: data?.error ?? 'Failed to create event. Please try again.',
-            variant: 'destructive',
-          });
         }
       } catch (error) {
         console.error('Error creating hackathon:', error);
-        toast({
-          title: 'Error creating event',
-          description: error instanceof Error ? error.message : 'An error occurred. Please try again.',
-          variant: 'destructive',
-        });
       } finally {
         setLoading(false);
       }
@@ -1351,17 +1305,13 @@ const HackathonsEdit = () => {
           method: 'PUT', 
           headers: {
             'Content-Type': 'application/json',
+            'x-api-key': process.env.APIKEY ?? '',
+            'id': session?.user?.id ?? '',
           },
           body: JSON.stringify(dataToSend),
         });
         
        if (response.status === 200) {
-          toast({
-            title: 'Event updated',
-            description: 'Your event has been updated successfully.',
-            variant: 'success',
-          });
-          setShowUpdateModal(false);
           setFormDataMain(initialData.main);
           setFormDataContent(initialData.content);
           setFormDataLatest(initialData.latest);
@@ -1369,21 +1319,9 @@ const HackathonsEdit = () => {
           setIsSelectedHackathon(false);
           setSelectedHackathon(null);
           await getMyHackathons();
-        } else {
-          const data = await response.json().catch(() => ({}));
-          toast({
-            title: 'Error updating event',
-            description: data?.error ?? 'Failed to update event. Please try again.',
-            variant: 'destructive',
-          });
         }
       } catch (error) {
         console.error('Error updating hackathon:', error);
-        toast({
-          title: 'Error updating event',
-          description: error instanceof Error ? error.message : 'An error occurred. Please try again.',
-          variant: 'destructive',
-        });
       } finally {
         setLoading(false);
       }
@@ -1399,6 +1337,7 @@ const HackathonsEdit = () => {
         method: 'DELETE', 
         headers: {
           'Content-Type': 'application/json',
+          'x-api-key': process.env.APIKEY ?? '',
         },
       });
       console.log(response);
@@ -1414,6 +1353,8 @@ const HackathonsEdit = () => {
         method: 'PUT', 
         headers: {
           'Content-Type': 'application/json',
+          'x-api-key': process.env.APIKEY ?? '',
+          'id': session?.user?.id ?? '',
         },
         body: JSON.stringify({
           is_public: isPublic
@@ -1444,12 +1385,6 @@ const HackathonsEdit = () => {
   }
 
   const handleUpdateClick = () => {
-    const dateErr = getDateRangeError(formDataLatest.start_date, formDataLatest.end_date);
-    if (dateErr) {
-      setDateRangeError(dateErr);
-      return;
-    }
-    setDateRangeError(null);
     const dataToSend = getDataToSend();
     const changedFields: { key: string, oldValue: any, newValue: any }[] = [];
     if (selectedHackathon) {
@@ -1524,14 +1459,9 @@ const HackathonsEdit = () => {
       start_date: "2025-10-15T09:00",
       end_date: "2025-10-17T18:00",
       timezone: "America/New_York",
-      banner: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Hackathon_assets/Template/main_banner_template.png",
-      icon: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Hackathon_assets/Template/icon_template.png",
-      small_banner: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Hackathon_assets/Template/small_banner_template.png",
-      event: "hackathon",
-      custom_link: null,
-      top_most: false,
-      google_calendar_id: null,
-      new_layout: false,
+      banner: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/hackathon-images/Avalanche%20Chile/bannerchilehor.png",
+      icon: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/hackathon-images/Avalanche%20Chile/bannerchilehor.png",
+      small_banner: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/hackathon-images/Avalanche%20Chile/bannerchile.png"
     });
 
     setFormDataContent({
@@ -1720,12 +1650,11 @@ const HackathonsEdit = () => {
 
   return (
     <div className="h-screen flex flex-col">
-      <Toaster />
       {/* Header */}
       <div className="bg-zinc-900 border-b border-zinc-700 p-4">
         <div className="container mx-auto flex justify-between items-center">
           <div className="flex items-center gap-4">
-            <h1 className="text-2xl font-bold text-white">{t[language].editEvents}</h1>
+            <h1 className="text-2xl font-bold text-white">{t[language].editHackathons}</h1>
             <div className="flex items-center gap-2 px-3 py-1 bg-green-600 rounded-full text-sm">
               <div className="w-2 h-2 bg-green-300 rounded-full animate-pulse"></div>
               <span className="text-white">Live Preview</span>
@@ -1744,7 +1673,7 @@ const HackathonsEdit = () => {
               Load Mock Data
             </button>
             <Button onClick={() => { setShowForm(true); setSelectedHackathon(null); setIsSelectedHackathon(false); }} disabled={isSelectedHackathon}>
-              {t[language].addNewEvent}
+              {t[language].addNewHackathon}
             </Button>
           </div>
         </div>
@@ -1802,60 +1731,8 @@ const HackathonsEdit = () => {
           </Button> */}
         </div>
       )}
-      {showForm && hasEditPermission && (
+      {showForm && (
         <>
-          {/* Cohosts Section - Always Visible */}
-          <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-6 mb-6">
-            <h2 className="text-xl font-semibold mb-2 text-blue-300">{t[language].cohostsTitle}</h2>
-            <p className="text-sm text-blue-200 mb-4">
-              {t[language].cohostsDescription}
-            </p>
-            <EmailListInput
-              value={cohostsEmails}
-              onChange={(emails) => {
-                setCohostsEmails(emails);
-              }}
-              placeholder={t[language].cohostsPlaceholder}
-              label={t[language].cohostsLabel}
-              description={t[language].cohostsHelp}
-            />
-          </div>
-          {/* Event Type option */}
-          <div className="rounded-lg p-6 mb-6">
-            <h2 className='font-medium text-xl mb-2 block'>Event Type</h2>
-            <Select
-              value={formDataLatest.event}
-              onValueChange={(value) => {
-                setFormDataLatest(prev => ({ ...prev, event: value }));
-                console.log(value);
-              }}
-            >
-              <SelectTrigger className="w-full mb-4">
-                <SelectValue placeholder="Select event type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="hackathon">Hackathon</SelectItem>
-                <SelectItem value="workshop">Workshop</SelectItem>
-                <SelectItem value="bootcamp">Bootcamp</SelectItem>
-              </SelectContent>
-            </Select>
-            <div className="flex items-center gap-3 mt-4">
-              <Switch
-                id="new-layout"
-                checked={formDataLatest.new_layout}
-                onCheckedChange={(checked) => {
-                  setFormDataLatest(prev => ({ ...prev, new_layout: checked }));
-                }}
-                className="cursor-pointer"
-              />
-              <label htmlFor="new-layout" className="text-sm font-medium cursor-pointer">
-                Use new layout (modern event page)
-              </label>
-            </div>
-            <p className="text-zinc-400 text-sm mt-2">
-              Toggle on for the modern layout (workshop-style), off for the legacy hackathon layout.
-            </p>
-          </div>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
               <div className="flex items-center justify-between mb-4">
@@ -1913,7 +1790,6 @@ const HackathonsEdit = () => {
                     className="w-full mb-4"
                     required
                   />
-                  
                   <div className="flex flex-col space-y-2 bg-zinc-900/60 border border-zinc-700 rounded-lg p-4 my-4">
                     <label className="font-medium">Tags (Optional)</label>
                     <div className="mb-2 text-zinc-400 text-sm">Add relevant tags to help participants find your hackathon</div>
@@ -2032,7 +1908,7 @@ const HackathonsEdit = () => {
                   </div>
                   
                   
-                  {/* Icon Image */}
+                  {/* Icon Image 
                   <div className="mb-6">
                     <label className="font-medium text-xl mb-2 block">Icon:</label>
                     <div className="mb-2 text-zinc-400 text-sm">The small icon displayed next to your hackathon title</div>
@@ -2090,6 +1966,7 @@ const HackathonsEdit = () => {
                       )}
                     </div>
                   </div>
+                  */}
 
                   <div className="mb-6">
                     <label className="font-medium text-xl mb-2 block">Small Banner:</label>
@@ -2165,12 +2042,10 @@ const HackathonsEdit = () => {
               )}
             </div>
             
-            {/* Step 3: Participants & Prizes (hackathon) or Organizer only (other events) */}
+            {/* Step 3: Participants & Prizes */}
             <div className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-2xl font-bold">
-                  {formDataLatest.event === 'hackathon' ? 'Step 3: Participants & Prizes' : 'Step 3: Organizer'}
-                </h2>
+                <h2 className="text-2xl font-bold">Step 3: Participants & Prizes</h2>
                 {collapsed.about && (
                   <button onClick={() => setCollapsed({ ...collapsed, about: false })} className="flex items-center gap-1 text-zinc-400 hover:text-red-500 cursor-pointer">
                     <ChevronRight className="w-5 h-5" /> {t[language].expand}
@@ -2179,27 +2054,25 @@ const HackathonsEdit = () => {
               </div>
               {!collapsed.about && (
                 <>
-                  {formDataLatest.event === 'hackathon' && (
-                    <>
-                      <div className="mb-4 p-4 bg-orange-900/20 border border-orange-500/30 rounded-lg">
-                        <h3 className="text-lg font-semibold text-orange-300 mb-2">Participants & Prize Information</h3>
-                        <p className="text-sm text-orange-200">Now let's add details about participants and the prize pool.</p>
-                      </div>
-                      <div className="mb-2 text-zinc-400 text-sm">Expected Number of Participants</div>
-                      <Input
-                        type="number"
-                        name="participants"
-                        placeholder="e.g., 100, 500, 1000"
-                        value={formDataMain.participants?.toString() || ''}
-                        onChange={(e) => {
-                          setFormDataMain(prev => ({ ...prev, participants: Number(e.target.value) || 0 }));
-                          scrollToSection('about');
-                        }}
-                        className="w-full mb-4"
-                        required
-                      />
-                    </>
-                  )}
+                  <div className="mb-4 p-4 bg-orange-900/20 border border-orange-500/30 rounded-lg">
+                    <h3 className="text-lg font-semibold text-orange-300 mb-2">Participants & Prize Information</h3>
+                    <p className="text-sm text-orange-200">Now let's add details about participants and the prize pool.</p>
+                  </div>
+                  
+                  <div className="mb-2 text-zinc-400 text-sm">Expected Number of Participants</div>
+                  <Input
+                    type="number"
+                    name="participants"
+                    placeholder="e.g., 100, 500, 1000"
+                    value={formDataMain.participants?.toString() || ''}
+                    onChange={(e) => {
+                      setFormDataMain(prev => ({ ...prev, participants: Number(e.target.value) || 0 }));
+                      scrollToSection('about');
+                    }}
+                    className="w-full mb-4"
+                    required
+                  />
+                  {/*
                   <div className="mb-2 text-zinc-400 text-sm">Organizer Name/Organization</div>
                   <Input
                     type="text"
@@ -2213,23 +2086,21 @@ const HackathonsEdit = () => {
                     className="w-full mb-4"
                     required
                   />
-                  {formDataLatest.event === 'hackathon' && (
-                    <>
-                      <div className="mb-2 text-zinc-400 text-sm">Total Prize Pool (USD)</div>
-                      <Input
-                        type="number"
-                        name="total_prizes"
-                        placeholder="e.g., 50000, 100000"
-                        value={formDataMain.total_prizes?.toString() || ''}
-                        onChange={(e) => {
-                          setFormDataMain(prev => ({ ...prev, total_prizes: Number(e.target.value) || 0 }));
-                          scrollToSection('tracks');
-                        }}
-                        className="w-full mb-4"
-                        required
-                      />
-                    </>
-                  )}
+                  */}
+                  <div className="mb-2 text-zinc-400 text-sm">Total Prize Pool (USD)</div>
+                  <Input
+                    type="number"
+                    name="total_prizes"
+                    placeholder="e.g., 50000, 100000"
+                    value={formDataMain.total_prizes?.toString() || ''}
+                    onChange={(e) => {
+                      setFormDataMain(prev => ({ ...prev, total_prizes: Number(e.target.value) || 0 }));
+                      scrollToSection('tracks');
+                    }}
+                    className="w-full mb-4"
+                    required
+                  />
+                  
                   <div className="flex justify-end mt-4">
                     <button 
                       type="button"
@@ -2242,14 +2113,11 @@ const HackathonsEdit = () => {
                 </>
               )}
               {collapsed.about && (
-                <div className="text-zinc-400 italic">
-                  {formDataLatest.event === 'hackathon' ? '✓ Participants & prizes completed' : '✓ Organizer completed'}
-                </div>
+                <div className="text-zinc-400 italic">✓ Participants & prizes completed</div>
               )}
             </div>
             
-            {/* Step 4: Track Text - Only for Hackathons */}
-            {formDataLatest.event === 'hackathon' && (
+            {/* Step 4: Track Text */}
             <div className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-2xl font-bold">Step 4: Track Text</h2>
@@ -2486,7 +2354,6 @@ const HackathonsEdit = () => {
                 <div className="text-zinc-400 italic">✓ Track text completed</div>
               )}
             </div>
-            )}
             
             {/* Step 5: Content - Tracks, Schedule, etc. */}
             <div className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
@@ -2500,8 +2367,6 @@ const HackathonsEdit = () => {
               </div>
               {!collapsed.content && (
                 <>
-                  {/* Tracks Section - Only for Hackathons */}
-                  {formDataLatest.event === 'hackathon' && (
                   <div className="space-y-4">
                     <label className="font-medium text-xl">{t[language].tracks}:</label>
                     {formDataContent.tracks.map((track, index) => (
@@ -2530,7 +2395,6 @@ const HackathonsEdit = () => {
                       </Button>
                     </div>
                   </div>
-                  )}
                   <div className="space-y-4">
                     <label className="font-medium text-xl mb-2 block">{t[language].address}:</label>
                     <div className="mb-2 text-zinc-400 text-sm">{t[language].addressHelp}</div>
@@ -2544,64 +2408,28 @@ const HackathonsEdit = () => {
                     />
                   </div>
                   <div className="space-y-4">
-                    <label className="font-medium text-xl mb-2 block">{t[language].googleCalendarId}:</label>
-                    <div className="mb-2 text-zinc-400 text-sm">{t[language].googleCalendarIdHelp}</div>
-                    <Input
-                      type="text"
-                      placeholder="e.g. primary or abc123@group.calendar.google.com"
-                      value={formDataLatest.google_calendar_id ?? ''}
-                      onChange={(e) => setFormDataLatest({ ...formDataLatest, google_calendar_id: e.target.value || null })}
-                      className="w-full mb-4"
-                    />
-                  </div>
-                  <div className="space-y-4">
-                  <label className="font-medium text-xl mb-2 block">{t[language].schedule}:</label>
-                  <div className="mb-2 text-zinc-400 text-sm">{t[language].scheduleHelp}</div>
-                  {formDataContent.schedule.map((event, index) => (
-                    <ScheduleItem
-                      key={index}
-                      event={event}
-                      index={index}
-                      collapsed={collapsedSchedules[index]}
-                      onChange={handleScheduleFieldChange}
-                      onDone={handleScheduleDone}
-                      onExpand={handleScheduleExpand}
-                      onRemove={animateRemove.bind(null, 'schedule', index, removeSchedule)}
-                      t={t}
-                      language={language}
-                      removing={removing}
-                      scheduleLength={formDataContent.schedule.length}
-                      toLocalDatetimeString={toLocalDatetimeString}
-                    />
-                  ))}
-                  <div className="flex justify-end">
-                    <Button type="button" onClick={addSchedule} className="mt-2 bg-red-500 hover:bg-red-600 text-white flex items-center gap-2">
-                      <Plus className="w-4 h-4" /> {t[language].addSchedule}
-                    </Button>
-                  </div>
-                </div>
-                  {/* Resources Section - For all event types */}
-                  <div className="space-y-4">
-                    <label className="font-medium text-xl mb-2 block">{t[language].resources}:</label>
-                    {formDataContent.resources.map((resource, index) => (
-                      <ResourceItem
+                    <label className="font-medium text-xl mb-2 block">{t[language].schedule}:</label>
+                    <div className="mb-2 text-zinc-400 text-sm">{t[language].scheduleHelp}</div>
+                    {formDataContent.schedule.map((event, index) => (
+                      <ScheduleItem
                         key={index}
-                        resource={resource}
+                        event={event}
                         index={index}
-                        collapsed={collapsedResources[index]}
-                        onChange={handleResourceFieldChange}
-                        onDone={handleResourceDone}
-                        onExpand={handleResourceExpand}
-                        onRemove={animateRemove.bind(null, 'resource', index, removeResource)}
+                        collapsed={collapsedSchedules[index]}
+                        onChange={handleScheduleFieldChange}
+                        onDone={handleScheduleDone}
+                        onExpand={handleScheduleExpand}
+                        onRemove={animateRemove.bind(null, 'schedule', index, removeSchedule)}
                         t={t}
                         language={language}
                         removing={removing}
-                        resourcesLength={formDataContent.resources.length}
+                        scheduleLength={formDataContent.schedule.length}
+                        toLocalDatetimeString={toLocalDatetimeString}
                       />
                     ))}
                     <div className="flex justify-end">
-                      <Button type="button" onClick={addResource} className="mt-2 bg-red-500 hover:bg-red-600 text-white flex items-center gap-2">
-                        <Plus className="w-4 h-4" /> {t[language].addResource}
+                      <Button type="button" onClick={addSchedule} className="mt-2 bg-red-500 hover:bg-red-600 text-white flex items-center gap-2">
+                        <Plus className="w-4 h-4" /> {t[language].addSchedule}
                       </Button>
                     </div>
                   </div>
@@ -2630,8 +2458,6 @@ const HackathonsEdit = () => {
                       </Button>
                     </div>
                   </div>
-                  {/* Submission Section - Only for Hackathons */}
-                  {formDataLatest.event === 'hackathon' && (
                   <div className="space-y-4">
                     <div>
                       <label className="font-medium text-xl mb-2 block">{t[language].submissionDeadline}:</label>
@@ -2646,7 +2472,6 @@ const HackathonsEdit = () => {
                       />
                     </div>
                   </div>
-                  )}
                   <div className="flex justify-end mt-4">
                     <button 
                       type="button"
@@ -2674,57 +2499,6 @@ const HackathonsEdit = () => {
               {!collapsed.last && (
                 <>
                   <div className="space-y-4">
-                    {/* Top Most checkbox
-                    <div className="flex items-center gap-2 mb-4">
-                      <Checkbox
-                        id="top_most"
-                        name="top_most"
-                        checked={formDataLatest.top_most}
-                        onCheckedChange={(checked) => {
-                          setFormDataLatest(prev => ({ ...prev, top_most: checked }));
-                        }}
-                      />
-                      <label htmlFor="top_most" className="text-zinc-400 text-sm cursor-pointer">
-                        Top most
-                      </label>
-                    </div>
-                    */}
-                    <label className="font-medium text-xl mb-2 block">{t[language].customLink}:</label>
-                    <div className="mb-2 text-zinc-400 text-sm">{t[language].customLinkHelp}</div>
-                    <Input
-                      type="text"
-                      name="custom_link"
-                      placeholder="e.g., https://hackathon.custom..."
-                      value={formDataLatest.custom_link ?? ''}
-                      onChange={(e) => {
-                        setFormDataLatest(prev => ({ ...prev, custom_link: e.target.value }));
-                      }}
-                      className="w-full mb-4"
-                    />
-                    <label className="font-medium text-xl mb-2 block">{t[language].joinCustomLink}:</label>
-                    <div className="mb-2 text-zinc-400 text-sm">{t[language].joinCustomLinkHelp}</div>
-                    <Input
-                      type="text"
-                      name="join_custom_link"
-                      placeholder="e.g., https://hackathon.custom..."
-                      value={formDataContent.join_custom_link}
-                      onChange={(e) => {
-                        setFormDataContent(prev => ({ ...prev, join_custom_link: e.target.value }));
-                      }}
-                      className="w-full mb-4"
-                    />
-                    <label className="font-medium text-xl mb-2 block">{t[language].submissionCustomLink}:</label>
-                    <div className="mb-2 text-zinc-400 text-sm">{t[language].submissionCustomLinkHelp}</div>
-                    <Input
-                      type="text"
-                      name="submission_custom_link"
-                      placeholder="e.g., https://hackathon.custom..."
-                      value={formDataContent.submission_custom_link ?? ''}
-                      onChange={(e) => {
-                        setFormDataContent(prev => ({ ...prev, submission_custom_link: e.target.value }));
-                      }}
-                      className="w-full mb-4"
-                    />
                     <div>
                       <label className="font-medium text-xl mb-2 block">{t[language].startDate}:</label>
                       <div className="mb-2 text-zinc-400 text-sm">{t[language].startDateHelp}</div>
@@ -2732,11 +2506,7 @@ const HackathonsEdit = () => {
                         type="datetime-local"
                         placeholder="Start Date"
                         value={formDataLatest.start_date}
-                        onChange={(e) => {
-                          const start = e.target.value;
-                          setFormDataLatest({ ...formDataLatest, start_date: start });
-                          setDateRangeError(getDateRangeError(start, formDataLatest.end_date));
-                        }}
+                        onChange={(e) => setFormDataLatest({ ...formDataLatest, start_date: e.target.value })}
                         className="w-full mb-4"
                         required
                       />
@@ -2748,17 +2518,10 @@ const HackathonsEdit = () => {
                         type="datetime-local"
                         placeholder="End Date"
                         value={formDataLatest.end_date}
-                        onChange={(e) => {
-                          const end = e.target.value;
-                          setFormDataLatest({ ...formDataLatest, end_date: end });
-                          setDateRangeError(getDateRangeError(formDataLatest.start_date, end));
-                        }}
+                        onChange={(e) => setFormDataLatest({ ...formDataLatest, end_date: e.target.value })}
                         className="w-full mb-4"
                         required
                       />
-                      {dateRangeError && (
-                        <p className="text-red-500 text-sm mt-1 mb-4">{dateRangeError}</p>
-                      )}
                     </div>
                     <div>
                       <label className="font-medium text-xl mb-2 block">{t[language].timezone}:</label>
@@ -2835,14 +2598,6 @@ const HackathonsEdit = () => {
             )}
           </form>
         </>
-      )}
-      {showForm && !hasEditPermission && (
-        <div className="mt-8 p-6 rounded-lg border border-red-500/40 bg-red-900/10 text-red-100 max-w-2xl mx-auto text-center">
-          <h2 className="text-xl font-semibold mb-2">You don&apos;t have permission to edit this hackathon</h2>
-          <p className="text-sm text-red-200">
-            Only the creator, authorized roles, or configured cohosts can edit this hackathon. Please contact the hackathon owner if you believe this is a mistake.
-          </p>
-        </div>
       )}
       {loading && (
               <div className="flex justify-center items-center my-4">

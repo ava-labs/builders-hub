@@ -1,23 +1,13 @@
 "use client";
 import React, { useEffect, useRef, type JSX } from "react";
 import mermaid from "mermaid";
-import { useTheme } from "./theme-observer";
 
 type MermaidProps = {
   readonly chart: string;
 };
 
-/**
- * Optimized Mermaid component with centralized theme observation.
- *
- * Previous implementation: Each diagram created its own MutationObserver (N observers for N diagrams)
- * Optimized implementation: All diagrams share a single theme observer via React context (1 observer for N diagrams)
- *
- * @see https://github.com/ava-labs/builders-hub/issues/2724
- */
 const Mermaid = ({ chart }: MermaidProps): JSX.Element => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const theme = useTheme(); // Single shared theme observer
 
   useEffect(() => {
     let destroyed = false;
@@ -25,11 +15,12 @@ const Mermaid = ({ chart }: MermaidProps): JSX.Element => {
     const renderDiagram = async (): Promise<void> => {
       if (!containerRef.current) return;
 
-      // Configure theme based on centralized theme state
-      mermaid.initialize({
-        startOnLoad: false,
-        theme: theme === "dark" ? "dark" : "default"
-      });
+      const isDarkMode =
+        document.documentElement.classList.contains("dark") ||
+        document.documentElement.getAttribute("data-theme") === "dark";
+
+      // Configure theme each time before rendering
+      mermaid.initialize({ startOnLoad: false, theme: isDarkMode ? "dark" : "default" });
 
       // Render to SVG string and inject; avoid SSR/client mismatches
       try {
@@ -47,12 +38,31 @@ const Mermaid = ({ chart }: MermaidProps): JSX.Element => {
       }
     };
 
+    // Initial render on mount
     void renderDiagram();
+
+    // Watch theme toggles on <html>
+    const observer = new MutationObserver(() => {
+      void renderDiagram();
+    });
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class", "data-theme"],
+    });
+
+    // Watch OS theme changes
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const handleMediaChange = (): void => {
+      void renderDiagram();
+    };
+    mediaQuery.addEventListener("change", handleMediaChange);
 
     return () => {
       destroyed = true;
+      observer.disconnect();
+      mediaQuery.removeEventListener("change", handleMediaChange);
     };
-  }, [chart, theme]); // Re-render when theme changes
+  }, [chart]);
 
   // Render an empty container on server; client fills it post-mount
   return <div ref={containerRef} />;

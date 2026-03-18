@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createProject, getFilteredProjects, GetProjectOptions } from '@/server/services/projects';
-import { withAuth } from '@/lib/protectedRoute';
 
-export const GET = withAuth(async (req: NextRequest, context: any, session: any) => {
+export async function GET(req: NextRequest) {
   try {
     const searchParams = req.nextUrl.searchParams;
     const options: GetProjectOptions = {
@@ -22,29 +21,12 @@ export const GET = withAuth(async (req: NextRequest, context: any, session: any)
       { status: wrappedError.cause == 'BadRequest' ? 400 : 500 }
     );
   }
-});
+}
 
-export const POST = withAuth(async (req: NextRequest, context: any, session: any) => {
+export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    
-    // Ensure the authenticated user is added as a member
-    const members = body.members || [];
-    const userIsMember = members.some((m: any) => m.user_id === session.user.id);
-    
-    if (!userIsMember) {
-      // Add the authenticated user as a confirmed member
-      members.push({
-        user_id: session.user.id,
-        role: "Member",
-        status: "Confirmed",
-      });
-    }
-    
-    const newProject = await createProject({
-      ...body,
-      members,
-    });
+    const newProject = await createProject(body);
 
     return NextResponse.json(
       { message: 'Project created', project: newProject },
@@ -58,4 +40,4 @@ export const POST = withAuth(async (req: NextRequest, context: any, session: any
       { status: wrappedError.cause == 'ValidationError' ? 400 : 500 }
     );
   }
-});
+}
