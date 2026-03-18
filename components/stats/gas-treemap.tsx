@@ -17,6 +17,7 @@ import {
 import { CustomDateRangePicker } from "@/components/custom-date-range-picker";
 import { differenceInCalendarDays, format } from "date-fns";
 import type { DateRange } from "react-day-picker";
+import { useTheme } from "@/components/content-design/theme-observer";
 
 interface CategoryBreakdown {
   category: string;
@@ -538,6 +539,8 @@ function buildProtocolHover(p: ProtocolItem, catLabel: string): HoveredInfo {
 
 export default function GasTreemap() {
   const [data, setData] = useState<ChainStatsData | null>(null);
+  const theme = useTheme();
+  const isDark = theme === "dark";
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState<TimeRange>("30d");
   const [customRange, setCustomRange] = useState<DateRange | undefined>(undefined);
@@ -862,15 +865,15 @@ export default function GasTreemap() {
 
         {/* Time range pills */}
         <div className="flex items-center gap-1">
-          <div className="flex items-center bg-zinc-900 rounded-md overflow-hidden border border-zinc-700">
+          <div className="flex items-center bg-zinc-100 dark:bg-zinc-900 rounded-md overflow-hidden border border-zinc-300 dark:border-zinc-700">
             {PRESET_KEYS.map((range) => (
               <button
                 key={range}
                 onClick={() => { setTimeRange(range); setCustomRange(undefined); }}
                 className={`px-3 py-1.5 text-xs font-medium transition-colors ${
                   timeRange === range
-                    ? "bg-zinc-700 text-white"
-                    : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"
+                    ? "bg-zinc-300 dark:bg-zinc-700 text-zinc-900 dark:text-white"
+                    : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-800"
                 }`}
               >
                 {TIME_RANGES[range].label}
@@ -901,18 +904,18 @@ export default function GasTreemap() {
       {/* Treemap */}
       <div
         ref={containerRef}
-        className="relative rounded-lg overflow-hidden bg-zinc-950 border border-zinc-800"
+        className="relative rounded-lg overflow-hidden bg-zinc-100 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800"
         style={{ height: dimensions.height }}
       >
         {/* Loading overlay */}
         {loading && (
-          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-zinc-950/90 backdrop-blur-sm">
+          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-zinc-100/90 dark:bg-zinc-950/90 backdrop-blur-sm">
             {/* Placeholder grid */}
             <div className="absolute inset-4 grid grid-cols-3 grid-rows-2 gap-2 opacity-20">
               {[0, 1, 2, 3, 4, 5].map((i) => (
                 <div
                   key={i}
-                  className="rounded-md bg-zinc-700 animate-pulse"
+                  className="rounded-md bg-zinc-300 dark:bg-zinc-700 animate-pulse"
                   style={{ animationDelay: `${i * 150}ms` }}
                 />
               ))}
@@ -923,21 +926,21 @@ export default function GasTreemap() {
               <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center">
                 <Flame className="w-6 h-6 text-red-400 animate-pulse" />
               </div>
-              <div className="text-sm font-medium text-zinc-300">
+              <div className="text-sm font-medium text-zinc-600 dark:text-zinc-300">
                 Crunching {activeDays} day{activeDays !== 1 ? "s" : ""} of C-Chain data...
               </div>
-              <div className="text-xs text-zinc-500">
+              <div className="text-xs text-zinc-400 dark:text-zinc-500">
                 {LOADING_PHASES[loadingPhase]}
               </div>
 
               {/* Progress bar */}
-              <div className="w-64 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+              <div className="w-64 h-1.5 bg-zinc-300 dark:bg-zinc-800 rounded-full overflow-hidden">
                 <div
                   className="h-full rounded-full bg-gradient-to-r from-red-500 to-amber-500 transition-all duration-300 ease-out"
                   style={{ width: `${loading ? loadingProgress : 100}%` }}
                 />
               </div>
-              <div className="text-[10px] text-zinc-600">
+              <div className="text-[10px] text-zinc-400 dark:text-zinc-600">
                 ~{estimateLoadTime(activeDays)}s estimated
               </div>
             </div>
@@ -976,7 +979,7 @@ export default function GasTreemap() {
             // --- FLAT category rendering (unclassified, small, or single-protocol) ---
             if (isFlat) {
               const bgColor = isUnclassified
-                ? "#1c1c24"
+                ? (isDark ? "#1c1c24" : "#e4e4e7")
                 : getDeltaColor(cat.delta);
               const showLabel = catRect.w > 60 && catRect.h > 35;
               const showDelta = catRect.w > 45 && catRect.h > 50;
@@ -1009,7 +1012,7 @@ export default function GasTreemap() {
                     fill={bgColor}
                     rx={3}
                     opacity={isHoveredCategory ? 0.85 : 1}
-                    stroke={isHoveredCategory ? "#fff" : "rgba(0,0,0,0.4)"}
+                    stroke={isHoveredCategory ? (isDark ? "#fff" : "#000") : (isDark ? "rgba(0,0,0,0.4)" : "rgba(0,0,0,0.15)")}
                     strokeWidth={isHoveredCategory ? 2 : 1}
                   />
                   {showLabel && (
@@ -1021,7 +1024,7 @@ export default function GasTreemap() {
                       }
                       textAnchor="middle"
                       dominantBaseline="central"
-                      fill="rgba(255,255,255,0.9)"
+                      fill={isDark ? "rgba(255,255,255,0.9)" : isUnclassified ? "rgba(0,0,0,0.7)" : "rgba(255,255,255,0.95)"}
                       fontSize={labelSize}
                       fontWeight="600"
                       style={{ pointerEvents: "none" }}
@@ -1040,7 +1043,7 @@ export default function GasTreemap() {
                       dominantBaseline="central"
                       fill={
                         isUnclassified
-                          ? "#6b7280"
+                          ? (isDark ? "#6b7280" : "#71717a")
                           : getDeltaTextColor(cat.delta)
                       }
                       fontSize={deltaSize}
@@ -1058,7 +1061,7 @@ export default function GasTreemap() {
                       y={catRect.y + catRect.h * 0.75}
                       textAnchor="middle"
                       dominantBaseline="central"
-                      fill="rgba(255,255,255,0.45)"
+                      fill="rgba(255,255,255,0.5)"
                       fontSize={shareSize}
                       fontWeight="400"
                       style={{ pointerEvents: "none" }}
@@ -1087,7 +1090,7 @@ export default function GasTreemap() {
                   height={Math.max(0, catRect.h - 2)}
                   fill="none"
                   rx={3}
-                  stroke={isHoveredAny ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.5)"}
+                  stroke={isHoveredAny ? (isDark ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.3)") : (isDark ? "rgba(0,0,0,0.5)" : "rgba(0,0,0,0.15)")}
                   strokeWidth={1}
                 />
 
@@ -1102,7 +1105,7 @@ export default function GasTreemap() {
                     y={catRect.y + 1}
                     width={Math.max(0, catRect.w - 2)}
                     height={headerHeight}
-                    fill="rgba(0,0,0,0.6)"
+                    fill={isDark ? "rgba(0,0,0,0.6)" : "rgba(0,0,0,0.25)"}
                     rx={0}
                     clipPath={`url(#clip-${cat.category})`}
                   />
@@ -1112,13 +1115,13 @@ export default function GasTreemap() {
                       y={catRect.y + 1 + headerHeight / 2}
                       textAnchor="start"
                       dominantBaseline="central"
-                      fill="rgba(255,255,255,0.8)"
+                      fill={isDark ? "rgba(255,255,255,0.8)" : "rgba(255,255,255,0.95)"}
                       fontSize={headerFontSize}
                       fontWeight="600"
                       style={{ pointerEvents: "none" }}
                     >
                       {catLabel}
-                      <tspan fill="rgba(255,255,255,0.35)" fontWeight="400">
+                      <tspan fill={isDark ? "rgba(255,255,255,0.35)" : "rgba(255,255,255,0.6)"} fontWeight="400">
                         {" "}
                         {cat.gasShare.toFixed(1)}%
                       </tspan>
@@ -1147,7 +1150,7 @@ export default function GasTreemap() {
                     const p = pRect.item;
                     const isOthers = p.protocol === "Others";
                     const bgColor = isOthers
-                      ? "#2a2a35"
+                      ? (isDark ? "#2a2a35" : "#d4d4d8")
                       : getDeltaColor(p.delta);
 
                     const isHoveredProto =
@@ -1185,8 +1188,8 @@ export default function GasTreemap() {
                           opacity={isHoveredProto ? 0.8 : 1}
                           stroke={
                             isHoveredProto
-                              ? "rgba(255,255,255,0.6)"
-                              : "rgba(0,0,0,0.3)"
+                              ? (isDark ? "rgba(255,255,255,0.6)" : "rgba(0,0,0,0.5)")
+                              : (isDark ? "rgba(0,0,0,0.3)" : "rgba(0,0,0,0.1)")
                           }
                           strokeWidth={isHoveredProto ? 1.5 : 0.5}
                         />
@@ -1199,7 +1202,7 @@ export default function GasTreemap() {
                             }
                             textAnchor="middle"
                             dominantBaseline="central"
-                            fill="rgba(255,255,255,0.85)"
+                            fill={isDark ? "rgba(255,255,255,0.85)" : isOthers ? "rgba(0,0,0,0.6)" : "rgba(255,255,255,0.95)"}
                             fontSize={labelSize}
                             fontWeight="500"
                             style={{ pointerEvents: "none" }}
@@ -1217,7 +1220,7 @@ export default function GasTreemap() {
                             dominantBaseline="central"
                             fill={
                               isOthers
-                                ? "#6b7280"
+                                ? (isDark ? "#6b7280" : "#71717a")
                                 : getDeltaTextColor(p.delta)
                             }
                             fontSize={deltaSize}
@@ -1240,17 +1243,17 @@ export default function GasTreemap() {
 
         {/* Finviz-style Hover Tooltip */}
         {hovered && (
-          <div className="absolute top-3 right-3 bg-zinc-900/98 backdrop-blur-sm border border-zinc-700 rounded-lg shadow-2xl pointer-events-none z-10 min-w-[320px] max-w-[400px] overflow-hidden">
+          <div className="absolute top-3 right-3 bg-white/98 dark:bg-zinc-900/98 backdrop-blur-sm border border-zinc-300 dark:border-zinc-700 rounded-lg shadow-2xl pointer-events-none z-10 min-w-[320px] max-w-[400px] overflow-hidden">
             {/* Header */}
-            <div className="px-4 py-3 border-b border-zinc-700/50 bg-zinc-800/50">
+            <div className="px-4 py-3 border-b border-zinc-200/50 dark:border-zinc-700/50 bg-zinc-100/50 dark:bg-zinc-800/50">
               <div className="flex items-center justify-between">
                 <div>
                   {hovered.type === "protocol" && (
-                    <span className="text-zinc-500 text-[10px] uppercase tracking-wider block mb-0.5">
+                    <span className="text-zinc-400 dark:text-zinc-500 text-[10px] uppercase tracking-wider block mb-0.5">
                       {hovered.categoryLabel}
                     </span>
                   )}
-                  <span className="font-semibold text-white text-base">
+                  <span className="font-semibold text-zinc-900 dark:text-white text-base">
                     {hovered.label}
                   </span>
                 </div>
@@ -1277,8 +1280,8 @@ export default function GasTreemap() {
                   <Fuel className="w-3.5 h-3.5 text-amber-400" />
                 </div>
                 <div>
-                  <div className="text-[10px] text-zinc-500 uppercase">Gas Share</div>
-                  <div className="text-sm font-semibold text-white">{hovered.gasShare.toFixed(2)}%</div>
+                  <div className="text-[10px] text-zinc-400 dark:text-zinc-500 uppercase">Gas Share</div>
+                  <div className="text-sm font-semibold text-zinc-900 dark:text-white">{hovered.gasShare.toFixed(2)}%</div>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -1286,8 +1289,8 @@ export default function GasTreemap() {
                   <Activity className="w-3.5 h-3.5 text-blue-400" />
                 </div>
                 <div>
-                  <div className="text-[10px] text-zinc-500 uppercase">Transactions</div>
-                  <div className="text-sm font-semibold text-white">{formatNumber(hovered.txCount)}</div>
+                  <div className="text-[10px] text-zinc-400 dark:text-zinc-500 uppercase">Transactions</div>
+                  <div className="text-sm font-semibold text-zinc-900 dark:text-white">{formatNumber(hovered.txCount)}</div>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -1295,11 +1298,11 @@ export default function GasTreemap() {
                   <Flame className="w-3.5 h-3.5 text-orange-400" />
                 </div>
                 <div>
-                  <div className="text-[10px] text-zinc-500 uppercase">AVAX Burned</div>
-                  <div className="text-sm font-semibold text-white">
+                  <div className="text-[10px] text-zinc-400 dark:text-zinc-500 uppercase">AVAX Burned</div>
+                  <div className="text-sm font-semibold text-zinc-900 dark:text-white">
                     {hovered.avaxBurned.toFixed(2)}
                     {hovered.avaxBurnedUsd > 0 && (
-                      <span className="text-zinc-500 text-xs ml-1">
+                      <span className="text-zinc-400 dark:text-zinc-500 text-xs ml-1">
                         ({formatUsd(hovered.avaxBurnedUsd)})
                       </span>
                     )}
@@ -1312,8 +1315,8 @@ export default function GasTreemap() {
                     <Users className="w-3.5 h-3.5 text-purple-400" />
                   </div>
                   <div>
-                    <div className="text-[10px] text-zinc-500 uppercase">Unique Senders</div>
-                    <div className="text-sm font-semibold text-white">{formatNumber(hovered.uniqueSenders)}</div>
+                    <div className="text-[10px] text-zinc-400 dark:text-zinc-500 uppercase">Unique Senders</div>
+                    <div className="text-sm font-semibold text-zinc-900 dark:text-white">{formatNumber(hovered.uniqueSenders)}</div>
                   </div>
                 </div>
               )}
@@ -1321,14 +1324,14 @@ export default function GasTreemap() {
 
             {/* Protocol Table - Only for category hover */}
             {hovered.type === "category" && hoveredCategoryProtocols.length > 0 && (
-              <div className="border-t border-zinc-700/50">
-                <div className="px-4 py-2 bg-zinc-800/30">
-                  <span className="text-[10px] text-zinc-500 uppercase tracking-wider">Top Protocols</span>
+              <div className="border-t border-zinc-200/50 dark:border-zinc-700/50">
+                <div className="px-4 py-2 bg-zinc-100/30 dark:bg-zinc-800/30">
+                  <span className="text-[10px] text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">Top Protocols</span>
                 </div>
                 <div className="max-h-[200px] overflow-y-auto">
                   <table className="w-full text-xs">
                     <thead>
-                      <tr className="text-zinc-500 text-[10px] uppercase">
+                      <tr className="text-zinc-400 dark:text-zinc-500 text-[10px] uppercase">
                         <th className="text-left px-4 py-1.5 font-medium">Protocol</th>
                         <th className="text-right px-2 py-1.5 font-medium">AVAX</th>
                         <th className="text-right px-4 py-1.5 font-medium">Change</th>
@@ -1338,12 +1341,12 @@ export default function GasTreemap() {
                       {hoveredCategoryProtocols.map((p, idx) => (
                         <tr
                           key={p.protocol}
-                          className={idx % 2 === 0 ? "bg-zinc-800/20" : ""}
+                          className={idx % 2 === 0 ? "bg-zinc-100/20 dark:bg-zinc-800/20" : ""}
                         >
-                          <td className="px-4 py-1.5 text-zinc-200 font-medium truncate max-w-[140px]">
+                          <td className="px-4 py-1.5 text-zinc-700 dark:text-zinc-200 font-medium truncate max-w-[140px]">
                             {p.protocol}
                           </td>
-                          <td className="px-2 py-1.5 text-right text-zinc-400 font-mono">
+                          <td className="px-2 py-1.5 text-right text-zinc-500 dark:text-zinc-400 font-mono">
                             {p.avaxBurned.toFixed(2)}
                           </td>
                           <td className={`px-4 py-1.5 text-right font-semibold ${
@@ -1360,8 +1363,8 @@ export default function GasTreemap() {
             )}
 
             {/* Footer */}
-            <div className="px-4 py-2 border-t border-zinc-700/50 bg-zinc-800/30">
-              <span className="text-[10px] text-zinc-500">
+            <div className="px-4 py-2 border-t border-zinc-200/50 dark:border-zinc-700/50 bg-zinc-100/30 dark:bg-zinc-800/30">
+              <span className="text-[10px] text-zinc-400 dark:text-zinc-500">
                 vs previous {timeRangeLabel || (timeRange !== "custom" ? TIME_RANGES[timeRange as Exclude<TimeRange, "custom">].label : "")} period
               </span>
             </div>
