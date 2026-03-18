@@ -2121,7 +2121,7 @@ const HackathonsEdit = () => {
                   {/* Step 2: Images & Branding */}
                   <div className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
                     <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-2xl font-bold">Step 2: Images & Branding</h2>
+                      <h2 className="text-2xl font-bold">Step 3: Images & Branding</h2>
                       {collapsed.images && (
                         <button onClick={() => setCollapsed({ ...collapsed, images: false })} className="flex items-center gap-1 text-zinc-400 hover:text-red-500 cursor-pointer">
                           <ChevronRight className="w-5 h-5" /> {t[language].expand}
@@ -2335,7 +2335,7 @@ const HackathonsEdit = () => {
                   <div className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
                     <div className="flex items-center justify-between mb-4">
                       <h2 className="text-2xl font-bold">
-                        {formDataLatest.event === 'hackathon' ? 'Step 3: Participants & Prizes' : 'Step 3: Organizer'}
+                        {formDataLatest.event === 'hackathon' ? 'Step 4: Participants & Prizes' : 'Step 4: Organizer'}
                       </h2>
                       {collapsed.about && (
                         <button onClick={() => setCollapsed({ ...collapsed, about: false })} className="flex items-center gap-1 text-zinc-400 hover:text-red-500 cursor-pointer">
@@ -2418,7 +2418,7 @@ const HackathonsEdit = () => {
                   {formDataLatest.event === 'hackathon' && (
                     <div className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
                       <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-2xl font-bold">Step 4: Track Text</h2>
+                        <h2 className="text-2xl font-bold">Step 5: Track Text</h2>
                         {collapsed.trackText && (
                           <button onClick={() => setCollapsed({ ...collapsed, trackText: false })} className="flex items-center gap-1 text-zinc-400 hover:text-red-500 cursor-pointer">
                             <ChevronRight className="w-5 h-5" /> {t[language].expand}
@@ -2657,7 +2657,7 @@ const HackathonsEdit = () => {
                   {/* Step 5: Content - Tracks, Schedule, etc. */}
                   <div className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">
                     <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-2xl font-bold">Step 5: Content</h2>
+                      <h2 className="text-2xl font-bold">Step 6: Content</h2>
                       {collapsed.content && (
                         <button onClick={() => setCollapsed({ ...collapsed, content: false })} className="flex items-center gap-1 text-zinc-400 hover:text-red-500 cursor-pointer">
                           <ChevronRight className="w-5 h-5" /> {t[language].expand}
@@ -2833,7 +2833,7 @@ const HackathonsEdit = () => {
                   </div>
                   <div className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6 mt-10">
                     <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-2xl font-bold">Step 6: Last Details</h2>
+                      <h2 className="text-2xl font-bold">Step 7: Last Details</h2>
                       {collapsed.last && (
                         <button onClick={() => setCollapsed({ ...collapsed, last: false })} className="flex items-center gap-1 text-zinc-400 hover:text-red-500 cursor-pointer">
                           <ChevronRight className="w-5 h-5" /> {t[language].expand}
