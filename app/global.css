@@ -9,6 +9,12 @@
 @source '../node_modules/fumadocs-ui/dist/**/*.js';
 @plugin 'tailwindcss-animate';
 
+/* Soft bounce for AI typing indicator */
+@keyframes bounce-gentle {
+  0%, 100% { transform: translateY(0); opacity: 0.7; }
+  50% { transform: translateY(-3px); opacity: 1; }
+}
+
 /* Breathing animation for active bubble nav - very slow and subtle */
 @keyframes breathe {
   0% {
