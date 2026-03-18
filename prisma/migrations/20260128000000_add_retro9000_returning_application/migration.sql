@@ -1,0 +1,2 @@
+-- This migration was already applied to the database.
+-- The migration file was restored to unblock the migration pipeline.
