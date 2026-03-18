@@ -14,6 +14,7 @@ import { Step, Steps } from "fumadocs-ui/components/steps";
 import SelectSubnet, { SubnetSelection } from '@/components/toolbox/components/SelectSubnet';
 import { useValidatorManagerDetails } from '@/components/toolbox/hooks/useValidatorManagerDetails';
 import NativeTokenStakingManager from "@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json";
+import ERC20TokenStakingManager from "@/contracts/icm-contracts/compiled/ERC20TokenStakingManager.json";
 import { parseEther } from "viem";
 import { useWalletClient } from 'wagmi';
 import versions from '@/scripts/versions.json';
@@ -27,9 +28,11 @@ import { StepCodeViewer, type StepConfig } from "@/components/console/step-code-
 
 const ICM_COMMIT = versions["ava-labs/icm-contracts"];
 
+type StakingType = 'native' | 'erc20';
+
 const metadata: ConsoleToolMetadata = {
-    title: "Initialize Native Token Staking Manager",
-    description: "Initialize the Native Token Staking Manager contract with the required configuration.",
+    title: "Initialize Staking Manager",
+    description: "Initialize the Native or ERC20 Token Staking Manager contract with the required configuration.",
     toolRequirements: [
         WalletRequirementsConfigKey.EVMChainBalance,
     ],
@@ -166,9 +169,11 @@ console.log("Transaction hash:", hash);`,
     },
 ];
 
-function InitializeNativeStakingManager({ onSuccess }: BaseConsoleToolProps) {
+function InitializeStakingManagerInner({ onSuccess }: BaseConsoleToolProps) {
     const { setCriticalError } = useCriticalError();
+    const [stakingType, setStakingType] = useState<StakingType>('native');
     const [stakingManagerAddressInput, setStakingManagerAddressInput] = useState<string>("");
+    const [tokenAddress, setTokenAddress] = useState<string>("");
     const [isChecking, setIsChecking] = useState(false);
     const [isInitializing, setIsInitializing] = useState(false);
     const [isInitialized, setIsInitialized] = useState<boolean | null>(null);
@@ -192,8 +197,16 @@ function InitializeNativeStakingManager({ onSuccess }: BaseConsoleToolProps) {
     const chainPublicClient = useChainPublicClient();
     const { data: walletClient } = useWalletClient();
     const viemChain = useViemChainStore();
-    const { nativeStakingManagerAddress: storedStakingManagerAddress, rewardCalculatorAddress: storedRewardCalculatorAddress } = useToolboxStore();
+    const {
+        nativeStakingManagerAddress: storedNativeStakingManagerAddress,
+        erc20StakingManagerAddress: storedErc20StakingManagerAddress,
+        rewardCalculatorAddress: storedRewardCalculatorAddress,
+        exampleErc20Address: storedExampleErc20Address,
+    } = useToolboxStore();
     const { notify } = useConsoleNotifications();
+
+    const isErc20 = stakingType === 'erc20';
+    const stakingAbi = isErc20 ? ERC20TokenStakingManager.abi : NativeTokenStakingManager.abi;
 
     const {
         validatorManagerAddress,
@@ -202,18 +215,25 @@ function InitializeNativeStakingManager({ onSuccess }: BaseConsoleToolProps) {
 
     const blockchainId = subnetSelection.subnet?.blockchains?.[0]?.blockchainId || null;
 
-    // Auto-fill addresses from store
+    // Auto-fill addresses from store based on staking type
     useEffect(() => {
-        if (storedStakingManagerAddress && !stakingManagerAddressInput) {
-            setStakingManagerAddressInput(storedStakingManagerAddress);
+        const storedAddress = isErc20 ? storedErc20StakingManagerAddress : storedNativeStakingManagerAddress;
+        if (storedAddress && !stakingManagerAddressInput) {
+            setStakingManagerAddressInput(storedAddress);
         }
-    }, [storedStakingManagerAddress, stakingManagerAddressInput]);
+    }, [isErc20, storedNativeStakingManagerAddress, storedErc20StakingManagerAddress, stakingManagerAddressInput]);
 
     useEffect(() => {
         if (storedRewardCalculatorAddress && !rewardCalculatorAddress) {
             setRewardCalculatorAddress(storedRewardCalculatorAddress);
         }
     }, [storedRewardCalculatorAddress, rewardCalculatorAddress]);
+
+    useEffect(() => {
+        if (isErc20 && storedExampleErc20Address && !tokenAddress) {
+            setTokenAddress(storedExampleErc20Address);
+        }
+    }, [isErc20, storedExampleErc20Address, tokenAddress]);
 
     // Generate dynamic code steps based on current form values
     const codeSteps = getCodeSteps({
@@ -239,7 +259,7 @@ function InitializeNativeStakingManager({ onSuccess }: BaseConsoleToolProps) {
         try {
             const settings = await chainPublicClient!.readContract({
                 address: stakingManagerAddressInput as `0x${string}`,
-                abi: NativeTokenStakingManager.abi,
+                abi: stakingAbi,
                 functionName: 'getStakingManagerSettings',
             }) as any;
 
@@ -270,6 +290,7 @@ function InitializeNativeStakingManager({ onSuccess }: BaseConsoleToolProps) {
             if (!validatorManagerAddress) throw new Error("Validator Manager address required");
             if (!rewardCalculatorAddress) throw new Error("Reward Calculator address required");
             if (!blockchainId) throw new Error("Blockchain ID not found");
+            if (isErc20 && !tokenAddress) throw new Error("ERC20 token address required");
 
             let hexBlockchainId = cb58ToHex(blockchainId);
             if (hexBlockchainId.length < 64) {
@@ -289,11 +310,15 @@ function InitializeNativeStakingManager({ onSuccess }: BaseConsoleToolProps) {
                 uptimeBlockchainID: hexBlockchainId as `0x${string}`
             };
 
+            const initArgs = isErc20
+                ? [settings, tokenAddress as `0x${string}`]
+                : [settings];
+
             const gasEstimate = await chainPublicClient!.estimateContractGas({
                 address: stakingManagerAddressInput as `0x${string}`,
-                abi: NativeTokenStakingManager.abi,
+                abi: stakingAbi,
                 functionName: 'initialize',
-                args: [settings],
+                args: initArgs,
                 account: walletEVMAddress as `0x${string}`,
             });
 
@@ -301,9 +326,9 @@ function InitializeNativeStakingManager({ onSuccess }: BaseConsoleToolProps) {
 
             const writePromise = walletClient!.writeContract({
                 address: stakingManagerAddressInput as `0x${string}`,
-                abi: NativeTokenStakingManager.abi,
+                abi: stakingAbi,
                 functionName: 'initialize',
-                args: [settings],
+                args: initArgs,
                 chain: viemChain,
                 gas: gasWithBuffer,
                 account: walletEVMAddress as `0x${string}`,
@@ -311,7 +336,7 @@ function InitializeNativeStakingManager({ onSuccess }: BaseConsoleToolProps) {
 
             notify({
                 type: 'call',
-                name: 'Initialize Native Token Staking Manager'
+                name: `Initialize ${isErc20 ? 'ERC20' : 'Native'} Token Staking Manager`
             }, writePromise, viemChain ?? undefined);
 
             const hash = await writePromise;
@@ -358,15 +383,51 @@ function InitializeNativeStakingManager({ onSuccess }: BaseConsoleToolProps) {
                             <div onFocus={() => setActiveStep(1)}>
                                 <h2 className="text-lg font-semibold">Select Staking Manager</h2>
                                 <p className="text-sm text-gray-500 mb-4">
-                                    Enter the deployed staking manager contract address.
+                                    Choose the staking type and enter the deployed staking manager contract address.
                                 </p>
 
+                                <div className="flex gap-2 mb-4">
+                                    <button
+                                        type="button"
+                                        onClick={() => { setStakingType('native'); setStakingManagerAddressInput(''); }}
+                                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                                            stakingType === 'native'
+                                                ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900'
+                                                : 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
+                                        }`}
+                                    >
+                                        Native Token
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => { setStakingType('erc20'); setStakingManagerAddressInput(''); }}
+                                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                                            stakingType === 'erc20'
+                                                ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900'
+                                                : 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
+                                        }`}
+                                    >
+                                        ERC20 Token
+                                    </button>
+                                </div>
+
                                 <EVMAddressInput
-                                    label="Native Token Staking Manager Address"
+                                    label={`${isErc20 ? 'ERC20' : 'Native'} Token Staking Manager Address`}
                                     value={stakingManagerAddressInput}
                                     onChange={setStakingManagerAddressInput}
                                     disabled={isInitializing}
                                 />
+
+                                {isErc20 && (
+                                    <div className="mt-3">
+                                        <EVMAddressInput
+                                            label="ERC20 Token Address"
+                                            value={tokenAddress}
+                                            onChange={setTokenAddress}
+                                            disabled={isInitializing}
+                                        />
+                                    </div>
+                                )}
 
                                 <Button
                                     onClick={checkIfInitialized}
@@ -432,14 +493,14 @@ function InitializeNativeStakingManager({ onSuccess }: BaseConsoleToolProps) {
                                     weightToValueFactor={weightToValueFactor}
                                     setWeightToValueFactor={setWeightToValueFactor}
                                     disabled={isInitializing}
-                                    tokenLabel="native tokens"
+                                    tokenLabel={isErc20 ? "ERC20 tokens" : "native tokens"}
                                 />
 
                                 <Button
                                     variant="primary"
                                     onClick={handleInitialize}
                                     loading={isInitializing}
-                                    disabled={isInitializing || !subnetSelection.subnetId || !subnetSelection.subnet?.isL1 || !validatorManagerAddress || !rewardCalculatorAddress || !blockchainId}
+                                    disabled={isInitializing || !subnetSelection.subnetId || !subnetSelection.subnet?.isL1 || !validatorManagerAddress || !rewardCalculatorAddress || !blockchainId || (isErc20 && !tokenAddress)}
                                     className="mt-4"
                                 >
                                     Initialize Contract
@@ -468,4 +529,4 @@ function InitializeNativeStakingManager({ onSuccess }: BaseConsoleToolProps) {
     );
 }
 
-export default withConsoleToolMetadata(InitializeNativeStakingManager, metadata);
+export default withConsoleToolMetadata(InitializeStakingManagerInner, metadata);
