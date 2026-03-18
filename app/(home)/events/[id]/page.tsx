@@ -10,6 +10,7 @@ import LegacyEventLayout from "@/components/hackathons/event-layouts/LegacyEvent
 import ModernEventLayout from "@/components/hackathons/event-layouts/ModernEventLayout";
 import { createMetadata } from "@/utils/metadata";
 import type { Metadata } from "next";
+import { normalizeEventsLang, t } from "@/lib/events/i18n";
 
 export const revalidate = 60;
 export const dynamicParams = true;
@@ -32,14 +33,13 @@ export async function generateMetadata({
     const hackathon = await getHackathon(id);
     
     if (!hackathon) {
+      const lang = normalizeEventsLang(undefined);
       return createMetadata({
-        title: 'Event Not Found',
-        description: 'The requested event could not be found',
+        title: t(lang, "meta.notFound.title"),
+        description: t(lang, "meta.notFound.description"),
       });
     }
-
-    const eventType = hackathon.event || 'hackathon';
-    const eventTypeLabel = eventType === 'hackathon' ? 'Hackathon' : eventType === 'workshop' ? 'Workshop' : eventType === 'bootcamp' ? 'Bootcamp' : 'Event';
+    const lang = normalizeEventsLang(hackathon.content?.language);
 
     return createMetadata({
       title: hackathon.title,
@@ -52,9 +52,10 @@ export async function generateMetadata({
       },
     });
   } catch (error) {
+    const lang = normalizeEventsLang(undefined);
     return createMetadata({
-      title: 'Events',
-      description: 'Join exciting blockchain events, hackathons, workshops and bootcamps on Avalanche',
+      title: t(lang, "meta.events.title"),
+      description: t(lang, "meta.events.description"),
     });
   }
 }

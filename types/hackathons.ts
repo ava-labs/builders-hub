@@ -39,6 +39,8 @@ export type HackathonsFilters = {
 }
 
 export type Hackathon = {
+  /** Content language for event-specific UI strings. Defaults to 'en' when missing. */
+  language?: "en" | "es"
   join_custom_link: string
   join_custom_text: string
   submission_custom_link: string
