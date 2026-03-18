@@ -57,18 +57,7 @@ export default function Stages({ isParticipant = false, stageResults = [] }: { i
         criteria: "Market understanding, growth strategy viability, user acquisition plan, business model clarity, and scalability potential.",
         support: "Attend the Office Hours and get feedback from mentors and other builders. Schedule a time here:.",
       }
-    },
-    {
-      label: "Stage 4: Finals",
-      status: statuses[4],
-      date: "March 27",
-      details: {
-        deadline: "March 27, 2026 - Live presentation",
-        requirements: "Final pitch deck, live product demo, complete project documentation, and Q&A session with judges.",
-        criteria: "Overall project quality, innovation, technical excellence, market potential, presentation skills, and ecosystem fit.",
-        support: "Presentation coaching, demo preparation, final pitch refinement. Attend the Office Hours and get feedback from mentors and other builders. Schedule a time here: ",
-      },
-    },
+    }
   ];
 
   const [selectedPhaseIndex, setSelectedPhaseIndex] = useState(0);
@@ -115,7 +104,7 @@ export default function Stages({ isParticipant = false, stageResults = [] }: { i
           {/* Action buttons */}
           <div className="flex flex-wrap gap-3">
             <a
-              href="https://calendar.google.com/calendar/u/0?cid=Y19mNzExYTJkN2NjZDJhZTY2MWFjYmJlMjE5MDM4ZDZmYzcwMjRjNmFiMzJjNGVmZDhhNmVkYTIxMDY1MGRiODdiQGdyb3VwLmNhbGVuZGFyLmdvb2dsZS5jb20"
+              href="https://calendar.google.com/calendar"
               target="_blank"
               rel="noopener noreferrer"
               className="group relative inline-flex shrink-0"

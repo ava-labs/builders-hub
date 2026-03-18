@@ -101,6 +101,7 @@ export const t = {
     cohostsLabel: 'Cohost Emails',
     cohostsPlaceholder: 'cohost@example.com',
     cohostsHelp: 'Enter email addresses and press Enter to add them. These users will have editing permissions for this hackathon.',
+    addStage: 'Add Stage',
   },
   es: {
     mainTopics: 'Temas principales',
@@ -204,5 +205,6 @@ export const t = {
     cohostsLabel: 'Correos de Co-organizadores',
     cohostsPlaceholder: 'coorganizador@ejemplo.com',
     cohostsHelp: 'Ingresa las direcciones de correo y presiona Enter para añadirlas. Estos usuarios tendrán permisos de edición para este hackathon.',
+    addStage: 'Add Stage',
   }
 }; 
