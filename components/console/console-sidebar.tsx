@@ -299,6 +299,16 @@ const data = {
               url: "/console/permissionless-l1s/delegate",
               icon: ArrowUpDown,
             },
+            {
+              title: "Remove Validator",
+              url: "/console/permissionless-l1s/remove-validator",
+              icon: SquareMinus,
+            },
+            {
+              title: "Remove Delegation",
+              url: "/console/permissionless-l1s/remove-delegation",
+              icon: SquareMinus,
+            },
           ],
         },
         // Tokenomics sub-group
