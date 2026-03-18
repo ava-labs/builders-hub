@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { Avalanche } from "@avalanche-sdk/chainkit";
 import { TimeSeriesDataPoint, TimeSeriesMetric, ICMDataPoint, ICMMetric, STATS_CONFIG, getTimestampsFromTimeRange, createTimeSeriesMetric, createICMMetric } from "@/types/stats";
+import { getChainICMData } from "@/lib/icm-clickhouse";
 
 export const dynamic = 'force-dynamic';
 
@@ -259,6 +260,52 @@ async function fetchRewardsData(): Promise<RewardsData> {
   }
 }
 
+// Authoritative AVAX supply endpoint for offset correction
+const AVAX_SUPPLY_URL = 'https://data-api.avax.network/v1/avax/supply';
+
+interface AvaxSupplyData {
+  totalCBurned: string;
+  totalPBurned: string;
+  totalXBurned: string;
+}
+
+async function fetchAuthoritativeBurnTotals(): Promise<AvaxSupplyData | null> {
+  try {
+    const response = await fetchWithTimeout(AVAX_SUPPLY_URL, {
+      headers: { 'Accept': 'application/json' }
+    });
+
+    if (!response.ok) {
+      console.warn(`[fetchAuthoritativeBurnTotals] Failed to fetch: ${response.status}`);
+      return null;
+    }
+
+    const data = await response.json();
+    if (!data.totalCBurned || !data.totalPBurned || !data.totalXBurned) {
+      console.warn('[fetchAuthoritativeBurnTotals] Missing burn fields in response');
+      return null;
+    }
+
+    if (isNaN(parseFloat(data.totalCBurned)) ||
+        isNaN(parseFloat(data.totalPBurned)) ||
+        isNaN(parseFloat(data.totalXBurned))) {
+      console.warn('[fetchAuthoritativeBurnTotals] Invalid numeric values in response');
+      return null;
+    }
+
+    return {
+      totalCBurned: data.totalCBurned,
+      totalPBurned: data.totalPBurned,
+      totalXBurned: data.totalXBurned,
+    };
+  } catch (error) {
+    if (error instanceof Error && error.name !== 'AbortError') {
+      console.warn('[fetchAuthoritativeBurnTotals] Error:', error);
+    }
+    return null;
+  }
+}
+
 async function fetchPrimaryNetworkFeesData(): Promise<PrimaryNetworkFeesData> {
   const emptyResult: PrimaryNetworkFeesData = {
     netCumulativeEmissions: [],
@@ -276,17 +323,21 @@ async function fetchPrimaryNetworkFeesData(): Promise<PrimaryNetworkFeesData> {
   };
 
   try {
-    const response = await fetchWithTimeout(PRIMARY_NETWORK_FEES_URL, {
-      headers: { 'Accept': 'application/json' }
-    });
+    // Fetch Metabase data and authoritative burn totals in parallel
+    const [metabaseResponse, authoritativeTotals] = await Promise.all([
+      fetchWithTimeout(PRIMARY_NETWORK_FEES_URL, {
+        headers: { 'Accept': 'application/json' }
+      }),
+      fetchAuthoritativeBurnTotals(),
+    ]);
 
-    if (!response.ok) {
-      console.warn(`[fetchPrimaryNetworkFeesData] Failed to fetch: ${response.status}`);
+    if (!metabaseResponse.ok) {
+      console.warn(`[fetchPrimaryNetworkFeesData] Failed to fetch: ${metabaseResponse.status}`);
       return emptyResult;
     }
 
-    const data = await response.json();
-    
+    const data = await metabaseResponse.json();
+
     if (!data?.data?.rows || !Array.isArray(data.data.rows)) {
       console.warn('[fetchPrimaryNetworkFeesData] Invalid data format');
       return emptyResult;
@@ -346,6 +397,82 @@ async function fetchPrimaryNetworkFeesData(): Promise<PrimaryNetworkFeesData> {
       (result as any)[key].sort((a: TimeSeriesDataPoint, b: TimeSeriesDataPoint) => b.timestamp - a.timestamp);
     });
 
+    // Apply offset correction to align cumulative values with authoritative source
+    const hasCumulativeData = result.cumulativeCChainFees.length > 0 &&
+      result.cumulativePChainFees.length > 0 &&
+      result.cumulativeXChainFees.length > 0 &&
+      result.cumulativeValidatorFees.length > 0 &&
+      result.cumulativeBurn.length > 0 &&
+      result.netCumulativeEmissions.length > 0;
+
+    if (authoritativeTotals && hasCumulativeData) {
+      const authCBurned = parseFloat(authoritativeTotals.totalCBurned);
+      const authPBurned = parseFloat(authoritativeTotals.totalPBurned);
+      const authXBurned = parseFloat(authoritativeTotals.totalXBurned);
+      const authTotalBurn = authCBurned + authPBurned + authXBurned;
+
+      // Latest Metabase values (first element after descending sort)
+      const latestCChain = result.cumulativeCChainFees[0].value as number;
+      const latestPChain = result.cumulativePChainFees[0].value as number;
+      const latestXChain = result.cumulativeXChainFees[0].value as number;
+      const latestValidatorFees = result.cumulativeValidatorFees[0].value as number;
+      const latestBurn = result.cumulativeBurn[0].value as number;
+
+      const offsetC = authCBurned - latestCChain;
+      const offsetP = authPBurned - latestPChain;
+      const offsetX = authXBurned - latestXChain;
+      // Cumulative burn in Metabase includes validator fees, so the authoritative
+      // total burn should also include the Metabase validator fees for a correct offset
+      const offsetBurn = (authTotalBurn + latestValidatorFees) - latestBurn;
+
+      // Only apply if at least one offset is positive (Metabase is missing data)
+      if (offsetC < 0 || offsetP < 0 || offsetX < 0) {
+        console.warn(
+          `[fetchPrimaryNetworkFeesData] Negative offset detected (Metabase > Authoritative): ` +
+          `C: ${offsetC.toFixed(2)}, P: ${offsetP.toFixed(2)}, X: ${offsetX.toFixed(2)}`
+        );
+      }
+
+      if (offsetC > 0 || offsetP > 0 || offsetX > 0) {
+        console.warn(
+          `[fetchPrimaryNetworkFeesData] Applying burn offset correction: ` +
+          `C-Chain: +${offsetC.toFixed(2)}, P-Chain: +${offsetP.toFixed(2)}, ` +
+          `X-Chain: +${offsetX.toFixed(2)}, Total Burn: +${offsetBurn.toFixed(2)}`
+        );
+
+        if (offsetC > 0) {
+          result.cumulativeCChainFees = result.cumulativeCChainFees.map((point) => ({
+            ...point,
+            value: (point.value as number) + offsetC,
+          }));
+        }
+        if (offsetP > 0) {
+          result.cumulativePChainFees = result.cumulativePChainFees.map((point) => ({
+            ...point,
+            value: (point.value as number) + offsetP,
+          }));
+        }
+        if (offsetX > 0) {
+          result.cumulativeXChainFees = result.cumulativeXChainFees.map((point) => ({
+            ...point,
+            value: (point.value as number) + offsetX,
+          }));
+        }
+        if (offsetBurn > 0) {
+          result.cumulativeBurn = result.cumulativeBurn.map((point) => ({
+            ...point,
+            value: (point.value as number) + offsetBurn,
+          }));
+          // Also adjust net cumulative emissions (emissions = rewards - burn)
+          // Since burn increased, net emissions decrease by the same offset
+          result.netCumulativeEmissions = result.netCumulativeEmissions.map((point) => ({
+            ...point,
+            value: (point.value as number) - offsetBurn,
+          }));
+        }
+      }
+    }
+
     return result;
   } catch (error) {
     if (error instanceof Error && error.name !== 'AbortError') {
@@ -356,14 +483,12 @@ async function fetchPrimaryNetworkFeesData(): Promise<PrimaryNetworkFeesData> {
 }
 
 async function getICMData(
-  chainId: string, 
+  chainId: string,
   timeRange: string,
   startTimestamp?: number,
   endTimestamp?: number
 ): Promise<ICMDataPoint[]> {
   try {
-    const apiChainId = chainId === "all" ? "global" : chainId;
-    
     let days: number;
     if (startTimestamp !== undefined && endTimestamp !== undefined) {
       const startDate = new Date(startTimestamp * 1000);
@@ -375,43 +500,24 @@ async function getICMData(
           case '7d': return 7;
           case '30d': return 30;
           case '90d': return 90;
-          case 'all': return 365;
+          case 'all': return 730;
           default: return 30;
         }
       };
       days = getDaysFromTimeRange(timeRange);
     }
 
-    const response = await fetchWithTimeout(
-      `https://idx6.solokhin.com/api/${apiChainId}/metrics/dailyMessageVolume?days=${days}`,
-      { headers: { 'Accept': 'application/json' } }
-    );
+    let result = await getChainICMData(chainId, days);
 
-    if (!response.ok) return [];
-    const data = await response.json();
-    if (!Array.isArray(data)) return [];
-
-    let filteredData = data
-      .sort((a: any, b: any) => b.timestamp - a.timestamp)
-      .map((item: any) => ({
-        timestamp: item.timestamp,
-        date: item.date,
-        messageCount: item.messageCount || 0,
-        incomingCount: item.incomingCount || 0,
-        outgoingCount: item.outgoingCount || 0,
-      }));
-    
     if (startTimestamp !== undefined && endTimestamp !== undefined) {
-      filteredData = filteredData.filter((item: ICMDataPoint) => 
+      result = result.filter((item) =>
         item.timestamp >= startTimestamp && item.timestamp <= endTimestamp
       );
     }
-    
-    return filteredData;
+
+    return result;
   } catch (error) {
-    if (error instanceof Error && error.name !== 'AbortError') {
-      console.warn(`[getICMData] Failed for chain ${chainId}:`, error);
-    }
+    console.warn(`[getICMData] Failed for chain ${chainId}:`, error);
     return [];
   }
 }

@@ -6,11 +6,13 @@ import { toast } from '@/lib/toast';
 import { useMemo } from 'react';
 import { createAvalancheWalletClient } from "@avalanche-sdk/client";
 import { avalanche, avalancheFuji } from "@avalanche-sdk/client/chains";
+import { useWalletClient } from 'wagmi';
 
 export function useWallet() {
     const walletStore = useWalletStore();
     const { safelySwitch } = useWalletSwitch();
     const { openModal } = useModalTrigger<AddChainResult>();
+    const { data: walletClient } = useWalletClient();
 
     const isTestnet = useWalletStore((s) => s.isTestnet);
     const walletEVMAddress = useWalletStore((s) => s.walletEVMAddress);
@@ -31,7 +33,7 @@ export function useWallet() {
     }, [isTestnet, walletEVMAddress]);
 
     const addChain = async (options?: AddChainOptions): Promise<AddChainResult> => {
-        if (!walletStore.coreWalletClient) {
+        if (!walletClient) {
             toast.error('Wallet not connected', 'Please connect your wallet first');
             return { success: false };
         }
@@ -55,7 +57,7 @@ export function useWallet() {
         addChain,
         switchChain,
         // Clients exported for convenience and standardization
-        client: walletStore.coreWalletClient,
+        client: walletClient ?? null,
         avalancheWalletClient,
     };
 }

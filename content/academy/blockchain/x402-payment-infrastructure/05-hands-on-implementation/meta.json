@@ -1,0 +1,10 @@
+{
+  "pages": [
+    "01-environment-setup",
+    "02-first-payment",
+    "03-understanding-implementation",
+    "04-ai-agent-mode",
+    "05-token-based-ai-chat",
+    "06-autonomous-agent"
+  ]
+}

@@ -1,12 +1,12 @@
 "use client"
 
 import { useToolboxStore } from "@/components/toolbox/stores/toolboxStore"
-import { useWalletStore } from "@/components/toolbox/stores/walletStore"
 import type { AbiEvent } from "viem"
 import { useEffect, useState } from "react"
 import PoAManagerABI from "@/contracts/icm-contracts/compiled/PoAManager.json"
 import { Button } from "@/components/toolbox/components/Button"
 import { ChevronDown, ChevronRight } from "lucide-react"
+import { useChainPublicClient } from "@/components/toolbox/hooks/useChainPublicClient"
 import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput"
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
@@ -33,7 +33,7 @@ const metadata: ConsoleToolMetadata = {
   title: "Read PoA Manager Contract",
   description: "Read and view contract data from the PoAManager",
   toolRequirements: [
-    WalletRequirementsConfigKey.CoreWalletConnected
+    WalletRequirementsConfigKey.WalletConnected
   ],
   githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
 }
@@ -44,7 +44,7 @@ function ReadPoAManager({ onSuccess }: BaseConsoleToolProps) {
   const [viewData, setViewData] = useState<ViewData>({})
   const [isReading, setIsReading] = useState(false)
   const [eventLogs, setEventLogs] = useState<Record<string, any[]>>({})
-  const { publicClient } = useWalletStore()
+  const chainPublicClient = useChainPublicClient()
   const [expandedEvents, setExpandedEvents] = useState<Record<string, boolean>>({})
 
   // Throw critical errors during render
@@ -72,7 +72,7 @@ function ReadPoAManager({ onSuccess }: BaseConsoleToolProps) {
         if (func.inputs.length > 0) continue
 
         try {
-          const result = await publicClient.readContract({
+          const result = await chainPublicClient!.readContract({
             address: poaManagerAddress as `0x${string}`,
             abi: [func],
             functionName: func.name,
@@ -93,7 +93,7 @@ function ReadPoAManager({ onSuccess }: BaseConsoleToolProps) {
       for (const event of events) {
         if (!event.name) continue
         try {
-          const eventLogs = await publicClient.getLogs({
+          const eventLogs = await chainPublicClient!.getLogs({
             address: poaManagerAddress as `0x${string}`,
             event: event as AbiEvent,
             fromBlock: 0n,
@@ -105,7 +105,6 @@ function ReadPoAManager({ onSuccess }: BaseConsoleToolProps) {
           console.error(`Error getting logs for ${event.name}:`, error)
         }
       }
-      console.log("Event logs:", logs)
       setEventLogs(logs)
     } catch (error) {
       console.error("Main error:", error)

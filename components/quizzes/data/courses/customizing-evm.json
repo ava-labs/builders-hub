@@ -1,0 +1,963 @@
+{
+  "title": "Customizing EVM",
+  "quizzes": {
+    "3041": {
+      "question": "What key innovation did the Ethereum Virtual Machine (EVM) introduce to the blockchain world?",
+      "options": [
+        "Lower transaction fees",
+        "The concept of programmable blockchains through smart contracts that execute autonomously",
+        "Better scalability than other blockchains, but this does not accurately reflect the underlying architecture",
+        "Faster transaction processing than Bitcoin"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Think about what the EVM enabled developers to do that wasn't possible before.",
+      "explanation": "The EVM introduced the revolutionary concept of programmable blockchains by enabling smart contracts - programs that autonomously execute the terms of an agreement. Before the EVM, blockchains like Bitcoin were primarily limited to simple value transfers. The EVM operates as a quasi-Turing complete machine that can run nearly any algorithm given enough resources, in an isolated, sandboxed environment. This capability allows developers to build decentralized applications (dApps) with complex logic. Smart contracts are written in high-level languages like Solidity or Vyper and compiled to EVM bytecode for execution. The EVM has since become a standard adopted by many blockchain platforms beyond Ethereum.",
+      "chapter": "Customizing EVM",
+      "alternates": [
+        {
+          "question": "How does the EVM execute smart contracts written in high-level languages like Solidity?",
+          "options": [
+            "Solidity is compiled to EVM bytecode, which the EVM then executes in a sandboxed environment",
+            "It runs a JavaScript engine that transpiles Solidity on-the-fly",
+            "The EVM introduced programmable blockchains through smart contracts that execute autonomously",
+            "It interprets Solidity source code directly at runtime"
+          ],
+          "correctAnswers": [
+            0
+          ],
+          "hint": "Think about the compilation step that happens before deployment.",
+          "explanation": "The EVM does not run Solidity directly. Instead, Solidity (or Vyper) code is first compiled into low-level EVM bytecode by a compiler. This bytecode is then deployed to the blockchain and executed by the EVM in an isolated, sandboxed environment. The EVM processes bytecode instructions one at a time using a stack-based architecture, ensuring deterministic execution across all network nodes."
+        },
+        {
+          "question": "What does it mean that the EVM is described as 'quasi-Turing complete'?",
+          "options": [
+            "It can run nearly any algorithm given enough resources, but execution is bounded by the gas mechanism",
+            "It can only run simple transfer operations, not complex logic",
+            "It supports all programming languages natively",
+            "It is faster than traditional Turing-complete computers"
+          ],
+          "correctAnswers": [
+            0
+          ],
+          "hint": "Consider what prevents infinite execution in a system that can theoretically run any algorithm.",
+          "explanation": "The EVM is called 'quasi-Turing complete' because it can theoretically run nearly any algorithm, but execution is bounded by the gas mechanism. A truly Turing-complete machine could run indefinitely, but the EVM requires gas for every operation, which imposes a practical limit on computation. This design prevents infinite loops and ensures all computations terminate, making it safe for a decentralized network while still enabling complex smart contract logic."
+        }
+      ]
+    },
+    "3042": {
+      "question": "What is the key difference between Subnet-EVM and Coreth in the Avalanche ecosystem? (Select all that apply)",
+      "options": [
+        "Subnet-EVM is slower than Coreth, but this does not accurately reflect the underlying architecture and involves additional complexity and involves additional complexity",
+        "Subnet-EVM is designed for launching customized EVM-based blockchains on Avalanche L1s with configurable fees, removed atomic transactions, and unified hardforks",
+        "Subnet-EVM cannot run smart contracts",
+        "Subnet-EVM uses a different programming language than Coreth"
+      ],
+      "correctAnswers": [
+        1,
+        3
+      ],
+      "hint": "Consider what Subnet-EVM was specifically designed to enable for custom L1s.",
+      "explanation": "Subnet-EVM is a fork of Coreth specifically designed to facilitate launching customized EVM-based blockchains on Avalanche L1s. Key differences include: (1) Configurable Fees and Gas Limits that can be set in the genesis file, (2) All Avalanche hardforks merged into a single unified 'Subnet-EVM' hardfork for simpler upgrades, (3) Removal of atomic transactions and shared memory support that were specific to C-Chain, and (4) Removal of multicoin contracts and state tracking. These changes make Subnet-EVM lighter and more focused on enabling customization for independent L1s, whereas Coreth remains optimized for the C-Chain's role in the primary Avalanche network.",
+      "chapter": "Customizing EVM",
+      "alternates": [
+        {
+          "question": "What features were removed from Subnet-EVM compared to Coreth to make it more suitable for independent L1s?",
+          "options": [
+            "Smart contract support and EVM compatibility were removed",
+            "Atomic transactions, shared memory support, and multicoin contracts were removed",
+            "Subnet-EVM is designed for customized EVM-based blockchains with configurable fees and unified hardforks",
+            "All networking and peer discovery capabilities were removed"
+          ],
+          "correctAnswers": [
+            1
+          ],
+          "hint": "Think about what C-Chain-specific features are unnecessary for independent blockchains.",
+          "explanation": "Subnet-EVM removed several C-Chain-specific features that are unnecessary for independent L1 blockchains: atomic transactions (cross-chain swaps between X/P/C chains), shared memory support (used for atomic transaction coordination), and multicoin contracts with associated state tracking. These features were tightly coupled to the primary Avalanche network's multi-chain architecture and are not needed when running an independent L1 blockchain."
+        },
+        {
+          "question": "How does Subnet-EVM handle Avalanche protocol hardfork upgrades differently from Coreth? (Select all that apply)",
+          "options": [
+            "Subnet-EVM never receives hardfork upgrades",
+            "All Avalanche hardforks are merged into a single unified 'Subnet-EVM' hardfork for simpler upgrades",
+            "Subnet-EVM uses the same individual hardfork schedule as Coreth",
+            "This unified approach simplifies the upgrade process for L1 operators"
+          ],
+          "correctAnswers": [
+            1,
+            3
+          ],
+          "hint": "Consider how consolidating upgrades benefits operators of custom blockchains.",
+          "explanation": "Instead of tracking and applying each individual Avalanche hardfork separately (as Coreth does for the C-Chain), Subnet-EVM merges all hardfork changes into a single unified 'Subnet-EVM' hardfork. This simplification means L1 operators only need to manage one consolidated upgrade rather than multiple individual ones, reducing the complexity of keeping their custom blockchain up to date with the latest protocol improvements."
+        }
+      ]
+    },
+    "3043": {
+      "question": "What are the two main topics covered when learning to run your own Avalanche L1 with a custom EVM?",
+      "options": [
+        "Smart contract development and testing",
+        "Avalanche CLI for configuration and launching, plus token transfer with Foundry",
+        "Validator setup and staking",
+        "Mining and consensus mechanisms, despite what many developers initially assume about the system"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Think about the practical tools and operations needed to get an L1 running and verify it works.",
+      "explanation": "When learning to run your own Avalanche L1 with a custom EVM, the two main topics are: (1) Using the Avalanche CLI to configure and launch an Avalanche L1 with your custom EVM settings, and (2) Performing token transfers with Foundry to verify the blockchain is functioning correctly. These hands-on exercises help you understand how customizations impact EVM performance and operation. The Avalanche CLI simplifies the complex process of L1 creation and configuration, while Foundry provides tools for interacting with and testing your custom blockchain. This practical approach lets you directly observe how your EVM customizations behave in a real environment.",
+      "chapter": "Customizing EVM",
+      "alternates": [
+        {
+          "question": "What does the Avalanche CLI handle when running a custom EVM on an Avalanche L1? (Select all that apply)",
+          "options": [
+            "Compiling Solidity smart contracts for deployment to the L1",
+            "The course covers both Avalanche CLI for configuration/launching and Foundry for token transfers",
+            "Creating the blockchain configuration with custom VM and genesis parameters",
+            "Deploying the configured blockchain to run locally or on a network"
+          ],
+          "correctAnswers": [
+            2,
+            3
+          ],
+          "hint": "Think about the two main CLI commands: create and deploy.",
+          "explanation": "The Avalanche CLI handles two key steps: creating the blockchain configuration (avalanche blockchain create) with parameters for the custom VM binary and genesis file, and deploying the configured blockchain (avalanche blockchain deploy) to run locally or on a network. These two commands cover the full lifecycle from configuration to running blockchain. The CLI does not compile Solidity contracts (that's handled by tools like Foundry or Hardhat)."
+        },
+        {
+          "question": "Why is Foundry used to perform token transfers when verifying a custom EVM blockchain?",
+          "options": [
+            "Foundry is the only tool that can connect to Avalanche networks",
+            "Foundry is required by the Avalanche CLI as a dependency",
+            "Foundry automatically deploys all necessary smart contracts",
+            "Token transfers verify the blockchain is functioning correctly by testing basic transaction execution"
+          ],
+          "correctAnswers": [
+            3
+          ],
+          "hint": "Consider what a successful token transfer proves about the health of a new blockchain.",
+          "explanation": "Foundry is used to perform token transfers on the custom EVM blockchain as a practical verification step. A successful token transfer proves that the blockchain is processing transactions correctly: the EVM is executing, gas is being calculated, state changes are being recorded, and balances are updating as expected. This hands-on test helps developers observe how their EVM customizations impact actual transaction processing."
+        }
+      ]
+    },
+    "3044": {
+      "question": "When you successfully send 1 ether to an address using Foundry's cast send command, what balance value do you see when querying the address with cast balance?",
+      "options": [
+        "1000000000",
+        "1000000000000000000 (1 * 10^18 wei)",
+        "100, but this interpretation oversimplifies the actual mechanism",
+        "1"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Remember that blockchain balances are denominated in the smallest unit (wei), not in whole tokens.",
+      "explanation": "When you send 1 ether and query the balance, you see 1000000000000000000 (1 * 10^18), because blockchain balances are stored and displayed in wei, the smallest unit of the native token. One whole token equals 10^18 wei. This is similar to how one dollar equals 100 cents - the blockchain stores amounts in the smallest divisible unit to maintain precision and avoid floating-point arithmetic issues. The cast balance command returns the raw wei value without conversion, so sending --value 1ether results in a balance of 1000000000000000000 wei.",
+      "chapter": "Customizing EVM",
+      "alternates": [
+        {
+          "question": "What is the difference between cast send and cast call in Foundry?",
+          "options": [
+            "cast send modifies blockchain state by submitting a transaction, while cast call reads data without modifying state",
+            "cast send is faster than cast call",
+            "The balance is displayed as 1000000000000000000 wei because blockchain stores values in the smallest unit",
+            "cast call is used for sending tokens and cast send is used for reading balances"
+          ],
+          "correctAnswers": [
+            0
+          ],
+          "hint": "Think about which operations change the blockchain and which ones just read from it.",
+          "explanation": "In Foundry, cast send submits an actual transaction to the blockchain that modifies state (like transferring tokens, deploying contracts, or calling state-changing functions), while cast call performs a read-only query that does not modify state (like checking balances or calling view functions). cast send requires gas and a private key for signing, whereas cast call is free and doesn't require transaction signing."
+        },
+        {
+          "question": "Why does the EVM store token balances in wei instead of whole token units?",
+          "options": [
+            "To maintain precision and avoid floating-point arithmetic issues by using the smallest divisible unit",
+            "Wei is a more compact storage format that saves disk space",
+            "The EVM cannot handle decimal numbers, so it only stores single-digit values",
+            "Wei storage is required by the Avalanche consensus protocol"
+          ],
+          "correctAnswers": [
+            0
+          ],
+          "hint": "Consider what problems would arise if blockchains used decimal numbers for financial calculations.",
+          "explanation": "The EVM stores balances in wei (where 1 token = 10^18 wei) to maintain precision and avoid floating-point arithmetic issues. Blockchains deal with financial values where precision is critical, and floating-point numbers can introduce rounding errors. By using integer arithmetic with the smallest divisible unit (wei), the EVM ensures exact calculations with no rounding errors, similar to how financial systems often store amounts in cents rather than dollars."
+        }
+      ]
+    },
+    "3045": {
+      "question": "What is the purpose of the alloc field in a blockchain's genesis block?",
+      "options": [
+        "It configures the consensus mechanism",
+        "It defines the initial balances of addresses at the time of chain creation",
+        "It sets the gas price for all transactions, although some early documentation may have suggested otherwise",
+        "It sets the maximum block size"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Think about what you need to do anything on a new blockchain before any blocks are mined.",
+      "explanation": "The alloc field in the genesis block defines the initial balances of addresses at chain creation. This is crucial because if no genesis allocation is provided, you won't be able to interact with the new chain - all transactions require fees paid from the sender's balance, and without an initial allocation, there are no funds available to cover transaction costs. The alloc field contains key-value pairs where keys are addresses and values include balance fields (in wei, represented as hex or decimal). For example, the Ethereum mainnet genesis block included addresses and balances from the Ethereum pre-sale, marking the initial distribution of ether. In Avalanche L1s, you typically allocate test tokens to specific addresses for development and testing purposes.",
+      "chapter": "Customizing EVM",
+      "alternates": [
+        {
+          "question": "What format are addresses and balances specified in within the alloc field of a genesis block?",
+          "options": [
+            "Addresses as hex strings (keys) and balances in wei as hex or decimal values",
+            "The alloc field defines initial balances of addresses at chain creation time",
+            "Addresses as ENS names and balances in whole token units",
+            "Addresses as base58-encoded strings and balances in gwei"
+          ],
+          "correctAnswers": [
+            0
+          ],
+          "hint": "Think about the key-value structure inside the alloc field of a genesis JSON.",
+          "explanation": "In the alloc field of a genesis block, addresses are specified as hexadecimal strings (without the 0x prefix) serving as keys, and each value is an object containing a balance field denominated in wei (which can be represented as hex or decimal). For example, an alloc entry might look like: '\"8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC\": {\"balance\": \"0x...\"}'.  This structure follows the standard Ethereum genesis format used across EVM-compatible blockchains."
+        },
+        {
+          "question": "Besides initial balances, what other essential configuration does the genesis block contain? (Select all that apply)",
+          "options": [
+            "The config section with chain parameters such as chainId and hardfork settings",
+            "A list of all future transactions to be processed",
+            "Gas limits and difficulty settings for block production",
+            "Smart contract source code for all predeployed contracts"
+          ],
+          "correctAnswers": [
+            0,
+            2
+          ],
+          "hint": "Think about what parameters a new blockchain needs beyond just initial token distribution.",
+          "explanation": "The genesis block contains several essential configurations beyond the alloc field. The config section defines chain parameters including chainId (unique identifier for the chain) and hardfork activation settings. The genesis block also specifies gas limits (maximum gas per block) and difficulty settings that govern block production. Together with the alloc field for initial balances, these configurations establish all the foundational parameters needed to bootstrap a new EVM blockchain."
+        }
+      ]
+    },
+    "3046": {
+      "question": "In the context of Avalanche L1-EVM precompiles, what is the main advantage of implementing complex functions as precompiles rather than Solidity smart contracts? (Select all that apply)",
+      "options": [
+        "Precompiles can only be called by admin addresses, which would actually introduce several security vulnerabilities and involves additional complexity",
+        "Precompiles execute significantly faster and more efficiently by running Go code directly in the EVM instead of interpreted Solidity",
+        "Precompiles don't require gas to execute",
+        "Precompiles are easier to write than Solidity code"
+      ],
+      "correctAnswers": [
+        1,
+        3
+      ],
+      "hint": "Consider why Python often uses C implementations for performance-critical operations.",
+      "explanation": "The main advantage of precompiles is performance - they execute significantly faster and more efficiently because they run low-level Go code directly in the EVM rather than interpreted Solidity bytecode. This is similar to how Python leverages C implementations for core functions. Precompiles are mapped to reserved addresses, and when a contract calls one of these addresses, the EVM executes the Go implementation instead of Solidity code. This allows access to optimized Go libraries, better gas efficiency, and the ability to implement complex operations (like SHA256 hashing or cryptographic functions) that would be prohibitively expensive or slow in Solidity. From a developer's perspective, precompiles can be called like any other contract through a Solidity interface, but they execute with native code performance.",
+      "chapter": "Customizing EVM",
+      "alternates": [
+        {
+          "question": "How are precompiles invoked from the perspective of a Solidity smart contract?",
+          "options": [
+            "By calling a Solidity interface mapped to a reserved address, just like calling any other contract",
+            "By importing a Go library directly into Solidity",
+            "Precompiles execute faster by running Go code directly in the EVM instead of interpreted Solidity",
+            "Through special opcodes that bypass the standard call mechanism"
+          ],
+          "correctAnswers": [
+            0
+          ],
+          "hint": "Think about how developers interact with precompiles without needing to know the implementation language.",
+          "explanation": "From a Solidity developer's perspective, precompiles are called exactly like any other smart contract: through a Solidity interface at a specific address. The developer defines or imports a Solidity interface for the precompile and calls functions on it at the reserved precompile address. The EVM detects that the target address is a precompile and routes execution to the native Go implementation instead of looking for deployed bytecode. This abstraction means developers can use precompiles without any knowledge of Go."
+        },
+        {
+          "question": "What is the relationship between precompile addresses and regular smart contract addresses in the EVM?",
+          "options": [
+            "Precompiles use the same address space and can be deployed to any address",
+            "There is no difference; all addresses function identically",
+            "Precompile addresses start with 0xFF to distinguish them from regular contracts",
+            "Precompiles are mapped to low-numbered reserved addresses that the EVM recognizes as native code entry points"
+          ],
+          "correctAnswers": [
+            3
+          ],
+          "hint": "Consider why precompile addresses like 0x0000...0002 look different from typical contract addresses.",
+          "explanation": "Precompiles occupy reserved low-numbered addresses (like 0x0000000000000000000000000000000000000002 for SHA256) that the EVM treats specially. When a call targets one of these reserved addresses, the EVM executes the corresponding native Go implementation instead of looking for deployed bytecode at that address. Regular smart contracts have addresses derived from the deployer's address and nonce, occupying the broader address space. This reservation system allows the EVM to efficiently route calls to native implementations."
+        }
+      ]
+    },
+    "3047": {
+      "question": "What is the purpose of the gas limit in EVM transactions, and what happens if a transaction exceeds it?",
+      "options": [
+        "Gas limit sets the maximum number of transactions per block",
+        "Gas limit has no effect - transactions always execute completely, but practical implementations reveal this is not the case and involves additional complexity",
+        "Gas limit determines the transaction fee; exceeding it increases the fee proportionally",
+        "Gas limit prevents infinite loops and computational abuse by halting execution when reached; the transaction fails but the fee up to the limit is still paid"
+      ],
+      "correctAnswers": [
+        3
+      ],
+      "hint": "Think about what could happen if someone wrote a smart contract with an infinite loop.",
+      "explanation": "The gas limit prevents infinite loops and computational abuse in the Turing-complete EVM environment. It's the maximum amount of gas the sender is willing to use for a transaction. Without a gas limit, a contract with an infinite loop (accidental or malicious) could cause the network to hang indefinitely trying to process a never-ending transaction. When execution exceeds the gas limit, the transaction halts and fails, but importantly, the fee amounting to the gas limit is still paid by the sender - this prevents denial-of-service attacks where malicious actors could flood the network with computationally expensive transactions. The gas limit protects the network while the gas price (units * price) determines the actual transaction cost. This system serves as both a security mechanism and spam deterrent.",
+      "chapter": "Customizing EVM",
+      "alternates": [
+        {
+          "question": "How is the actual transaction fee calculated in the EVM?",
+          "options": [
+            "The fee equals the gas used multiplied by the gas price per unit",
+            "Gas limit prevents infinite loops by halting execution when reached, and the fee up to the limit is still paid",
+            "The fee is a flat rate per transaction regardless of complexity",
+            "The fee is determined by the size of the transaction data in bytes"
+          ],
+          "correctAnswers": [
+            0
+          ],
+          "hint": "Think about the two components that determine how much a transaction costs.",
+          "explanation": "The actual transaction fee in the EVM is calculated as gas used multiplied by the gas price per unit. Gas used is the actual amount of computational work the transaction performed (which is always less than or equal to the gas limit), and the gas price is the amount the sender is willing to pay per unit of gas. Any unused gas (the difference between gas limit and gas used) is refunded to the sender. This mechanism ensures users pay proportionally for the computational resources their transactions consume."
+        },
+        {
+          "question": "Why does the EVM still charge gas fees when a transaction fails due to exceeding the gas limit? (Select all that apply)",
+          "options": [
+            "It prevents denial-of-service attacks where malicious actors flood the network with expensive computations",
+            "Failed transactions are automatically retried at no cost",
+            "Validators/nodes still consumed computational resources processing the transaction before it failed",
+            "The gas fee is refunded after the next successful transaction"
+          ],
+          "correctAnswers": [
+            0,
+            2
+          ],
+          "hint": "Consider what would happen if failed transactions were free from the attacker's perspective.",
+          "explanation": "The EVM charges gas fees even for failed transactions for two critical reasons. First, it prevents denial-of-service attacks: if failed transactions were free, an attacker could repeatedly submit computationally expensive transactions that always fail, consuming network resources at no cost. Second, validators and nodes genuinely consumed computational resources executing the transaction up until the point it ran out of gas, so the fee compensates them for that real work performed. This design ensures there is always a cost to consuming network resources."
+        }
+      ]
+    },
+    "3048": {
+      "question": "What command is used to build a custom Precompile-EVM before deploying it as a blockchain?",
+      "options": [
+        "avalanche blockchain build",
+        "make build",
+        "go build ./...",
+        "./scripts/build.sh"
+      ],
+      "correctAnswers": [
+        3
+      ],
+      "hint": "Look for the build script mentioned in the Precompile-EVM root folder.",
+      "explanation": "To build a custom Precompile-EVM, you use the build script provided in the root folder of the Precompile-EVM by running ./scripts/build.sh. This script handles all the necessary compilation and setup steps to prepare your custom EVM for deployment. After building successfully, you can then use the Avalanche CLI to create and deploy your blockchain configuration with the custom VM.",
+      "chapter": "Customizing EVM",
+      "alternates": [
+        {
+          "question": "After running ./scripts/build.sh for a custom Precompile-EVM, what is produced?",
+          "options": [
+            "A Docker container ready for deployment",
+            "A Solidity ABI file for the precompiles",
+            "A genesis.json configuration file",
+            "A custom VM binary that can be referenced when creating a blockchain with the Avalanche CLI"
+          ],
+          "correctAnswers": [
+            3
+          ],
+          "hint": "Think about what the Avalanche CLI needs to deploy a custom blockchain.",
+          "explanation": "Running ./scripts/build.sh compiles the custom Precompile-EVM Go code and produces a custom VM binary. This binary is placed in the plugin path and can then be referenced using the --vm flag when creating a blockchain configuration with 'avalanche blockchain create --custom --vm $AVALANCHEGO_PLUGIN_PATH/[binary-name]'. The binary contains the complete EVM implementation including your custom precompiles."
+        },
+        {
+          "question": "What must you do before running ./scripts/build.sh when developing a custom precompile?",
+          "options": [
+            "The build script ./scripts/build.sh handles compilation and setup for deployment",
+            "Deploy the precompile contract to testnet first",
+            "Write the Go implementation code for your precompile, configure it, and register it with the EVM",
+            "Run the Avalanche CLI to create the blockchain configuration"
+          ],
+          "correctAnswers": [
+            2
+          ],
+          "hint": "Think about what source code changes are needed before building.",
+          "explanation": "Before running the build script, you must complete the precompile development steps: create a Solidity interface defining the precompile functions, generate the ABI from the interface, write the Go implementation code, and configure and register the precompile in the EVM. Only after all implementation and registration steps are complete should you run ./scripts/build.sh to compile everything into a deployable VM binary."
+        }
+      ]
+    },
+    "3049": {
+      "question": "Why must the alloc field in the genesis configuration allocate initial token balances to addresses?",
+      "options": [
+        "Without initial allocations, there are no funds available to pay transaction fees, making the chain unusable",
+        "To determine the block reward for validators, but practical implementations reveal this is not the case and involves additional complexity",
+        "To establish who owns the blockchain",
+        "To set the maximum supply of tokens"
+      ],
+      "correctAnswers": [
+        0
+      ],
+      "hint": "Think about what's needed to send the very first transaction on a new blockchain.",
+      "explanation": "The alloc field in the genesis configuration must allocate initial token balances because without any initial allocations, there would be no funds available to pay transaction fees. Since all transactions require fees to be paid from the sender's balance, a blockchain with zero initial allocations would be completely unusable - no one could perform any transactions. The alloc field defines which addresses start with tokens at chain creation, using key-value pairs where keys are hex addresses (without 0x prefix) and values include balance fields denominated in Wei (10^18 Wei = 1 whole token). This is crucial for bootstrapping the blockchain economy.",
+      "chapter": "Customizing EVM",
+      "alternates": [
+        {
+          "question": "What denomination is used for balance values in the genesis alloc field, and how does it relate to whole tokens?",
+          "options": [
+            "Balances are in gwei, where 1 token equals 10^9 gwei",
+            "Balances are in whole token units for simplicity",
+            "Without initial allocations, no funds are available to pay transaction fees, making the chain unusable",
+            "Balances are in wei, where 1 whole token equals 10^18 wei"
+          ],
+          "correctAnswers": [
+            3
+          ],
+          "hint": "Think about the standard smallest unit used across EVM-compatible blockchains.",
+          "explanation": "Balance values in the genesis alloc field are denominated in wei, the smallest unit in EVM-compatible blockchains, where 1 whole token equals 10^18 wei. These values can be expressed as hexadecimal or decimal numbers. Using wei ensures maximum precision in the initial distribution and follows the same denomination standard used throughout the EVM for all balance and value operations."
+        },
+        {
+          "question": "What happens if a genesis configuration includes the alloc field but assigns zero balance to all addresses?",
+          "options": [
+            "The blockchain refuses to start and throws a configuration error",
+            "The blockchain automatically mints tokens to the first validator",
+            "The blockchain starts normally but no one can send transactions because there are no funds to pay gas fees",
+            "Users can still send gasless transactions until tokens are minted"
+          ],
+          "correctAnswers": [
+            2
+          ],
+          "hint": "Consider what is required for any transaction to be processed on an EVM chain.",
+          "explanation": "If all addresses in the alloc field have zero balance, the blockchain will start and produce blocks, but it will be effectively unusable. Every transaction on an EVM chain requires the sender to pay gas fees from their balance. With no funded addresses, no one can cover these fees, making it impossible to send any transactions, deploy contracts, or interact with the chain in any way. This is functionally equivalent to having no alloc field at all."
+        }
+      ]
+    },
+    "3050": {
+      "question": "Which of the following is NOT a primary advantage of implementing functions as precompiles instead of Solidity smart contracts? (Select all that apply)",
+      "options": [
+        "Access to thoroughly reviewed and audited Go libraries for enhanced security, but practical implementations reveal this is not the case",
+        "Performance optimization through native Go code execution",
+        "Automatic reduction in gas costs to zero for all operations",
+        "Ability to introduce advanced cryptographic operations that would be too computationally expensive in Solidity"
+      ],
+      "correctAnswers": [
+        2,
+        3
+      ],
+      "hint": "Precompiles still consume gas - they're just more efficient.",
+      "explanation": "While precompiles offer many advantages including performance optimization, security through audited libraries, gas efficiency, and enabling advanced features, they do NOT automatically reduce gas costs to zero. Precompiles still consume gas - they're just more efficient than equivalent Solidity implementations. The gas efficiency advantage means operations cost less gas, not zero gas. For example, the SHA256 precompile is much cheaper than implementing SHA256 in Solidity, but it still has an associated gas cost. Precompiles provide better gas efficiency by executing optimized Go code directly in the EVM rather than interpreted Solidity bytecode.",
+      "chapter": "Customizing EVM",
+      "alternates": [
+        {
+          "question": "Which of the following accurately describes the gas behavior of precompiles compared to Solidity contracts?",
+          "options": [
+            "Precompiles consume zero gas for all operations",
+            "Precompiles have higher gas costs than equivalent Solidity implementations",
+            "Gas costs are identical between precompiles and Solidity contracts",
+            "Precompiles consume less gas than equivalent Solidity implementations, but they still require gas to execute"
+          ],
+          "correctAnswers": [
+            3
+          ],
+          "hint": "Precompiles offer efficiency improvements but are not free to execute.",
+          "explanation": "Precompiles consume less gas than equivalent Solidity implementations because they execute optimized native Go code rather than interpreted EVM bytecode. However, they absolutely still require gas to execute. For example, the SHA256 precompile is significantly cheaper than a Solidity implementation of SHA256, but it still has a defined gas cost. The gas savings come from the efficiency of native code execution, not from gas exemption."
+        },
+        {
+          "question": "What is an example of a computationally expensive operation that benefits significantly from being implemented as a precompile? (Select all that apply)",
+          "options": [
+            "Simple integer addition",
+            "Automatic gas cost reduction to zero is a primary benefit of precompiles",
+            "Cryptographic operations like SHA256 hashing or signature verification",
+            "Complex mathematical operations like modular exponentiation"
+          ],
+          "correctAnswers": [
+            2,
+            3
+          ],
+          "hint": "Think about operations where native code execution provides the biggest performance advantage over Solidity.",
+          "explanation": "Cryptographic operations (like SHA256 hashing, signature verification, and elliptic curve operations) and complex mathematical operations (like modular exponentiation) benefit enormously from precompile implementation. These operations involve intensive computation that is prohibitively expensive in Solidity bytecode but can leverage optimized Go libraries as precompiles. The Ethereum protocol itself includes precompiles for these exact use cases (ecRecover at 0x01, SHA256 at 0x02, modexp at 0x05) because the gas savings are substantial."
+        }
+      ]
+    },
+    "3051": {
+      "question": "What is the address of the SHA256 precompile on the C-Chain, and how do you interact with it using Foundry's cast command?",
+      "options": [
+        "0x0000000000000000000000000000000000000002, using cast call",
+        "0x0000000000000000000000000000000000000004, using cast send",
+        "0x0000000000000000000000000000000000000003, using cast call",
+        "0x0000000000000000000000000000000000000001, using cast send"
+      ],
+      "correctAnswers": [
+        0
+      ],
+      "hint": "Precompiles occupy reserved addresses starting from 0x02, and reading data doesn't modify state.",
+      "explanation": "The SHA256 precompile is located at address 0x0000000000000000000000000000000000000002 on the C-Chain. You interact with it using cast call (not cast send) because calling a hash function only reads and returns data without modifying blockchain state. The command structure is: cast call --rpc-url local-c --private-key $PK 0x0000000000000000000000000000000000000002 \"run(string)(bytes32)\" \"test\". This returns a bytes32 hash value of the input string. Using cast call is appropriate for view functions that don't alter state, while cast send would be used for transactions that modify state.",
+      "chapter": "Customizing EVM",
+      "alternates": [
+        {
+          "question": "Why is cast call used instead of cast send when interacting with the SHA256 precompile?",
+          "options": [
+            "cast call is required for precompile addresses but not for regular contracts",
+            "Hashing is a read-only operation that does not modify blockchain state, so cast call is appropriate",
+            "cast send would cost more gas than cast call",
+            "The SHA256 precompile is at address 0x02 and is accessed via cast call for read-only operations"
+          ],
+          "correctAnswers": [
+            1
+          ],
+          "hint": "Consider whether computing a hash needs to change anything on the blockchain.",
+          "explanation": "cast call is used for the SHA256 precompile because computing a hash is a pure read-only operation that does not modify any blockchain state. cast call executes the function locally without submitting a transaction, which means no gas is spent and no state changes occur. cast send would submit an actual transaction, which is unnecessary for a computation that only returns a value. This distinction between state-changing and read-only operations applies to all contracts, not just precompiles."
+        },
+        {
+          "question": "What output size does the SHA256 precompile return, and how does this compare to MD5?",
+          "options": [
+            "SHA256 returns bytes32 (256 bits) while MD5 returns bytes16 (128 bits)",
+            "Both SHA256 and MD5 return bytes32 (256 bits)",
+            "SHA256 returns bytes16 (128 bits) and MD5 returns bytes32 (256 bits)",
+            "SHA256 returns a variable-length output depending on the input size"
+          ],
+          "correctAnswers": [
+            0
+          ],
+          "hint": "Each hash algorithm produces a fixed-size output regardless of input size.",
+          "explanation": "SHA256 produces a 256-bit (32-byte) hash, returned as bytes32, while MD5 produces a 128-bit (16-byte) hash, returned as bytes16. Both are fixed-size outputs regardless of input length. This difference in output size reflects the different security properties of each algorithm: SHA256 is cryptographically secure with a larger output space, while MD5's smaller output and known vulnerabilities make it unsuitable for security-critical applications."
+        }
+      ]
+    },
+    "3052": {
+      "question": "What are the main steps involved in creating a custom hash function precompile like MD5?",
+      "options": [
+        "Write Solidity code, deploy to testnet, call from web3",
+        "Install npm packages, write TypeScript, compile and deploy",
+        "Fork Ethereum, modify consensus rules, redeploy network, though this reasoning fails to account for key constraints and involves additional complexity",
+        "Create Solidity interface, generate ABI, write Go code, configure/register precompile, build and run EVM, interact via Remix"
+      ],
+      "correctAnswers": [
+        3
+      ],
+      "hint": "Think about the complete process from interface definition to deployment and testing.",
+      "explanation": "Creating a custom precompile like MD5 involves six main steps: 1) Create a Solidity interface defining the precompile functions, 2) Generate the ABI from the interface, 3) Write the actual precompile implementation code in Go, 4) Configure and register the precompile in the EVM, 5) Build and run your customized EVM, and 6) Connect Remix to your customized EVM to interact with the precompile. This process leverages existing Go libraries (like the MD5 hash implementation) to avoid reimplementing complex algorithms in Solidity while gaining superior efficiency through native code execution.",
+      "chapter": "Customizing EVM",
+      "alternates": [
+        {
+          "question": "Why is generating an ABI from the Solidity interface a necessary step when creating a custom precompile?",
+          "options": [
+            "The ABI is needed to compile the Go code",
+            "Creating a Solidity interface, generating ABI, writing Go code, configuring, building, and testing via Remix are the main steps",
+            "The ABI is uploaded to IPFS for decentralized storage",
+            "The ABI defines the encoding format for function calls and return values, enabling the Go code to correctly decode inputs and encode outputs"
+          ],
+          "correctAnswers": [
+            3
+          ],
+          "hint": "Think about how the Go implementation knows how to interpret the data it receives from Solidity calls.",
+          "explanation": "The ABI (Application Binary Interface) is essential because it defines how function calls and return values are encoded and decoded. When a Solidity contract calls the precompile, the arguments are ABI-encoded into bytes. The Go implementation needs the ABI specification to correctly decode these input bytes into usable parameters and then encode the return values back into the format Solidity expects. Without the ABI, there would be no standard way to translate between Solidity's calling convention and Go's data types."
+        },
+        {
+          "question": "What can developers do with Remix after deploying a custom Precompile-EVM? (Select all that apply)",
+          "options": [
+            "Compile the Go code into EVM bytecode",
+            "Connect to the custom EVM's RPC endpoint to interact with deployed precompiles",
+            "Test precompile functions by calling them through their Solidity interface",
+            "Automatically generate the precompile configuration files"
+          ],
+          "correctAnswers": [
+            1,
+            2
+          ],
+          "hint": "Think about the testing and interaction capabilities Remix provides.",
+          "explanation": "After deploying a custom Precompile-EVM, developers use Remix for two key activities: connecting to the custom blockchain's RPC endpoint (allowing Remix to communicate with the deployed chain) and testing precompile functions by calling them through their Solidity interface at the reserved precompile address. Remix provides a user-friendly UI to send inputs, inspect outputs, and debug issues. Remix does not compile Go code or generate precompile configurations."
+        }
+      ]
+    },
+    "3053": {
+      "question": "When you successfully call the MD5 precompile with the input string \"test\", what type of output do you receive?",
+      "options": [
+        "An integer representation of the hash, which misses critical aspects of how the protocol functions",
+        "A string representation of the hash",
+        "A bytes16 hash value (0x098f6bcd4621d373cade4e832627b4f6)",
+        "A bytes32 hash value"
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "MD5 produces a specific fixed-size output that's different from SHA256.",
+      "explanation": "The MD5 precompile returns a bytes16 hash value when called with an input string. For the input \"test\", it returns 0x098f6bcd4621d373cade4e832627b4f6. This is different from SHA256 which returns bytes32. MD5 produces a 128-bit (16-byte) hash, which is why the return type is bytes16. The precompile is called at address 0x0300000000000000000000000000000000000002 using the function signature hashWithMD5(string)(bytes16). While MD5 is not cryptographically secure for modern applications, it serves as a good example for learning precompile development.",
+      "chapter": "Customizing EVM",
+      "alternates": [
+        {
+          "question": "At what address is the custom MD5 precompile deployed in the Precompile-EVM?",
+          "options": [
+            "0x0000000000000000000000000000000000000002 (same as SHA256)",
+            "0x0000000000000000000000000000000000000100",
+            "The MD5 precompile returns a bytes16 hash value like 0x098f6bcd4621d373cade4e832627b4f6",
+            "0x0300000000000000000000000000000000000002"
+          ],
+          "correctAnswers": [
+            3
+          ],
+          "hint": "Custom precompiles in Subnet-EVM use a different address range than Ethereum's built-in precompiles.",
+          "explanation": "The custom MD5 precompile is deployed at address 0x0300000000000000000000000000000000000002 in the Precompile-EVM. Custom precompiles in Subnet-EVM use addresses in the 0x03... range to avoid conflicts with Ethereum's standard precompiles (which occupy the 0x01-0x09 range). The function is called using the signature hashWithMD5(string)(bytes16) at this address."
+        },
+        {
+          "question": "Why is MD5 considered unsuitable for cryptographic security despite being used as a precompile example? (Select all that apply)",
+          "options": [
+            "MD5 produces too large of an output at 512 bits",
+            "MD5 has known collision vulnerabilities where different inputs can produce the same hash",
+            "MD5's 128-bit output provides a smaller security margin compared to SHA256's 256-bit output",
+            "MD5 is too slow for blockchain applications"
+          ],
+          "correctAnswers": [
+            1,
+            2
+          ],
+          "hint": "Think about the known weaknesses of MD5 in the cryptographic community.",
+          "explanation": "MD5 is unsuitable for cryptographic security for two key reasons: it has known collision vulnerabilities, meaning researchers have demonstrated practical methods to find different inputs that produce the same MD5 hash, and its 128-bit (bytes16) output provides a smaller security margin compared to SHA256's 256-bit (bytes32) output. Despite these limitations, MD5 serves as an excellent educational example for learning precompile development because the Go standard library includes an MD5 implementation that can be easily wrapped as a precompile."
+        }
+      ]
+    },
+    "3054": {
+      "question": "What mathematical operations does the CalculatorPlus precompile implement? (Select all that apply)",
+      "options": [
+        "Basic arithmetic: add, subtract, multiply, divide",
+        "Matrix operations: multiplication, transpose, inverse",
+        "Powers of Three (square, cube, 4th power), Modulo+ (quotient and remainder), and Simplify Fraction",
+        "Trigonometric functions: sin, cos, tan, but this fails to consider the consensus requirements involved"
+      ],
+      "correctAnswers": [
+        1,
+        2
+      ],
+      "hint": "The tutorial builds a specific set of three mathematical functions to demonstrate different precompile scenarios.",
+      "explanation": "The CalculatorPlus precompile implements three specific mathematical functions: 1) Powers of Three - takes an integer base and returns the square, cube, and 4th power of the input, 2) Modulo+ - takes a dividend and divisor as input, returning how many times the dividend fits in the divisor and the remainder, and 3) Simplify Fraction - takes a numerator and denominator, returning the simplified version of the fraction (handling the edge case where denominator is 0 by returning 0). These operations were specifically chosen to demonstrate different scenarios developers might face while building precompiles, including multiple return values and edge case handling.",
+      "chapter": "Customizing EVM",
+      "alternates": [
+        {
+          "question": "What does the Powers of Three function in the CalculatorPlus precompile return when given an input base value?",
+          "options": [
+            "The CalculatorPlus implements Powers of Three, Modulo+, and Simplify Fraction operations",
+            "Three random multiples of the input value",
+            "The first three prime numbers greater than the input",
+            "The base raised to the 2nd, 3rd, and 4th powers"
+          ],
+          "correctAnswers": [
+            3
+          ],
+          "hint": "The function name refers to returning three different power calculations of the input.",
+          "explanation": "The Powers of Three function takes an integer base as input and returns three values: the square (base^2), the cube (base^3), and the fourth power (base^4) of the input. The name 'Powers of Three' refers to the fact that it returns three different power calculations, not that it uses the number 3 as a base. This function demonstrates how precompiles can return multiple values from a single call."
+        },
+        {
+          "question": "How does the Simplify Fraction function in the CalculatorPlus precompile handle the edge case of a zero denominator?",
+          "options": [
+            "It throws a revert error with a descriptive message",
+            "It returns 0 for both numerator and denominator",
+            "It returns the numerator as-is with denominator set to 1",
+            "It silently ignores the call and returns nothing"
+          ],
+          "correctAnswers": [
+            1
+          ],
+          "hint": "Division by zero needs special handling in any mathematical implementation.",
+          "explanation": "The Simplify Fraction function handles a zero denominator by returning 0 for both the numerator and denominator. This is a deliberate design choice to avoid a panic or revert from division by zero. When testing the precompile, both unit tests and fuzz tests must account for this edge case to ensure the function behaves correctly when receiving a zero denominator as input."
+        }
+      ]
+    },
+    "3055": {
+      "question": "What types of tests should you implement when testing the CalculatorPlus precompile?",
+      "options": [
+        "Only integration tests with other contracts",
+        "Only unit tests with predetermined values, which contradicts the fundamental design principles involved and involves additional complexity",
+        "Only manual testing through Remix",
+        "Both unit tests (3-5 per function) and fuzz tests (1000+ random inputs), accounting for edge cases like zero denominators"
+      ],
+      "correctAnswers": [
+        3
+      ],
+      "hint": "Comprehensive testing includes both specific known cases and randomized testing for unexpected scenarios.",
+      "explanation": "When testing the CalculatorPlus precompile, you should implement comprehensive testing including both unit tests and fuzz tests. Unit tests should cover 3-5 test cases per function with values you can verify manually. Fuzz tests should test more than 1000 random inputs for each function to catch unexpected edge cases. Importantly, for both unit and fuzz tests, you must account for special cases like when the denominator equals 0 in the simplifyFraction function. Testing is subjective - a test suite that fits one security requirement might be inadequate for another use case, so thorough coverage with both deterministic and randomized testing provides the best confidence in your precompile's correctness.",
+      "chapter": "Customizing EVM",
+      "alternates": [
+        {
+          "question": "What is the purpose of fuzz testing in the context of precompile development?",
+          "options": [
+            "To test the precompile with over 1000 random inputs to discover edge cases that predetermined unit tests might miss",
+            "To verify the precompile compiles without errors",
+            "Both unit tests with predetermined values and fuzz tests with 1000+ random inputs should be implemented",
+            "To measure the gas consumption of each precompile function"
+          ],
+          "correctAnswers": [
+            0
+          ],
+          "hint": "Think about what types of bugs can hide in code that passes all manually chosen test cases.",
+          "explanation": "Fuzz testing feeds the precompile functions with large numbers of random inputs (1000+) to discover edge cases and unexpected behaviors that manually written unit tests might miss. While unit tests verify specific known scenarios with predetermined values, fuzz tests explore the input space randomly, potentially finding issues like integer overflows, unexpected zero handling, or other boundary conditions. For the CalculatorPlus precompile, fuzz tests are especially important for catching issues like the zero denominator case in the Simplify Fraction function."
+        },
+        {
+          "question": "Why might a test suite that is adequate for one precompile be insufficient for another? (Select all that apply)",
+          "options": [
+            "Different precompiles have different edge cases and security requirements",
+            "All precompiles have identical testing requirements",
+            "The complexity of the precompile's logic determines how thorough testing needs to be",
+            "Testing is only necessary for precompiles that modify state"
+          ],
+          "correctAnswers": [
+            0,
+            2
+          ],
+          "hint": "Consider how the purpose and complexity of a precompile affects its testing needs.",
+          "explanation": "Testing requirements vary between precompiles because different implementations have different edge cases (like zero denominators in fraction simplification vs. empty input strings in hashing) and different security requirements (a precompile managing funds needs more rigorous testing than a simple math utility). The complexity of the precompile's logic also matters: a simple hash wrapper may need fewer test cases than a multi-function calculator with multiple return values and edge cases. Testing is subjective and should be tailored to each precompile's specific risks."
+        }
+      ]
+    },
+    "3056": {
+      "question": "What is the primary purpose of the AccessibleState parameter in stateful precompiles?",
+      "options": [
+        "To provide access to StateDB for reading/writing blockchain state, BlockContext for block information, and snow.Context for network information",
+        "To access the current gas price",
+        "To determine the sender's address",
+        "To calculate transaction fees, despite appearing correct based on incomplete information and involves additional complexity and involves additional complexity"
+      ],
+      "correctAnswers": [
+        0
+      ],
+      "hint": "Think about what makes a precompile 'stateful' versus stateless.",
+      "explanation": "The AccessibleState parameter is the key interface that enables precompiles to be stateful by providing access to three critical components: 1) StateDB - a key-value mapping for reading and writing to the blockchain state, where keys are tuples of addresses and storage keys (Hash type), and values are encoded data (also Hash type). StateDB also allows operations on account balances, nonces, and more. 2) BlockContext - provides information about the current block, including block number and timestamp. 3) snow.Context - provides information about the network environment, including NetworkID, ChainID, NodeID, and other chain-specific data. This combination allows precompiles to store persistent data, make decisions based on block timing, and access network-level information.",
+      "chapter": "Customizing EVM",
+      "alternates": [
+        {
+          "question": "What blockchain state operations does the StateDB interface enable within a stateful precompile?",
+          "options": [
+            "Only reading account balances",
+            "AccessibleState provides access to StateDB, BlockContext, and snow.Context for stateful operations",
+            "Reading and writing key-value pairs to storage, plus operations on account balances and nonces",
+            "Only writing new data; it cannot read existing state"
+          ],
+          "correctAnswers": [
+            2
+          ],
+          "hint": "Think about the full range of state operations a precompile might need to perform.",
+          "explanation": "The StateDB interface provides comprehensive state access: it supports reading and writing key-value pairs to blockchain storage (where keys are tuples of addresses and storage keys using the Hash type), as well as operations on account balances and nonces. This allows stateful precompiles to persist data across transactions, query existing state, modify balances, and track account activity. The key-value storage model is the same one used by regular smart contracts for their storage slots."
+        },
+        {
+          "question": "What information does the BlockContext component of AccessibleState provide to a stateful precompile?",
+          "options": [
+            "The list of all transactions in the current block",
+            "The block's full transaction receipts and logs",
+            "Information about the current block including block number and timestamp",
+            "The merkle root of the state trie"
+          ],
+          "correctAnswers": [
+            2
+          ],
+          "hint": "Think about time-based or sequence-based decisions a precompile might need to make.",
+          "explanation": "The BlockContext component provides information about the current block being processed, including the block number and timestamp. This enables stateful precompiles to make decisions based on time (e.g., time-locked operations) or block sequence (e.g., operations that should only execute after a certain block). This is particularly useful for precompiles implementing governance, vesting, or other time-sensitive functionality."
+        }
+      ]
+    },
+    "3057": {
+      "question": "What functionality does the Counter stateful precompile provide to users?",
+      "options": [
+        "Only reading the counter value",
+        "Only setting the counter to zero, but practical implementations reveal this is not the case",
+        "Getting the current value, setting a new value, and incrementing the counter value",
+        "Only incrementing the counter value"
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "A complete counter implementation needs read, write, and increment operations.",
+      "explanation": "The Counter stateful precompile provides three key functions for managing an integer counter that persists in the EVM state: 1) Get the current value of the counter - allows users to read the current state, 2) Set a new value to the counter - allows users to update the counter to any integer value, and 3) Increment the value of the counter - allows users to increase the counter by one. This demonstrates the fundamental operations of a stateful precompile: reading from state, writing to state, and modifying state. The counter value is stored in the EVM state using the StateDB interface, making it persistent across transactions and blocks.",
+      "chapter": "Customizing EVM",
+      "alternates": [
+        {
+          "question": "How does the Counter precompile's increment function work in terms of state operations?",
+          "options": [
+            "It sends a transaction to a separate incrementer contract",
+            "The Counter provides get, set, and increment operations for a persistent integer value",
+            "It reads the current value from StateDB, adds one, and writes the new value back to StateDB",
+            "It uses an in-memory variable that resets each block"
+          ],
+          "correctAnswers": [
+            2
+          ],
+          "hint": "Think about the read-modify-write pattern needed to increment a persistent value.",
+          "explanation": "The Counter precompile's increment function performs a read-modify-write operation using the StateDB interface: it first reads the current counter value from the EVM state, adds one to it, and then writes the updated value back to the state. This pattern demonstrates the fundamental operations of a stateful precompile: reading from persistent storage, performing computation, and writing results back. The StateDB ensures the updated value persists across transactions and blocks."
+        },
+        {
+          "question": "What makes the Counter precompile 'stateful' as opposed to 'stateless' precompiles like SHA256? (Select all that apply)",
+          "options": [
+            "It modifies and persists data in the EVM state across transactions using StateDB",
+            "It uses the AccessibleState parameter to interact with blockchain storage",
+            "It runs faster than stateless precompiles",
+            "It requires a special license to deploy"
+          ],
+          "correctAnswers": [
+            0,
+            1
+          ],
+          "hint": "Consider what 'state' means in the context of blockchain storage.",
+          "explanation": "The Counter precompile is stateful because it reads from and writes to the EVM's persistent state via the StateDB interface provided by the AccessibleState parameter. When you set or increment the counter, the new value is written to blockchain storage and persists across transactions and blocks. In contrast, stateless precompiles like SHA256 only compute a result from their inputs without reading or writing any persistent data. The AccessibleState parameter is the key interface that enables this state interaction."
+        }
+      ]
+    },
+    "3058": {
+      "question": "After successfully building your custom Precompile-EVM, what is the correct sequence of commands to deploy it locally using Avalanche CLI? (Select all that apply)",
+      "options": [
+        "Deploy directly without any configuration",
+        "First deploy, then create configuration, although some early documentation may have suggested otherwise and involves additional complexity",
+        "Only run avalanche start",
+        "First create blockchain configuration with avalanche blockchain create, then deploy with avalanche blockchain deploy"
+      ],
+      "correctAnswers": [
+        0,
+        3
+      ],
+      "hint": "Configuration must exist before you can deploy it.",
+      "explanation": "After building your custom Precompile-EVM with ./scripts/build.sh, the correct deployment sequence is: 1) First, create the blockchain configuration using 'avalanche blockchain create myblockchain --custom --vm $AVALANCHEGO_PLUGIN_PATH/[binary-name] --genesis [genesis-file-path]'. This command sets up the configuration with your custom VM binary and genesis file. 2) Then deploy the blockchain using 'avalanche blockchain deploy myblockchain'. After about 1 minute, the blockchain should be created and running, with the RPC URL displayed in the terminal. You cannot deploy without first creating the configuration, as the deploy command needs to know which blockchain configuration to use.",
+      "chapter": "Customizing EVM",
+      "alternates": [
+        {
+          "question": "What parameters are required when running 'avalanche blockchain create' with a custom VM?",
+          "options": [
+            "Only the blockchain name is required; all other settings use defaults",
+            "The --custom flag, the --vm flag pointing to the custom VM binary path, and the --genesis flag pointing to the genesis JSON file",
+            "First create with 'avalanche blockchain create', then deploy with 'avalanche blockchain deploy'",
+            "Only the --vm flag; genesis configuration is auto-generated"
+          ],
+          "correctAnswers": [
+            1
+          ],
+          "hint": "Think about what the CLI needs to know: which VM to use and how to configure the chain.",
+          "explanation": "When creating a blockchain with a custom VM, the 'avalanche blockchain create' command requires three key parameters: the --custom flag (indicating a custom VM rather than the standard EVM), the --vm flag with the path to the custom VM binary ($AVALANCHEGO_PLUGIN_PATH/[binary-name]), and the --genesis flag with the path to the genesis configuration JSON file. Together, these tell the CLI which virtual machine to run and how to initialize the chain."
+        },
+        {
+          "question": "What output does the 'avalanche blockchain deploy' command display when deployment succeeds?",
+          "options": [
+            "Only a success message with no additional information",
+            "The RPC URL for connecting to the newly deployed blockchain",
+            "A transaction hash for the deployment transaction",
+            "A QR code for mobile wallet connection"
+          ],
+          "correctAnswers": [
+            1
+          ],
+          "hint": "Think about what information a developer needs to start interacting with the new blockchain.",
+          "explanation": "After a successful deployment (which typically takes about 1 minute), the 'avalanche blockchain deploy' command displays the RPC URL for the newly created blockchain. This URL is essential for developers to connect their tools (like Foundry, Remix, or MetaMask) to the custom blockchain and begin interacting with it. The RPC URL is the entry point for all JSON-RPC communication with the new chain."
+        }
+      ]
+    },
+    "3059": {
+      "question": "What does the --custom flag indicate when creating a blockchain with Avalanche CLI?",
+      "options": [
+        "It creates a private blockchain",
+        "It deploys to a custom network, but practical implementations reveal this is not the case",
+        "It indicates you're using a custom VM (not a standard EVM)",
+        "It enables custom gas fees"
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "You're telling the CLI about the type of virtual machine you're using.",
+      "explanation": "The --custom flag in the 'avalanche blockchain create' command indicates that you're using a custom VM (Virtual Machine) rather than a standard pre-built EVM. This tells the Avalanche CLI that you need to specify the path to your custom VM binary using the --vm parameter. When building custom precompiles, you create a modified version of the EVM that includes your custom functionality, which is why you need the --custom flag. This flag is essential when deploying blockchains with custom precompiles, as opposed to deploying standard EVM-compatible blockchains that use the default VM.",
+      "chapter": "Customizing EVM",
+      "alternates": [
+        {
+          "question": "What happens if you try to create a blockchain with a custom VM but omit the --custom flag?",
+          "options": [
+            "The CLI automatically detects the custom VM and proceeds normally",
+            "The --custom flag tells the CLI you are using a custom VM, not a standard EVM",
+            "The CLI defaults to using the standard EVM configuration and ignores the custom VM binary",
+            "The blockchain deploys but runs significantly slower"
+          ],
+          "correctAnswers": [
+            2
+          ],
+          "hint": "Consider what the CLI assumes about the VM type when --custom is not specified.",
+          "explanation": "Without the --custom flag, the Avalanche CLI defaults to using a standard pre-built EVM configuration rather than looking for a custom VM binary. This means your custom precompiles and modifications would not be included in the deployed blockchain. The --custom flag is what signals to the CLI that it should expect and use a user-provided VM binary specified via the --vm parameter, rather than the default Subnet-EVM."
+        },
+        {
+          "question": "Besides --custom, what other deployment options does 'avalanche blockchain create' support for standard (non-custom) blockchains?",
+          "options": [
+            "There are no other options; --custom is always required",
+            "Standard EVM deployment without --custom, which uses the default Subnet-EVM with configurable genesis parameters",
+            "Only Docker-based deployment using --docker flag",
+            "Only cloud deployment to AWS or GCP"
+          ],
+          "correctAnswers": [
+            1
+          ],
+          "hint": "Think about what developers who don't need custom precompiles would use.",
+          "explanation": "For developers who don't need custom precompiles or VM modifications, 'avalanche blockchain create' supports standard EVM deployment without the --custom flag. In this mode, the CLI uses the default Subnet-EVM binary and allows developers to configure the genesis parameters (like gas settings, initial allocations, and chain ID) through an interactive wizard or command-line flags. This simplified flow is suitable for deploying standard EVM-compatible blockchains that don't require custom Go-level modifications."
+        }
+      ]
+    },
+    "3060": {
+      "question": "What file format is used for the genesis configuration when creating a custom EVM blockchain?",
+      "options": [
+        "YAML (.yml)",
+        "TOML (.toml)",
+        "XML (.xml)",
+        "JSON (.json)"
+      ],
+      "correctAnswers": [
+        3
+      ],
+      "hint": "Look at the file extension used in the genesis parameter example.",
+      "explanation": "The genesis configuration for a custom EVM blockchain uses JSON (.json) file format. This is evident from the --genesis parameter in the blockchain creation command which references genesis-example.json. The genesis file contains all the initial configuration for the blockchain including the config section with chain parameters, the alloc section with initial token allocations, and other settings like gas limits and difficulty. JSON format is used because it's well-suited for structured configuration data, easy to parse programmatically, and widely supported across different tools and languages in the blockchain ecosystem.",
+      "chapter": "Customizing EVM",
+      "alternates": [
+        {
+          "question": "Why is JSON used as the format for genesis configuration instead of alternatives like YAML or TOML?",
+          "options": [
+            "JSON is the only format that supports nested objects",
+            "JSON is well-suited for structured configuration data, widely supported across blockchain tooling, and easy to parse programmatically",
+            "JSON (.json) is the file format used for genesis configuration in custom EVM blockchains",
+            "JSON files are smaller than YAML or TOML files"
+          ],
+          "correctAnswers": [
+            1
+          ],
+          "hint": "Think about compatibility across different blockchain tools and ecosystems.",
+          "explanation": "JSON is used for genesis configuration because it is the standard format adopted across the Ethereum and EVM-compatible ecosystem. It is natively supported by virtually all blockchain tools, libraries, and SDKs. JSON handles structured nested data well (needed for config sections, alloc entries, etc.), is straightforward to parse programmatically in any language, and follows the convention established by Ethereum's genesis format. This standardization ensures compatibility across different tools like Geth, Avalanche CLI, and Foundry."
+        },
+        {
+          "question": "What are the main sections typically found inside a genesis.json configuration file? (Select all that apply)",
+          "options": [
+            "A 'config' section with chain parameters and hardfork settings",
+            "A 'validators' section listing initial network validators",
+            "An 'alloc' section defining initial address balances",
+            "A 'contracts' section with pre-deployed smart contract bytecode"
+          ],
+          "correctAnswers": [
+            0,
+            2
+          ],
+          "hint": "Think about the minimum configuration needed to bootstrap a new EVM chain.",
+          "explanation": "A genesis.json file typically contains two main sections: the 'config' section, which defines chain parameters like chainId, hardfork activation blocks, fee configuration, and other EVM settings; and the 'alloc' section, which specifies initial token balances for addresses at chain creation. Additional fields like gasLimit and difficulty may also be present at the top level. Validator configuration and contract deployment are handled through separate mechanisms outside the genesis file."
+        }
+      ]
+    },
+    "115": {
+      "question": "How many VMs can Avalanche run?",
+      "options": [
+        "Only the Avalanche Virtual Machine",
+        "EVM and AVM",
+        "There is no limit to how many virtual machines can run on Avalanche. Everyone can create a modified VM catering best to their needs"
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "Think about the flexibility of Avalanche's architecture.",
+      "explanation": "Avalanche is designed to be highly flexible, allowing for an unlimited number of custom Virtual Machines to be created and run on the network.",
+      "chapter": "Virtual Machine Customization"
+    },
+    "116": {
+      "question": "Can a Virtual Machine (VM) be used to create multiple blockchains?",
+      "options": [
+        "Yes, the same VM can be used to create multiple blockchains",
+        "No, each blockchain requires a unique VM",
+        "Yes, but only if the blockchains are part of different networks"
+      ],
+      "correctAnswers": [
+        0
+      ],
+      "hint": "Think about how a VM can be customized to create different blockchains.",
+      "explanation": "You can think of a Virtual Machine (VM) as a blueprint for a blockchain, where the same VM can be used to create multiple blockchains. Each of these blockchains adheres to the same rules but remains logically independent from the others.",
+      "chapter": "Virtual Machine Customization"
+    },
+    "117": {
+      "question": "How does Avalanche handle the modification of Virtual Machines (VMs)?",
+      "options": [
+        "Customization is challenging and requires a wide consensus among network participants.",
+        "Customization is not allowed as it can compromise the security of the blockchain.",
+        "Avalanche offers an easy API for VM developers.",
+        "Avalanche does not support customization of VMs."
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "Think about how Avalanche allows developers to modify Virtual Machines.",
+      "explanation": "Unlike one-chain-fits all systems, which requires a wide consensus to make changes, Avalanche allows for straightforward customization of Virtual Machines, making it more adaptable to unique use cases.",
+      "chapter": "Virtual Machine Customization"
+    }
+  }
+}

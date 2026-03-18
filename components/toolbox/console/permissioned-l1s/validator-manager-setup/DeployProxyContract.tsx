@@ -13,8 +13,8 @@ import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } fr
 import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
 import { AcknowledgementCallout } from "@/components/toolbox/components/AcknowledgementCallout";
 import { LockedContent } from "@/components/toolbox/components/LockedContent";
-import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
+import { useContractDeployer } from "@/components/toolbox/hooks/contracts";
 
 const PROXYADMIN_SOURCE_URL = "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v4.9.0/contracts/proxy/transparent/ProxyAdmin.sol";
 const TRANSPARENT_PROXY_SOURCE_URL = "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v4.9.0/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
@@ -29,8 +29,6 @@ const metadata: ConsoleToolMetadata = {
 };
 
 function DeployProxyContract({ onSuccess }: BaseConsoleToolProps) {
-    const [isDeployingProxyAdmin, setIsDeployingProxyAdmin] = useState(false);
-    const [isDeployingProxy, setIsDeployingProxy] = useState(false);
     const [implementationAddress, setImplementationAddress] = useState<string>("");
     const [proxyAddress, setProxyAddress] = useState<string>("");
     const [proxyAdminAddress, setProxyAdminAddress] = useState<string>("");
@@ -38,65 +36,38 @@ function DeployProxyContract({ onSuccess }: BaseConsoleToolProps) {
     const [acknowledged, setAcknowledged] = useState(false);
     const [warningDismissed, setWarningDismissed] = useState(false);
 
-    const { publicClient, walletEVMAddress } = useWalletStore();
-    const { coreWalletClient } = useConnectedWallet();
-
-    const { sendCoreWalletNotSetNotification, notify } = useConsoleNotifications();
+    const { walletEVMAddress } = useWalletStore();
+    const { walletClient } = useConnectedWallet();
+    const { deploy, isDeploying } = useContractDeployer();
 
     async function deployProxyAdmin() {
-        setIsDeployingProxyAdmin(true);
         setProxyAdminAddress("");
 
-        const deployPromise = coreWalletClient.deployContract({
+        const result = await deploy({
             abi: ProxyAdminABI.abi as any,
-            bytecode: ProxyAdminABI.bytecode.object as `0x${string}`,
+            bytecode: ProxyAdminABI.bytecode.object,
             args: [],
-            chain: viemChain ?? undefined,
-            account: walletEVMAddress as `0x${string}`
+            name: 'ProxyAdmin'
         });
 
-        notify({
-            type: 'deploy',
-            name: 'ProxyAdmin'
-        }, deployPromise, viemChain ?? undefined);
-
-        const hash = await deployPromise;
-        const receipt = await publicClient.waitForTransactionReceipt({ hash });
-        if (!receipt.contractAddress) {
-            throw new Error('No contract address in receipt');
-        }
-        setProxyAdminAddress(receipt.contractAddress);
-        setIsDeployingProxyAdmin(false);
+        setProxyAdminAddress(result.contractAddress);
         onSuccess?.();
     }
 
     async function deployTransparentProxy() {
-        setIsDeployingProxy(true);
         setProxyAddress("");
 
         if (!implementationAddress) throw new Error("Implementation address is required");
         if (!proxyAdminAddress) throw new Error("ProxyAdmin address is required");
 
-        const deployPromise = coreWalletClient.deployContract({
+        const result = await deploy({
             abi: TransparentUpgradeableProxyABI.abi as any,
-            bytecode: TransparentUpgradeableProxyABI.bytecode.object as `0x${string}`,
+            bytecode: TransparentUpgradeableProxyABI.bytecode.object,
             args: [implementationAddress, proxyAdminAddress, "0x"],
-            chain: viemChain ?? undefined,
-            account: walletEVMAddress as `0x${string}`
+            name: 'TransparentUpgradeableProxy'
         });
 
-        notify({
-            type: 'deploy',
-            name: 'TransparentUpgradeableProxy'
-        }, deployPromise, viemChain ?? undefined);
-
-        const hash = await deployPromise;
-        const receipt = await publicClient.waitForTransactionReceipt({ hash });
-        if (!receipt.contractAddress) {
-            throw new Error('No contract address in receipt');
-        }
-        setProxyAddress(receipt.contractAddress);
-        setIsDeployingProxy(false);
+        setProxyAddress(result.contractAddress);
     }
 
     return (
@@ -154,8 +125,8 @@ function DeployProxyContract({ onSuccess }: BaseConsoleToolProps) {
                             <Button
                                 variant="primary"
                                 onClick={deployProxyAdmin}
-                                loading={isDeployingProxyAdmin}
-                                disabled={isDeployingProxyAdmin || !!proxyAdminAddress}
+                                loading={isDeploying}
+                                disabled={isDeploying || !!proxyAdminAddress}
                                 className="mt-4"
                             >
                                 Deploy Proxy Admin
@@ -178,14 +149,14 @@ function DeployProxyContract({ onSuccess }: BaseConsoleToolProps) {
                                 value={implementationAddress}
                                 onChange={setImplementationAddress}
                                 placeholder="Enter implementation contract address (e.g. ValidatorManager or StakingManager)"
-                                disabled={isDeployingProxy}
+                                disabled={isDeploying}
                             />
 
                             <Button
                                 variant="primary"
                                 onClick={deployTransparentProxy}
-                                loading={isDeployingProxy}
-                                disabled={isDeployingProxy || !proxyAdminAddress || !implementationAddress}
+                                loading={isDeploying}
+                                disabled={isDeploying || !proxyAdminAddress || !implementationAddress}
                                 className="mt-4"
                             >
                                 Deploy Proxy Contract

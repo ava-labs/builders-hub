@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { Avalanche } from "@avalanche-sdk/chainkit";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { STATS_CONFIG } from "@/types/stats";
+import { getChainICMCount } from "@/lib/icm-clickhouse";
 
 export const dynamic = 'force-dynamic';
 
@@ -21,8 +22,6 @@ const TIME_RANGE_CONFIG = {
 type TimeRangeKey = keyof typeof TIME_RANGE_CONFIG;
 
 interface MetricResult { timestamp: number; value: number; }
-interface ICMResult { timestamp: number; messageCount: number; }
-
 interface ChainOverviewMetrics {
   chainId: string;
   chainName: string;
@@ -31,6 +30,7 @@ interface ChainOverviewMetrics {
   tps: number;
   activeAddresses: number;
   icmMessages: number;
+  marketCap: number | null;
   validatorCount: number | string;
 }
 
@@ -41,6 +41,7 @@ interface OverviewMetrics {
     totalTps: number;
     totalActiveAddresses: number;
     totalICMMessages: number;
+    totalMarketCap: number;
     totalValidators: number;
     activeChains: number;
   };
@@ -53,6 +54,7 @@ interface ChainInfo {
   chainName: string;
   logoUri: string;
   subnetId: string;
+  coingeckoId?: string;
 }
 
 const cachedData = new Map<string, { data: OverviewMetrics; timestamp: number }>();
@@ -93,14 +95,6 @@ function sumValues(sorted: MetricResult[], daysToSum: number): number {
   return sum;
 }
 
-function sumMessageCounts(sorted: ICMResult[], daysToSum: number): number {
-  let sum = 0;
-  for (let i = 1; i <= Math.min(daysToSum, sorted.length - 1); i++) {
-    sum += sorted[i]?.messageCount || 0;
-  }
-  return sum;
-}
-
 function getAllChains(): ChainInfo[] {
   return l1ChainsData
     .filter(chain =>
@@ -111,7 +105,8 @@ function getAllChains(): ChainInfo[] {
       chainId: chain.chainId,
       chainName: chain.chainName,
       logoUri: chain.chainLogoURI || '',
-      subnetId: chain.subnetId
+      subnetId: chain.subnetId,
+      ...('coingeckoId' in chain && chain.coingeckoId ? { coingeckoId: chain.coingeckoId as string } : {}),
     }));
 }
 
@@ -186,24 +181,10 @@ async function getActiveAddressesData(chainId: string, timeRange: TimeRangeKey):
 
 async function getICMData(chainId: string, timeRange: TimeRangeKey): Promise<number> {
   try {
-    const daysToFetch = TIME_RANGE_CONFIG[timeRange].days + 1;
-    const response = await fetchWithTimeout(
-      `https://idx6.solokhin.com/api/${chainId}/metrics/dailyMessageVolume?days=${daysToFetch}`,
-      { headers: { 'Accept': 'application/json' } }
-    );
-
-    if (!response.ok) return 0;
-    const data: ICMResult[] = await response.json();
-    if (!Array.isArray(data)) return 0;
-
-    const sorted = sortByTimestampDesc(data);
-    if (sorted.length < 2) return 0;
-    if (timeRange === 'day') return sorted[1]?.messageCount || 0;
-    return sumMessageCounts(sorted, timeRange === 'week' ? 7 : 30);
+    const daysToSum = timeRange === 'day' ? 1 : timeRange === 'week' ? 7 : 30;
+    return await getChainICMCount(chainId, daysToSum);
   } catch (error) {
-    if (error instanceof Error && error.name !== 'AbortError') {
-      console.error(`[getICMData] Failed for chain ${chainId}:`, error);
-    }
+    console.error(`[getICMData] Failed for chain ${chainId}:`, error);
     return 0;
   }
 }
@@ -232,6 +213,48 @@ async function getValidatorCount(subnetId: string): Promise<number | string> {
   }
 }
 
+const MARKET_CAP_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+let marketCapCache: { data: Record<string, number>; timestamp: number } | null = null;
+
+async function fetchMarketCaps(chains: ChainInfo[]): Promise<Record<string, number>> {
+  if (marketCapCache && Date.now() - marketCapCache.timestamp < MARKET_CAP_CACHE_DURATION) {
+    return marketCapCache.data;
+  }
+
+  const coingeckoIds = chains
+    .filter(c => c.coingeckoId)
+    .map(c => c.coingeckoId!);
+
+  if (coingeckoIds.length === 0) return {};
+
+  try {
+    const ids = coingeckoIds.join(',');
+    const response = await fetchWithTimeout(
+      `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_market_cap=true`,
+      { headers: { 'Accept': 'application/json' } },
+      10000
+    );
+
+    if (!response.ok) return marketCapCache?.data ?? {};
+
+    const data = await response.json();
+    const result: Record<string, number> = {};
+
+    for (const [coingeckoId, values] of Object.entries(data)) {
+      const mcap = (values as any)?.usd_market_cap;
+      if (typeof mcap === 'number' && mcap > 0) {
+        result[coingeckoId] = mcap;
+      }
+    }
+
+    marketCapCache = { data: result, timestamp: Date.now() };
+    return result;
+  } catch (error) {
+    console.error('[fetchMarketCaps] Failed:', error);
+    return marketCapCache?.data ?? {};
+  }
+}
+
 async function fetchChainMetrics(chain: ChainInfo, timeRange: TimeRangeKey): Promise<ChainOverviewMetrics | null> {
   const cacheKey = `${chain.chainId}-${timeRange}`;
   const cached = chainDataCache.get(cacheKey);
@@ -256,6 +279,7 @@ async function fetchChainMetrics(chain: ChainInfo, timeRange: TimeRangeKey): Pro
       tps: txCount / TIME_RANGE_CONFIG[timeRange].secondsInRange,
       activeAddresses,
       icmMessages,
+      marketCap: null,
       validatorCount,
     };
 
@@ -272,19 +296,40 @@ async function fetchFreshDataInternal(timeRange: TimeRangeKey): Promise<Overview
     const startTime = Date.now();
     const allChains = getAllChains();
     
-    const chainResults = await processInBatches(allChains, (chain) => fetchChainMetrics(chain, timeRange), MAX_CONCURRENT_CHAINS);
+    const [chainResults, marketCaps] = await Promise.all([
+      processInBatches(allChains, (chain) => fetchChainMetrics(chain, timeRange), MAX_CONCURRENT_CHAINS),
+      fetchMarketCaps(allChains),
+    ]);
     const chainMetrics = chainResults
       .filter((r): r is PromiseFulfilledResult<ChainOverviewMetrics> => r.status === 'fulfilled' && r.value !== null)
       .map(r => r.value);
+
+    // Build coingeckoId -> chainId lookup and merge market caps
+    const coingeckoToChainId = new Map<string, string>();
+    for (const chain of allChains) {
+      if (chain.coingeckoId) {
+        coingeckoToChainId.set(chain.coingeckoId, chain.chainId);
+      }
+    }
+    for (const [coingeckoId, mcap] of Object.entries(marketCaps)) {
+      const chainId = coingeckoToChainId.get(coingeckoId);
+      if (chainId) {
+        const chainMetric = chainMetrics.find(c => c.chainId === chainId);
+        if (chainMetric) {
+          chainMetric.marketCap = mcap;
+        }
+      }
+    }
 
     const aggregated = chainMetrics.reduce((acc, chain) => {
       acc.totalTxCount += chain.txCount || 0;
       acc.totalActiveAddresses += chain.activeAddresses || 0;
       acc.totalICMMessages += chain.icmMessages || 0;
+      acc.totalMarketCap += chain.marketCap ?? 0;
       if (typeof chain.validatorCount === 'number') acc.totalValidators += chain.validatorCount;
       if (chain.txCount > 0 || chain.activeAddresses > 0) acc.activeChains++;
       return acc;
-    }, { totalTxCount: 0, totalActiveAddresses: 0, totalICMMessages: 0, totalValidators: 0, activeChains: 0 });
+    }, { totalTxCount: 0, totalActiveAddresses: 0, totalICMMessages: 0, totalMarketCap: 0, totalValidators: 0, activeChains: 0 });
 
     const metrics: OverviewMetrics = {
       chains: chainMetrics,

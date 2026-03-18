@@ -26,10 +26,12 @@ This transparency is valuable for:
 
 ## Pseudonymity vs Anonymity
 
-Avalanche, like other EVM-compatible blockchains, is **pseudonymous**, not truly anonymous.  
-- **Pseudonymity**: Users are identified by their public address (e.g., `0x1234...abcd`), but not by their real name.  
-- **Linkability**: Once an address is tied to an identity (via KYC, exchange deposits, or off-chain information), all past and future activity from that address can be analyzed.  
+Avalanche, like other EVM-compatible blockchains, is **pseudonymous**, not truly anonymous.
+- **Pseudonymity**: Users are identified by their public address (e.g., `0x1234...abcd`), but not by their real name.
+- **Linkability**: Once an address is tied to an identity (via KYC, exchange deposits, or off-chain information), all past and future activity from that address can be analyzed.
 - **Behavioral profiling**: Patterns in interactions (like dApps used, tokens traded, or NFTs purchased) can reveal insights about the owner.
+
+<Quiz quizId="2007"/>
 
 ---
 
@@ -45,10 +47,12 @@ While transparency is useful for verification, it creates significant limitation
 ## Example on Avalanche C-Chain
 
 If a company pays 50 employees using an ERC-20 token on Avalanche C-Chain:
-- The **amount**, **date**, and **recipient address** of each payment will be public.  
+- The **amount**, **date**, and **recipient address** of each payment will be public.
 - A competitor or third party could track salary patterns, hiring trends, or even link addresses to individuals.
+
+<Quiz quizId="2008"/>
 
 ---
 
-Avalanche’s transparent design ensures trust and auditability, but **it does not provide native confidentiality** for balances, transaction amounts, or metadata.  
+Avalanche's transparent design ensures trust and auditability, but **it does not provide native confidentiality** for balances, transaction amounts, or metadata.
 In the **next section**, we will explore **Compliance**, why privacy alone is not enough, and how companies must align with regulatory requirements when designing blockchain solutions.

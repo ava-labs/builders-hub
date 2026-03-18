@@ -9,6 +9,21 @@
 @source '../node_modules/fumadocs-ui/dist/**/*.js';
 @plugin 'tailwindcss-animate';
 
+/* Breathing animation for active bubble nav - very slow and subtle */
+@keyframes breathe {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  }
+  50% {
+    transform: scale(1.02);
+    box-shadow: 0 14px 20px -4px rgba(0, 0, 0, 0.12), 0 6px 8px -5px rgba(0, 0, 0, 0.1), 0 0 12px rgba(232, 65, 66, 0.1);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  }
+}
 
 .prose
   :where(ul > li):not(
@@ -31,7 +46,6 @@ header a[href="/login"] svg {
 [data-radix-popover-content],
 [data-radix-popover-content][data-state="open"],
 [data-radix-dropdown-menu-content],
-[data-radix-navigation-menu-content],
 [data-navbar-dropdown] > div[class*="absolute"],
 .PopoverContent,
 nav[aria-label="Main"] [data-radix-popover-content],
@@ -62,6 +76,68 @@ header[aria-label="Main"] [data-radix-popover-content] {
   padding-top: 1rem;
 }
 
+/* Make main navbar sticky - positions below the banner */
+#nd-nav,
+header#nd-nav,
+nav#nd-nav {
+  position: sticky !important;
+  top: var(--fd-banner-height, 0px) !important;
+  z-index: 40 !important; /* Below banner (z-50), above content */
+  background-color: var(--background) !important;
+}
+
+/* Keep desktop mega menu overlays from reflowing the page.
+   The Radix NavigationMenu viewport is rendered as a wrapper <div> that is a
+   direct child of #nd-nav (the sticky header). When the viewport expands with
+   menu content, it would grow the header and push page content down.
+   Fix: take the viewport wrapper out of flow with position:absolute.
+   NOTE: Radix v1.2+ no longer uses data-radix-navigation-menu-viewport.
+   The viewport uses data-state + data-orientation instead. We target the
+   wrapper as the last non-nav direct child of #nd-nav. */
+@media (min-width: 1024px) {
+  /* Viewport wrapper: the LAST direct child of #nd-nav (after the Radix
+     NavigationMenuList wrapper div). Must be taken out of flow so the sticky
+     header keeps its h-14 height instead of expanding with mega menu content. */
+  #nd-nav > :last-child {
+    position: absolute !important;
+    top: 100% !important;
+    left: 0 !important;
+    right: 0 !important;
+    z-index: 60 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: none !important;
+    pointer-events: none;
+  }
+
+  /* Viewport element: background + depth (only rendered when a menu is open) */
+  #nd-nav > :last-child > * {
+    background-color: var(--background) !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+    border-bottom: 1px solid var(--border) !important;
+    box-shadow: 0 8px 16px -4px rgb(0 0 0 / 0.1), 0 4px 6px -2px rgb(0 0 0 / 0.05) !important;
+  }
+
+  #nd-nav > :last-child * {
+    pointer-events: auto;
+  }
+}
+
+/* Remove fumadocs HomeLayout padding-top since navbar is sticky (in document flow) */
+/* Fumadocs adds pt-14 (56px) for a fixed navbar, but we use sticky positioning */
+#nd-home-layout {
+  padding-top: 0 !important;
+}
+
+/* Console sidebar: offset for the announcement banner + main navbar (h-14 = 3.5rem) */
+/* The shadcn sidebar is fixed inset-y-0 (top:0, bottom:0) by default.
+   Inside the console, it must start below the banner + navbar. */
+#nd-home-layout [data-slot="sidebar-container"] {
+  top: calc(var(--fd-banner-height, 0px) + 3.5rem) !important;
+  height: calc(100vh - var(--fd-banner-height, 0px) - 3.5rem) !important;
+}
+
 /* Remove ALL left whitespace from navbar to fill screen edge */
 body > div > nav,
 body > div > header,
@@ -82,7 +158,7 @@ nav > div,
 header > div,
 nav[aria-label="Main"] > div,
 .nd-nav > div {
-  padding-left: 1rem !important;
+  padding-left: 3rem !important;
   padding-right: 1rem !important;
   margin-left: 0 !important;
   margin-right: 0 !important;
@@ -173,6 +249,101 @@ svg.lucide.lucide-folder-open {
 .animate-ripple {
   animation: ripple var(--duration, 2s) ease calc(var(--i, 0) * 0.2s) infinite;
   animation-delay: calc(var(--i) * 0.5s);
+}
+
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+@keyframes marquee-reverse {
+  0% { transform: translateX(-50%); }
+  100% { transform: translateX(0); }
+}
+
+/* Blinking cursor animation for typewriter effect */
+@keyframes blink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+/* Streaming markdown — rendered via marked.parse() on a 100ms throttle.
+   These styles ensure code blocks, inline code, and links look correct
+   while the markdown is still being assembled by the LLM. */
+.streaming-markdown {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  animation: streamFadeIn 0.3s ease-out;
+}
+
+@keyframes streamFadeIn {
+  from { opacity: 0.4; }
+  to   { opacity: 1; }
+}
+
+/* Code blocks */
+.streaming-markdown pre {
+  background-color: #18181b;
+  border: 1px solid #27272a;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  overflow-x: auto;
+  margin: 1rem 0;
+}
+
+.streaming-markdown pre code {
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  color: #e4e4e7;
+  background: none;
+  padding: 0;
+  border-radius: 0;
+}
+
+/* Inline code */
+.streaming-markdown :not(pre) > code {
+  font-size: 0.8125rem;
+  padding: 0.15em 0.4em;
+  border-radius: 0.25rem;
+  background-color: rgba(0,0,0,0.06);
+  color: inherit;
+}
+
+.dark .streaming-markdown :not(pre) > code {
+  background-color: rgba(255,255,255,0.1);
+}
+
+/* Links */
+.streaming-markdown a {
+  color: #3b82f6;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* Lists */
+.streaming-markdown ul { list-style-type: disc; padding-left: 1.5em; margin: 0.75em 0; }
+.streaming-markdown ol { list-style-type: decimal; padding-left: 1.5em; margin: 0.75em 0; }
+.streaming-markdown li { margin: 0.25em 0; }
+
+/* Headings */
+.streaming-markdown h1,
+.streaming-markdown h2,
+.streaming-markdown h3,
+.streaming-markdown h4 {
+  font-weight: 600;
+  margin-top: 1.25em;
+  margin-bottom: 0.5em;
+  line-height: 1.3;
+}
+
+/* Paragraphs */
+.streaming-markdown p {
+  margin: 0.5em 0;
+  line-height: 1.6;
 }
 
 .bg-fd-foreground\/25 {
@@ -373,7 +544,9 @@ svg.lucide.lucide-folder-open {
     z-index: 250;
   }
 
-  [data-state='open'] {
+  /* Elevate open elements ONLY when mobile sidebar is NOT open */
+  /* When sidebar IS open, content must stay below sidebar (z-60) */
+  body:not(:has(#nd-sidebar-mobile[data-state="open"])) [data-state='open'] {
     z-index: 450;
   }
 }
@@ -401,6 +574,7 @@ html body[data-scroll-locked] {
 
 html {
   scroll-behavior: smooth;
+  overscroll-behavior: none;
 }
 
 :root {
@@ -456,8 +630,8 @@ html {
   --accent: oklch(0.14 0 0);
   --accent-foreground: oklch(0.92 0 0);
   --destructive: oklch(0.6 0.02 30);
-  --border: oklch(0.2 0 0);
-  --input: oklch(0.2 0 0);
+  --border: oklch(0.28 0 0);
+  --input: oklch(0.28 0 0);
   --ring: oklch(0.7 0 0);
   --chart-1: oklch(0.6 0 0);
   --chart-2: oklch(0.5 0 0);
@@ -530,6 +704,31 @@ html {
       height: 0;
     }
   }
+
+  @keyframes collapsible-down {
+    from {
+      height: 0;
+      opacity: 0;
+    }
+    to {
+      height: var(--radix-collapsible-content-height);
+      opacity: 1;
+    }
+  }
+
+  @keyframes collapsible-up {
+    from {
+      height: var(--radix-collapsible-content-height);
+      opacity: 1;
+    }
+    to {
+      height: 0;
+      opacity: 0;
+    }
+  }
+
+  --animate-collapsible-down: collapsible-down 0.2s ease-out;
+  --animate-collapsible-up: collapsible-up 0.2s ease-out;
 }
 
 @layer base {
@@ -583,6 +782,8 @@ html {
 
   .container {
     max-width: 1400px;
+    margin-left: auto;
+    margin-right: auto;
   }
 
   .text-opacity-[amount] {
@@ -693,10 +894,10 @@ nav button[data-slot="dropdown-menu-trigger"]:hover {
   background-color: rgba(255, 255, 255, 0.08) !important;
 }
 
-/* Larger padding for type: 'main' items (University, Blog) to match menu hover size */
+/* Larger padding for nav items - more breathing room between links */
 nav li > a {
-  padding-left: 0.9rem !important;
-  padding-right: 0.9rem !important;
+  padding-left: 1.1rem !important;
+  padding-right: 1.1rem !important;
   padding-top: 0.5rem !important;
   padding-bottom: 0.5rem !important;
 }
@@ -867,8 +1068,8 @@ nav button[aria-current="page"]:hover {
     display: none !important;
   }
   
-  /* Hide fumadocs NavigationMenu viewport/overlay that might block clicks */
-  [data-radix-navigation-menu-viewport] {
+  /* Hide the mega menu viewport wrapper on mobile (we use our custom dropdown) */
+  #nd-nav > :last-child {
     display: none !important;
     pointer-events: none !important;
   }
@@ -944,11 +1145,13 @@ nav button[aria-current="page"]:hover {
     z-index: 44 !important; /* Below PopoverContent (z-10000) */
   }
   
-  /* CRITICAL: Prevent backdrop from blocking PopoverContent - backdrop must NOT block PopoverContent */
-  body:has([data-radix-popover-content][data-state="open"]) div.fixed.inset-0.backdrop-blur-xs[data-state="open"]:not(#nd-sidebar-mobile):not(aside):not([id]),
-  body:has([data-radix-popover-content][data-state="open"]) div.fixed.z-40.inset-0[data-state="open"]:not(#nd-sidebar-mobile):not(aside):not([id]) {
-    pointer-events: none !important; /* CRITICAL: Allow clicks through to PopoverContent when it's open */
-    z-index: 44 !important; /* Below PopoverContent (z-9999) */
+  /* Allow clicks through to PopoverContent ONLY when mobile sidebar is NOT open */
+  /* When sidebar IS open, backdrop must block all page content interactions */
+  /* Popovers inside sidebar still work because they're at z-10000 with pointer-events: auto */
+  body:not(:has(#nd-sidebar-mobile[data-state="open"])):has([data-radix-popover-content][data-state="open"]) div.fixed.inset-0.backdrop-blur-xs[data-state="open"]:not(#nd-sidebar-mobile):not(aside):not([id]),
+  body:not(:has(#nd-sidebar-mobile[data-state="open"])):has([data-radix-popover-content][data-state="open"]) div.fixed.z-40.inset-0[data-state="open"]:not(#nd-sidebar-mobile):not(aside):not([id]) {
+    pointer-events: none !important;
+    z-index: 44 !important;
   }
   
   /* Ensure mobile sidebar is above the backdrop and navbar */
@@ -979,7 +1182,7 @@ nav button[aria-current="page"]:hover {
     opacity: 1 !important;
     pointer-events: auto !important;
   }
-  
+
   /* Ensure mobile hamburger and dropdown are clickable */
   #nd-nav ul.flex.flex-row.items-center.ms-auto,
   #nd-nav ul.flex.flex-row.items-center.ms-auto button,
@@ -1041,6 +1244,9 @@ nav button[aria-current="page"]:hover {
 #nd-nav nav {
   min-width: 0 !important;
   overflow: visible !important; /* Changed from hidden to allow dropdown */
+  max-width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
 }
 
 /* Prevent navbar items from wrapping or overflowing */
@@ -1049,9 +1255,29 @@ nav button[aria-current="page"]:hover {
   overflow: visible !important; /* Changed from hidden to allow dropdown */
 }
 
+/* Remove fumadocs max-width centering so navbar goes full-width edge-to-edge */
+#nd-nav > div > * {
+  max-width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+/* Left-aligned navbar layout:
+   Logo (left) | Nav links (left, auto width) | Search+login (right, pushed via ms-auto) */
+#nd-nav ul.flex.flex-row.items-center.gap-2.px-6.max-sm\:hidden {
+  flex: 0 1 auto !important;
+  justify-content: flex-start !important;
+  gap: 0.5rem !important;
+}
+
+#nd-nav div.flex.flex-row.items-center.justify-end.gap-1\.5.flex-1.max-lg\:hidden {
+  flex: 1 0 auto !important;
+  justify-content: flex-end !important;
+}
+
 /* Add overflow scroll for mobile menu on small screens */
 @media (max-width: 640px) {
-  #nd-nav [data-radix-navigation-menu-content] {
+  #nd-nav [data-motion] {
     max-height: 70vh !important;
     overflow-y: auto !important;
   }
@@ -1212,3 +1438,124 @@ nav.explorer-breadcrumb li > a:hover,
   box-shadow: none !important;
 }
 
+/* ===========================================
+   EMBED MODE STYLES
+   Applied when page is viewed with ?embed=true
+   (e.g., in the chat embedded panel iframe)
+   =========================================== */
+
+/* Hide the countdown banner in embed mode */
+html.embed-mode [data-countdown-banner],
+html.embed-mode .countdown-banner,
+html.embed-mode [id="hardware-banner"],
+html.embed-mode #nd-banner,
+html.embed-mode .nd-banner {
+  display: none !important;
+}
+
+/* Hide the main navbar in embed mode */
+html.embed-mode #nd-nav,
+html.embed-mode nav[aria-label="Main"],
+html.embed-mode header[aria-label="Main"] {
+  display: none !important;
+}
+
+/* Hide sidebars in embed mode for cleaner reading */
+html.embed-mode #nd-sidebar,
+html.embed-mode #nd-sidebar-mobile,
+html.embed-mode aside[id="nd-sidebar"] {
+  display: none !important;
+}
+
+/* Reset TOC padding in embed mode (no banner = no extra padding needed) */
+html.embed-mode #nd-toc {
+  padding-top: 1rem !important;
+  top: 0 !important;
+}
+
+/* Hide the chatbot widget in embed mode */
+html.embed-mode [data-chatbot],
+html.embed-mode .chatbot-container {
+  display: none !important;
+}
+
+/* Hide privacy policy banner in embed mode */
+html.embed-mode #privacy-banner-root {
+  display: none !important;
+}
+
+/* Adjust main content to use full width in embed mode (no sidebar) */
+html.embed-mode main {
+  margin-left: 0 !important;
+  padding-left: 1rem !important;
+  padding-right: 1rem !important;
+}
+
+/* Remove any top margin/padding that would have been for navbar */
+html.embed-mode body {
+  padding-top: 0 !important;
+}
+
+/* Ensure docs content starts at top in embed mode */
+html.embed-mode .nd-layout-docs,
+html.embed-mode [data-layout="docs"] {
+  padding-top: 0 !important;
+}
+
+/* Fix article/prose content to have proper padding in embed mode */
+html.embed-mode article,
+html.embed-mode .prose {
+  padding-top: 1rem !important;
+}
+
+/* Ensure TOC is properly positioned relative to content in embed mode */
+html.embed-mode #nd-toc > div {
+  position: sticky !important;
+  top: 1rem !important;
+}
+
+/* Override fumadocs docs layout grid in embed mode (no sidebar) */
+html.embed-mode .nd-docs-layout,
+html.embed-mode [data-layout="docs"] > div {
+  grid-template-columns: 1fr minmax(0, var(--fd-content-width)) min(var(--fd-toc-width), 25%) !important;
+  padding-left: 0 !important;
+}
+
+/* Remove left column from grid when sidebar is hidden */
+html.embed-mode .fd-layout-docs,
+html.embed-mode [data-docs-layout] {
+  grid-template-columns: minmax(0, 1fr) min(var(--fd-toc-width, 260px), 25%) !important;
+}
+
+/* Ensure content area starts from left edge in embed mode */
+html.embed-mode .fd-layout-docs > main,
+html.embed-mode [data-docs-layout] > main {
+  grid-column: 1 !important;
+}
+
+/* Keep TOC in its column in embed mode */
+html.embed-mode .fd-layout-docs > aside#nd-toc,
+html.embed-mode [data-docs-layout] > aside#nd-toc,
+html.embed-mode #nd-toc {
+  grid-column: 2 !important;
+}
+
+.dark .custom-scroll::-webkit-scrollbar {
+  max-width: 8px;
+  background-color: #161617;
+  border-radius: 5px;
+}
+.dark .custom-scroll::-webkit-scrollbar-thumb {
+  background-color: #2F2F33;
+  border-radius: 5px;
+}
+
+.custom-scroll::-webkit-scrollbar {
+  max-width: 8px;
+  background-color: #16161710;
+  border-radius: 5px;
+}
+.custom-scroll::-webkit-scrollbar-thumb {
+  background-color: #2f2f3353;
+  border-radius: 5px;
+}

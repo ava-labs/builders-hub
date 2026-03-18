@@ -1,11 +1,55 @@
-import { createOpenAI } from '@ai-sdk/openai';
-import { streamText } from 'ai';
-import { captureAIGeneration } from '@/lib/posthog-server';
+import { createAnthropic } from '@ai-sdk/anthropic';
+import { streamText, tool, stepCountIs } from 'ai';
+import { z } from 'zod';
+import { captureAIGeneration, captureServerEvent } from '@/lib/posthog-server';
+import { searchCode, formatCodeContext } from '@/lib/code-search';
+import { embedQuery, analyzeQueryIntent } from '@/lib/embeddings';
+import { getAuthSession } from '@/lib/auth/authSession';
+import {
+  checkChatRateLimit,
+  getClientIP,
+  createRateLimitHeaders,
+  formatResetTime,
+} from '@/lib/chat/rateLimit';
+import { searchTools, formatToolsForContext } from '@/lib/chat/tools-search';
+import { docsTools, githubTools } from '@/lib/mcp/tools';
+import { componentNames, getCatalogDescription } from '@/lib/chat/catalog';
+import {
+  blockchainLookupTransaction,
+  blockchainLookupAddress,
+  blockchainLookupSubnet,
+  blockchainLookupChain,
+  blockchainLookupValidator,
+} from '@/lib/chat/blockchain-tools';
 
-export const runtime = 'edge';
+// Helper to extract text from v6 UIMessage
+function getTextFromMessage(message: any): string {
+  // Handle v6 parts format
+  if (message.parts && Array.isArray(message.parts)) {
+    return message.parts
+      .filter((p: any) => p.type === 'text')
+      .map((p: any) => p.text || '')
+      .join('');
+  }
+  // Handle legacy content format
+  if (typeof message.content === 'string') {
+    return message.content;
+  }
+  return '';
+}
 
-const openai = createOpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+// Changed from 'edge' to 'nodejs' to support code search (zlib operations)
+export const runtime = 'nodejs';
+// Extend timeout for AI streaming + tool calls (default 10s is too short)
+export const maxDuration = 120;
+
+// Context budget: keep system prompt under ~100K chars (~25K tokens)
+// to leave room for conversation history + output within 200K token window
+const MAX_SYSTEM_PROMPT_CHARS = 100_000;
+const MAX_MESSAGE_CHARS = 12_000;
+
+const anthropic = createAnthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
 // Cache for documentation content
@@ -88,42 +132,12 @@ async function getValidUrls(): Promise<string[]> {
   }
 }
 
-// Use MCP server for better search quality
+// Use MCP server for better search quality — calls the handler directly (no HTTP round-trip)
 async function searchDocsViaMcp(query: string): Promise<Array<{ url: string; title: string; description?: string; source: string }>> {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ||
-                   process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` :
-                   'http://localhost:3000';
+    const toolResult = await docsTools.handlers.docs_search({ query, limit: 10 });
+    const text = toolResult.content?.[0]?.text || '';
 
-    const response = await fetch(`${baseUrl}/api/mcp`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        jsonrpc: '2.0',
-        id: Date.now(),
-        method: 'tools/call',
-        params: {
-          name: 'avalanche_docs_search',
-          arguments: { query, limit: 10 }
-        }
-      })
-    });
-
-    if (!response.ok) {
-      console.error('MCP search failed:', response.status);
-      return [];
-    }
-
-    const result = await response.json();
-    if (result.error) {
-      console.error('MCP search error:', result.error);
-      return [];
-    }
-
-    // Parse the text response from MCP
-    const text = result.result?.content?.[0]?.text || '';
-
-    // Extract results from the formatted text
     const results: Array<{ url: string; title: string; description?: string; source: string }> = [];
     const lines = text.split('\n').filter((l: string) => l.startsWith('- ['));
 
@@ -147,33 +161,11 @@ async function searchDocsViaMcp(query: string): Promise<Array<{ url: string; tit
   }
 }
 
-// Fetch specific pages from search results
+// Fetch specific pages from search results — calls the handler directly (no HTTP round-trip)
 async function fetchPageContent(url: string): Promise<string | null> {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ||
-                   process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` :
-                   'http://localhost:3000';
-
-    const response = await fetch(`${baseUrl}/api/mcp`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        jsonrpc: '2.0',
-        id: Date.now(),
-        method: 'tools/call',
-        params: {
-          name: 'avalanche_docs_fetch',
-          arguments: { url }
-        }
-      })
-    });
-
-    if (!response.ok) return null;
-
-    const result = await response.json();
-    if (result.error) return null;
-
-    return result.result?.content?.[0]?.text || null;
+    const toolResult = await docsTools.handlers.docs_fetch({ url });
+    return toolResult.content?.[0]?.text || null;
   } catch (error) {
     console.error('Page fetch error:', error);
     return null;
@@ -230,19 +222,169 @@ export async function POST(req: Request) {
   const { messages, id: visitorId } = await req.json();
   const startTime = Date.now();
   const traceId = `trace_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  
+
+  // Check rate limit based on authentication status
+  const session = await getAuthSession();
+  const isAuthenticated = !!session?.user?.id;
+  const identifier = isAuthenticated ? session.user.id : getClientIP(req);
+
+  const rateLimitResult = checkChatRateLimit(identifier, isAuthenticated);
+
+  if (!rateLimitResult.allowed) {
+    const resetTimeFormatted = formatResetTime(rateLimitResult.resetTime);
+    return new Response(
+      JSON.stringify({
+        error: 'Rate limit exceeded',
+        message: isAuthenticated
+          ? `You've sent too many messages. Please try again ${resetTimeFormatted}.`
+          : `Message limit reached. Please sign in for higher limits or try again ${resetTimeFormatted}.`,
+        resetTime: rateLimitResult.resetTime.toISOString(),
+      }),
+      {
+        status: 429,
+        headers: {
+          'Content-Type': 'application/json',
+          ...createRateLimitHeaders(rateLimitResult),
+        },
+      }
+    );
+  }
+
   // Get the last user message to search for relevant docs
   const lastUserMessage = messages.filter((m: any) => m.role === 'user').pop();
-  
+  const lastUserMessageText = lastUserMessage ? getTextFromMessage(lastUserMessage) : '';
+
+  // Validate message size before doing expensive context assembly
+  if (lastUserMessageText.length > MAX_MESSAGE_CHARS) {
+    return new Response(
+      JSON.stringify({
+        error: 'Message too long',
+        message: `Your message is ${lastUserMessageText.length.toLocaleString()} characters, which exceeds the ${MAX_MESSAGE_CHARS.toLocaleString()} character limit. Please shorten it and try again.`,
+      }),
+      { status: 413, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+
   // Get valid URLs for link validation
   const validUrls = await getValidUrls();
-  
+
+  // Code search for DeepWiki-style functionality
+  let codeContext = '';
+  if (lastUserMessageText) {
+    const intent = analyzeQueryIntent(lastUserMessageText);
+    console.log(`[CodeSearch] Intent analysis: isCodeQuestion=${intent.isCodeQuestion}, keywords=${intent.keywords.join(',')}`);
+
+    if (intent.isCodeQuestion) {
+      try {
+        const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ||
+                       process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` :
+                       'http://localhost:3000';
+        console.log(`[CodeSearch] Using base URL: ${baseUrl}`);
+
+        console.log(`[CodeSearch] Generating query embedding...`);
+        const queryEmbedding = await embedQuery(lastUserMessageText);
+        console.log(`[CodeSearch] Embedding generated, length: ${queryEmbedding.length}`);
+
+        console.log(`[CodeSearch] Searching code...`);
+        const codeResults = await searchCode(queryEmbedding, baseUrl, {
+          topK: 5,
+          repos: intent.suggestedRepos,
+          minScore: 0.25, // Lowered from 0.35 - semantic search typically scores 0.2-0.6
+        });
+        console.log(`[CodeSearch] Search returned ${codeResults.length} results`);
+
+        // Track code search results for analytics
+        const avgScore = codeResults.length > 0
+          ? codeResults.reduce((sum, r) => sum + r.score, 0) / codeResults.length
+          : 0;
+        captureServerEvent('ai_chat_code_search', {
+          query: lastUserMessageText.slice(0, 200),
+          results_count: codeResults.length,
+          repos_searched: intent.suggestedRepos || ['all'],
+          top_score: codeResults[0]?.score || 0,
+          avg_score: avgScore,
+          is_code_question: true,
+          latency_ms: Date.now() - startTime,
+        }, visitorId);
+
+        if (codeResults.length > 0) {
+          codeContext = '\n\n=== RELEVANT CODE FROM AVA-LABS REPOSITORIES ===\n\n';
+          codeContext += '**IMPORTANT: When referencing this code, ALWAYS include the GitHub links provided below!**\n\n';
+          codeContext += formatCodeContext(codeResults);
+          codeContext += '\n\n=== END CODE CONTEXT ===\n';
+          console.log(`[CodeSearch] ✅ Added ${codeResults.length} code chunks to context`);
+          // Log the GitHub URLs being included
+          codeResults.forEach((r, i) => console.log(`[CodeSearch]   ${i+1}. ${r.url}`));
+        }
+      } catch (error) {
+        console.error('[CodeSearch] ❌ Failed:', error);
+      }
+    }
+  }
+
+  // Search for relevant YouTube videos from Avalanche channel
+  let youtubeContext = '';
+  if (lastUserMessageText) {
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ||
+                     process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` :
+                     'http://localhost:3000';
+
+      const youtubeResponse = await fetch(`${baseUrl}/api/youtube/search?q=${encodeURIComponent(lastUserMessageText)}&limit=3`);
+
+      if (youtubeResponse.ok) {
+        const youtubeData = await youtubeResponse.json();
+        if (youtubeData.videos && youtubeData.videos.length > 0) {
+          youtubeContext = '\n\n=== RELEVANT YOUTUBE VIDEOS ===\n\n';
+          youtubeContext += 'IMPORTANT: To show these videos, call render_component("YouTubeEmbed", { videoId: "...", title: "..." }) to embed them inline. Do NOT just paste a YouTube link.\n\n';
+          for (const video of youtubeData.videos) {
+            youtubeContext += `- **${video.title}** → render_component("YouTubeEmbed", { videoId: "${video.videoId}", title: "${video.title.replace(/"/g, '\\"')}" })\n`;
+            youtubeContext += `  Description: ${video.description.slice(0, 200)}...\n\n`;
+          }
+          youtubeContext += '=== END YOUTUBE VIDEOS ===\n';
+          console.log(`Found ${youtubeData.videos.length} relevant YouTube videos`);
+
+          // Track YouTube search results
+          captureServerEvent('ai_chat_youtube_search', {
+            query: lastUserMessageText.slice(0, 200),
+            results_count: youtubeData.videos.length,
+          }, visitorId);
+        }
+      }
+    } catch (error) {
+      console.error('YouTube search error:', error);
+    }
+  }
+
+  // Search for relevant console tools
+  let toolsContext = '';
+  if (lastUserMessageText) {
+    const relevantTools = searchTools(lastUserMessageText, 5);
+    if (relevantTools.length > 0) {
+      toolsContext = '\n\n=== RELEVANT CONSOLE TOOLS ===\n\n';
+      toolsContext += 'IMPORTANT: For tools marked "RENDER INLINE", you MUST call the render_component tool to show the interactive UI directly in the chat. Do NOT just provide a link — render the component so the user can interact with it immediately.\n\n';
+      toolsContext += formatToolsForContext(relevantTools);
+      toolsContext += '\n\n=== END CONSOLE TOOLS ===\n';
+      console.log(`Found ${relevantTools.length} relevant console tools`);
+
+      // Track console tools search results
+      captureServerEvent('ai_chat_tools_search', {
+        query: lastUserMessageText.slice(0, 200),
+        results_count: relevantTools.length,
+        tool_names: relevantTools.map(t => t.title),
+      }, visitorId);
+    }
+  }
+
   let relevantContext = '';
-  if (lastUserMessage) {
+  let docSearchMethod: 'mcp' | 'fulltext' | 'none' = 'none';
+  if (lastUserMessage && lastUserMessageText) {
     // Try MCP search first (better quality), fall back to full-text search
-    const mcpResults = await searchDocsViaMcp(lastUserMessage.content);
+    const mcpSearchStart = Date.now();
+    const mcpResults = await searchDocsViaMcp(lastUserMessageText);
 
     if (mcpResults.length > 0) {
+      docSearchMethod = 'mcp';
       // Fetch content for top 3 results
       const contentPromises = mcpResults.slice(0, 3).map(async (result) => {
         const content = await fetchPageContent(result.url);
@@ -256,14 +398,16 @@ export async function POST(req: Request) {
         relevantContext += 'Here are the most relevant pages from the Avalanche documentation:\n\n';
         relevantContext += contents.join('\n\n---\n\n');
         relevantContext += '\n\n=== END DOCUMENTATION ===\n';
-        console.log(`Using MCP search results: ${contents.length} pages`);
+        const imgCount = (relevantContext.match(/!\[/g) || []).length;
+        console.log(`Using MCP search results: ${contents.length} pages, ${imgCount} images found`);
       }
     }
 
     // Fall back to full-text search if MCP didn't return results
     if (!relevantContext) {
+      docSearchMethod = 'fulltext';
       const docs = await getDocumentation();
-      const relevantSections = findRelevantSections(lastUserMessage.content, docs);
+      const relevantSections = findRelevantSections(lastUserMessageText, docs);
 
       if (relevantSections.length > 0) {
         relevantContext = '\n\n=== RELEVANT DOCUMENTATION ===\n\n';
@@ -272,274 +416,305 @@ export async function POST(req: Request) {
         relevantContext += '\n\n=== END DOCUMENTATION ===\n';
         console.log(`Using fallback full-text search: ${relevantSections.length} sections`);
       } else {
+        docSearchMethod = 'none';
         relevantContext = '\n\n=== DOCUMENTATION ===\n';
         relevantContext += 'No specific documentation sections matched this query.\n';
         relevantContext += 'Provide general guidance and suggest relevant documentation sections if applicable.\n';
         relevantContext += '=== END DOCUMENTATION ===\n';
       }
     }
+
+    // Track documentation search for analytics
+    captureServerEvent('ai_chat_docs_search', {
+      query: lastUserMessageText.slice(0, 200),
+      search_method: docSearchMethod,
+      results_count: docSearchMethod === 'mcp' ? mcpResults.length :
+                     docSearchMethod === 'fulltext' ? relevantContext.split('---').length : 0,
+      latency_ms: Date.now() - mcpSearchStart,
+    }, visitorId);
   }
   
-  // Add valid URLs list
-  const validUrlsList = validUrls.length > 0 
-    ? `\n\n=== VALID DOCUMENTATION URLS ===\nThese are ALL the valid URLs on the site. ONLY use URLs from this list:\n${validUrls.map(url => `https://build.avax.network${url}`).join('\n')}\n=== END VALID URLS ===\n`
+  // Add valid URLs list — only include URLs relevant to the query to avoid blowing up context
+  // Full list is 1,300+ URLs (~28K tokens) which leaves no room for large messages
+  let filteredUrls = validUrls;
+  if (lastUserMessageText && validUrls.length > 100) {
+    const queryTerms = lastUserMessageText.toLowerCase().split(/\s+/).filter(t => t.length > 2);
+    filteredUrls = validUrls.filter(url => {
+      const urlLower = url.toLowerCase();
+      return queryTerms.some(term => urlLower.includes(term));
+    });
+    // Always include top-level section URLs as anchors
+    const topLevel = validUrls.filter(url => (url.match(/\//g) || []).length <= 2);
+    filteredUrls = Array.from(new Set([...filteredUrls, ...topLevel])).slice(0, 200);
+  }
+  const validUrlsList = filteredUrls.length > 0
+    ? `\n\n=== VALID DOCUMENTATION URLS ===\nOnly use URLs from this list (filtered to relevant ones). For others, use the full path patterns you see in documentation context above.\n${filteredUrls.map(url => `https://build.avax.network${url}`).join('\n')}\n=== END VALID URLS ===\n`
+    : '';
+
+  // Extract images from documentation context so the AI can embed them
+  const imageMatches = relevantContext.match(/!\[[^\]]*\]\([^)]+\)/g) || [];
+  // Format extracted images as render_component hints
+  const uniqueImages = Array.from(new Set(imageMatches)).slice(0, 6);
+  const imagesContext = uniqueImages.length > 0
+    ? `\n\n=== EMBEDDABLE IMAGES ===\nThese images are from the docs above. Show them with render_component("DocImage", { src, alt }):\n${uniqueImages.map(img => {
+        const match = img.match(/!\[([^\]]*)\]\(([^)]+)\)/);
+        return match ? `- render_component("DocImage", { src: "${match[2]}", alt: "${match[1]}" })` : '';
+      }).filter(Boolean).join('\n')}\n=== END IMAGES ===\n`
     : '';
 
   // Build the full input for analytics
-  const userInput = lastUserMessage?.content || '';
+  const userInput = lastUserMessageText;
 
-  const result = streamText({
-    model: openai('gpt-4o-mini'),
-    messages: messages,
+  // Budget the context: measure total size and truncate if needed
+  // Priority order: toolsContext > relevantContext > codeContext > youtubeContext > validUrlsList > imagesContext
+  const baseSystemPromptSize = 2000; // the static system prompt text
+  const conversationSize = messages.reduce((sum: number, m: any) => sum + getTextFromMessage(m).length, 0);
+  let contextBudget = MAX_SYSTEM_PROMPT_CHARS - baseSystemPromptSize;
+
+  // Allocate context by priority, truncating lower-priority items if over budget
+  const contextParts: Array<{ key: string; text: string }> = [
+    { key: 'tools', text: toolsContext },
+    { key: 'docs', text: relevantContext },
+    { key: 'code', text: codeContext },
+    { key: 'youtube', text: youtubeContext },
+    { key: 'urls', text: validUrlsList },
+    { key: 'images', text: imagesContext },
+  ];
+
+  const budgetedContext: Record<string, string> = {};
+  for (const part of contextParts) {
+    if (part.text.length <= contextBudget) {
+      budgetedContext[part.key] = part.text;
+      contextBudget -= part.text.length;
+    } else if (contextBudget > 500) {
+      // Truncate this part to fit remaining budget
+      budgetedContext[part.key] = part.text.slice(0, contextBudget - 100) + '\n\n... [truncated for context limit] ...\n';
+      contextBudget = 0;
+    } else {
+      budgetedContext[part.key] = '';
+    }
+  }
+
+  console.log(`[Context Budget] conversation=${conversationSize} chars, system parts: ${contextParts.map(p => `${p.key}=${budgetedContext[p.key]?.length ?? 0}`).join(', ')}`);
+
+  // Convert UI messages to model messages format
+  // Handle both v6 (parts) and legacy (content) formats
+  const modelMessages = messages.map((m: any) => {
+    const text = getTextFromMessage(m);
+    return {
+      role: m.role,
+      content: text,
+    };
+  });
+
+  let result;
+  try {
+  result = streamText({
+    model: anthropic('claude-sonnet-4-6'),
+    messages: modelMessages,
     onFinish: async ({ text, usage }) => {
       // Capture LLM generation event to PostHog
       const latencyMs = Date.now() - startTime;
       await captureAIGeneration({
         distinctId: visitorId,
-        model: 'gpt-4o-mini',
+        model: 'claude-sonnet-4-6',
         input: userInput,
         output: text,
-        inputTokens: usage?.promptTokens,
-        outputTokens: usage?.completionTokens,
+        inputTokens: usage?.inputTokens,
+        outputTokens: usage?.outputTokens,
         latencyMs,
         traceId,
       });
     },
-    system: `You are an expert AI assistant for Avalanche Builders Hub, specializing in helping developers build on Avalanche.
+    onStepFinish: async (step) => {
+      // Track tool usage for analytics
+      // In AI SDK v6, step contains toolCalls and toolResults arrays
+      const toolCalls = (step as any).toolCalls;
+      const toolResults = (step as any).toolResults;
 
-CRITICAL URL RULES - MUST FOLLOW TO PREVENT 404 ERRORS:
-- **USE EXACT URLS ONLY** - NEVER shorten, truncate, or modify URLs from the context
-- **COMPLETE PATHS REQUIRED** - /academy/avalanche-l1/avalanche-fundamentals/04-creating-an-l1 is WRONG, use /academy/avalanche-l1/avalanche-fundamentals/04-creating-an-l1/01-creating-an-l1
-- Academy content is at /academy/... NOT /docs/academy/...
-- Documentation is at /docs/... 
-- NEVER prefix academy URLs with /docs/
-- When you see a page title with URL in parentheses like "Creating an L1 (/academy/avalanche-l1/avalanche-fundamentals/04-creating-an-l1/01-creating-an-l1)", use the FULL URL
-- Partial or shortened URLs WILL cause 404 errors - ALWAYS use the complete path from the context
+      if (toolCalls && Array.isArray(toolCalls) && toolCalls.length > 0) {
+        for (const toolCall of toolCalls) {
+          const toolResult = toolResults?.find((r: any) => r.toolCallId === toolCall.toolCallId);
+          const resultStr = toolResult?.result ? String(toolResult.result) : '';
+          const success = !resultStr.toLowerCase().includes('error');
 
-CORE RESPONSIBILITIES:
-- Provide accurate, helpful answers based on official Avalanche documentation, Academy courses, Integrations, and Blog posts
-- Always cite documentation sources with proper clickable links
-- Give clear, actionable guidance with code examples when appropriate
-- Recommend Console tools for hands-on tasks (they're interactive and user-friendly!)
-- Recommend Academy courses when users want structured learning
-- Recommend Integrations for production infrastructure and third-party services
-- Reference Blog posts for announcements, real-world examples, and ecosystem updates
-- Suggest follow-up questions to help users learn more
+          captureServerEvent('ai_chat_tool_used', {
+            tool_name: toolCall.toolName,
+            tool_args: JSON.stringify(toolCall.args || {}).slice(0, 500),
+            success,
+            has_result: !!toolResult,
+          }, visitorId);
+        }
+      }
+    },
+    tools: {
+      github_search_code: tool({
+        description: 'Search for code in Avalanche repositories (avalanchego, icm-services, builders-hub). Use this to find functions, types, implementations, or understand how Avalanche works internally. Returns file paths and code snippets.',
+        inputSchema: z.object({
+          query: z.string().describe('Search query - keywords, function names, type names, or concepts'),
+          repo: z.enum(['avalanchego', 'icm-services', 'builders-hub', 'all']).default('all').describe('Which repository to search'),
+          language: z.enum(['go', 'solidity', 'typescript', 'any']).default('any').describe('Filter by programming language'),
+        }),
+        execute: async (input) => {
+          const { query, repo, language } = input;
+          try {
+            const toolResult = await githubTools.handlers.github_search_code({ query, repo, language, perPage: 10 });
+            const text = toolResult.content?.[0]?.text;
+            return text ? JSON.parse(text) : { error: 'No result' };
+          } catch (error) {
+            return { error: 'Failed to search GitHub', details: String(error) };
+          }
+        },
+      }),
 
-ANSWERING GUIDELINES:
-1. **Be Direct**: Start with a clear answer to the user's question
-2. **Cite Sources**: Reference specific documentation pages AND Academy courses with links
-3. **Recommend Console**: For hands-on tasks, always suggest Console tools first
-4. **Recommend Academy**: For learning topics, suggest relevant Academy courses
-5. **Use Examples**: Include code snippets and commands when helpful
-6. **Link Properly**: Always use full URLs with correct prefixes - /docs/ for documentation, /academy/ for academy, /integrations/ for integrations, /blog/ for blog
-7. **Be Concise**: Keep answers focused and well-structured
+      github_get_file: tool({
+        description: 'Read the contents of a specific file from avalanchego, icm-services, or builders-hub. Use this after searching to read the full code of a relevant file.',
+        inputSchema: z.object({
+          repo: z.enum(['avalanchego', 'icm-services', 'builders-hub']).describe('Repository name'),
+          path: z.string().describe('File path within the repository (e.g., "vms/platformvm/block/builder.go")'),
+        }),
+        execute: async (input) => {
+          const { repo, path } = input;
+          try {
+            const toolResult = await githubTools.handlers.github_get_file({ repo, path, owner: 'ava-labs' });
+            const text = toolResult.content?.[0]?.text;
+            if (!text) return { error: 'No result' };
+            const data = JSON.parse(text);
+            if (data?.content && data.content.length > 15000) {
+              const content = data.content;
+              return {
+                ...data,
+                content: content.slice(0, 10000) + '\n\n... [truncated] ...\n\n' + content.slice(-5000),
+                truncated: true,
+              };
+            }
+            return data;
+          } catch (error) {
+            return { error: 'Failed to fetch file', details: String(error) };
+          }
+        },
+      }),
 
-WHEN TO RECOMMEND ACADEMY:
-- User is learning a new concept → Link to relevant Academy course
-- User asks "how does X work" → Explain briefly, then suggest Academy course for deep dive
-- User mentions they're a beginner → Emphasize Academy courses
-- Topics like: L1s, ICM, ICTT, validators, tokenomics → Check if there's an Academy course
-- User wants comprehensive understanding → Academy over quick docs reference
-- CRITICAL: Academy URLs are ALWAYS /academy/... (e.g., https://build.avax.network/academy/blockchain-fundamentals)
-- NEVER use /docs/academy/ - this is INCORRECT and will result in 404 errors
+      blockchain_lookup_transaction: blockchainLookupTransaction,
+      blockchain_lookup_address: blockchainLookupAddress,
+      blockchain_lookup_subnet: blockchainLookupSubnet,
+      blockchain_lookup_chain: blockchainLookupChain,
+      blockchain_lookup_validator: blockchainLookupValidator,
 
-WHEN TO RECOMMEND INTEGRATIONS:
-- User needs infrastructure (nodes, RPCs, APIs) → Suggest integration providers
-- User asks about monitoring, analytics, indexing → Link to relevant integrations
-- User mentions third-party tools → Check if there's an integration page
-- User needs production-ready solutions → Integrations over building from scratch
-- Topics like: explorers, wallets, oracles, bridges → Check integrations first
+      render_component: tool({
+        description: `Render an interactive UI component inline in the chat. Use this for console tools, metrics, and YouTube videos instead of linking. Components:\n${getCatalogDescription()}`,
+        inputSchema: z.object({
+          component: z.enum(componentNames).describe('The component to render'),
+          props: z.record(z.string(), z.any()).optional().default({}).describe('Props to pass to the component'),
+        }),
+        execute: async ({ component, props }) => {
+          return { component, props, rendered: true };
+        },
+      }),
 
-WHEN TO REFERENCE BLOG POSTS:
-- User asks "what's new" or about recent updates → Check blog for announcements
-- User wants real-world examples or case studies → Blog posts often have detailed examples
-- User asks about ecosystem projects → Blog may have featured projects
-- User wants to learn from practical applications → Blog tutorials and guides
-- Topics like: ecosystem updates, partnerships, new features → Blog is authoritative source
+      suggest_followups: tool({
+        description: 'Suggest 2-3 natural follow-up questions the user might ask next. Call this AFTER answering every question. Questions should be specific to what was just discussed.',
+        inputSchema: z.object({
+          questions: z.array(z.string().describe('A short follow-up question (under 60 chars)')).min(2).max(3),
+        }),
+        execute: async ({ questions }) => ({ questions }),
+      }),
 
-DIAGRAMS - DO NOT CREATE THEM:
-- **NEVER create Mermaid diagrams** - the diagrams in our documentation are interactive components that won't appear in your context
-- If a user asks for a diagram or flowchart, direct them to the relevant documentation page
-- Say something like: "The documentation includes interactive diagrams for this. Check out [doc link] to see the visual flow."
-- You can describe processes in numbered steps, but do not attempt to recreate diagrams
-- Be honest: "I can't generate diagrams, but the official docs have visual representations at [link]"
+      metrics_lookup: tool({
+        description: 'Look up real-time Avalanche network metrics: active addresses, transactions, TPS, validators, ICM messages, market cap. Call this before answering any metrics/stats question, then also render_component("OverviewStats") to show visually.',
+        inputSchema: z.object({
+          timeRange: z.enum(['day', 'week', 'month']).default('day'),
+        }),
+        execute: async ({ timeRange }) => {
+          try {
+            const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ||
+                           (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+            const res = await fetch(`${baseUrl}/api/overview-stats?timeRange=${timeRange}`, {
+              headers: { 'Cache-Control': 'no-cache' },
+            });
+            if (!res.ok) return { error: `Failed to fetch metrics: ${res.status}` };
+            const data = await res.json();
+            const { aggregated, chains } = data;
+            const topChains = chains
+              .filter((c: any) => c.activeAddresses > 0)
+              .sort((a: any, b: any) => b.activeAddresses - a.activeAddresses)
+              .slice(0, 10);
+            return {
+              summary: {
+                totalActiveAddresses: aggregated.totalActiveAddresses,
+                totalTransactions: aggregated.totalTxCount,
+                averageTPS: aggregated.totalTps,
+                totalValidators: aggregated.totalValidators,
+                totalICMMessages: aggregated.totalICMMessages,
+                totalMarketCap: aggregated.totalMarketCap,
+                activeChains: aggregated.activeChains,
+                timeRange,
+              },
+              topChainsByActiveAddresses: topChains.map((c: any) => ({
+                name: c.chainName,
+                chainId: c.chainId,
+                activeAddresses: c.activeAddresses,
+                transactions: c.txCount,
+                tps: c.tps,
+                validators: c.validatorCount,
+              })),
+            };
+          } catch (err) {
+            return { error: `Metrics lookup failed: ${(err as Error).message}` };
+          }
+        },
+      }),
+    },
+    stopWhen: stepCountIs(15),
+    system: `You are the AI assistant for Avalanche Builders Hub (build.avax.network). You help developers build on Avalanche — answer questions, look up on-chain data, render interactive tools, and cite documentation. Be concise and helpful — code over prose, cite docs.
 
-VISUAL COMPONENTS YOU CAN USE:
+## CRITICAL: Always produce a text response
+**You MUST write a text answer to the user's question.** Never spend all your steps on tool calls without producing text. If tools fail or return empty results, answer from your knowledge and the documentation context below. A text response is mandatory — tool calls are supplementary.
 
-**NO Mermaid Diagrams** - These are JSX components in the docs and won't be in your context
+## Tool Usage Rules
+- **GitHub search**: Make at most 2-3 search calls per question. If searches return empty results, STOP searching and answer from your knowledge + the pre-indexed context below. Do NOT keep retrying with different queries — GitHub has rate limits.
+- **If a tool returns a rate limit error**, stop using that tool and proceed with your answer.
+- **Answer first, enhance second**: Write your text answer, THEN use tools (render_component, suggest_followups) to enhance it.
 
-**Callouts** - For important notes, warnings, tips:
-> **Note**: Important information here
+## Tools & Rendering
+- **render_component**: For ANY hands-on task (create L1, faucet, staking, bridging, fees, minting, ICM, ICTT, etc.), call \`render_component\` to embed the interactive UI inline. Never just link to console tools — render them.
+- **metrics_lookup**: For stats questions (active accounts, TPS, validators, etc.), call \`metrics_lookup\` first to get numbers, then \`render_component("OverviewStats")\` to show visually. For burns → \`render_component("LiveBlockBurns")\`, ICM traffic → \`render_component("ICMFlowDiagram")\`, ICTT → \`render_component("ICTTDashboard")\`.
+- **YouTube**: Embed with \`render_component("YouTubeEmbed", { videoId, title })\`. Never paste bare YouTube links.
+- **blockchain_lookup_***: For tx hashes, addresses, validators, subnets, chains. Follow up on \`_lookupHints\` in results.
+- **github_search_code / github_get_file**: Search avalanchego, icm-services, builders-hub. Check pre-indexed code context below first. **Max 3 searches per question.**
+- **suggest_followups**: ALWAYS call this after answering. Suggest 2-3 relevant follow-up questions specific to the conversation.
+- **DocImage**: When documentation context contains images like \`![alt](/images/...)\`, call \`render_component("DocImage", { src: "/images/...", alt: "..." })\` to show them inline. Diagrams and screenshots help developers understand faster.
 
-**Code Blocks** - Always specify the language:
-\`\`\`typescript
-const example = "code";
-\`\`\`
+## URL Rules
+- Documentation: \`/docs/...\` | Academy: \`/academy/...\` (NEVER \`/docs/academy/\`) | Console: \`/console/...\`
+- Use EXACT complete URLs from context. Truncated paths cause 404s.
+- Always use full path including final segment (e.g., \`.../04-creating-an-l1/01-creating-an-l1\` not just \`.../04-creating-an-l1\`)
 
-**Tables** - For comparing options or listing parameters
+## Pre-indexed Context
+When code context is provided below, use it directly with GitHub links. Only search GitHub if context is insufficient.
 
-**Numbered Steps** - For processes and workflows when diagrams aren't available:
-1. First step
-2. Second step
-3. Third step
+${budgetedContext['tools'] ?? ''}
 
-WHEN TO RECOMMEND CONSOLE TOOLS:
-- User wants to create an L1 → Link to Create L1 Console tool
-- User needs testnet AVAX/tokens/faucet → ALWAYS link to https://build.avax.network/console/primary-network/faucet (Console Faucet)
-- User wants to set up validators → Link to Validator Management Console tools
-- User needs cross-chain messaging → Link to ICM Console tools
-- User wants to bridge tokens → Link to ICTT Console tools
-- User asks "how do I..." for any practical task → Check if there's a Console tool for it!
+${budgetedContext['youtube'] ?? ''}
 
-FAUCET REQUESTS - CRITICAL:
-When users ask about:
-- "testnet AVAX"
-- "test tokens"
-- "faucet"
-- "fuji tokens"
-- "how to get AVAX for testing"
-- "need AVAX to test"
+${budgetedContext['docs'] ?? ''}
 
-ALWAYS respond with: "You can get testnet AVAX from the [Console Faucet](https://build.avax.network/console/primary-network/faucet). Just connect your wallet and request tokens!"
+${budgetedContext['images'] ?? ''}
 
-CITATION FORMAT - EXACT URLs REQUIRED:
-- **COPY URLS EXACTLY** from the documentation context - do NOT shorten or modify them
-- When you see "Page Title (/exact/path/to/page)", use the COMPLETE path: https://build.avax.network/exact/path/to/page
-- Example: "Creating an L1 (/academy/avalanche-l1/avalanche-fundamentals/04-creating-an-l1/01-creating-an-l1)" 
-  → Link as: https://build.avax.network/academy/avalanche-l1/avalanche-fundamentals/04-creating-an-l1/01-creating-an-l1
-  → NOT: https://build.avax.network/academy/avalanche-l1/avalanche-fundamentals/04-creating-an-l1 (missing final segment)
-- NEVER prefix academy with /docs/ - Academy URLs are /academy/... NOT /docs/academy/...
-- NEVER truncate URLs - missing segments cause 404 errors
-- Quote relevant sections when helpful
-- Always provide the COMPLETE source URL so users can access the page
+${budgetedContext['code'] ?? ''}
 
-IMPORTANT SECTIONS:
-- Documentation: https://build.avax.network/docs - Technical references and guides
-- Academy (courses): https://build.avax.network/academy - Structured learning paths and tutorials
-- Console (interactive tools): https://build.avax.network/console - Hands-on tools for building
-- Integrations: https://build.avax.network/integrations - Third-party tools and services
-- Blog: https://build.avax.network/blog - Announcements, tutorials, ecosystem updates
-- Guides: https://build.avax.network/guides - Step-by-step how-tos
-
-CONTENT AVAILABLE IN YOUR CONTEXT:
-You have access to:
-- ✅ All Documentation pages (technical docs, API references, guides)
-- ✅ All Academy courses (Avalanche Fundamentals, ICM, ICTT, L1s, Tokenomics, etc.)
-- ✅ All Integrations pages (third-party tools, services, infrastructure providers)
-- ✅ All Blog posts (announcements, tutorials, ecosystem updates, case studies)
-- Use strategically: Docs for quick reference, Academy for learning, Integrations for tool recommendations, Blog for announcements and real-world examples
-
-CONSOLE TOOLS (prioritize these for hands-on tasks):
-The Console provides interactive tools for building and managing Avalanche L1s:
-
-**Primary Network Tools:**
-- Node Setup: https://build.avax.network/console/primary-network/node-setup - Configure and deploy Primary Network nodes
-- Faucet: https://build.avax.network/console/primary-network/faucet - Get testnet AVAX for development
-- C-P Bridge: https://build.avax.network/console/primary-network/c-p-bridge - Transfer AVAX between C-Chain and P-Chain
-- Staking: https://build.avax.network/console/primary-network/stake - Stake AVAX on the Primary Network
-- Unit Converter: https://build.avax.network/console/primary-network/unit-converter - Convert between AVAX units
-
-**Layer 1 (L1) Tools:**
-- Create L1: https://build.avax.network/console/layer-1/create - Launch custom L1 blockchains
-- L1 Node Setup: https://build.avax.network/console/layer-1/l1-node-setup - Configure nodes for your L1
-- Validator Set: https://build.avax.network/console/layer-1/validator-set - Manage L1 validators
-- Explorer Setup: https://build.avax.network/console/layer-1/explorer-setup - Deploy block explorer
-- L1 Validator Balance: https://build.avax.network/console/layer-1/l1-validator-balance - Check validator balances
-
-**Permissioned L1 Tools:**
-- Add Validator: https://build.avax.network/console/permissioned-l1s/add-validator - Add validators to permissioned L1s
-- Remove Validator: https://build.avax.network/console/permissioned-l1s/remove-validator - Remove validators
-- Change Validator Weight: https://build.avax.network/console/permissioned-l1s/change-validator-weight - Adjust validator weights
-- Validator Manager Setup: https://build.avax.network/console/permissioned-l1s/validator-manager-setup - Deploy validator manager
-- Multisig Setup: https://build.avax.network/console/permissioned-l1s/multisig-setup - Configure multisig for validator management
-
-**Interchain Messaging (ICM) Tools:**
-- ICM Setup: https://build.avax.network/console/icm/setup - Configure Teleporter for cross-chain messaging
-- Test Connection: https://build.avax.network/console/icm/test-connection - Test ICM between chains
-
-**Interchain Token Transfer (ICTT) Tools:**
-- ICTT Setup: https://build.avax.network/console/ictt/setup - Configure token bridges
-- Token Transfer: https://build.avax.network/console/ictt/token-transfer - Bridge tokens between chains
-
-**L1 Tokenomics Tools:**
-- Fee Manager: https://build.avax.network/console/l1-tokenomics/fee-manager - Configure gas fees
-- Native Minter: https://build.avax.network/console/l1-tokenomics/native-minter - Mint native tokens
-- Reward Manager: https://build.avax.network/console/l1-tokenomics/reward-manager - Configure staking rewards
-
-**L1 Access Restrictions:**
-- Deployer Allowlist: https://build.avax.network/console/l1-access-restrictions/deployer-allowlist - Control who can deploy contracts
-- Transactor Allowlist: https://build.avax.network/console/l1-access-restrictions/transactor-allowlist - Control who can transact
-
-**Testnet Infrastructure:**
-- Managed Nodes: https://build.avax.network/console/testnet-infra/nodes - Deploy managed testnet nodes
-- ICM Relayer: https://build.avax.network/console/testnet-infra/icm-relayer - Set up ICM relayer
-
-**Utilities:**
-- Format Converter: https://build.avax.network/console/utilities/format-converter - Convert between address formats
-- Data API Keys: https://build.avax.network/console/utilities/data-api-keys - Manage Glacier API keys
-
-When users need hands-on tools, ALWAYS recommend Console tools with direct links!
-
-URL RULES - CRITICAL FOR PREVENTING 404 ERRORS:
-1. **ONLY use EXACT URLs from the "VALID DOCUMENTATION URLS" list or from the page URLs in the documentation context**
-2. **NEVER shorten, truncate, or modify URLs** - Use the COMPLETE path exactly as shown
-3. **NEVER construct or guess URLs** - Only use URLs that appear in full in the context
-4. **NEVER mix prefixes** - Academy URLs use /academy/, NOT /docs/academy/
-5. **USE FULL PATHS** - /academy/avalanche-l1/avalanche-fundamentals/04-creating-an-l1/01-creating-an-l1 NOT /academy/avalanche-l1/avalanche-fundamentals/04-creating-an-l1
-6. Every URL you provide MUST be the complete path from the context or valid URLs list
-7. When you see "Page Title (/full/path/to/page)" in the context, use the ENTIRE path in parentheses
-8. Partial URLs WILL cause 404 errors - there is no auto-redirect to index pages
-
-Examples of what NOT to do:
-- ❌ https://build.avax.network/docs/academy/... (Never prefix academy with /docs/)
-- ❌ https://build.avax.network/academy/avalanche-l1/avalanche-fundamentals/04-creating-an-l1 (Truncated URL - missing /01-creating-an-l1)
-- ❌ https://build.avax.network/docs/nodes/system-requirements (if not in valid URLs)
-- ❌ https://build.avax.network/academy/interchain-messaging/intro (if not in valid URLs)
-
-Examples of what TO do:
-- ✅ Use EXACT URLs: https://build.avax.network/academy/avalanche-l1/avalanche-fundamentals/04-creating-an-l1/01-creating-an-l1
-- ✅ Copy the FULL path from context: "Creating an L1 (/academy/avalanche-l1/avalanche-fundamentals/04-creating-an-l1/01-creating-an-l1)"
-- ✅ Never shorten URLs - use the complete path even if it seems long
-- ✅ Always verify the URL is complete by checking it matches what's in the context
-- ✅ Double-check the valid URLs list before every link
-
-The complete list of valid URLs will be provided at the end of this prompt.
-
-FINAL REMINDER ABOUT URLS:
-- The documentation context shows pages like "Title (/full/path/to/page)" - USE THE ENTIRE PATH
-- Shortened URLs WILL NOT WORK - there are no automatic redirects to index pages
-- If you cite /academy/avalanche-l1/avalanche-fundamentals/04-creating-an-l1 instead of /academy/avalanche-l1/avalanche-fundamentals/04-creating-an-l1/01-creating-an-l1, it WILL 404
-- ALWAYS use the COMPLETE URL exactly as shown in the context or valid URLs list
-
-FOLLOW-UP QUESTIONS - CRITICAL FORMAT:
-At the end of EVERY response, you MUST include exactly 3 follow-up questions in this EXACT format:
-
----FOLLOW-UP-QUESTIONS---
-1. [First follow-up question]
-2. [Second follow-up question]
-3. [Third follow-up question]
----END-FOLLOW-UP-QUESTIONS---
-
-**CRITICAL: Use EXACTLY this format with three dashes (---), no spaces before/after the markers**
-- DO NOT use "Follow-up Questions:" as a heading
-- DO NOT use any other format
-- Must number as "1. ", "2. ", "3. "
-- Plain text only, NO markdown links
-- Each question on its own line
-    
-    ${relevantContext}
-    
-ADDITIONAL RESOURCES (mention when relevant):
-    - GitHub: https://github.com/ava-labs
-    - Discord Community: https://discord.gg/avalanche
-    - Developer Forum: https://forum.avax.network
-    - Avalanche Explorer: https://subnets.avax.network
-    
-Remember: Accuracy and proper documentation links are critical. When in doubt, direct users to the relevant documentation section.
-
-${validUrlsList}`,
+${budgetedContext['urls'] ?? ''}`,
   });
+  } catch (error) {
+    console.error('[Chat] streamText failed:', error);
+    return new Response(
+      JSON.stringify({
+        error: 'Chat failed',
+        message: 'Something went wrong processing your message. Please try a shorter message or start a new conversation.',
+      }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
 
-  return result.toDataStreamResponse();
+  return result.toUIMessageStreamResponse();
 }

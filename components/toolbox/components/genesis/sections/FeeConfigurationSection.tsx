@@ -22,6 +22,7 @@ type FeeConfigurationSectionProps = {
     validationMessages: ValidationMessages;
     compact?: boolean;
     walletAddress?: Address;
+    initialPreset?: string | null;
 };
 
 export const FeeConfigurationSection = ({
@@ -37,7 +38,8 @@ export const FeeConfigurationSection = ({
     setRewardManagerConfig,
     validationMessages,
     compact,
-    walletAddress
+    walletAddress,
+    initialPreset
 }: FeeConfigurationSectionProps) => {
     const { setHighlightPath, clearHighlight } = useGenesisHighlight();
 
@@ -175,6 +177,7 @@ export const FeeConfigurationSection = ({
                 feeConfig={feeConfig}
                 onFeeConfigChange={setFeeConfig}
                 validationMessages={feeConfigValidation}
+                initialPreset={initialPreset}
             />
 
             {/* Fee Manager and Reward Manager */}

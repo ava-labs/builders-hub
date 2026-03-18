@@ -17,6 +17,7 @@ interface Block {
   gasLimit: string;
   baseFeePerGas?: string;
   gasFee?: string; // Total gas fee in native token (sum of all tx fees)
+  burnedFee?: string; // Burned fee in native token (sum of gasUsed * baseFeePerGas for all txs)
   timestampMilliseconds?: number; // Avalanche-specific: block timestamp in milliseconds
 }
 
@@ -569,6 +570,7 @@ async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: st
   // Skip receipt fetching if initialLoad is true
   const receiptMap = new Map<string, RpcTransactionReceipt>();
   const blockGasFees = new Map<number, bigint>();
+  const blockBurnedFees = new Map<number, bigint>();
 
   if (!initialLoad) {
     const receiptsStart = Date.now();
@@ -601,16 +603,31 @@ async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: st
       }
     }
 
-    // Calculate gas fees per block by summing transaction fees
+    // Calculate gas fees and burned fees per block by summing transaction fees
     for (let i = 0; i < allTxHashes.length; i++) {
       const { blockIndex, txHash } = allTxHashes[i];
       const receipt = receiptMap.get(txHash);
-      if (receipt && receipt.gasUsed && receipt.effectiveGasPrice) {
+      const block = validBlocks[blockIndex];
+
+      if (receipt && receipt.gasUsed) {
         const gasUsed = BigInt(receipt.gasUsed);
-        const effectiveGasPrice = BigInt(receipt.effectiveGasPrice);
-        const txFee = gasUsed * effectiveGasPrice;
-        const currentFee = blockGasFees.get(blockIndex) || BigInt(0);
-        blockGasFees.set(blockIndex, currentFee + txFee);
+
+        // Calculate total gas fee (gasUsed * effectiveGasPrice)
+        if (receipt.effectiveGasPrice) {
+          const effectiveGasPrice = BigInt(receipt.effectiveGasPrice);
+          const txFee = gasUsed * effectiveGasPrice;
+          const currentFee = blockGasFees.get(blockIndex) || BigInt(0);
+          blockGasFees.set(blockIndex, currentFee + txFee);
+        }
+
+        // Calculate burned fee (gasUsed * effectiveGasPrice)
+        // On Avalanche, the entire transaction fee (base + priority) is burned, unlike Ethereum
+        if (receipt.effectiveGasPrice) {
+          const effectiveGasPrice = BigInt(receipt.effectiveGasPrice);
+          const burnedFee = gasUsed * effectiveGasPrice;
+          const currentBurned = blockBurnedFees.get(blockIndex) || BigInt(0);
+          blockBurnedFees.set(blockIndex, currentBurned + burnedFee);
+        }
       }
     }
     timing.receiptsFetch = Date.now() - receiptsStart;
@@ -625,9 +642,12 @@ async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: st
     const gasFeeWei = blockGasFees.get(blockIndex) || BigInt(0);
     const gasFee = gasFeeWei > 0 ? (Number(gasFeeWei) / 1e18).toFixed(6) : undefined;
 
+    const burnedFeeWei = blockBurnedFees.get(blockIndex) || BigInt(0);
+    const burnedFee = burnedFeeWei > 0 ? (Number(burnedFeeWei) / 1e18).toFixed(18) : undefined;
+
     // Parse timestampMilliseconds for Avalanche (hex string to number)
-    const timestampMilliseconds = block.timestampMilliseconds 
-      ? parseInt(block.timestampMilliseconds, 16) 
+    const timestampMilliseconds = block.timestampMilliseconds
+      ? parseInt(block.timestampMilliseconds, 16)
       : undefined;
 
     return {
@@ -640,6 +660,7 @@ async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: st
       gasLimit: hexToNumber(block.gasLimit).toLocaleString(),
       baseFeePerGas: block.baseFeePerGas ? formatGasPrice(block.baseFeePerGas) : undefined,
       gasFee,
+      burnedFee,
       timestampMilliseconds,
     };
   });

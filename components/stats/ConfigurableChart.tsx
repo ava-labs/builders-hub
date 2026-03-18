@@ -6,13 +6,22 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Search, X, Eye, EyeOff, Plus, Camera, Loader2, ChevronLeft, GripVertical, Layers, Pencil, Maximize2, Minimize2, Trash2, CalendarIcon, RefreshCw } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Search, X, Eye, EyeOff, Plus, Camera, Loader2, ChevronLeft, GripVertical, Layers, Pencil, Maximize2, Minimize2, Trash2, CalendarIcon, RefreshCw, Sparkles, Download, Copy } from "lucide-react";
 import l1ChainsData from "@/constants/l1-chains.json";
 import Image from "next/image";
 import { useTheme } from "next-themes";
 import { toPng } from "html-to-image";
 import { ChartWatermark } from "@/components/stats/ChartWatermark";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
+import { ImageExportStudio } from "@/components/stats/image-export";
+import type { PlaygroundChartData } from "@/components/stats/image-export";
+import { parseDateString, calculateDateRangeDays, formatXAxisLabel, generateXAxisTicks } from "@/components/stats/chart-axis-utils";
 
 // Types
 interface TimeSeriesDataPoint {
@@ -90,6 +99,12 @@ export interface ChartDataPoint {
   [key: string]: string | number;
 }
 
+// Data structure for exposing chart data to parent components
+export interface ChartDataExport {
+  data: ChartDataPoint[];
+  seriesInfo: { id: string; name: string; color: string; yAxis?: string }[];
+}
+
 export interface ConfigurableChartProps {
   title?: string;
   initialDataSeries?: Partial<DataSeries>[];
@@ -110,6 +125,10 @@ export interface ConfigurableChartProps {
   initialBrushStartIndex?: number | null;
   initialBrushEndIndex?: number | null;
   onBrushChange?: (startIndex: number | null, endIndex: number | null) => void;
+  // Callback to expose chart data for external use (e.g., playground collage)
+  onChartDataReady?: (data: ChartDataExport) => void;
+  // Playground charts for collage mode in Image Export Studio
+  playgroundCharts?: PlaygroundChartData[];
 }
 
 const DEFAULT_COLORS = [
@@ -195,6 +214,8 @@ export default function ConfigurableChart({
   initialBrushStartIndex,
   initialBrushEndIndex,
   onBrushChange,
+  onChartDataReady,
+  playgroundCharts,
 }: ConfigurableChartProps) {
   const { resolvedTheme } = useTheme();
   const [isMounted, setIsMounted] = useState(false);
@@ -250,6 +271,7 @@ export default function ConfigurableChart({
   const [selectedMetric, setSelectedMetric] = useState<string | null>(null);
   const [metricSearchTerm, setMetricSearchTerm] = useState("");
   const [chainSearchTerm, setChainSearchTerm] = useState("");
+  const [showImageStudio, setShowImageStudio] = useState(false);
   const [brushRange, setBrushRange] = useState<{
     startIndex: number;
     endIndex: number;
@@ -273,14 +295,22 @@ export default function ConfigurableChart({
 
   // Notify parent when dataSeries changes
   const prevDataSeriesRef = useRef<DataSeries[]>(dataSeries);
+  const onDataSeriesChangeRef = useRef(onDataSeriesChange);
+  onDataSeriesChangeRef.current = onDataSeriesChange;
+
+  // Store onChartDataReady in a ref to avoid infinite re-render loops
+  // (parent may pass inline arrow function that changes on every render)
+  const onChartDataReadyRef = useRef(onChartDataReady);
+  onChartDataReadyRef.current = onChartDataReady;
+
   useEffect(() => {
     // Only call callback if dataSeries actually changed
     const hasChanged = JSON.stringify(prevDataSeriesRef.current) !== JSON.stringify(dataSeries);
-    if (hasChanged && onDataSeriesChange) {
+    if (hasChanged && onDataSeriesChangeRef.current) {
       prevDataSeriesRef.current = dataSeries;
-      onDataSeriesChange(dataSeries);
+      onDataSeriesChangeRef.current(dataSeries);
     }
-  }, [dataSeries, onDataSeriesChange]);
+  }, [dataSeries]);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -532,6 +562,8 @@ export default function ConfigurableChart({
   const filteredData = aggregatedData;
 
   // Calculate filtered date range in days to determine which resolutions to enable
+  // IMPORTANT: Use mergedData.length (original daily data) not filteredData.length (aggregated data)
+  // This ensures resolution buttons stay enabled when switching between resolutions
   const filteredDaysCount = useMemo(() => {
     if (startTime && endTime) {
       const startDate = new Date(startTime);
@@ -541,9 +573,11 @@ export default function ConfigurableChart({
       return days;
     }
     
-    // If no filter, use the data length as an estimate (assuming daily data)
-    return filteredData.length;
-  }, [startTime, endTime, filteredData.length]);
+    // If no filter, use the original merged data length (daily data) as an estimate
+    // Using mergedData instead of filteredData because filteredData is already aggregated
+    // and would give incorrect counts for non-daily resolutions
+    return mergedData.length;
+  }, [startTime, endTime, mergedData.length]);
 
   // Determine which resolutions should be enabled based on filtered days
   const isResolutionEnabled = useMemo(() => {
@@ -633,11 +667,31 @@ export default function ConfigurableChart({
     return filteredData.slice(safeBrushRange.startIndex, safeBrushRange.endIndex + 1);
   }, [safeBrushRange, filteredData]);
 
+  // Calculate the number of days in the brush range for dynamic x-axis formatting
+  const brushRangeDays = useMemo(() => {
+    return calculateDateRangeDays(displayData, "date");
+  }, [displayData]);
+
   const visibleSeries = useMemo(() => {
     return dataSeries
       .filter((s) => s.visible)
       .sort((a, b) => a.zIndex - b.zIndex); // Sort by z-index: lower values render first (behind)
   }, [dataSeries]);
+
+  // Notify parent when chart data is ready for export (e.g., playground collage)
+  useEffect(() => {
+    if (onChartDataReadyRef.current && aggregatedData.length > 0 && visibleSeries.length > 0) {
+      onChartDataReadyRef.current({
+        data: aggregatedData,
+        seriesInfo: visibleSeries.map((s) => ({
+          id: s.id,
+          name: s.name,
+          color: s.color,
+          yAxis: s.yAxis,
+        })),
+      });
+    }
+  }, [aggregatedData, visibleSeries]);
 
   // Group series by metricKey for stacking
   const seriesByMetric = useMemo(() => {
@@ -652,32 +706,19 @@ export default function ConfigurableChart({
   }, [visibleSeries]);
 
 
-  // Parse date string as local time to avoid timezone issues
-  const parseLocalDate = (value: string): Date => {
-    // Handle different formats: "YYYY-MM-DD", "YYYY-MM", "YYYY"
-    const parts = value.split("-");
-    const year = parseInt(parts[0], 10);
-    const month = parts[1] ? parseInt(parts[1], 10) - 1 : 0;
-    const day = parts[2] ? parseInt(parts[2], 10) : 1;
-    return new Date(year, month, day);
-  };
+  // Calculate total days in the full data for brush slider formatting
+  const totalDataDays = useMemo(() => {
+    return calculateDateRangeDays(aggregatedData, "date");
+  }, [aggregatedData]);
 
-  const formatXAxis = (value: string) => {
-    if (resolution === "Q") {
-      const parts = value.split("-");
-      if (parts.length === 2) return `${parts[1]} '${parts[0].slice(-2)}`;
-      return value;
-    }
-    if (resolution === "Y") return value;
-    const date = parseLocalDate(value);
-    if (resolution === "M") {
-      return date.toLocaleDateString("en-US", {
-        month: "short",
-        year: "2-digit",
-      });
-    }
-    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-  };
+  const formatXAxis = (value: string) => formatXAxisLabel(value, brushRangeDays);
+
+  const formatBrushXAxis = (value: string) => formatXAxisLabel(value, totalDataDays);
+
+  // Generate custom ticks aligned to meaningful boundaries
+  const xAxisTicks = useMemo(() => {
+    return generateXAxisTicks(displayData, brushRangeDays, "date");
+  }, [displayData, brushRangeDays]);
 
   const formatTooltipDate = (value: string) => {
     if (resolution === "Y") return value;
@@ -686,7 +727,7 @@ export default function ConfigurableChart({
       if (parts.length === 2) return `${parts[1]} ${parts[0]}`;
       return value;
     }
-    const date = parseLocalDate(value);
+    const date = parseDateString(value);
     if (resolution === "M") {
       return date.toLocaleDateString("en-US", {
         month: "long",
@@ -885,8 +926,8 @@ export default function ConfigurableChart({
             tickFormatter={formatXAxis}
             className="text-xs text-gray-600 dark:text-gray-400"
             tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
-            minTickGap={80}
-            interval="preserveStartEnd"
+            ticks={xAxisTicks}
+            interval={0}
           />
           {hasLeftAxis && (
             <YAxis
@@ -1017,6 +1058,30 @@ export default function ConfigurableChart({
     } catch (error) {
       console.error("Failed to capture screenshot:", error);
     }
+  };
+
+  // CSV download function
+  const downloadCSV = () => {
+    if (displayData.length === 0 || visibleSeries.length === 0) return;
+
+    const headers = ["Date", ...visibleSeries.map((s) => s.name)];
+    const rows = displayData.map((point) => {
+      const values = [point.date];
+      visibleSeries.forEach((series) => {
+        const value = (point as Record<string, string | number>)[series.id];
+        values.push(value !== undefined ? String(value) : "");
+      });
+      return values.join(",");
+    });
+
+    const csvContent = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${chartTitle || "chart"}_${resolution}_${new Date().toISOString().split("T")[0]}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
   };
 
   const toggleColSpan = () => {
@@ -1285,54 +1350,58 @@ export default function ConfigurableChart({
           </div>
 
           {/* Configuration Controls */}
-          {!disableControls && (
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="stack-same-metrics"
-                  checked={stackSameMetrics}
-                  onChange={(e) => {
-                    const newValue = e.target.checked;
-                    setStackSameMetrics(newValue);
-                    if (onStackSameMetricsChange) {
-                      onStackSameMetricsChange(newValue);
-                    }
-                  }}
-                  className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 dark:focus:ring-blue-400 cursor-pointer"
-                />
-                <label
-                  htmlFor="stack-same-metrics"
-                  className="text-xs text-gray-700 dark:text-gray-300 cursor-pointer flex items-center gap-1.5"
-                >
-                  <Layers className="h-3.5 w-3.5" />
-                  <span>Stack all series</span>
-                </label>
-              </div>
+          <div className="flex flex-wrap items-center gap-3">
+            {!disableControls && (
+              <>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="stack-same-metrics"
+                    checked={stackSameMetrics}
+                    onChange={(e) => {
+                      const newValue = e.target.checked;
+                      setStackSameMetrics(newValue);
+                      if (onStackSameMetricsChange) {
+                        onStackSameMetricsChange(newValue);
+                      }
+                    }}
+                    className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 dark:focus:ring-blue-400 cursor-pointer"
+                  />
+                  <label
+                    htmlFor="stack-same-metrics"
+                    className="text-xs text-gray-700 dark:text-gray-300 cursor-pointer flex items-center gap-1.5"
+                  >
+                    <Layers className="h-3.5 w-3.5" />
+                    <span>Stack all series</span>
+                  </label>
+                </div>
 
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="abbreviate-numbers"
-                  checked={abbreviateNumbers}
-                  onChange={(e) => {
-                    const newValue = e.target.checked;
-                    setAbbreviateNumbers(newValue);
-                    if (onAbbreviateNumbersChange) {
-                      onAbbreviateNumbersChange(newValue);
-                    }
-                  }}
-                  className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 dark:focus:ring-blue-400 cursor-pointer"
-                />
-                <label
-                  htmlFor="abbreviate-numbers"
-                  className="text-xs text-gray-700 dark:text-gray-300 cursor-pointer"
-                >
-                  <span>Abbreviate numbers</span>
-                </label>
-              </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="abbreviate-numbers"
+                    checked={abbreviateNumbers}
+                    onChange={(e) => {
+                      const newValue = e.target.checked;
+                      setAbbreviateNumbers(newValue);
+                      if (onAbbreviateNumbersChange) {
+                        onAbbreviateNumbersChange(newValue);
+                      }
+                    }}
+                    className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 dark:focus:ring-blue-400 cursor-pointer"
+                  />
+                  <label
+                    htmlFor="abbreviate-numbers"
+                    className="text-xs text-gray-700 dark:text-gray-300 cursor-pointer"
+                  >
+                    <span>Abbreviate numbers</span>
+                  </label>
+                </div>
+              </>
+            )}
 
-              <div className="ml-auto flex items-center gap-2">
+            <div className="ml-auto flex items-center gap-2">
+              {!disableControls && (
                 <div className="relative">
                   <button
                     onClick={() => {
@@ -1423,7 +1492,7 @@ export default function ConfigurableChart({
                         const isLastAllChains = isAllChains && index < filteredChains.length - 1 && filteredChains[index + 1].chainId !== "all";
                         
                         return (
-                          <div key={chain.chainId}>
+                          <div key={`${chain.chainId}-${index}`}>
                             <button
                               onClick={() =>
                                 handleChainSelect(chain.chainId, chain.chainName)
@@ -1463,13 +1532,34 @@ export default function ConfigurableChart({
                   </div>
                 )}
                 </div>
-                <button
-                  onClick={handleScreenshot}
-                  className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
-                  title="Download chart as image"
-                >
-                  <Camera className="h-4 w-4" />
-                </button>
+              )}
+              <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
+                      title="Image options"
+                    >
+                      <Camera className="h-4 w-4" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem onClick={() => setShowImageStudio(true)}>
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      Open in studio
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleScreenshot}>
+                      <Download className="h-4 w-4 mr-2" />
+                      Download as image
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              <button
+                onClick={downloadCSV}
+                className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
+                title="Download CSV"
+              >
+                <Download className="h-4 w-4" />
+              </button>
                 {onTimeFilterChange && !disableControls && (
                   <Popover open={showTimeFilterPopover} onOpenChange={setShowTimeFilterPopover}>
                     <PopoverTrigger asChild>
@@ -1641,7 +1731,6 @@ export default function ConfigurableChart({
                 )}
               </div>
             </div>
-          )}
         </div>
 
 
@@ -1763,7 +1852,7 @@ export default function ConfigurableChart({
                       }
                     }}
                     travellerWidth={8}
-                    tickFormatter={formatXAxis}
+                    tickFormatter={formatBrushXAxis}
                   >
                     <LineChart>
                       <Line
@@ -1781,6 +1870,34 @@ export default function ConfigurableChart({
             )}
         </ChartWatermark>
       </CardContent>
+
+      {/* Image Export Studio Modal */}
+      <ImageExportStudio
+        isOpen={showImageStudio}
+        onClose={() => setShowImageStudio(false)}
+        period={resolution}
+        onPeriodChange={setResolution}
+        allowedPeriods={(["D", "W", "M", "Q", "Y"] as const).filter((p) => isResolutionEnabled[p])}
+        dataArray={aggregatedData}
+        seriesInfo={visibleSeries.map((s) => ({
+          id: s.id,
+          name: s.name,
+          color: s.color,
+          yAxis: s.yAxis,
+        }))}
+        chartData={{
+          title: chartTitle,
+          source: "Token Terminal",
+          sourceDescription: dataSeries[0]?.name ? `${dataSeries[0].name} metric data` : undefined,
+          chainName: dataSeries[0]?.chainName || "Avalanche",
+          metricValue: dataSeries[0] && chartData[dataSeries[0].id]?.length
+            ? formatYAxis(Number(chartData[dataSeries[0].id][chartData[dataSeries[0].id].length - 1]?.[dataSeries[0].id]) || 0)
+            : undefined,
+          metricLabel: "Latest",
+          pageUrl: typeof window !== "undefined" ? window.location.href : undefined,
+        }}
+        playgroundCharts={playgroundCharts}
+      />
     </Card>
   );
 }

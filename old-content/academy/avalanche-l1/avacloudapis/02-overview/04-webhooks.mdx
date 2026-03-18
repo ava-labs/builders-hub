@@ -1,0 +1,144 @@
+---
+title: Webhooks API
+description: Learn about AvaCloud Webhooks API.
+updated: 2024-09-03
+authors: [owenwahlgren]
+icon: Book
+---
+## What is a Webhook?
+
+A webhook is a communication mechanism to provide applications with real-time information. It delivers data to other applications as it happens, meaning you get data immediately, unlike typical APIs where you would need to poll for data to get it in "real-time". This makes webhooks much more efficient for both providers and consumers. Webhooks work by registering a URL to send notifications once certain events occur.
+You can create receiver endpoints in your server in any programming language and those will have an associated URL. This object contains all the relevant information about what just happened, including the type of event and the data associated with that event.
+
+## What are AvaCloud Webhooks?
+
+With the Webhooks API, you can monitor real-time events on the Avalanche C-Chain and L1s. For example, you can monitor smart contract events, track NFT transfers, and observe wallet-to-wallet transactions.
+
+![](https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/course-images/avacloudsdk/glacier-webhooks-xpLeH8o7slcnvOdWsIorDJSUeNlz04.png)
+
+### Key Features:
+- **Real-time notifications:** Receive immediate updates on specified on-chain activities without polling.
+- **Customizable:** Specify the desired event type to listen for, customizing notifications according to individual requirements.
+- **Secure:** Employ shared secrets and signature-based verification to guarantee that notifications originate from a trusted source.
+- **Broad Coverage:** Support for C-chain mainnet, testnet, and L1s within the Avalanche ecosystem, ensuring wide-ranging monitoring capabilities.
+
+### Use Cases:
+- **NFT Marketplace Transactions:** Get alerts for NFT minting, transfers, auctions, bids, sales, and other interactions within NFT marketplaces.
+- **Wallet Notifications:** Receive alerts when an address performs actions such as sending, receiving, swapping, or burning assets.
+- **DeFi Activities:** Receive notifications for various DeFi activities such as liquidity provisioning, yield farming, borrowing, lending, and liquidations.
+
+<Quiz quizId="3024"/>
+
+## Webhooks API Reference
+
+<Accordions>
+
+<Accordion title="Create a webhook">
+[Create a new webhook](https://developers.avacloud.io/webhooks-api/webhooks/create-a-webhook)
+```bash
+curl --request POST \
+     --url https://glacier-api.avax.network/v1/webhooks \
+     --header 'accept: application/json' \
+     --header 'content-type: application/json' \
+     --data '
+{
+  "eventType": "address_activity"
+}
+```
+</Accordion>
+
+<Accordion title="List webhooks">
+[Lists webhooks for the user.](https://developers.avacloud.io/webhooks-api/webhooks/list-webhooks)
+```bash
+curl --request GET \
+     --url https://glacier-api.avax.network/v1/webhooks \
+     --header 'accept: application/json'
+```
+
+</Accordion>
+
+<Accordion title="Get a webhook by ID">
+[Retrieves a webhook by ID.](https://developers.avacloud.io/webhooks-api/webhooks/get-a-webhook-by-id)
+```bash
+curl --request GET \
+     --url https://glacier-api.avax.network/v1/webhooks/id \
+     --header 'accept: application/json'
+```
+
+</Accordion>
+
+<Accordion title="Deactivate a webhook">
+[Deactivates a webhook by ID.](https://developers.avacloud.io/webhooks-api/webhooks/deactivate-a-webhook)
+```bash
+curl --request DELETE \
+     --url https://glacier-api.avax.network/v1/webhooks/id \
+     --header 'accept: application/json'
+```
+
+</Accordion>
+
+<Accordion title="Update a webhook">
+[Updates an existing webhook.](https://developers.avacloud.io/webhooks-api/webhooks/update-a-webhook)
+```bash
+curl --request PATCH \
+     --url https://glacier-api.avax.network/v1/webhooks/id \
+     --header 'accept: application/json' \
+     --header 'content-type: application/json'
+```
+</Accordion>
+
+<Accordion title="Generate a shared secret">
+[Generates a new shared secret.](https://developers.avacloud.io/webhooks-api/webhooks/generate-a-shared-secret)
+```bash
+curl --request POST \
+     --url https://glacier-api.avax.network/v1/webhooks:generateOrRotateSharedSecret \
+     --header 'accept: application/json'
+```
+
+</Accordion>
+
+<Accordion title="Get a shared secret">
+[Get a previously generated shared secret.](https://developers.avacloud.io/webhooks-api/webhooks/get-a-shared-secret)
+```bash
+curl --request GET \
+     --url https://glacier-api.avax.network/v1/webhooks:getSharedSecret \
+     --header 'accept: application/json'
+```
+
+</Accordion>
+
+<Accordion title="Add addresses to webhook">
+[Add addresses to webhook.](https://developers.avacloud.io/webhooks-api/webhooks/add-addresses-to-webhook)
+```bash
+curl --request PATCH \
+     --url https://glacier-api.avax.network/v1/webhooks/id/addresses \
+     --header 'accept: application/json' \
+     --header 'content-type: application/json'
+```
+</Accordion>
+
+<Accordion title="Remove addresses to webhook">
+[Remove addresses from webhook.](https://developers.avacloud.io/webhooks-api/webhooks/remove-addresses-from-webhook)
+```bash
+curl --request DELETE \
+     --url https://glacier-api.avax.network/v1/webhooks/id/addresses \
+     --header 'accept: application/json' \
+     --header 'content-type: application/json'
+```
+
+</Accordion>
+
+<Accordion title="List addresses by webhook">
+[List adresses by webhook.](https://developers.avacloud.io/webhooks-api/webhooks/list-adresses-by-webhook)
+```bash
+curl --request GET \
+     --url https://glacier-api.avax.network/v1/webhooks/id/addresses \
+     --header 'accept: application/json'
+```
+
+</Accordion>
+
+
+</Accordions>
+
+<Quiz quizId="3025"/>

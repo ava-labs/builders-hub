@@ -17,7 +17,7 @@ This tutorial demonstrates how to set up infrastructure to monitor an instance o
 - Shell access to the machine running the node
 - Administrator privileges on the machine
 
-This tutorial assumes you have Ubuntu 20.04 running on your node. Other Linux flavors that use `systemd` for running services and `apt-get` for package management might work but have not been tested. Community member has reported it works on Debian 10, might work on other Debian releases as well.
+This tutorial assumes you have Ubuntu 20.04 or later running on your node. Other Linux flavors that use `systemd` for running services and `apt-get` for package management might work but have not been tested. Community members have reported it works on Debian 10 and later versions.
 
 ### Caveat: Security
 
@@ -78,13 +78,13 @@ STEP 1: Installing Prometheus
 Checking environment...
 Found arm64 architecture...
 Prometheus install archive found:
-https://github.com/prometheus/prometheus/releases/download/v2.31.0/prometheus-2.31.0.linux-arm64.tar.gz
-Attempting to download:
-https://github.com/prometheus/prometheus/releases/download/v2.31.0/prometheus-2.31.0.linux-arm64.tar.gz
-prometheus.tar.gz                           100%[=========================================================================================>]  65.11M   123MB/s    in 0.5s
-2021-11-05 14:16:11 URL:https://github-releases.githubusercontent.com/6838921/a215b0e7-df1f-402b-9541-a3ec9d431f76?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAIWNJYAX4CSVEH53A%2F20211105%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20211105T141610Z&X-Amz-Expires=300&X-Amz-Signature=72a8ae4c6b5cea962bb9cad242cb4478082594b484d6a519de58b8241b319d94&X-Amz-SignedHeaders=host&actor_id=0&key_id=0&repo_id=6838921&response-content-disposition=attachment%3B%20filename%3Dprometheus-2.31.0.linux-arm64.tar.gz&response-content-type=application%2Foctet-stream [68274531/68274531] -> "prometheus.tar.gz" [1]
+https://github.com/prometheus/prometheus/releases/download/v3.x.x/prometheus-3.x.x.linux-arm64.tar.gz
+Attempting to download...
+prometheus.tar.gz                           100%[=========================>]  70.2M   120MB/s    in 0.6s
 ...
 ```
+
+The script automatically downloads the latest Prometheus release for your architecture.
 
 You may be prompted to confirm additional package installs, do that if asked. Script run should end with instructions on how to check that Prometheus installed correctly. Let's do that, run:
 
@@ -179,11 +179,12 @@ STEP 3: Installing node_exporter
 Checking environment...
 Found arm64 architecture...
 Downloading archive...
-https://github.com/prometheus/node_exporter/releases/download/v1.2.2/node_exporter-1.2.2.linux-arm64.tar.gz
-node_exporter.tar.gz                        100%[=========================================================================================>]   7.91M  --.-KB/s    in 0.1s
-2021-11-05 14:57:25 URL:https://github-releases.githubusercontent.com/9524057/6dc22304-a1f5-419b-b296-906f6dd168dc?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAIWNJYAX4CSVEH53A%2F20211105%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20211105T145725Z&X-Amz-Expires=300&X-Amz-Signature=3890e09e58ea9d4180684d9286c9e791b96b0c411d8f8a494f77e99f260bdcbb&X-Amz-SignedHeaders=host&actor_id=0&key_id=0&repo_id=9524057&response-content-disposition=attachment%3B%20filename%3Dnode_exporter-1.2.2.linux-arm64.tar.gz&response-content-type=application%2Foctet-stream [8296266/8296266] -> "node_exporter.tar.gz" [1]
-node_exporter-1.2.2.linux-arm64/LICENSE
+https://github.com/prometheus/node_exporter/releases/download/v1.x.x/node_exporter-1.x.x.linux-arm64.tar.gz
+node_exporter.tar.gz                        100%[=========================>]   10.2M  --.-KB/s    in 0.1s
+...
 ```
+
+The script automatically downloads the latest node_exporter release for your architecture.
 
 Again, we check that the service is running correctly:
 
@@ -226,25 +227,37 @@ Run the script to install the dashboards:
 ./monitoring-installer.sh --4
 ```
 
-It will produce output something like this:
+It will produce output showing download progress for each dashboard:
 
 ```bash
 AvalancheGo monitoring installer
 --------------------------------
 
 Downloading...
-Last-modified header missing -- time-stamps turned off.
-2021-11-05 14:57:47 URL:https://raw.githubusercontent.com/ava-labs/avalanche-monitoring/master/grafana/dashboards/c_chain.json [50282/50282] -> "c_chain.json" [1]
-FINISHED --2021-11-05 14:57:47--
-Total wall clock time: 0.2s
-Downloaded: 1 files, 49K in 0s (132 MB/s)
-Last-modified header missing -- time-stamps turned off.
+c_chain.json        100%[=========================>]   ...
+database.json       100%[=========================>]   ...
+machine.json        100%[=========================>]   ...
+main.json           100%[=========================>]   ...
+network.json        100%[=========================>]   ...
+p_chain.json        100%[=========================>]   ...
+x_chain.json        100%[=========================>]   ...
 ...
 ```
+
+The script downloads the following core dashboards:
+- **Avalanche Main Dashboard** - Overview of key node metrics
+- **C-Chain** - C-Chain specific metrics and performance
+- **Database** - Database operations and performance metrics
+- **Machine Metrics** - System metrics (CPU, memory, disk, network)
+- **Network** - Network connectivity and peer metrics
+- **P-Chain** - P-Chain specific metrics
+- **X-Chain** - X-Chain specific metrics
 
 This will download the latest versions of the dashboards from GitHub and provision Grafana to load them, as well as defining Prometheus as a data source. It may take up to 30 seconds for the dashboards to show up. In your browser, go to: `http://your-node-host-ip:3000/dashboards`. You should see 7 Avalanche dashboards:
 
 ![Imported dashboards](/images/monitoring1.png)
+
+After completing Step 5 (optional), you will have 8 dashboards including the Avalanche L1s dashboard.
 
 Select 'Avalanche Main Dashboard' by clicking its title. It should load, and look similar to this:
 
@@ -276,7 +289,7 @@ To configure the dashboard and add any Layer 1s that your node is syncing, you w
 The variable format is:
 
 ```bash
-Subnet name:<BlockchainID>
+L1 name:<BlockchainID>
 ```
 
 and the separator between entries is a comma. Entries for Spaces and WAGMI look like:
@@ -285,6 +298,10 @@ and the separator between entries is a comma. Entries for Spaces and WAGMI look 
 Spaces (Fuji) : 2ebCneCbwthjQ1rYT41nhd7M76Hc6YmosMAQrTFhBq8qeqh6tt, WAGMI (Fuji) : 2AM3vsuLoJdGBGqX2ibE8RGEq4Lg7g4bot6BT1Z7B9dH5corUD
 ```
 
+<Callout title="Note">
+The dashboard variable is still named `subnet` for backward compatibility, but it represents Avalanche L1 blockchains.
+</Callout>
+
 After editing the values, press `Update` and then click `Save dashboard` button and confirm. Press the back arrow in the upper left corner to return to the dashboard. New values should now be selectable from the dropdown and data for the selected Avalanche L1 will be shown in the panels.
 
 Updating[​](#updating "Direct link to heading")
@@ -292,7 +309,45 @@ Updating[​](#updating "Direct link to heading")
 
 Available node metrics are updated constantly, new ones are added and obsolete removed, so it is good a practice to update the dashboards from time to time, especially if you notice any missing data in panels. Updating the dashboards is easy, just run the script with no arguments, and it will refresh the dashboards with the latest available versions. Allow up to 30s for dashboards to update in Grafana.
 
+```bash
+./monitoring-installer.sh
+```
+
 If you added the optional extra dashboards (step 5), they will be updated as well.
+
+<Callout title="Important">
+If you're experiencing broken or missing metrics in your dashboards, running an update is the recommended first step. The dashboards are regularly updated with new metrics and fixes. Recent updates include MeterVM metrics for C-Chain, improved trie operation metrics, and consolidated chain dashboards.
+</Callout>
+
+Advanced Dashboards[​](#advanced-dashboards "Direct link to heading")
+---------------------------------------------------------------------
+
+The [avalanche-monitoring repository](https://github.com/ava-labs/avalanche-monitoring/tree/main/grafana/dashboards) contains additional dashboards that are not installed by the script but can be manually imported into Grafana:
+
+### C-Chain Load Dashboard
+
+The `c_chain_load.json` dashboard is designed for load testing and monitoring C-Chain transaction throughput. It tracks:
+
+- Issued transactions
+- Confirmed transactions
+- Failed transactions
+- In-flight transactions (pending confirmation)
+
+To install, download the dashboard JSON from the repository and import it via Grafana's dashboard import feature (Dashboards → Import → Upload JSON file).
+
+### Logs Dashboard (Requires Loki)
+
+The `logs.json` dashboard provides log aggregation and visualization using [Loki](https://grafana.com/oss/loki/). This dashboard requires a separate Loki installation and configuration.
+
+Features include:
+- Real-time log search
+- Timeline visualization of log volume
+- Ad-hoc filtering capabilities
+
+To use this dashboard, you must:
+1. Install and configure Loki to collect AvalancheGo logs
+2. Add Loki as a data source in Grafana
+3. Import the `logs.json` dashboard from the repository
 
 Summary[​](#summary "Direct link to heading")
 ---------------------------------------------

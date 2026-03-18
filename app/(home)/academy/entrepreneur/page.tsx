@@ -4,7 +4,6 @@ import { AcademyLayout } from '@/components/academy/shared/academy-layout';
 import { entrepreneurAcademyLandingPageConfig } from './config';
 import { ArrowRight, BookOpen, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
-import { blog } from '@/lib/source';
 import { Suspense } from 'react';
 
 export const metadata: Metadata = createMetadata({
@@ -31,43 +30,6 @@ export const metadata: Metadata = createMetadata({
 
 export default function EntrepreneurAcademyPage(): React.ReactElement {
     const { features } = entrepreneurAcademyLandingPageConfig;
-
-    const blogPages = [...blog.getPages()]
-        .sort(
-            (a, b) =>
-                new Date((b.data.date as string) ?? b.url).getTime() -
-                new Date((a.data.date as string) ?? a.url).getTime()
-        )
-        .slice(0, 9);
-
-    const blogs = blogPages.map((page) => ({
-        url: page.url,
-        data: {
-            title: page.data.title || "Untitled",
-            description: page.data.description || "",
-            topics: (page.data.topics as string[]) || [],
-            date:
-                page.data.date instanceof Date
-                    ? page.data.date.toISOString()
-                    : (page.data.date as string) || "",
-        },
-        file: {
-            name: page.url,
-        },
-    }));
-
-    const entrepreneurBlogsFromConfig = (features?.highlights?.blogs ?? []).map((blogEntry) => ({
-        url: blogEntry.link,
-        data: {
-            title: blogEntry.title,
-            description: blogEntry.description,
-            topics: ['Entrepreneur'],
-            date: blogEntry.date || '',
-        },
-        file: {
-            name: blogEntry.id,
-        },
-    }));
 
     const entrepreneurHighlights = features?.highlights ? (
                         <div className="mb-16">
@@ -118,15 +80,7 @@ export default function EntrepreneurAcademyPage(): React.ReactElement {
         <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="text-zinc-600 dark:text-zinc-400">Loading...</div></div>}>
             <AcademyLayout
                 config={entrepreneurAcademyLandingPageConfig}
-                blogs={blogs}
-                blogsByPath={{
-                    avalanche: blogs,
-                    blockchain: blogs,
-                    entrepreneur: entrepreneurBlogsFromConfig.length > 0 ? entrepreneurBlogsFromConfig : blogs,
-                }}
-                afterLearningPathByPath={{
-                    entrepreneur: entrepreneurHighlights,
-                }}
+                afterLearningPath={entrepreneurHighlights}
             />
         </Suspense>
     );
