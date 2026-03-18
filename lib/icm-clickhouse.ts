@@ -18,14 +18,9 @@ type L1ChainEntry = {
   blockchainId?: string;
 };
 
-// Clickhouse x402 proxy server
+// Clickhouse x402 proxy server (primary) + direct fallback via same URL
 const CLICKHOUSE_PROXY_URL = process.env.CLICKHOUSE_PROXY_URL || "";
-
-// Fallback: direct ClickHouse access (no x402 payment)
-const CLICKHOUSE_URL = process.env.CLICKHOUSE_URL || "";
-const CLICKHOUSE_USER = process.env.CLICKHOUSE_USER || "readonly";
 const CLICKHOUSE_PASSWORD = process.env.CLICKHOUSE_PASSWORD || "";
-const CLICKHOUSE_DATABASE = process.env.CLICKHOUSE_DATABASE || "default";
 
 // x402 payer wallet — signs USDC transfer authorizations on Avalanche C-Chain
 const X402_PAYER_PRIVATE_KEY = process.env.X402_PAYER_PRIVATE_KEY || "";
@@ -48,36 +43,6 @@ function createX402Fetch() {
 
 const x402Fetch = createX402Fetch();
 
-async function queryClickHouseDirect<T = Record<string, unknown>>(sql: string): Promise<T[]> {
-  if (!CLICKHOUSE_URL) {
-    console.warn("[icm-clickhouse] CLICKHOUSE_URL not set – returning empty results");
-    return [];
-  }
-
-  const url = CLICKHOUSE_URL.endsWith("/") ? CLICKHOUSE_URL : CLICKHOUSE_URL + "/";
-
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "X-ClickHouse-User": CLICKHOUSE_USER,
-      "X-ClickHouse-Key": CLICKHOUSE_PASSWORD,
-      "X-ClickHouse-Database": CLICKHOUSE_DATABASE,
-      "Content-Type": "text/plain",
-    },
-    body: sql,
-  });
-
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`ClickHouse query failed (${response.status}): ${text.slice(0, 300)}`);
-  }
-
-  const text = (await response.text()).trim();
-  if (!text) return [];
-
-  return text.split("\n").map((line) => JSON.parse(line) as T);
-}
-
 async function queryClickHouseX402<T = Record<string, unknown>>(sql: string): Promise<T[]> {
   const proxyUrl = CLICKHOUSE_PROXY_URL.endsWith("/query") ? CLICKHOUSE_PROXY_URL : CLICKHOUSE_PROXY_URL.replace(/\/$/, "") + "/query";
 
@@ -98,8 +63,38 @@ async function queryClickHouseX402<T = Record<string, unknown>>(sql: string): Pr
   return text.split("\n").map((line) => JSON.parse(line) as T);
 }
 
+async function queryClickHouseDirect<T = Record<string, unknown>>(sql: string): Promise<T[]> {
+  if (!CLICKHOUSE_PROXY_URL) {
+    console.warn("[icm-clickhouse] CLICKHOUSE_PROXY_URL not set – returning empty results");
+    return [];
+  }
+
+  const url = CLICKHOUSE_PROXY_URL.endsWith("/") ? CLICKHOUSE_PROXY_URL : CLICKHOUSE_PROXY_URL + "/";
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "X-ClickHouse-User": "readonly",
+      "X-ClickHouse-Key": CLICKHOUSE_PASSWORD,
+      "X-ClickHouse-Database": "default",
+      "Content-Type": "text/plain",
+    },
+    body: sql,
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`ClickHouse direct query failed (${response.status}): ${text.slice(0, 300)}`);
+  }
+
+  const text = (await response.text()).trim();
+  if (!text) return [];
+
+  return text.split("\n").map((line) => JSON.parse(line) as T);
+}
+
 async function queryClickHouse<T = Record<string, unknown>>(sql: string): Promise<T[]> {
-  // Try x402 proxy first, fall back to direct ClickHouse on failure
+  // Try x402 proxy first, fall back to direct connection via CLICKHOUSE_PROXY_URL
   if (CLICKHOUSE_PROXY_URL && x402Fetch) {
     try {
       return await queryClickHouseX402<T>(sql);
