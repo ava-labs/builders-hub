@@ -18,8 +18,9 @@ type L1ChainEntry = {
   blockchainId?: string;
 };
 
-// Clickhouse x402 proxy server (sole data path — no direct fallback)
+// Clickhouse x402 proxy server (primary) + direct fallback via same URL
 const CLICKHOUSE_PROXY_URL = process.env.CLICKHOUSE_PROXY_URL || "";
+const CLICKHOUSE_PASSWORD = process.env.CLICKHOUSE_PASSWORD || "";
 
 // x402 payer wallet — signs USDC transfer authorizations on Avalanche C-Chain
 const X402_PAYER_PRIVATE_KEY = process.env.X402_PAYER_PRIVATE_KEY || "";
@@ -62,13 +63,47 @@ async function queryClickHouseX402<T = Record<string, unknown>>(sql: string): Pr
   return text.split("\n").map((line) => JSON.parse(line) as T);
 }
 
-async function queryClickHouse<T = Record<string, unknown>>(sql: string): Promise<T[]> {
-  if (!CLICKHOUSE_PROXY_URL || !x402Fetch) {
-    console.warn("[icm-clickhouse] CLICKHOUSE_PROXY_URL or x402 client not configured – returning empty results");
+async function queryClickHouseDirect<T = Record<string, unknown>>(sql: string): Promise<T[]> {
+  if (!CLICKHOUSE_PROXY_URL) {
+    console.warn("[icm-clickhouse] CLICKHOUSE_PROXY_URL not set – returning empty results");
     return [];
   }
 
-  return queryClickHouseX402<T>(sql);
+  const url = CLICKHOUSE_PROXY_URL.endsWith("/") ? CLICKHOUSE_PROXY_URL : CLICKHOUSE_PROXY_URL + "/";
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "X-ClickHouse-User": "readonly",
+      "X-ClickHouse-Key": CLICKHOUSE_PASSWORD,
+      "X-ClickHouse-Database": "default",
+      "Content-Type": "text/plain",
+    },
+    body: sql,
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`ClickHouse direct query failed (${response.status}): ${text.slice(0, 300)}`);
+  }
+
+  const text = (await response.text()).trim();
+  if (!text) return [];
+
+  return text.split("\n").map((line) => JSON.parse(line) as T);
+}
+
+async function queryClickHouse<T = Record<string, unknown>>(sql: string): Promise<T[]> {
+  // Try x402 proxy first, fall back to direct connection via CLICKHOUSE_PROXY_URL
+  if (CLICKHOUSE_PROXY_URL && x402Fetch) {
+    try {
+      return await queryClickHouseX402<T>(sql);
+    } catch (err) {
+      console.warn("[icm-clickhouse] x402 proxy failed, falling back to direct ClickHouse:", err);
+    }
+  }
+
+  return queryClickHouseDirect<T>(sql);
 }
 
 // ReceiveCrossChainMessage(bytes32,bytes32,address,address,(uint256,address,bytes32,address,uint256,address[],(uint256,address)[],bytes))
