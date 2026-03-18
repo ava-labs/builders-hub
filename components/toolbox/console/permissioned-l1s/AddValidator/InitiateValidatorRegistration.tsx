@@ -1,18 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
+import React, { useState } from 'react';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { Button } from '@/components/toolbox/components/Button';
 import { ConvertToL1Validator } from '@/components/toolbox/components/ValidatorListInput';
 import { validateStakePercentage } from '@/components/toolbox/coreViem/hooks/getTotalStake';
-import validatorManagerAbi from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
 import { Success } from '@/components/toolbox/components/Success';
-import { parseNodeID } from '@/components/toolbox/coreViem/utils/ids';
-import { fromBytes } from 'viem';
-import { utils } from '@avalabs/avalanchejs';
+import { parseNodeID, parsePChainAddress } from '@/components/toolbox/coreViem/utils/ids';
 import { MultisigOption } from '@/components/toolbox/components/MultisigOption';
 import { getValidationIdHex } from '@/components/toolbox/coreViem/hooks/getValidationID';
-import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { Alert } from '@/components/toolbox/components/Alert';
+import { useValidatorManager } from '@/components/toolbox/hooks/contracts';
+import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
 
 interface InitiateValidatorRegistrationProps {
   subnetId: string;
@@ -42,12 +39,14 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
   ownershipState,
   contractTotalWeight,
 }) => {
-  const { coreWalletClient, publicClient } = useWalletStore();
-  const { notify } = useConsoleNotifications();
-  const viemChain = useViemChainStore();
+  const { walletEVMAddress: connectedAddress } = useWalletStore();
+  const chainPublicClient = useChainPublicClient();
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setErrorState] = useState<string | null>(null);
   const [txSuccess, setTxSuccess] = useState<string | null>(null);
+
+  // Initialize validator manager hook
+  const validatorManager = useValidatorManager(validatorManagerAddress || null);
 
   const validateInputs = (): boolean => {
     if (validators.length === 0) {
@@ -89,8 +88,8 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
     setErrorState(null);
     setTxSuccess(null);
 
-    if (!coreWalletClient) {
-      setErrorState("Core wallet not found");
+    if (!connectedAddress) {
+      setErrorState("Wallet not connected");
       return;
     }
 
@@ -116,54 +115,32 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
     setIsProcessing(true);
     try {
       const validator = validators[0];
-      const [account] = await coreWalletClient.requestAddresses();
 
-      // Process P-Chain Addresses
-      const pChainRemainingBalanceOwnerAddressesHex = validator.remainingBalanceOwner.addresses.map(address => {
-        const addressBytes = utils.bech32ToBytes(address);
-        return fromBytes(addressBytes, "hex");
-      });
-
-      const pChainDisableOwnerAddressesHex = validator.deactivationOwner.addresses.map(address => {
-        const addressBytes = utils.bech32ToBytes(address);
-        return fromBytes(addressBytes, "hex");
-      });
-
-      // Build arguments for transaction
-      const args = [
-        parseNodeID(validator.nodeID),
-        validator.nodePOP.publicKey,
-        {
-          threshold: validator.remainingBalanceOwner.threshold,
-          addresses: pChainRemainingBalanceOwnerAddressesHex,
-        },
-        {
-          threshold: validator.deactivationOwner.threshold,
-          addresses: pChainDisableOwnerAddressesHex,
-        },
-        validator.validatorWeight
-      ];
+      // Process P-Chain Addresses using shared utility
+      const pChainRemainingBalanceOwnerAddressesHex = validator.remainingBalanceOwner.addresses.map(parsePChainAddress);
+      const pChainDisableOwnerAddressesHex = validator.deactivationOwner.addresses.map(parsePChainAddress);
 
       let hash;
       let receipt;
 
       try {
-        // Try initiateValidatorRegistration directly (no simulation first)
-        const writePromise = coreWalletClient.writeContract({
-          address: validatorManagerAddress as `0x${string}`,
-          abi: validatorManagerAbi.abi,
-          functionName: "initiateValidatorRegistration",
-          args,
-          account,
-          chain: viemChain
+        // Use validator manager hook - notification happens automatically
+        hash = await validatorManager.initiateValidatorRegistration({
+          nodeID: parseNodeID(validator.nodeID),
+          blsPublicKey: validator.nodePOP.publicKey,
+          remainingBalanceOwner: {
+            threshold: validator.remainingBalanceOwner.threshold,
+            addresses: pChainRemainingBalanceOwnerAddressesHex,
+          },
+          disableOwner: {
+            threshold: validator.deactivationOwner.threshold,
+            addresses: pChainDisableOwnerAddressesHex,
+          },
+          weight: validator.validatorWeight
         });
-        notify({
-          type: 'call',
-          name: 'Initiate Validator Registration'
-        }, writePromise, viemChain ?? undefined);
 
         // Get receipt to extract warp message and validation ID
-        receipt = await publicClient.waitForTransactionReceipt({ hash: await writePromise });
+        receipt = await chainPublicClient!.waitForTransactionReceipt({ hash: hash as `0x${string}` });
 
         if (receipt.status === 'reverted') {
           setErrorState(`Transaction reverted. Hash: ${hash}`);
@@ -190,7 +167,7 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
         try {
           const nodeIdBytes = parseNodeID(validator.nodeID);
           const validationId = await getValidationIdHex(
-            publicClient,
+            chainPublicClient!,
             validatorManagerAddress as `0x${string}`,
             nodeIdBytes
           );
@@ -203,16 +180,9 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
           }
 
           // Use resendRegisterValidatorMessage as fallback
-          const fallbackHash = await coreWalletClient.writeContract({
-            address: validatorManagerAddress as `0x${string}`,
-            abi: validatorManagerAbi.abi,
-            functionName: "resendRegisterValidatorMessage",
-            args: [validationId],
-            account,
-            chain: viemChain
-          });
+          const fallbackHash = await validatorManager.resendRegisterValidatorMessage(validationId);
 
-          const fallbackReceipt = await publicClient.waitForTransactionReceipt({ hash: fallbackHash });
+          const fallbackReceipt = await chainPublicClient!.waitForTransactionReceipt({ hash: fallbackHash as `0x${string}` });
 
           if (fallbackReceipt.status === 'reverted') {
             setErrorState(`Fallback transaction reverted. Hash: ${fallbackHash}`);
@@ -224,7 +194,7 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
 
           setTxSuccess(`Fallback transaction successful! Hash: ${fallbackHash}`);
           onSuccess({
-            txHash: fallbackHash,
+            txHash: fallbackHash as `0x${string}`,
             nodeId: validator.nodeID,
             validationId: validationId,
             weight: validator.validatorWeight.toString(),
@@ -312,16 +282,9 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
 
     const validator = validators[0];
     
-    // Process all P-Chain addresses for multisig
-    const pChainRemainingBalanceOwnerAddressesHex = validator.remainingBalanceOwner.addresses.map(address => {
-      const addressBytes = utils.bech32ToBytes(address);
-      return fromBytes(addressBytes, "hex");
-    });
-
-    const pChainDisableOwnerAddressesHex = validator.deactivationOwner.addresses.map(address => {
-      const addressBytes = utils.bech32ToBytes(address);
-      return fromBytes(addressBytes, "hex");
-    });
+    // Process all P-Chain addresses for multisig using shared utility
+    const pChainRemainingBalanceOwnerAddressesHex = validator.remainingBalanceOwner.addresses.map(parsePChainAddress);
+    const pChainDisableOwnerAddressesHex = validator.deactivationOwner.addresses.map(parsePChainAddress);
 
     return [
       parseNodeID(validator.nodeID),

@@ -3,6 +3,7 @@
 import { TestnetMainnetSwitch } from "./testnet-mainnet-switch";
 import EvmNetworkWallet from "./evm-network-wallet";
 import { WalletPChain } from "./pchain-wallet";
+import { BuilderHubAccountButton } from "@/components/console/builder-hub-account-button";
 
 export function EmbeddedConsoleHeader() {
   return (
@@ -13,6 +14,7 @@ export function EmbeddedConsoleHeader() {
           <TestnetMainnetSwitch />
           <EvmNetworkWallet />
           <WalletPChain />
+          <BuilderHubAccountButton />
         </div>
       </div>
     </header>

@@ -3,10 +3,12 @@
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 import { useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
 import { useSelectedL1 } from "@/components/toolbox/stores/l1ListStore";
+import { useChainPublicClient } from "@/components/toolbox/hooks/useChainPublicClient";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/toolbox/components/Button";
 import ProxyAdminABI from "@/contracts/openzeppelin-4.9/compiled/ProxyAdmin.json";
 import { useToolboxStore } from "@/components/toolbox/stores/toolboxStore";
+import { useProxyAdmin } from "@/components/toolbox/hooks/contracts";
 import { getSubnetInfo } from "@/components/toolbox/coreViem/utils/glacier";
 import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput";
 import { Input } from "@/components/toolbox/components/Input";
@@ -14,7 +16,6 @@ import { Step, Steps } from "fumadocs-ui/components/steps";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
 import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
-import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 
 // Storage slot with the admin of the proxy (following EIP1967)
@@ -34,8 +35,9 @@ function UpgradeProxy({ onSuccess }: BaseConsoleToolProps) {
     const { validatorManagerAddress } = useToolboxStore();
     const [proxyAdminAddress, setProxyAdminAddress] = useState<`0x${string}` | null>(null);
     const selectedL1 = useSelectedL1()();
-    const { publicClient, walletChainId, walletEVMAddress } = useWalletStore();
-    const { coreWalletClient } = useConnectedWallet();
+    const { walletChainId, walletEVMAddress } = useWalletStore();
+    const chainPublicClient = useChainPublicClient();
+    const { walletClient } = useConnectedWallet();
     const [isUpgrading, setIsUpgrading] = useState(false);
     const [currentImplementation, setCurrentImplementation] = useState<string | null>(null);
     const [desiredImplementation, setDesiredImplementation] = useState<string | null>(null);
@@ -45,7 +47,7 @@ function UpgradeProxy({ onSuccess }: BaseConsoleToolProps) {
 
     const [proxyAddress, setProxyAddress] = useState<string>("");
 
-    const { sendCoreWalletNotSetNotification, notify } = useConsoleNotifications();
+    const proxyAdmin = useProxyAdmin(proxyAdminAddress);
 
     // Throw critical errors during render
     if (criticalError) {
@@ -76,7 +78,7 @@ function UpgradeProxy({ onSuccess }: BaseConsoleToolProps) {
         try {
             if (!address) return;
 
-            const data = await publicClient.getStorageAt({
+            const data = await chainPublicClient!.getStorageAt({
                 address: address as `0x${string}`,
                 slot: ADMIN_SLOT as `0x${string}`,
             });
@@ -119,7 +121,7 @@ function UpgradeProxy({ onSuccess }: BaseConsoleToolProps) {
                 return;
             }
 
-            const implementation = await publicClient.readContract({
+            const implementation = await chainPublicClient!.readContract({
                 address: proxyAdminAddress,
                 abi: ProxyAdminABI.abi,
                 functionName: 'getProxyImplementation',
@@ -151,23 +153,12 @@ function UpgradeProxy({ onSuccess }: BaseConsoleToolProps) {
 
         setIsUpgrading(true);
 
-        const upgradePromise = coreWalletClient.writeContract({
-            address: proxyAdminAddress,
-            abi: ProxyAdminABI.abi,
-            functionName: 'upgrade',
-            args: [proxyAddress, desiredImplementation as `0x${string}`],
-            chain: viemChain ?? undefined,
-            account: walletEVMAddress as `0x${string}`
-        });
-
-        notify({
-            type: 'call',
-            name: 'Upgrade Proxy'
-        }, upgradePromise, viemChain ?? undefined);
-
         try {
-            const hash = await upgradePromise;
-            await publicClient.waitForTransactionReceipt({ hash });
+            const hash = await proxyAdmin.upgrade(
+                proxyAddress as `0x${string}`,
+                desiredImplementation as `0x${string}`
+            );
+            await chainPublicClient!.waitForTransactionReceipt({ hash: hash as `0x${string}` });
             await checkCurrentImplementation();
             onSuccess?.();
         } finally {

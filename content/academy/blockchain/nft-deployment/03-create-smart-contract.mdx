@@ -47,6 +47,8 @@ This will automatically check **Ownable**, which restricts the `safeMint` functi
 
 ![Contract Wizard SafeMint](/images/nft-collection6.png)
 
+<Quiz quizId="2040"/>
+
 ## Understanding the Generated Contract
 
 Let's examine the key parts of your generated contract:
@@ -94,6 +96,8 @@ contract Photography is ERC721, Ownable {
 The `onlyOwner` modifier means only the contract owner can mint NFTs. For a public mint, you would remove this modifier and add payment logic.
 </Callout>
 
+<Quiz quizId="2041"/>
+
 ## About the safeMint Function
 
 The current `safeMint` function:
@@ -113,6 +117,8 @@ For a public sale, you would modify this function to:
 - Remove the `onlyOwner` modifier
 - Add supply limits
 - Implement per-wallet minting limits
+
+<Quiz quizId="2042"/>
 
 ## Next Steps
 

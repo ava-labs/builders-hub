@@ -110,6 +110,16 @@ export default function ConsoleHistoryPage() {
           type: 'address'
         });
       }
+      if (toolboxStore.erc20StakingManagerAddress && toolboxStore.erc20StakingManagerAddress !== '') {
+        items.push({
+          id: 'tb-erc20-staking-mgr',
+          title: 'ERC20 Token Staking Manager',
+          description: 'Deployed Contract',
+          address: toolboxStore.erc20StakingManagerAddress,
+          chainId,
+          type: 'address'
+        });
+      }
       if (toolboxStore.poaManagerAddress && toolboxStore.poaManagerAddress !== '') {
         items.push({
           id: 'tb-poa-mgr',

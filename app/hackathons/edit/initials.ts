@@ -73,6 +73,11 @@ export interface IDataMain {
     banner: string;
     icon: string;
     small_banner: string;
+    custom_link: string | null;
+    top_most: boolean;
+    event: string;
+    new_layout: boolean;
+    google_calendar_id: string | null;
   }
   
   export const initialData = {
@@ -137,5 +142,10 @@ export interface IDataMain {
           banner: '',
           icon: '',
           small_banner: '',
+          custom_link: null,
+          top_most: false,
+          event: 'hackathon',
+          new_layout: false,
+          google_calendar_id: null,
       }
   }

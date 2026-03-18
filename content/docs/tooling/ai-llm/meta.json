@@ -4,6 +4,9 @@
   "icon": "Bot",
   "root": true,
   "pages": [
-    "index"
+    "index",
+    "llms-txt",
+    "mcp-server",
+    "security"
   ]
 }

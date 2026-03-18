@@ -108,6 +108,7 @@ export default async function L1Page({
         website={currentChain.website}
         socials={currentChain.socials}
         rpcUrl={currentChain.rpcUrl}
+        baasProviders={currentChain.baasProviders}
       />
     );
   }

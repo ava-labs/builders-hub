@@ -21,6 +21,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { JoinTeamDialog } from "./JoinTeamDialog";
 import { ProjectMemberWarningDialog } from "./ProjectMemberWarningDialog";
 import InvalidInvitationComponent from "./InvalidInvitationDialog";
+import Modal from "@/components/ui/Modal";
 
 export default function GeneralSecureComponent({
   searchParams,
@@ -36,6 +37,7 @@ export default function GeneralSecureComponent({
   const currentUser = session?.user;
   const hackathonId = searchParams?.hackathon ?? "";
   const invitationLink = searchParams?.invitation;
+  const projectIdParam = searchParams?.project as string | undefined;
   const { toast } = useToast();
   const router = useRouter();
 
@@ -60,8 +62,33 @@ export default function GeneralSecureComponent({
     hackathonId as string,
     invitationLink as string
   );
+  
+  // Load project by ID if projectIdParam exists and project is not already loaded
+  useEffect(() => {
+    const loadProjectById = async () => {
+      if (projectIdParam && !project && isEditing && projectState.status === 'editing') {
+        try {
+          const response = await fetch(`/api/projects/${projectIdParam}`);
+          if (response.ok) {
+            const projectData = await response.json();
+            if (projectData) {
+              setFormData(projectData);
+              dispatch({ type: "SET_PROJECT_ID", payload: projectData.id || "" });
+              if (projectData.hackaton_id) {
+                dispatch({ type: "SET_HACKATHON_ID", payload: projectData.hackaton_id });
+              }
+            }
+          }
+        } catch (error) {
+          console.error("Error loading project by ID:", error);
+        }
+      }
+    };
+    loadProjectById();
+  }, [projectIdParam, project, isEditing, projectState.status, setFormData, dispatch]);
   const getAllFields = () => {
-    return [
+    const hackathonId = searchParams?.hackathon ?? "";
+    const baseFields = [
       "project_name",
       "short_description",
       "full_description",
@@ -73,17 +100,51 @@ export default function GeneralSecureComponent({
       "coverFile",
       "screenshots",
       "demo_video_link",
-      "tracks",
     ];
+    
+    // Si hay hackathon_id, incluir tracks; si no, incluir categories (opcional)
+    // other_category solo se cuenta si "Other (Specify)" está seleccionado
+    if (hackathonId) {
+      return [...baseFields, "tracks"];
+    } else {
+      // categories es opcional, pero lo incluimos para el cálculo
+      // other_category se maneja de forma especial en calculateProgress
+      return [...baseFields, "categories"];
+    }
   };
   
   const calculateProgress = () => {
     const formValues = form.getValues();
+    const hackathonId = searchParams?.hackathon ?? "";
     const allFields = getAllFields();
-    const totalFields = allFields.length;
+    let totalFields = allFields.length;
     let completedFields = 0;
 
     allFields.forEach((field) => {
+      // categories es opcional: solo contar si tiene al menos una seleccionada
+      if (field === "categories" && !hackathonId) {
+        const fieldValue = formValues[field as keyof typeof formValues];
+        const categories = Array.isArray(fieldValue) ? fieldValue : [];
+        
+        if (categories.length > 0) {
+          // Verificar si se selecciona "Other (Specify)" y si other_category está completo
+          const hasOtherSelected = categories.includes("Other (Specify)");
+          if (hasOtherSelected) {
+            const otherCategory = formValues.other_category as string || "";
+            if (otherCategory.trim().length >= 1) {
+              // Todo está completo: categories + other_category
+              completedFields++;
+            }
+            // Si "Other (Specify)" está seleccionado pero other_category está vacío, no contar
+          } else {
+            // Categories tiene valores y no incluye "Other (Specify)", contar como completo
+            completedFields++;
+          }
+        }
+        // Si categories está vacío, no cuenta (es opcional)
+        return;
+      }
+
       const fieldValue = formValues[field as keyof typeof formValues];
       if (Array.isArray(fieldValue)) {
         if (fieldValue && fieldValue.length > 0) {
@@ -129,10 +190,16 @@ export default function GeneralSecureComponent({
   useEffect(() => {
     if (project && isEditing) {
       setFormData(project);
-    
       dispatch({ type: "SET_PROJECT_ID", payload: project.id || "" });
     }
-  }, [project, isEditing, setFormData, dispatch]); 
+  }, [project, isEditing, setFormData, dispatch]);
+  
+  // Load project data from context when loaded by ID
+  useEffect(() => {
+    if (projectState.projectData && isEditing && !project) {
+      setFormData(projectState.projectData);
+    }
+  }, [projectState.projectData, isEditing, project, setFormData]);
 
   const handleStepChange = (newStep: number) => {
     if (newStep >= 1 && newStep <= 3) {
@@ -140,22 +207,29 @@ export default function GeneralSecureComponent({
     }
   };
 
-  const onSubmit = async (data: any) => {
+  const onSubmit = async (data: any, event?: React.BaseSyntheticEvent) => {
+    console.log('🚀 onSubmit called with data:', data);
+
+    // Explicitly prevent default form submission
+    if (event) {
+      event.preventDefault();
+    }
+
     try {
-      const success = await saveProject(data);
-      if (success) {
+      const result = await saveProject(data);
+
+      if (result.success) {
         toast({
           title: "Project submitted",
           description:
-            "Your project has been successfully submitted. You will be redirected to the project showcase page.",
-          variant: "success",
+            "Your project has been successfully submitted. Redirecting to your profile...",
         });
-        setTimeout(() => {
-          router.push(`/showcase/${projectId}`);
-        }, 3000);
+        router.push('/profile#projects');
+      } else {
+        console.error('❌ Save failed, result.success is false');
       }
     } catch (error) {
-      console.error("Error submitting project:", error);
+      console.error("❌ Error submitting project:", error);
       toast({
         title: "Error",
         description:
@@ -195,15 +269,17 @@ export default function GeneralSecureComponent({
       {/* Header */}
       <div className="mb-4">
         <h2 className="text-lg sm:text-xl font-semibold break-words">
-          Submit Your Project {hackathon?.title ? " - " + hackathon?.title : ""}
+          {hackathon?.title ? `Submit Your Project - ${hackathon.title}` : "Create New Project"}
         </h2>
         <p className="text-xs sm:text-sm text-gray-400">
-          Finalize and submit your project for review before the deadline.
-          Complete all sections to ensure eligibility.
+          {hackathon?.title 
+            ? "Finalize and submit your project for review before the deadline. Complete all sections to ensure eligibility."
+            : "Fill in all the details to create your project. Complete all sections to save your project."
+          }
         </p>
       </div>
 
-      <ProgressBar progress={debouncedProgress} timeLeft={timeLeft} />
+      <ProgressBar progress={debouncedProgress} />
 
       <div className="flex flex-col sm:flex-row mt-6 gap-4 sm:gap-4 sm:space-x-12">
         {/* Sidebar para móvil */}
@@ -284,7 +360,11 @@ export default function GeneralSecureComponent({
           <section className="w-full">
             <Form {...form}>
               <form
-                onSubmit={form.handleSubmit(onSubmit)}
+                onSubmit={(e) => {
+                  console.log('📝 Form onSubmit event triggered');
+                  e.preventDefault();
+                  form.handleSubmit(onSubmit)(e);
+                }}
                 className="space-y-4 sm:space-y-6"
               >
                 {step === 1 && (
@@ -293,7 +373,9 @@ export default function GeneralSecureComponent({
                     hackaton_id={hackathonId as string}
                     user_id={currentUser?.id}
                     onProjectCreated={getProject}
-                    onHandleSave={handleSaveWithoutRoute}
+                    onHandleSave={async () => {
+                      await handleSaveWithoutRoute();
+                    }}
                     availableTracks={hackathon?.content?.tracks ?? []}
                     openjoinTeamDialog={openJoinTeam}
                     openCurrentProject={openCurrentProject}
@@ -307,6 +389,7 @@ export default function GeneralSecureComponent({
                       dispatch({ type: "SET_OPEN_JOIN_TEAM", payload: open })
                     }
                     currentEmail={currentUser?.email}
+                    currentUserName={currentUser?.name || undefined}
                     teamName={teamName}
                   />
                 )}
@@ -336,7 +419,6 @@ export default function GeneralSecureComponent({
           dispatch({ type: "SET_OPEN_INVALID_INVITATION", payload: open })
         }
       />
-
       {error && (
         <div className="mt-4">
           <Alert variant="destructive">

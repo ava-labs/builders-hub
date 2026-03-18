@@ -9,7 +9,7 @@ import {
 import { useFormContext } from "react-hook-form";
 import { useState } from "react";
 import { LoadingButton } from "@/components/ui/loading-button";
-import { SubmissionForm } from "../hooks/useSubmissionFormSecure";
+import { SubmissionForm, Step1Schema, Step2Schema } from "../hooks/useSubmissionFormSecure";
 
 interface StepNavigationProps {
   currentStep: number;
@@ -27,47 +27,33 @@ export const StepNavigation = ({
   onNextStep,
 }: StepNavigationProps) => {
   const form = useFormContext<SubmissionForm>();
+  const toPath = (p: (string | number)[]) => p.join('.');
   const [isSavingLater, setIsSavingLater] = useState(false);
 
 
 
-  const validateStep1 = (): boolean => {
-    const values = form.getValues();
-    let hasErrors = false;
-
-    if (!values.project_name || values.project_name.trim() === '') {
-      form.setError('project_name', { type: 'manual', message: 'Project name is required' });
-      hasErrors = true;
-    }
-
-    if (!values.short_description || values.short_description.trim() === '') {
-      form.setError('short_description', { type: 'manual', message: 'Short description is required' });
-      hasErrors = true;
-    }
-
-    if (!values.tracks || values.tracks.length === 0) {
-      form.setError('tracks', { type: 'manual', message: 'Please select at least one track' });
-      hasErrors = true;
-    }
-
-    return !hasErrors;
-  };
-
   const handleNext = async () => {
     if (currentStep >= 3) return;
 
-    if (currentStep === 1 && !validateStep1()) {
+    const values = form.getValues();
+    const schema = currentStep === 1 ? Step1Schema : Step2Schema;
+
+    if (currentStep === 1) {
+      form.clearErrors(['project_name', 'short_description', 'full_description', 'tracks']);
+    } else {
+      form.clearErrors(['tech_stack', 'github_repository', 'explanation', 'demo_link', 'is_preexisting_idea']);
+    }
+
+    const result = await schema.safeParseAsync(values);
+
+    if (!result.success) {
+      for (const issue of result.error.issues) {
+        form.setError(toPath(issue.path as (string | number)[]) as any, { type: 'zod', message: issue.message });
+      }
       return;
     }
 
     onNextStep();
-  };
-
-  const handleStepChange = (targetStep: number) => {
-    if (currentStep === 1 && targetStep > 1 && !validateStep1()) {
-      return;
-    }
-    onStepChange(targetStep);
   };
 
   return (
@@ -80,7 +66,9 @@ export const StepNavigation = ({
           variant="red"
           className="px-4 py-2 cursor-pointer"
           onClick={(e) => {
-            if (!isLastStep) {
+            if (isLastStep) {
+              console.log('🔘 Final Submit button clicked');
+            } else {
               e.preventDefault();
               handleNext();
             }
@@ -94,6 +82,7 @@ export const StepNavigation = ({
           loadingText="Saving..."
           type="button"
           onClick={async () => {
+            console.log('💾 Save & Continue Later button clicked');
             try {
               setIsSavingLater(true);
               await onSave();
@@ -122,7 +111,7 @@ export const StepNavigation = ({
                   <PaginationLink
                     isActive={currentStep === page}
                     className="cursor-pointer"
-                    onClick={() => handleStepChange(page)}
+                    onClick={() => onStepChange(page)}
                   >
                     {page}
                   </PaginationLink>

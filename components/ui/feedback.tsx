@@ -86,8 +86,8 @@ export function Feedback({
     setIsCopied(false);
 
     try {
-      // Fetch the markdown content from the API endpoint
-      const apiUrl = `${window.location.origin}/api/llms/page?path=${encodeURIComponent(pagePath)}`;
+      // Fetch the markdown content by appending .md to the page path
+      const apiUrl = `${window.location.origin}${pagePath}.md`;
       const response = await fetch(apiUrl);
 
       if (!response.ok) {

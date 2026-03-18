@@ -7,27 +7,31 @@ import { Steps, Step } from "fumadocs-ui/components/steps";
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
 import { DockerInstallation } from "@/components/toolbox/components/DockerInstallation";
-import { NodeBootstrapCheck } from "@/components/toolbox/components/NodeBootstrapCheck";
 import { ReverseProxySetup } from "@/components/toolbox/components/ReverseProxySetup";
 import { Button } from "@/components/toolbox/components/Button";
 import { SyntaxHighlightedJSON } from "@/components/toolbox/components/genesis/SyntaxHighlightedJSON";
 import { GenesisHighlightProvider, useGenesisHighlight } from "@/components/toolbox/components/genesis/GenesisHighlightContext";
-import { generateChainConfig, generateConfigFileCommand } from "@/components/toolbox/console/layer-1/node-config";
+import { StorageRequirements } from "@/components/toolbox/components/StorageRequirements";
+import { generateChainConfig, generatePrimaryNetworkNodeConfig, generatePrimaryNetworkDockerCommand } from "@/components/toolbox/console/layer-1/node-config";
 import { useNodeConfigHighlighting } from "@/components/toolbox/console/layer-1/useNodeConfigHighlighting";
 import { C_CHAIN_ID } from "@/components/toolbox/console/layer-1/create/config";
-import { getContainerVersions } from "@/components/toolbox/utils/containerVersions";
+import { useAddToWallet } from "@/hooks/useAddToWallet";
+import { nipify } from "@/components/toolbox/components/HostInput";
 
 function AvalancheGoDockerPrimaryNetworkInner() {
     const { setHighlightPath, clearHighlight, highlightPath } = useGenesisHighlight();
-    const [nodeType, setNodeType] = useState<"validator" | "public-rpc">("validator");
+    const [nodeType, setNodeType] = useState<"validator" | "rpc" | "archival">("validator");
     const [domain, setDomain] = useState("");
     const [enableDebugTrace, setEnableDebugTrace] = useState<boolean>(false);
     const [adminApiEnabled, setAdminApiEnabled] = useState<boolean>(false);
     const [pruningEnabled, setPruningEnabled] = useState<boolean>(true);
     const [logLevel, setLogLevel] = useState<string>("info");
-    const [minDelayTarget, setMinDelayTarget] = useState<number>(1200);
+    // min-delay-target: 2000ms is the Subnet-EVM default - when set to default, it's omitted from config
+    const [minDelayTarget, setMinDelayTarget] = useState<number>(2000);
     const [configJson, setConfigJson] = useState<string>("");
-    const [nodeIsReady, setNodeIsReady] = useState<boolean>(false);
+
+    // Enable expensive debug-level metrics (disabled by default)
+    const [metricsExpensiveEnabled, setMetricsExpensiveEnabled] = useState<boolean>(false);
 
     // Advanced cache settings
     const [trieCleanCache, setTrieCleanCache] = useState<number>(512);
@@ -43,7 +47,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
     const [rpcTxFeeCap, setRpcTxFeeCap] = useState<number>(100);
     const [apiMaxBlocksPerRequest, setApiMaxBlocksPerRequest] = useState<number>(0);
     const [allowUnfinalizedQueries, setAllowUnfinalizedQueries] = useState<boolean>(false);
-    const [batchRequestLimit, setBatchRequestLimit] = useState<number>(0);
+    const [batchRequestLimit, setBatchRequestLimit] = useState<number>(1000); // AvalancheGo default
     const [batchResponseMaxSize, setBatchResponseMaxSize] = useState<number>(25000000);
 
     // State and history
@@ -67,15 +71,21 @@ function AvalancheGoDockerPrimaryNetworkInner() {
     // Show advanced settings
     const [showAdvancedSettings, setShowAdvancedSettings] = useState<boolean>(false);
 
-    // Network selection (allows explicit choice independent of wallet)
+    // Wallet integration for RPC nodes
+    const { addToWallet, isAdding: isAddingToWallet } = useAddToWallet();
+
+    // Network selection — syncs with wallet when connected
     const [selectedNetwork, setSelectedNetwork] = useState<"mainnet" | "fuji">("mainnet");
 
-    const { avalancheNetworkID } = useWalletStore();
+    const { isTestnet: walletIsTestnet } = useWalletStore();
+    useEffect(() => {
+        setSelectedNetwork(walletIsTestnet ? "fuji" : "mainnet");
+    }, [walletIsTestnet]);
 
     // Use selected network for configuration (1 = mainnet, 5 = fuji)
     const effectiveNetworkID = selectedNetwork === "fuji" ? 5 : 1;
 
-    const isRPC = nodeType === "public-rpc";
+    const isRPC = nodeType === "rpc" || nodeType === "archival";
 
     // Get highlighted lines for JSON preview
     const highlightedLines = useNodeConfigHighlighting(highlightPath, configJson);
@@ -112,40 +122,57 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                 pushGossipNumValidators,
                 pushGossipPercentStake,
                 continuousProfilerDir,
-                continuousProfilerFrequency
+                continuousProfilerFrequency,
+                metricsExpensiveEnabled
             );
             setConfigJson(JSON.stringify(config, null, 2));
         } catch (error) {
             setConfigJson(`Error: ${(error as Error).message}`);
         }
-    }, [nodeType, enableDebugTrace, adminApiEnabled, pruningEnabled, logLevel, minDelayTarget, trieCleanCache, trieDirtyCache, trieDirtyCommitTarget, triePrefetcherParallelism, snapshotCache, commitInterval, stateSyncServerTrieCache, rpcGasCap, rpcTxFeeCap, apiMaxBlocksPerRequest, allowUnfinalizedQueries, batchRequestLimit, batchResponseMaxSize, acceptedCacheSize, transactionHistory, stateSyncEnabled, skipTxIndexing, preimagesEnabled, localTxsEnabled, pushGossipNumValidators, pushGossipPercentStake, continuousProfilerDir, continuousProfilerFrequency]);
+    }, [nodeType, enableDebugTrace, adminApiEnabled, pruningEnabled, logLevel, minDelayTarget, trieCleanCache, trieDirtyCache, trieDirtyCommitTarget, triePrefetcherParallelism, snapshotCache, commitInterval, stateSyncServerTrieCache, rpcGasCap, rpcTxFeeCap, apiMaxBlocksPerRequest, allowUnfinalizedQueries, batchRequestLimit, batchResponseMaxSize, acceptedCacheSize, transactionHistory, stateSyncEnabled, skipTxIndexing, preimagesEnabled, localTxsEnabled, pushGossipNumValidators, pushGossipPercentStake, continuousProfilerDir, continuousProfilerFrequency, metricsExpensiveEnabled]);
 
     useEffect(() => {
         if (nodeType === "validator") {
-            // Validator node defaults
+            // Validator node defaults:
+            // - Pruning enabled (reduces disk usage)
+            // - State sync enabled (fast bootstrap)
+            // - TX indexing OFF (validators don't need to query transactions)
+            // - eth-apis: node uses sensible defaults automatically
             setDomain("");
             setEnableDebugTrace(false);
             setAdminApiEnabled(false);
             setPruningEnabled(true);
             setLogLevel("info");
-            setMinDelayTarget(1200);
+            setMinDelayTarget(2000); // Default value - omitted from config
             setAllowUnfinalizedQueries(false);
             setStateSyncEnabled(true); // Validators benefit from fast sync
-            setTrieCleanCache(512);
-            setTrieDirtyCache(512);
-            setSnapshotCache(256);
-            setAcceptedCacheSize(32);
+            setSkipTxIndexing(true); // Validators don't need tx indexing
             setTransactionHistory(0);
-        } else if (nodeType === "public-rpc") {
-            // RPC node defaults
+        } else if (nodeType === "rpc") {
+            // RPC node defaults:
+            // - Pruning enabled (reduces disk usage - only serves current state)
+            // - State sync enabled (fast bootstrap)
+            // - TX indexing ON (RPC nodes need to query transactions)
+            // - eth-apis: node uses sensible defaults automatically
+            // Best for: Cost-effective RPC serving current/recent state
+            setPruningEnabled(true);
+            setLogLevel("info");
+            setAllowUnfinalizedQueries(false); // Default to finalized queries for safety
+            setStateSyncEnabled(true); // RPC nodes can use fast sync
+            setSkipTxIndexing(false); // RPC nodes need tx indexing for queries
+            setTransactionHistory(0);
+        } else if (nodeType === "archival") {
+            // Archival node defaults:
+            // - Pruning disabled (full historical state)
+            // - State sync disabled (need to replay all blocks for full history)
+            // - TX indexing ON (archival nodes need full tx history)
+            // - eth-apis: node uses sensible defaults automatically
+            // Best for: Historical queries, block explorers, analytics
             setPruningEnabled(false);
             setLogLevel("info");
-            setAllowUnfinalizedQueries(true);
-            setStateSyncEnabled(false); // RPC nodes need full historical data
-            setTrieCleanCache(1024);
-            setTrieDirtyCache(1024);
-            setSnapshotCache(512);
-            setAcceptedCacheSize(64);
+            setAllowUnfinalizedQueries(false); // Default to finalized queries for safety
+            setStateSyncEnabled(false); // Archival nodes need full historical data
+            setSkipTxIndexing(false); // Archival nodes need tx indexing for queries
             setTransactionHistory(0);
         }
     }, [nodeType]);
@@ -164,7 +191,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
         setAdminApiEnabled(false);
         setPruningEnabled(true);
         setLogLevel("info");
-        setMinDelayTarget(1200);
+        setMinDelayTarget(2000); // Default value - omitted from config
         setConfigJson("");
         setTrieCleanCache(512);
         setTrieDirtyCache(512);
@@ -177,7 +204,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
         setRpcTxFeeCap(100);
         setApiMaxBlocksPerRequest(0);
         setAllowUnfinalizedQueries(false);
-        setBatchRequestLimit(0);
+        setBatchRequestLimit(1000); // AvalancheGo default
         setBatchResponseMaxSize(25000000);
         setAcceptedCacheSize(32);
         setTransactionHistory(0);
@@ -190,53 +217,15 @@ function AvalancheGoDockerPrimaryNetworkInner() {
         setContinuousProfilerDir("");
         setContinuousProfilerFrequency("15m");
         setShowAdvancedSettings(false);
-        setNodeIsReady(false);
+        setMetricsExpensiveEnabled(false); // Expensive metrics disabled by default
     };
 
-    // Generate Docker command for Primary Network (using file-based config)
+    // Generate Docker command for Primary Network (config read from mounted volume)
     const getDockerCommand = () => {
         try {
-            const isTestnet = effectiveNetworkID === 5;
-            const versions = getContainerVersions(isTestnet);
-
-            const env: Record<string, string> = {
-                AVAGO_PUBLIC_IP_RESOLUTION_SERVICE: "opendns",
-                AVAGO_HTTP_HOST: "0.0.0.0",
-                AVAGO_CHAIN_CONFIG_DIR: "/root/.avalanchego/configs/chains"
-            };
-
-            // Set network ID
-            if (effectiveNetworkID === 5) {
-                env.AVAGO_NETWORK_ID = "fuji";
-            }
-
-            // Configure RPC settings
-            if (isRPC) {
-                env.AVAGO_HTTP_ALLOWED_HOSTS = '"*"';
-            }
-
-            const chunks = [
-                "docker run -it -d",
-                "--name avago",
-                `-p ${isRPC ? "" : "127.0.0.1:"}9650:9650 -p 9651:9651`,
-                "-v ~/.avalanchego:/root/.avalanchego",
-                ...Object.entries(env).map(([key, value]) => `-e ${key}=${value}`),
-                `avaplatform/avalanchego:${versions['avaplatform/avalanchego']}`
-            ];
-
-            return chunks.map(chunk => `    ${chunk}`).join(" \\\n").trim();
+            return generatePrimaryNetworkDockerCommand(nodeType, effectiveNetworkID);
         } catch (error) {
             return `# Error: ${(error as Error).message}`;
-        }
-    };
-
-    // Generate the config file command
-    const getConfigFileCommand = () => {
-        try {
-            const config = JSON.parse(configJson);
-            return generateConfigFileCommand(C_CHAIN_ID, config);
-        } catch {
-            return "# Error generating config file command";
         }
     };
 
@@ -248,152 +237,213 @@ function AvalancheGoDockerPrimaryNetworkInner() {
             >
                 <Steps>
                     <Step>
-                        <h3 className="text-xl font-bold mb-4">Set up Instance</h3>
-                        <p>Set up a linux server with any cloud provider, like AWS, GCP, Azure, or Digital Ocean. Requirements scale with stake weight:</p>
-                        <ul className="list-disc pl-5 mt-2 mb-4">
-                            <li><strong>Low stake:</strong> 4 cores, 16GB RAM, 1TB NVMe SSD</li>
-                            <li><strong>High stake:</strong> 8+ cores, 32GB RAM, 2TB NVMe SSD</li>
-                        </ul>
-                        <p className="text-sm text-amber-600 dark:text-amber-400 mb-4">
-                            <strong>Important:</strong> Use local NVMe storage, not cloud block storage (EBS, Persistent Disk). See <a href="/docs/nodes/system-requirements" className="underline hover:no-underline">system requirements</a> for details.
-                        </p>
-                        <p>If you do not have access to a server, you can also run a node for educational purposes locally. Simply select the &quot;Public RPC Node&quot; option in the next step.</p>
-                    </Step>
-
-                    <Step>
-                        <DockerInstallation includeCompose={false} />
-
-                        <p className="mt-4">
-                            If you do not want to use Docker, you can follow the instructions{" "}
-                            <a
-                                href="https://github.com/ava-labs/avalanchego?tab=readme-ov-file#installation"
-                                target="_blank"
-                                className="text-blue-600 dark:text-blue-400 hover:underline"
-                                rel="noreferrer"
-                            >
-                                here
-                            </a>
-                            .
-                        </p>
-                    </Step>
-
-                    <Step>
-                    <h3 className="text-xl font-bold mb-4">Configure Node Settings</h3>
+                    <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Configure Node Settings</h3>
+                    <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
+                        Choose your network, node type, and configure settings. The configuration preview updates in real-time.
+                    </p>
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <div className="space-y-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                <label className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400 mb-2">
                                     Network
                                 </label>
-                                <select
-                                    value={selectedNetwork}
-                                    onChange={(e) => setSelectedNetwork(e.target.value as "mainnet" | "fuji")}
-                                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                                >
-                                    <option value="mainnet">Mainnet</option>
-                                    <option value="fuji">Fuji (Testnet)</option>
-                                </select>
-                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                    Select which Avalanche network to connect to
-                                </p>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setSelectedNetwork("mainnet")}
+                                        className={`p-3 rounded-xl border-2 text-left transition-all ${
+                                            selectedNetwork === "mainnet"
+                                                ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                                                : "border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600"
+                                        }`}
+                                    >
+                                        <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Mainnet</div>
+                                        <div className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5">Production network</div>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setSelectedNetwork("fuji")}
+                                        className={`p-3 rounded-xl border-2 text-left transition-all ${
+                                            selectedNetwork === "fuji"
+                                                ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                                                : "border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600"
+                                        }`}
+                                    >
+                                        <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Fuji</div>
+                                        <div className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5">Testnet</div>
+                                    </button>
+                                </div>
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                <label className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400 mb-2">
                                     Node Type
                                 </label>
-                                <select
-                                    value={nodeType}
-                                    onChange={(e) => setNodeType(e.target.value as "validator" | "public-rpc")}
-                                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                                >
-                                    <option value="validator">Validator Node</option>
-                                    <option value="public-rpc">Public RPC Node</option>
-                                </select>
+                                <div className="grid grid-cols-3 gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setNodeType("validator")}
+                                        className={`p-3 rounded-xl border-2 text-left transition-all ${
+                                            nodeType === "validator"
+                                                ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                                                : "border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600"
+                                        }`}
+                                    >
+                                        <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Validator</div>
+                                        <div className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5">P2P only</div>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setNodeType("rpc")}
+                                        className={`p-3 rounded-xl border-2 text-left transition-all ${
+                                            nodeType === "rpc"
+                                                ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                                                : "border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600"
+                                        }`}
+                                    >
+                                        <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">RPC</div>
+                                        <div className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5">Pruned</div>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setNodeType("archival")}
+                                        className={`p-3 rounded-xl border-2 text-left transition-all ${
+                                            nodeType === "archival"
+                                                ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                                                : "border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600"
+                                        }`}
+                                    >
+                                        <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Archival</div>
+                                        <div className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5">Full history</div>
+                                    </button>
+                                </div>
                             </div>
 
                             <div onMouseEnter={() => setHighlightPath('logLevel')} onMouseLeave={clearHighlight}>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                <label className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400 mb-2">
                                     Log Level
                                 </label>
-                                <select
-                                    value={logLevel}
-                                    onChange={(e) => setLogLevel(e.target.value)}
-                                    onFocus={() => setHighlightPath('logLevel')}
-                                    onBlur={clearHighlight}
-                                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                                >
-                                    <option value="off">Off - No logs</option>
-                                    <option value="fatal">Fatal - Only fatal errors</option>
-                                    <option value="error">Error - Recoverable errors</option>
-                                    <option value="warn">Warn - Warnings</option>
-                                    <option value="info">Info - Status updates (default)</option>
-                                    <option value="trace">Trace - Container job results</option>
-                                    <option value="debug">Debug - Debugging information</option>
-                                    <option value="verbo">Verbo - Verbose output</option>
-                                </select>
-                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                    Controls the verbosity of node logs
-                                </p>
-                            </div>
-
-                            {nodeType === "validator" && (
-                                <div onMouseEnter={() => setHighlightPath('minDelayTarget')} onMouseLeave={clearHighlight}>
-                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                                Min Delay Target (ms)
-                                            </label>
-                                            <input
-                                                type="number"
-                                        value={minDelayTarget}
-                                                onChange={(e) => {
-                                                    const value = Math.min(2000, Math.max(0, parseInt(e.target.value) || 0));
-                                                    setMinDelayTarget(value);
-                                                }}
-                                        onFocus={() => setHighlightPath('minDelayTarget')}
-                                        onBlur={clearHighlight}
-                                                min="0"
-                                                max="2000"
-                                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                                            />
-                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                        The minimum delay between blocks (in milliseconds). Maximum: 2000ms. Default: 1200ms.
-                                    </p>
+                                <div className="flex flex-wrap gap-1.5">
+                                    {[
+                                        { value: "error", label: "Error" },
+                                        { value: "warn", label: "Warn" },
+                                        { value: "info", label: "Info", default: true },
+                                        { value: "debug", label: "Debug" },
+                                        { value: "verbo", label: "Verbose" },
+                                    ].map((level) => (
+                                        <button
+                                            key={level.value}
+                                            type="button"
+                                            onClick={() => setLogLevel(level.value)}
+                                            className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-all ${
+                                                logLevel === level.value
+                                                    ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
+                                                    : "border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-300 dark:hover:border-zinc-600"
+                                            }`}
+                                        >
+                                            {level.label}
+                                            {level.default && logLevel !== level.value && (
+                                                <span className="ml-1 text-[10px] text-zinc-400">(default)</span>
+                                            )}
+                                        </button>
+                                    ))}
                                 </div>
-                            )}
-
-                            <div onMouseEnter={() => setHighlightPath('pruning')} onMouseLeave={clearHighlight}>
-                                <label className="flex items-center space-x-2">
-                                    <input
-                                        type="checkbox"
-                                        checked={pruningEnabled}
-                                        onChange={(e) => setPruningEnabled(e.target.checked)}
-                                        className="rounded"
-                                    />
-                                    <span className="text-sm">Enable Pruning</span>
-                                </label>
-                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                    {nodeType === "validator"
-                                        ? "Recommended for validators. Reduces disk usage by removing old state data."
-                                        : "Not recommended for RPC nodes that need full historical data."}
-                                </p>
                             </div>
 
-                            {nodeType === "public-rpc" && (
-                                <div onMouseEnter={() => setHighlightPath('ethApis')} onMouseLeave={clearHighlight}>
+                            {/* Pruning and State Sync - grouped together due to their interdependency */}
+                            <div className="border border-zinc-200 dark:border-zinc-700 rounded-lg p-4 space-y-4">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <svg className="w-4 h-4 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
+                                    </svg>
+                                    <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Storage Settings</span>
+                                </div>
+
+                                <div onMouseEnter={() => setHighlightPath('pruning')} onMouseLeave={clearHighlight}>
                                     <label className="flex items-center space-x-2">
                                         <input
                                             type="checkbox"
-                                            checked={enableDebugTrace}
-                                            onChange={(e) => setEnableDebugTrace(e.target.checked)}
+                                            checked={pruningEnabled}
+                                            onChange={(e) => setPruningEnabled(e.target.checked)}
                                             className="rounded"
                                         />
-                                        <span className="text-sm">Enable Debug Trace</span>
+                                        <span className="text-sm font-medium">Enable Pruning</span>
                                     </label>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                        Enables debug APIs and detailed tracing capabilities
+                                    <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 ml-6">
+                                        <strong className="text-zinc-700 dark:text-zinc-300">Pruning reduces disk usage by ~44x</strong> (13TB → 300GB) by removing old state data.
+                                        {nodeType === "validator" && " Recommended for validators."}
+                                        {nodeType === "rpc" && " Recommended for RPC nodes serving current state."}
+                                        {nodeType === "archival" && " Not recommended for archival nodes that need full historical data."}
                                     </p>
                                 </div>
+
+                                <div onMouseEnter={() => setHighlightPath('stateSyncEnabled')} onMouseLeave={clearHighlight}>
+                                    <label className="flex items-center space-x-2">
+                                        <input
+                                            type="checkbox"
+                                            checked={stateSyncEnabled}
+                                            onChange={(e) => setStateSyncEnabled(e.target.checked)}
+                                            className="rounded"
+                                        />
+                                        <span className="text-sm font-medium">Enable State Sync</span>
+                                    </label>
+                                    <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 ml-6">
+                                        Fast bootstrap by syncing from a state summary instead of replaying all blocks.
+                                        {nodeType === "validator" && " Recommended for validators to speed up initial sync."}
+                                        {nodeType === "rpc" && " Recommended for RPC nodes."}
+                                        {nodeType === "archival" && " Disable for archival nodes that need full historical data."}
+                                    </p>
+                                </div>
+
+                                {/* Warning when pruning and state sync settings don't match */}
+                                {pruningEnabled !== stateSyncEnabled && (
+                                    <div className="flex items-start gap-2 p-2 rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+                                        <svg className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                        </svg>
+                                        <p className="text-xs text-amber-700 dark:text-amber-300">
+                                            <strong>Mismatched settings:</strong> Pruning and State Sync are typically used together.
+                                            {pruningEnabled && !stateSyncEnabled
+                                                ? " Pruning is enabled but State Sync is disabled. For validators, enable both for optimal performance."
+                                                : " State Sync is enabled but Pruning is disabled. For archival RPC nodes, disable both to preserve full history."}
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+
+                            {isRPC && (
+                                <>
+                                    <div onMouseEnter={() => setHighlightPath('ethApis')} onMouseLeave={clearHighlight}>
+                                        <label className="flex items-center space-x-2">
+                                            <input
+                                                type="checkbox"
+                                                checked={enableDebugTrace}
+                                                onChange={(e) => setEnableDebugTrace(e.target.checked)}
+                                                className="rounded"
+                                            />
+                                            <span className="text-sm">Enable Debug Trace</span>
+                                        </label>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                            Enables debug APIs and detailed tracing capabilities
+                                        </p>
+                                    </div>
+
+                                    <div onMouseEnter={() => setHighlightPath('skipTxIndexing')} onMouseLeave={clearHighlight}>
+                                        <label className="flex items-center space-x-2">
+                                            <input
+                                                type="checkbox"
+                                                checked={!skipTxIndexing}
+                                                onChange={(e) => setSkipTxIndexing(!e.target.checked)}
+                                                className="rounded"
+                                            />
+                                            <span className="text-sm">Enable Transaction Indexing</span>
+                                        </label>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                            Required for eth_getLogs and transaction lookups. Disable to save disk space.
+                                        </p>
+                                    </div>
+                                </>
                             )}
 
                             {/* Advanced Settings */}
@@ -556,6 +606,30 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                                         </div>
 
                                         <div className="border-t pt-3">
+                                            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Metrics Settings</h4>
+                                            <div className="space-y-3">
+                                                <div onMouseEnter={() => setHighlightPath('metricsExpensive')} onMouseLeave={clearHighlight}>
+                                                    <label className="flex items-center space-x-2">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={metricsExpensiveEnabled}
+                                                            onChange={(e) => setMetricsExpensiveEnabled(e.target.checked)}
+                                                            onFocus={() => setHighlightPath('metricsExpensive')}
+                                                            onBlur={clearHighlight}
+                                                            className="rounded"
+                                                        />
+                                                        <span className="text-xs text-gray-600 dark:text-gray-400">
+                                                            Enable Expensive Metrics
+                                                        </span>
+                                                    </label>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-6">
+                                                        Enables debug-level metrics including Firewood metrics. May impact performance.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="border-t pt-3">
                                             <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Performance Settings</h4>
 
                                             <div className="space-y-3">
@@ -677,37 +751,18 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                                                     <label className="flex items-center space-x-2">
                                                         <input
                                                             type="checkbox"
-                                                            checked={skipTxIndexing}
-                                                            onChange={(e) => setSkipTxIndexing(e.target.checked)}
+                                                            checked={!skipTxIndexing}
+                                                            onChange={(e) => setSkipTxIndexing(!e.target.checked)}
                                                             onFocus={() => setHighlightPath('skipTxIndexing')}
                                                             onBlur={clearHighlight}
                                                             className="rounded"
                                                         />
                                                         <span className="text-xs text-gray-600 dark:text-gray-400">
-                                                            Skip Transaction Indexing
+                                                            Enable Transaction Indexing
                                                         </span>
                                                     </label>
                                                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-6">
-                                                        Disable tx indexing entirely (saves disk space)
-                                                    </p>
-                                                </div>
-
-                                                <div onMouseEnter={() => setHighlightPath('stateSyncEnabled')} onMouseLeave={clearHighlight}>
-                                                    <label className="flex items-center space-x-2">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={stateSyncEnabled}
-                                                            onChange={(e) => setStateSyncEnabled(e.target.checked)}
-                                                            onFocus={() => setHighlightPath('stateSyncEnabled')}
-                                                            onBlur={clearHighlight}
-                                                            className="rounded"
-                                                        />
-                                                        <span className="text-xs text-gray-600 dark:text-gray-400">
-                                                            Enable State Sync
-                                                        </span>
-                                                    </label>
-                                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-6">
-                                                        Fast sync from state summary
+                                                        Index transactions for querying (uses more disk space)
                                                     </p>
                                                 </div>
 
@@ -753,11 +808,47 @@ function AvalancheGoDockerPrimaryNetworkInner() {
 
                                         {nodeType === "validator" && (
                                             <div className="border-t pt-3">
-                                                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Gossip Settings (Validator)</h4>
+                                                <h4 className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">Block Timing (Validator)</h4>
+                                                <p className="text-xs text-amber-600 dark:text-amber-400 mb-3 flex items-start gap-1">
+                                                    <svg className="w-4 h-4 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                                    </svg>
+                                                    <span>C-Chain has sub-second block times. Only modify if you understand the consensus implications.</span>
+                                                </p>
 
                                                 <div className="space-y-3">
+                                                    <div onMouseEnter={() => setHighlightPath('minDelayTarget')} onMouseLeave={clearHighlight}>
+                                                        <div className="flex items-center justify-between mb-2">
+                                                            <label className="block text-xs text-zinc-600 dark:text-zinc-400">
+                                                                Min Delay Target
+                                                            </label>
+                                                            <span className="text-xs font-mono text-zinc-900 dark:text-zinc-100 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded">
+                                                                {minDelayTarget}ms{minDelayTarget === 2000 ? " (default)" : ""}
+                                                            </span>
+                                                        </div>
+                                                        <input
+                                                            type="range"
+                                                            value={minDelayTarget}
+                                                            onChange={(e) => setMinDelayTarget(parseInt(e.target.value))}
+                                                            onFocus={() => setHighlightPath('minDelayTarget')}
+                                                            onBlur={clearHighlight}
+                                                            min="0"
+                                                            max="2000"
+                                                            step="100"
+                                                            className="w-full h-2 bg-zinc-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                                                        />
+                                                        <div className="flex justify-between text-[10px] text-zinc-400 mt-1">
+                                                            <span>0ms (fastest)</span>
+                                                            <span>1000ms</span>
+                                                            <span>2000ms (default)</span>
+                                                        </div>
+                                                        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+                                                            Minimum time between blocks. Lower values = faster blocks but more network load.
+                                                        </p>
+                                                    </div>
+
                                                     <div onMouseEnter={() => setHighlightPath('pushGossipNumValidators')} onMouseLeave={clearHighlight}>
-                                                        <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                                                        <label className="block text-xs text-zinc-600 dark:text-zinc-400 mb-1">
                                                             Push Gossip Num Validators
                                                         </label>
                                                         <input
@@ -766,15 +857,15 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                                                             onChange={(e) => setPushGossipNumValidators(Math.max(0, parseInt(e.target.value) || 0))}
                                                             onFocus={() => setHighlightPath('pushGossipNumValidators')}
                                                             onBlur={clearHighlight}
-                                                            className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                                                            className="w-full px-2 py-1.5 text-sm border border-zinc-200 dark:border-zinc-700 rounded-md dark:bg-zinc-800 dark:text-white"
                                                         />
-                                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                                            Number of validators to push gossip to
+                                                        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+                                                            Number of validators to push gossip to (default: 100)
                                                         </p>
                                                     </div>
 
                                                     <div onMouseEnter={() => setHighlightPath('pushGossipPercentStake')} onMouseLeave={clearHighlight}>
-                                                        <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                                                        <label className="block text-xs text-zinc-600 dark:text-zinc-400 mb-1">
                                                             Push Gossip Percent Stake
                                                         </label>
                                                         <input
@@ -786,10 +877,10 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                                                             onChange={(e) => setPushGossipPercentStake(Math.min(1, Math.max(0, parseFloat(e.target.value) || 0)))}
                                                             onFocus={() => setHighlightPath('pushGossipPercentStake')}
                                                             onBlur={clearHighlight}
-                                                            className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                                                            className="w-full px-2 py-1.5 text-sm border border-zinc-200 dark:border-zinc-700 rounded-md dark:bg-zinc-800 dark:text-white"
                                                         />
-                                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                                            Percentage of total stake to gossip to (0-1)
+                                                        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+                                                            Percentage of total stake to gossip to (default: 0.9)
                                                         </p>
                                                     </div>
                                                 </div>
@@ -833,7 +924,10 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                                                             </span>
                                                         </label>
                                                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-6">
-                                                            Allows queries for unfinalized/pending blocks
+                                                            When enabled, allows queries using block tags like <code className="px-1 py-0.5 bg-zinc-100 dark:bg-zinc-800 rounded text-[10px]">pending</code>, <code className="px-1 py-0.5 bg-zinc-100 dark:bg-zinc-800 rounded text-[10px]">safe</code>, and <code className="px-1 py-0.5 bg-zinc-100 dark:bg-zinc-800 rounded text-[10px]">latest</code> that may return data from blocks not yet finalized.
+                                                        </p>
+                                                        <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 ml-6">
+                                                            <strong>Important:</strong> Enable this if your applications use these block tags (common in Ethereum tooling). Without this, only <code className="px-1 py-0.5 bg-zinc-100 dark:bg-zinc-800 rounded text-[10px]">finalized</code> queries are allowed, which may break some dApps.
                                                         </p>
                                                     </div>
                                                 </div>
@@ -907,74 +1001,239 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                                     )}
                                 </div>
                             </div>
+
+                            {/* Storage Requirements Visualization */}
+                            <StorageRequirements
+                                nodeType={nodeType}
+                                pruningEnabled={pruningEnabled}
+                                skipTxIndexing={skipTxIndexing}
+                                stateSyncEnabled={stateSyncEnabled}
+                                debugEnabled={enableDebugTrace}
+                                network={selectedNetwork}
+                            />
                         </div>
                     </div>
                     </Step>
 
                     <Step>
-                        <h3 className="text-xl font-bold mb-4">Create Configuration File</h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                            Run this command on your server to create the C-Chain configuration file:
+                        <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Set up Instance</h3>
+                        <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
+                            Provision a server with the following specifications.
                         </p>
 
-                        <DynamicCodeBlock lang="bash" code={getConfigFileCommand()} />
+                        {/* Hardware requirements - compact grid */}
+                        <div className="grid grid-cols-3 gap-3 mb-4">
+                            <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-lg p-3 border border-zinc-200 dark:border-zinc-800">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <svg className="w-4 h-4 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+                                    </svg>
+                                    <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">CPU</span>
+                                </div>
+                                <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">4-8+ cores</div>
+                            </div>
+                            <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-lg p-3 border border-zinc-200 dark:border-zinc-800">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <svg className="w-4 h-4 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                                    </svg>
+                                    <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">RAM</span>
+                                </div>
+                                <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">16-32 GB</div>
+                            </div>
+                            <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-lg p-3 border border-zinc-200 dark:border-zinc-800">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <svg className="w-4 h-4 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
+                                    </svg>
+                                    <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Storage</span>
+                                </div>
+                                <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                                    {nodeType === "archival" ? "20 TB" : "1 TB"} {nodeType === "validator" && "NVMe"}
+                                </div>
+                            </div>
+                        </div>
 
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-                            This creates the configuration file at <code className="px-1 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-xs">~/.avalanchego/configs/chains/{C_CHAIN_ID}/config.json</code>
-                        </p>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                            Read the documentation for more information on the configuration options. {" "}
-                            <a
-                                href="https://build.avax.network/docs/nodes/configure/configs-flags"
-                                target="_blank"
-                                className="text-blue-600 dark:text-blue-400 hover:underline"
-                                rel="noreferrer"
-                            >
-                                AvalancheGo configuration
-                            </a>
-                            {" "}and{" "}
-                            <a
-                                href="https://build.avax.network/docs/nodes/chain-configs/c-chain"
-                                target="_blank"
-                                className="text-blue-600 dark:text-blue-400 hover:underline"
-                                rel="noreferrer"
-                            >
-                                C-Chain configuration
-                            </a>
+                        {/* Storage note */}
+                        <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                            {nodeType === "validator" ? (
+                                <>Use local NVMe, not cloud block storage (EBS, Persistent Disk).{" "}</>
+                            ) : nodeType === "archival" ? (
+                                <>Full historical state requires significant storage.{" "}</>
+                            ) : (
+                                <>Can use cloud block storage (EBS, Persistent Disk).{" "}</>
+                            )}
+                            <a href="/docs/nodes/system-requirements" className="text-blue-500 hover:underline">Details →</a>
                         </p>
                     </Step>
 
                     <Step>
-                    <h3 className="text-xl font-bold mb-4">Run Docker Command</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                        Start the node using Docker:
-                    </p>
+                        <DockerInstallation includeCompose={false} />
 
-                    <DynamicCodeBlock lang="bash" code={getDockerCommand()} />
+                        <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">
+                            If you do not want to use Docker, you can follow the{" "}
+                            <a
+                                href="https://github.com/ava-labs/avalanchego?tab=readme-ov-file#installation"
+                                target="_blank"
+                                className="text-blue-500 hover:underline"
+                                rel="noreferrer"
+                            >
+                                manual installation instructions
+                            </a>.
+                        </p>
+                    </Step>
 
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-                        The container will read the config from <code className="px-1 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-xs">~/.avalanchego/configs/chains/{C_CHAIN_ID}/config.json</code> via the mounted volume.
-                    </p>
+                    <Step>
+                        <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Create Configuration Files</h3>
+                        <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
+                            Run these commands to create the config files. AvalancheGo reads from these default locations on startup.
+                        </p>
 
-                    <Accordions type="single" className="mt-4">
-                            <Accordion title="Running Multiple Nodes on the same machine">
-                            <p className="text-sm">To run multiple nodes on the same machine, ensure each node has:</p>
-                            <ul className="list-disc pl-5 mt-1 text-sm">
+                        <Steps>
+                            <Step>
+                                <h4 className="text-sm font-medium mb-2">Create config directories</h4>
+                                <DynamicCodeBlock
+                                    lang="bash"
+                                    code={`mkdir -p ~/.avalanchego/configs/chains/${C_CHAIN_ID}`}
+                                />
+                            </Step>
+
+                            <Step>
+                                <h4 className="text-sm font-medium mb-2">
+                                    Node config <code className="text-xs bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded ml-2">~/.avalanchego/configs/node.json</code>
+                                </h4>
+                                <DynamicCodeBlock
+                                    lang="bash"
+                                    code={(() => {
+                                        try {
+                                            const nodeConfig = generatePrimaryNetworkNodeConfig(nodeType, effectiveNetworkID);
+                                            return `cat > ~/.avalanchego/configs/node.json << 'EOF'\n${JSON.stringify(nodeConfig, null, 2)}\nEOF`;
+                                        } catch {
+                                            return "# Error generating node config";
+                                        }
+                                    })()}
+                                />
+                            </Step>
+
+                            <Step>
+                                <h4 className="text-sm font-medium mb-2">
+                                    C-Chain config <code className="text-xs bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded ml-2">~/.avalanchego/configs/chains/{C_CHAIN_ID.slice(0, 8)}...</code>
+                                </h4>
+                                <DynamicCodeBlock
+                                    lang="bash"
+                                    code={(() => {
+                                        try {
+                                            const chainConfig = JSON.parse(configJson);
+                                            return `cat > ~/.avalanchego/configs/chains/${C_CHAIN_ID}/config.json << 'EOF'\n${JSON.stringify(chainConfig, null, 2)}\nEOF`;
+                                        } catch {
+                                            return "# Error generating chain config";
+                                        }
+                                    })()}
+                                />
+                            </Step>
+                        </Steps>
+
+                        <div className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">
+                            Docs: {" "}
+                            <a
+                                href="https://build.avax.network/docs/nodes/configure/configs-flags"
+                                target="_blank"
+                                className="text-blue-500 hover:underline"
+                                rel="noreferrer"
+                            >
+                                Node config
+                            </a>
+                            {" · "}
+                            <a
+                                href="https://build.avax.network/docs/nodes/chain-configs/c-chain"
+                                target="_blank"
+                                className="text-blue-500 hover:underline"
+                                rel="noreferrer"
+                            >
+                                C-Chain config
+                            </a>
+                        </div>
+                    </Step>
+
+                    <Step>
+                        <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Configure Firewall</h3>
+                        <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
+                            Open the required ports for your node to communicate with the network.
+                        </p>
+
+                        {/* Port explanation */}
+                        <div className="grid grid-cols-2 gap-3 mb-4">
+                            <div className={`rounded-lg p-3 border ${isRPC ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800' : 'bg-zinc-50 dark:bg-zinc-900/50 border-zinc-200 dark:border-zinc-800'}`}>
+                                <div className="flex items-center justify-between mb-1">
+                                    <span className="text-sm font-mono font-medium text-zinc-900 dark:text-zinc-100">9651</span>
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">Required</span>
+                                </div>
+                                <div className="text-xs text-zinc-500 dark:text-zinc-400">P2P / Staking port</div>
+                                <div className="text-[10px] text-zinc-400 mt-1">Node-to-node communication</div>
+                            </div>
+                            <div className={`rounded-lg p-3 border ${isRPC ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800' : 'bg-zinc-50 dark:bg-zinc-900/50 border-zinc-200 dark:border-zinc-800 opacity-50'}`}>
+                                <div className="flex items-center justify-between mb-1">
+                                    <span className="text-sm font-mono font-medium text-zinc-900 dark:text-zinc-100">9650</span>
+                                    <span className={`text-[10px] px-1.5 py-0.5 rounded ${isRPC ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500'}`}>
+                                        {isRPC ? 'Required' : 'RPC only'}
+                                    </span>
+                                </div>
+                                <div className="text-xs text-zinc-500 dark:text-zinc-400">HTTP / RPC port</div>
+                                <div className="text-[10px] text-zinc-400 mt-1">API requests from clients</div>
+                            </div>
+                        </div>
+
+                        <DynamicCodeBlock
+                            lang="bash"
+                            code={isRPC
+                                ? `# Open P2P and RPC ports
+sudo ufw allow 9651/tcp comment 'AvalancheGo P2P'
+sudo ufw allow 9650/tcp comment 'AvalancheGo RPC'
+sudo ufw --force enable
+sudo ufw status`
+                                : `# Open P2P port only (validators don't expose RPC)
+sudo ufw allow 9651/tcp comment 'AvalancheGo P2P'
+sudo ufw --force enable
+sudo ufw status`}
+                        />
+
+                        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-3">
+                            {isRPC
+                                ? "RPC nodes need both ports open. Consider using a reverse proxy (nginx) for SSL termination on port 9650."
+                                : "Validators only need the P2P port. The RPC port is bound to localhost for security."}
+                        </p>
+                    </Step>
+
+                    <Step>
+                        <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Run Docker</h3>
+                        <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
+                            Start the node. Config is read from the mounted volume — no env vars needed.
+                        </p>
+
+                        <DynamicCodeBlock lang="bash" code={getDockerCommand()} />
+
+                        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2">
+                            Restart anytime with <code className="px-1 py-0.5 bg-zinc-100 dark:bg-zinc-800 rounded">docker restart avago</code> — config changes are picked up automatically.
+                        </p>
+
+                        <Accordions type="single" className="mt-4">
+                            <Accordion title="Running Multiple Nodes">
+                                <p className="text-sm">To run multiple nodes on the same machine, ensure each node has:</p>
+                                <ul className="list-disc pl-5 mt-1 text-sm">
                                     <li>Unique container name (change <code>--name</code> parameter)</li>
-                                <li>Different ports (modify port mappings)</li>
-                                <li>Separate data directories (change <code>~/.avalanchego</code> path)</li>
+                                    <li>Different ports (modify port mappings)</li>
+                                    <li>Separate data directories (change <code>~/.avalanchego</code> path)</li>
                                 </ul>
-                            <p className="mt-1 text-sm">Example for second node: Use ports 9652/9653, container name &quot;avago2&quot;, and data directory &quot;~/.avalanchego2&quot;</p>
-                        </Accordion>
+                            </Accordion>
 
-                        <Accordion title="Monitoring Logs">
-                            <p className="text-sm mb-2">Monitor your node with:</p>
-                            <DynamicCodeBlock lang="bash" code="docker logs -f avago" />
+                            <Accordion title="Monitoring Logs">
+                                <p className="text-sm mb-2">Monitor your node with:</p>
+                                <DynamicCodeBlock lang="bash" code="docker logs -f avago" />
                             </Accordion>
                         </Accordions>
                     </Step>
 
-                    {nodeType === "public-rpc" && (
+                    {isRPC && (
                         <Step>
                             <ReverseProxySetup
                                 domain={domain}
@@ -985,7 +1244,62 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                         </Step>
                     )}
 
+                    {isRPC && (
+                        <Step>
+                            <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Add Network to Wallet</h3>
+                            <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
+                                Point your wallet at your own C-Chain RPC endpoint.
+                            </p>
+
+                            <div className="space-y-3">
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-lg p-3 border border-zinc-200 dark:border-zinc-800">
+                                        <div className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 mb-1">RPC Endpoint</div>
+                                        <code className="text-xs text-zinc-900 dark:text-zinc-100 break-all">
+                                            {domain
+                                                ? `https://${nipify(domain)}/ext/bc/C/rpc`
+                                                : `http://localhost:9650/ext/bc/C/rpc`
+                                            }
+                                        </code>
+                                    </div>
+                                    <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-lg p-3 border border-zinc-200 dark:border-zinc-800">
+                                        <div className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 mb-1">EVM Chain ID</div>
+                                        <code className="text-sm text-zinc-900 dark:text-zinc-100">
+                                            {selectedNetwork === "fuji" ? "43113" : "43114"}
+                                        </code>
+                                    </div>
+                                </div>
+
+                                <Button
+                                    onClick={() => addToWallet({
+                                        rpcUrl: domain
+                                            ? `https://${nipify(domain)}/ext/bc/C/rpc`
+                                            : `http://localhost:9650/ext/bc/C/rpc`,
+                                        chainName: selectedNetwork === "fuji"
+                                            ? "Avalanche Fuji C-Chain"
+                                            : "Avalanche C-Chain",
+                                        chainId: selectedNetwork === "fuji" ? 43113 : 43114,
+                                        nativeCurrency: {
+                                            name: "AVAX",
+                                            symbol: "AVAX",
+                                            decimals: 18,
+                                        },
+                                    })}
+                                    disabled={isAddingToWallet}
+                                >
+                                    {isAddingToWallet ? "Adding..." : "Add to Wallet"}
+                                </Button>
+                            </div>
+
+                            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-3">
+                                Works with Core, MetaMask, and other EVM wallets connected via RainbowKit.
+                                {selectedNetwork === "fuji" && " This will add the Fuji testnet using your own node as the RPC provider."}
+                            </p>
+                        </Step>
+                    )}
+
                     {nodeType === "validator" && (
+                        <>
                         <Step>
                         <h3 className="text-xl font-bold mb-4">Wait for the Node to Bootstrap</h3>
                             <p>Your node will now bootstrap and sync the Primary Network (P-Chain, X-Chain, and C-Chain). This process can take <strong>several hours to days</strong> depending on your hardware and network connection.</p>
@@ -1015,38 +1329,92 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                                 </Accordion>
                             </Accordions>
 
-                            <NodeBootstrapCheck
-                                chainId={C_CHAIN_ID}
-                                domain={domain || "127.0.0.1:9650"}
-                                isDebugTrace={enableDebugTrace}
-                                onBootstrapCheckChange={(checked: boolean) => setNodeIsReady(checked)}
-                            />
                         </Step>
-                    )}
 
-                    {nodeIsReady && nodeType === "validator" && (
                         <Step>
-                            <h3 className="text-xl font-bold mb-4">Node Setup Complete</h3>
-                            <p>Your AvalancheGo Primary Network node is now fully bootstrapped and ready to be used as a validator node.</p>
+                            <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Backup Validator Credentials</h3>
+                            <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
+                                Your validator identity is defined by these files in <code className="px-1 py-0.5 bg-zinc-100 dark:bg-zinc-800 rounded text-xs">~/.avalanchego/staking/</code>
+                            </p>
 
-                            <div className="mt-4 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-                                <div className="flex items-center">
-                                    <div className="flex-shrink-0">
-                                        <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            {/* Key files - compact grid */}
+                            <div className="grid grid-cols-3 gap-3 mb-4">
+                                <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-lg p-3 border border-zinc-200 dark:border-zinc-800">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <svg className="w-4 h-4 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                                         </svg>
+                                        <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">TLS Cert</span>
                                     </div>
-                                    <div className="ml-3">
-                                        <p className="text-sm font-medium text-green-800 dark:text-green-200">
-                                            Node is ready for validation
-                                        </p>
-                                        <p className="text-sm text-green-700 dark:text-green-300 mt-1">
-                                            Your node has successfully synced with the Primary Network and is ready to be added as a validator.
-                                        </p>
+                                    <div className="text-sm font-mono text-zinc-900 dark:text-zinc-100">staker.crt</div>
+                                    <div className="text-[10px] text-zinc-400 mt-1">Node identity</div>
+                                </div>
+                                <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3 border border-red-200 dark:border-red-800">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <svg className="w-4 h-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                                        </svg>
+                                        <span className="text-xs font-medium text-red-600 dark:text-red-400">Private Key</span>
                                     </div>
+                                    <div className="text-sm font-mono text-red-700 dark:text-red-300">staker.key</div>
+                                    <div className="text-[10px] text-red-400 mt-1">Keep secret!</div>
+                                </div>
+                                <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3 border border-red-200 dark:border-red-800">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <svg className="w-4 h-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                        </svg>
+                                        <span className="text-xs font-medium text-red-600 dark:text-red-400">BLS Key</span>
+                                    </div>
+                                    <div className="text-sm font-mono text-red-700 dark:text-red-300">signer.key</div>
+                                    <div className="text-[10px] text-red-400 mt-1">P-Chain signing</div>
                                 </div>
                             </div>
+
+                            <DynamicCodeBlock lang="bash" code={`# Backup your validator credentials
+mkdir -p ~/avalanche-backup
+cp -r ~/.avalanchego/staking ~/avalanche-backup/
+
+# Verify backup
+ls -la ~/avalanche-backup/staking/`} />
+
+                            {/* Backup locations - inline */}
+                            <div className="mt-4 flex flex-wrap items-center gap-2">
+                                <span className="text-xs text-zinc-500 dark:text-zinc-400">Store securely:</span>
+                                <span className="px-2 py-0.5 rounded text-xs bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">Encrypted USB</span>
+                                <span className="px-2 py-0.5 rounded text-xs bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">Encrypted S3</span>
+                                <span className="px-2 py-0.5 rounded text-xs bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">Multiple locations</span>
+                            </div>
+
+                            {/* Warnings - compact */}
+                            <div className="text-xs text-zinc-500 dark:text-zinc-400 space-y-1.5 mt-4">
+                                <p className="flex items-start gap-1.5">
+                                    <span className="text-red-500 mt-0.5">⚠</span>
+                                    <span>Lost keys = <strong className="text-zinc-700 dark:text-zinc-300">missed staking rewards</strong> (validator can&apos;t sign). NVMe drives can fail without warning.</span>
+                                </p>
+                                <p className="flex items-start gap-1.5">
+                                    <span className="text-amber-500 mt-0.5">🔒</span>
+                                    <span>Never share private keys — anyone with them can impersonate your validator.</span>
+                                </p>
+                            </div>
+
+                            {/* Links */}
+                            <div className="mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-800 flex flex-wrap gap-4 text-xs">
+                                <a href="/docs/nodes/maintain/cube-signer-sidecar" className="text-blue-500 hover:underline flex items-center gap-1">
+                                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                                    </svg>
+                                    CubeSigner Remote Signing
+                                </a>
+                                <a href="/docs/nodes/maintain/backup-restore" className="text-blue-500 hover:underline flex items-center gap-1">
+                                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
+                                    </svg>
+                                    Full Backup Guide
+                                </a>
+                            </div>
                         </Step>
+                        </>
                     )}
                 </Steps>
 

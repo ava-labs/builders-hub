@@ -4,6 +4,7 @@ import NativeTokenRemote from "@/contracts/icm-contracts/compiled/NativeTokenRem
 import { useL1ByChainId, useSelectedL1 } from "@/components/toolbox/stores/l1ListStore";
 import { useToolboxStore, useViemChainStore, getToolboxStore } from "@/components/toolbox/stores/toolboxStore";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
+import { useWalletClient } from 'wagmi';
 import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/toolbox/components/Button";
 import { Success } from "@/components/toolbox/components/Success";
@@ -11,18 +12,31 @@ import { Input, Suggestion } from "@/components/toolbox/components/Input";
 import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput";
 import { createPublicClient, http } from "viem";
 import { Note } from "@/components/toolbox/components/Note";
-import { utils } from "@avalabs/avalanchejs";
 import ERC20TokenHomeABI from "@/contracts/icm-contracts/compiled/ERC20TokenHome.json";
+import { cb58ToHex } from '@/components/tools/common/utils/cb58';
 import ExampleERC20 from "@/contracts/icm-contracts/compiled/ExampleERC20.json";
 import SelectBlockchainId from "@/components/toolbox/components/SelectBlockchainId";
 import { CheckPrecompile } from "@/components/toolbox/components/CheckPrecompile";
 import TeleporterRegistryAddressInput from "@/components/toolbox/components/TeleporterRegistryAddressInput";
-import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { AcknowledgementCallout } from "@/components/toolbox/components/AcknowledgementCallout";
 import { LockedContent } from "@/components/toolbox/components/LockedContent";
 import { ConsoleToolMetadata, withConsoleToolMetadata } from "@/components/toolbox/components/WithConsoleToolMetadata";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
+import { useContractDeployer } from "@/components/toolbox/hooks/contracts";
+import versions from "@/scripts/versions.json";
+import { ContractDeployViewer, type ContractSource } from "@/components/console/contract-deploy-viewer";
+
+const ICM_COMMIT = versions["ava-labs/icm-contracts"];
+
+const CONTRACT_SOURCES: ContractSource[] = [
+  {
+    name: "NativeTokenRemote",
+    filename: "NativeTokenRemote.sol",
+    url: `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/ictt/TokenRemote/NativeTokenRemote.sol`,
+    description: "Remote chain endpoint that mints native tokens for incoming bridged transfers via ICTT.",
+  },
+];
 
 const metadata: ConsoleToolMetadata = {
     title: "Deploy Native Token Remote Contract",
@@ -37,11 +51,11 @@ function DeployNativeTokenRemote() {
         setNativeTokenRemoteAddress,
     } = useToolboxStore();
     const [teleporterRegistryAddress, setTeleporterRegistryAddress] = useState("");
-    const { coreWalletClient, walletEVMAddress } = useWalletStore();
-    const { notify } = useConsoleNotifications();
+    const { walletEVMAddress } = useWalletStore();
+    const { data: walletClient } = useWalletClient();
     const viemChain = useViemChainStore();
     const selectedL1 = useSelectedL1()();
-    const [isDeploying, setIsDeploying] = useState(false);
+    const { deploy, isDeploying } = useContractDeployer();
     const [sourceChainId, setSourceChainId] = useState<string>("");
     const [teleporterManager, setTeleporterManager] = useState(walletEVMAddress);
     const [localError, setLocalError] = useState("");
@@ -49,7 +63,7 @@ function DeployNativeTokenRemote() {
     const [tokenSymbol, setTokenSymbol] = useState("");
     const [tokenDecimals, setTokenDecimals] = useState("0");
     const [minTeleporterVersion, setMinTeleporterVersion] = useState("1");
-    const [initialReserveImbalance, setInitialReserveImbalance] = useState("0");
+    const [initialReserveImbalance, setInitialReserveImbalance] = useState("1");
     const [burnedFeesReportingRewardPercentage, setBurnedFeesReportingRewardPercentage] = useState("0");
     const [tokenHomeAddress, setTokenHomeAddress] = useState("");
     const [acknowledged, setAcknowledged] = useState(false);
@@ -66,7 +80,7 @@ function DeployNativeTokenRemote() {
     const tokenHomeBlockchainIDHex = useMemo(() => {
         if (!sourceL1?.id) return undefined;
         try {
-            return utils.bufferToHex(utils.base58check.decode(sourceL1.id));
+            return cb58ToHex(sourceL1.id);
         } catch (e) {
             console.error("Error decoding source chain ID:", e);
             return undefined;
@@ -154,13 +168,12 @@ function DeployNativeTokenRemote() {
     }, [sourceChainId, sourceL1?.rpcUrl, tokenHomeAddress]);
 
     async function handleDeploy() {
-        if (!coreWalletClient) {
+        if (!walletClient) {
             setCriticalError(new Error('Core wallet not found'));
             return;
         }
 
         setLocalError("");
-        setIsDeploying(true);
 
         try {
             if (!viemChain || !selectedL1) {
@@ -172,10 +185,14 @@ function DeployNativeTokenRemote() {
                 throw new Error("Critical deployment parameters missing or invalid.");
             }
 
-            const publicClient = createPublicClient({
-                chain: viemChain,
-                transport: http(viemChain.rpcUrls.default.http[0])
-            });
+            if (initialReserveImbalance === "0") {
+                throw new Error("Initial Reserve Imbalance must be greater than 0.");
+            }
+
+            const burnedFeesPercent = parseInt(burnedFeesReportingRewardPercentage);
+            if (burnedFeesPercent < 0 || burnedFeesPercent > 100) {
+                throw new Error("Burned Fees Reporting Reward Percentage must be between 0 and 100.");
+            }
 
             const constructorArgs = [
                 {
@@ -193,31 +210,18 @@ function DeployNativeTokenRemote() {
 
             console.log("Deploying NativeTokenRemote with args:", constructorArgs);
 
-            const deployPromise = coreWalletClient.deployContract({
+            const result = await deploy({
                 abi: NativeTokenRemote.abi as any,
-                bytecode: NativeTokenRemote.bytecode.object as `0x${string}`,
+                bytecode: NativeTokenRemote.bytecode.object,
                 args: constructorArgs,
-                chain: viemChain,
-                account: walletEVMAddress as `0x${string}`
-            });
-            notify({
-                type: 'deploy',
                 name: 'NativeTokenRemote'
-            }, deployPromise, viemChain ?? undefined);
+            });
 
-            const receipt = await publicClient.waitForTransactionReceipt({ hash: await deployPromise });
-
-            if (!receipt.contractAddress) {
-                throw new Error("No contract address in receipt");
-            }
-
-            setNativeTokenRemoteAddress(receipt.contractAddress);
+            setNativeTokenRemoteAddress(result.contractAddress);
         } catch (error: any) {
             console.error("Deployment failed:", error);
             setLocalError(`Deployment failed: ${error.shortMessage || error.message}`);
             setCriticalError(error instanceof Error ? error : new Error(String(error)));
-        } finally {
-            setIsDeploying(false);
         }
     }
 
@@ -229,7 +233,8 @@ function DeployNativeTokenRemote() {
             docsLink="https://build.avax.network/docs/avalanche-l1s/upgrade/customize-avalanche-l1#network-upgrades-enabledisable-precompiles"
             docsLinkText="Learn how to activate the Native Minter precompile"
         >
-
+            <ContractDeployViewer contracts={CONTRACT_SOURCES}>
+            <div className="space-y-4">
                 <div>
                     <p className="mt-2">
                         This deploys a `NativeTokenRemote` contract to the current network ({selectedL1?.name}).
@@ -332,7 +337,7 @@ function DeployNativeTokenRemote() {
                     value={initialReserveImbalance}
                     onChange={setInitialReserveImbalance}
                     type="number"
-                    helperText="The initial reserve imbalance that must be collateralized before minting"
+                    helperText="The initial reserve imbalance that must be collateralized before minting (must be > 0, default: 1)"
                     required
                 />
 
@@ -341,7 +346,7 @@ function DeployNativeTokenRemote() {
                     value={burnedFeesReportingRewardPercentage}
                     onChange={setBurnedFeesReportingRewardPercentage}
                     type="number"
-                    helperText="The percentage of burned transaction fees that will be rewarded to sender of the report"
+                    helperText="The percentage of burned transaction fees that will be rewarded to sender of the report (0-100)"
                     required
                 />
 
@@ -378,11 +383,15 @@ function DeployNativeTokenRemote() {
                         tokenDecimals === "0" ||
                         !tokenSymbol ||
                         !teleporterRegistryAddress ||
+                        initialReserveImbalance === "0" ||
+                        parseInt(burnedFeesReportingRewardPercentage) > 100 ||
                         !!sourceChainError}
                 >
                     {nativeTokenRemoteAddress ? "Re-Deploy Native Token Remote" : "Deploy Native Token Remote"}
                 </Button>
                 </LockedContent>
+            </div>
+            </ContractDeployViewer>
         </CheckPrecompile>
     );
 } 

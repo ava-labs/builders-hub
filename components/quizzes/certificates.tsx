@@ -3,11 +3,11 @@ import React, { useState, useEffect } from 'react';
 import { getQuizResponse } from '@/utils/quizzes/indexedDB';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/utils/cn';
-import quizDataImport from '@/components/quizzes/quizData.json';
+import quizData from '@/components/quizzes/data';
 import Quiz from '@/components/quizzes/quiz';
 import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
-import { Linkedin, Twitter, Award, Share2 } from 'lucide-react';
-import { AwardBadgeWrapper } from './components/awardBadgeWrapper';
+import { Linkedin, Twitter, Award, Share2, CheckCircle2, XCircle } from 'lucide-react';
+import { AwardBadgeWrapper } from '@/components/quizzes/components/awardBadgeWrapper';
 import { useRouter } from 'next/navigation';
 import { useCertificates } from '@/hooks/useCertificates';
 import { toast } from '@/hooks/use-toast';
@@ -21,31 +21,6 @@ interface QuizInfo {
   chapter: string;
   question: string;
 }
-
-interface QuizData {
-  question: string;
-  options: string[];
-  correctAnswers: number[];
-  hint: string;
-  explanation: string;
-  chapter: string;
-}
-
-interface Course {
-  title: string;
-  quizzes: string[];
-}
-
-interface QuizDataStructure {
-  courses: {
-    [courseId: string]: Course;
-  };
-  quizzes: {
-    [quizId: string]: QuizData;
-  };
-}
-
-const quizData = quizDataImport as QuizDataStructure;
 
 const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
   const router = useRouter();
@@ -97,10 +72,8 @@ const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
     }
   }, [quizzes]);
 
-
   useEffect(() => {
     if (totalQuizzes > 0 && correctlyAnsweredQuizzes === totalQuizzes) {
-
       setShouldShowCertificate(true);
 
       setTimeout(() => {
@@ -193,7 +166,6 @@ const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
 
 
       {allQuizzesCompleted && (
-
         <div className="mt-12 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8">
           <AwardBadgeWrapper courseId={courseId} isCompleted={allQuizzesCompleted} />
           <div className="flex items-center justify-center mb-6">
@@ -264,15 +236,52 @@ const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
           </div>
         </div>
       )}
+      
       {!allQuizzesCompleted && (
         <div className="mt-12 bg-muted rounded-lg shadow-lg p-8">
           <Share2 className="w-8 h-8 mx-auto mb-2 text-yellow-500" />
           <p className="text-center text-gray-600 dark:text-gray-300 mb-2">
-            There are several quizzes throughout this course. Complete them all to get your certificate.
+            Complete all quizzes to get your certificate.
           </p>
-          <p className="text-center text-gray-500 dark:text-gray-400">
-            So far you have completed {correctlyAnsweredQuizzes} out of {totalQuizzes} quizzes.
+          <p className="text-center text-gray-500 dark:text-gray-400 mb-6">
+            {correctlyAnsweredQuizzes} of {totalQuizzes} quizzes completed.
           </p>
+
+          <div className="space-y-4">
+            {chapters.map((chapter) => {
+              const chapterQuizzes = quizzesByChapter[chapter];
+              const chapterComplete = chapterQuizzes.every(q => completedQuizzes.includes(q.id));
+              const chapterIncomplete = chapterQuizzes.filter(q => !completedQuizzes.includes(q.id));
+
+              return (
+                <div key={chapter} className={`rounded-lg border p-4 ${chapterComplete ? 'border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-900/10' : 'border-orange-200 dark:border-orange-800 bg-orange-50/50 dark:bg-orange-900/10'}`}>
+                  <div className="flex items-center gap-2 mb-2">
+                    {chapterComplete ? (
+                      <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400 shrink-0" />
+                    ) : (
+                      <XCircle className="w-4 h-4 text-orange-600 dark:text-orange-400 shrink-0" />
+                    )}
+                    <span className={`text-sm font-medium ${chapterComplete ? 'text-green-700 dark:text-green-300' : 'text-orange-700 dark:text-orange-300'}`}>
+                      {chapter}
+                    </span>
+                    <span className="text-xs text-gray-400 dark:text-gray-500 ml-auto">
+                      {chapterQuizzes.filter(q => completedQuizzes.includes(q.id)).length}/{chapterQuizzes.length}
+                    </span>
+                  </div>
+                  {!chapterComplete && (
+                    <ul className="ml-6 space-y-1">
+                      {chapterIncomplete.map(quiz => (
+                        <li key={quiz.id} className="text-xs text-gray-600 dark:text-gray-400 flex items-start gap-1.5">
+                          <span className="text-orange-400 mt-0.5">&#8226;</span>
+                          <span>{quiz.question}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>

@@ -1,18 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
-import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { Button } from '@/components/toolbox/components/Button';
 import { Input } from '@/components/toolbox/components/Input';
 import { Success } from '@/components/toolbox/components/Success';
 import { Alert } from '@/components/toolbox/components/Alert';
-import { bytesToHex, hexToBytes } from 'viem';
-import validatorManagerAbi from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
-import poaManagerAbi from '@/contracts/icm-contracts/compiled/PoAManager.json';
+import { bytesToHex, hexToBytes, encodeFunctionData, Abi } from 'viem';
 import { GetRegistrationJustification } from '../ValidatorManager/justification';
 import { packL1ValidatorRegistration } from '@/components/toolbox/coreViem/utils/convertWarp';
 import { packWarpIntoAccessList } from '../ValidatorManager/packWarp';
 import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
+import { useValidatorManager, usePoAManager } from '@/components/toolbox/hooks/contracts';
+import { fetchL1ValidatorWeightData } from '../../shared/fetchL1ValidatorWeightData';
+import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
+import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
+import ValidatorManagerABI from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
+import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 
 interface CompleteValidatorRemovalProps {
   subnetIdL1: string;
@@ -46,11 +49,22 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
   isLoadingOwnership,
   ownerType,
 }) => {
-  const { coreWalletClient, publicClient, avalancheNetworkID, walletEVMAddress } = useWalletStore();
-  const { aggregateSignature } = useAvalancheSDKChainkit();
+  const { avalancheNetworkID, isTestnet } = useWalletStore();
+  const walletType = useWalletStore((s) => s.walletType);
+  const isCoreWallet = walletType === 'core';
+  const chainPublicClient = useChainPublicClient();
   const viemChain = useViemChainStore();
+  const { aggregateSignature } = useAvalancheSDKChainkit();
   const [pChainTxId, setPChainTxId] = useState(initialPChainTxId || '');
   const { notify } = useConsoleNotifications();
+
+  // Determine target contract and ABI based on ownerType
+  const useMultisig = ownerType === 'PoAManager';
+  const targetContractAddress = useMultisig ? contractOwner : validatorManagerAddress;
+
+  const validatorManager = useValidatorManager(!useMultisig ? validatorManagerAddress : null);
+  const poaManager = usePoAManager(useMultisig ? contractOwner : null);
+
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setErrorState] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -61,11 +75,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
     nonce: bigint;
     weight: bigint;
   } | null>(null);
-
-  // Determine target contract and ABI based on ownerType
-  const useMultisig = ownerType === 'PoAManager';
-  const targetContractAddress = useMultisig ? contractOwner : validatorManagerAddress;
-  const targetAbi = useMultisig ? poaManagerAbi.abi : validatorManagerAbi.abi;
+  const [castAccessList, setCastAccessList] = useState<any[] | null>(null);
 
   // Update pChainTxId when the prop changes
   useEffect(() => {
@@ -103,7 +113,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
       onError("PoAManager address could not be fetched. Please ensure the ValidatorManager is owned by a PoAManager.");
       return;
     }
-    if (!coreWalletClient || !publicClient || !viemChain) {
+    if (!chainPublicClient) {
       setErrorState("Wallet or chain configuration is not properly initialized.");
       onError("Wallet or chain configuration is not properly initialized.");
       return;
@@ -112,9 +122,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
     setIsProcessing(true);
     try {
       // Step 1: Extract L1ValidatorWeightMessage from P-Chain transaction
-      const weightMessageData = await coreWalletClient.extractL1ValidatorWeightMessage({
-        txId: pChainTxId
-      });
+      const weightMessageData = await fetchL1ValidatorWeightData(pChainTxId, isTestnet);
 
       setExtractedData({
         validationID: weightMessageData.validationID,
@@ -126,7 +134,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
       const justification = await GetRegistrationJustification(
         weightMessageData.validationID,
         subnetIdL1,
-        publicClient
+        chainPublicClient
       );
 
       if (!justification) {
@@ -159,23 +167,19 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
       // Step 4: Complete the validator removal on EVM
       const signedPChainWarpMsgBytes = hexToBytes(`0x${signature.signedMessage}`);
       const accessList = packWarpIntoAccessList(signedPChainWarpMsgBytes);
+      setCastAccessList(accessList);
 
-      const writePromise = coreWalletClient.writeContract({
-        address: targetContractAddress as `0x${string}`,
-        abi: targetAbi,
-        functionName: "completeValidatorRemoval",
-        args: [0], // As per original, arg is 0
-        accessList,
-        account: walletEVMAddress as `0x${string}`,
-        chain: viemChain,
-      });
-      notify({
-        type: 'call',
-        name: 'Complete Validator Removal'
-      }, writePromise, viemChain ?? undefined);
+      // Non-Core wallet: stop here and show cast command
+      if (!isCoreWallet) {
+        return;
+      }
 
-      const hash = await writePromise;
-      const finalReceipt = await publicClient.waitForTransactionReceipt({ hash });
+      // Use appropriate hook based on ownerType
+      const hash = useMultisig
+        ? await poaManager.completeValidatorRemoval(0, accessList)
+        : await validatorManager.completeValidatorRemoval(0, accessList);
+
+      const finalReceipt = await chainPublicClient!.waitForTransactionReceipt({ hash: hash as `0x${string}` });
       if (finalReceipt.status !== 'success') {
         throw new Error(`Transaction failed with status: ${finalReceipt.status}`);
       }
@@ -192,6 +196,29 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
       setIsProcessing(false);
     }
   };
+
+  function generateCastCommand(): string {
+    if (!pChainSignature || !castAccessList) return '';
+    const rpcUrl = viemChain?.rpcUrls?.default?.http?.[0] || '<L1_RPC_URL>';
+    const addr = targetContractAddress || '<CONTRACT_ADDRESS>';
+
+    const calldata = encodeFunctionData({
+      abi: ValidatorManagerABI.abi as Abi,
+      functionName: 'completeValidatorRemoval',
+      args: [0],
+    });
+
+    const accessListJson = JSON.stringify(castAccessList);
+
+    return [
+      `cast send ${addr} \\`,
+      `  ${calldata} \\`,
+      `  --access-list '${accessListJson}' \\`,
+      `  --gas-limit 2000000 \\`,
+      `  --rpc-url ${rpcUrl} \\`,
+      `  --private-key $PRIVATE_KEY`,
+    ].join('\n');
+  }
 
   // Don't render if no subnet is selected
   if (!subnetIdL1) {
@@ -224,10 +251,21 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
 
       <Button
         onClick={handleCompleteRemoval}
-        disabled={isProcessing || !pChainTxId.trim() || !!successMessage || (isContractOwner === false && !useMultisig) || isLoadingOwnership}
+        disabled={isProcessing || !pChainTxId.trim() || !!successMessage || (isContractOwner === false && !useMultisig) || isLoadingOwnership || (!isCoreWallet && !!pChainSignature)}
       >
-        {isLoadingOwnership ? 'Checking ownership...' : (isProcessing ? 'Processing...' : 'Sign & Complete Validator Removal')}
+        {isLoadingOwnership ? 'Checking ownership...' : (isProcessing ? 'Processing...' : (isCoreWallet ? 'Sign & Complete Validator Removal' : 'Aggregate Signatures'))}
       </Button>
+
+      {!isCoreWallet && pChainSignature && !transactionHash && (
+        <div className="space-y-3">
+          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 border border-blue-200 dark:border-blue-800">
+            <p className="text-sm font-medium text-blue-700 dark:text-blue-300">
+              Signatures aggregated. Run this command to complete the validator removal:
+            </p>
+          </div>
+          <DynamicCodeBlock lang="bash" code={generateCastCommand()} />
+        </div>
+      )}
 
       {transactionHash && (
         <Success
