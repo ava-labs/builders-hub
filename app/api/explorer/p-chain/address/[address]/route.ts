@@ -11,6 +11,7 @@ import {
   type ValidatorInfo,
   type DelegatorInfo,
 } from '@/lib/pchain/rpc';
+import { getAddressTransactions, type GlacierTransaction } from '@/lib/pchain/glacier';
 
 // ============================================================================
 // Types
@@ -60,6 +61,8 @@ interface AddressDetailResponse {
   utxoCount: number;
   utxos: UTXOInfo[];
   validations: ValidationInfo[];
+  transactions: GlacierTransaction[];
+  nextPageToken?: string;
 }
 
 // ============================================================================
@@ -77,6 +80,7 @@ export async function GET(
     const { searchParams } = new URL(request.url);
     const networkParam = searchParams.get('network');
     const network: PChainNetwork = networkParam === 'fuji' ? 'fuji' : 'mainnet';
+    const pageToken = searchParams.get('pageToken') ?? undefined;
 
     // Ensure address has proper P-Chain prefix
     let formattedAddress = address;
@@ -84,12 +88,13 @@ export async function GET(
       formattedAddress = `P-${address}`;
     }
 
-    // Fetch balance, stake, UTXOs, and validations in parallel
-    const [balanceResult, stakeResult, utxosResult, validatorsResult] = await Promise.all([
+    // Fetch balance, stake, UTXOs, validations, and transactions in parallel
+    const [balanceResult, stakeResult, utxosResult, validatorsResult, txResult] = await Promise.all([
       getBalance([formattedAddress], network).catch(() => null),
       getStake([formattedAddress], network).catch(() => null),
       getUTXOs([formattedAddress], 100, undefined, network).catch(() => null),
       getCurrentValidators(undefined, undefined, network).catch(() => null),
+      getAddressTransactions(formattedAddress, network, 25, pageToken).catch(() => null),
     ]);
 
     // Process balance
@@ -176,6 +181,8 @@ export async function GET(
       utxoCount: utxos.length,
       utxos,
       validations,
+      transactions: txResult?.transactions ?? [],
+      nextPageToken: txResult?.nextPageToken,
     };
 
     return NextResponse.json(response);

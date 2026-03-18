@@ -1,18 +1,19 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { 
-  Wallet, 
-  Coins, 
-  Lock, 
-  Unlock, 
-  ShieldCheck, 
+import {
+  Wallet,
+  Coins,
+  Lock,
+  Unlock,
+  ShieldCheck,
   Users,
   Copy,
   Check,
   Clock,
   ChevronLeft,
   ChevronRight,
+  Loader2,
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -58,6 +59,37 @@ interface ValidationInfo {
   connected?: boolean;
 }
 
+interface GlacierUtxo {
+  addresses: string[];
+  utxoId: string;
+  txHash: string;
+  outputIndex: number;
+  blockTimestamp: number;
+  blockNumber: string;
+  assetId: string;
+  asset?: { assetId: string; name: string; symbol: string; denomination: number };
+  amount?: string;
+  consumingTxHash?: string;
+}
+
+interface GlacierTransaction {
+  txHash: string;
+  txType: string;
+  blockTimestamp: number;
+  blockNumber: string;
+  blockHash: string;
+  memo?: string;
+  consumedUtxos: GlacierUtxo[];
+  emittedUtxos: GlacierUtxo[];
+  amountBurned: { assetId: string; amount: string }[];
+  amountStaked: { assetId: string; amount: string }[];
+  sourceChain?: string;
+  destinationChain?: string;
+  nodeId?: string;
+  rewardAddresses?: string[];
+  stakingTxHash?: string;
+}
+
 interface AddressDetailData {
   address: string;
   network: 'mainnet' | 'fuji';
@@ -66,6 +98,8 @@ interface AddressDetailData {
   utxoCount: number;
   utxos: UTXOInfo[];
   validations: ValidationInfo[];
+  transactions: GlacierTransaction[];
+  nextPageToken?: string;
 }
 
 // ============================================================================
@@ -124,6 +158,38 @@ function formatAddressShort(address: string): string {
   return `${address.slice(0, 10)}...${address.slice(-8)}`;
 }
 
+function formatTxType(txType: string): string {
+  // "AddValidatorTx" → "Add Validator", "ExportTx" → "Export"
+  return txType
+    .replace(/Tx$/, '')
+    .replace(/([a-z])([A-Z])/g, '$1 $2');
+}
+
+function formatTimestamp(ts: number): string {
+  const date = new Date(ts * 1000);
+  return date.toLocaleString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function calcTxAmount(tx: GlacierTransaction): string {
+  // Sum emitted UTXO amounts, converting from nAVAX (9 decimals) to AVAX
+  let total = BigInt(0);
+  for (const utxo of tx.emittedUtxos) {
+    if (utxo.amount) {
+      total += BigInt(utxo.amount);
+    }
+  }
+  if (total === BigInt(0)) return '0';
+  const avax = Number(total) / 1e9;
+  if (avax < 0.0001) return '<0.0001';
+  return avax.toLocaleString(undefined, { maximumFractionDigits: 4 });
+}
+
 // ============================================================================
 // Component
 // ============================================================================
@@ -132,18 +198,21 @@ export default function PChainAddressDetailPage({ address, network = 'mainnet' }
   const [data, setData] = useState<AddressDetailData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [allTransactions, setAllTransactions] = useState<GlacierTransaction[]>([]);
+  const [nextPageToken, setNextPageToken] = useState<string | undefined>();
+  const [loadingMore, setLoadingMore] = useState(false);
   
   // Read initial tab from URL hash
   const getInitialTab = (): string => {
     if (typeof window !== 'undefined') {
       const hash = window.location.hash.slice(1);
-      if (['validations', 'utxos'].includes(hash)) {
+      if (['validations', 'utxos', 'transactions'].includes(hash)) {
         return hash;
       }
     }
     return 'validations';
   };
-  
+
   const [activeTab, setActiveTab] = useState<string>(getInitialTab);
   
   // Update URL hash when tab changes
@@ -159,7 +228,7 @@ export default function PChainAddressDetailPage({ address, network = 'mainnet' }
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.slice(1);
-      if (['validations', 'utxos'].includes(hash)) {
+      if (['validations', 'utxos', 'transactions'].includes(hash)) {
         setActiveTab(hash);
       } else {
         setActiveTab('validations');
@@ -179,8 +248,10 @@ export default function PChainAddressDetailPage({ address, network = 'mainnet' }
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to fetch address');
       }
-      const result = await response.json();
+      const result: AddressDetailData = await response.json();
       setData(result);
+      setAllTransactions(result.transactions ?? []);
+      setNextPageToken(result.nextPageToken);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
@@ -191,6 +262,25 @@ export default function PChainAddressDetailPage({ address, network = 'mainnet' }
   useEffect(() => {
     fetchAddress();
   }, [fetchAddress]);
+
+  const loadMoreTransactions = useCallback(async () => {
+    if (!nextPageToken || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const response = await fetch(
+        `/api/explorer/p-chain/address/${address}?network=${network}&pageToken=${encodeURIComponent(nextPageToken)}`
+      );
+      if (response.ok) {
+        const result: AddressDetailData = await response.json();
+        setAllTransactions((prev) => [...prev, ...(result.transactions ?? [])]);
+        setNextPageToken(result.nextPageToken);
+      }
+    } catch {
+      // Silently fail — user can retry
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [address, network, nextPageToken, loadingMore]);
 
   if (loading) {
     return (
@@ -221,6 +311,7 @@ export default function PChainAddressDetailPage({ address, network = 'mainnet' }
 
   const tabs = [
     { id: 'validations', label: 'Validations' },
+    { id: 'transactions', label: `Transactions (${allTransactions.length}${nextPageToken ? '+' : ''})` },
     { id: 'utxos', label: `UTXOs (${data?.utxoCount || 0})` },
   ];
 
@@ -482,6 +573,89 @@ export default function PChainAddressDetailPage({ address, network = 'mainnet' }
               ) : (
                 <div className="p-8 text-center">
                   <p className="text-zinc-500 dark:text-zinc-400">No active validations or delegations found.</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Transactions Tab */}
+          {activeTab === 'transactions' && (
+            <div className="overflow-x-auto">
+              {allTransactions.length > 0 ? (
+                <>
+                  <table className="w-full">
+                    <thead className="bg-[#fcfcfd] dark:bg-neutral-900 border-b border-zinc-100 dark:border-zinc-800">
+                      <tr>
+                        <th className="px-4 py-2 text-left">
+                          <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">Tx Hash</span>
+                        </th>
+                        <th className="px-4 py-2 text-left">
+                          <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">Type</span>
+                        </th>
+                        <th className="px-4 py-2 text-left">
+                          <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">Timestamp</span>
+                        </th>
+                        <th className="px-4 py-2 text-right">
+                          <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">Amount (AVAX)</span>
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white dark:bg-neutral-950">
+                      {allTransactions.map((tx, index) => (
+                        <tr
+                          key={`${tx.txHash}-${index}`}
+                          className="border-b border-slate-100 dark:border-neutral-800 transition-colors hover:bg-blue-50/50 dark:hover:bg-neutral-800/50"
+                        >
+                          <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
+                            <div className="flex items-center gap-1.5">
+                              <Link
+                                href={`/explorer/p-chain/tx/${tx.txHash}?network=${network}`}
+                                className="font-mono text-sm hover:underline cursor-pointer"
+                                style={{ color: THEME_COLOR }}
+                              >
+                                {formatAddressShort(tx.txHash)}
+                              </Link>
+                              <CopyButton text={tx.txHash} />
+                            </div>
+                          </td>
+                          <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
+                            <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
+                              {formatTxType(tx.txType)}
+                            </span>
+                          </td>
+                          <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
+                            <span className="text-sm text-zinc-600 dark:text-zinc-400">
+                              {formatTimestamp(tx.blockTimestamp)}
+                            </span>
+                          </td>
+                          <td className="px-4 py-2 text-right">
+                            <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                              {calcTxAmount(tx)}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {nextPageToken && (
+                    <div className="p-4 text-center border-t border-zinc-100 dark:border-zinc-800">
+                      <Button
+                        onClick={loadMoreTransactions}
+                        disabled={loadingMore}
+                        className="cursor-pointer"
+                      >
+                        {loadingMore ? (
+                          <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Loading...</>
+                        ) : (
+                          'Load more'
+                        )}
+                      </Button>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="p-8 text-center">
+                  <p className="text-zinc-500 dark:text-zinc-400">No transactions found for this address.</p>
                 </div>
               )}
             </div>

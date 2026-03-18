@@ -5,4 +5,5 @@
 
 export * from './rpc';
 export * from './txDecoder';
+export * from './glacier';
 
