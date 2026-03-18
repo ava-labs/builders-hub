@@ -1577,9 +1577,9 @@ const HackathonsEdit = () => {
       title: "Avalanche 2025",
       description: "Build the future of Web3 on Avalanche. Join us for an exciting hackathon where we will create innovative blockchain solutions.",
       location: "Virtual & In-Person Events Worldwide",
-      total_prizes: 0,
+      total_prizes: 10000,
       tags: ["Blockchain", "Web3", "DeFi", "NFT", "Avalanche"],
-      participants: undefined,
+      participants: 100,
       organizers: "Avalanche Foundation & Partners",
       is_public: false
     });
