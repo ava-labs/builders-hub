@@ -176,6 +176,14 @@ function formatTimestamp(ts: number): string {
   });
 }
 
+function formatAge(ts: number): string {
+  const diffInSeconds = Math.floor((Date.now() - ts * 1000) / 1000);
+  if (diffInSeconds < 60) return `${diffInSeconds} secs ago`;
+  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} mins ago`;
+  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hrs ago`;
+  return `${Math.floor(diffInSeconds / 86400)} days ago`;
+}
+
 function calcTxAmount(tx: GlacierTransaction): string {
   // Sum emitted UTXO amounts, converting from nAVAX (9 decimals) to AVAX
   let total = BigInt(0);
@@ -593,10 +601,13 @@ export default function PChainAddressDetailPage({ address, network = 'mainnet' }
                           <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">Type</span>
                         </th>
                         <th className="px-4 py-2 text-left">
-                          <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">Timestamp</span>
+                          <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">Block</span>
                         </th>
                         <th className="px-4 py-2 text-right">
                           <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">Amount (AVAX)</span>
+                        </th>
+                        <th className="px-4 py-2 text-right">
+                          <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">Age</span>
                         </th>
                       </tr>
                     </thead>
@@ -624,14 +635,21 @@ export default function PChainAddressDetailPage({ address, network = 'mainnet' }
                             </span>
                           </td>
                           <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
-                            <span className="text-sm text-zinc-600 dark:text-zinc-400">
-                              {formatTimestamp(tx.blockTimestamp)}
-                            </span>
+                            <Link
+                              href={`/explorer/p-chain/block/${tx.blockNumber}?network=${network}`}
+                              className="font-mono text-sm hover:underline cursor-pointer"
+                              style={{ color: THEME_COLOR }}
+                            >
+                              {parseInt(tx.blockNumber).toLocaleString()}
+                            </Link>
                           </td>
-                          <td className="px-4 py-2 text-right">
+                          <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 text-right">
                             <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
                               {calcTxAmount(tx)}
                             </span>
+                          </td>
+                          <td className="px-4 py-2 text-right text-sm text-neutral-500 dark:text-neutral-400" title={formatTimestamp(tx.blockTimestamp)}>
+                            {formatAge(tx.blockTimestamp)}
                           </td>
                         </tr>
                       ))}
