@@ -13,6 +13,7 @@ import JoinButton from "@/components/hackathons/hackathon/JoinButton";
 import { Calendar, MapPin, Users } from "lucide-react";
 import { format } from "date-fns";
 import type { HackathonHeader } from "@/types/hackathons";
+import { normalizeEventsLang, t } from "@/lib/events/i18n";
 
 interface ModernEventLayoutProps {
   hackathon: HackathonHeader;
@@ -27,6 +28,8 @@ export default function ModernEventLayout({
   isRegistered,
   utm,
 }: ModernEventLayoutProps) {
+  const lang = normalizeEventsLang(hackathon.content?.language);
+
   // Format dates
   const now = new Date();
   const defaultStartDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
@@ -83,13 +86,25 @@ export default function ModernEventLayout({
   const isHackathon = (hackathon.event || "hackathon") === "hackathon";
 
   const menuItems = [
-    ...(hasAbout ? [{ name: "About", ref: "about" }] : []),
-    ...(isHackathon && hasTracks ? [{ name: "Prizes & Tracks", ref: "tracks" }] : []),
-    ...(hasResources ? [{ name: "Resources", ref: "resources" }] : []),
-    ...(hasSchedule ? [{ name: "Schedule", ref: "schedule" }] : []),
-    ...(isHackathon ? [{ name: "Submission", ref: "submission" }] : []),
-    ...(hasSpeakers ? [{ name: "Mentors & Judges", ref: "speakers" }] : []),
-    ...(hasPartners ? [{ name: "Partners", ref: "sponsors" }] : []),
+    ...(hasAbout ? [{ name: t(lang, "menu.about"), ref: "about" }] : []),
+    ...(isHackathon && hasTracks
+      ? [{ name: t(lang, "menu.tracks"), ref: "tracks" }]
+      : []),
+    ...(hasResources
+      ? [{ name: t(lang, "menu.resources"), ref: "resources" }]
+      : []),
+    ...(hasSchedule
+      ? [{ name: t(lang, "menu.schedule"), ref: "schedule" }]
+      : []),
+    ...(isHackathon
+      ? [{ name: t(lang, "menu.submission"), ref: "submission" }]
+      : []),
+    ...(hasSpeakers
+      ? [{ name: t(lang, "menu.mentorsJudges"), ref: "speakers" }]
+      : []),
+    ...(hasPartners
+      ? [{ name: t(lang, "menu.partners"), ref: "sponsors" }]
+      : []),
   ];
 
   return (
@@ -115,6 +130,7 @@ export default function ModernEventLayout({
           variant="red"
           showChatWhenRegistered={true}
           utm={utm}
+          lang={lang}
         />
       </div>
       <div className="p-4 flex flex-col gap-24">
@@ -177,6 +193,7 @@ export default function ModernEventLayout({
                 variant="red"
                 showChatWhenRegistered={true}
                 utm={utm}
+                lang={lang}
               />
             </div>
           </div>

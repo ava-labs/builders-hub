@@ -812,6 +812,7 @@ const HackathonsEdit = () => {
     console.log({hackathon});
     setFormDataContent({
       ...(hackathon.content ?? {}),
+      language: hackathon.content?.language === "es" ? "es" : "en",
       tracks: hackathon.content?.tracks ?? [{ icon: '', logo: '', name: '', partner: '', description: '', short_description: '' }],
       address: hackathon.content?.address ?? '',
       partners: hackathon.content?.partners ?? [''],
@@ -821,7 +822,7 @@ const HackathonsEdit = () => {
       tracks_text: hackathon.content?.tracks_text ?? '',
       speakers_text: hackathon.content?.speakers_text ?? '',
       join_custom_link: hackathon.content?.join_custom_link ?? '',
-      join_custom_text: "Join now",
+      join_custom_text: hackathon.content?.join_custom_text ?? null,
       become_sponsor_link: hackathon.content?.become_sponsor_link ?? '',
       submission_custom_link: hackathon.content?.submission_custom_link ?? null,
       judging_guidelines: hackathon.content?.judging_guidelines ?? '',
@@ -1369,7 +1370,7 @@ const HackathonsEdit = () => {
           body: JSON.stringify(dataToSend),
         });
         
-        if (response.status === 200) {
+        if (response.ok) {
           toast({
             title: 'Event created',
             description: 'Your event has been created successfully.',
@@ -1418,7 +1419,7 @@ const HackathonsEdit = () => {
           body: JSON.stringify(dataToSend),
         });
         
-       if (response.status === 200) {
+       if (response.ok) {
           toast({
             title: 'Event updated',
             description: 'Your event has been updated successfully.',
@@ -1576,9 +1577,9 @@ const HackathonsEdit = () => {
       title: "Avalanche 2025",
       description: "Build the future of Web3 on Avalanche. Join us for an exciting hackathon where we will create innovative blockchain solutions.",
       location: "Virtual & In-Person Events Worldwide",
-      total_prizes: 10000,
+      total_prizes: 0,
       tags: ["Blockchain", "Web3", "DeFi", "NFT", "Avalanche"],
-      participants: 100,
+      participants: undefined,
       organizers: "Avalanche Foundation & Partners",
       is_public: false
     });
@@ -2012,6 +2013,24 @@ const HackathonsEdit = () => {
                 <SelectItem value="bootcamp">Bootcamp</SelectItem>
               </SelectContent>
             </Select>
+
+            <h2 className='font-medium text-xl mb-2 block'>Event Language</h2>
+            <Select
+              value={(formDataContent.language ?? "en") as "en" | "es"}
+              onValueChange={(value) => {
+                const lang = value === "es" ? "es" : "en";
+                setFormDataContent((prev) => ({ ...prev, language: lang }));
+              }}
+            >
+              <SelectTrigger className="w-full mb-4">
+                <SelectValue placeholder="Select event language" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="en">English</SelectItem>
+                <SelectItem value="es">Español</SelectItem>
+              </SelectContent>
+            </Select>
+
             <div className="flex items-center gap-3 mt-4">
               <Switch
                 id="new-layout"
@@ -3149,6 +3168,7 @@ const HackathonsEdit = () => {
                 organizers: formDataMain.organizers,
                 banner: formDataLatest.banner,
                 content: {
+                  language: formDataContent.language,
                   tracks_text: formDataContent.tracks_text,
                   tracks: formDataContent.tracks,
                   schedule: formDataContent.schedule,

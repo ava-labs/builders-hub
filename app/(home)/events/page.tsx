@@ -3,13 +3,14 @@ import Events from "@/components/hackathons/Events";
 import { getFilteredHackathons } from "@/server/services/hackathons";
 import { createMetadata } from "@/utils/metadata";
 import type { Metadata } from "next";
+import { normalizeEventsLang, t } from "@/lib/events/i18n";
 
 export const revalidate = 3600;
 export const dynamicParams = true;
 
 export const metadata: Metadata = createMetadata({
-  title: 'Events',
-  description: 'Join exciting blockchain hackathons, workshops and bootcamps on Avalanche',
+  title: t(normalizeEventsLang(undefined), "meta.events.title"),
+  description: t(normalizeEventsLang(undefined), "meta.eventsIndex.description"),
   openGraph: {
     images: '/api/og/events',
   },

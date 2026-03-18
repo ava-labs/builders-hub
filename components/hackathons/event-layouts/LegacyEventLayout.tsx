@@ -13,6 +13,7 @@ import OverviewBanner from "@/components/hackathons/hackathon/sections/OverviewB
 import JoinButton from "@/components/hackathons/hackathon/JoinButton";
 import JoinBannerLink from "@/components/hackathons/hackathon/JoinBannerLink";
 import type { HackathonHeader } from "@/types/hackathons";
+import { normalizeEventsLang, t } from "@/lib/events/i18n";
 
 interface LegacyEventLayoutProps {
   hackathon: HackathonHeader;
@@ -27,6 +28,8 @@ export default function LegacyEventLayout({
   isRegistered,
   utm,
 }: LegacyEventLayoutProps) {
+  const lang = normalizeEventsLang(hackathon.content?.language);
+
   const hasAbout = Boolean(hackathon.content.tracks_text);
   const hasTracks =
     Array.isArray(hackathon.content.tracks) &&
@@ -48,13 +51,25 @@ export default function LegacyEventLayout({
   const isHackathon = (hackathon.event || "hackathon") === "hackathon";
 
   const menuItems = [
-    ...(hasAbout ? [{ name: "About", ref: "about" }] : []),
-    ...(isHackathon && hasTracks ? [{ name: "Prizes & Tracks", ref: "tracks" }] : []),
-    ...(hasResources ? [{ name: "Resources", ref: "resources" }] : []),
-    ...(hasSchedule ? [{ name: "Schedule", ref: "schedule" }] : []),
-    ...(isHackathon ? [{ name: "Submission", ref: "submission" }] : []),
-    ...(hasSpeakers ? [{ name: "Mentors & Judges", ref: "speakers" }] : []),
-    ...(hasPartners ? [{ name: "Partners", ref: "sponsors" }] : []),
+    ...(hasAbout ? [{ name: t(lang, "menu.about"), ref: "about" }] : []),
+    ...(isHackathon && hasTracks
+      ? [{ name: t(lang, "menu.tracks"), ref: "tracks" }]
+      : []),
+    ...(hasResources
+      ? [{ name: t(lang, "menu.resources"), ref: "resources" }]
+      : []),
+    ...(hasSchedule
+      ? [{ name: t(lang, "menu.schedule"), ref: "schedule" }]
+      : []),
+    ...(isHackathon
+      ? [{ name: t(lang, "menu.submission"), ref: "submission" }]
+      : []),
+    ...(hasSpeakers
+      ? [{ name: t(lang, "menu.mentorsJudges"), ref: "speakers" }]
+      : []),
+    ...(hasPartners
+      ? [{ name: t(lang, "menu.partners"), ref: "sponsors" }]
+      : []),
   ];
 
   return (
@@ -80,6 +95,7 @@ export default function LegacyEventLayout({
           variant="red"
           showChatWhenRegistered={true}
           utm={utm}
+          lang={lang}
         />
       </div>
       <div className="p-4 flex flex-col gap-24">
