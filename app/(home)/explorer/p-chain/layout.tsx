@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode, Suspense } from "react";
 import { Metadata } from "next";
 import { PChainExplorerLayoutClient } from "./layout.client";
 
@@ -16,8 +16,10 @@ export default async function PChainExplorerLayout({
   children,
 }: PChainExplorerLayoutProps) {
   return (
-    <PChainExplorerLayoutClient>
-      {children}
-    </PChainExplorerLayoutClient>
+    <Suspense fallback={null}>
+      <PChainExplorerLayoutClient>
+        {children}
+      </PChainExplorerLayoutClient>
+    </Suspense>
   );
 }

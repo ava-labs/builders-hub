@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import { Suspense } from "react";
 import PChainExplorerPage from "@/components/explorer/PChainExplorerPage";
 
 export const metadata: Metadata = {
@@ -14,6 +15,10 @@ export default async function Page({ searchParams }: PageProps) {
   const params = await searchParams;
   const network = params.network === 'fuji' ? 'fuji' : 'mainnet';
   
-  return <PChainExplorerPage initialNetwork={network} />;
+  return (
+    <Suspense fallback={null}>
+      <PChainExplorerPage initialNetwork={network} />
+    </Suspense>
+  );
 }
 
