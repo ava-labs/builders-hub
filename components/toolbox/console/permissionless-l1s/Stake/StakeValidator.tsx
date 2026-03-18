@@ -142,7 +142,7 @@ export default function StakeValidator({ tokenType, onSuccess }: StakeValidatorP
                         userPChainBalanceNavax={userPChainBalanceNavax}
                         blsProofOfPossession={blsProofOfPossession}
                         evmTxHash={initiateRegistrationTxHash}
-                        signingSubnetId={l1State.subnetIdL1}
+                        signingSubnetId={l1State.validatorManagerDetails.signingSubnetId || l1State.subnetIdL1}
                         onSuccess={(txId) => {
                             setPChainTxId(txId);
                             setGlobalError(null);
@@ -172,7 +172,7 @@ export default function StakeValidator({ tokenType, onSuccess }: StakeValidatorP
                         subnetIdL1={l1State.subnetIdL1}
                         pChainTxId={pChainTxId}
                         validationID={validationID}
-                        signingSubnetId={l1State.subnetIdL1}
+                        signingSubnetId={l1State.validatorManagerDetails.signingSubnetId || l1State.subnetIdL1}
                         managerType={tokenType === 'native' ? 'PoS-Native' : 'PoS-ERC20'}
                         managerAddress={validatorManagerDetails.contractOwner || ''}
                         onSuccess={(data) => {

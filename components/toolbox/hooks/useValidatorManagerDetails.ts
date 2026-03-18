@@ -319,29 +319,52 @@ export function useValidatorManagerDetails({ subnetId }: UseValidatorManagerDeta
             }, 10000);
 
             try {
-                if (!poaManager.isReady) {
-                    // If PoA Manager hook is not ready, can't detect
+                // Try getStakingManagerSettings() first — this is unique to StakingManager
+                // and does NOT exist on PoAManager, making it a reliable discriminator.
+                // (Both contracts inherit owner() from OwnableUpgradeable, so that can't distinguish them.)
+                await chainPublicClient.readContract({
+                    address: contractOwner as `0x${string}`,
+                    abi: [{
+                        name: 'getStakingManagerSettings',
+                        type: 'function',
+                        inputs: [],
+                        outputs: [{ name: '', type: 'tuple', components: [
+                            { name: 'manager', type: 'address' },
+                            { name: 'minimumStakeAmount', type: 'uint256' },
+                            { name: 'maximumStakeAmount', type: 'uint256' },
+                            { name: 'minimumStakeDuration', type: 'uint64' },
+                            { name: 'minimumDelegationFeeBips', type: 'uint16' },
+                            { name: 'maximumStakeMultiplier', type: 'uint8' },
+                            { name: 'weightToValueFactor', type: 'uint256' },
+                            { name: 'rewardCalculator', type: 'address' },
+                            { name: 'uptimeBlockchainID', type: 'bytes32' },
+                        ]}],
+                        stateMutability: 'view',
+                    }],
+                    functionName: 'getStakingManagerSettings',
+                });
+                clearTimeout(timeoutId);
+
+                if (!cancelled) {
+                    setOwnerType('StakingManager');
+                }
+            } catch {
+                // getStakingManagerSettings() failed — not a StakingManager.
+                // Try owner() via PoAManager hook to confirm it's a PoAManager.
+                try {
+                    if (poaManager.isReady) {
+                        const ownerAddress = await poaManager.owner();
+                        clearTimeout(timeoutId);
+                        if (!cancelled) {
+                            setOwnerType(ownerAddress ? 'PoAManager' : 'StakingManager');
+                        }
+                    } else if (!cancelled) {
+                        setOwnerType('StakingManager');
+                    }
+                } catch {
                     if (!cancelled) {
                         setOwnerType('StakingManager');
                     }
-                    return;
-                }
-
-                // Try to call owner() function using PoAManager hook to detect if it's a PoAManager
-                const ownerAddress = await poaManager.owner();
-                clearTimeout(timeoutId);
-
-                // If we can successfully call owner() with PoAManager ABI, it's a PoAManager
-                if (!cancelled) {
-                    if (ownerAddress) {
-                        setOwnerType('PoAManager');
-                    } else {
-                        setOwnerType('StakingManager');
-                    }
-                }
-            } catch (error) {
-                if (!cancelled) {
-                    setOwnerType('StakingManager');
                 }
             } finally {
                 clearTimeout(timeoutId);
