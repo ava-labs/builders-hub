@@ -165,6 +165,11 @@ function formatTxType(txType: string): string {
     .replace(/([a-z])([A-Z])/g, '$1 $2');
 }
 
+// Raw type badge label — strips "Tx" suffix for display e.g. "AddValidatorTx" → "AddValidator"
+function txTypeBadge(txType: string): string {
+  return txType.replace(/Tx$/, '');
+}
+
 function formatTimestamp(ts: number): string {
   const date = new Date(ts * 1000);
   return date.toLocaleString(undefined, {
@@ -630,8 +635,11 @@ export default function PChainAddressDetailPage({ address, network = 'mainnet' }
                             </div>
                           </td>
                           <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
-                            <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
-                              {formatTxType(tx.txType)}
+                            <span
+                              className="px-2 py-1 text-xs font-mono rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700"
+                              title={formatTxType(tx.txType)}
+                            >
+                              {txTypeBadge(tx.txType)}
                             </span>
                           </td>
                           <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
