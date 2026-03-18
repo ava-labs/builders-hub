@@ -57,8 +57,9 @@ export async function GET() {
         });
         const buildGames = (formData?.form_data as Record<string, any>)?.build_games;
         const stage1Result: string | null = buildGames?.stage1_result ?? null;
+        const stage2Result: string | null = (buildGames?.stages as Record<string, string> | undefined)?.['2'] ?? null;
         const isConfirmed = p.members.some((m) => m.status === "Confirmed");
-        return { projectName: p.project_name, stage1Result, isConfirmed, createdAt: p.created_at };
+        return { projectName: p.project_name, stage1Result, stage2Result, isConfirmed, createdAt: p.created_at };
       })
     );
 
@@ -81,8 +82,8 @@ export async function GET() {
     }
 
     const stageResults = selectedProjects
-      .filter((p) => p.stage1Result !== null)
-      .map((p) => ({ projectName: p.projectName, stage1Result: p.stage1Result as string }));
+      .filter((p) => p.stage1Result !== null || p.stage2Result !== null)
+      .map((p) => ({ projectName: p.projectName, stage1Result: p.stage1Result, stage2Result: p.stage2Result }));
 
     const firstProject = selectedProjects[0];
     const projectName = firstProject?.projectName ?? application?.project_name ?? "Build Games 2026";
