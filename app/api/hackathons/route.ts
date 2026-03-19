@@ -7,13 +7,16 @@ import {
 import { HackathonStatus } from '@/types/hackathons';
 import { getUserById } from '@/server/services/getUser';
 import { withAuthRole } from '@/lib/protectedRoute';
+import { getAuthSession } from '@/lib/auth/authSession';
 
 
 
 export async function GET(req: NextRequest) {
   try {
     const searchParams = req.nextUrl.searchParams;
-    const userId = req.headers.get("id");
+    
+    const session = await getAuthSession();
+    const userId = session?.user?.id;
     
     let options: GetHackathonsOptions = {
       page: Number(searchParams.get('page') || 1),
