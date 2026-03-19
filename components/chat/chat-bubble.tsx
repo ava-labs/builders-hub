@@ -11,6 +11,11 @@ import remarkGfm from 'remark-gfm';
 
 type BubbleState = 'collapsed' | 'input' | 'expanded';
 
+const bubbleTransport = new DefaultChatTransport({
+  api: '/api/chat',
+  body: { source: 'bubble' },
+});
+
 const PROMPTS = [
   "Ask me anything... really anything",
   "Need help? I'm here for you",
@@ -48,10 +53,7 @@ export function ChatBubble() {
 
   const { messages, sendMessage, status, setMessages } = useChat({
     id: 'chat-bubble',
-    transport: new DefaultChatTransport({
-      api: '/api/chat',
-      body: { source: 'bubble' },
-    }),
+    transport: bubbleTransport,
     onFinish() {
       setState('expanded');
     },
