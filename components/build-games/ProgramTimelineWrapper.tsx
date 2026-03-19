@@ -10,7 +10,8 @@ const ProgramTimeline = dynamic(() => import("./ProgramTimeline"), {
 
 export interface StageResult {
   projectName: string;
-  stage1Result: string;
+  stage1Result: string | null;
+  stage2Result: string | null;
 }
 
 export default function ProgramTimelineWrapper() {

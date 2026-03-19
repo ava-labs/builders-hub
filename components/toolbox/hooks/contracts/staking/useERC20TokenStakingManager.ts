@@ -314,7 +314,7 @@ export function useERC20TokenStakingManager(
       address: contractAddress as `0x${string}`,
       abi: contractAbi,
       functionName: 'completeDelegatorRegistration',
-      args: [messageIndex, delegationID],
+      args: [delegationID, messageIndex],
       chain: viemChain,
       account: walletEVMAddress as `0x${string}`,
       gas: BigInt(1_000_000),

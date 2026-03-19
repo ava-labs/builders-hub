@@ -229,8 +229,8 @@ export function StatsBreadcrumb({
       // On explorer page, only show chains with rpcUrl
       return (l1ChainsData as L1Chain[]).filter((chain) => chain.rpcUrl);
     } else if (showStats || showValidators) {
-      // On stats/validators page, show all chains
-      return l1ChainsData as L1Chain[];
+      // On stats/validators page, show only mainnet chains
+      return (l1ChainsData as L1Chain[]).filter((chain) => !chain.isTestnet);
     }
     return [];
   }, [showExplorer, showStats, showValidators]);
