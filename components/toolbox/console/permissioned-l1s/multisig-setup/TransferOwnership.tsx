@@ -44,6 +44,7 @@ function TransferOwnership({ onSuccess, defaultNewOwnerAddress }: TransferOwners
     const [isDetailsExpanded, setIsDetailsExpanded] = useState(true);
     const [isNewOwnerContract, setIsNewOwnerContract] = useState(false);
     const [isCheckingNewOwner, setIsCheckingNewOwner] = useState(false);
+    const [newOwnerContractType, setNewOwnerContractType] = useState<'StakingManager' | 'PoAManager' | 'Unknown' | null>(null);
     const viemChain = useViemChainStore();
 
     // Update newOwnerAddress when defaultNewOwnerAddress prop changes
@@ -97,12 +98,59 @@ function TransferOwnership({ onSuccess, defaultNewOwnerAddress }: TransferOwners
             }
 
             setIsCheckingNewOwner(true);
+            setNewOwnerContractType(null);
             try {
                 const bytecode = await chainPublicClient.getBytecode({
                     address: newOwnerAddress as `0x${string}`
                 });
                 const isContract = !!bytecode && bytecode !== '0x';
                 setIsNewOwnerContract(isContract);
+
+                if (isContract) {
+                    // Detect contract type using getStakingManagerSettings (unique to StakingManager)
+                    try {
+                        await chainPublicClient.readContract({
+                            address: newOwnerAddress as `0x${string}`,
+                            abi: [{
+                                name: 'getStakingManagerSettings',
+                                type: 'function',
+                                inputs: [],
+                                outputs: [{ name: '', type: 'tuple', components: [
+                                    { name: 'manager', type: 'address' },
+                                    { name: 'minimumStakeAmount', type: 'uint256' },
+                                    { name: 'maximumStakeAmount', type: 'uint256' },
+                                    { name: 'minimumStakeDuration', type: 'uint64' },
+                                    { name: 'minimumDelegationFeeBips', type: 'uint16' },
+                                    { name: 'maximumStakeMultiplier', type: 'uint8' },
+                                    { name: 'weightToValueFactor', type: 'uint256' },
+                                    { name: 'rewardCalculator', type: 'address' },
+                                    { name: 'uptimeBlockchainID', type: 'bytes32' },
+                                ]}],
+                                stateMutability: 'view',
+                            }],
+                            functionName: 'getStakingManagerSettings',
+                        });
+                        setNewOwnerContractType('StakingManager');
+                    } catch {
+                        // Not a StakingManager — check for PoAManager via owner()
+                        try {
+                            await chainPublicClient.readContract({
+                                address: newOwnerAddress as `0x${string}`,
+                                abi: [{
+                                    name: 'owner',
+                                    type: 'function',
+                                    inputs: [],
+                                    outputs: [{ name: '', type: 'address' }],
+                                    stateMutability: 'view',
+                                }],
+                                functionName: 'owner',
+                            });
+                            setNewOwnerContractType('PoAManager');
+                        } catch {
+                            setNewOwnerContractType('Unknown');
+                        }
+                    }
+                }
             } catch (e) {
                 console.warn("Could not check if new owner is a contract:", e);
                 setIsNewOwnerContract(false);
@@ -187,17 +235,55 @@ function TransferOwnership({ onSuccess, defaultNewOwnerAddress }: TransferOwners
                         disabled={isTransferring}
                     />
 
-                    {/* Contract owner warning */}
-                    {isNewOwnerContract && !isCheckingNewOwner && (
+                    {/* Contract type detection */}
+                    {isNewOwnerContract && !isCheckingNewOwner && newOwnerContractType === 'StakingManager' && (
+                        <div className="p-3 rounded-lg border-l-4 border-l-green-400 bg-green-50 border border-green-200 dark:bg-green-900/20 dark:border-green-800 dark:border-l-green-400">
+                            <div className="flex items-start gap-3">
+                                <Info className="h-4 w-4 text-green-600 dark:text-green-400 flex-shrink-0" />
+                                <div className="flex-1">
+                                    <h4 className="text-sm font-medium text-green-800 dark:text-green-200 mb-1">
+                                        Staking Manager Detected
+                                    </h4>
+                                    <p className="text-sm text-green-700 dark:text-green-300 mb-2">
+                                        This address is a <strong>StakingManager</strong> contract. After transfer, validators will be managed through the PoS staking flow.
+                                    </p>
+                                    <p className="text-xs text-green-600 dark:text-green-400">
+                                        This action is irreversible unless ValidatorManager is deployed behind proxy
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {isNewOwnerContract && !isCheckingNewOwner && newOwnerContractType === 'PoAManager' && (
+                        <div className="p-3 rounded-lg border-l-4 border-l-blue-400 bg-blue-50 border border-blue-200 dark:bg-blue-900/20 dark:border-blue-800 dark:border-l-blue-400">
+                            <div className="flex items-start gap-3">
+                                <Info className="h-4 w-4 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                                <div className="flex-1">
+                                    <h4 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-1">
+                                        PoA Manager Detected
+                                    </h4>
+                                    <p className="text-sm text-blue-700 dark:text-blue-300 mb-2">
+                                        This address is a <strong>PoAManager</strong> contract. After transfer, validators will be managed through multi-sig governance.
+                                    </p>
+                                    <p className="text-xs text-blue-600 dark:text-blue-400">
+                                        This action is irreversible unless ValidatorManager is deployed behind proxy
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {isNewOwnerContract && !isCheckingNewOwner && newOwnerContractType === 'Unknown' && (
                         <div className="p-3 rounded-lg border-l-4 border-l-amber-400 bg-amber-50 border border-amber-200 dark:bg-amber-900/20 dark:border-amber-800 dark:border-l-amber-400">
                             <div className="flex items-start gap-3">
                                 <Info className="h-4 w-4 text-amber-600 dark:text-amber-400 flex-shrink-0" />
                                 <div className="flex-1">
                                     <h4 className="text-sm font-medium text-amber-800 dark:text-amber-200 mb-1">
-                                        Contract Address Detected
+                                        Unknown Contract Detected
                                     </h4>
                                     <p className="text-sm text-amber-700 dark:text-amber-300 mb-2">
-                                        The new owner address is a contract. Please ensure this contract is either a <strong>PoAManager</strong> or <strong>StakingManager</strong> that follows the ACP-99 standard.
+                                        This address is a contract but could not be identified as a StakingManager or PoAManager. Please ensure it follows the ACP-99 standard.
                                     </p>
                                     <p className="text-xs text-amber-600 dark:text-amber-400">
                                         This action is irreversible unless ValidatorManager is deployed behind proxy

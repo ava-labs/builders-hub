@@ -355,7 +355,52 @@ function Stage1ResultBanner({ result, projectName }: { result: string; projectNa
   );
 }
 
-export default function ProgramTimeline({ isParticipant = false, stageResults = [] }: { isParticipant?: boolean; stageResults?: { projectName: string; stage1Result: string }[] }) {
+function Stage2ResultBanner({ result, projectName }: { result: string; projectName?: string | null }) {
+  const accepted = result === "accepted";
+  return (
+    <div
+      className={`mb-8 flex items-start gap-4 rounded-xl border p-5 ${
+        accepted
+          ? "bg-emerald-950/40 border-emerald-500/40"
+          : "bg-red-950/40 border-red-500/30"
+      }`}
+    >
+      <div
+        className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
+          accepted ? "bg-emerald-500/20" : "bg-red-500/20"
+        }`}
+      >
+        {accepted ? (
+          <svg className="w-5 h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+          </svg>
+        ) : (
+          <svg className="w-5 h-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        )}
+      </div>
+      <div>
+        <p className={`font-['Aeonik:Medium',sans-serif] text-[16px] mb-1 ${accepted ? "text-emerald-300" : "text-red-300"}`}>
+          {projectName ? (
+            accepted
+              ? <><strong>{projectName}</strong> advanced to Stage 3!</>
+              : <><strong>{projectName}</strong> was not selected to continue to Stage 3</>
+          ) : (
+            accepted ? "Your project advanced to Stage 3!" : "Your project was not selected to continue to Stage 3"
+          )}
+        </p>
+        <p className="font-['Aeonik:Regular',sans-serif] text-[14px] text-white/60">
+          {accepted
+            ? "Congratulations — your Stage 2 MVP was accepted. Keep building and submit your GTM & Vision for Stage 3. Attend Office Hours to get feedback and get ready for the next stage."
+            : "Spots for the next stage are limited, but you already did a lot of progress and we encourage you to keep building. Attend Office Hours to get specific feedback. We appreciate the effort you put into your MVP."}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+export default function ProgramTimeline({ isParticipant = false, stageResults = [] }: { isParticipant?: boolean; stageResults?: { projectName: string; stage1Result: string | null; stage2Result: string | null }[] }) {
   // Reactive date — updates every minute so the timeline advances automatically
   // without requiring a page reload.
   const [todayDate, setTodayDate] = useState<Date>(() => new Date());
@@ -595,11 +640,17 @@ export default function ProgramTimeline({ isParticipant = false, stageResults = 
             </p>
           </div>
 
-          {/* Stage 1 result banners — always visible when results exist */}
+          {/* Stage result banners — always visible when results exist */}
           {stageResults.length > 0 && (
             <div className="px-8 pb-6 flex flex-col gap-3">
               {stageResults.map((r) => (
-                <Stage1ResultBanner key={r.projectName} result={r.stage1Result} projectName={r.projectName} />
+                <div key={r.projectName}>
+                  {r.stage2Result ? (
+                    <Stage2ResultBanner result={r.stage2Result} projectName={r.projectName} />
+                  ) : r.stage1Result ? (
+                    <Stage1ResultBanner result={r.stage1Result} projectName={r.projectName} />
+                  ) : null}
+                </div>
               ))}
             </div>
           )}

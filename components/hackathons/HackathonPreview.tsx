@@ -265,9 +265,10 @@ export default function HackathonPreview({ hackathonData, isRegistered = false, 
                 <Tracks hackathon={transformedHackathon} />
               )}
               <Resources hackathon={transformedHackathon} />
-              {transformedHackathon.content.schedule && transformedHackathon.content.schedule.length > 0 && (
-                <Schedule hackathon={transformedHackathon} />
-              )}
+              <Schedule 
+                hackathon={transformedHackathon} 
+                scheduleSource="database"
+              />
               <SubmissionPreview hackathon={transformedHackathon} />
               {transformedHackathon.content.speakers && transformedHackathon.content.speakers.length > 0 && (
                 <MentorsJudges hackathon={transformedHackathon} />

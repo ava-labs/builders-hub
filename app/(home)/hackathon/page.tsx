@@ -289,12 +289,7 @@ export default function HackathonPage() {
               </p>
               <div className="mb-6">
                 <p className="text-lg text-gray-600 dark:text-gray-400">
-                  Top participants may earn a spot in the{" "}
-                  <Link href="https://codebase.avax.network/" passHref>
-                    <strong className="text-yellow-500 hover:underline">
-                    Codebase Incubator Program
-                    </strong>
-                  </Link>, gaining access to exclusive resources and mentorship.
+                  Top participants may earn access to exclusive resources, mentorship, and ecosystem partnerships.
                 </p>
               </div>
             </div>

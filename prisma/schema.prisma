@@ -29,6 +29,8 @@ model Hackathon {
   is_public       Boolean?
   updated_by      String?
   event           String?        @default("hackathon")
+  new_layout      Boolean?       @default(false)
+  google_calendar_id String?  
   created_by_user User?          @relation(fields: [created_by], references: [id])
   updated_by_user User?          @relation("HackathonUpdatedBy", fields: [updated_by], references: [id])
   projects        Project[]
@@ -71,6 +73,7 @@ model User {
   statsPlaygrounds         StatsPlayground[]
   statsPlaygroundFavorites StatsPlaygroundFavorite[] @relation("StatsPlaygroundFavorites")
   badges                   UserBadge[]
+  oauthCodes               OAuthCode[]
 }
 
 model VerificationToken {
@@ -363,6 +366,17 @@ model BuildGamesApplication {
   @@index([created_at])
   @@index([referrer_handle])
   @@index([area_of_focus])
+}
+
+model OAuthCode {
+  code       String   @id
+  client_id  String
+  user_id    String
+  expires_at DateTime @db.Timestamptz(3)
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([expires_at])
 }
 
 model Retro9000ReturningApplication {

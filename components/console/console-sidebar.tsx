@@ -184,6 +184,11 @@ const data = {
           icon: ArrowUpDown,
         },
         {
+          title: "Validator Lookup",
+          url: "/console/primary-network/validator-lookup",
+          icon: Search,
+        },
+        {
           title: "Unit Converter",
           url: "/console/primary-network/unit-converter",
           icon: Calculator,
@@ -298,6 +303,16 @@ const data = {
               title: "Delegate",
               url: "/console/permissionless-l1s/delegate",
               icon: ArrowUpDown,
+            },
+            {
+              title: "Remove Validator",
+              url: "/console/permissionless-l1s/remove-validator",
+              icon: SquareMinus,
+            },
+            {
+              title: "Remove Delegation",
+              url: "/console/permissionless-l1s/remove-delegation",
+              icon: SquareMinus,
             },
           ],
         },
