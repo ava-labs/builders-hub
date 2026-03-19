@@ -1,0 +1,71 @@
+---
+title: "Section 9 – x402 Payment Infrastructure on Avalanche"
+description: "HTTP‑native payments for web and AI agents using Avalanche."
+updated: 2026-03-05
+authors: [team1]
+icon: Zap
+---
+
+## Section 9 – x402 Payment Infrastructure on Avalanche
+
+The **x402 Payment Infrastructure** course on Builder Hub introduces a protocol for HTTP‑native payments using the HTTP 402 status code (“Payment Required”).[`https://build.avax.network/academy/blockchain/x402-payment-infrastructure`](https://build.avax.network/academy/blockchain/x402-payment-infrastructure)  
+For Advanced Technical Team1 members, x402 is especially relevant for:
+
+- AI agents that need to pay for API calls or services.
+- High‑frequency micropayments and API monetization.
+- Novel web experiences where payment is part of the HTTP flow instead of a separate redirect or checkout.
+
+### 9.1 Learning Objectives
+
+By the end of this section, you should be able to:
+
+- Explain **what x402 is** and how it activates HTTP 402 for internet‑native payments.
+- Describe the **traditional payment problem** (latency, KYC, accounts, high fees) and the **AI agent payment problem**, and how x402 addresses them.
+- List the primary **x402 use cases** (AI agent payments, micropayments, API monetization, token‑gated resources).[`https://build.avax.network/academy/blockchain/x402-payment-infrastructure`](https://build.avax.network/academy/blockchain/x402-payment-infrastructure)
+- Walk through the **x402 payment flow**:
+  - HTTP request → HTTP 402 response with pricing info → client payment via facilitator → confirmation and content delivery.
+- Describe:
+  - How the `X-PAYMENT` and `X-PAYMENT-RESPONSE` headers are structured and used in requests/responses.
+  - The role of the **facilitator** in handling payments, sponsoring gas, and interacting with the blockchain.
+- Explain why **Avalanche** is well‑suited for x402:
+  - Low fees and fast finality.
+  - 2‑second settlement and no protocol fees (as described in the course), which is ideal for micropayments.[`https://build.avax.network/academy/blockchain/x402-payment-infrastructure`](https://build.avax.network/academy/blockchain/x402-payment-infrastructure)
+- Understand how **gasless UX** works for end users:
+  - Facilitators sponsor gas, users just pay the price quoted by the x402 endpoint.
+- Identify and compare available **facilitator implementations** on Avalanche (e.g., Thirdweb, PayAI, Ultravioleta DAO, x402‑rs) and when to choose each.
+- Set up an **x402 development environment**:
+  - Connect to Avalanche network.
+  - Configure facilitator, tokens, and test endpoints.
+- Implement **x402 middleware** in a service:
+  - Validate payments.
+  - Configure endpoint pricing.
+  - Handle errors and edge cases.
+- Explain how x402 can be used in **AI agent mode**:
+  - Token‑based AI chat.
+  - Autonomous agents that pay for compute or data on the fly.
+- Identify **key security considerations**:
+  - Protecting against replay attacks.
+  - Validating signatures and payment proofs.
+  - Handling rate limits and abuse.
+- Propose **KPIs** for an x402 integration:
+  - Payment success rate.
+  - Latency from HTTP 402 to confirmation.
+  - Revenue per request / per user.
+  - Failed or abandoned payment rate.
+
+### 9.2 Study Path & Practice
+
+**Recommended Builder Hub course:**
+
+- **x402 Payment Infrastructure** – complete protocol and implementation walkthrough.[`https://build.avax.network/academy/blockchain/x402-payment-infrastructure`](https://build.avax.network/academy/blockchain/x402-payment-infrastructure)
+
+**Suggested practice:**
+
+- Add x402‑based payment to:
+  - An educational API (e.g., a resource for Avalanche docs or Team1 content).
+  - A simple AI chat or agent demo that pays per request.
+- Deploy your x402‑enabled service on Avalanche testnet and:
+  - Measure latency and payment success.
+  - Collect feedback from early users (e.g., via a Team1 workshop or hackathon).
+- Share your implementation as a reference repo for other Team1 builders who want to integrate x402 into their own projects.
+

@@ -1,0 +1,15 @@
+{
+  "title": "Organizing Your First Team1 Event",
+  "icon": "Calendar",
+  "root": true,
+  "pages": [
+    "index",
+    "...01-introduction-why-events-matter-in-team1",
+    "...02-making-a-proposal",
+    "...03-before-the-event",
+    "...04-during-the-event",
+    "...05-after-the-event",
+    "summary"
+  ]
+}
+

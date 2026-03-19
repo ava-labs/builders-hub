@@ -1,0 +1,51 @@
+---
+title: "Section 8 – Encrypted ERC (eERC)"
+description: "Privacy‑preserving tokens and their cryptographic foundations."
+updated: 2026-03-05
+authors: [team1]
+icon: Zap
+---
+
+## Section 8 – Encrypted ERC (eERC)
+
+Encrypted ERC (eERC) enables privacy‑preserving tokens on Avalanche by combining cryptographic primitives (Zero‑Knowledge Proofs, partially homomorphic encryption, etc.) with ERC‑compatible interfaces. This topic is covered in the **Encrypted ERC** course within the Blockchain track on Builder Hub.[`https://build.avax.network/academy/blockchain/encrypted-erc`](https://build.avax.network/academy/blockchain/encrypted-erc)
+
+### 8.1 Learning Objectives
+
+By the end of this section, you should be able to:
+
+- Define **what an encrypted token is** and how it differs from a standard ERC‑20/721/1155 token.
+- Explain:
+  - What the **BabyJubJub** elliptic curve is and why it is useful for zk‑friendly cryptography.
+  - How BabyJubJub differs from schemes like **BLS** in terms of use cases and properties.
+- Describe:
+  - **Symmetric cryptography** (same key for encryption and decryption).
+  - **Asymmetric cryptography** (public/private key pairs).
+  - **Zero‑Knowledge Proofs (ZKPs)** and why they are critical for private balances and transfers.
+  - **Partial Homomorphic Encryption** and its properties relevant to encrypted balances and operations.
+- Understand the roles of **PCT** and **EGCT** (as defined in the eERC standard) and how they participate in confidential transactions.
+- Distinguish between tokens created with **Standalone** and **Converter** eERC flows and when each is appropriate.
+- Describe the **process to initialize an eERC contract** (Standalone or Converter) on Avalanche.
+- Describe the **process to initialize a user** in an eERC contract (key generation, registration, and any necessary setup).
+- Differentiate between **Mint** and **Deposit**, and give examples of when each is used.
+- Explain **how balances are stored on‑chain** for eERC tokens and how they differ from plain ERC‑20 balances.
+- Identify **which ZK proofs** are used to generate transfer signatures in eERC and what properties they guarantee (e.g., balance conservation, no over‑spending).
+- Differentiate between **Burn** and **Withdraw**, and describe use cases for each within the eERC model.
+- List at least **three real‑world use cases** of encrypted tokens (e.g., private payroll, confidential DeFi positions, privacy‑preserving identity or ticketing).
+
+### 8.2 Study Path & Practice
+
+**Recommended Builder Hub course:**
+
+- **Encrypted ERC** – conceptual overview and hands‑on implementation exercises.[`https://build.avax.network/academy/blockchain/encrypted-erc`](https://build.avax.network/academy/blockchain/encrypted-erc)
+
+**Suggested practice:**
+
+- Deploy a sample eERC token using the Standalone flow on an Avalanche testnet.
+- Initialize at least two users and perform:
+  - A mint or deposit.
+  - A confidential transfer between users.
+  - A burn or withdrawal.
+- Analyze how balances and proofs are represented on‑chain using explorer tools and course instrumentation.
+- Turn this into a Team1 workshop or demo where participants walk through the full flow and discuss potential use cases in their region.
+

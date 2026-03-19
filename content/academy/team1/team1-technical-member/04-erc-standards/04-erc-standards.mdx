@@ -1,0 +1,34 @@
+---
+title: "Section 4 – ERC Standards (ERC20, ERC721, ERC1155)"
+description: "Token and NFT standards and how to use them on Avalanche."
+updated: 2026-03-05
+authors: [team1]
+icon: Code
+---
+
+## Section 4 – ERC Standards (ERC20, ERC721, ERC1155)
+
+Understanding the main token and NFT standards is essential for many Avalanche use cases.
+
+**By the end of this section you should be able to:**
+
+- Define:
+  - What an **ERC20** token is and typical use cases (fungible tokens, governance tokens, etc.).
+  - What an **ERC721** token is and use cases (NFTs, unique assets).
+  - What an **ERC1155** token is and when it’s useful (multi‑token standard, gaming assets, mixed fungible/non‑fungible).
+- Explain:
+  - Key differences between ERC20, ERC721, and ERC1155 (fungibility, metadata, transfer mechanics).
+  - Core functions like `balanceOf`, `approve`, `allowance`, and `transferFrom` and how they work in ERC20.
+- Demonstrate:
+  - Deployment of your own ERC20, ERC721, and ERC1155 contracts on an Avalanche testnet or devnet.
+  - Basic integrations such as minting, transferring, and querying balances.
+- Security & tooling:
+  - Explain what a **reentrancy attack** is and why patterns like the checks‑effects‑interactions pattern or reentrancy guards are important.
+  - Use OpenZeppelin Contracts and related tooling to implement standard‑compliant and secure token/NFT contracts.[`https://docs.openzeppelin.com/contracts`](https://docs.openzeppelin.com/contracts)
+  - Explain what **IPFS** is and why it’s often used for off‑chain metadata storage.[`https://ipfs.tech`](https://ipfs.tech)
+
+**Suggested learning path**
+
+- Use Builder Hub token/NFT tutorials and Avalanche docs to practice ERC20/721/1155 on Avalanche networks.[`https://build.avax.network`](https://build.avax.network)
+- Build a small showcase dApp (for example, minting NFTs or interacting with a game asset contract) and document it as a Team1 contribution.
+

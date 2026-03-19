@@ -1,0 +1,17 @@
+{
+  "title": "Team1 Technical Member",
+  "icon": "Code",
+  "root": true,
+  "pages": [
+    "index",
+    "...01-introduction-to-blockchain",
+    "...02-introduction-to-avalanche-and-its-ecosystem",
+    "...03-introduction-to-solidity",
+    "...04-erc-standards",
+    "...05-frontend-integration",
+    "...06-custom-l1s",
+    "quiz",
+    "summary"
+  ]
+}
+

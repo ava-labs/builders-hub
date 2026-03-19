@@ -1,0 +1,38 @@
+---
+title: "Section 5 – Frontend Integration"
+description: "Connecting smart contracts to modern frontends (Next.js, wagmi, WalletConnect)."
+updated: 2026-03-05
+authors: [team1]
+icon: Code
+---
+
+## Section 5 – Frontend Integration
+
+Technical Team1 members should be able to help connect smart contracts to user interfaces, especially with modern frameworks like Next.js and popular Web3 tooling.
+
+**By the end of this section you should be able to:**
+
+- Understand frontend basics:
+  - What a **frontend framework** is (e.g., React/Next.js) and why it’s useful for dApps.
+  - What a **hook** is and examples of common hooks in React/Next.js (`useState`, `useEffect`, etc.).[`https://nextjs.org/docs`](https://nextjs.org/docs)
+  - What a **custom hook** is and when to create one.
+- Know what’s needed to interact with smart contracts:
+  - Contract **address**, **ABI**, network/RPC configuration, and the user’s wallet.
+  - What an **ABI** is and how it’s used by libraries to encode and decode function calls.
+- Use common tooling:
+  - **wagmi** for React hooks that interact with EVM chains (including Avalanche).[`https://wagmi.sh`](https://wagmi.sh)
+  - **WalletConnect** as an aggregation layer for multiple wallets, and awareness of major providers.[`https://walletconnect.com`](https://walletconnect.com)
+  - RPC endpoints: what they are and how to configure them for Avalanche networks in your frontend.
+- Implement common patterns:
+  - Reading contract state (single and multiple read functions).
+  - Interacting with write functions (sending transactions, handling errors).
+  - Listening to blockchain events and updating UI accordingly.
+  - Detecting transaction confirmations and giving user feedback.
+- Understand account abstraction basics:
+  - Recognize common account‑abstraction patterns supported by WalletConnect providers and how they can affect UX.
+
+**Suggested learning path**
+
+- Work through a sample dApp tutorial that uses Next.js + wagmi + WalletConnect to interact with contracts on Avalanche.[`https://build.avax.network`](https://build.avax.network)
+- Extend Bootcamp or workshop contracts with a simple UI and share it as a Team1 educational example.[`https://team1-latam-bootcamp.gitbook.io/team1-docs`](https://team1-latam-bootcamp.gitbook.io/team1-docs)
+
