@@ -47,6 +47,7 @@ export function ChatBubble() {
 
   const { messages, sendMessage, status, setMessages } = useChat({
     id: 'chat-bubble',
+    body: { source: 'bubble' },
     onFinish() {
       setState('expanded');
     },
@@ -282,8 +283,8 @@ export function ChatBubble() {
                       {text}
                     </div>
                   ) : (
-                    <div className="max-w-[85%] px-4 py-2.5 rounded-2xl rounded-bl-md text-sm leading-relaxed bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700/50">
-                      <div className="prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0.5 prose-pre:my-2 prose-code:text-xs prose-headings:text-sm prose-headings:my-2">
+                    <div className="max-w-[85%] px-4 py-2.5 rounded-2xl rounded-bl-md text-sm leading-relaxed bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700/50 overflow-hidden">
+                      <div className="prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0.5 prose-pre:my-2 prose-pre:overflow-x-auto prose-code:text-xs prose-headings:text-sm prose-headings:my-2 [overflow-wrap:anywhere]">
                         <ReactMarkdown remarkPlugins={[remarkGfm]}>
                           {text}
                         </ReactMarkdown>

@@ -219,7 +219,8 @@ function findRelevantSections(query: string, docs: string): string[] {
 }
 
 export async function POST(req: Request) {
-  const { messages, id: visitorId } = await req.json();
+  const { messages, id: visitorId, source } = await req.json();
+  const isBubble = source === 'bubble';
   const startTime = Date.now();
   const traceId = `trace_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
@@ -666,7 +667,16 @@ export async function POST(req: Request) {
       }),
     },
     stopWhen: stepCountIs(15),
-    system: `You are the AI assistant for Avalanche Builders Hub (build.avax.network). You help developers build on Avalanche — answer questions, look up on-chain data, render interactive tools, and cite documentation. Be concise and helpful — code over prose, cite docs.
+    system: `${isBubble ? `## Bubble Mode — STRICT
+You are the quick-help bubble on the Builders Hub. Your job is to help users FIND things fast.
+- MAX 2-3 sentences per answer. No walls of text.
+- Always link to the relevant page: /docs/..., /academy/..., /console/...
+- Do NOT call render_component for flows/tools — just link to the console page (e.g. [Create an L1](/console/create-l1)).
+- For complex questions (how to create L1, deploy contract, etc.): give a 1-line summary, then say "For a full walkthrough, head to [/chat](/chat)".
+- Do NOT call suggest_followups — keep responses minimal.
+- Format links as markdown: [text](url)
+
+` : ''}You are the AI assistant for Avalanche Builders Hub (build.avax.network). You help developers build on Avalanche — answer questions, look up on-chain data, render interactive tools, and cite documentation. Be concise and helpful — code over prose, cite docs.
 
 ## CRITICAL: Always produce a text response
 **You MUST write a text answer to the user's question.** Never spend all your steps on tool calls without producing text. If tools fail or return empty results, answer from your knowledge and the documentation context below. A text response is mandatory — tool calls are supplementary.
