@@ -7,8 +7,8 @@ import l1ChainsData from "@/constants/l1-chains.json";
 import { L1Chain } from "@/types/stats";
 import { categoryColors } from "@/components/stats/CategoryChip";
 
-// Get all chains that have data (chainId defined)
-const allChains = (l1ChainsData as L1Chain[]).filter(c => c.chainId);
+// Get all mainnet chains that have data (chainId defined, exclude testnets)
+const allChains = (l1ChainsData as L1Chain[]).filter(c => c.chainId && !c.isTestnet);
 
 // Get unique categories
 const allCategories = Array.from(new Set(allChains.map(c => c.category).filter(Boolean))) as string[];
