@@ -1,12 +1,11 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useChat, type UIMessage } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { MessageSquare, X, Loader2, Minus, Sparkles, Maximize2 } from 'lucide-react';
 import { cn } from '@/lib/cn';
-import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -35,6 +34,7 @@ function getMessageText(message: UIMessage): string {
 
 export function ChatBubble() {
   const pathname = usePathname();
+  const router = useRouter();
   const [state, setState] = useState<BubbleState>('collapsed');
   const [inputValue, setInputValue] = useState('');
   const [showPrompt, setShowPrompt] = useState(false);
@@ -128,6 +128,13 @@ export function ChatBubble() {
       setShowPrompt(false);
       setState('input');
     }
+  };
+
+  const handleOpenFullChat = () => {
+    if (messages.length > 0) {
+      sessionStorage.setItem('chat-bubble-messages', JSON.stringify(messages));
+    }
+    router.push('/chat');
   };
 
   const handleClose = () => {
@@ -246,13 +253,13 @@ export function ChatBubble() {
               )}
             </div>
             <div className="flex items-center gap-1">
-              <Link
-                href="/chat"
+              <button
+                onClick={handleOpenFullChat}
                 className="p-1.5 rounded-lg text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                 title="Open full chat"
               >
                 <Maximize2 className="w-4 h-4" />
-              </Link>
+              </button>
               <button
                 onClick={handleMinimize}
                 className="p-1.5 rounded-lg text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
