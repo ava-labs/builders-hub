@@ -6,8 +6,6 @@ import { Button } from '@/components/toolbox/components/Button';
 import { Input } from '@/components/toolbox/components/Input';
 import { Success } from '@/components/toolbox/components/Success';
 import { Alert } from '@/components/toolbox/components/Alert';
-import NativeTokenStakingManager from '@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json';
-import ERC20TokenStakingManager from '@/contracts/icm-contracts/compiled/ERC20TokenStakingManager.json';
 import { hexToBytes, bytesToHex } from 'viem';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { packWarpIntoAccessList } from '@/components/toolbox/console/permissioned-l1s/ValidatorManager/packWarp';
@@ -65,7 +63,6 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
         rewardsDistributed: boolean;
     } | null>(null);
 
-    const contractAbi = tokenType === 'native' ? NativeTokenStakingManager.abi : ERC20TokenStakingManager.abi;
     const tokenLabel = tokenType === 'native' ? 'Native Token' : 'ERC20 Token';
 
     // Update pChainTxId when prop changes
@@ -143,32 +140,47 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
             const effectiveSigningSubnetId = signingSubnetId || subnetIdL1;
             let signature;
             let lastError;
-            
-            // Try different quorum percentages if needed
+
+            // Try different quorum percentages with delay between retries
             const quorumPercentages = [67, 80, 100];
-            for (const quorum of quorumPercentages) {
+            for (let i = 0; i < quorumPercentages.length; i++) {
+                const quorum = quorumPercentages[i];
                 try {
                     const aggregateSignaturePromise = aggregateSignature({
                         message: bytesToHex(l1ValidatorWeightMessage),
                         signingSubnetId: effectiveSigningSubnetId,
                         quorumPercentage: quorum,
                     });
-                    
+
                     notify({
                         type: 'local',
                         name: `Aggregate P-Chain Signatures (${quorum}% quorum)`
                     }, aggregateSignaturePromise);
-                    
+
                     signature = await aggregateSignaturePromise;
                     break; // Success, exit loop
                 } catch (err) {
                     lastError = err;
-                    // Continue to next quorum percentage
+                    // Wait before retrying with a higher quorum
+                    if (i < quorumPercentages.length - 1) {
+                        await new Promise(resolve => setTimeout(resolve, 3000));
+                    }
                 }
             }
-            
+
             if (!signature) {
-                throw new Error(`Failed to aggregate signatures after trying multiple quorum percentages. Signing subnet: ${effectiveSigningSubnetId}. Last error: ${lastError instanceof Error ? lastError.message : String(lastError)}`);
+                const errMsg = lastError instanceof Error ? lastError.message : String(lastError);
+                const isServerError = errMsg.includes('500') || errMsg.includes('InternalServerError') || errMsg.includes('Failed to process');
+
+                if (isServerError) {
+                    throw new Error(
+                        `Signature aggregation service returned a server error. This is usually a transient issue. ` +
+                        `Please wait a few minutes and try again. If the problem persists, verify that your L1 validator nodes ` +
+                        `are online and reachable. Signing subnet: ${effectiveSigningSubnetId}`
+                    );
+                }
+
+                throw new Error(`Failed to aggregate signatures. Signing subnet: ${effectiveSigningSubnetId}. Error: ${errMsg}`);
             }
             
             setPChainSignature(signature.signedMessage);
