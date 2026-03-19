@@ -674,12 +674,12 @@
     "@dicebear/thumbs" "9.3.1"
     "@dicebear/toon-head" "9.3.1"
 
-"@dicebear/core@^9.2.4":
-  version "9.3.1"
-  resolved "https://registry.npmjs.org/@dicebear/core/-/core-9.3.1.tgz"
-  integrity sha512-N6Gl9z3SxYp1OVtOzQegtURFqr0D62l3QcXgvshDAVXDNjkziZ5gWj//JxYJRWldNZfVp9/pm97V3ExKI5AXPg==
+"@dicebear/core@^9.4.1":
+  version "9.4.1"
+  resolved "https://registry.yarnpkg.com/@dicebear/core/-/core-9.4.1.tgz#fe9320fb8ade79cb943fd7444272087cb63b1015"
+  integrity sha512-yzmoEhAc6CTaY9v0xz4MI3FTt5I5O+cvphpE+kd6Qz8XjW3/YveXEQcdO4CW0CTSUao88a8+/IMvnMGfUmDW1Q==
   dependencies:
-    "@types/json-schema" "^7.0.11"
+    "@types/json-schema" "^7.0.15"
 
 "@dicebear/croodles-neutral@9.3.1":
   version "9.3.1"
@@ -4228,7 +4228,7 @@
   dependencies:
     "@types/unist" "*"
 
-"@types/json-schema@^7.0.11", "@types/json-schema@^7.0.7":
+"@types/json-schema@^7.0.15", "@types/json-schema@^7.0.7":
   version "7.0.15"
   resolved "https://registry.npmjs.org/@types/json-schema/-/json-schema-7.0.15.tgz"
   integrity sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==
