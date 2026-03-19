@@ -2922,6 +2922,127 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     category: 'infrastructure',
     type: 'other',
   },
+
+  // ============ ROUND 9 — ClickHouse top-burner discovery (30d window) ============
+
+  // --- Pharaoh: Universal Router (new address not in registry) ---
+  '0x5acc35397d2ce81ac54a4b1c6d9e1fb29f8ec6c6': {
+    address: '0x5acc35397d2ce81ac54a4b1c6d9e1fb29f8ec6c6',
+    name: 'Universal Router',
+    protocol: 'Pharaoh',
+    category: 'dex',
+    type: 'router',
+  },
+
+  // --- POPA (Proof of Physical Address) — on-chain attestation infra ---
+  '0x7caf521af2969d8cab7b399b68dd7e7c037fc3ff': {
+    address: '0x7caf521af2969d8cab7b399b68dd7e7c037fc3ff',
+    name: 'Submissions',
+    protocol: 'POPA',
+    category: 'infrastructure',
+    type: 'other',
+  },
+  '0x191adfd519058bf928c925851ab55df7d4d3eab6': {
+    address: '0x191adfd519058bf928c925851ab55df7d4d3eab6',
+    name: 'Mining',
+    protocol: 'POPA',
+    category: 'infrastructure',
+    type: 'other',
+  },
+
+  // --- Chainlink: additional AuthorizedForwarder instances ---
+  '0xe2dc74af81f6d8886607a99bcbb463a842519702': {
+    address: '0xe2dc74af81f6d8886607a99bcbb463a842519702',
+    name: 'AuthorizedForwarder #2',
+    protocol: 'Chainlink',
+    category: 'infrastructure',
+    type: 'other',
+  },
+  '0x4d33b831a584cb260002f43baf16d130181fb14f': {
+    address: '0x4d33b831a584cb260002f43baf16d130181fb14f',
+    name: 'AuthorizedForwarder #3',
+    protocol: 'Chainlink',
+    category: 'infrastructure',
+    type: 'other',
+  },
+
+  // --- Arena: PumpSpecialRouter + additional contract ---
+  '0x4ec53317186098956956ae9a7092853e218390e2': {
+    address: '0x4ec53317186098956956ae9a7092853e218390e2',
+    name: 'PumpSpecialRouter',
+    protocol: 'Arena',
+    category: 'dex',
+    type: 'router',
+  },
+  '0xa3a50041beb7ce541fe11c6f0a438b522302e500': {
+    address: '0xa3a50041beb7ce541fe11c6f0a438b522302e500',
+    name: 'Arena Contract',
+    protocol: 'Arena',
+    category: 'token',
+    type: 'other',
+  },
+
+  // --- Uniswap V4 Hooks (pool-specific hook contracts) ---
+  '0x7773721134c27a33a2c30e02e6b0130900000000': {
+    address: '0x7773721134c27a33a2c30e02e6b0130900000000',
+    name: 'Uniswap V4 Hook #A',
+    protocol: 'Uniswap',
+    category: 'dex',
+    type: 'pool',
+  },
+  '0x777e0fc6d730cc42b853dc66e9fa1d8700000000': {
+    address: '0x777e0fc6d730cc42b853dc66e9fa1d8700000000',
+    name: 'Uniswap V4 Hook #B',
+    protocol: 'Uniswap',
+    category: 'dex',
+    type: 'pool',
+  },
+
+  // --- Cross-chain bridge proxy ---
+  '0x04ce218ead72401702dd5f3e56cedb7d2d477777': {
+    address: '0x04ce218ead72401702dd5f3e56cedb7d2d477777',
+    name: 'Bridge Proxy',
+    protocol: 'Cross-Chain Bridge',
+    category: 'bridge',
+    type: 'other',
+  },
+
+  // --- MEV Bots (Round 9) ---
+  '0x8031f70dace67b3c3be210e1b1e3bcf43bc69c5b': {
+    address: '0x8031f70dace67b3c3be210e1b1e3bcf43bc69c5b',
+    name: 'MEV Bot (high-volume arb)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0x6da68bcc6174a889aa7b75740b89536fa5d92dff': {
+    address: '0x6da68bcc6174a889aa7b75740b89536fa5d92dff',
+    name: 'MEV Bot (multi-DEX arb #2)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0xe494bca453ff53ade5c135127a40658e59e45b3f': {
+    address: '0xe494bca453ff53ade5c135127a40658e59e45b3f',
+    name: 'MEV Bot (sandwich)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0xe61f4b0c2f09ae0c6e65b49e0c1e695d96197283': {
+    address: '0xe61f4b0c2f09ae0c6e65b49e0c1e695d96197283',
+    name: 'MEV Bot (backrunner)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0x2743ea9beb0f4b8d721cd0faa44f8e46e1e9a81a': {
+    address: '0x2743ea9beb0f4b8d721cd0faa44f8e46e1e9a81a',
+    name: 'MEV Bot (JIT liquidity)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
 };
 
 // Protocol slug mapping for linking to dApp pages (canonical slug per protocol)
@@ -2995,7 +3116,6 @@ export const PROTOCOL_SLUGS: Record<string, string> = {
   'Banza': 'banza',
   'Club HashCash': 'club-hashcash',
   'BetSwirl': 'betswirl',
-  'MoveQuest': 'movequest',
   // SocialFi / Token
   'Arena': 'arena',
   'Orange Web3': 'orange-web3',
@@ -3038,6 +3158,9 @@ export const PROTOCOL_SLUGS: Record<string, string> = {
   // Round 7
   'Silo Finance': 'silo-finance',
   'Rango': 'rango',
+  // Round 9
+  'POPA': 'popa',
+  'Cross-Chain Bridge': 'cross-chain-bridge',
 };
 
 // Map alternative DefiLlama slugs to canonical protocol names
@@ -3180,7 +3303,6 @@ export const SLUG_ALIASES: Record<string, string> = {
   'banza': 'Banza',
   'club-hashcash': 'Club HashCash',
   'betswirl': 'BetSwirl',
-  'movequest': 'MoveQuest',
   // SocialFi / Token
   'arena': 'Arena',
   'orange-web3': 'Orange Web3',
@@ -3245,6 +3367,10 @@ export const SLUG_ALIASES: Record<string, string> = {
   'silo-v2': 'Silo Finance',
   'rango': 'Rango',
   'rango-exchange': 'Rango',
+  // Round 9
+  'popa': 'POPA',
+  'proof-of-physical-address': 'POPA',
+  'cross-chain-bridge': 'Cross-Chain Bridge',
 };
 
 // Get contract info by address
