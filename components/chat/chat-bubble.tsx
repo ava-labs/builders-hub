@@ -1,10 +1,13 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { useChat, type UIMessage } from '@ai-sdk/react';
-import { MessageSquare, X, Loader2, Minus, Sparkles } from 'lucide-react';
+import { MessageSquare, X, Loader2, Minus, Sparkles, Maximize2 } from 'lucide-react';
 import { cn } from '@/lib/cn';
+import Link from 'next/link';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 type BubbleState = 'collapsed' | 'input' | 'expanded';
 
@@ -150,7 +153,7 @@ export function ChatBubble() {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
+    <div className="chatbot-container fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3" data-chatbot>
       {/* Prompt tooltip */}
       {mounted && (
         <div
@@ -238,6 +241,13 @@ export function ChatBubble() {
               )}
             </div>
             <div className="flex items-center gap-1">
+              <Link
+                href="/chat"
+                className="p-1.5 rounded-lg text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                title="Open full chat"
+              >
+                <Maximize2 className="w-4 h-4" />
+              </Link>
               <button
                 onClick={handleMinimize}
                 className="p-1.5 rounded-lg text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
@@ -267,16 +277,19 @@ export function ChatBubble() {
                     isUser ? "justify-end" : "justify-start"
                   )}
                 >
-                  <div
-                    className={cn(
-                      "max-w-[85%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed",
-                      isUser
-                        ? "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-br-md"
-                        : "bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 rounded-bl-md border border-zinc-200 dark:border-zinc-700/50"
-                    )}
-                  >
-                    {text}
-                  </div>
+                  {isUser ? (
+                    <div className="max-w-[85%] px-4 py-2.5 rounded-2xl rounded-br-md text-sm leading-relaxed bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900">
+                      {text}
+                    </div>
+                  ) : (
+                    <div className="max-w-[85%] px-4 py-2.5 rounded-2xl rounded-bl-md text-sm leading-relaxed bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700/50">
+                      <div className="prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0.5 prose-pre:my-2 prose-code:text-xs prose-headings:text-sm prose-headings:my-2">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          {text}
+                        </ReactMarkdown>
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })}
