@@ -386,16 +386,20 @@ export async function POST(req: Request) {
       'chain', 'network', 'mainnet', 'testnet', 'the', 'how', 'what', 'where',
       'show', 'stats', 'can', 'does', 'this', 'that', 'with', 'from', 'for',
       'about', 'have', 'are', 'was', 'will', 'get', 'into', 'create', 'deploy',
+      'avalanche', 'there', 'between', 'tokens', 'token', 'transfer',
     ]);
     const queryLower = lastUserMessageText.toLowerCase();
     const queryTerms = queryLower.split(/\s+/).filter(t => t.length > 2 && !l1Stopwords.has(t));
 
     const matchingChains = (l1Chains as any[]).filter(chain => {
-      const nameLower = (chain.chainName || '').toLowerCase();
-      const slugLower = (chain.slug || '').toLowerCase();
-      // Only match on name/slug, not category (too many false positives)
+      // Split name into words, require term to match start of a word
+      // (avoids "dex" matching "modex", "step" matching "Stephenville", etc.)
+      const nameWords = (chain.chainName || '').toLowerCase().split(/[\s()]+/);
+      // For slug, require the term to match a whole hyphen-delimited word
+      const slugWords = (chain.slug || '').toLowerCase().split('-');
       return queryTerms.some(term =>
-        nameLower.includes(term) || slugLower.includes(term)
+        nameWords.some((w: string) => w.startsWith(term)) ||
+        slugWords.some((w: string) => w === term)
       );
     }).slice(0, 10);
 
