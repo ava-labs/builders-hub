@@ -21,6 +21,7 @@ import {
   blockchainLookupChain,
   blockchainLookupValidator,
 } from '@/lib/chat/blockchain-tools';
+import l1Chains from '@/constants/l1-chains.json';
 
 // Helper to extract text from v6 UIMessage
 function getTextFromMessage(message: any): string {
@@ -377,6 +378,35 @@ export async function POST(req: Request) {
     }
   }
 
+  // Search for relevant L1 chains by name/slug
+  let l1Context = '';
+  if (lastUserMessageText) {
+    const queryLower = lastUserMessageText.toLowerCase();
+    const queryTerms = queryLower.split(/\s+/).filter(t => t.length > 2);
+    const matchingChains = (l1Chains as any[]).filter(chain => {
+      const nameLower = (chain.chainName || '').toLowerCase();
+      const slugLower = (chain.slug || '').toLowerCase();
+      const categoryLower = (chain.category || '').toLowerCase();
+      return queryTerms.some(term =>
+        nameLower.includes(term) || slugLower.includes(term) || categoryLower.includes(term)
+      );
+    }).slice(0, 10);
+
+    if (matchingChains.length > 0) {
+      l1Context = '\n\n=== MATCHING AVALANCHE L1 CHAINS ===\n';
+      l1Context += 'These are Avalanche L1 chains that match the query. Link to their stats page when relevant.\n\n';
+      for (const chain of matchingChains) {
+        l1Context += `- **${chain.chainName}** (${chain.slug})`;
+        if (chain.category) l1Context += ` [${chain.category}]`;
+        l1Context += ` → Stats: /stats/l1/${chain.slug}`;
+        if (chain.website) l1Context += ` | Website: ${chain.website}`;
+        l1Context += '\n';
+      }
+      l1Context += '\n=== END L1 CHAINS ===\n';
+      console.log(`Found ${matchingChains.length} matching L1 chains`);
+    }
+  }
+
   let relevantContext = '';
   let docSearchMethod: 'mcp' | 'fulltext' | 'none' = 'none';
   if (lastUserMessage && lastUserMessageText) {
@@ -474,6 +504,7 @@ export async function POST(req: Request) {
 
   // Allocate context by priority, truncating lower-priority items if over budget
   const contextParts: Array<{ key: string; text: string }> = [
+    { key: 'l1chains', text: l1Context },
     { key: 'tools', text: toolsContext },
     { key: 'docs', text: relevantContext },
     { key: 'code', text: codeContext },
@@ -695,13 +726,26 @@ You are the quick-help bubble on the Builders Hub. Your job is to help users FIN
 - **suggest_followups**: ALWAYS call this after answering. Suggest 2-3 relevant follow-up questions specific to the conversation.
 - **DocImage**: When documentation context contains images like \`![alt](/images/...)\`, call \`render_component("DocImage", { src: "/images/...", alt: "..." })\` to show them inline. Diagrams and screenshots help developers understand faster.
 
+## Stats Pages
+- [Network Overview](/stats/overview) — active addresses, TPS, validators, market cap
+- [AVAX Token](/stats/avax-token) — token metrics
+- [Network Metrics](/stats/network-metrics) — network-wide metrics
+- [DApp Gas Usage](/stats/dapps/treemap) — gas treemap by DApp
+- [Interchain Messaging](/stats/interchain-messaging) — ICM stats
+- [Chain List](/stats/chain-list) — all Avalanche L1 chains
+- [Validators](/stats/validators) — validator dashboard
+- Per-L1 stats: \`/stats/l1/{slug}\` (e.g., \`/stats/l1/fifa\`, \`/stats/l1/defi-kingdoms\`)
+
 ## URL Rules
-- Documentation: \`/docs/...\` | Academy: \`/academy/...\` (NEVER \`/docs/academy/\`) | Console: \`/console/...\`
+- Documentation: \`/docs/...\` | Academy: \`/academy/...\` (NEVER \`/docs/academy/\`) | Console: \`/console/...\` | Stats: \`/stats/...\`
+- L1 chain stats: \`/stats/l1/{slug}\`. If a user asks about an L1 by name, check the L1 CHAINS context below for its slug.
 - Use EXACT complete URLs from context. Truncated paths cause 404s.
 - Always use full path including final segment (e.g., \`.../04-creating-an-l1/01-creating-an-l1\` not just \`.../04-creating-an-l1\`)
 
 ## Pre-indexed Context
 When code context is provided below, use it directly with GitHub links. Only search GitHub if context is insufficient.
+
+${budgetedContext['l1chains'] ?? ''}
 
 ${budgetedContext['tools'] ?? ''}
 
