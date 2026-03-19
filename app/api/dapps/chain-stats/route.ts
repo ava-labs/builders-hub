@@ -108,7 +108,9 @@ export async function GET(request: Request) {
       // Absolute: endDate inclusive (full day), previous = same-length window before startDate
       timeFilter = `AND block_time >= '${startDate}' AND block_time < '${endDate}' + INTERVAL 1 DAY`;
       tTimeFilter = `AND t.block_time >= '${startDate}' AND t.block_time < '${endDate}' + INTERVAL 1 DAY`;
-      const spanDays = days; // activeDays is passed as `days` param fallback from frontend
+      // Calculate actual span from the dates (not the `days` query param fallback)
+      const spanMs = new Date(endDate!).getTime() - new Date(startDate!).getTime();
+      const spanDays = Math.max(1, Math.ceil(spanMs / (1000 * 60 * 60 * 24)) + 1);
       prevTimeFilter = `AND block_time >= '${startDate}' - INTERVAL ${spanDays} DAY AND block_time < '${startDate}'`;
       tPrevTimeFilter = `AND t.block_time >= '${startDate}' - INTERVAL ${spanDays} DAY AND t.block_time < '${startDate}'`;
       dailyTimeFilter = timeFilter;
@@ -344,6 +346,14 @@ export async function GET(request: Request) {
       }
     }
 
+    // Pre-build O(1) address → protocol lookup
+    const addressToProtocol = new Map<string, string>();
+    for (const [protocol, addresses] of protocolAddresses) {
+      for (const a of addresses) {
+        addressToProtocol.set(a.toLowerCase(), protocol);
+      }
+    }
+
     // Helper: aggregate per-address rows into protocol stats
     function aggregateByProtocol(rows: { address: string; tx_count: string; total_gas: string; avax_burned: number; avax_burned_usd: number; gas_cost_usd: number; unique_senders: string }[]) {
       const stats = new Map<string, { txCount: number; gasUsed: number; avaxBurned: number; gasCostUsd: number; avaxBurnedUsd: number; uniqueSenders: number }>();
@@ -351,17 +361,15 @@ export async function GET(request: Request) {
         stats.set(protocol, { txCount: 0, gasUsed: 0, avaxBurned: 0, gasCostUsd: 0, avaxBurnedUsd: 0, uniqueSenders: 0 });
       }
       for (const row of rows) {
-        for (const [protocol, addresses] of protocolAddresses) {
-          if (addresses.map(a => a.toLowerCase()).includes(row.address)) {
-            const s = stats.get(protocol)!;
-            s.txCount += parseInt(row.tx_count) || 0;
-            s.gasUsed += parseInt(row.total_gas) || 0;
-            s.avaxBurned += row.avax_burned || 0;
-            s.gasCostUsd += row.gas_cost_usd || 0;
-            s.avaxBurnedUsd += row.avax_burned_usd || 0;
-            s.uniqueSenders += parseInt(row.unique_senders) || 0;
-            break;
-          }
+        const protocol = addressToProtocol.get(row.address);
+        if (protocol) {
+          const s = stats.get(protocol)!;
+          s.txCount += parseInt(row.tx_count) || 0;
+          s.gasUsed += parseInt(row.total_gas) || 0;
+          s.avaxBurned += row.avax_burned || 0;
+          s.gasCostUsd += row.gas_cost_usd || 0;
+          s.avaxBurnedUsd += row.avax_burned_usd || 0;
+          s.uniqueSenders += parseInt(row.unique_senders) || 0;
         }
       }
       return stats;

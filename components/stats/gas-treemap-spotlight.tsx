@@ -29,12 +29,12 @@ export function ProtocolSpotlight({ protocols }: ProtocolSpotlightProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Auto-select #1 burner on data load
+  // Auto-select #1 burner on data load / data change
   useEffect(() => {
-    if (sorted.length > 0 && !selectedProtocol) {
+    if (sorted.length > 0) {
       setSelectedProtocol(sorted[0].protocol);
     }
-  }, [sorted, selectedProtocol]);
+  }, [sorted]);
 
   // Close dropdown on outside click
   useEffect(() => {

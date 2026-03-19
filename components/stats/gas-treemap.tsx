@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import {
   Fuel,
   Activity,
@@ -385,7 +385,7 @@ export default function GasTreemap() {
   const [hovered, setHovered] = useState<HoveredInfo | null>(null);
   const [hoveredInsight, setHoveredInsight] = useState<{ row: number; col: number } | null>(null);
   const [dimensions, setDimensions] = useState({ width: 900, height: 500 });
-  const [loadingStartTime, setLoadingStartTime] = useState(Date.now);
+  const [loadingStartTime, setLoadingStartTime] = useState(() => Date.now());
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [loadingPhase, setLoadingPhase] = useState(0);
   const abortRef = useRef<AbortController | null>(null);
@@ -455,7 +455,9 @@ export default function GasTreemap() {
   }, [loading, loadingStartTime, activeDays]);
 
   // Responsive container
-  const containerRef = useCallback((node: HTMLDivElement | null) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const node = containerRef.current;
     if (!node) return;
     const observer = new ResizeObserver((entries) => {
       const entry = entries[0];

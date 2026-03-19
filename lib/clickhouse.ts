@@ -37,6 +37,39 @@ export async function queryClickHouse<T>(sql: string): Promise<ClickHouseRespons
   return response.json();
 }
 
+// Validate a SQL time filter string — only allow safe patterns
+// (AND clauses with block_time comparisons, INTERVAL literals, now(), date strings)
+function assertSafeTimeFilter(filter: string): string {
+  if (filter === '') return filter;
+  // Strip whitespace for matching, allow only expected tokens
+  const stripped = filter.replace(/\s+/g, ' ').trim();
+  // Must start with AND, only contain safe SQL tokens
+  if (!/^AND\s/i.test(stripped)) {
+    throw new Error(`Invalid time filter: must start with AND`);
+  }
+  // Block semicolons, comments, and suspicious keywords
+  if (/[;]|--|\/\*|\*\/|\bDROP\b|\bDELETE\b|\bINSERT\b|\bUPDATE\b|\bALTER\b|\bTRUNCATE\b/i.test(stripped)) {
+    throw new Error(`Invalid time filter: contains forbidden SQL`);
+  }
+  return filter;
+}
+
+// Validate date string (YYYY-MM-DD format only)
+function assertSafeDate(d: string): string {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) {
+    throw new Error(`Invalid date for query: ${d}`);
+  }
+  return d;
+}
+
+// Validate days parameter (positive integer only)
+function assertSafeDays(days: number): number {
+  if (!Number.isFinite(days) || days < 0 || days !== Math.floor(days)) {
+    throw new Error(`Invalid days for query: ${days}`);
+  }
+  return days;
+}
+
 // Helper to convert address to unhex format for queries
 export function toUnhex(address: string): string {
   // Remove 0x prefix and lowercase
@@ -56,6 +89,7 @@ export function buildAddressFilter(addresses: string[], column: string = 'to'): 
 // Build swap_prices CTE for on-chain AVAX/USD price derivation
 // Hourly median from Trader Joe V1 + Pangolin USDC/WAVAX Swap events
 export function buildSwapPricesCTE(timeFilter: string): string {
+  assertSafeTimeFilter(timeFilter);
   return `swap_prices AS (
     SELECT
       toStartOfHour(block_time) as price_hour,
@@ -91,6 +125,7 @@ export function buildSwapPricesCTE(timeFilter: string): string {
 // Filters to CALL/CREATE/CREATE2 — excludes DELEGATECALL (keeps gas with proxy)
 // and STATICCALL (read-only, gas already counted in parent).
 export function buildTraceAttributionCTE(addresses: string[], timeFilter: string): string {
+  assertSafeTimeFilter(timeFilter);
   const toFilter = buildAddressFilter(addresses, 'tr.to');
   const fromFilter = buildAddressFilter(addresses, 'tr.from');
 
@@ -146,7 +181,7 @@ export async function getProtocolStats(addresses: string[], days?: number): Prom
   }
 
   const addressFilter = buildAddressFilter(addresses);
-  const timeFilter = days && days > 0 ? `AND block_time >= now() - INTERVAL ${days} DAY` : '';
+  const timeFilter = days && days > 0 ? `AND block_time >= now() - INTERVAL ${assertSafeDays(days)} DAY` : '';
 
   const sql = `
     SELECT
@@ -206,7 +241,7 @@ export async function getProtocolDailyActivity(
     FROM raw_txs
     WHERE chain_id = ${C_CHAIN_ID}
       AND ${addressFilter}
-      AND block_time >= now() - INTERVAL ${days} DAY
+      AND block_time >= now() - INTERVAL ${assertSafeDays(days)} DAY
     GROUP BY date
     ORDER BY date
   `;
@@ -410,7 +445,7 @@ export async function getProtocolMonthlyActivity(
     FROM raw_txs
     WHERE chain_id = ${C_CHAIN_ID}
       AND ${addressFilter}
-      AND block_time >= now() - INTERVAL ${months} MONTH
+      AND block_time >= now() - INTERVAL ${assertSafeDays(months)} MONTH
     GROUP BY month
     ORDER BY month
   `;
@@ -445,8 +480,8 @@ export async function getTotalChainGas(
   endDate?: string | null
 ): Promise<TotalChainStats> {
   const timeFilter = (startDate && endDate)
-    ? `AND block_time >= '${startDate}' AND block_time < '${endDate}' + INTERVAL 1 DAY`
-    : (days > 0 ? `AND block_time >= now() - INTERVAL ${days} DAY` : '');
+    ? `AND block_time >= '${assertSafeDate(startDate)}' AND block_time < '${assertSafeDate(endDate)}' + INTERVAL 1 DAY`
+    : (days > 0 ? `AND block_time >= now() - INTERVAL ${assertSafeDays(days)} DAY` : '');
 
   const sql = `
     SELECT
@@ -488,8 +523,8 @@ function toSafeHex(address: string): string {
 // Query A: Who calls this contract and how much gas each caller sends
 export function buildContractGasReceivedQuery(address: string, days: number): string {
   const hex = toSafeHex(address);
-  const trTimeFilter = days > 0 ? `AND tr.block_time >= now() - INTERVAL ${days} DAY` : '';
-  const tTimeFilter = days > 0 ? `AND t.block_time >= now() - INTERVAL ${days} DAY` : '';
+  const trTimeFilter = days > 0 ? `AND tr.block_time >= now() - INTERVAL ${assertSafeDays(days)} DAY` : '';
+  const tTimeFilter = days > 0 ? `AND t.block_time >= now() - INTERVAL ${assertSafeDays(days)} DAY` : '';
   return `
     SELECT
       lower(concat('0x', hex(tr.\`from\`))) as address,
@@ -512,8 +547,8 @@ export function buildContractGasReceivedQuery(address: string, days: number): st
 // Query B: What contracts does this contract call and how much gas it gives
 export function buildContractGasGivenQuery(address: string, days: number): string {
   const hex = toSafeHex(address);
-  const trTimeFilter = days > 0 ? `AND tr.block_time >= now() - INTERVAL ${days} DAY` : '';
-  const tTimeFilter = days > 0 ? `AND t.block_time >= now() - INTERVAL ${days} DAY` : '';
+  const trTimeFilter = days > 0 ? `AND tr.block_time >= now() - INTERVAL ${assertSafeDays(days)} DAY` : '';
+  const tTimeFilter = days > 0 ? `AND t.block_time >= now() - INTERVAL ${assertSafeDays(days)} DAY` : '';
   return `
     SELECT
       lower(concat('0x', hex(tr.\`to\`))) as address,
@@ -536,7 +571,7 @@ export function buildContractGasGivenQuery(address: string, days: number): strin
 // Query C: Transaction and caller summary for the target contract
 export function buildContractTxSummaryQuery(address: string, days: number): string {
   const hex = toSafeHex(address);
-  const timeFilter = days > 0 ? `AND block_time >= now() - INTERVAL ${days} DAY` : '';
+  const timeFilter = days > 0 ? `AND block_time >= now() - INTERVAL ${assertSafeDays(days)} DAY` : '';
   return `
     SELECT
       uniqExact(tx_hash) as total_txs,
@@ -561,7 +596,7 @@ export async function getTopUnknownContracts(
   days: number,
   limit: number = 20
 ): Promise<UnknownContract[]> {
-  const timeFilter = days > 0 ? `AND block_time >= now() - INTERVAL ${days} DAY` : '';
+  const timeFilter = days > 0 ? `AND block_time >= now() - INTERVAL ${assertSafeDays(days)} DAY` : '';
 
   // Build exclusion list
   let exclusionFilter = '';
@@ -626,7 +661,7 @@ export async function getProtocolGasRankings(
     FROM raw_txs
     WHERE chain_id = ${C_CHAIN_ID}
       AND ${addressFilter}
-      AND block_time >= now() - INTERVAL ${days} DAY
+      AND block_time >= now() - INTERVAL ${assertSafeDays(days)} DAY
     GROUP BY to
   `;
 

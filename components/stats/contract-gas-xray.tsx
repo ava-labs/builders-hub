@@ -358,7 +358,7 @@ export default function ContractGasXray({ initialAddress }: ContractGasXrayProps
   const [data, setData] = useState<ContractGasFlowResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [loadingStartTime, setLoadingStartTime] = useState(Date.now);
+  const [loadingStartTime, setLoadingStartTime] = useState(() => Date.now());
   const [loadingProgress, setLoadingProgress] = useState(0);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -424,13 +424,15 @@ export default function ContractGasXray({ initialAddress }: ContractGasXrayProps
   }, [initialAddress, isValidAddress, analyze]);
 
   // Update address when initialAddress changes externally
+  const prevInitialAddress = useRef(initialAddress);
   useEffect(() => {
-    if (initialAddress && initialAddress !== addressInput) {
+    if (initialAddress && initialAddress !== prevInitialAddress.current) {
+      prevInitialAddress.current = initialAddress;
       setAddressInput(initialAddress);
       setIsOpen(true);
       hasAutoAnalyzed.current = false;
     }
-  }, [initialAddress]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [initialAddress]);
 
   // Re-analyze when activeDays change (if we already have data)
   const prevDaysRef = useRef(activeDays);

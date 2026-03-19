@@ -38,12 +38,12 @@ export function CustomDateRangePicker({
   const dayCount = hasFullRange ? differenceInCalendarDays(customRange.to!, customRange.from!) + 1 : 0;
   const isOverLimit = dayCount > MAX_DAYS;
 
-  const applyPreset = (days: number) => {
+  const applyPreset = (presetDays: number) => {
     const to = new Date();
-    const from = subDays(to, days - 1);
+    const from = subDays(to, presetDays - 1);
     setCustomRange({ from, to });
-    // Defer apply to next tick so state updates first
-    setTimeout(() => onApply(), 0);
+    // React 18+ batches setState calls, so onApply reads the updated range
+    onApply();
   };
 
   return (
