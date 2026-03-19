@@ -1,10 +1,9 @@
 "use client";
 
-import { Globe, ChevronRight, AppWindow, LayoutGrid } from "lucide-react";
+import { Globe, ChevronRight, AppWindow, Flame } from "lucide-react";
 import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import GasTreemap from "@/components/stats/gas-treemap";
-import ContractGasXray from "@/components/stats/contract-gas-xray";
 
 export default function TreemapPage() {
   return (
@@ -34,8 +33,8 @@ export default function TreemapPage() {
             </a>
             <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-zinc-300 dark:text-zinc-600" />
             <span className="inline-flex items-center gap-1 sm:gap-1.5 font-medium text-zinc-900 dark:text-zinc-100">
-              <LayoutGrid className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-red-500" />
-              <span>Gas Treemap</span>
+              <Flame className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-red-500" />
+              <span>AVAX Burners</span>
             </span>
           </nav>
 
@@ -46,10 +45,10 @@ export default function TreemapPage() {
             </p>
           </div>
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-zinc-900 dark:text-white">
-            Gas Treemap
+            AVAX Burners
           </h1>
           <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-2">
-            Visual breakdown of gas consumption across protocols. Larger blocks = more gas used.
+            Visual breakdown of AVAX burned across protocols and contracts.
           </p>
         </div>
       </div>
@@ -57,10 +56,6 @@ export default function TreemapPage() {
       {/* Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
         <GasTreemap />
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-8">
-        <ContractGasXray />
       </div>
 
       <StatsBubbleNav />

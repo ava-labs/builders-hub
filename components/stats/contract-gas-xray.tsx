@@ -345,9 +345,13 @@ function FlowTable({ title, entries, color }: { title: string; entries: FlowEntr
 
 // ── Main Component ─────────────────────────────────────────────────────
 
-export default function ContractGasXray() {
-  const [isOpen, setIsOpen] = useState(false);
-  const [addressInput, setAddressInput] = useState("");
+interface ContractGasXrayProps {
+  initialAddress?: string | null;
+}
+
+export default function ContractGasXray({ initialAddress }: ContractGasXrayProps = {}) {
+  const [isOpen, setIsOpen] = useState(!!initialAddress);
+  const [addressInput, setAddressInput] = useState(initialAddress || "");
   const [days, setDays] = useState<TimeRange>("30");
   const [customRange, setCustomRange] = useState<DateRange | undefined>(undefined);
   const [customPopoverOpen, setCustomPopoverOpen] = useState(false);
@@ -409,6 +413,24 @@ export default function ContractGasXray() {
       }
     }
   }, [addressInput, activeDays, isValidAddress]);
+
+  // Auto-analyze when initialAddress is provided
+  const hasAutoAnalyzed = useRef(false);
+  useEffect(() => {
+    if (initialAddress && isValidAddress && !hasAutoAnalyzed.current) {
+      hasAutoAnalyzed.current = true;
+      analyze();
+    }
+  }, [initialAddress, isValidAddress, analyze]);
+
+  // Update address when initialAddress changes externally
+  useEffect(() => {
+    if (initialAddress && initialAddress !== addressInput) {
+      setAddressInput(initialAddress);
+      setIsOpen(true);
+      hasAutoAnalyzed.current = false;
+    }
+  }, [initialAddress]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Re-analyze when activeDays change (if we already have data)
   const prevDaysRef = useRef(activeDays);

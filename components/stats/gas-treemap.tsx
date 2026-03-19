@@ -10,9 +10,12 @@ import {
   BarChart3,
   ArrowUpRight,
   ArrowDownRight,
+  LayoutGrid,
+  Table2,
 } from "lucide-react";
 import { ProtocolSpotlight } from "./gas-treemap-spotlight";
 import { GasTreemapTable } from "./gas-treemap-table";
+import ContractGasXray from "./contract-gas-xray";
 import { CustomDateRangePicker } from "@/components/custom-date-range-picker";
 import { differenceInCalendarDays, format } from "date-fns";
 import type { DateRange } from "react-day-picker";
@@ -29,10 +32,13 @@ import {
   type ProtocolBreakdown,
 } from "./gas-treemap-utils";
 
+type ViewMode = "treemap" | "table";
+
 interface ChainStatsData {
   totalTransactions: number;
   totalGasUsed: number;
   totalAvaxBurned: number;
+  topBurnerAddress: string | null;
   categoryBreakdown: CategoryBreakdown[];
   protocolBreakdown: ProtocolBreakdown[];
   coverage: {
@@ -375,6 +381,7 @@ export default function GasTreemap() {
   const [timeRange, setTimeRange] = useState<TimeRange>("30d");
   const [customRange, setCustomRange] = useState<DateRange | undefined>(undefined);
   const [customPopoverOpen, setCustomPopoverOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>("treemap");
   const [hovered, setHovered] = useState<HoveredInfo | null>(null);
   const [hoveredInsight, setHoveredInsight] = useState<{ row: number; col: number } | null>(null);
   const [dimensions, setDimensions] = useState({ width: 900, height: 500 });
@@ -676,10 +683,10 @@ export default function GasTreemap() {
   return (
     <div className="space-y-6">
       {/* Header bar */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <h2 className="text-lg font-semibold text-zinc-900 dark:text-white">
-            C-Chain Gas Map
+            AVAX Burners
           </h2>
           {data && (
             <>
@@ -693,8 +700,35 @@ export default function GasTreemap() {
           )}
         </div>
 
-        {/* Time range pills */}
-        <div className="flex items-center gap-1">
+        {/* View toggle + Time range pills */}
+        <div className="flex items-center gap-2">
+          {/* View mode toggle */}
+          <div className="flex items-center bg-zinc-100 dark:bg-zinc-900 rounded-md overflow-hidden border border-zinc-300 dark:border-zinc-700">
+            <button
+              onClick={() => setViewMode("treemap")}
+              className={`px-2.5 py-1.5 text-xs font-medium transition-colors flex items-center gap-1.5 ${
+                viewMode === "treemap"
+                  ? "bg-zinc-300 dark:bg-zinc-700 text-zinc-900 dark:text-white"
+                  : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-800"
+              }`}
+              title="Treemap view"
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => setViewMode("table")}
+              className={`px-2.5 py-1.5 text-xs font-medium transition-colors flex items-center gap-1.5 ${
+                viewMode === "table"
+                  ? "bg-zinc-300 dark:bg-zinc-700 text-zinc-900 dark:text-white"
+                  : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-800"
+              }`}
+              title="Table view"
+            >
+              <Table2 className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          {/* Time range pills */}
           <div className="flex items-center bg-zinc-100 dark:bg-zinc-900 rounded-md overflow-hidden border border-zinc-300 dark:border-zinc-700">
             {PRESET_KEYS.map((range) => (
               <button
@@ -731,8 +765,8 @@ export default function GasTreemap() {
         </div>
       </div>
 
-      {/* Treemap */}
-      <div
+      {/* Treemap view */}
+      {viewMode === "treemap" && <div
         ref={containerRef}
         className="relative rounded-lg overflow-hidden bg-zinc-100 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800"
         style={{ height: dimensions.height }}
@@ -1200,7 +1234,20 @@ export default function GasTreemap() {
             </div>
           </div>
         )}
-      </div>
+      </div>}
+
+      {/* Table view */}
+      {viewMode === "table" && data && !loading && (
+        <GasTreemapTable protocols={data.protocolBreakdown} />
+      )}
+      {viewMode === "table" && loading && (
+        <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 p-8 animate-pulse">
+          <div className="h-6 w-32 bg-zinc-200 dark:bg-zinc-800 rounded mb-4" />
+          {[0, 1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-10 bg-zinc-100 dark:bg-zinc-800/50 rounded mb-2" style={{ animationDelay: `${i * 50}ms` }} />
+          ))}
+        </div>
+      )}
 
       {/* Loading insight skeletons */}
       {loading && !data && (
@@ -1345,9 +1392,9 @@ export default function GasTreemap() {
         <ProtocolSpotlight protocols={data.protocolBreakdown} />
       )}
 
-      {/* All Protocols Table */}
-      {data && !loading && data.protocolBreakdown.length > 0 && (
-        <GasTreemapTable protocols={data.protocolBreakdown} />
+      {/* Contract Gas X-Ray — auto-preloaded with top burner */}
+      {data && !loading && (
+        <ContractGasXray initialAddress={data.topBurnerAddress} />
       )}
     </div>
   );

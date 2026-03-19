@@ -53,6 +53,9 @@ export interface ChainStatsResponse {
     avaxBurnedUsd: number;
   }[];
 
+  // Top burner contract address (for X-Ray preload)
+  topBurnerAddress: string | null;
+
   // Coverage stats (vs total chain)
   coverage: {
     taggedGasPercent: number;
@@ -523,6 +526,13 @@ export async function GET(request: Request) {
       avaxBurnedUsd: row.avax_burned_usd || 0,
     }));
 
+    // Find top burner address (highest avax_burned among classified contracts)
+    const topBurnerRow = contractStatsResult.data.reduce<{ address: string; avax_burned: number } | null>(
+      (best, row) => (!best || row.avax_burned > best.avax_burned) ? row : best,
+      null
+    );
+    const topBurnerAddress = topBurnerRow ? topBurnerRow.address : null;
+
     const watermark = watermarkResult.data[0];
 
     const response: ChainStatsResponse = {
@@ -534,6 +544,7 @@ export async function GET(request: Request) {
       protocolBreakdown,
       categoryBreakdown,
       dailyStats,
+      topBurnerAddress,
       coverage: {
         taggedGasPercent: totalChainGas > 0 ? (taggedGas / totalChainGas) * 100 : 0,
         taggedTxPercent: totalChainStats.totalTx > 0 ? (taggedTxCount / totalChainStats.totalTx) * 100 : 0,
