@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { useChat, type UIMessage } from '@ai-sdk/react';
+import { DefaultChatTransport } from 'ai';
 import { MessageSquare, X, Loader2, Minus, Sparkles, Maximize2 } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import Link from 'next/link';
@@ -47,7 +48,10 @@ export function ChatBubble() {
 
   const { messages, sendMessage, status, setMessages } = useChat({
     id: 'chat-bubble',
-    body: { source: 'bubble' },
+    transport: new DefaultChatTransport({
+      api: '/api/chat',
+      body: { source: 'bubble' },
+    }),
     onFinish() {
       setState('expanded');
     },
