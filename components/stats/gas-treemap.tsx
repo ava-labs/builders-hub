@@ -7,43 +7,27 @@ import {
   Flame,
   Users,
   TrendingUp,
-  TrendingDown,
-  Zap,
   BarChart3,
-  Info,
   ArrowUpRight,
   ArrowDownRight,
 } from "lucide-react";
+import { ProtocolSpotlight } from "./gas-treemap-spotlight";
+import { GasTreemapTable } from "./gas-treemap-table";
 import { CustomDateRangePicker } from "@/components/custom-date-range-picker";
 import { differenceInCalendarDays, format } from "date-fns";
 import type { DateRange } from "react-day-picker";
 import { useTheme } from "@/components/content-design/theme-observer";
-
-interface CategoryBreakdown {
-  category: string;
-  txCount: number;
-  gasUsed: number;
-  avaxBurned: number;
-  gasCostUsd: number;
-  avaxBurnedUsd: number;
-  uniqueSenders: number;
-  gasShare: number;
-  delta: number;
-}
-
-interface ProtocolBreakdown {
-  protocol: string;
-  slug: string | null;
-  category: string;
-  txCount: number;
-  gasUsed: number;
-  avaxBurned: number;
-  gasCostUsd: number;
-  avaxBurnedUsd: number;
-  uniqueSenders: number;
-  gasShare: number;
-  delta: number;
-}
+import {
+  CATEGORY_LABELS,
+  formatNumber,
+  formatAvax,
+  formatUsd,
+  getDeltaColor,
+  getDeltaTextColor,
+  getDeltaBgClass,
+  type CategoryBreakdown,
+  type ProtocolBreakdown,
+} from "./gas-treemap-utils";
 
 interface ChainStatsData {
   totalTransactions: number;
@@ -71,53 +55,6 @@ const TIME_RANGES: Record<Exclude<TimeRange, "custom">, { label: string; days: n
 
 const PRESET_KEYS = Object.keys(TIME_RANGES) as Exclude<TimeRange, "custom">[];
 
-const CATEGORY_LABELS: Record<string, string> = {
-  dex: "DEX",
-  lending: "Lending",
-  bridge: "Bridge",
-  derivatives: "Derivatives",
-  nft: "NFT",
-  yield: "Yield",
-  icm: "ICM",
-  infrastructure: "Infrastructure",
-  gaming: "Gaming",
-  token: "Token",
-  mev: "MEV Bots",
-  native: "Native Transfers",
-  other: "Other",
-};
-
-function formatNumber(num: number): string {
-  if (num >= 1e12) return `${(num / 1e12).toFixed(1)}T`;
-  if (num >= 1e9) return `${(num / 1e9).toFixed(1)}B`;
-  if (num >= 1e6) return `${(num / 1e6).toFixed(1)}M`;
-  if (num >= 1e3) return `${(num / 1e3).toFixed(1)}K`;
-  return num.toLocaleString();
-}
-
-function formatUsd(num: number): string {
-  if (num >= 1e6) return `$${(num / 1e6).toFixed(1)}M`;
-  if (num >= 1e3) return `$${(num / 1e3).toFixed(1)}K`;
-  if (num >= 1) return `$${num.toFixed(2)}`;
-  return `$${num.toFixed(4)}`;
-}
-
-function formatGas(num: number): string {
-  if (num >= 1e12) return `${(num / 1e12).toFixed(2)}T`;
-  if (num >= 1e9) return `${(num / 1e9).toFixed(2)}B`;
-  if (num >= 1e6) return `${(num / 1e6).toFixed(2)}M`;
-  if (num >= 1e3) return `${(num / 1e3).toFixed(2)}K`;
-  return num.toFixed(2);
-}
-
-function formatAvax(num: number): string {
-  if (num >= 1e6) return `${(num / 1e6).toFixed(2)}M AVAX`;
-  if (num >= 1e3) return `${(num / 1e3).toFixed(2)}K AVAX`;
-  if (num >= 1) return `${num.toFixed(2)} AVAX`;
-  if (num >= 0.001) return `${num.toFixed(3)} AVAX`;
-  return `${num.toFixed(4)} AVAX`;
-}
-
 function estimateLoadTime(days: number): number {
   if (days <= 1) return 10;
   if (days <= 7) return 20;
@@ -132,34 +69,6 @@ const LOADING_PHASES = [
   "Computing deltas...",
   "Almost done...",
 ];
-
-// Finviz-style red/green color scale based on delta %
-function getDeltaColor(delta: number): string {
-  if (delta <= -10) return "#d12727";
-  if (delta <= -5) return "#c93b3b";
-  if (delta <= -2) return "#a94545";
-  if (delta <= -0.5) return "#7a4a4a";
-  if (delta < 0.5) return "#3d3d4a";
-  if (delta < 2) return "#3a6e4e";
-  if (delta < 5) return "#2d8e47";
-  if (delta < 10) return "#28a745";
-  return "#1db954";
-}
-
-function getDeltaTextColor(delta: number): string {
-  const abs = Math.abs(delta);
-  if (abs < 0.5) return "#9ca3af";
-  if (delta > 0) return "#86efac";
-  return "#fca5a5";
-}
-
-function getDeltaBgClass(delta: number): string {
-  if (delta >= 5) return "bg-emerald-500/20 text-emerald-400";
-  if (delta >= 1) return "bg-emerald-500/10 text-emerald-400";
-  if (delta <= -5) return "bg-red-500/20 text-red-400";
-  if (delta <= -1) return "bg-red-500/10 text-red-400";
-  return "bg-zinc-500/10 text-zinc-400";
-}
 
 // Generic squarify layout - places items into a bounding box
 interface SquarifyItem {
@@ -349,157 +258,78 @@ const HEADER_HEIGHT = 18;
 const MIN_NEST_HEIGHT = 50;
 const PROTOCOL_OTHERS_THRESHOLD = 0.03; // 3% of category gas
 
-// --- Trend insight generation ---
+// --- Insight row generation (2 rows: Top Burners + Fastest Growing) ---
 
-interface InsightProtocol {
+interface InsightCard {
   protocol: string;
-  txCount: number;
-  uniqueSenders: number;
+  category: string;
+  avaxBurned: number;
+  avaxBurnedUsd: number;
   delta: number;
   gasShare: number;
+  txCount: number;
+  uniqueSenders: number;
 }
 
-interface Insight {
+interface InsightRow {
   title: string;
-  description: string;
-  expandedDescription: string;
-  category?: string;
-  delta: number;
-  deltaDirection: "up" | "down" | "neutral";
-  icon: "trending" | "fire" | "zap" | "info";
-  metric?: string;
-  topProtocols?: InsightProtocol[];
+  subtitle: string;
+  icon: "flame" | "trending";
+  cards: InsightCard[];
 }
 
-function generateInsights(data: ChainStatsData): Insight[] {
-  const insights: Insight[] = [];
-  const cats = data.categoryBreakdown.filter((c) => Math.abs(c.delta) >= 1);
-  const protos = data.protocolBreakdown.filter((p) => Math.abs(p.delta) >= 1);
+function generateInsightRows(data: ChainStatsData): InsightRow[] {
+  const rows: InsightRow[] = [];
+  const protos = data.protocolBreakdown;
 
-  const catsUp = [...cats].sort((a, b) => b.delta - a.delta);
-  const catsDown = [...cats].sort((a, b) => a.delta - b.delta);
+  // Row 1: Top Burners (by absolute avaxBurned)
+  const topBurners = [...protos]
+    .sort((a, b) => b.avaxBurned - a.avaxBurned)
+    .slice(0, 3);
 
-  const coveredProtocols = new Set<string>();
-
-  // 1. Top category mover (up)
-  if (catsUp.length > 0 && catsUp[0].delta > 0) {
-    const top = catsUp[0];
-    const catLabel = CATEGORY_LABELS[top.category] || top.category;
-    const catProtos = protos
-      .filter((p) => p.category === top.category && p.delta > 0)
-      .sort((a, b) => b.delta - a.delta);
-    const driver = catProtos[0];
-
-    const allCatProtos = data.protocolBreakdown
-      .filter((p) => p.category === top.category)
-      .sort((a, b) => b.gasUsed - a.gasUsed)
-      .slice(0, 5);
-    insights.push({
-      title: `${catLabel} Surging`,
-      description: driver
-        ? `Led by ${driver.protocol} with +${driver.delta.toFixed(1)}% AVAX burned increase`
-        : `Category seeing strong growth in AVAX burned`,
-      expandedDescription: `${catLabel} activity on C-Chain saw strong growth this period with AVAX burned up ${top.delta.toFixed(1)}%.${driver ? ` ${driver.protocol} was the primary driver, increasing ${driver.delta.toFixed(1)}%.` : ""} The category represents ${top.gasShare.toFixed(1)}% of total chain gas with ${formatNumber(top.txCount)} transactions across ${formatNumber(top.uniqueSenders)} unique wallets, burning ${formatAvax(top.avaxBurned)} in fees.`,
-      category: top.category,
-      delta: top.delta,
-      deltaDirection: "up",
-      icon: "trending",
-      metric: `${top.gasShare.toFixed(1)}% of total gas`,
-      topProtocols: allCatProtos.map((p) => ({
+  if (topBurners.length > 0) {
+    rows.push({
+      title: "Top Burners",
+      subtitle: "by AVAX burned",
+      icon: "flame",
+      cards: topBurners.map((p) => ({
         protocol: p.protocol,
-        txCount: p.txCount,
-        uniqueSenders: p.uniqueSenders,
+        category: p.category,
+        avaxBurned: p.avaxBurned,
+        avaxBurnedUsd: p.avaxBurnedUsd,
         delta: p.delta,
         gasShare: p.gasShare,
-      })),
-    });
-    if (driver) coveredProtocols.add(driver.protocol);
-  }
-
-  // 2. Top category mover (down)
-  if (catsDown.length > 0 && catsDown[0].delta < 0) {
-    const bottom = catsDown[0];
-    const catLabel = CATEGORY_LABELS[bottom.category] || bottom.category;
-    const bottomCatProtos = data.protocolBreakdown
-      .filter((p) => p.category === bottom.category)
-      .sort((a, b) => b.gasUsed - a.gasUsed)
-      .slice(0, 5);
-    insights.push({
-      title: `${catLabel} Declining`,
-      description: `Largest category decline this period`,
-      expandedDescription: `${catLabel} saw the steepest decline this period, with AVAX burned dropping ${Math.abs(bottom.delta).toFixed(1)}%. The category accounts for ${bottom.gasShare.toFixed(1)}% of total chain gas, processing ${formatNumber(bottom.txCount)} transactions from ${formatNumber(bottom.uniqueSenders)} unique wallets, burning ${formatAvax(bottom.avaxBurned)} in fees.`,
-      category: bottom.category,
-      delta: bottom.delta,
-      deltaDirection: "down",
-      icon: "trending",
-      metric: `${bottom.gasShare.toFixed(1)}% of total gas`,
-      topProtocols: bottomCatProtos.map((p) => ({
-        protocol: p.protocol,
         txCount: p.txCount,
         uniqueSenders: p.uniqueSenders,
+      })),
+    });
+  }
+
+  // Row 2: Fastest Growing (by delta %, filter noise below 0.05% gas share)
+  const fastestGrowing = [...protos]
+    .filter((p) => p.delta > 0 && p.gasShare > 0.05)
+    .sort((a, b) => b.delta - a.delta)
+    .slice(0, 3);
+
+  if (fastestGrowing.length > 0) {
+    rows.push({
+      title: "Fastest Growing",
+      subtitle: "by period growth",
+      icon: "trending",
+      cards: fastestGrowing.map((p) => ({
+        protocol: p.protocol,
+        category: p.category,
+        avaxBurned: p.avaxBurned,
+        avaxBurnedUsd: p.avaxBurnedUsd,
         delta: p.delta,
         gasShare: p.gasShare,
+        txCount: p.txCount,
+        uniqueSenders: p.uniqueSenders,
       })),
     });
   }
 
-  // 3. Biggest protocol mover (if not already covered)
-  if (protos.length > 0) {
-    const sorted = [...protos].sort(
-      (a, b) => Math.abs(b.delta) - Math.abs(a.delta)
-    );
-    const biggest = sorted.find((p) => !coveredProtocols.has(p.protocol));
-    if (biggest) {
-      const bigCatLabel = CATEGORY_LABELS[biggest.category] || biggest.category;
-      const siblingProtos = data.protocolBreakdown
-        .filter((p) => p.category === biggest.category)
-        .sort((a, b) => b.gasUsed - a.gasUsed)
-        .slice(0, 5);
-      insights.push({
-        title: `${biggest.protocol}`,
-        description:
-          biggest.delta >= 0
-            ? `Biggest gainer among all protocols`
-            : `Largest protocol decline this period`,
-        expandedDescription: `${biggest.protocol} (${bigCatLabel}) showed the most significant movement this period with a ${Math.abs(biggest.delta).toFixed(1)}% ${biggest.delta >= 0 ? "increase" : "decrease"} in AVAX burned. It processed ${formatNumber(biggest.txCount)} transactions from ${formatNumber(biggest.uniqueSenders)} unique wallets, burning ${formatAvax(biggest.avaxBurned)} and accounting for ${biggest.gasShare.toFixed(2)}% of total chain gas.`,
-        category: biggest.category,
-        delta: biggest.delta,
-        deltaDirection: biggest.delta >= 0 ? "up" : "down",
-        icon: "zap",
-        metric: `${formatNumber(biggest.txCount)} txs`,
-        topProtocols: siblingProtos.map((p) => ({
-          protocol: p.protocol,
-          txCount: p.txCount,
-          uniqueSenders: p.uniqueSenders,
-          delta: p.delta,
-          gasShare: p.gasShare,
-        })),
-      });
-    }
-  }
-
-  // 4. Coverage line
-  if (data.coverage) {
-    const pct = data.coverage.taggedGasPercent;
-    insights.push({
-      title: "Classification Coverage",
-      description: `${(100 - pct).toFixed(1)}% of gas remains unclassified`,
-      expandedDescription: `Currently ${pct.toFixed(1)}% of C-Chain gas is classified across ${data.categoryBreakdown.length} categories. The remaining ${(100 - pct).toFixed(1)}% comes from contracts not yet tagged in the registry. Expanding coverage helps surface emerging protocols and usage patterns.`,
-      delta: pct,
-      deltaDirection: "neutral",
-      icon: "info",
-      metric: `${pct.toFixed(1)}% classified`,
-      topProtocols: data.categoryBreakdown.slice(0, 5).map((c) => ({
-        protocol: CATEGORY_LABELS[c.category] || c.category,
-        txCount: c.txCount,
-        uniqueSenders: c.uniqueSenders,
-        delta: c.delta,
-        gasShare: c.gasShare,
-      })),
-    });
-  }
-
-  return insights.slice(0, 4);
+  return rows;
 }
 
 // --- Hover helpers (reduces repeated object construction) ---
@@ -546,7 +376,7 @@ export default function GasTreemap() {
   const [customRange, setCustomRange] = useState<DateRange | undefined>(undefined);
   const [customPopoverOpen, setCustomPopoverOpen] = useState(false);
   const [hovered, setHovered] = useState<HoveredInfo | null>(null);
-  const [hoveredInsight, setHoveredInsight] = useState<number | null>(null);
+  const [hoveredInsight, setHoveredInsight] = useState<{ row: number; col: number } | null>(null);
   const [dimensions, setDimensions] = useState({ width: 900, height: 500 });
   const [loadingStartTime, setLoadingStartTime] = useState(Date.now);
   const [loadingProgress, setLoadingProgress] = useState(0);
@@ -824,9 +654,9 @@ export default function GasTreemap() {
     return result;
   }, [categoryRects, protocolsByCategory]);
 
-  const insights = useMemo(() => {
+  const insightRows = useMemo(() => {
     if (!data) return [];
-    return generateInsights(data);
+    return generateInsightRows(data);
   }, [data]);
 
   const hoveredCategoryProtocols = useMemo(() => {
@@ -1374,8 +1204,8 @@ export default function GasTreemap() {
 
       {/* Loading insight skeletons */}
       {loading && !data && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-          {[0, 1, 2, 3].map((i) => (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {[0, 1, 2].map((i) => (
             <div key={i} className="rounded-lg border border-zinc-200 dark:border-zinc-800 p-3 animate-pulse" style={{ animationDelay: `${i * 100}ms` }}>
               <div className="h-4 w-24 bg-zinc-200 dark:bg-zinc-800 rounded mb-2" />
               <div className="h-6 w-16 bg-zinc-200 dark:bg-zinc-800 rounded mb-2" />
@@ -1385,8 +1215,8 @@ export default function GasTreemap() {
         </div>
       )}
 
-      {/* Enhanced Insights Panel */}
-      {insights.length > 0 && !loading && (
+      {/* Market Insights — 2 Rows */}
+      {insightRows.length > 0 && !loading && (
         <div className="bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4">
           <div className="flex items-center gap-2 mb-4">
             <BarChart3 className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
@@ -1396,143 +1226,128 @@ export default function GasTreemap() {
             </span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-            {insights.map((insight, i) => {
-              const isExpanded =
-                hoveredInsight === i ||
-                (!!hovered &&
-                  !!insight.category &&
-                  hovered.category === insight.category);
-
-              return (
-                <div
-                  key={i}
-                  onMouseEnter={() => setHoveredInsight(i)}
-                  onMouseLeave={() => setHoveredInsight(null)}
-                  className={`relative overflow-hidden rounded-lg border p-3 cursor-default transition-all duration-300 ${
-                    isExpanded ? "scale-[1.03] shadow-lg z-10" : ""
-                  } ${
-                    insight.deltaDirection === "up"
-                      ? isExpanded
-                        ? "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-400 dark:border-emerald-500/50 shadow-emerald-200/50 dark:shadow-emerald-500/20"
-                        : "bg-emerald-50/50 dark:bg-emerald-500/5 border-emerald-200 dark:border-emerald-500/20 hover:border-emerald-300 dark:hover:border-emerald-500/40"
-                      : insight.deltaDirection === "down"
-                        ? isExpanded
-                          ? "bg-red-50 dark:bg-red-500/10 border-red-400 dark:border-red-500/50 shadow-red-200/50 dark:shadow-red-500/20"
-                          : "bg-red-50/50 dark:bg-red-500/5 border-red-200 dark:border-red-500/20 hover:border-red-300 dark:hover:border-red-500/40"
-                        : isExpanded
-                          ? "bg-zinc-100 dark:bg-zinc-800 border-zinc-400 dark:border-zinc-600"
-                          : "bg-zinc-100/50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700/50 hover:border-zinc-300 dark:hover:border-zinc-600"
-                  }`}
-                >
-                  {/* Icon */}
-                  <div className={`absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${
-                    isExpanded ? "scale-110" : ""
-                  } ${
-                    insight.deltaDirection === "up"
-                      ? "bg-emerald-100 dark:bg-emerald-500/10"
-                      : insight.deltaDirection === "down"
-                        ? "bg-red-100 dark:bg-red-500/10"
-                        : "bg-zinc-200 dark:bg-zinc-700/50"
-                  }`}>
-                    {insight.icon === "trending" && (
-                      insight.deltaDirection === "up"
-                        ? <TrendingUp className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                        : <TrendingDown className="w-4 h-4 text-red-600 dark:text-red-400" />
-                    )}
-                    {insight.icon === "zap" && <Zap className="w-4 h-4 text-amber-600 dark:text-amber-400" />}
-                    {insight.icon === "fire" && <Flame className="w-4 h-4 text-orange-600 dark:text-orange-400" />}
-                    {insight.icon === "info" && <Info className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />}
-                  </div>
-
-                  {/* Content */}
-                  <div className="pr-10">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 truncate">
-                        {insight.title}
-                      </span>
-                    </div>
-
-                    {insight.deltaDirection !== "neutral" && (
-                      <div className={`text-lg font-bold mb-1 ${
-                        insight.deltaDirection === "up" ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
-                      }`}>
-                        {insight.delta >= 0 ? "+" : ""}{insight.delta.toFixed(1)}%
-                      </div>
-                    )}
-
-                    <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
-                      {insight.description}
-                    </p>
-
-                    {/* Expanded detail — animated via max-height */}
-                    <div
-                      className={`overflow-hidden transition-all duration-300 ease-out ${
-                        isExpanded ? "max-h-[400px] opacity-100 mt-2" : "max-h-0 opacity-0"
-                      }`}
-                    >
-                      <div className="pt-2 border-t border-zinc-300/50 dark:border-zinc-700/50 space-y-2">
-                        <p className="text-xs text-zinc-700 dark:text-zinc-300 leading-relaxed">
-                          {insight.expandedDescription}
-                        </p>
-
-                        {/* Protocol / category breakdown table */}
-                        {insight.topProtocols && insight.topProtocols.length > 0 && (
-                          <table className="w-full text-[11px]">
-                            <thead>
-                              <tr className="text-zinc-500 text-[9px] uppercase">
-                                <th className="text-left py-1 font-medium">
-                                  {insight.icon === "info" ? "Category" : "Protocol"}
-                                </th>
-                                <th className="text-right py-1 font-medium">Txns</th>
-                                <th className="text-right py-1 font-medium">EOAs</th>
-                                <th className="text-right py-1 font-medium">Change</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {insight.topProtocols.map((p, idx) => (
-                                <tr
-                                  key={p.protocol}
-                                  className={idx % 2 === 0
-                                    ? "bg-zinc-200/30 dark:bg-zinc-800/30"
-                                    : ""
-                                  }
-                                >
-                                  <td className="py-1 pr-1 text-zinc-800 dark:text-zinc-200 font-medium truncate max-w-[100px]">
-                                    {p.protocol}
-                                  </td>
-                                  <td className="py-1 text-right text-zinc-600 dark:text-zinc-400 font-mono">
-                                    {formatNumber(p.txCount)}
-                                  </td>
-                                  <td className="py-1 text-right text-zinc-600 dark:text-zinc-400 font-mono">
-                                    {formatNumber(p.uniqueSenders)}
-                                  </td>
-                                  <td className={`py-1 text-right font-semibold ${
-                                    p.delta >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
-                                  }`}>
-                                    {p.delta >= 0 ? "+" : ""}{p.delta.toFixed(1)}%
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        )}
-                      </div>
-                    </div>
-
-                    {insight.metric && !isExpanded && (
-                      <div className="mt-2 pt-2 border-t border-zinc-200 dark:border-zinc-700/30">
-                        <span className="text-[10px] uppercase text-zinc-500">
-                          {insight.metric}
-                        </span>
-                      </div>
-                    )}
-                  </div>
+          <div className="space-y-4">
+            {insightRows.map((row, rowIdx) => (
+              <div key={row.title}>
+                <div className="flex items-center gap-2 mb-2">
+                  {row.icon === "flame" ? (
+                    <Flame className="w-3.5 h-3.5 text-orange-500 dark:text-orange-400" />
+                  ) : (
+                    <TrendingUp className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400" />
+                  )}
+                  <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">{row.title}</span>
+                  <span className="text-[10px] text-zinc-400 dark:text-zinc-500">{row.subtitle}</span>
                 </div>
-              );
-            })}
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {row.cards.map((card, colIdx) => {
+                    const isExpanded =
+                      (hoveredInsight?.row === rowIdx && hoveredInsight?.col === colIdx) ||
+                      (!!hovered && hovered.type === "protocol" && hovered.label === card.protocol);
+                    const catLabel = CATEGORY_LABELS[card.category] || card.category;
+                    const isGrowthRow = row.icon === "trending";
+
+                    return (
+                      <div
+                        key={card.protocol}
+                        onMouseEnter={() => setHoveredInsight({ row: rowIdx, col: colIdx })}
+                        onMouseLeave={() => setHoveredInsight(null)}
+                        className={`relative overflow-hidden rounded-lg border p-3 cursor-default transition-all duration-300 ${
+                          isExpanded ? "scale-[1.02] shadow-lg z-10" : ""
+                        } ${
+                          card.delta >= 0
+                            ? isExpanded
+                              ? "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-400 dark:border-emerald-500/50 shadow-emerald-200/50 dark:shadow-emerald-500/20"
+                              : "bg-white dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700 hover:border-emerald-300 dark:hover:border-emerald-500/40"
+                            : isExpanded
+                              ? "bg-red-50 dark:bg-red-500/10 border-red-400 dark:border-red-500/50 shadow-red-200/50 dark:shadow-red-500/20"
+                              : "bg-white dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700 hover:border-red-300 dark:hover:border-red-500/40"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <div>
+                            <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 block truncate max-w-[180px]">
+                              {card.protocol}
+                            </span>
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-700 text-zinc-500 dark:text-zinc-400">
+                              {catLabel}
+                            </span>
+                          </div>
+                          <div className="text-right flex-shrink-0">
+                            {isGrowthRow ? (
+                              <>
+                                <span className={`text-lg font-bold block ${
+                                  card.delta >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
+                                }`}>
+                                  {card.delta >= 0 ? "+" : ""}{card.delta.toFixed(1)}%
+                                </span>
+                                <span className="text-[10px] text-zinc-400 dark:text-zinc-500">
+                                  {formatAvax(card.avaxBurned)}
+                                </span>
+                              </>
+                            ) : (
+                              <>
+                                <span className="text-sm font-bold text-zinc-900 dark:text-white block">
+                                  {formatAvax(card.avaxBurned)}
+                                </span>
+                                <span className={`inline-flex items-center gap-0.5 text-xs font-semibold px-1.5 py-0.5 rounded ${getDeltaBgClass(card.delta)}`}>
+                                  {card.delta >= 0 ? (
+                                    <ArrowUpRight className="w-3 h-3" />
+                                  ) : (
+                                    <ArrowDownRight className="w-3 h-3" />
+                                  )}
+                                  {card.delta >= 0 ? "+" : ""}{card.delta.toFixed(1)}%
+                                </span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Expanded detail */}
+                        <div
+                          className={`overflow-hidden transition-all duration-300 ease-out ${
+                            isExpanded ? "max-h-[200px] opacity-100" : "max-h-0 opacity-0"
+                          }`}
+                        >
+                          <div className="pt-2 border-t border-zinc-200/50 dark:border-zinc-700/50 grid grid-cols-2 gap-2 text-xs">
+                            <div>
+                              <span className="text-[10px] text-zinc-400 dark:text-zinc-500 uppercase block">Gas Share</span>
+                              <span className="font-semibold text-zinc-900 dark:text-white">{card.gasShare.toFixed(2)}%</span>
+                            </div>
+                            <div>
+                              <span className="text-[10px] text-zinc-400 dark:text-zinc-500 uppercase block">Transactions</span>
+                              <span className="font-semibold text-zinc-900 dark:text-white">{formatNumber(card.txCount)}</span>
+                            </div>
+                            <div>
+                              <span className="text-[10px] text-zinc-400 dark:text-zinc-500 uppercase block">Senders</span>
+                              <span className="font-semibold text-zinc-900 dark:text-white">{formatNumber(card.uniqueSenders)}</span>
+                            </div>
+                            {card.avaxBurnedUsd > 0 && (
+                              <div>
+                                <span className="text-[10px] text-zinc-400 dark:text-zinc-500 uppercase block">USD Value</span>
+                                <span className="font-semibold text-zinc-900 dark:text-white">{formatUsd(card.avaxBurnedUsd)}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
+      )}
+
+      {/* Protocol Spotlight */}
+      {data && !loading && data.protocolBreakdown.length > 0 && (
+        <ProtocolSpotlight protocols={data.protocolBreakdown} />
+      )}
+
+      {/* All Protocols Table */}
+      {data && !loading && data.protocolBreakdown.length > 0 && (
+        <GasTreemapTable protocols={data.protocolBreakdown} />
       )}
     </div>
   );
