@@ -37,6 +37,8 @@ function toIso8601(datetimeLocal: string) {
   return date.toISOString();
 }
 
+const MAX_FILE_SIZE = 2 * 1024 * 1024;
+
 const MyHackathonsList = ({ myHackathons, language, onSelect, selectedId, isDevrel, loading }: { 
   myHackathons: any[], 
   language: 'en' | 'es', 
@@ -561,9 +563,10 @@ type SpeakerItemProps = {
   removing: { [key: string]: number | null };
   speakersLength: number;
   onPictureChange: (index: number, url: string) => void;
+  onImageFileTooLarge: (fileSize: number) => void;
 };
 
-const SpeakerItem = memo(function SpeakerItem({ speaker, index, collapsed, onChange, onDone, onExpand, onRemove, t, language, removing, speakersLength, onPictureChange }: SpeakerItemProps) {
+const SpeakerItem = memo(function SpeakerItem({ speaker, index, collapsed, onChange, onDone, onExpand, onRemove, t, language, removing, speakersLength, onPictureChange, onImageFileTooLarge }: SpeakerItemProps) {
   return (
     <div className={`border border-zinc-700 rounded-lg p-4 mb-6 bg-zinc-900/40 relative transition-all duration-300 ease-in-out ${removing[`speaker-${index}`] ? 'opacity-0 scale-95 blur-sm' : 'opacity-100 scale-100'}`}>
       {speakersLength > 1 && (
@@ -624,6 +627,10 @@ const SpeakerItem = memo(function SpeakerItem({ speaker, index, collapsed, onCha
               onChange={(e) => {
                 const file = e.target.files?.[0];
                 if (file) {
+                  if (file.size > MAX_FILE_SIZE) {
+                    onImageFileTooLarge(file.size);
+                    return;
+                  }
                   const reader = new FileReader();
                   reader.onload = (event) => {
                     onPictureChange(index, event.target?.result as string);
@@ -1231,10 +1238,11 @@ const HackathonsEdit = () => {
     latest.start_date = toIso8601(latest.start_date);
     latest.end_date = toIso8601(latest.end_date);
     latest.google_calendar_id = formDataLatest.google_calendar_id?.trim() || null;
+    const { icon, ...latestWithoutIcon } = latest;
     return {
       ...formDataMain,
       content,
-      ...latest,
+      ...latestWithoutIcon,
       cohosts: cohostsEmails,
       custom_link: formDataLatest.custom_link ? formDataLatest.custom_link : null,
       status: selectedHackathon?.status ?? "UPCOMING"
@@ -1305,7 +1313,7 @@ const HackathonsEdit = () => {
 
   const processBase64Images = async (data: any): Promise<any> => {
     const processedData = { ...data };
-    const imageFields = ['banner', 'icon', 'small_banner'];
+    const imageFields = ['banner', 'small_banner'];
     for (const field of imageFields) {
       if (processedData[field] && processedData[field].startsWith('data:image/')) {
         const fileName = `builders-hub/hackathon-images/${processedData.title.toLowerCase().replace(/ /g, '-')}/${processedData.title}-${field}-${Date.now()}.${processedData[field].split(';')[0].split('/')[1]}`;
@@ -1376,12 +1384,10 @@ const HackathonsEdit = () => {
             description: 'Your event has been created successfully.',
             variant: 'success',
           });
-          setShowUpdateModal(true);
-          setFieldsToUpdate([{
-            key: 'success',
-            oldValue: '',
-            newValue: 'Hackathon created successfully!'
-          }]);
+          // No mostrar modal de confirmación de "update" en creación.
+          // El popup solo tiene sentido cuando el usuario edita un evento existente.
+          setShowUpdateModal(false);
+          setFieldsToUpdate([]);
           setFormDataMain(initialData.main);
           setFormDataContent(initialData.content);
           setFormDataLatest(initialData.latest);
@@ -1537,6 +1543,9 @@ const HackathonsEdit = () => {
 
   const handleConfirmUpdate = () => {
     setShowUpdateModal(false);
+    // En caso de que el modal se abra por algún motivo en modo creación,
+    // evitamos re-ejecutar el submit.
+    if (!isSelectedHackathon) return;
     doSubmit();
   };
 
@@ -2159,7 +2168,7 @@ const HackathonsEdit = () => {
                 <>
                   <div className="mb-4 p-4 bg-blue-900/20 border border-blue-500/30 rounded-lg">
                     <h3 className="text-lg font-semibold text-blue-300 mb-2">Hackathon Images & Branding</h3>
-                    <p className="text-sm text-blue-200">Upload your hackathon banner, icon, and small banner. Images will be stored locally and uploaded to the database when you submit the form.</p>
+                    <p className="text-sm text-blue-200">Upload your hackathon banner and small banner. Images will be stored locally and uploaded to the database when you submit the form.</p>
                   </div>
                   
                   {/* Banner Image */}
@@ -2177,6 +2186,14 @@ const HackathonsEdit = () => {
                             onChange={(e) => {
                               const file = e.target.files?.[0];
                               if (file) {
+                                if (file.size > MAX_FILE_SIZE) {
+                                  toast({
+                                    title: 'The file is too large (Max: 2MB).',
+                                    description: 'Try compressing it.',
+                                    variant: 'destructive',
+                                  });
+                                  return;
+                                }
                                 const reader = new FileReader();
                                 reader.onload = (event) => {
                                   const dataUrl = event.target?.result as string;
@@ -2225,65 +2242,6 @@ const HackathonsEdit = () => {
                   </div>
                   
                   
-                  {/* Icon Image */}
-                  <div className="mb-6">
-                    <label className="font-medium text-xl mb-2 block">Icon:</label>
-                    <div className="mb-2 text-zinc-400 text-sm">The small icon displayed next to your hackathon title</div>
-                    
-                    <div className="mb-4">
-                      <div className="flex gap-4 items-start">
-                        <div className="flex-1">
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) {
-                                const reader = new FileReader();
-                                reader.onload = (event) => {
-                                  const dataUrl = event.target?.result as string;
-                                  setFormDataLatest({ ...formDataLatest, icon: dataUrl });
-                                };
-                                reader.readAsDataURL(file);
-                              }
-                            }}
-                            className="w-full p-2 bg-zinc-800 border border-zinc-600 rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-600 file:text-white hover:file:bg-green-700"
-                          />
-                        </div>
-                        
-                        <div className="flex-1">
-                          <Input
-                            type="text"
-                            placeholder="Or enter icon URL"
-                            value={formDataLatest.icon}
-                            onChange={e => setFormDataLatest({ ...formDataLatest, icon: e.target.value })}
-                            className="w-full"
-                          />
-                        </div>
-                      </div>
-                      
-                      {formDataLatest.icon && (
-                        <div className="mt-4">
-                          <div className="text-zinc-400 text-sm mb-2">Preview:</div>
-                          <div className="relative w-16 h-16 bg-zinc-800 border border-zinc-600 rounded-lg overflow-hidden">
-                            <img
-                              src={formDataLatest.icon}
-                              alt="Icon preview"
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                e.currentTarget.style.display = 'none';
-                                (e.currentTarget.nextElementSibling as HTMLElement)!.style.display = 'flex';
-                              }}
-                            />
-                            <div className="hidden absolute inset-0 items-center justify-center text-zinc-500 text-xs">
-                              Invalid
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
                   <div className="mb-6">
                     <label className="font-medium text-xl mb-2 block">Small Banner:</label>
                     <div className="mb-2 text-zinc-400 text-sm">A smaller banner image for additional branding</div>
@@ -2297,6 +2255,14 @@ const HackathonsEdit = () => {
                             onChange={(e) => {
                               const file = e.target.files?.[0];
                               if (file) {
+                                if (file.size > MAX_FILE_SIZE) {
+                                  toast({
+                                    title: 'The file is too large (Max: 2MB).',
+                                    description: 'Try compressing it.',
+                                    variant: 'destructive',
+                                  });
+                                  return;
+                                }
                                 const reader = new FileReader();
                                 reader.onload = (event) => {
                                   const dataUrl = event.target?.result as string;
@@ -2907,6 +2873,13 @@ const HackathonsEdit = () => {
                           removing={removing}
                           speakersLength={formDataContent.speakers.length}
                           onPictureChange={handleSpeakerPictureChange}
+                          onImageFileTooLarge={() =>
+                            toast({
+                              title: 'The file is too large (Max: 2MB).',
+                              description: 'Try compressing it.',
+                              variant: 'destructive',
+                            })
+                          }
                         />
                       ))}
                       <div className="flex justify-end">
