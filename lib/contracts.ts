@@ -799,18 +799,19 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
   },
 
   // ============ UPTOP ============
+  // NFT-based loyalty badges (Mastercard-backed, Empire State Building partnership)
   '0xf1d7f5723de7980ab2a988c2eed1be620a30bc6d': {
     address: '0xf1d7f5723de7980ab2a988c2eed1be620a30bc6d',
     name: 'UpTop Contract',
     protocol: 'UpTop',
-    category: 'other',
+    category: 'nft',
     type: 'other',
   },
   '0x076a53abaa556073a8be7135c5a29d4b70e504a5': {
     address: '0x076a53abaa556073a8be7135c5a29d4b70e504a5',
     name: 'UpTop Contract',
     protocol: 'UpTop',
-    category: 'other',
+    category: 'nft',
     type: 'other',
   },
 
@@ -925,11 +926,12 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
   },
 
   // ============ BIG ADS ============
+  // In-game ad microtransaction network, Avalanche-funded
   '0x06e9b71283700d1a319070f14976d3aba6c27745': {
     address: '0x06e9b71283700d1a319070f14976d3aba6c27745',
     name: 'Big Ads Contract',
     protocol: 'Big Ads',
-    category: 'other',
+    category: 'gaming',
     type: 'other',
   },
 
@@ -950,18 +952,19 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
   },
 
   // ============ BANZA ============
+  // AI data platform using blockchain for rewards and privacy
   '0x11fbe9e637c4a3deca3453f2925aaaa18e16963e': {
     address: '0x11fbe9e637c4a3deca3453f2925aaaa18e16963e',
     name: 'Banza Contract',
     protocol: 'Banza',
-    category: 'other',
+    category: 'infrastructure',
     type: 'other',
   },
   '0xae0bfb23ddf753949fe00cd93a1bde45769dc7e9': {
     address: '0xae0bfb23ddf753949fe00cd93a1bde45769dc7e9',
     name: 'Banza Contract',
     protocol: 'Banza',
-    category: 'other',
+    category: 'infrastructure',
     type: 'other',
   },
 
@@ -2781,26 +2784,144 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     type: 'controller',
   },
 
-  // ============ AUTO-CLASSIFIED — LOW CONFIDENCE (Round 7) ============
-  // Verified contracts with unknown protocol. Uncomment after manual review.
-  // Search on https://routescan.io/address/{addr} for details.
-  //
-  // '0x105fecae0c48d683da63620de1f2d1582de9e98a': { address: '0x105fecae0c48d683da63620de1f2d1582de9e98a', name: 'Main', protocol: '???', category: 'other', type: 'other' },                                                 // 0.07% — generic name, unidentified
-  // '0xfe6bdb87e59484db1494a467cdba7c051fb2a604': { address: '0xfe6bdb87e59484db1494a467cdba7c051fb2a604', name: 'ConfigSyncer', protocol: '???', category: 'infrastructure', type: 'other' },                                   // 0.05% — config syncer, likely CCIP/oracle infra
-  // '0x03f1a18519abedbef210fa44e13b71fec01b8dfa': { address: '0x03f1a18519abedbef210fa44e13b71fec01b8dfa', name: 'AvaxHelper', protocol: '???', category: 'infrastructure', type: 'other' },                                     // 0.04% — AVAX helper utility
-  // '0x6228947dab1ec28a3106600abaa223cfd01a6f9c': { address: '0x6228947dab1ec28a3106600abaa223cfd01a6f9c', name: 'DexFiKeeper', protocol: '???', category: 'dex', type: 'other' },                                               // 0.04% — DeFi keeper/automation bot
-  // '0x05c4d94aee184498b24335e9913b9d01d08df89a': { address: '0x05c4d94aee184498b24335e9913b9d01d08df89a', name: 'MindFlow', protocol: '???', category: 'other', type: 'other' },                                                // 0.04% — unknown dApp
-  // '0x7eb212519818c7deb8c8da4423bcec3370b7e83d': { address: '0x7eb212519818c7deb8c8da4423bcec3370b7e83d', name: 'WalletLockAction', protocol: '???', category: 'infrastructure', type: 'other' },                               // 0.03% — wallet security module
-  // '0xaa4d2931a9fe14c3dec8ac3f12923cbb535c0e5f': { address: '0xaa4d2931a9fe14c3dec8ac3f12923cbb535c0e5f', name: 'Dice', protocol: '???', category: 'gaming', type: 'other' },                                                   // 0.02% — gambling/gaming
-  // '0xae68b7117be0026cbd4366303f74eecbb19e4042': { address: '0xae68b7117be0026cbd4366303f74eecbb19e4042', name: 'Solver', protocol: '???', category: 'dex', type: 'other' },                                                    // 0.02% — intent-based DEX solver
-  // '0x8719309bdb1df086948a5ca52982fbcb4184056e': { address: '0x8719309bdb1df086948a5ca52982fbcb4184056e', name: 'GoldenHatchery', protocol: '???', category: 'gaming', type: 'other' },                                         // 0.02% — NFT/gaming hatchery
-  // '0x12d0d71342071effb0e77a408f23ed985026ad94': { address: '0x12d0d71342071effb0e77a408f23ed985026ad94', name: 'ArenaMultiSend', protocol: '???', category: 'other', type: 'other' },                                          // 0.02% — batch send utility
-  // '0xa75d3edbc3ac10ebc6ad965e6e8a42a118f100d7': { address: '0xa75d3edbc3ac10ebc6ad965e6e8a42a118f100d7', name: 'Incubator', protocol: '???', category: 'other', type: 'other' },                                               // 0.02% — project incubator/launchpad
-  // '0x6c14c1898c843ff66ca51e87244690bbc28df215': { address: '0x6c14c1898c843ff66ca51e87244690bbc28df215', name: 'Orange', protocol: '???', category: 'other', type: 'other' },                                                  // 0.02% — unknown dApp
-  // '0x233c5370ccfb3cd7409d9a3fb98ab94de94cb4cd': { address: '0x233c5370ccfb3cd7409d9a3fb98ab94de94cb4cd', name: 'MetaWallet', protocol: '???', category: 'infrastructure', type: 'other' },                                     // 0.02% — smart wallet
-  // '0xc03094c4690f3844ea17ef5272bf6376e0cf2ac6': { address: '0xc03094c4690f3844ea17ef5272bf6376e0cf2ac6', name: 'SpokeCommon', protocol: '???', category: 'bridge', type: 'other' },                                            // 0.01% — likely Across Protocol spoke
-  // '0x665be7a6a226c6bb35e3ce243d2d1b3593d08abd': { address: '0x665be7a6a226c6bb35e3ce243d2d1b3593d08abd', name: 'BarebonesManagerWithMerkleVerification', protocol: '???', category: 'yield', type: 'vault' },                  // 0.01% — vault/manager
-  // '0xac4c6e212a361c968f1725b4d055b47e63f80b75': { address: '0xac4c6e212a361c968f1725b4d055b47e63f80b75', name: 'RedSnwapper', protocol: '???', category: 'dex', type: 'other' },                                              // 0.01% — swap helper
+  // ============ CLASSIFIED — Round 8 ============
+
+  // --- Club HashCash: simulated mining game with MINER NFTs + hCASH tokens ---
+  '0x105fecae0c48d683da63620de1f2d1582de9e98a': {
+    address: '0x105fecae0c48d683da63620de1f2d1582de9e98a',
+    name: 'Main',
+    protocol: 'Club HashCash',
+    category: 'gaming',
+    type: 'other',
+  },
+
+  // --- GMX: ConfigSyncer — risk oracle config updates for GMX V2 markets ---
+  '0xfe6bdb87e59484db1494a467cdba7c051fb2a604': {
+    address: '0xfe6bdb87e59484db1494a467cdba7c051fb2a604',
+    name: 'ConfigSyncer',
+    protocol: 'GMX',
+    category: 'derivatives',
+    type: 'other',
+  },
+
+  // --- Arena: SocialFi bonding-curve token launchpad ---
+  '0x03f1a18519abedbef210fa44e13b71fec01b8dfa': {
+    address: '0x03f1a18519abedbef210fa44e13b71fec01b8dfa',
+    name: 'AvaxHelper',
+    protocol: 'Arena',
+    category: 'token',
+    type: 'other',
+  },
+  '0x12d0d71342071effb0e77a408f23ed985026ad94': {
+    address: '0x12d0d71342071effb0e77a408f23ed985026ad94',
+    name: 'ArenaMultiSend',
+    protocol: 'Arena',
+    category: 'token',
+    type: 'other',
+  },
+
+  // --- BetSwirl: decentralized casino — Dice game using Chainlink VRF ---
+  '0xaa4d2931a9fe14c3dec8ac3f12923cbb535c0e5f': {
+    address: '0xaa4d2931a9fe14c3dec8ac3f12923cbb535c0e5f',
+    name: 'Dice',
+    protocol: 'BetSwirl',
+    category: 'gaming',
+    type: 'other',
+  },
+
+  // --- Socket: cross-chain infrastructure — intent solver ---
+  '0xae68b7117be0026cbd4366303f74eecbb19e4042': {
+    address: '0xae68b7117be0026cbd4366303f74eecbb19e4042',
+    name: 'Solver',
+    protocol: 'Socket',
+    category: 'bridge',
+    type: 'other',
+  },
+
+  // --- MoveQuest: card-based staking game with MQT tokens ---
+  '0x7eb212519818c7deb8c8da4423bcec3370b7e83d': {
+    address: '0x7eb212519818c7deb8c8da4423bcec3370b7e83d',
+    name: 'WalletLockAction',
+    protocol: 'MoveQuest',
+    category: 'gaming',
+    type: 'other',
+  },
+  '0x8719309bdb1df086948a5ca52982fbcb4184056e': {
+    address: '0x8719309bdb1df086948a5ca52982fbcb4184056e',
+    name: 'GoldenHatchery',
+    protocol: 'MoveQuest',
+    category: 'gaming',
+    type: 'staking',
+  },
+  '0xa75d3edbc3ac10ebc6ad965e6e8a42a118f100d7': {
+    address: '0xa75d3edbc3ac10ebc6ad965e6e8a42a118f100d7',
+    name: 'Incubator',
+    protocol: 'MoveQuest',
+    category: 'gaming',
+    type: 'staking',
+  },
+
+  // --- Orange Web3: ORNG governance token for Orange L1 ---
+  '0x6c14c1898c843ff66ca51e87244690bbc28df215': {
+    address: '0x6c14c1898c843ff66ca51e87244690bbc28df215',
+    name: 'Orange',
+    protocol: 'Orange Web3',
+    category: 'token',
+    type: 'token',
+  },
+
+  // --- Folks Finance: cross-chain lending hub-and-spoke ---
+  '0xc03094c4690f3844ea17ef5272bf6376e0cf2ac6': {
+    address: '0xc03094c4690f3844ea17ef5272bf6376e0cf2ac6',
+    name: 'SpokeCommon',
+    protocol: 'Folks Finance',
+    category: 'lending',
+    type: 'other',
+  },
+
+  // --- Yield Yak: Milk Vaults via Veda/BoringVault framework ---
+  '0x665be7a6a226c6bb35e3ce243d2d1b3593d08abd': {
+    address: '0x665be7a6a226c6bb35e3ce243d2d1b3593d08abd',
+    name: 'BarebonesManagerWithMerkleVerification',
+    protocol: 'Yield Yak',
+    category: 'yield',
+    type: 'vault',
+  },
+
+  // --- SushiSwap: RedSnwapper swap routing helper ---
+  '0xac4c6e212a361c968f1725b4d055b47e63f80b75': {
+    address: '0xac4c6e212a361c968f1725b4d055b47e63f80b75',
+    name: 'RedSnwapper',
+    protocol: 'SushiSwap',
+    category: 'dex',
+    type: 'other',
+  },
+
+  // --- Low confidence — kept but marked ---
+  // DexFiKeeper: unverified keeper bot, single caller
+  '0x6228947dab1ec28a3106600abaa223cfd01a6f9c': {
+    address: '0x6228947dab1ec28a3106600abaa223cfd01a6f9c',
+    name: 'DexFiKeeper',
+    protocol: 'DexFi',
+    category: 'infrastructure',
+    type: 'other',
+  },
+  // MindFlow: multi-level referral investment scheme on USDt
+  '0x05c4d94aee184498b24335e9913b9d01d08df89a': {
+    address: '0x05c4d94aee184498b24335e9913b9d01d08df89a',
+    name: 'MindFlow',
+    protocol: 'MindFlow',
+    category: 'other',
+    type: 'other',
+  },
+  // MetaWallet: unverified multi-chain contract, holds ~$2.5M
+  '0x233c5370ccfb3cd7409d9a3fb98ab94de94cb4cd': {
+    address: '0x233c5370ccfb3cd7409d9a3fb98ab94de94cb4cd',
+    name: 'MetaWallet',
+    protocol: 'MetaWallet',
+    category: 'infrastructure',
+    type: 'other',
+  },
 };
 
 // Protocol slug mapping for linking to dApp pages (canonical slug per protocol)
@@ -2809,6 +2930,7 @@ export const PROTOCOL_SLUGS: Record<string, string> = {
   'Pangolin': 'pangolin',
   'GMX': 'gmx',
   'Benqi': 'benqi',
+  'Folks Finance': 'folks-finance',
   'Aave': 'aave-v3',
   'Stargate': 'stargate',
   'LayerZero': 'layerzero',
@@ -2867,10 +2989,22 @@ export const PROTOCOL_SLUGS: Record<string, string> = {
   'MEV: Coinbase': 'mev-coinbase',
   'MEV: 0xa34e': 'mev-0xa34e',
   'MEV: 0x1d67': 'mev-0x1d67',
-  // Other
+  // Gaming / Other
   'Big Ads': 'big-ads',
   'Red Cast': 'red-cast',
   'Banza': 'banza',
+  'Club HashCash': 'club-hashcash',
+  'BetSwirl': 'betswirl',
+  'MoveQuest': 'movequest',
+  // SocialFi / Token
+  'Arena': 'arena',
+  'Orange Web3': 'orange-web3',
+  'MindFlow': 'mindflow',
+  // Cross-chain
+  'Socket': 'socket',
+  // Low-confidence
+  'DexFi': 'dexfi',
+  'MetaWallet': 'metawallet',
   // DEX Aggregators
   'Fly.trade': 'fly-trade',
   'DODO': 'dodo',
@@ -2913,6 +3047,7 @@ export const SLUG_ALIASES: Record<string, string> = {
   'benqi-lending': 'Benqi',
   'benqi-staked-avax': 'Benqi',
   'benqi': 'Benqi',
+  'folks-finance': 'Folks Finance',
   // Aave variations
   'aave-v3': 'Aave',
   'aave-v2': 'Aave',
@@ -3039,10 +3174,22 @@ export const SLUG_ALIASES: Record<string, string> = {
   'mev-coinbase': 'MEV: Coinbase',
   'mev-0xa34e': 'MEV: 0xa34e',
   'mev-0x1d67': 'MEV: 0x1d67',
-  // Other
+  // Gaming / Other
   'big-ads': 'Big Ads',
   'red-cast': 'Red Cast',
   'banza': 'Banza',
+  'club-hashcash': 'Club HashCash',
+  'betswirl': 'BetSwirl',
+  'movequest': 'MoveQuest',
+  // SocialFi / Token
+  'arena': 'Arena',
+  'orange-web3': 'Orange Web3',
+  'mindflow': 'MindFlow',
+  // Cross-chain
+  'socket': 'Socket',
+  // Low-confidence
+  'dexfi': 'DexFi',
+  'metawallet': 'MetaWallet',
   // DEX Aggregators
   'fly-trade': 'Fly.trade',
   'fly': 'Fly.trade',
