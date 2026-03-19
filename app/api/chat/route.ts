@@ -381,14 +381,21 @@ export async function POST(req: Request) {
   // Search for relevant L1 chains by name/slug
   let l1Context = '';
   if (lastUserMessageText) {
+    // Generic terms that appear in many chain names/slugs — skip these for matching
+    const l1Stopwords = new Set([
+      'chain', 'network', 'mainnet', 'testnet', 'the', 'how', 'what', 'where',
+      'show', 'stats', 'can', 'does', 'this', 'that', 'with', 'from', 'for',
+      'about', 'have', 'are', 'was', 'will', 'get', 'into', 'create', 'deploy',
+    ]);
     const queryLower = lastUserMessageText.toLowerCase();
-    const queryTerms = queryLower.split(/\s+/).filter(t => t.length > 2);
+    const queryTerms = queryLower.split(/\s+/).filter(t => t.length > 2 && !l1Stopwords.has(t));
+
     const matchingChains = (l1Chains as any[]).filter(chain => {
       const nameLower = (chain.chainName || '').toLowerCase();
       const slugLower = (chain.slug || '').toLowerCase();
-      const categoryLower = (chain.category || '').toLowerCase();
+      // Only match on name/slug, not category (too many false positives)
       return queryTerms.some(term =>
-        nameLower.includes(term) || slugLower.includes(term) || categoryLower.includes(term)
+        nameLower.includes(term) || slugLower.includes(term)
       );
     }).slice(0, 10);
 
