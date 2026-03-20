@@ -129,19 +129,19 @@ export function useValidatorManagerDetails({ subnetId }: UseValidatorManagerDeta
                     return;
                 }
 
-                // Successfully fetched VMC address and blockchain ID, now get signing subnet ID
-                const blockchainInfoForSigning = await getBlockchainInfoForNetwork(network, vmcBlockchainId);
-                const fetchedSigningSubnetId = blockchainInfoForSigning.subnetId;
-
+                // The signing subnet is always the L1's own subnet, because the L1
+                // validators sign warp messages for their validator set. The VMC may
+                // be deployed on a different chain (e.g. C-Chain), but signatures
+                // still come from the L1 validators, not the VMC chain's validators.
                 setValidatorManagerAddress(vmcAddress);
                 setBlockchainId(vmcBlockchainId);
-                setSigningSubnetId(fetchedSigningSubnetId || subnetId); // Fallback to initial subnetId if specific signing one isn\'t found
+                setSigningSubnetId(subnetId);
 
                 // Cache the fetched details
                 subnetCache.current[cacheKey] = {
                     validatorManagerAddress: vmcAddress,
                     blockchainId: vmcBlockchainId,
-                    signingSubnetId: fetchedSigningSubnetId || subnetId,
+                    signingSubnetId: subnetId,
                 };
                 setError(null);
 
