@@ -130,6 +130,10 @@ const FormSchema = z.object({
     .array(z.object({ period: z.string(), description: z.string() }))
     .optional(),
 
+  // ── Stage 4 ───────────────────────────────────────────────────────────────
+  bg_summary: z.string().optional().or(z.literal("")),
+  bg_support_needed: z.string().optional().or(z.literal("")),
+
   // ── Stage 4 — Gaming Finals ───────────────────────────────────────────────
   bg_game_metrics: z.string().optional().or(z.literal("")),
   bg_game_vision: z.string().optional().or(z.literal("")),
@@ -206,6 +210,8 @@ export default function BuildGamesSubmitForm({
       bg_game_monetization: "",
       bg_game_competitors: "",
       bg_milestones: [{ period: "", description: "" }],
+      bg_summary: "",
+      bg_support_needed: "",
       bg_game_metrics: "",
       bg_game_vision: "",
     },
@@ -349,6 +355,8 @@ export default function BuildGamesSubmitForm({
             bg_milestones: Array.isArray(bg.milestones) && bg.milestones.length > 0
               ? bg.milestones
               : [{ period: "", description: "" }],
+            bg_summary: bg.summary ?? "",
+            bg_support_needed: bg.support_needed ?? "",
             bg_game_metrics: bg.game_metrics ?? "",
             bg_game_vision: bg.game_vision ?? "",
           });
@@ -432,6 +440,8 @@ export default function BuildGamesSubmitForm({
             milestones: (data.bg_milestones ?? []).filter(
               (m) => (m.period ?? "") !== "" || (m.description ?? "") !== ""
             ),
+            summary: data.bg_summary ?? "",
+            support_needed: data.bg_support_needed ?? "",
             game_metrics: data.bg_game_metrics ?? "",
             game_vision: data.bg_game_vision ?? "",
           },
@@ -1634,27 +1644,50 @@ export default function BuildGamesSubmitForm({
         <div className="space-y-5">
           <MultiLinkInput
             name="demo_link"
-            label="Pitch Deck & Demo Links"
+            label="Pitch Recording & Slides"
             placeholder="https://docs.google.com/presentation/..."
             plainLabel
+            description="Record your pitch again — this time you have up to 7 minutes. Use this as a dry-run for your live final pitch. Update it so it reflects the current state of your project, include a short demo, and share any information you think judges will want to know. Consider that the final judges have never seen your project before and have no context from previous stages."
           />
 
           <FormField
             control={form.control}
-            name="full_description"
+            name="bg_summary"
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-white font-medium">
-                  Complete Project Documentation
+                  Project Summary
                 </FormLabel>
                 <p className="text-zinc-400 text-sm -mt-1">
-                  Provide complete documentation covering your project&apos;s
-                  technical implementation, business model, and traction.
+                  Keep it short. Include your project&apos;s website, X (Twitter), and any other links or information about your team or your project that you think judges should know about.
                 </p>
                 <FormControl>
                   <Textarea
-                    placeholder="Complete documentation of your project: technical implementation, business model, user traction, roadmap..."
+                    placeholder="Brief summary of your project. Website: https://... | X: https://x.com/... | Any other relevant links or context..."
                     className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6] min-h-[250px] resize-none"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="bg_support_needed"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-white font-medium">
+                  What type of support do you need to succeed?
+                </FormLabel>
+                <p className="text-zinc-400 text-sm -mt-1">
+                  Tell us what kind of support would make the biggest difference for your project — e.g. technical guidance, BD introductions, legal, marketing, funding, ecosystem partnerships.
+                </p>
+                <FormControl>
+                  <Textarea
+                    placeholder="e.g. We need help with go-to-market strategy and introductions to potential partners in the DeFi space..."
+                    className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6] min-h-[130px] resize-none"
                     {...field}
                   />
                 </FormControl>
