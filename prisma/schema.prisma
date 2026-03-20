@@ -8,34 +8,34 @@ datasource db {
 }
 
 model Hackathon {
-  id              String         @id @default(uuid())
-  title           String
-  description     String
-  location        String
-  total_prizes    Int
-  tags            String[]
-  content         Json           @default("{}")
-  end_date        DateTime       @default(now()) @db.Timestamptz(3)
-  start_date      DateTime       @default(now()) @db.Timestamptz(3)
-  timezone        String         @default("UTC")
-  banner          String         @default("")
-  icon            String         @default("")
-  small_banner    String         @default("")
-  participants    Int
-  top_most        Boolean?       @default(false)
-  organizers      String?
-  custom_link     String?
-  created_by      String?
-  is_public       Boolean?
-  updated_by      String?
-  event           String?        @default("hackathon")
-  new_layout      Boolean?       @default(false)
-  google_calendar_id String?  
-  created_by_user User?          @relation(fields: [created_by], references: [id])
-  updated_by_user User?          @relation("HackathonUpdatedBy", fields: [updated_by], references: [id])
-  projects        Project[]
-  registrations   RegisterForm[]
-  cohosts         String[]       @default([])
+  id                 String         @id @default(uuid())
+  title              String
+  description        String
+  location           String
+  total_prizes       Int
+  tags               String[]
+  content            Json           @default("{}")
+  end_date           DateTime       @default(now()) @db.Timestamptz(3)
+  start_date         DateTime       @default(now()) @db.Timestamptz(3)
+  timezone           String         @default("UTC")
+  banner             String         @default("")
+  icon               String         @default("")
+  small_banner       String         @default("")
+  participants       Int
+  top_most           Boolean?       @default(false)
+  organizers         String?
+  custom_link        String?
+  created_by         String?
+  is_public          Boolean?
+  updated_by         String?
+  event              String?        @default("hackathon")
+  new_layout         Boolean?       @default(false)
+  google_calendar_id String?
+  created_by_user    User?          @relation(fields: [created_by], references: [id])
+  updated_by_user    User?          @relation("HackathonUpdatedBy", fields: [updated_by], references: [id])
+  projects           Project[]
+  registrations      RegisterForm[]
+  cohosts            String[]       @default([])
 }
 
 model User {
@@ -74,6 +74,7 @@ model User {
   statsPlaygroundFavorites StatsPlaygroundFavorite[] @relation("StatsPlaygroundFavorites")
   badges                   UserBadge[]
   oauthCodes               OAuthCode[]
+  validatorAlerts          ValidatorAlert[]
 }
 
 model VerificationToken {
@@ -417,4 +418,39 @@ model Retro9000ReturningApplication {
   @@index([project_name])
   @@index([project_vertical])
   @@index([requested_funding_range])
+}
+
+model ValidatorAlert {
+  id               String              @id @default(uuid())
+  user_id          String
+  node_id          String
+  label            String?
+  uptime_alert     Boolean             @default(true)
+  uptime_threshold Float               @default(80)
+  version_alert    Boolean             @default(true)
+  expiry_alert     Boolean             @default(true)
+  expiry_days      Int                 @default(14)
+  email            String
+  active           Boolean             @default(true)
+  created_at       DateTime            @default(now()) @db.Timestamptz(3)
+  updated_at       DateTime            @updatedAt @db.Timestamptz(3)
+  user             User                @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  alert_logs       ValidatorAlertLog[]
+
+  @@unique([user_id, node_id])
+  @@index([user_id])
+  @@index([node_id])
+  @@index([active])
+}
+
+model ValidatorAlertLog {
+  id                 String         @id @default(uuid())
+  validator_alert_id String
+  alert_type         String
+  message            String
+  sent_at            DateTime       @default(now()) @db.Timestamptz(3)
+  validator_alert    ValidatorAlert @relation(fields: [validator_alert_id], references: [id], onDelete: Cascade)
+
+  @@index([validator_alert_id])
+  @@index([sent_at])
 }
