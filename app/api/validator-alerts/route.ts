@@ -90,10 +90,10 @@ export async function POST(req: NextRequest) {
         node_id: body.node_id,
         label: body.label ?? null,
         uptime_alert: body.uptime_alert ?? true,
-        uptime_threshold: body.uptime_threshold ?? 80,
+        uptime_threshold: body.uptime_threshold ?? 95,
         version_alert: body.version_alert ?? true,
         expiry_alert: body.expiry_alert ?? true,
-        expiry_days: body.expiry_days ?? 14,
+        expiry_days: body.expiry_days ?? 7,
         email,
       },
       include: {

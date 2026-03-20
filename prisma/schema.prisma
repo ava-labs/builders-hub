@@ -426,10 +426,10 @@ model ValidatorAlert {
   node_id          String
   label            String?
   uptime_alert     Boolean             @default(true)
-  uptime_threshold Float               @default(80)
+  uptime_threshold Float               @default(95)
   version_alert    Boolean             @default(true)
   expiry_alert     Boolean             @default(true)
-  expiry_days      Int                 @default(14)
+  expiry_days      Int                 @default(7)
   email            String
   active           Boolean             @default(true)
   created_at       DateTime            @default(now()) @db.Timestamptz(3)

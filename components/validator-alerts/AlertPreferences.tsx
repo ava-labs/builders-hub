@@ -80,9 +80,9 @@ export function AlertPreferences({ alert, onSave }: AlertPreferencesProps) {
       {/* Version Alert */}
       <div className="flex items-center justify-between">
         <div>
-          <Label className="text-sm font-medium">Version Alerts</Label>
+          <Label className="text-sm font-medium">AvalancheGo Upgrade Alerts</Label>
           <p className="text-xs text-muted-foreground">
-            Alert when running an outdated AvalancheGo version
+            Alert when a new AvalancheGo version is available (mandatory upgrades are escalated)
           </p>
         </div>
         <Switch checked={versionAlert} onCheckedChange={setVersionAlert} />

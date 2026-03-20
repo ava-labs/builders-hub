@@ -18,7 +18,22 @@ export interface ValidatorP2P {
   block_count_14d: number;
 }
 
-export type AlertType = 'uptime' | 'version' | 'expiry';
+export type AlertType =
+  | 'uptime'
+  | 'version_mandatory'
+  | 'version_mandatory_urgent'
+  | 'version_mandatory_critical'
+  | 'version_optional'
+  | 'expiry'
+  | 'expiry_urgent'
+  | 'expiry_critical';
+
+export interface ReleaseClassification {
+  tag: string;
+  type: 'mandatory' | 'optional';
+  deadline: Date | null;
+  acps: string[];
+}
 
 export interface ValidatorAlertConfig {
   node_id: string;

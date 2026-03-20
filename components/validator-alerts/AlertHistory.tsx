@@ -5,8 +5,13 @@ import type { AlertLogResponse } from '@/types/validator-alerts';
 
 const TYPE_CONFIG: Record<string, { label: string; className: string }> = {
   uptime: { label: 'Uptime', className: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' },
-  version: { label: 'Version', className: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400' },
+  version_mandatory: { label: 'Upgrade Required', className: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400' },
+  version_mandatory_urgent: { label: 'Upgrade Urgent', className: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' },
+  version_mandatory_critical: { label: 'Upgrade Critical', className: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' },
+  version_optional: { label: 'Update Available', className: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400' },
   expiry: { label: 'Expiry', className: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400' },
+  expiry_urgent: { label: 'Expiry Urgent', className: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' },
+  expiry_critical: { label: 'Expiry Critical', className: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' },
 };
 
 function formatDate(dateStr: string): string {
@@ -36,7 +41,7 @@ export function AlertHistory({ logs }: AlertHistoryProps) {
   return (
     <div className="space-y-3">
       {logs.map((log) => {
-        const config = TYPE_CONFIG[log.alert_type] ?? TYPE_CONFIG.uptime;
+        const config = TYPE_CONFIG[log.alert_type] ?? { label: log.alert_type, className: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400' };
         return (
           <div
             key={log.id}

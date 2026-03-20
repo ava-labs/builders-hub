@@ -27,10 +27,10 @@ export function AddValidatorDialog({ userEmail, onAdd }: AddValidatorDialogProps
   const [label, setLabel] = useState('');
   const [email, setEmail] = useState(userEmail);
   const [uptimeAlert, setUptimeAlert] = useState(true);
-  const [uptimeThreshold, setUptimeThreshold] = useState(80);
+  const [uptimeThreshold, setUptimeThreshold] = useState(95);
   const [versionAlert, setVersionAlert] = useState(true);
   const [expiryAlert, setExpiryAlert] = useState(true);
-  const [expiryDays, setExpiryDays] = useState(14);
+  const [expiryDays, setExpiryDays] = useState(7);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -158,7 +158,7 @@ export function AddValidatorDialog({ userEmail, onAdd }: AddValidatorDialogProps
             </div>
 
             <div className="flex items-center justify-between">
-              <Label className="text-sm">Version Alerts</Label>
+              <Label className="text-sm">AvalancheGo Upgrade Alerts</Label>
               <Switch checked={versionAlert} onCheckedChange={setVersionAlert} />
             </div>
 

@@ -18,7 +18,7 @@ import {
   Loader2,
   Server,
 } from 'lucide-react';
-import { useLoginModalTrigger } from '@/hooks/useLoginModal';
+import { useLoginModalTrigger, useLoginCompleteListener } from '@/hooks/useLoginModal';
 import { AddValidatorDialog } from './AddValidatorDialog';
 import { AlertPreferences } from './AlertPreferences';
 import { AlertHistory } from './AlertHistory';
@@ -59,6 +59,12 @@ export function AlertDashboard() {
       setLoading(false);
     }
   }, [status, fetchAlerts]);
+
+  // Re-fetch alerts after login completes (fixes post-login refresh issue)
+  useLoginCompleteListener(() => {
+    setLoading(true);
+    fetchAlerts();
+  });
 
   async function handleAdd(data: CreateAlertRequest): Promise<{ error?: string }> {
     const res = await fetch('/api/validator-alerts', {
@@ -235,11 +241,11 @@ export function AlertDashboard() {
                 )}
                 {alert.version_alert ? (
                   <Badge variant="outline" className="text-xs gap-1">
-                    <Bell className="h-3 w-3" /> Version
+                    <Bell className="h-3 w-3" /> AvalancheGo Upgrade
                   </Badge>
                 ) : (
                   <Badge variant="outline" className="text-xs gap-1 opacity-50">
-                    <BellOff className="h-3 w-3" /> Version off
+                    <BellOff className="h-3 w-3" /> Upgrade off
                   </Badge>
                 )}
                 {alert.expiry_alert ? (
