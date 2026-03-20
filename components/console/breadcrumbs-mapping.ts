@@ -7,6 +7,7 @@ export const pathToBreadcrumb = {
   "/console/primary-network/faucet": ["Console", "Primary Network", "Testnet Faucet"],
   "/console/primary-network/c-p-bridge": ["Console", "Primary Network", "C/P-Chain Bridge"],
   "/console/primary-network/unit-converter": ["Console", "Primary Network", "AVAX Unit Converter"],
+  "/console/primary-network/validator-alerts": ["Console", "Primary Network", "Validator Alerts"],
 
   // Layer 1
   "/console/layer-1/create": ["Console", "Layer 1", "Create New L1"],

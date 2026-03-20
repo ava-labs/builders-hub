@@ -17,6 +17,9 @@ import {
   History,
   Loader2,
   Server,
+  Activity,
+  Clock,
+  GitBranch,
 } from 'lucide-react';
 import { useLoginModalTrigger, useLoginCompleteListener } from '@/hooks/useLoginModal';
 import { AddValidatorDialog } from './AddValidatorDialog';
@@ -28,6 +31,16 @@ import type {
   UpdateAlertRequest,
 } from '@/types/validator-alerts';
 
+interface ValidatorP2P {
+  node_id: string;
+  p50_uptime: number;
+  version: string;
+  days_left: number;
+  end_time: string;
+  weight: number;
+  total_stake: number;
+}
+
 export function AlertDashboard() {
   const { data: session, status } = useSession();
   const { openLoginModal } = useLoginModalTrigger();
@@ -37,6 +50,23 @@ export function AlertDashboard() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [validatorData, setValidatorData] = useState<Map<string, ValidatorP2P>>(new Map());
+
+  const fetchValidators = useCallback(async () => {
+    try {
+      const res = await fetch('/api/validators');
+      if (res.ok) {
+        const data: ValidatorP2P[] = await res.json();
+        const map = new Map<string, ValidatorP2P>();
+        for (const v of data) {
+          map.set(v.node_id, v);
+        }
+        setValidatorData(map);
+      }
+    } catch (err) {
+      console.error('Failed to fetch validator data:', err);
+    }
+  }, []);
 
   const fetchAlerts = useCallback(async () => {
     try {
@@ -55,15 +85,17 @@ export function AlertDashboard() {
   useEffect(() => {
     if (status === 'authenticated') {
       fetchAlerts();
+      fetchValidators();
     } else if (status === 'unauthenticated') {
       setLoading(false);
     }
-  }, [status, fetchAlerts]);
+  }, [status, fetchAlerts, fetchValidators]);
 
   // Re-fetch alerts after login completes (fixes post-login refresh issue)
   useLoginCompleteListener(() => {
     setLoading(true);
     fetchAlerts();
+    fetchValidators();
   });
 
   async function handleAdd(data: CreateAlertRequest): Promise<{ error?: string }> {
@@ -171,6 +203,7 @@ export function AlertDashboard() {
       {alerts.map((alert) => {
         const isExpanded = expandedId === alert.id;
         const recentAlerts = alert.alert_logs.length;
+        const validator = validatorData.get(alert.node_id);
         return (
           <Card key={alert.id} className="overflow-hidden">
             <CardHeader className="pb-3">
@@ -228,6 +261,46 @@ export function AlertDashboard() {
             </CardHeader>
 
             <CardContent className="pt-0">
+              {/* Live validator status */}
+              {validator ? (
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-md border border-border bg-muted/40 px-3 py-2 mb-3 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1">
+                    <Activity className="h-3 w-3" />
+                    Uptime:{' '}
+                    <span className={
+                      validator.p50_uptime >= 99
+                        ? 'text-emerald-600 dark:text-emerald-400 font-medium'
+                        : validator.p50_uptime >= 80
+                          ? 'text-amber-600 dark:text-amber-400 font-medium'
+                          : 'text-red-600 dark:text-red-400 font-medium'
+                    }>
+                      {validator.p50_uptime.toFixed(1)}%
+                    </span>
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <GitBranch className="h-3 w-3" />
+                    Version: <span className="font-medium text-foreground">{validator.version || 'N/A'}</span>
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Clock className="h-3 w-3" />
+                    Expires:{' '}
+                    <span className={
+                      validator.days_left <= 7
+                        ? 'text-red-600 dark:text-red-400 font-medium'
+                        : validator.days_left <= 30
+                          ? 'text-amber-600 dark:text-amber-400 font-medium'
+                          : 'text-foreground font-medium'
+                    }>
+                      {validator.days_left}d
+                    </span>
+                  </span>
+                </div>
+              ) : validatorData.size > 0 ? (
+                <div className="rounded-md border border-border bg-muted/40 px-3 py-2 mb-3 text-xs text-muted-foreground">
+                  Not in active set
+                </div>
+              ) : null}
+
               {/* Status badges */}
               <div className="flex flex-wrap gap-2 mb-3">
                 {alert.uptime_alert ? (
