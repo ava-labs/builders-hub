@@ -1656,6 +1656,7 @@ export default function BuildGamesSubmitForm({
             label="Pitch Recording & Slides"
             placeholder="https://docs.google.com/presentation/..."
             plainLabel
+            allowAllDomains
             description="Up to 7 minutes. Include a short demo (you can pre-record the demo part to save time) and make sure it reflects the current state of your project. Assume judges have no context from previous stages."
           />
 
