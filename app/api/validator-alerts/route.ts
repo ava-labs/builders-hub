@@ -4,6 +4,7 @@ import { prisma } from '@/prisma/prisma';
 import type { CreateAlertRequest } from '@/types/validator-alerts';
 
 const NODE_ID_REGEX = /^NodeID-[A-HJ-NP-Za-km-z1-9]{33,}$/;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const P2P_API_URL = 'https://52.203.183.9.sslip.io/api/validators';
 const MAX_ALERTS_PER_USER = 20;
 const MAX_CREATES_PER_HOUR = 10;
@@ -72,6 +73,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Validate optional numeric fields
+    if (body.uptime_threshold !== undefined && (body.uptime_threshold < 0 || body.uptime_threshold > 100)) {
+      return NextResponse.json({ error: 'Uptime threshold must be between 0 and 100.' }, { status: 400 });
+    }
+    if (body.expiry_days !== undefined && (body.expiry_days < 1 || body.expiry_days > 365)) {
+      return NextResponse.json({ error: 'Expiry days must be between 1 and 365.' }, { status: 400 });
+    }
+    if (body.email !== undefined && !EMAIL_REGEX.test(body.email)) {
+      return NextResponse.json({ error: 'Invalid email address.' }, { status: 400 });
+    }
+
     // Verify the node exists via upstream API
     const upstreamRes = await fetch(P2P_API_URL);
     if (!upstreamRes.ok) {
@@ -105,8 +117,8 @@ export async function POST(req: NextRequest) {
     }
 
     const email = body.email ?? session.user.email;
-    if (!email) {
-      return NextResponse.json({ error: 'Email address is required.' }, { status: 400 });
+    if (!email || !EMAIL_REGEX.test(email)) {
+      return NextResponse.json({ error: 'A valid email address is required.' }, { status: 400 });
     }
 
     const alert = await prisma.validatorAlert.create({
