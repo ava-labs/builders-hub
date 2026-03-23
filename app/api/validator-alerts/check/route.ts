@@ -450,7 +450,8 @@ export async function POST(req: NextRequest) {
       }
 
       // --- 3. Stake expiry check (tiered) ---
-      if (alert.expiry_alert) {
+      // Skip if already expired (negative days_left)
+      if (alert.expiry_alert && validator.days_left >= 0) {
         const endTime = new Date(validator.end_time);
         const hoursToExpiry = (endTime.getTime() - Date.now()) / 3_600_000;
 
@@ -489,7 +490,7 @@ export async function POST(req: NextRequest) {
             alert.node_id
           );
           if (didSend) sent++;
-        } else if (validator.days_left <= alert.expiry_days) {
+        } else if (validator.days_left > 0 && validator.days_left <= alert.expiry_days) {
           // First alert: within user threshold
           const didSend = await trySend(
             alert.id,
