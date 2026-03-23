@@ -95,16 +95,30 @@ export function formatAvax(num: number): string {
   return `${num.toFixed(4)} AVAX`;
 }
 
-export function getDeltaColor(delta: number): string {
-  if (delta <= -10) return "#d12727";
-  if (delta <= -5) return "#c93b3b";
-  if (delta <= -2) return "#a94545";
-  if (delta <= -0.5) return "#7a4a4a";
-  if (delta < 0.5) return "#3d3d4a";
-  if (delta < 2) return "#3a6e4e";
-  if (delta < 5) return "#2d8e47";
-  if (delta < 10) return "#28a745";
-  return "#1db954";
+export function getDeltaColor(delta: number, isDark = true): string {
+  if (isDark) {
+    // Dark theme — saturated on dark base
+    if (delta <= -10) return "#c0392b";
+    if (delta <= -5)  return "#a93226";
+    if (delta <= -2)  return "#8b2020";
+    if (delta <= -0.5) return "#5a2020";
+    if (delta < 0.5)  return "#2d2d38";
+    if (delta < 2)    return "#1a5c32";
+    if (delta < 5)    return "#1e7a3e";
+    if (delta < 10)   return "#239b4a";
+    return "#27ae60";
+  } else {
+    // Light theme — vivid Finviz-style
+    if (delta <= -10) return "#e74c3c";
+    if (delta <= -5)  return "#d44332";
+    if (delta <= -2)  return "#b03a2e";
+    if (delta <= -0.5) return "#935353";
+    if (delta < 0.5)  return "#7f8c8d";
+    if (delta < 2)    return "#52a065";
+    if (delta < 5)    return "#3aa64e";
+    if (delta < 10)   return "#2ecc71";
+    return "#27ae60";
+  }
 }
 
 export function getDeltaTextColor(delta: number): string {

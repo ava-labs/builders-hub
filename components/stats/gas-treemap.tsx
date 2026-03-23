@@ -833,7 +833,6 @@ export default function GasTreemap() {
                   y={catRect.y + 1}
                   width={Math.max(0, catRect.w - 2)}
                   height={Math.max(0, catRect.h - 2)}
-                  rx={3}
                 />
               </clipPath>
             ))}
@@ -850,7 +849,7 @@ export default function GasTreemap() {
             if (isFlat) {
               const bgColor = isUnclassified
                 ? (isDark ? "#1c1c24" : "#e4e4e7")
-                : getDeltaColor(cat.delta);
+                : getDeltaColor(cat.delta, isDark);
               const showLabel = catRect.w > 60 && catRect.h > 35;
               const showDelta = catRect.w > 45 && catRect.h > 50;
               const showGasShare = catRect.w > 80 && catRect.h > 65;
@@ -880,9 +879,8 @@ export default function GasTreemap() {
                     width={Math.max(0, catRect.w - 2)}
                     height={Math.max(0, catRect.h - 2)}
                     fill={bgColor}
-                    rx={3}
                     opacity={isHoveredCategory ? 0.85 : 1}
-                    stroke={isHoveredCategory ? (isDark ? "#fff" : "#000") : (isDark ? "rgba(0,0,0,0.4)" : "rgba(0,0,0,0.15)")}
+                    stroke={isHoveredCategory ? (isDark ? "#fff" : "#000") : (isDark ? "rgba(0,0,0,0.6)" : "rgba(0,0,0,0.25)")}
                     strokeWidth={isHoveredCategory ? 2 : 1}
                   />
                   {showLabel && (
@@ -894,10 +892,10 @@ export default function GasTreemap() {
                       }
                       textAnchor="middle"
                       dominantBaseline="central"
-                      fill={isDark ? "rgba(255,255,255,0.9)" : isUnclassified ? "rgba(0,0,0,0.7)" : "rgba(255,255,255,0.95)"}
+                      fill={isUnclassified ? (isDark ? "rgba(255,255,255,0.7)" : "rgba(0,0,0,0.7)") : "#fff"}
                       fontSize={labelSize}
-                      fontWeight="600"
-                      style={{ pointerEvents: "none" }}
+                      fontWeight="700"
+                      style={{ pointerEvents: "none", textShadow: isUnclassified ? "none" : "0 1px 3px rgba(0,0,0,0.5)" }}
                     >
                       {cat.label.length >
                       Math.floor(catRect.w / (labelSize * 0.6))
@@ -914,11 +912,11 @@ export default function GasTreemap() {
                       fill={
                         isUnclassified
                           ? (isDark ? "#6b7280" : "#71717a")
-                          : getDeltaTextColor(cat.delta)
+                          : "#fff"
                       }
                       fontSize={deltaSize}
                       fontWeight="700"
-                      style={{ pointerEvents: "none" }}
+                      style={{ pointerEvents: "none", textShadow: isUnclassified ? "none" : "0 1px 3px rgba(0,0,0,0.5)" }}
                     >
                       {isUnclassified
                         ? `${cat.gasShare.toFixed(1)}%`
@@ -931,7 +929,7 @@ export default function GasTreemap() {
                       y={catRect.y + catRect.h * 0.75}
                       textAnchor="middle"
                       dominantBaseline="central"
-                      fill="rgba(255,255,255,0.5)"
+                      fill="rgba(255,255,255,0.6)"
                       fontSize={shareSize}
                       fontWeight="400"
                       style={{ pointerEvents: "none" }}
@@ -959,12 +957,11 @@ export default function GasTreemap() {
                   width={Math.max(0, catRect.w - 2)}
                   height={Math.max(0, catRect.h - 2)}
                   fill="none"
-                  rx={3}
-                  stroke={isHoveredAny ? (isDark ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.3)") : (isDark ? "rgba(0,0,0,0.5)" : "rgba(0,0,0,0.15)")}
-                  strokeWidth={1}
+                  stroke={isHoveredAny ? (isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.4)") : (isDark ? "rgba(0,0,0,0.7)" : "rgba(0,0,0,0.3)")}
+                  strokeWidth={1.5}
                 />
 
-                {/* Category header strip */}
+                {/* Category header strip — opaque dark bar */}
                 <g
                   onMouseEnter={() => setHovered(buildCategoryHover(cat))}
                   onMouseLeave={() => setHovered(null)}
@@ -975,8 +972,7 @@ export default function GasTreemap() {
                     y={catRect.y + 1}
                     width={Math.max(0, catRect.w - 2)}
                     height={headerHeight}
-                    fill={isDark ? "rgba(0,0,0,0.6)" : "rgba(0,0,0,0.25)"}
-                    rx={0}
+                    fill={isDark ? "#0f1117" : "#1a1f2e"}
                     clipPath={`url(#clip-${cat.category})`}
                   />
                   {catRect.w > 40 && (
@@ -985,13 +981,14 @@ export default function GasTreemap() {
                       y={catRect.y + 1 + headerHeight / 2}
                       textAnchor="start"
                       dominantBaseline="central"
-                      fill={isDark ? "rgba(255,255,255,0.8)" : "rgba(255,255,255,0.95)"}
+                      fill="#fff"
                       fontSize={headerFontSize}
-                      fontWeight="600"
-                      style={{ pointerEvents: "none" }}
+                      fontWeight="700"
+                      letterSpacing="0.02em"
+                      style={{ pointerEvents: "none", textTransform: "uppercase" } as React.CSSProperties}
                     >
                       {catLabel}
-                      <tspan fill={isDark ? "rgba(255,255,255,0.35)" : "rgba(255,255,255,0.6)"} fontWeight="400">
+                      <tspan fill="rgba(255,255,255,0.45)" fontWeight="400">
                         {" "}
                         {cat.gasShare.toFixed(1)}%
                       </tspan>
@@ -1005,7 +1002,7 @@ export default function GasTreemap() {
                       dominantBaseline="central"
                       fill={getDeltaTextColor(cat.delta)}
                       fontSize={headerFontSize}
-                      fontWeight="600"
+                      fontWeight="700"
                       style={{ pointerEvents: "none" }}
                     >
                       {cat.delta >= 0 ? "+" : ""}
@@ -1020,8 +1017,8 @@ export default function GasTreemap() {
                     const p = pRect.item;
                     const isOthers = p.protocol === "Others";
                     const bgColor = isOthers
-                      ? (isDark ? "#2a2a35" : "#d4d4d8")
-                      : getDeltaColor(p.delta);
+                      ? (isDark ? "#2a2a35" : "#bfc4cc")
+                      : getDeltaColor(p.delta, isDark);
 
                     const isHoveredProto =
                       hovered?.type === "protocol" &&
@@ -1055,13 +1052,13 @@ export default function GasTreemap() {
                           width={Math.max(0, pRect.w - 1)}
                           height={Math.max(0, pRect.h - 1)}
                           fill={bgColor}
-                          opacity={isHoveredProto ? 0.8 : 1}
+                          opacity={isHoveredProto ? 0.85 : 1}
                           stroke={
                             isHoveredProto
-                              ? (isDark ? "rgba(255,255,255,0.6)" : "rgba(0,0,0,0.5)")
-                              : (isDark ? "rgba(0,0,0,0.3)" : "rgba(0,0,0,0.1)")
+                              ? (isDark ? "rgba(255,255,255,0.7)" : "rgba(0,0,0,0.6)")
+                              : (isDark ? "rgba(0,0,0,0.5)" : "rgba(0,0,0,0.2)")
                           }
-                          strokeWidth={isHoveredProto ? 1.5 : 0.5}
+                          strokeWidth={isHoveredProto ? 2 : 1}
                         />
                         {showLabel && (
                           <text
@@ -1072,10 +1069,10 @@ export default function GasTreemap() {
                             }
                             textAnchor="middle"
                             dominantBaseline="central"
-                            fill={isDark ? "rgba(255,255,255,0.85)" : isOthers ? "rgba(0,0,0,0.6)" : "rgba(255,255,255,0.95)"}
+                            fill={isOthers ? (isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.5)") : "#fff"}
                             fontSize={labelSize}
-                            fontWeight="500"
-                            style={{ pointerEvents: "none" }}
+                            fontWeight="700"
+                            style={{ pointerEvents: "none", textShadow: isOthers ? "none" : "0 1px 3px rgba(0,0,0,0.6)" }}
                           >
                             {p.protocol.length > maxChars
                               ? `${p.protocol.slice(0, maxChars)}...`
@@ -1091,11 +1088,11 @@ export default function GasTreemap() {
                             fill={
                               isOthers
                                 ? (isDark ? "#6b7280" : "#71717a")
-                                : getDeltaTextColor(p.delta)
+                                : "#fff"
                             }
                             fontSize={deltaSize}
                             fontWeight="700"
-                            style={{ pointerEvents: "none" }}
+                            style={{ pointerEvents: "none", textShadow: isOthers ? "none" : "0 1px 3px rgba(0,0,0,0.6)" }}
                           >
                             {isOthers
                               ? "..."
