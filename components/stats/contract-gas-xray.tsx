@@ -161,8 +161,8 @@ function FlowDiagram({ data }: { data: ContractGasFlowResponse }) {
   }
 
   return (
-    <div ref={containerRef} className="w-full">
-      <svg width={width} height={height} className="overflow-visible">
+    <div ref={containerRef} className="w-full overflow-hidden">
+      <svg width={width} height={height} className="overflow-hidden">
         <defs>
           <linearGradient id="callerGrad" x1="0" y1="0" x2="1" y2="0">
             <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.6" />
@@ -495,7 +495,7 @@ export default function ContractGasXray({ initialAddress }: ContractGasXrayProps
             </div>
 
             {/* Time range pills */}
-            <div className="flex gap-1 items-center">
+            <div className="flex flex-wrap gap-1 items-center">
               {TIME_OPTIONS.map((opt) => (
                 <button
                   key={opt.value}
@@ -523,7 +523,7 @@ export default function ContractGasXray({ initialAddress }: ContractGasXrayProps
                     {customLabel || "Custom"}
                   </button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="end">
+                <PopoverContent className="w-auto max-w-[calc(100vw-2rem)] p-0" align="end">
                   <Calendar
                     mode="range"
                     selected={customRange}
@@ -541,7 +541,7 @@ export default function ContractGasXray({ initialAddress }: ContractGasXrayProps
                       { before: subMonths(new Date(), 6) },
                       { after: new Date() },
                     ]}
-                    numberOfMonths={2}
+                    numberOfMonths={1}
                   />
                   {customRange?.from && customRange?.to && differenceInCalendarDays(customRange.to, customRange.from) > 183 && (
                     <p className="text-xs text-red-400 px-3 pb-2">Max 6 months</p>
