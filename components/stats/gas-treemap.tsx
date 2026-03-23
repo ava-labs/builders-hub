@@ -16,6 +16,7 @@ import {
 import { ProtocolSpotlight } from "./gas-treemap-spotlight";
 import { GasTreemapTable } from "./gas-treemap-table";
 import ContractGasXray from "./contract-gas-xray";
+import { GasCategoryTimeline } from "./gas-category-timeline";
 import { CustomDateRangePicker } from "@/components/custom-date-range-picker";
 import { differenceInCalendarDays, format } from "date-fns";
 import type { DateRange } from "react-day-picker";
@@ -30,6 +31,7 @@ import {
   getDeltaBgClass,
   type CategoryBreakdown,
   type ProtocolBreakdown,
+  type DailyCategoryStat,
 } from "./gas-treemap-utils";
 
 type ViewMode = "treemap" | "table";
@@ -41,6 +43,7 @@ interface ChainStatsData {
   topBurnerAddress: string | null;
   categoryBreakdown: CategoryBreakdown[];
   protocolBreakdown: ProtocolBreakdown[];
+  dailyCategoryStats?: DailyCategoryStat[];
   coverage: {
     taggedGasPercent: number;
     taggedTxPercent: number;
@@ -1387,6 +1390,11 @@ export default function GasTreemap() {
             ))}
           </div>
         </div>
+      )}
+
+      {/* Gas Category Timeline */}
+      {data?.dailyCategoryStats && data.dailyCategoryStats.length > 1 && !loading && (
+        <GasCategoryTimeline data={data.dailyCategoryStats} isDark={isDark} />
       )}
 
       {/* Protocol Spotlight */}

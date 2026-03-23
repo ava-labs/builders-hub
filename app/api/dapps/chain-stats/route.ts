@@ -53,6 +53,13 @@ export interface ChainStatsResponse {
     avaxBurnedUsd: number;
   }[];
 
+  // Daily per-category gas breakdown (for timeline chart)
+  dailyCategoryStats: {
+    date: string;
+    avgGasPriceGwei: number;
+    [category: string]: number | string;
+  }[];
+
   // Top burner contract address (for X-Ray preload)
   topBurnerAddress: string | null;
 
@@ -208,27 +215,31 @@ export async function GET(request: Request) {
           `)
         : Promise.resolve({ data: [], meta: [], rows: 0, statistics: { elapsed: 0, rows_read: 0, bytes_read: 0 } }),
 
-      // 4. Get daily stats (limited to reasonable range for charting)
+      // 4. Get daily stats per contract (for both aggregate daily stats and category timeline)
       queryClickHouse<{
         date: string;
+        contract_address: string;
         tx_count: string;
         total_gas: string;
         avax_burned: number;
         avax_burned_usd: number;
+        weighted_gas_price_sum: number;
       }>(`
         WITH ${buildSwapPricesCTE(dailyTimeFilter)}
         SELECT
           toDate(t.block_time) as date,
+          hex(t.to) as contract_address,
           count() as tx_count,
           sum(t.gas_used) as total_gas,
           sum(toFloat64(t.gas_used) * toFloat64(t.gas_price)) / 1e18 as avax_burned,
-          sum(toFloat64(t.gas_used) * toFloat64(t.gas_price) / 1e18 * coalesce(p.price_usd, 0)) as avax_burned_usd
+          sum(toFloat64(t.gas_used) * toFloat64(t.gas_price) / 1e18 * coalesce(p.price_usd, 0)) as avax_burned_usd,
+          sum(toFloat64(t.gas_used) * toFloat64(t.gas_price)) as weighted_gas_price_sum
         FROM raw_txs t
         LEFT JOIN swap_prices p ON toStartOfHour(t.block_time) = p.price_hour
         WHERE t.chain_id = ${C_CHAIN_ID}
           AND ${tAddressFilter}
           ${tDailyTimeFilter}
-        GROUP BY date
+        GROUP BY date, contract_address
         ORDER BY date
       `),
 
@@ -525,14 +536,59 @@ export async function GET(request: Request) {
       .filter(c => c.gasUsed > 0)
       .sort((a, b) => b.gasUsed - a.gasUsed);
 
-    // Format daily stats
-    const dailyStats = dailyStatsResult.data.map(row => ({
-      date: row.date,
-      txCount: parseInt(row.tx_count) || 0,
-      gasUsed: parseInt(row.total_gas) || 0,
-      avaxBurned: row.avax_burned || 0,
-      avaxBurnedUsd: row.avax_burned_usd || 0,
-    }));
+    // Aggregate daily stats from per-contract rows
+    const dailyAgg = new Map<string, { txCount: number; gasUsed: number; avaxBurned: number; avaxBurnedUsd: number }>();
+    // Also build per-date per-category breakdown for timeline chart
+    const dailyCatAgg = new Map<string, { categories: Map<string, number>; totalGas: number; weightedGasPriceSum: number }>();
+
+    for (const row of dailyStatsResult.data) {
+      const date = row.date;
+      // Aggregate daily totals
+      if (!dailyAgg.has(date)) {
+        dailyAgg.set(date, { txCount: 0, gasUsed: 0, avaxBurned: 0, avaxBurnedUsd: 0 });
+      }
+      const agg = dailyAgg.get(date)!;
+      agg.txCount += parseInt(row.tx_count) || 0;
+      agg.gasUsed += parseInt(row.total_gas) || 0;
+      agg.avaxBurned += row.avax_burned || 0;
+      agg.avaxBurnedUsd += row.avax_burned_usd || 0;
+
+      // Map contract → protocol → category
+      const addr = '0x' + row.contract_address.toLowerCase();
+      const protocol = addressToProtocol.get(addr);
+      const category = protocol ? (protocolCategory.get(protocol) || 'other') : 'other';
+
+      if (!dailyCatAgg.has(date)) {
+        dailyCatAgg.set(date, { categories: new Map(), totalGas: 0, weightedGasPriceSum: 0 });
+      }
+      const catAgg = dailyCatAgg.get(date)!;
+      catAgg.categories.set(category, (catAgg.categories.get(category) || 0) + (row.avax_burned || 0));
+      catAgg.totalGas += parseInt(row.total_gas) || 0;
+      catAgg.weightedGasPriceSum += row.weighted_gas_price_sum || 0;
+    }
+
+    const dailyStats = Array.from(dailyAgg.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, agg]) => ({
+        date,
+        txCount: agg.txCount,
+        gasUsed: agg.gasUsed,
+        avaxBurned: agg.avaxBurned,
+        avaxBurnedUsd: agg.avaxBurnedUsd,
+      }));
+
+    const dailyCategoryStats = Array.from(dailyCatAgg.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, agg]) => {
+        const point: { date: string; avgGasPriceGwei: number; [category: string]: number | string } = {
+          date,
+          avgGasPriceGwei: agg.totalGas > 0 ? agg.weightedGasPriceSum / agg.totalGas / 1e9 : 0,
+        };
+        for (const [cat, burned] of agg.categories) {
+          point[cat] = burned;
+        }
+        return point;
+      });
 
     // Find top burner address (highest avax_burned among classified contracts)
     const topBurnerRow = contractStatsResult.data.reduce<{ address: string; avax_burned: number } | null>(
@@ -552,6 +608,7 @@ export async function GET(request: Request) {
       protocolBreakdown,
       categoryBreakdown,
       dailyStats,
+      dailyCategoryStats,
       topBurnerAddress,
       coverage: {
         taggedGasPercent: totalChainGas > 0 ? (taggedGas / totalChainGas) * 100 : 0,

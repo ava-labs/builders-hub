@@ -37,8 +37,32 @@ export const CATEGORY_LABELS: Record<string, string> = {
   token: "Token",
   mev: "MEV Bots",
   native: "Native Transfers",
+  rwa: "RWA",
   other: "Other",
 };
+
+export const CATEGORY_COLORS: Record<string, { light: string; dark: string }> = {
+  dex:            { light: "#2563eb", dark: "#60a5fa" },
+  lending:        { light: "#7c3aed", dark: "#a78bfa" },
+  bridge:         { light: "#0891b2", dark: "#22d3ee" },
+  derivatives:    { light: "#c026d3", dark: "#e879f9" },
+  nft:            { light: "#e11d48", dark: "#fb7185" },
+  yield:          { light: "#059669", dark: "#34d399" },
+  icm:            { light: "#0284c7", dark: "#38bdf8" },
+  infrastructure: { light: "#64748b", dark: "#94a3b8" },
+  gaming:         { light: "#ea580c", dark: "#fb923c" },
+  token:          { light: "#ca8a04", dark: "#facc15" },
+  mev:            { light: "#dc2626", dark: "#f87171" },
+  native:         { light: "#475569", dark: "#cbd5e1" },
+  rwa:            { light: "#4f46e5", dark: "#818cf8" },
+  other:          { light: "#9ca3af", dark: "#6b7280" },
+};
+
+export interface DailyCategoryStat {
+  date: string;
+  avgGasPriceGwei: number;
+  [category: string]: number | string;
+}
 
 export function formatNumber(num: number): string {
   if (num >= 1e12) return `${(num / 1e12).toFixed(1)}T`;
