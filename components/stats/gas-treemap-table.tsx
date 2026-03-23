@@ -64,7 +64,7 @@ export function GasTreemapTable({ protocols }: GasTreemapTableProps) {
   const columns: { key: SortColumn; label: string; align: "left" | "right"; hideOnMobile?: boolean }[] = [
     { key: "avaxBurned", label: "AVAX Burned", align: "right" },
     { key: "gasShare", label: "Gas Share", align: "right", hideOnMobile: true },
-    { key: "txCount", label: "Txns", align: "right" },
+    { key: "txCount", label: "Txns", align: "right", hideOnMobile: true },
     { key: "uniqueSenders", label: "Senders", align: "right", hideOnMobile: true },
     { key: "delta", label: "Change", align: "right" },
   ];
@@ -165,7 +165,7 @@ export function GasTreemapTable({ protocols }: GasTreemapTableProps) {
                 <td className="px-3 py-2 text-right font-mono text-zinc-900 dark:text-zinc-100 hidden sm:table-cell">
                   {p.gasShare.toFixed(2)}%
                 </td>
-                <td className="px-3 py-2 text-right font-mono text-zinc-900 dark:text-zinc-100">
+                <td className="px-3 py-2 text-right font-mono text-zinc-900 dark:text-zinc-100 hidden sm:table-cell">
                   {formatNumber(p.txCount)}
                 </td>
                 <td className="px-3 py-2 text-right font-mono text-zinc-900 dark:text-zinc-100 hidden sm:table-cell">
