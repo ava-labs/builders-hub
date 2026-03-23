@@ -22,6 +22,8 @@ interface MultiLinkInputProps {
   validationMessage?: string;
   /** When true, renders a plain FormLabel instead of FormLabelWithCheck. */
   plainLabel?: boolean;
+  /** Optional description rendered between the label and the input. */
+  description?: string;
 }
 
 export const MultiLinkInput: React.FC<MultiLinkInputProps> = ({
@@ -30,6 +32,7 @@ export const MultiLinkInput: React.FC<MultiLinkInputProps> = ({
   placeholder,
   validationMessage,
   plainLabel = false,
+  description,
 }) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const form = useFormContext<any>();
@@ -109,6 +112,9 @@ export const MultiLinkInput: React.FC<MultiLinkInputProps> = ({
               label={label}
               checked={!!field.value && (field.value as string[]).length > 0}
             />
+          )}
+          {description && (
+            <p className="text-zinc-400 text-sm -mt-1">{description}</p>
           )}
           <FormControl>
             <div className="space-y-2">
