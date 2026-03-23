@@ -582,7 +582,7 @@ export default function GasTreemap() {
         continue;
       }
 
-      // Aggregate small protocols into "Others"
+      // Aggregate small protocols into "Others" (skip for mev — show all individually)
       const catTotalGas = protocols.reduce((s, p) => s + p.gasUsed, 0);
       const significant: ProtocolItem[] = [];
       let othersGas = 0;
@@ -592,9 +592,10 @@ export default function GasTreemap() {
       let othersGasCostUsd = 0;
       let othersBurnedUsd = 0;
       let othersSenders = 0;
+      const skipOthers = cat.category === "mev";
 
       for (const p of protocols) {
-        if (catTotalGas > 0 && p.gasUsed / catTotalGas < PROTOCOL_OTHERS_THRESHOLD) {
+        if (!skipOthers && catTotalGas > 0 && p.gasUsed / catTotalGas < PROTOCOL_OTHERS_THRESHOLD) {
           othersGas += p.gasUsed;
           othersTx += p.txCount;
           othersBurned += p.avaxBurned;
