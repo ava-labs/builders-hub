@@ -21,6 +21,7 @@ import JoinBannerLink from "@/components/hackathons/hackathon/JoinBannerLink";
 import { createMetadata } from "@/utils/metadata";
 import type { Metadata } from "next";
 import StagesSection from "@/components/hackathons/hackathon/sections/StagesSection";
+import { getUserById } from "@/server/services/getUser";
 
 export const revalidate = 60;
 export const dynamicParams = true;
@@ -100,21 +101,29 @@ export default async function HackathonPage({
   ];
 
   if (!hackathon) redirect("/hackathons");
-  console.log("Hackathon data:", hackathon.content);
+  const hacakthonCreator = await getUserById(hackathon.created_by);
+  console.log("Hackathon creator data:", hacakthonCreator);
 
   return (
     <main className="container sm:px-2 py-4 lg:py-16">
       <div className="pl-4 flex gap-4 items-center">
-        <Image
-          src={
-            hackathon.icon?.trim().length > 0
-              ? hackathon.icon
-              : "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/hackathon-images/project-logo-ILfO9EujWnQj1xMZpIIWTZ8mc87I7f.png"
-          }
-          alt="Hackathon background"
-          width={40}
-          height={40}
-        />
+        {
+          hacakthonCreator?.custom_attributes.includes('hackathonCreator') ? (
+            <Image
+              src={'https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/local_events_team1-UJLssyvek3G880Q013A94SdMKxiLRq.jpg'}
+              alt="Hackathon background"
+              width={40}
+              height={40}
+            />
+          ) : (
+            <Image
+              src={'/images/avax.png'}
+              alt="Hackathon background"
+              width={40}
+              height={40}
+            />
+          )
+        }
         <span className="text-sm sm:text-xl font-bold">{hackathon.title}</span>{" "}
         <JoinButton
           isRegistered={isRegistered}

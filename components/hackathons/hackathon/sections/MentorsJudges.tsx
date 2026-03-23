@@ -48,11 +48,11 @@ function MentorsJudges({ hackathon }: { hackathon: HackathonHeader }) {
                   {speaker.name}
                 </h3>
                 <div className="flex items-center gap-2">
-                  <DynamicIcon
+                  {/* <DynamicIcon
                     name={speaker.icon as any}
                     size={16}
                     color="#F5F5F9"
-                  />
+                  /> */}
                   <p className="text-sm font-light text-zinc-300">
                     {speaker.category}
                   </p>

@@ -210,7 +210,7 @@ const TrackItem = memo(function TrackItem({ track, index, collapsed, onChange, o
         </div>
       ) : (
         <>
-          <div className="mb-2 text-zinc-400 text-sm">{t[language].selectIcon}</div>
+          {/* <div className="mb-2 text-zinc-400 text-sm">{t[language].selectIcon}</div>
           <Select
             value={track.icon}
             onValueChange={(value) => {
@@ -230,7 +230,7 @@ const TrackItem = memo(function TrackItem({ track, index, collapsed, onChange, o
               <SelectItem value="gamepad2">gamepad2</SelectItem>
               <SelectItem value="cpu">CPU</SelectItem>
             </SelectContent>
-          </Select>
+          </Select> */}
           <div className="mb-2 text-zinc-400 text-sm">{t[language].selectLogo}</div>
           <Select
             value={track.logo}
@@ -679,7 +679,7 @@ const SpeakerItem = memo(function SpeakerItem({
             </Select>
           </div>
 
-          <div className="mb-2 text-zinc-400 text-sm">{t[language].speakerIcon}</div>
+          {/* <div className="mb-2 text-zinc-400 text-sm">{t[language].speakerIcon}</div>
           <Select
             value={speaker.icon || '__none__'}
             onValueChange={(value: string) =>
@@ -694,7 +694,7 @@ const SpeakerItem = memo(function SpeakerItem({
               <SelectItem value="code">Code</SelectItem>
               <SelectItem value="megaphone">Megaphone</SelectItem>
             </SelectContent>
-          </Select>
+          </Select> */}
 
           <div className="mb-2 text-zinc-400 text-sm">{t[language].speakerName}</div>
           <Input
@@ -2199,7 +2199,7 @@ const HackathonsEdit = () => {
 
 
                         {/* Icon Image */}
-                        <div className="mb-6">
+                        {/* <div className="mb-6">
                           <label className="font-medium text-xl mb-2 block">Icon:</label>
                           <div className="mb-2 text-zinc-400 text-sm">The small icon displayed next to your hackathon title</div>
 
@@ -2255,7 +2255,7 @@ const HackathonsEdit = () => {
                               </div>
                             )}
                           </div>
-                        </div>
+                        </div> */}
 
                         <div className="mb-6">
                           <label className="font-medium text-xl mb-2 block">Small Banner:</label>
