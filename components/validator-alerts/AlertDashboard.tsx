@@ -22,6 +22,7 @@ import {
   GitBranch,
 } from 'lucide-react';
 import { useLoginModalTrigger, useLoginCompleteListener } from '@/hooks/useLoginModal';
+import { toast } from '@/lib/toast';
 import { AddValidatorDialog } from './AddValidatorDialog';
 import { AlertPreferences } from './AlertPreferences';
 import { AlertHistory } from './AlertHistory';
@@ -107,6 +108,7 @@ export function AlertDashboard() {
     const result = await res.json();
     if (!res.ok) return { error: result.error };
     setAlerts((prev) => [result, ...prev]);
+    toast.success('Validator added', 'You will receive alerts for this validator.');
     return {};
   }
 
@@ -119,12 +121,26 @@ export function AlertDashboard() {
     if (res.ok) {
       const updated = await res.json();
       setAlerts((prev) => prev.map((a) => (a.id === id ? updated : a)));
+      toast.success('Preferences saved');
+    } else {
+      toast.error('Failed to save preferences');
     }
   }
 
   async function handleToggleActive(id: string, active: boolean) {
     setTogglingId(id);
-    await handleUpdate(id, { active });
+    const res = await fetch(`/api/validator-alerts/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ active }),
+    });
+    if (res.ok) {
+      const updated = await res.json();
+      setAlerts((prev) => prev.map((a) => (a.id === id ? updated : a)));
+      toast.success(active ? 'Alerts resumed' : 'Alerts paused');
+    } else {
+      toast.error('Failed to update alert status');
+    }
     setTogglingId(null);
   }
 
@@ -134,6 +150,9 @@ export function AlertDashboard() {
     if (res.ok) {
       setAlerts((prev) => prev.filter((a) => a.id !== id));
       if (expandedId === id) setExpandedId(null);
+      toast.success('Validator alert removed');
+    } else {
+      toast.error('Failed to remove alert');
     }
     setDeletingId(null);
   }
