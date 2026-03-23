@@ -36,7 +36,7 @@ export interface CompletePChainRegistrationProps {
     managerAddress: string;
     
     // For PoA: ownership and multisig
-    ownershipState?: 'contract' | 'currentWallet' | 'differentEOA' | 'loading';
+    ownershipState?: 'contract' | 'currentWallet' | 'differentEOA' | 'loading' | 'error';
     contractOwner?: string | null;
     isLoadingOwnership?: boolean;
     ownerType?: OwnerType;

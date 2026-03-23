@@ -20,7 +20,9 @@ interface InitiateValidatorRemovalProps {
   resetForm?: boolean;
   initialNodeId?: string;
   initialValidationId?: string;
-  ownershipState: 'contract' | 'currentWallet' | 'differentEOA' | 'loading';
+  ownershipState: 'contract' | 'currentWallet' | 'differentEOA' | 'loading' | 'error';
+  refetchOwnership?: () => void;
+  ownershipError?: string | null;
 }
 
 const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
@@ -32,6 +34,8 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
   initialNodeId,
   initialValidationId,
   ownershipState,
+  refetchOwnership,
+  ownershipError,
 }) => {
   const { walletEVMAddress: connectedAddress } = useWalletStore();
   const chainPublicClient = useChainPublicClient();
@@ -80,6 +84,11 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
 
     if (ownershipState === 'loading') {
       setErrorState("Verifying contract ownership... please wait.");
+      return false;
+    }
+
+    if (ownershipState === 'error') {
+      setErrorState("Ownership verification failed. Please retry.");
       return false;
     }
 
@@ -251,19 +260,32 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
         </Button>
       )}
 
-      {(ownershipState === 'differentEOA' || ownershipState === 'loading') && (
+      {ownershipState === 'differentEOA' && (
         <Button
           onClick={handleInitiateRemoval}
           disabled={true}
-          error={
-            ownershipState === 'differentEOA'
-              ? "You are not the owner of this contract. Only the contract owner can remove validators."
-              : ownershipState === 'loading'
-                ? "Verifying ownership..."
-                : (!validatorManagerAddress && subnetId ? "Could not find Validator Manager for this L1." : undefined)
-          }
+          error="You are not the owner of this contract. Only the contract owner can remove validators."
         >
-          {ownershipState === 'loading' ? 'Verifying...' : 'Initiate Validator Removal'}
+          Initiate Validator Removal
+        </Button>
+      )}
+
+      {ownershipState === 'loading' && (
+        <Button
+          onClick={handleInitiateRemoval}
+          disabled={true}
+          error="Verifying ownership..."
+        >
+          Verifying...
+        </Button>
+      )}
+
+      {ownershipState === 'error' && (
+        <Button
+          onClick={() => refetchOwnership?.()}
+          error={ownershipError || "Failed to verify contract ownership. Click to retry."}
+        >
+          Retry Ownership Check
         </Button>
       )}
 
