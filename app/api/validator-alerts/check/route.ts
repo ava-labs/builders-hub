@@ -295,6 +295,7 @@ export async function POST(req: NextRequest) {
           alert.email,
           'uptime',
           uptimeAlertTemplate({
+            alertId: alert.id,
             nodeId: alert.node_id,
             label: alert.label,
             uptime: validator.p50_uptime,
@@ -326,6 +327,7 @@ export async function POST(req: NextRequest) {
             alert.email,
             alertType,
             versionMandatoryTemplate({
+              alertId: alert.id,
               nodeId: alert.node_id,
               label: alert.label,
               currentVersion: validator.version,
@@ -350,6 +352,7 @@ export async function POST(req: NextRequest) {
             alert.email,
             'version_mandatory',
             versionMandatoryTemplate({
+              alertId: alert.id,
               nodeId: alert.node_id,
               label: alert.label,
               currentVersion: validator.version,
@@ -369,6 +372,7 @@ export async function POST(req: NextRequest) {
             alert.email,
             'version_optional',
             versionOptionalTemplate({
+              alertId: alert.id,
               nodeId: alert.node_id,
               label: alert.label,
               currentVersion: validator.version,
@@ -393,6 +397,7 @@ export async function POST(req: NextRequest) {
             alert.email,
             'expiry_critical',
             expiryCriticalTemplate({
+              alertId: alert.id,
               nodeId: alert.node_id,
               label: alert.label,
               expiryDate: validator.end_time,

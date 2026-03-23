@@ -1,4 +1,9 @@
-function wrapTemplate(title: string, content: string, accentColor = '#EF4444'): string {
+import { getUnsubscribeUrl } from '@/server/services/unsubscribe-token';
+
+function wrapTemplate(title: string, content: string, accentColor = '#EF4444', alertId?: string): string {
+  const unsubscribeLink = alertId
+    ? `<p style="font-size: 11px; color: #71717A; text-align: center; margin-top: 16px;"><a href="${getUnsubscribeUrl(alertId)}" style="color: #71717A; text-decoration: underline;">Unsubscribe from these alerts</a></p>`
+    : '';
   return `
     <div style="background-color: #18181B; color: white; font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 20px; border-radius: 8px; border: 1px solid ${accentColor};">
       <h2 style="color: white; font-size: 20px; margin-bottom: 16px; text-align: center;">${title}</h2>
@@ -10,6 +15,7 @@ function wrapTemplate(title: string, content: string, accentColor = '#EF4444'): 
         <img src="https://build.avax.network/logo-black.png" alt="Avalanche" style="max-width: 120px; margin-bottom: 10px;">
         <p style="font-size: 12px; color: #A1A1AA;">Avalanche Builder's Hub</p>
       </div>
+      ${unsubscribeLink}
     </div>
   `;
 }
@@ -40,6 +46,7 @@ function section(borderColor: string, heading: string, body: string, footnote?: 
 // ---------------------------------------------------------------------------
 
 export function uptimeAlertTemplate(params: {
+  alertId: string;
   nodeId: string;
   label: string | null;
   uptime: number;
@@ -59,7 +66,9 @@ export function uptimeAlertTemplate(params: {
         dataRow('Your Threshold', `${params.threshold}%`, '#D1D5DB')
       ),
       'You will not receive another uptime alert for this validator within 24 hours.'
-    )
+    ),
+    '#EF4444',
+    params.alertId
   );
   return { subject, html, text };
 }
@@ -69,6 +78,7 @@ export function uptimeAlertTemplate(params: {
 // ---------------------------------------------------------------------------
 
 export function versionMandatoryTemplate(params: {
+  alertId: string;
   nodeId: string;
   label: string | null;
   currentVersion: string;
@@ -131,7 +141,8 @@ export function versionMandatoryTemplate(params: {
       `<p style="font-size: 13px; color: #EF4444; margin: 12px 0 0 0; font-weight: bold;">Failure to upgrade before the deadline may result in your node being benched.</p>`,
       `Next alert in ${cooldownText} if still not upgraded.`
     ),
-    borderColor
+    borderColor,
+    params.alertId
   );
 
   return { subject, html, text };
@@ -142,6 +153,7 @@ export function versionMandatoryTemplate(params: {
 // ---------------------------------------------------------------------------
 
 export function versionOptionalTemplate(params: {
+  alertId: string;
   nodeId: string;
   label: string | null;
   currentVersion: string;
@@ -162,7 +174,8 @@ export function versionOptionalTemplate(params: {
       ),
       'This is an optional update. You will not receive another version alert for 7 days.'
     ),
-    '#3B82F6'
+    '#3B82F6',
+    params.alertId
   );
   return { subject, html, text };
 }
@@ -172,6 +185,7 @@ export function versionOptionalTemplate(params: {
 // ---------------------------------------------------------------------------
 
 export function expiryAlertTemplate(params: {
+  alertId: string;
   nodeId: string;
   label: string | null;
   daysLeft: number;
@@ -201,7 +215,8 @@ export function expiryAlertTemplate(params: {
       ),
       `Next alert in ${cooldown} if stake is not renewed.`
     ),
-    borderColor
+    borderColor,
+    params.alertId
   );
   return { subject, html, text };
 }
@@ -211,6 +226,7 @@ export function expiryAlertTemplate(params: {
 // ---------------------------------------------------------------------------
 
 export function expiryCriticalTemplate(params: {
+  alertId: string;
   nodeId: string;
   label: string | null;
   expiryDate: string;
@@ -232,7 +248,8 @@ export function expiryCriticalTemplate(params: {
       ),
       'This is a one-time critical alert.'
     ),
-    '#EF4444'
+    '#EF4444',
+    params.alertId
   );
   return { subject, html, text };
 }
