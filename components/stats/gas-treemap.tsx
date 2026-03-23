@@ -384,9 +384,7 @@ export default function GasTreemap() {
   const [timeRange, setTimeRange] = useState<TimeRange>("30d");
   const [customRange, setCustomRange] = useState<DateRange | undefined>(undefined);
   const [customPopoverOpen, setCustomPopoverOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<ViewMode>(() =>
-    typeof window !== "undefined" && window.innerWidth < 640 ? "table" : "treemap"
-  );
+  const [viewMode, setViewMode] = useState<ViewMode>("treemap");
   const [hovered, setHovered] = useState<HoveredInfo | null>(null);
   const [hoveredInsight, setHoveredInsight] = useState<{ row: number; col: number } | null>(null);
   const [dimensions, setDimensions] = useState({ width: 900, height: 500 });
@@ -394,6 +392,11 @@ export default function GasTreemap() {
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [loadingPhase, setLoadingPhase] = useState(0);
   const abortRef = useRef<AbortController | null>(null);
+
+  // Default to table view on mobile after hydration
+  useEffect(() => {
+    if (window.innerWidth < 640) setViewMode("table");
+  }, []);
 
   // Compute active days from either preset or custom range
   const activeDays = useMemo(() => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   ComposedChart,
   Area,
@@ -32,6 +32,11 @@ interface GasCategoryTimelineProps {
 
 export function GasCategoryTimeline({ data, isDark }: GasCategoryTimelineProps) {
   const [hiddenCategories, setHiddenCategories] = useState<Set<string>>(new Set());
+  const [showBrush, setShowBrush] = useState(false);
+
+  useEffect(() => {
+    setShowBrush(window.innerWidth >= 640);
+  }, []);
 
   // Detect all categories present in data, sorted by total AVAX burned desc
   const sortedCategories = useMemo(() => {
@@ -228,15 +233,16 @@ export function GasCategoryTimeline({ data, isDark }: GasCategoryTimelineProps) 
               strokeDasharray="4 2"
             />
 
-            {/* Brush range selector — hidden on mobile via CSS */}
-            <Brush
-              dataKey="date"
-              height={28}
-              stroke={isDark ? "#3f3f46" : "#d4d4d8"}
-              fill={isDark ? "#18181b" : "#fafafa"}
-              tickFormatter={(v) => formatXAxisLabel(v, rangeDays)}
-              className="hidden sm:block"
-            />
+            {/* Brush range selector — hidden on mobile */}
+            {showBrush && (
+              <Brush
+                dataKey="date"
+                height={28}
+                stroke={isDark ? "#3f3f46" : "#d4d4d8"}
+                fill={isDark ? "#18181b" : "#fafafa"}
+                tickFormatter={(v) => formatXAxisLabel(v, rangeDays)}
+              />
+            )}
           </ComposedChart>
         </ResponsiveContainer>
       </div>
