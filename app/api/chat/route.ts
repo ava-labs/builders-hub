@@ -21,6 +21,7 @@ import {
   blockchainLookupChain,
   blockchainLookupValidator,
 } from '@/lib/chat/blockchain-tools';
+import l1Chains from '@/constants/l1-chains.json';
 
 // Helper to extract text from v6 UIMessage
 function getTextFromMessage(message: any): string {
@@ -219,7 +220,8 @@ function findRelevantSections(query: string, docs: string): string[] {
 }
 
 export async function POST(req: Request) {
-  const { messages, id: visitorId } = await req.json();
+  const { messages, id: visitorId, source } = await req.json();
+  const isBubble = source === 'bubble';
   const startTime = Date.now();
   const traceId = `trace_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
@@ -376,6 +378,46 @@ export async function POST(req: Request) {
     }
   }
 
+  // Search for relevant L1 chains by name/slug
+  let l1Context = '';
+  if (lastUserMessageText) {
+    // Generic terms that appear in many chain names/slugs — skip these for matching
+    const l1Stopwords = new Set([
+      'chain', 'network', 'mainnet', 'testnet', 'the', 'how', 'what', 'where',
+      'show', 'stats', 'can', 'does', 'this', 'that', 'with', 'from', 'for',
+      'about', 'have', 'are', 'was', 'will', 'get', 'into', 'create', 'deploy',
+      'avalanche', 'there', 'between', 'tokens', 'token', 'transfer',
+    ]);
+    const queryLower = lastUserMessageText.toLowerCase();
+    const queryTerms = queryLower.split(/\s+/).filter(t => t.length > 2 && !l1Stopwords.has(t));
+
+    const matchingChains = (l1Chains as any[]).filter(chain => {
+      // Split name into words, require term to match start of a word
+      // (avoids "dex" matching "modex", "step" matching "Stephenville", etc.)
+      const nameWords = (chain.chainName || '').toLowerCase().split(/[\s()]+/);
+      // For slug, require the term to match a whole hyphen-delimited word
+      const slugWords = (chain.slug || '').toLowerCase().split('-');
+      return queryTerms.some(term =>
+        nameWords.some((w: string) => w.startsWith(term)) ||
+        slugWords.some((w: string) => w === term)
+      );
+    }).slice(0, 10);
+
+    if (matchingChains.length > 0) {
+      l1Context = '\n\n=== MATCHING AVALANCHE L1 CHAINS ===\n';
+      l1Context += 'These are Avalanche L1 chains that match the query. Link to their stats page when relevant.\n\n';
+      for (const chain of matchingChains) {
+        l1Context += `- **${chain.chainName}** (${chain.slug})`;
+        if (chain.category) l1Context += ` [${chain.category}]`;
+        l1Context += ` → Stats: /stats/l1/${chain.slug}`;
+        if (chain.website) l1Context += ` | Website: ${chain.website}`;
+        l1Context += '\n';
+      }
+      l1Context += '\n=== END L1 CHAINS ===\n';
+      console.log(`Found ${matchingChains.length} matching L1 chains`);
+    }
+  }
+
   let relevantContext = '';
   let docSearchMethod: 'mcp' | 'fulltext' | 'none' = 'none';
   if (lastUserMessage && lastUserMessageText) {
@@ -473,6 +515,7 @@ export async function POST(req: Request) {
 
   // Allocate context by priority, truncating lower-priority items if over budget
   const contextParts: Array<{ key: string; text: string }> = [
+    { key: 'l1chains', text: l1Context },
     { key: 'tools', text: toolsContext },
     { key: 'docs', text: relevantContext },
     { key: 'code', text: codeContext },
@@ -666,7 +709,16 @@ export async function POST(req: Request) {
       }),
     },
     stopWhen: stepCountIs(15),
-    system: `You are the AI assistant for Avalanche Builders Hub (build.avax.network). You help developers build on Avalanche — answer questions, look up on-chain data, render interactive tools, and cite documentation. Be concise and helpful — code over prose, cite docs.
+    system: `${isBubble ? `## Bubble Mode — STRICT
+You are the quick-help bubble on the Builders Hub. Your job is to help users FIND things fast.
+- MAX 2-3 sentences per answer. No walls of text.
+- Always link to the ACTUAL relevant page (e.g. [Network Stats](/stats), [Create an L1](/console/create-l1), [ICM Docs](/docs/cross-chain/icm/overview)). Never use /chat as a link destination for content — link to where the thing actually lives.
+- Do NOT call render_component for flows/tools — just link to the console page.
+- Do NOT call suggest_followups — keep responses minimal.
+- End with: "Want to dig deeper? [Continue in full chat](/chat)" — this is the ONLY acceptable use of a /chat link.
+- Format links as markdown: [text](url)
+
+` : ''}You are the AI assistant for Avalanche Builders Hub (build.avax.network). You help developers build on Avalanche — answer questions, look up on-chain data, render interactive tools, and cite documentation. Be concise and helpful — code over prose, cite docs.
 
 ## CRITICAL: Always produce a text response
 **You MUST write a text answer to the user's question.** Never spend all your steps on tool calls without producing text. If tools fail or return empty results, answer from your knowledge and the documentation context below. A text response is mandatory — tool calls are supplementary.
@@ -685,13 +737,26 @@ export async function POST(req: Request) {
 - **suggest_followups**: ALWAYS call this after answering. Suggest 2-3 relevant follow-up questions specific to the conversation.
 - **DocImage**: When documentation context contains images like \`![alt](/images/...)\`, call \`render_component("DocImage", { src: "/images/...", alt: "..." })\` to show them inline. Diagrams and screenshots help developers understand faster.
 
+## Stats Pages
+- [Network Overview](/stats/overview) — active addresses, TPS, validators, market cap
+- [AVAX Token](/stats/avax-token) — token metrics
+- [Network Metrics](/stats/network-metrics) — network-wide metrics
+- [DApp Gas Usage](/stats/dapps/treemap) — gas treemap by DApp
+- [Interchain Messaging](/stats/interchain-messaging) — ICM stats
+- [Chain List](/stats/chain-list) — all Avalanche L1 chains
+- [Validators](/stats/validators) — validator dashboard
+- Per-L1 stats: \`/stats/l1/{slug}\` (e.g., \`/stats/l1/fifa\`, \`/stats/l1/defi-kingdoms\`)
+
 ## URL Rules
-- Documentation: \`/docs/...\` | Academy: \`/academy/...\` (NEVER \`/docs/academy/\`) | Console: \`/console/...\`
+- Documentation: \`/docs/...\` | Academy: \`/academy/...\` (NEVER \`/docs/academy/\`) | Console: \`/console/...\` | Stats: \`/stats/...\`
+- L1 chain stats: \`/stats/l1/{slug}\`. If a user asks about an L1 by name, check the L1 CHAINS context below for its slug.
 - Use EXACT complete URLs from context. Truncated paths cause 404s.
 - Always use full path including final segment (e.g., \`.../04-creating-an-l1/01-creating-an-l1\` not just \`.../04-creating-an-l1\`)
 
 ## Pre-indexed Context
 When code context is provided below, use it directly with GitHub links. Only search GitHub if context is insufficient.
+
+${budgetedContext['l1chains'] ?? ''}
 
 ${budgetedContext['tools'] ?? ''}
 
