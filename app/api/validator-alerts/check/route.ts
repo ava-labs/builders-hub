@@ -316,17 +316,24 @@ export async function POST(req: NextRequest) {
       dataErrors.push(`GitHub API error: ${releaseResult.reason}`);
     }
 
-    // If both sources failed, log to all active alerts and bail
+    // If both sources failed, log to all active alerts (with 1-hour cooldown) and bail
     if (validators.length === 0 && !latestRelease) {
-      const activeAlerts = await prisma.validatorAlert.findMany({ where: { active: true } });
-      const errorMsg = `Alert check skipped: ${dataErrors.join('; ')}`;
-      await Promise.all(
-        activeAlerts.map((a) =>
-          prisma.validatorAlertLog.create({
-            data: { validator_alert_id: a.id, alert_type: 'check_failed', message: errorMsg },
-          })
-        )
-      );
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+      const recentFailLog = await prisma.validatorAlertLog.findFirst({
+        where: { alert_type: 'check_failed', sent_at: { gte: oneHourAgo } },
+      });
+
+      if (!recentFailLog) {
+        const activeAlerts = await prisma.validatorAlert.findMany({ where: { active: true } });
+        const errorMsg = `Alert check skipped: ${dataErrors.join('; ')}`;
+        await Promise.all(
+          activeAlerts.map((a) =>
+            prisma.validatorAlertLog.create({
+              data: { validator_alert_id: a.id, alert_type: 'check_failed', message: errorMsg },
+            })
+          )
+        );
+      }
       return NextResponse.json({ success: false, errors: dataErrors });
     }
 

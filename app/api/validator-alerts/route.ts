@@ -41,29 +41,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized, please sign in to continue.' }, { status: 401 });
     }
 
-    // Rate limiting: max alerts per user
-    const existingCount = await prisma.validatorAlert.count({
-      where: { user_id: session.user.id },
-    });
-    if (existingCount >= MAX_ALERTS_PER_USER) {
-      return NextResponse.json(
-        { error: `You can have at most ${MAX_ALERTS_PER_USER} validator alerts.` },
-        { status: 429 }
-      );
-    }
-
-    // Rate limiting: max creates per hour
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-    const recentCreates = await prisma.validatorAlert.count({
-      where: { user_id: session.user.id, created_at: { gte: oneHourAgo } },
-    });
-    if (recentCreates >= MAX_CREATES_PER_HOUR) {
-      return NextResponse.json(
-        { error: 'Too many alerts created recently. Please try again later.' },
-        { status: 429 }
-      );
-    }
-
     const body: CreateAlertRequest = await req.json();
 
     if (!body.node_id || !NODE_ID_REGEX.test(body.node_id)) {
@@ -84,7 +61,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid email address.' }, { status: 400 });
     }
 
-    // Verify the node exists via upstream API
+    const email = body.email ?? session.user.email;
+    if (!email || !EMAIL_REGEX.test(email)) {
+      return NextResponse.json({ error: 'A valid email address is required.' }, { status: 400 });
+    }
+
+    // Verify the node exists via upstream API (outside transaction — network call)
     const upstreamRes = await fetch(P2P_API_URL);
     if (!upstreamRes.ok) {
       return NextResponse.json({ error: 'Failed to verify validator. Please try again.' }, { status: 502 });
@@ -100,45 +82,55 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Check for existing alert on same node
-    const existing = await prisma.validatorAlert.findUnique({
-      where: {
-        user_id_node_id: {
-          user_id: session.user.id,
+    // Rate limiting + duplicate check + create in a serializable transaction
+    // to prevent concurrent requests from bypassing limits
+    const userId = session.user.id;
+    const txResult = await prisma.$transaction(async (tx) => {
+      const existingCount = await tx.validatorAlert.count({
+        where: { user_id: userId },
+      });
+      if (existingCount >= MAX_ALERTS_PER_USER) {
+        return { error: `You can have at most ${MAX_ALERTS_PER_USER} validator alerts.`, status: 429 };
+      }
+
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+      const recentCreates = await tx.validatorAlert.count({
+        where: { user_id: userId, created_at: { gte: oneHourAgo } },
+      });
+      if (recentCreates >= MAX_CREATES_PER_HOUR) {
+        return { error: 'Too many alerts created recently. Please try again later.', status: 429 };
+      }
+
+      const existing = await tx.validatorAlert.findUnique({
+        where: { user_id_node_id: { user_id: userId, node_id: body.node_id } },
+      });
+      if (existing) {
+        return { error: 'You already have an alert configured for this validator.', status: 409 };
+      }
+
+      const alert = await tx.validatorAlert.create({
+        data: {
+          user_id: userId,
           node_id: body.node_id,
+          label: body.label ?? null,
+          uptime_alert: body.uptime_alert ?? true,
+          uptime_threshold: body.uptime_threshold ?? 95,
+          version_alert: body.version_alert ?? true,
+          expiry_alert: body.expiry_alert ?? true,
+          expiry_days: body.expiry_days ?? 7,
+          email,
         },
-      },
-    });
-    if (existing) {
-      return NextResponse.json(
-        { error: 'You already have an alert configured for this validator.' },
-        { status: 409 }
-      );
+        include: { alert_logs: true },
+      });
+
+      return { alert };
+    }, { isolationLevel: 'Serializable' });
+
+    if ('error' in txResult) {
+      return NextResponse.json({ error: txResult.error }, { status: txResult.status });
     }
 
-    const email = body.email ?? session.user.email;
-    if (!email || !EMAIL_REGEX.test(email)) {
-      return NextResponse.json({ error: 'A valid email address is required.' }, { status: 400 });
-    }
-
-    const alert = await prisma.validatorAlert.create({
-      data: {
-        user_id: session.user.id,
-        node_id: body.node_id,
-        label: body.label ?? null,
-        uptime_alert: body.uptime_alert ?? true,
-        uptime_threshold: body.uptime_threshold ?? 95,
-        version_alert: body.version_alert ?? true,
-        expiry_alert: body.expiry_alert ?? true,
-        expiry_days: body.expiry_days ?? 7,
-        email,
-      },
-      include: {
-        alert_logs: true,
-      },
-    });
-
-    return NextResponse.json(alert, { status: 201 });
+    return NextResponse.json(txResult.alert, { status: 201 });
   } catch (error) {
     console.error('Error creating validator alert:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
