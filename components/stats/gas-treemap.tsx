@@ -384,7 +384,9 @@ export default function GasTreemap() {
   const [timeRange, setTimeRange] = useState<TimeRange>("30d");
   const [customRange, setCustomRange] = useState<DateRange | undefined>(undefined);
   const [customPopoverOpen, setCustomPopoverOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<ViewMode>("treemap");
+  const [viewMode, setViewMode] = useState<ViewMode>(() =>
+    typeof window !== "undefined" && window.innerWidth < 640 ? "table" : "treemap"
+  );
   const [hovered, setHovered] = useState<HoveredInfo | null>(null);
   const [hoveredInsight, setHoveredInsight] = useState<{ row: number; col: number } | null>(null);
   const [dimensions, setDimensions] = useState({ width: 900, height: 500 });
@@ -467,7 +469,9 @@ export default function GasTreemap() {
       if (entry) {
         setDimensions({
           width: entry.contentRect.width,
-          height: Math.max(400, Math.min(600, entry.contentRect.width * 0.55)),
+          height: entry.contentRect.width < 500
+            ? Math.max(350, entry.contentRect.width * 0.9)
+            : Math.max(400, Math.min(600, entry.contentRect.width * 0.55)),
         });
       }
     });
@@ -667,7 +671,7 @@ export default function GasTreemap() {
         </div>
 
         {/* View toggle + Time range pills */}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {/* View mode toggle */}
           <div className="flex items-center bg-zinc-100 dark:bg-zinc-900 rounded-md overflow-hidden border border-zinc-300 dark:border-zinc-700">
             <button
@@ -764,7 +768,7 @@ export default function GasTreemap() {
               </div>
 
               {/* Progress bar */}
-              <div className="w-64 h-1.5 bg-zinc-300 dark:bg-zinc-800 rounded-full overflow-hidden">
+              <div className="w-48 sm:w-64 h-1.5 bg-zinc-300 dark:bg-zinc-800 rounded-full overflow-hidden">
                 <div
                   className="h-full rounded-full bg-gradient-to-r from-red-500 to-amber-500 transition-all duration-300 ease-out"
                   style={{ width: `${loading ? loadingProgress : 100}%` }}
@@ -1061,7 +1065,7 @@ export default function GasTreemap() {
 
         {/* Finviz-style Hover Tooltip */}
         {hovered && (
-          <div className="absolute top-3 right-3 bg-white/98 dark:bg-zinc-900/98 backdrop-blur-sm border border-zinc-300 dark:border-zinc-700 rounded-lg shadow-2xl pointer-events-none z-10 min-w-[320px] max-w-[400px] overflow-hidden">
+          <div className="absolute top-3 left-3 right-3 sm:left-auto sm:min-w-[320px] sm:max-w-[400px] bg-white/98 dark:bg-zinc-900/98 backdrop-blur-sm border border-zinc-300 dark:border-zinc-700 rounded-lg shadow-2xl pointer-events-none z-10 overflow-hidden">
             {/* Header */}
             <div className="px-4 py-3 border-b border-zinc-200/50 dark:border-zinc-700/50 bg-zinc-100/50 dark:bg-zinc-800/50">
               <div className="flex items-center justify-between">
@@ -1243,7 +1247,7 @@ export default function GasTreemap() {
 
       {/* Loading insight skeletons */}
       {loading && !data && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
           {[0, 1, 2].map((i) => (
             <div key={i} className="rounded-lg border border-zinc-200 dark:border-zinc-800 p-3 animate-pulse" style={{ animationDelay: `${i * 100}ms` }}>
               <div className="h-4 w-24 bg-zinc-200 dark:bg-zinc-800 rounded mb-2" />
@@ -1278,7 +1282,7 @@ export default function GasTreemap() {
                   <span className="text-[10px] text-zinc-400 dark:text-zinc-500">{row.subtitle}</span>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                   {row.cards.map((card, colIdx) => {
                     const isExpanded =
                       (hoveredInsight?.row === rowIdx && hoveredInsight?.col === colIdx) ||

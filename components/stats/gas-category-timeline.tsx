@@ -107,7 +107,7 @@ export function GasCategoryTimeline({ data, isDark }: GasCategoryTimelineProps) 
       </div>
 
       {/* Chart */}
-      <div className="h-[350px] sm:h-[400px]">
+      <div className="h-[260px] sm:h-[400px]">
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
             <CartesianGrid

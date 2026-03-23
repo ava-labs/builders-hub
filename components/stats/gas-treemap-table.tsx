@@ -61,11 +61,11 @@ export function GasTreemapTable({ protocols }: GasTreemapTableProps) {
     }
   }
 
-  const columns: { key: SortColumn; label: string; align: "left" | "right" }[] = [
+  const columns: { key: SortColumn; label: string; align: "left" | "right"; hideOnMobile?: boolean }[] = [
     { key: "avaxBurned", label: "AVAX Burned", align: "right" },
-    { key: "gasShare", label: "Gas Share", align: "right" },
+    { key: "gasShare", label: "Gas Share", align: "right", hideOnMobile: true },
     { key: "txCount", label: "Txns", align: "right" },
-    { key: "uniqueSenders", label: "Senders", align: "right" },
+    { key: "uniqueSenders", label: "Senders", align: "right", hideOnMobile: true },
     { key: "delta", label: "Change", align: "right" },
   ];
 
@@ -122,12 +122,12 @@ export function GasTreemapTable({ protocols }: GasTreemapTableProps) {
             <tr className="bg-zinc-100 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400 text-xs uppercase">
               <th className="text-left px-3 py-2.5 font-medium w-8">#</th>
               <th className="text-left px-3 py-2.5 font-medium">Protocol</th>
-              <th className="text-left px-3 py-2.5 font-medium">Category</th>
+              <th className="text-left px-3 py-2.5 font-medium hidden sm:table-cell">Category</th>
               {columns.map((col) => (
                 <th
                   key={col.key}
                   onClick={() => toggleSort(col.key)}
-                  className={`${col.align === "right" ? "text-right" : "text-left"} px-3 py-2.5 font-medium cursor-pointer hover:text-zinc-700 dark:hover:text-zinc-200 select-none whitespace-nowrap`}
+                  className={`${col.align === "right" ? "text-right" : "text-left"} px-3 py-2.5 font-medium cursor-pointer hover:text-zinc-700 dark:hover:text-zinc-200 select-none whitespace-nowrap ${col.hideOnMobile ? "hidden sm:table-cell" : ""}`}
                 >
                   <span className="inline-flex items-center">
                     {col.label}
@@ -146,10 +146,10 @@ export function GasTreemapTable({ protocols }: GasTreemapTableProps) {
                 }`}
               >
                 <td className="px-3 py-2 text-xs text-zinc-400 dark:text-zinc-500 font-mono">{idx + 1}</td>
-                <td className="px-3 py-2 font-medium text-zinc-900 dark:text-zinc-100 max-w-[200px] truncate">
+                <td className="px-3 py-2 font-medium text-zinc-900 dark:text-zinc-100 max-w-[120px] sm:max-w-[200px] truncate">
                   {p.protocol}
                 </td>
-                <td className="px-3 py-2">
+                <td className="px-3 py-2 hidden sm:table-cell">
                   <span className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-700 text-zinc-500 dark:text-zinc-400 whitespace-nowrap">
                     {CATEGORY_LABELS[p.category] || p.category}
                   </span>
@@ -162,13 +162,13 @@ export function GasTreemapTable({ protocols }: GasTreemapTableProps) {
                     </span>
                   )}
                 </td>
-                <td className="px-3 py-2 text-right font-mono text-zinc-900 dark:text-zinc-100">
+                <td className="px-3 py-2 text-right font-mono text-zinc-900 dark:text-zinc-100 hidden sm:table-cell">
                   {p.gasShare.toFixed(2)}%
                 </td>
                 <td className="px-3 py-2 text-right font-mono text-zinc-900 dark:text-zinc-100">
                   {formatNumber(p.txCount)}
                 </td>
-                <td className="px-3 py-2 text-right font-mono text-zinc-900 dark:text-zinc-100">
+                <td className="px-3 py-2 text-right font-mono text-zinc-900 dark:text-zinc-100 hidden sm:table-cell">
                   {formatNumber(p.uniqueSenders)}
                 </td>
                 <td className="px-3 py-2 text-right">
