@@ -63,6 +63,14 @@ export interface ChainStatsResponse {
   // Top burner contract address (for X-Ray preload)
   topBurnerAddress: string | null;
 
+  // Top unclassified ("breadcrumbs") contracts for discovery
+  topBreadcrumbs: {
+    address: string;
+    txCount: number;
+    gasUsed: number;
+    avaxBurned: number;
+  }[];
+
   // Coverage stats (vs total chain)
   coverage: {
     taggedGasPercent: number;
@@ -148,6 +156,7 @@ export async function GET(request: Request) {
       contractDeployResult,
       prevNativeTransferResult,
       prevContractDeployResult,
+      topBreadcrumbsResult,
     ] = await Promise.all([
       // 1. Get watermark for latest block
       queryClickHouse<{
@@ -347,6 +356,28 @@ export async function GET(request: Request) {
               ${tPrevTimeFilter}
           `)
         : Promise.resolve({ data: [{ tx_count: '0', total_gas: '0', avax_burned: 0, avax_burned_usd: 0, gas_cost_usd: 0, unique_senders: '0' }], meta: [], rows: 1, statistics: { elapsed: 0, rows_read: 0, bytes_read: 0 } }),
+
+      // 10. Top 10 unclassified ("breadcrumbs") contracts by AVAX burned
+      queryClickHouse<{
+        address: string;
+        tx_count: string;
+        total_gas: string;
+        avax_burned: number;
+      }>(`
+        SELECT
+          lower(concat('0x', hex(t.to))) as address,
+          count() as tx_count,
+          sum(t.gas_used) as total_gas,
+          sum(toFloat64(t.gas_used) * toFloat64(t.gas_price)) / 1e18 as avax_burned
+        FROM raw_txs t
+        WHERE t.chain_id = ${C_CHAIN_ID}
+          AND t.to IS NOT NULL
+          AND NOT ${tAddressFilter}
+          ${tTimeFilter}
+        GROUP BY t.to
+        ORDER BY avax_burned DESC
+        LIMIT 10
+      `),
     ]);
 
     // Build protocol category lookup
@@ -610,6 +641,12 @@ export async function GET(request: Request) {
       dailyStats,
       dailyCategoryStats,
       topBurnerAddress,
+      topBreadcrumbs: topBreadcrumbsResult.data.map(row => ({
+        address: row.address,
+        txCount: parseInt(row.tx_count) || 0,
+        gasUsed: parseInt(row.total_gas) || 0,
+        avaxBurned: row.avax_burned || 0,
+      })),
       coverage: {
         taggedGasPercent: totalChainGas > 0 ? (taggedGas / totalChainGas) * 100 : 0,
         taggedTxPercent: totalChainStats.totalTx > 0 ? (taggedTxCount / totalChainStats.totalTx) * 100 : 0,

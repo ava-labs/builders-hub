@@ -44,6 +44,7 @@ interface ChainStatsData {
   categoryBreakdown: CategoryBreakdown[];
   protocolBreakdown: ProtocolBreakdown[];
   dailyCategoryStats?: DailyCategoryStat[];
+  topBreadcrumbs?: { address: string; txCount: number; gasUsed: number; avaxBurned: number }[];
   coverage: {
     taggedGasPercent: number;
     taggedTxPercent: number;
@@ -265,7 +266,6 @@ type HoveredInfo =
 
 const HEADER_HEIGHT = 18;
 const MIN_NEST_HEIGHT = 50;
-const PROTOCOL_OTHERS_THRESHOLD = 0.03; // 3% of category gas
 
 // --- Insight row generation (2 rows: Top Burners + Fastest Growing) ---
 
@@ -527,7 +527,7 @@ export default function GasTreemap() {
           key: "unclassified",
           value: unclassifiedBurned,
           category: "unclassified",
-          label: "Unclassified",
+          label: "Breadcrumbs",
           gasShare: unclassifiedPercent,
           delta: 0,
           txCount: Math.max(
@@ -582,61 +582,21 @@ export default function GasTreemap() {
         continue;
       }
 
-      // Aggregate small protocols into "Others" (skip for mev — show all individually)
-      const catTotalGas = protocols.reduce((s, p) => s + p.gasUsed, 0);
-      const significant: ProtocolItem[] = [];
-      let othersGas = 0;
-      let othersTx = 0;
-      let othersBurned = 0;
-      let othersShare = 0;
-      let othersGasCostUsd = 0;
-      let othersBurnedUsd = 0;
-      let othersSenders = 0;
-      const skipOthers = cat.category === "mev";
-
-      for (const p of protocols) {
-        if (!skipOthers && catTotalGas > 0 && p.gasUsed / catTotalGas < PROTOCOL_OTHERS_THRESHOLD) {
-          othersGas += p.gasUsed;
-          othersTx += p.txCount;
-          othersBurned += p.avaxBurned;
-          othersShare += p.gasShare;
-          othersGasCostUsd += p.gasCostUsd;
-          othersBurnedUsd += p.avaxBurnedUsd;
-          othersSenders += p.uniqueSenders;
-        } else {
-          significant.push({
-            key: `${cat.category}:${p.protocol}`,
-            value: p.avaxBurned,
-            protocol: p.protocol,
-            category: cat.category,
-            gasShare: p.gasShare,
-            delta: p.delta,
-            txCount: p.txCount,
-            gasUsed: p.gasUsed,
-            avaxBurned: p.avaxBurned,
-            gasCostUsd: p.gasCostUsd,
-            avaxBurnedUsd: p.avaxBurnedUsd,
-            uniqueSenders: p.uniqueSenders,
-          });
-        }
-      }
-
-      if (othersGas > 0) {
-        significant.push({
-          key: `${cat.category}:others`,
-          value: othersBurned,
-          protocol: "Others",
-          category: cat.category,
-          gasShare: othersShare,
-          delta: 0,
-          txCount: othersTx,
-          gasUsed: othersGas,
-          avaxBurned: othersBurned,
-          gasCostUsd: othersGasCostUsd,
-          avaxBurnedUsd: othersBurnedUsd,
-          uniqueSenders: othersSenders,
-        });
-      }
+      // Show all protocols individually (no "Others" bucket)
+      const significant: ProtocolItem[] = protocols.map((p) => ({
+        key: `${cat.category}:${p.protocol}`,
+        value: p.avaxBurned,
+        protocol: p.protocol,
+        category: cat.category,
+        gasShare: p.gasShare,
+        delta: p.delta,
+        txCount: p.txCount,
+        gasUsed: p.gasUsed,
+        avaxBurned: p.avaxBurned,
+        gasCostUsd: p.gasCostUsd,
+        avaxBurnedUsd: p.avaxBurnedUsd,
+        uniqueSenders: p.uniqueSenders,
+      }));
 
       if (significant.length === 0) {
         result.push({
@@ -1015,10 +975,7 @@ export default function GasTreemap() {
                 <g clipPath={`url(#clip-${cat.category})`}>
                   {protocolRects.map((pRect) => {
                     const p = pRect.item;
-                    const isOthers = p.protocol === "Others";
-                    const bgColor = isOthers
-                      ? (isDark ? "#2a2a35" : "#bfc4cc")
-                      : getDeltaColor(p.delta, isDark);
+                    const bgColor = getDeltaColor(p.delta, isDark);
 
                     const isHoveredProto =
                       hovered?.type === "protocol" &&
@@ -1069,10 +1026,10 @@ export default function GasTreemap() {
                             }
                             textAnchor="middle"
                             dominantBaseline="central"
-                            fill={isOthers ? (isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.5)") : "#fff"}
+                            fill="#fff"
                             fontSize={labelSize}
                             fontWeight="700"
-                            style={{ pointerEvents: "none", textShadow: isOthers ? "none" : "0 1px 3px rgba(0,0,0,0.6)" }}
+                            style={{ pointerEvents: "none", textShadow: "0 1px 3px rgba(0,0,0,0.6)" }}
                           >
                             {p.protocol.length > maxChars
                               ? `${p.protocol.slice(0, maxChars)}...`
@@ -1085,18 +1042,12 @@ export default function GasTreemap() {
                             y={pRect.y + pRect.h * 0.65}
                             textAnchor="middle"
                             dominantBaseline="central"
-                            fill={
-                              isOthers
-                                ? (isDark ? "#6b7280" : "#71717a")
-                                : "#fff"
-                            }
+                            fill="#fff"
                             fontSize={deltaSize}
                             fontWeight="700"
-                            style={{ pointerEvents: "none", textShadow: isOthers ? "none" : "0 1px 3px rgba(0,0,0,0.6)" }}
+                            style={{ pointerEvents: "none", textShadow: "0 1px 3px rgba(0,0,0,0.6)" }}
                           >
-                            {isOthers
-                              ? "..."
-                              : `${p.delta >= 0 ? "+" : ""}${p.delta.toFixed(1)}%`}
+                            {`${p.delta >= 0 ? "+" : ""}${p.delta.toFixed(1)}%`}
                           </text>
                         )}
                       </g>
@@ -1220,6 +1171,44 @@ export default function GasTreemap() {
                             p.delta >= 0 ? "text-emerald-400" : "text-red-400"
                           }`}>
                             {p.delta >= 0 ? "+" : ""}{p.delta.toFixed(1)}%
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* Breadcrumbs: top unclassified contracts */}
+            {hovered.type === "category" && hovered.category === "unclassified" && data?.topBreadcrumbs && data.topBreadcrumbs.length > 0 && (
+              <div className="border-t border-zinc-200/50 dark:border-zinc-700/50">
+                <div className="px-4 py-2 bg-zinc-100/30 dark:bg-zinc-800/30">
+                  <span className="text-[10px] text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">Top Unclassified Contracts</span>
+                </div>
+                <div className="max-h-[260px] overflow-y-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="text-zinc-400 dark:text-zinc-500 text-[10px] uppercase">
+                        <th className="text-left px-4 py-1.5 font-medium">Address</th>
+                        <th className="text-right px-2 py-1.5 font-medium">AVAX</th>
+                        <th className="text-right px-4 py-1.5 font-medium">Txs</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.topBreadcrumbs.map((c, idx) => (
+                        <tr
+                          key={c.address}
+                          className={idx % 2 === 0 ? "bg-zinc-100/20 dark:bg-zinc-800/20" : ""}
+                        >
+                          <td className="px-4 py-1.5 text-zinc-700 dark:text-zinc-200 font-mono text-[11px]">
+                            {c.address.slice(0, 6)}...{c.address.slice(-4)}
+                          </td>
+                          <td className="px-2 py-1.5 text-right text-zinc-500 dark:text-zinc-400 font-mono">
+                            {c.avaxBurned.toFixed(2)}
+                          </td>
+                          <td className="px-4 py-1.5 text-right text-zinc-500 dark:text-zinc-400 font-mono">
+                            {formatNumber(c.txCount)}
                           </td>
                         </tr>
                       ))}
