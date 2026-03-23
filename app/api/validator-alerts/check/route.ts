@@ -133,30 +133,63 @@ function extractDeadline(body: string): Date | null {
 }
 
 /**
+ * Map common timezone abbreviations to UTC offsets.
+ * AvalancheGo release notes typically use ET, EST, EDT, UTC, PT, PST, PDT.
+ */
+const TZ_OFFSETS: Record<string, string> = {
+  UTC: '+00:00', GMT: '+00:00',
+  ET: '-05:00', EST: '-05:00', EDT: '-04:00',
+  CT: '-06:00', CST: '-06:00', CDT: '-05:00',
+  MT: '-07:00', MST: '-07:00', MDT: '-06:00',
+  PT: '-08:00', PST: '-08:00', PDT: '-07:00',
+};
+
+/**
  * Try to parse a human-written date/time string.
- * Handles formats like "11 AM ET, November 19th 2025" and
- * "4 PM UTC on November 19th, 2025".
+ * Handles formats like:
+ *   "11 AM ET, November 19th 2025"
+ *   "4 PM UTC on November 19th, 2025"
+ *   "4:00 PM UTC on November 19th, 2025"
+ *   "November 19, 2025 at 4 PM UTC"
  */
 function tryParseDate(dateStr: string): Date | null {
   // Remove ordinal suffixes (1st, 2nd, 3rd, 4th, etc.)
   let cleaned = dateStr.replace(/(\d+)(?:st|nd|rd|th)/g, '$1');
-  // Remove "on" connector
-  cleaned = cleaned.replace(/\bon\b/gi, '');
+  // Remove filler words
+  cleaned = cleaned.replace(/\b(?:on|at)\b/gi, '').replace(/\s{2,}/g, ' ').trim();
 
-  // Try native Date.parse first (works for well-formatted strings)
-  const naive = new Date(cleaned);
-  if (!isNaN(naive.getTime()) && naive.getFullYear() > 2020) {
-    return naive;
+  // Extract and remove timezone abbreviation, remember the offset
+  let tzOffset = '';
+  cleaned = cleaned.replace(/\b(UTC|GMT|E[SD]?T|C[SD]?T|M[SD]?T|P[SD]?T)\b/gi, (match) => {
+    tzOffset = TZ_OFFSETS[match.toUpperCase()] || '';
+    return '';
+  }).replace(/\s{2,}/g, ' ').trim();
+
+  // Normalize: if time comes before the date part, move it after
+  // "11 AM, November 19 2025" → "November 19 2025 11 AM"
+  const timeFirst = cleaned.match(/^([\d:]+\s*[AP]M),?\s*(.+)$/i);
+  if (timeFirst) {
+    cleaned = `${timeFirst[2]} ${timeFirst[1]}`;
   }
 
-  // Try rearranging "TIME TZ, MONTH DAY YEAR" → "MONTH DAY YEAR TIME TZ"
-  const rearranged = cleaned.replace(
-    /^([\d:]+\s*[AP]M)\s*(\w+),?\s*(.+)$/i,
-    '$3 $1 $2'
+  // Ensure there's a comma between month+day and year if missing
+  // "November 19 2025" → "November 19, 2025"
+  cleaned = cleaned.replace(
+    /([A-Za-z]+\s+\d{1,2})\s+(\d{4})/,
+    '$1, $2'
   );
-  const attempt2 = new Date(rearranged);
-  if (!isNaN(attempt2.getTime()) && attempt2.getFullYear() > 2020) {
-    return attempt2;
+
+  // Try parsing the cleaned string
+  const parsed = new Date(cleaned);
+  if (!isNaN(parsed.getTime()) && parsed.getFullYear() > 2020) {
+    // Apply timezone offset if we extracted one and Date parsed as local
+    if (tzOffset) {
+      const [hours, minutes] = tzOffset.split(':').map(Number);
+      const offsetMs = (hours * 60 + (hours < 0 ? -minutes : minutes)) * 60 * 1000;
+      const localOffsetMs = parsed.getTimezoneOffset() * 60 * 1000;
+      return new Date(parsed.getTime() + localOffsetMs - offsetMs);
+    }
+    return parsed;
   }
 
   return null;
