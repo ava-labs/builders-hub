@@ -5,6 +5,8 @@ import type { CreateAlertRequest } from '@/types/validator-alerts';
 
 const NODE_ID_REGEX = /^NodeID-[A-HJ-NP-Za-km-z1-9]{33,}$/;
 const P2P_API_URL = 'https://52.203.183.9.sslip.io/api/validators';
+const MAX_ALERTS_PER_USER = 20;
+const MAX_CREATES_PER_HOUR = 10;
 
 export async function GET() {
   try {
@@ -36,6 +38,29 @@ export async function POST(req: NextRequest) {
     const session = await getAuthSession();
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized, please sign in to continue.' }, { status: 401 });
+    }
+
+    // Rate limiting: max alerts per user
+    const existingCount = await prisma.validatorAlert.count({
+      where: { user_id: session.user.id },
+    });
+    if (existingCount >= MAX_ALERTS_PER_USER) {
+      return NextResponse.json(
+        { error: `You can have at most ${MAX_ALERTS_PER_USER} validator alerts.` },
+        { status: 429 }
+      );
+    }
+
+    // Rate limiting: max creates per hour
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    const recentCreates = await prisma.validatorAlert.count({
+      where: { user_id: session.user.id, created_at: { gte: oneHourAgo } },
+    });
+    if (recentCreates >= MAX_CREATES_PER_HOUR) {
+      return NextResponse.json(
+        { error: 'Too many alerts created recently. Please try again later.' },
+        { status: 429 }
+      );
     }
 
     const body: CreateAlertRequest = await req.json();

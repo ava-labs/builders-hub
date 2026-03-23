@@ -261,10 +261,41 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const [validators, latestRelease] = await Promise.all([
+    let validators: ValidatorP2P[] = [];
+    let latestRelease: ReleaseClassification | null = null;
+    let dataErrors: string[] = [];
+
+    // Fetch data sources independently so one failure doesn't block the other
+    const [validatorResult, releaseResult] = await Promise.allSettled([
       fetchValidators(),
       fetchLatestRelease(),
     ]);
+
+    if (validatorResult.status === 'fulfilled') {
+      validators = validatorResult.value;
+    } else {
+      dataErrors.push(`P2P API error: ${validatorResult.reason}`);
+    }
+
+    if (releaseResult.status === 'fulfilled') {
+      latestRelease = releaseResult.value;
+    } else {
+      dataErrors.push(`GitHub API error: ${releaseResult.reason}`);
+    }
+
+    // If both sources failed, log to all active alerts and bail
+    if (validators.length === 0 && !latestRelease) {
+      const activeAlerts = await prisma.validatorAlert.findMany({ where: { active: true } });
+      const errorMsg = `Alert check skipped: ${dataErrors.join('; ')}`;
+      await Promise.all(
+        activeAlerts.map((a) =>
+          prisma.validatorAlertLog.create({
+            data: { validator_alert_id: a.id, alert_type: 'check_failed', message: errorMsg },
+          })
+        )
+      );
+      return NextResponse.json({ success: false, errors: dataErrors });
+    }
 
     const validatorMap = new Map<string, ValidatorP2P>();
     for (const v of validators) {
@@ -308,7 +339,7 @@ export async function POST(req: NextRequest) {
       }
 
       // --- 2. Version check (AvalancheGo Upgrade) ---
-      if (alert.version_alert && validator.version !== latestRelease.tag) {
+      if (alert.version_alert && latestRelease && validator.version !== latestRelease.tag) {
         if (latestRelease.type === 'mandatory' && latestRelease.deadline) {
           const hoursToDeadline =
             (latestRelease.deadline.getTime() - Date.now()) / 3_600_000;
@@ -414,6 +445,7 @@ export async function POST(req: NextRequest) {
             alert.email,
             'expiry_urgent',
             expiryAlertTemplate({
+              alertId: alert.id,
               nodeId: alert.node_id,
               label: alert.label,
               daysLeft: validator.days_left,
@@ -431,6 +463,7 @@ export async function POST(req: NextRequest) {
             alert.email,
             'expiry',
             expiryAlertTemplate({
+              alertId: alert.id,
               nodeId: alert.node_id,
               label: alert.label,
               daysLeft: validator.days_left,
@@ -450,12 +483,12 @@ export async function POST(req: NextRequest) {
       checked,
       sent,
       skipped,
-      release: {
+      release: latestRelease ? {
         tag: latestRelease.tag,
         type: latestRelease.type,
         deadline: latestRelease.deadline?.toISOString() ?? null,
-      },
-      errors: errors.length > 0 ? errors : undefined,
+      } : null,
+      errors: [...dataErrors, ...errors].length > 0 ? [...dataErrors, ...errors] : undefined,
     });
   } catch (error) {
     console.error('Error running validator alert check:', error);

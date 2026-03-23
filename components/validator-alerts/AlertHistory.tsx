@@ -12,6 +12,7 @@ const TYPE_CONFIG: Record<string, { label: string; className: string }> = {
   expiry: { label: 'Expiry', className: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400' },
   expiry_urgent: { label: 'Expiry Urgent', className: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' },
   expiry_critical: { label: 'Expiry Critical', className: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' },
+  check_failed: { label: 'Check Failed', className: 'bg-zinc-100 text-zinc-800 dark:bg-zinc-900/30 dark:text-zinc-400' },
 };
 
 function formatDate(dateStr: string): string {

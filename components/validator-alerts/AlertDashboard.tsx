@@ -24,6 +24,7 @@ import {
 import { useLoginModalTrigger, useLoginCompleteListener } from '@/hooks/useLoginModal';
 import { toast } from '@/lib/toast';
 import { AddValidatorDialog } from './AddValidatorDialog';
+import { BulkImportDialog } from './BulkImportDialog';
 import { AlertPreferences } from './AlertPreferences';
 import { AlertHistory } from './AlertHistory';
 import type {
@@ -202,7 +203,10 @@ export function AlertDashboard() {
             Monitor your validators and get notified of issues
           </p>
         </div>
-        <AddValidatorDialog userEmail={userEmail} onAdd={handleAdd} />
+        <div className="flex items-center gap-2">
+          <BulkImportDialog userEmail={userEmail} onAdd={handleAdd} />
+          <AddValidatorDialog userEmail={userEmail} onAdd={handleAdd} />
+        </div>
       </div>
 
       {/* Empty state */}
