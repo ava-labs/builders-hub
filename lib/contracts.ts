@@ -3043,6 +3043,93 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     category: 'mev',
     type: 'other',
   },
+
+  // ============ ROUND 10 — ClickHouse top-burner discovery (30d window, 2026-03-23) ============
+
+  // --- MEV / Arbitrage Bots ---
+  '0x80318c852ee7fbde52ce439dec3ae022ba39a536': {
+    address: '0x80318c852ee7fbde52ce439dec3ae022ba39a536',
+    name: 'MEV Bot (Pool Arbitrage)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0x6da6cb5fdb93812e7df84148a409904c41e3e737': {
+    address: '0x6da6cb5fdb93812e7df84148a409904c41e3e737',
+    name: 'MEV Bot (DEX Arbitrage)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0x70556849f4cfa8c8f0de36faa4b301223df40536': {
+    address: '0x70556849f4cfa8c8f0de36faa4b301223df40536',
+    name: 'Yield Strategy Bot (Multi-Protocol)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0xe6e428a32428748f08e7ed5a955ec62c805c2ed2': {
+    address: '0xe6e428a32428748f08e7ed5a955ec62c805c2ed2',
+    name: 'Market Making Bot (LFJ)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0xaab5727377fd14b7aef03528d952891861594ff5': {
+    address: '0xaab5727377fd14b7aef03528d952891861594ff5',
+    name: 'MEV Bot (Sandwich/Arb)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0xe61f5e2f1cb759c21cfbebafbcec0ad1bb961d07': {
+    address: '0xe61f5e2f1cb759c21cfbebafbcec0ad1bb961d07',
+    name: 'MEV Bot (High-Frequency)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0xe44eea4c6c2085d590a4a6bea01cf83e87a37be5': {
+    address: '0xe44eea4c6c2085d590a4a6bea01cf83e87a37be5',
+    name: 'Yield Strategy Bot (Balancer)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+  '0xe4947a833cbc708c753082283ffc14fdd4679252': {
+    address: '0xe4947a833cbc708c753082283ffc14fdd4679252',
+    name: 'MEV Bot (Whitelisted Arb)',
+    protocol: 'MEV / Arbitrage',
+    category: 'mev',
+    type: 'other',
+  },
+
+  // --- Executor Bot (Batch Operations) ---
+  '0xa6b9572156147e1ee9f3ccd3d1ad0b8b0c3d064b': {
+    address: '0xa6b9572156147e1ee9f3ccd3d1ad0b8b0c3d064b',
+    name: 'Executor Bot (Airdrop/Batch)',
+    protocol: 'MEV / Arbitrage',
+    category: 'other',
+    type: 'other',
+  },
+
+  // --- Unknown DEX Aggregator (routes through Uniswap V4 pools, 200 users) ---
+  '0xa04bd7ff587ec08723584a1afe80ffeb4815b627': {
+    address: '0xa04bd7ff587ec08723584a1afe80ffeb4815b627',
+    name: 'Swap Router (Uniswap V4 Pools)',
+    protocol: 'Unknown DEX Aggregator',
+    category: 'dex',
+    type: 'router',
+  },
+
+  // --- Uniswap V4 Core (singleton Pool Manager) ---
+  '0x06380c0e0912312b5150364b9dc4542ba0dbbc85': {
+    address: '0x06380c0e0912312b5150364b9dc4542ba0dbbc85',
+    name: 'Pool Manager V4',
+    protocol: 'Uniswap',
+    category: 'dex',
+    type: 'controller',
+  },
 };
 
 // Protocol slug mapping for linking to dApp pages (canonical slug per protocol)
