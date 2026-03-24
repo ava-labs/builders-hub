@@ -112,6 +112,9 @@ export function AlertPreferences({ alert, onSave }: AlertPreferencesProps) {
               onChange={(e) => setExpiryDays(Number(e.target.value))}
               className="mt-2 w-24 h-8 text-sm"
             />
+            <p className="text-xs text-muted-foreground mt-2 italic">
+              You&apos;ll also receive escalated alerts at 24 hours and 1 hour before expiry.
+            </p>
           </div>
         )}
       </div>
