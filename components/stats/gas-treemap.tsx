@@ -18,6 +18,7 @@ import { ProtocolSpotlight } from "./gas-treemap-spotlight";
 import { GasTreemapTable } from "./gas-treemap-table";
 import ContractGasXray from "./contract-gas-xray";
 import { GasCategoryTimeline } from "./gas-category-timeline";
+import { GasBurnBars } from "./gas-burn-bars";
 import { CustomDateRangePicker } from "@/components/custom-date-range-picker";
 import { differenceInCalendarDays, format } from "date-fns";
 import type { DateRange } from "react-day-picker";
@@ -35,7 +36,7 @@ import {
   type DailyCategoryStat,
 } from "./gas-treemap-utils";
 
-type ViewMode = "treemap" | "table";
+type ViewMode = "treemap" | "table" | "bars";
 
 interface ChainStatsData {
   totalTransactions: number;
@@ -722,6 +723,17 @@ export default function GasTreemap() {
             >
               <Table2 className="w-3.5 h-3.5" />
             </button>
+            <button
+              onClick={() => setViewMode("bars")}
+              className={`px-2.5 py-1.5 text-xs font-medium transition-colors flex items-center gap-1.5 ${
+                viewMode === "bars"
+                  ? "bg-zinc-300 dark:bg-zinc-700 text-zinc-900 dark:text-white"
+                  : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-800"
+              }`}
+              title="Growth chart"
+            >
+              <BarChart3 className="w-3.5 h-3.5" />
+            </button>
           </div>
 
           {/* Time range pills */}
@@ -1268,6 +1280,19 @@ export default function GasTreemap() {
           {[0, 1, 2, 3, 4].map((i) => (
             <div key={i} className="h-10 bg-zinc-100 dark:bg-zinc-800/50 rounded mb-2" style={{ animationDelay: `${i * 50}ms` }} />
           ))}
+        </div>
+      )}
+
+      {/* Bars view */}
+      {viewMode === "bars" && data && !loading && (
+        <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 sm:p-6">
+          <GasBurnBars protocols={data.protocolBreakdown} isDark={isDark} />
+        </div>
+      )}
+      {viewMode === "bars" && loading && (
+        <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 p-8 animate-pulse">
+          <div className="h-6 w-32 bg-zinc-200 dark:bg-zinc-800 rounded mb-4" />
+          <div className="h-[350px] bg-zinc-100 dark:bg-zinc-800/50 rounded" />
         </div>
       )}
 
