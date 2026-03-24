@@ -3,7 +3,8 @@
   "version": "0.0.0",
   "private": true,
   "resolutions": {
-    "katex": "0.16.35"
+    "katex": "0.16.35",
+    "fast-xml-parser": ">=5.5.6"
   },
   "scripts": {
     "build": "tsc --noEmit && next build",
