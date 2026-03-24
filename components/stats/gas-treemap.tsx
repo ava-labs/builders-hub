@@ -12,6 +12,7 @@ import {
   ArrowDownRight,
   LayoutGrid,
   Table2,
+  HelpCircle,
 } from "lucide-react";
 import { ProtocolSpotlight } from "./gas-treemap-spotlight";
 import { GasTreemapTable } from "./gas-treemap-table";
@@ -211,6 +212,7 @@ interface CategoryItem extends SquarifyItem {
   category: string;
   label: string;
   gasShare: number;
+  burnShare: number;
   delta: number;
   txCount: number;
   gasUsed: number;
@@ -226,6 +228,7 @@ interface ProtocolItem extends SquarifyItem {
   protocol: string;
   category: string;
   gasShare: number;
+  burnShare: number;
   delta: number;
   txCount: number;
   gasUsed: number;
@@ -241,6 +244,7 @@ type HoveredInfo =
       label: string;
       delta: number;
       gasShare: number;
+      burnShare: number;
       txCount: number;
       gasUsed: number;
       avaxBurned: number;
@@ -255,6 +259,7 @@ type HoveredInfo =
       categoryLabel: string;
       delta: number;
       gasShare: number;
+      burnShare: number;
       txCount: number;
       gasUsed: number;
       avaxBurned: number;
@@ -349,6 +354,7 @@ function buildCategoryHover(cat: CategoryItem): HoveredInfo {
     label: cat.label,
     delta: cat.delta,
     gasShare: cat.gasShare,
+    burnShare: cat.burnShare,
     txCount: cat.txCount,
     gasUsed: cat.gasUsed,
     avaxBurned: cat.avaxBurned,
@@ -366,6 +372,7 @@ function buildProtocolHover(p: ProtocolItem, catLabel: string): HoveredInfo {
     categoryLabel: catLabel,
     delta: p.delta,
     gasShare: p.gasShare,
+    burnShare: p.burnShare,
     txCount: p.txCount,
     gasUsed: p.gasUsed,
     avaxBurned: p.avaxBurned,
@@ -498,6 +505,7 @@ export default function GasTreemap() {
   const categoryRects = useMemo(() => {
     if (!data?.categoryBreakdown) return [];
 
+    const totalBurned = data.coverage?.totalChainBurned || 1;
     const items: CategoryItem[] = data.categoryBreakdown
       .filter((c) => c.gasShare > 0.1)
       .map((c) => ({
@@ -506,6 +514,7 @@ export default function GasTreemap() {
         category: c.category,
         label: CATEGORY_LABELS[c.category] || c.category,
         gasShare: c.gasShare,
+        burnShare: totalBurned > 0 ? (c.avaxBurned / totalBurned) * 100 : 0,
         delta: c.delta,
         txCount: c.txCount,
         gasUsed: c.gasUsed,
@@ -536,6 +545,7 @@ export default function GasTreemap() {
           category: "unclassified",
           label: "Breadcrumbs",
           gasShare: unclassifiedPercent,
+          burnShare: totalBurned > 0 ? (unclassifiedBurned / totalBurned) * 100 : 0,
           delta: 0,
           txCount: Math.max(
             data.coverage.totalChainTxs - data.totalTransactions,
@@ -590,12 +600,15 @@ export default function GasTreemap() {
       }
 
       // Show all protocols individually (no "Others" bucket)
+      // Compute total burned from all category rects for burnShare calculation
+      const allBurned = categoryRects.reduce((s, r) => s + r.item.avaxBurned, 0) || 1;
       const significant: ProtocolItem[] = protocols.map((p) => ({
         key: `${cat.category}:${p.protocol}`,
         value: p.avaxBurned,
         protocol: p.protocol,
         category: cat.category,
         gasShare: p.gasShare,
+        burnShare: allBurned > 0 ? (p.avaxBurned / allBurned) * 100 : 0,
         delta: p.delta,
         txCount: p.txCount,
         gasUsed: p.gasUsed,
@@ -669,6 +682,16 @@ export default function GasTreemap() {
               <span className="text-xs px-2 py-0.5 rounded-full bg-red-500/10 text-red-400 border border-red-500/20">
                 {formatAvax(data.coverage?.totalChainBurned ?? data.totalAvaxBurned)}
               </span>
+              <div className="relative group">
+                <HelpCircle className="w-3.5 h-3.5 text-zinc-400 dark:text-zinc-500 cursor-help" />
+                <div className="absolute left-0 top-full mt-2 z-50 hidden group-hover:block w-72 p-3 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-lg text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
+                  <p className="font-medium text-zinc-900 dark:text-white mb-1">How to read this treemap</p>
+                  <p><strong>Box size</strong> = share of total AVAX burned on C-Chain.</p>
+                  <p className="mt-1"><strong>Percentages inside boxes</strong> (e.g. +54%) = change vs the previous period of equal length.</p>
+                  <p className="mt-1"><strong>Colors</strong>: green = growing, red = shrinking, gray = flat.</p>
+                  <p className="mt-1"><strong>Breadcrumbs</strong> = transactions to contracts not yet classified.</p>
+                </div>
+              </div>
             </>
           )}
         </div>
@@ -886,7 +909,7 @@ export default function GasTreemap() {
                       style={{ pointerEvents: "none", textShadow: isUnclassified ? "none" : "0 1px 3px rgba(0,0,0,0.5)" }}
                     >
                       {isUnclassified
-                        ? `${cat.gasShare.toFixed(1)}%`
+                        ? `${cat.burnShare.toFixed(1)}%`
                         : `${cat.delta >= 0 ? "+" : ""}${cat.delta.toFixed(1)}%`}
                     </text>
                   )}
@@ -901,7 +924,7 @@ export default function GasTreemap() {
                       fontWeight="400"
                       style={{ pointerEvents: "none" }}
                     >
-                      {cat.gasShare.toFixed(1)}% of gas
+                      {cat.burnShare.toFixed(1)}% burned
                     </text>
                   )}
                 </g>
@@ -957,7 +980,7 @@ export default function GasTreemap() {
                       {catLabel}
                       <tspan fill="rgba(255,255,255,0.45)" fontWeight="400">
                         {" "}
-                        {cat.gasShare.toFixed(1)}%
+                        {cat.burnShare.toFixed(1)}%
                       </tspan>
                     </text>
                   )}
@@ -1105,8 +1128,8 @@ export default function GasTreemap() {
                   <Fuel className="w-3.5 h-3.5 text-amber-400" />
                 </div>
                 <div>
-                  <div className="text-[10px] text-zinc-400 dark:text-zinc-500 uppercase">Gas Share</div>
-                  <div className="text-sm font-semibold text-zinc-900 dark:text-white">{hovered.gasShare.toFixed(2)}%</div>
+                  <div className="text-[10px] text-zinc-400 dark:text-zinc-500 uppercase">Burn Share</div>
+                  <div className="text-sm font-semibold text-zinc-900 dark:text-white">{hovered.burnShare.toFixed(2)}%</div>
                 </div>
               </div>
               <div className="flex items-center gap-2">
