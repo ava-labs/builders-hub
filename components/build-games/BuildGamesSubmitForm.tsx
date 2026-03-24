@@ -1647,7 +1647,7 @@ export default function BuildGamesSubmitForm({
               Stage 4 is a live presentation in front of judges
             </p>
             <p className="font-['Aeonik:Regular',sans-serif] text-[14px] text-white/60">
-              The real judging happens live — judges will watch your live pitch, ask questions, and evaluate your project in real time. The submission below serves as a dry run and will complete your project profile, but it does not replace the live presentation.
+              Submission in here is Optional but highly recommended specially if your project changed from its original idea presented on the Stage 1. The real judging happens live — judges will watch your live pitch, ask questions, and evaluate your project in real time. The submission below serves as a dry run and will complete your project profile, but it does not replace the live presentation.
             </p>
           </div>
 
