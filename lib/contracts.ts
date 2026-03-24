@@ -7,6 +7,7 @@ export interface ContractInfo {
   protocol: string;
   category: 'dex' | 'lending' | 'derivatives' | 'bridge' | 'nft' | 'yield' | 'gaming' | 'rwa' | 'token' | 'infrastructure' | 'icm' | 'mev' | 'other';
   type: 'router' | 'factory' | 'pool' | 'vault' | 'token' | 'staking' | 'rewards' | 'orderbook' | 'controller' | 'other';
+  subcategory?: 'arbitrage' | 'jit' | 'heavy-arb' | 'flash-loan-arb' | 'market-maker' | 'high-frequency' | 'sandwich' | 'backrunner' | 'yield' | 'executor';
 }
 
 // Contract registry - comprehensive list of Avalanche contracts
@@ -1182,6 +1183,7 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     protocol: 'MEV Bot (0x977a deployer)',
     category: 'mev',
     type: 'other',
+    subcategory: 'arbitrage',
   },
   '0x922135e61c07c650dc406dc9d7722f403cf4935b': {
     address: '0x922135e61c07c650dc406dc9d7722f403cf4935b',
@@ -1189,6 +1191,7 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     protocol: 'MEV Bot (0x2222 deployer)',
     category: 'mev',
     type: 'other',
+    subcategory: 'arbitrage',
   },
   '0x10922755586c35180cdec7a1a38e2b60c800d3c8': {
     address: '0x10922755586c35180cdec7a1a38e2b60c800d3c8',
@@ -1196,6 +1199,7 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     protocol: 'MEV Bot (failed ops)',
     category: 'mev',
     type: 'other',
+    subcategory: 'heavy-arb',
   },
   '0x99b69659f70470bbd32ae59ddf952f157a598a44': {
     address: '0x99b69659f70470bbd32ae59ddf952f157a598a44',
@@ -1203,6 +1207,7 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     protocol: 'MEV Bot (multi-protocol)',
     category: 'mev',
     type: 'other',
+    subcategory: 'arbitrage',
   },
   '0x612a722ac5eff60004a0d8e83fbe768690540176': {
     address: '0x612a722ac5eff60004a0d8e83fbe768690540176',
@@ -1210,6 +1215,7 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     protocol: 'MEV Bot (0x977a deployer #2)',
     category: 'mev',
     type: 'other',
+    subcategory: 'arbitrage',
   },
   '0x07d25044cbe0524c0617267d6bfaf2fa6a0a0efe': {
     address: '0x07d25044cbe0524c0617267d6bfaf2fa6a0a0efe',
@@ -1217,6 +1223,7 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     protocol: 'MEV Bot (Gnosis Safe backed)',
     category: 'mev',
     type: 'other',
+    subcategory: 'arbitrage',
   },
   '0x25090cd3c1f3dd6377348f58408d2ddc96acf201': {
     address: '0x25090cd3c1f3dd6377348f58408d2ddc96acf201',
@@ -1224,6 +1231,7 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     protocol: 'MEV Bot (0x977a deployer #3)',
     category: 'mev',
     type: 'other',
+    subcategory: 'arbitrage',
   },
 
   // Round 2 MEV bots
@@ -1233,6 +1241,7 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     protocol: 'MEV Bot (flash loan arb)',
     category: 'mev',
     type: 'other',
+    subcategory: 'flash-loan-arb',
   },
   '0x5d6d9811919598981367ac45134f9586d4f04bff': {
     address: '0x5d6d9811919598981367ac45134f9586d4f04bff',
@@ -1247,6 +1256,7 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     protocol: 'MEV Bot (SafeProxy arb)',
     category: 'mev',
     type: 'other',
+    subcategory: 'arbitrage',
   },
   '0x42104e66a93da581dd06ebd434ff1c47176ff2d7': {
     address: '0x42104e66a93da581dd06ebd434ff1c47176ff2d7',
@@ -1254,6 +1264,7 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     protocol: 'MEV Bot (JIT liquidity) (0x42104e)',
     category: 'mev',
     type: 'other',
+    subcategory: 'jit',
   },
   '0x5b05e50f8d2942cbc7f89dd5b07cc2fa610caf9d': {
     address: '0x5b05e50f8d2942cbc7f89dd5b07cc2fa610caf9d',
@@ -1261,6 +1272,7 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     protocol: 'MEV Bot (Coinbase funded #1)',
     category: 'mev',
     type: 'other',
+    subcategory: 'arbitrage',
   },
   '0xf163ca4c6931141ee115db0b192ed6c37d491714': {
     address: '0xf163ca4c6931141ee115db0b192ed6c37d491714',
@@ -1268,6 +1280,7 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     protocol: 'MEV Bot (Coinbase funded #2)',
     category: 'mev',
     type: 'other',
+    subcategory: 'heavy-arb',
   },
 
   // ============ PHARAOH EXCHANGE (Additional) ============
@@ -1408,6 +1421,7 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     protocol: 'MEV Bot (0x2222 deployer #3)',
     category: 'mev',
     type: 'other',
+    subcategory: 'arbitrage',
   },
   '0x31e05ba0fca0a9447a2eb1065c1cc57cb722a924': {
     address: '0x31e05ba0fca0a9447a2eb1065c1cc57cb722a924',
@@ -1415,6 +1429,7 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     protocol: 'MEV Bot (0x2222 deployer #4)',
     category: 'mev',
     type: 'other',
+    subcategory: 'arbitrage',
   },
 
   // ============ AVAXPIXEL ============
@@ -1433,6 +1448,7 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     protocol: 'MEV Bot (0x2d75 deployer #1)',
     category: 'mev',
     type: 'other',
+    subcategory: 'jit',
   },
   '0xf7a9af4b028448a78aefc589aaa41d1728dc7421': {
     address: '0xf7a9af4b028448a78aefc589aaa41d1728dc7421',
@@ -1440,6 +1456,7 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     protocol: 'MEV Bot (0x2d75 deployer #2)',
     category: 'mev',
     type: 'other',
+    subcategory: 'arbitrage',
   },
   '0xc0bbe7e1ea440600cadcbee83640bb60b8f985fb': {
     address: '0xc0bbe7e1ea440600cadcbee83640bb60b8f985fb',
@@ -1447,6 +1464,7 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     protocol: 'MEV Bot (0x2d75 deployer #3)',
     category: 'mev',
     type: 'other',
+    subcategory: 'jit',
   },
 
   // ============ MEV / ARBITRAGE BOTS (Round 4 — misc) ============
@@ -1463,6 +1481,7 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     protocol: 'MEV Bot (Uniswap V4 #1)',
     category: 'mev',
     type: 'other',
+    subcategory: 'arbitrage',
   },
   '0x56c47ff7e63cc0ebb2038ce5822d19fdc8f4be27': {
     address: '0x56c47ff7e63cc0ebb2038ce5822d19fdc8f4be27',
@@ -1470,6 +1489,7 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     protocol: 'MEV Bot (Uniswap V4 #2)',
     category: 'mev',
     type: 'other',
+    subcategory: 'arbitrage',
   },
   '0x964bd4f472882d0d4120a4b3c859e43ffb459291': {
     address: '0x964bd4f472882d0d4120a4b3c859e43ffb459291',
@@ -1477,6 +1497,7 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     protocol: 'MEV Bot (CAPY holder)',
     category: 'mev',
     type: 'other',
+    subcategory: 'arbitrage',
   },
 
   // ============ BLACKHOLE DEX (Round 5) ============
@@ -1771,6 +1792,7 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     protocol: 'MEV Bot (WAVAX arb)',
     category: 'mev',
     type: 'other',
+    subcategory: 'arbitrage',
   },
   '0x777c18ca58845793701db19845b5f70086000000': {
     address: '0x777c18ca58845793701db19845b5f70086000000',
@@ -1778,6 +1800,7 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     protocol: 'MEV Bot (vanity 0x777)',
     category: 'mev',
     type: 'other',
+    subcategory: 'arbitrage',
   },
   '0x31775b7cf5e046cb47c3d5336ce3f3e34066a96b': {
     address: '0x31775b7cf5e046cb47c3d5336ce3f3e34066a96b',
@@ -1785,6 +1808,7 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     protocol: 'MEV Bot (batch executor)',
     category: 'mev',
     type: 'other',
+    subcategory: 'executor',
   },
   '0x62f9016c97ef9255c8ba16dda7f531656015daea': {
     address: '0x62f9016c97ef9255c8ba16dda7f531656015daea',
@@ -1792,13 +1816,15 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     protocol: 'MEV Bot (factory/router)',
     category: 'mev',
     type: 'other',
+    subcategory: 'arbitrage',
   },
   '0xef114c8710330751ae2cd84066cfd85412b6d30d': {
     address: '0xef114c8710330751ae2cd84066cfd85412b6d30d',
-    name: 'MEV Bot (Aave flash loan arb)',
-    protocol: 'MEV Bot (Aave flash loan arb)',
+    name: 'MEV Bot (Balancer flash loan arb #2)',
+    protocol: 'MEV Bot (Balancer flash loan arb #2)',
     category: 'mev',
     type: 'other',
+    subcategory: 'flash-loan-arb',
   },
   '0x9cde401c8f19fd7648c1fca95438062ee3600bbd': {
     address: '0x9cde401c8f19fd7648c1fca95438062ee3600bbd',
@@ -1806,6 +1832,7 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     protocol: 'MEV Bot (Uniswap V4 #3)',
     category: 'mev',
     type: 'other',
+    subcategory: 'arbitrage',
   },
   '0xc8e0d6ddec98078bf0a12c6e445631f02727cd22': {
     address: '0xc8e0d6ddec98078bf0a12c6e445631f02727cd22',
@@ -1813,6 +1840,7 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     protocol: 'MEV Bot (multi-DEX arb)',
     category: 'mev',
     type: 'other',
+    subcategory: 'arbitrage',
   },
   '0x92fc2e2c2a672bf8c88119c75832104440802b18': {
     address: '0x92fc2e2c2a672bf8c88119c75832104440802b18',
@@ -1820,6 +1848,7 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     protocol: 'MEV Bot (Uniswap V4 #4)',
     category: 'mev',
     type: 'other',
+    subcategory: 'arbitrage',
   },
   '0xc208d89afaf82722138c890774cdd4cc4137b55a': {
     address: '0xc208d89afaf82722138c890774cdd4cc4137b55a',
@@ -1827,6 +1856,7 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     protocol: 'MEV Bot (Uniswap V4 #5)',
     category: 'mev',
     type: 'other',
+    subcategory: 'arbitrage',
   },
   '0x53c4bcbebf25cc4243e1640cf76ed4411d640e55': {
     address: '0x53c4bcbebf25cc4243e1640cf76ed4411d640e55',
@@ -1834,6 +1864,7 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     protocol: 'MEV Bot (Uniswap V4 #6)',
     category: 'mev',
     type: 'other',
+    subcategory: 'arbitrage',
   },
   '0x4f9647f643f547c553b27e611ba97d12d681566b': {
     address: '0x4f9647f643f547c553b27e611ba97d12d681566b',
@@ -1841,6 +1872,7 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     protocol: 'MEV Bot (multi-protocol arb)',
     category: 'mev',
     type: 'other',
+    subcategory: 'arbitrage',
   },
   '0x337cdbcc3c5756e75bfe0326deb067a901bdd1ca': {
     address: '0x337cdbcc3c5756e75bfe0326deb067a901bdd1ca',
@@ -1848,6 +1880,7 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     protocol: 'MEV Bot (JIT liquidity) (0x337cdb)',
     category: 'mev',
     type: 'other',
+    subcategory: 'jit',
   },
   '0x38aa1b1c65531fde294d2ada1af94c9d3fb30e54': {
     address: '0x38aa1b1c65531fde294d2ada1af94c9d3fb30e54',
@@ -1862,6 +1895,7 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     protocol: 'MEV Bot (multi-pool arb)',
     category: 'mev',
     type: 'other',
+    subcategory: 'arbitrage',
   },
   '0xd1448508f221b53ea26c74d384f123e085f9ab2d': {
     address: '0xd1448508f221b53ea26c74d384f123e085f9ab2d',
@@ -1869,13 +1903,15 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     protocol: 'MEV Bot (cross-protocol arb)',
     category: 'mev',
     type: 'other',
+    subcategory: 'arbitrage',
   },
   '0x14843971c9918b5f762c309ac21bc2554981ec9d': {
     address: '0x14843971c9918b5f762c309ac21bc2554981ec9d',
-    name: 'MEV Bot (SushiSwap arb)',
-    protocol: 'MEV Bot (SushiSwap arb)',
+    name: 'MEV Bot (Balancer flash loan arb)',
+    protocol: 'MEV Bot (Balancer flash loan arb)',
     category: 'mev',
     type: 'other',
+    subcategory: 'flash-loan-arb',
   },
   '0xdcd54f57d21e73c8bb197ee0fb207690b408dad7': {
     address: '0xdcd54f57d21e73c8bb197ee0fb207690b408dad7',
@@ -1883,6 +1919,7 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     protocol: 'MEV Bot (single-method arb)',
     category: 'mev',
     type: 'other',
+    subcategory: 'arbitrage',
   },
   '0xf3d455d5e756efcec05c49e5721b539265466bbb': {
     address: '0xf3d455d5e756efcec05c49e5721b539265466bbb',
@@ -1890,6 +1927,7 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     protocol: 'MEV Bot (swap bot)',
     category: 'mev',
     type: 'other',
+    subcategory: 'arbitrage',
   },
   '0x5eba459213546091e74e1fb6d2e7ae05fb65ec0f': {
     address: '0x5eba459213546091e74e1fb6d2e7ae05fb65ec0f',
@@ -1897,6 +1935,7 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     protocol: 'MEV Bot (multi-asset trader)',
     category: 'mev',
     type: 'other',
+    subcategory: 'arbitrage',
   },
   '0xb9b75851b729cebd6f7c0d98fc564395449cba73': {
     address: '0xb9b75851b729cebd6f7c0d98fc564395449cba73',
@@ -1914,6 +1953,7 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     protocol: 'MEV Bot (multi-hop arb, 5.9M avg gas)',
     category: 'mev',
     type: 'other',
+    subcategory: 'heavy-arb',
   },
   '0xac3b57bd239b1ff49d07be4f7cf48f64b7462811': {
     address: '0xac3b57bd239b1ff49d07be4f7cf48f64b7462811',
@@ -1921,6 +1961,7 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     protocol: 'MEV Bot (high-freq, 0x977a caller)',
     category: 'mev',
     type: 'other',
+    subcategory: 'arbitrage',
   },
   '0x350b239e26690202e2a2d46f55a844e4396f0485': {
     address: '0x350b239e26690202e2a2d46f55a844e4396f0485',
@@ -1928,6 +1969,7 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     protocol: 'MEV Bot (heavy arb, 4.1M avg gas)',
     category: 'mev',
     type: 'other',
+    subcategory: 'heavy-arb',
   },
   '0x181870d61c0e5a6985c873485de8297426f4aed4': {
     address: '0x181870d61c0e5a6985c873485de8297426f4aed4',
@@ -1935,6 +1977,7 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     protocol: 'MEV Bot (JIT liquidity #1)',
     category: 'mev',
     type: 'other',
+    subcategory: 'jit',
   },
   '0x9ad4c21765e3b18930227a97481fb30293486f3a': {
     address: '0x9ad4c21765e3b18930227a97481fb30293486f3a',
@@ -1942,6 +1985,7 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     protocol: 'MEV Bot (template A #1)',
     category: 'mev',
     type: 'other',
+    subcategory: 'jit',
   },
   '0xcf03a2eeda67d775ebc2fcd799d67ed01cd80599': {
     address: '0xcf03a2eeda67d775ebc2fcd799d67ed01cd80599',
@@ -1949,6 +1993,7 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     protocol: 'MEV Bot (template A #2)',
     category: 'mev',
     type: 'other',
+    subcategory: 'jit',
   },
   '0x4f7b47d5998bd53f63786ffb6e42becda7eec4ab': {
     address: '0x4f7b47d5998bd53f63786ffb6e42becda7eec4ab',
@@ -1956,6 +2001,7 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     protocol: 'MEV Bot (template A #3)',
     category: 'mev',
     type: 'other',
+    subcategory: 'jit',
   },
   '0x87f7129ab8cd0f5d438bfe31a7f5eb097e73acf2': {
     address: '0x87f7129ab8cd0f5d438bfe31a7f5eb097e73acf2',
@@ -1963,13 +2009,15 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     protocol: 'MEV Bot (template A #4)',
     category: 'mev',
     type: 'other',
+    subcategory: 'jit',
   },
   '0x12f62e3cee07524fd3368c1d63b5d61f227d2b78': {
     address: '0x12f62e3cee07524fd3368c1d63b5d61f227d2b78',
-    name: 'MEV Bot (arb bot)',
-    protocol: 'MEV Bot (arb bot)',
+    name: 'JIT Liquidity Bot (Pharaoh)',
+    protocol: 'JIT Liquidity Bot (Pharaoh)',
     category: 'mev',
     type: 'other',
+    subcategory: 'jit',
   },
   '0xe7c679e7488bb8a3ac0e7eeb511cee3f580bf1e1': {
     address: '0xe7c679e7488bb8a3ac0e7eeb511cee3f580bf1e1',
@@ -1977,6 +2025,7 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     protocol: 'MEV Bot (JIT liquidity #2)',
     category: 'mev',
     type: 'other',
+    subcategory: 'jit',
   },
 
   // ============ AUTO-CLASSIFIED (Round 7) ============
@@ -2374,6 +2423,7 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     protocol: 'MEV Bot (deployer 0xf69e0b)',
     category: 'mev',
     type: 'other',
+    subcategory: 'arbitrage',
   },
   '0x7773c694fddf850089b00f23d8ab466f00000000': {
     address: '0x7773c694fddf850089b00f23d8ab466f00000000',
@@ -2381,6 +2431,7 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     protocol: 'MEV Bot (deployer 0xa34ec9)',
     category: 'mev',
     type: 'other',
+    subcategory: 'arbitrage',
   },
   '0x40335a68bd5dcc8cee4b93916c1f4b7af6554cdc': {
     address: '0x40335a68bd5dcc8cee4b93916c1f4b7af6554cdc',
@@ -2388,6 +2439,7 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     protocol: 'MEV Bot (deployer 0x977a8a) (0x40335a)',
     category: 'mev',
     type: 'other',
+    subcategory: 'arbitrage',
   },
   '0xdd8ea833cd3c5360cf3c3b8e26520893549d60d7': {
     address: '0xdd8ea833cd3c5360cf3c3b8e26520893549d60d7',
@@ -2395,6 +2447,7 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     protocol: 'MEV Bot (deployer 0x977a8a) (0xdd8ea8)',
     category: 'mev',
     type: 'other',
+    subcategory: 'arbitrage',
   },
   '0x723a11d37743eeaa2029974ea7c0a030f150867d': {
     address: '0x723a11d37743eeaa2029974ea7c0a030f150867d',
@@ -2402,6 +2455,7 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     protocol: 'MEV Bot (deployer 0x25b395)',
     category: 'mev',
     type: 'other',
+    subcategory: 'arbitrage',
   },
 
   // --- Named contracts: name-based classification (REVIEW protocol) ---
@@ -3014,6 +3068,7 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     protocol: 'MEV Bot (high-volume arb)',
     category: 'mev',
     type: 'other',
+    subcategory: 'arbitrage',
   },
   '0x6da68bcc6174a889aa7b75740b89536fa5d92dff': {
     address: '0x6da68bcc6174a889aa7b75740b89536fa5d92dff',
@@ -3021,6 +3076,7 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     protocol: 'MEV Bot (multi-DEX arb #2)',
     category: 'mev',
     type: 'other',
+    subcategory: 'arbitrage',
   },
   '0xe494bca453ff53ade5c135127a40658e59e45b3f': {
     address: '0xe494bca453ff53ade5c135127a40658e59e45b3f',
@@ -3028,6 +3084,7 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     protocol: 'MEV Bot (sandwich)',
     category: 'mev',
     type: 'other',
+    subcategory: 'sandwich',
   },
   '0xe61f4b0c2f09ae0c6e65b49e0c1e695d96197283': {
     address: '0xe61f4b0c2f09ae0c6e65b49e0c1e695d96197283',
@@ -3035,6 +3092,7 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     protocol: 'MEV Bot (backrunner)',
     category: 'mev',
     type: 'other',
+    subcategory: 'backrunner',
   },
   '0x2743ea9beb0f4b8d721cd0faa44f8e46e1e9a81a': {
     address: '0x2743ea9beb0f4b8d721cd0faa44f8e46e1e9a81a',
@@ -3042,6 +3100,7 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     protocol: 'MEV Bot (JIT liquidity) (0x2743ea)',
     category: 'mev',
     type: 'other',
+    subcategory: 'jit',
   },
 
   // ============ ROUND 10 — ClickHouse top-burner discovery (30d window, 2026-03-23) ============
@@ -3053,6 +3112,7 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     protocol: 'MEV Bot (Pool Arbitrage)',
     category: 'mev',
     type: 'other',
+    subcategory: 'arbitrage',
   },
   '0x6da6cb5fdb93812e7df84148a409904c41e3e737': {
     address: '0x6da6cb5fdb93812e7df84148a409904c41e3e737',
@@ -3060,27 +3120,31 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     protocol: 'MEV Bot (DEX Arbitrage)',
     category: 'mev',
     type: 'other',
+    subcategory: 'arbitrage',
   },
   '0x70556849f4cfa8c8f0de36faa4b301223df40536': {
     address: '0x70556849f4cfa8c8f0de36faa4b301223df40536',
     name: 'Yield Strategy Bot (Multi-Protocol)',
     protocol: 'Yield Strategy Bot (Multi-Protocol)',
-    category: 'mev',
-    type: 'other',
+    category: 'yield',
+    type: 'vault',
+    subcategory: 'yield',
   },
   '0xe6e428a32428748f08e7ed5a955ec62c805c2ed2': {
     address: '0xe6e428a32428748f08e7ed5a955ec62c805c2ed2',
     name: 'Market Making Bot (LFJ)',
     protocol: 'Market Making Bot (LFJ)',
-    category: 'mev',
+    category: 'dex',
     type: 'other',
+    subcategory: 'market-maker',
   },
   '0xaab5727377fd14b7aef03528d952891861594ff5': {
     address: '0xaab5727377fd14b7aef03528d952891861594ff5',
-    name: 'MEV Bot (Sandwich/Arb)',
-    protocol: 'MEV Bot (Sandwich/Arb)',
+    name: 'JIT Liquidity Bot (Pharaoh)',
+    protocol: 'JIT Liquidity Bot (Pharaoh)',
     category: 'mev',
     type: 'other',
+    subcategory: 'jit',
   },
   '0xe61f5e2f1cb759c21cfbebafbcec0ad1bb961d07': {
     address: '0xe61f5e2f1cb759c21cfbebafbcec0ad1bb961d07',
@@ -3088,13 +3152,15 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     protocol: 'MEV Bot (High-Frequency)',
     category: 'mev',
     type: 'other',
+    subcategory: 'high-frequency',
   },
   '0xe44eea4c6c2085d590a4a6bea01cf83e87a37be5': {
     address: '0xe44eea4c6c2085d590a4a6bea01cf83e87a37be5',
-    name: 'Yield Strategy Bot (Balancer)',
-    protocol: 'Yield Strategy Bot (Balancer)',
-    category: 'mev',
-    type: 'other',
+    name: 'Yield Strategy Bot (Aave)',
+    protocol: 'Yield Strategy Bot (Aave)',
+    category: 'yield',
+    type: 'vault',
+    subcategory: 'yield',
   },
   '0xe4947a833cbc708c753082283ffc14fdd4679252': {
     address: '0xe4947a833cbc708c753082283ffc14fdd4679252',
@@ -3102,6 +3168,7 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     protocol: 'MEV Bot (Whitelisted Arb)',
     category: 'mev',
     type: 'other',
+    subcategory: 'arbitrage',
   },
 
   // --- Executor Bot (Batch Operations) ---
@@ -3109,8 +3176,9 @@ export const CONTRACT_REGISTRY: Record<string, ContractInfo> = {
     address: '0xa6b9572156147e1ee9f3ccd3d1ad0b8b0c3d064b',
     name: 'Executor Bot (Airdrop/Batch)',
     protocol: 'Executor Bot (Airdrop/Batch)',
-    category: 'mev',
+    category: 'infrastructure',
     type: 'other',
+    subcategory: 'executor',
   },
 
   // --- Unknown DEX Aggregator (routes through Uniswap V4 pools, 200 users) ---
