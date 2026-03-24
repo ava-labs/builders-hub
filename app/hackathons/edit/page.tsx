@@ -1032,6 +1032,7 @@ const HackathonsEdit = () => {
   const [collapsed, setCollapsed] = useState({
     main: false,
     images: false,
+    stages: false,
     about: false,
     trackText: false,
     content: false,
@@ -1339,7 +1340,7 @@ const HackathonsEdit = () => {
     doSubmit();
   };
 
-  const handleDone = (section: 'main' | 'images' | 'about' | 'trackText' | 'content' | 'last') => {
+  const handleDone = (section: 'main' | 'images' | 'stages' | 'about' | 'trackText' | 'content' | 'last') => {
     setCollapsed({ ...collapsed, [section]: true });
   };
 
@@ -1810,6 +1811,7 @@ const HackathonsEdit = () => {
     setCollapsed({
       main: true,
       images: true,
+      stages: true,
       about: true,
       trackText: true,
       content: true,
@@ -2111,12 +2113,30 @@ const HackathonsEdit = () => {
                     <div className="flex items-center justify-between mb-4">
                       <h2 className="text-2xl font-bold">Step 2: Stages</h2>
                     </div>
-                    <HackathonsEditStages
-                      formDataContent={formDataContent}
-                      setFormDataContent={setFormDataContent}
-                      language={language}
-                    />
+                    {collapsed.stages && (
+                      <div className="text-zinc-400 italic">✓ Stages completed</div>
+                    )}
+                    {
+                      !collapsed.stages && (
+                        <>
+                          <HackathonsEditStages
+                            formDataContent={formDataContent}
+                            setFormDataContent={setFormDataContent}
+                            language={language}
+                          />
+                          <div className="flex justify-end mt-4">
+                            <button
+                              type="button"
+                              onClick={() => handleDone('stages')}
+                              className="bg-green-600 hover:bg-green-700 text-white px-4 py-1 rounded flex items-center gap-1 cursor-pointer"
+                            >
+                              {t[language].done} <ChevronDown className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </>
 
+                      )
+                    }
                   </div>
                   {/* Step 2: Images & Branding */}
                   <div className="bg-zinc-900/60 border border-zinc-700 rounded-lg p-6 my-6">

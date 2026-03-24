@@ -14,20 +14,23 @@ import { Divider } from '@/components/ui/divider'
 import { t } from '@/app/hackathons/edit/translations'
 import { IDataContent } from '@/app/hackathons/edit/initials'
 import StageCardsForm from './stages-components/Card'
-import { HackathonStage, StageComponent } from '@/types/hackathon-stage'
 import StageTagsForm from './stages-components/Tags'
+import StageSubmitForm from './stages-components/submit-form/Form'
+import {
+  ChipsStagesSubmitFormField,
+  HackathonStage,
+  LinkStagesSubmitFormField,
+  StageComponent,
+  StageSubmitForm as StageSubmitFormType,
+  SubmitFormField,
+  SubmitFormFieldType,
+  TextStagesSubmitFormField,
+} from '@/types/hackathon-stage'
 
 export enum StageComponentType {
   Cards = 'cards',
   Tags = 'tags',
 }
-
-export type CardItem = {
-  icon: string
-  title: string
-  description: string
-}
-
 
 type HackathonsEditStagesProps = {
   formDataContent: IDataContent
@@ -40,7 +43,7 @@ type StageFormProps = {
   index: number
   onStageFieldChange: (
     index: number,
-    field: 'label' | 'date' | 'deadline',
+    field: keyof Pick<HackathonStage, 'label' | 'date' | 'deadline'>,
     value: string
   ) => void
   onStageComponentTypeChange: (
@@ -49,7 +52,21 @@ type StageFormProps = {
   ) => void
   onStageComponentChange: (
     index: number,
-    component: HackathonStage['component']
+    component: StageComponent | undefined
+  ) => void
+  onRemoveSubmitForm: (index: number) => void
+  onAddSubmitFormField: (
+    stageIndex: number,
+    type: SubmitFormFieldType
+  ) => void
+  onUpdateSubmitFormField: (
+    stageIndex: number,
+    fieldIndex: number,
+    updatedField: SubmitFormField
+  ) => void
+  onRemoveSubmitFormField: (
+    stageIndex: number,
+    fieldIndex: number
   ) => void
   onRemove: (index: number) => void
 }
@@ -71,6 +88,54 @@ const createDefaultComponentByType = (
         description: '',
         tags: [],
       }
+  }
+}
+
+const createTextStagesSubmitFormField =
+  (): TextStagesSubmitFormField => {
+    return {
+      id: crypto.randomUUID(),
+      type: SubmitFormFieldType.Text,
+      label: '',
+      placeholder: '',
+      required: false,
+    }
+  }
+
+const createLinkStagesSubmitFormField =
+  (): LinkStagesSubmitFormField => {
+    return {
+      id: crypto.randomUUID(),
+      type: SubmitFormFieldType.Link,
+      label: '',
+      placeholder: '',
+      required: false,
+    }
+  }
+
+const createChipsStagesSubmitFormField =
+  (): ChipsStagesSubmitFormField => {
+    return {
+      id: crypto.randomUUID(),
+      type: SubmitFormFieldType.Chips,
+      label: '',
+      placeholder: '',
+      required: false,
+    }
+  }
+
+const createDefaultSubmitFormField = (
+  type: SubmitFormFieldType
+): SubmitFormField => {
+  switch (type) {
+    case SubmitFormFieldType.Text:
+      return createTextStagesSubmitFormField()
+
+    case SubmitFormFieldType.Link:
+      return createLinkStagesSubmitFormField()
+
+    case SubmitFormFieldType.Chips:
+      return createChipsStagesSubmitFormField()
   }
 }
 
@@ -108,7 +173,6 @@ export default function HackathonsEditStages({
       ...formDataContent,
       stages: updatedStages,
     } as IDataContent)
-    console.log('Updated stages:', updatedStages)
   }
 
   const addStage = (): void => {
@@ -117,6 +181,7 @@ export default function HackathonsEditStages({
       date: '',
       deadline: '',
       component: undefined,
+      submitForm: undefined,
     }
 
     const updatedStages: HackathonStage[] = [...stages, newStage]
@@ -192,11 +257,111 @@ export default function HackathonsEditStages({
     syncStagesToParent(updatedStages)
   }
 
+  const removeStageSubmitForm = (index: number): void => {
+    const updatedStages: HackathonStage[] = stages.map(
+      (stage: HackathonStage, currentIndex: number) => {
+        if (currentIndex !== index) {
+          return stage
+        }
+
+        return {
+          ...stage,
+          submitForm: undefined,
+        }
+      }
+    )
+
+    syncStagesToParent(updatedStages)
+  }
+
+  const addSubmitFormField = (
+    stageIndex: number,
+    type: SubmitFormFieldType
+  ): void => {
+    const updatedStages: HackathonStage[] = stages.map(
+      (stage: HackathonStage, currentIndex: number) => {
+        if (currentIndex !== stageIndex) {
+          return stage
+        }
+
+        return {
+          ...stage,
+          submitForm: {
+            fields: [
+              ...(stage.submitForm?.fields ?? []),
+              createDefaultSubmitFormField(type),
+            ],
+          },
+        }
+      }
+    )
+
+    syncStagesToParent(updatedStages)
+  }
+
+  const updateSubmitFormField = (
+    stageIndex: number,
+    fieldIndex: number,
+    updatedField: SubmitFormField
+  ): void => {
+    const updatedStages: HackathonStage[] = stages.map(
+      (stage: HackathonStage, currentIndex: number) => {
+        if (currentIndex !== stageIndex) {
+          return stage
+        }
+
+        const currentFields: SubmitFormField[] = stage.submitForm?.fields ?? []
+
+        return {
+          ...stage,
+          submitForm: {
+            fields: currentFields.map(
+              (field: SubmitFormField, currentFieldIndex: number) => {
+                if (currentFieldIndex !== fieldIndex) {
+                  return field
+                }
+
+                return updatedField
+              }
+            ),
+          },
+        }
+      }
+    )
+
+    syncStagesToParent(updatedStages)
+  }
+
+  const removeSubmitFormField = (
+    stageIndex: number,
+    fieldIndex: number
+  ): void => {
+    const updatedStages: HackathonStage[] = stages.map(
+      (stage: HackathonStage, currentIndex: number) => {
+        if (currentIndex !== stageIndex) {
+          return stage
+        }
+
+        return {
+          ...stage,
+          submitForm: {
+            fields: (stage.submitForm?.fields ?? []).filter(
+              (_field: SubmitFormField, currentFieldIndex: number) =>
+                currentFieldIndex !== fieldIndex
+            ),
+          },
+        }
+      }
+    )
+
+    syncStagesToParent(updatedStages)
+  }
+
   return (
     <div className="space-y-4">
       <Button
         type="button"
-        className="bg-green-600 hover:bg-green-700 text-white"
+        className="bg-green-600 text-white hover:bg-green-700"
         onClick={addStage}
       >
         {t[language].addStage}
@@ -221,6 +386,10 @@ export default function HackathonsEditStages({
                 onStageFieldChange={updateStageField}
                 onStageComponentTypeChange={updateStageComponentType}
                 onStageComponentChange={updateStageComponent}
+                onRemoveSubmitForm={removeStageSubmitForm}
+                onAddSubmitFormField={addSubmitFormField}
+                onUpdateSubmitFormField={updateSubmitFormField}
+                onRemoveSubmitFormField={removeSubmitFormField}
                 onRemove={removeStage}
               />
             </AccordionContent>
@@ -237,11 +406,12 @@ function StageForm({
   onStageFieldChange,
   onStageComponentTypeChange,
   onStageComponentChange,
+  onRemoveSubmitForm,
+  onAddSubmitFormField,
+  onUpdateSubmitFormField,
+  onRemoveSubmitFormField,
   onRemove,
 }: StageFormProps): React.JSX.Element {
-  const tagsValue: string =
-    stage.component?.type === 'tags' ? stage.component.tags.join(', ') : ''
-
   return (
     <div className="space-y-4 pt-2">
       <div className="space-y-2">
@@ -288,7 +458,7 @@ function StageForm({
         <Label htmlFor={`stage-type-${index}`}>Type</Label>
         <select
           id={`stage-type-${index}`}
-          className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+          className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
           value={stage.component?.type ?? ''}
           onChange={(event: React.ChangeEvent<HTMLSelectElement>) =>
             onStageComponentTypeChange(
@@ -303,7 +473,7 @@ function StageForm({
         </select>
       </div>
 
-      {stage.component?.type === 'cards' && (
+      {stage.component?.type === StageComponentType.Cards && (
         <StageCardsForm
           index={index}
           component={stage.component}
@@ -311,13 +481,24 @@ function StageForm({
         />
       )}
 
-      {stage.component?.type === 'tags' && (
+      {stage.component?.type === StageComponentType.Tags && (
         <StageTagsForm
           index={index}
           component={stage.component}
           onChange={onStageComponentChange}
         />
       )}
+
+      <Divider />
+
+      <StageSubmitForm
+        stageIndex={index}
+        submitForm={stage.submitForm}
+        onAddField={onAddSubmitFormField}
+        onUpdateField={onUpdateSubmitFormField}
+        onRemoveField={onRemoveSubmitFormField}
+        onRemoveSubmitForm={onRemoveSubmitForm}
+      />
 
       <div className="flex justify-end">
         <Button

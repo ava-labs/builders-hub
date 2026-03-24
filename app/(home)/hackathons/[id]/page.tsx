@@ -108,7 +108,7 @@ export default async function HackathonPage({
     <main className="container sm:px-2 py-4 lg:py-16">
       <div className="pl-4 flex gap-4 items-center">
         {
-          hacakthonCreator?.custom_attributes.includes('hackathonCreator') ? (
+          hacakthonCreator?.email?.includes('@team1.network') ? (
             <Image
               src={'https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/local_events_team1-UJLssyvek3G880Q013A94SdMKxiLRq.jpg'}
               alt="Hackathon background"
