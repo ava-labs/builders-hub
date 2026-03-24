@@ -1,5 +1,5 @@
 "use client"
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/toolbox/components/Button';
 import SelectSubnetId from '@/components/toolbox/components/SelectSubnetId';
@@ -129,7 +129,7 @@ const AddValidatorExpert: React.FC<BaseConsoleToolProps> = ({ onSuccess }) => {
   const [evmTxHash, setEvmTxHash] = useState<string>('');
 
   // Form state with local persistence
-  const { walletEVMAddress, pChainAddress, isTestnet } = useWalletStore();
+  const { pChainAddress, isTestnet } = useWalletStore();
   const createChainStoreSubnetId = useCreateChainStore()(state => state.subnetId);
   const [subnetIdL1, setSubnetIdL1] = useState<string>(createChainStoreSubnetId || "");
   const [resetKey, setResetKey] = useState<number>(0);
@@ -177,7 +177,9 @@ const AddValidatorExpert: React.FC<BaseConsoleToolProps> = ({ onSuccess }) => {
     isLoadingL1Weight,
     ownershipError,
     ownerType,
-    isDetectingOwnerType
+    isDetectingOwnerType,
+    ownershipStatus,
+    refetchOwnership
   } = useValidatorManagerDetails({ subnetId: subnetIdL1 });
 
   // Restore intermediate state from persisted validators data when available
@@ -202,30 +204,6 @@ const AddValidatorExpert: React.FC<BaseConsoleToolProps> = ({ onSuccess }) => {
       setValidatorBalance('');
     }
   }, [validators]);
-
-  // Simple ownership check - direct computation
-  const isContractOwner = useMemo(() => {
-    return contractOwner && walletEVMAddress
-      ? walletEVMAddress.toLowerCase() === contractOwner.toLowerCase()
-      : null;
-  }, [contractOwner, walletEVMAddress]);
-
-  // Determine UI state based on ownership:
-  // Case 1: Contract is owned by another contract → show MultisigOption
-  // Case 2: Contract is owned by current wallet → show regular button
-  // Case 3: Contract is owned by different EOA → show error
-  const ownershipState = useMemo(() => {
-    if (isOwnerContract) {
-      return 'contract'; // Case 1: Show MultisigOption
-    }
-    if (isContractOwner === true) {
-      return 'currentWallet'; // Case 2: Show regular button
-    }
-    if (isContractOwner === false) {
-      return 'differentEOA'; // Case 3: Show error
-    }
-    return 'loading'; // Still determining ownership
-  }, [isOwnerContract, isContractOwner]);
 
   const handleReset = () => {
     setGlobalError(null);
@@ -330,7 +308,9 @@ const AddValidatorExpert: React.FC<BaseConsoleToolProps> = ({ onSuccess }) => {
                   subnetId={subnetIdL1}
                   validatorManagerAddress={validatorManagerAddress}
                   validators={validators}
-                  ownershipState={ownershipState}
+                  ownershipState={ownershipStatus}
+                  refetchOwnership={refetchOwnership}
+                  ownershipError={ownershipError}
                   contractTotalWeight={contractTotalWeight}
                   l1WeightError={l1WeightError}
                   onSuccess={(data) => {
@@ -386,7 +366,7 @@ const AddValidatorExpert: React.FC<BaseConsoleToolProps> = ({ onSuccess }) => {
                   signingSubnetId={signingSubnetId}
                   managerType="PoA"
                   managerAddress={validatorManagerAddress}
-                  ownershipState={ownershipState}
+                  ownershipState={ownershipStatus}
                   contractOwner={contractOwner}
                   isLoadingOwnership={isLoadingOwnership}
                   ownerType={ownerType}
