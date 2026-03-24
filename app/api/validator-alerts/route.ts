@@ -147,7 +147,17 @@ export async function POST(req: NextRequest) {
       console.error('Immediate alert check failed (non-fatal):', err);
     }
 
-    return NextResponse.json(txResult.alert, { status: 201 });
+    const responseAlert = await prisma.validatorAlert.findUnique({
+      where: { id: txResult.alert.id },
+      include: {
+        alert_logs: {
+          orderBy: { sent_at: 'desc' },
+          take: 20,
+        },
+      },
+    });
+
+    return NextResponse.json(responseAlert ?? txResult.alert, { status: 201 });
   } catch (error) {
     console.error('Error creating validator alert:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
