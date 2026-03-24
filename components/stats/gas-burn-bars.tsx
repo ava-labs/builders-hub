@@ -222,22 +222,13 @@ export function GasBurnBars({ protocols, isDark }: GasBurnBarsProps) {
             height={chartHeight}
             style={{ overflow: "visible" }}
           >
-            <defs>
-              <marker id="arrowY" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
-                <path d="M0,8 L4,0 L8,8" fill="none" stroke={axisColor} strokeWidth="1.5" />
-              </marker>
-              <marker id="arrowX" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
-                <path d="M0,8 L4,0 L8,8" fill="none" stroke={axisColor} strokeWidth="1.5" />
-              </marker>
-            </defs>
-
             {/* Grid */}
             <line x1={MARGIN.left} y1={MARGIN.top} x2="100%" y2={MARGIN.top} stroke={gridColor} strokeDasharray="3 3" />
             <line x1={MARGIN.left} y1={zeroY} x2="100%" y2={zeroY} stroke={axisColor} strokeWidth="0.5" />
             <line x1={MARGIN.left} y1={MARGIN.top + plotHeight} x2="100%" y2={MARGIN.top + plotHeight} stroke={gridColor} strokeDasharray="3 3" />
 
             {/* Y-axis */}
-            <line x1={MARGIN.left} y1={MARGIN.top + plotHeight} x2={MARGIN.left} y2={MARGIN.top - 4} stroke={axisColor} strokeWidth="1.5" markerEnd="url(#arrowY)" />
+            <line x1={MARGIN.left} y1={MARGIN.top + plotHeight} x2={MARGIN.left} y2={MARGIN.top} stroke={axisColor} strokeWidth="1.5" />
             <text x={14} y={chartHeight / 2} textAnchor="middle" dominantBaseline="central" fill={axisColor} fontSize="10" fontWeight="600" transform={`rotate(-90, 14, ${chartHeight / 2})`}>
               Growth %
             </text>
@@ -246,7 +237,7 @@ export function GasBurnBars({ protocols, isDark }: GasBurnBarsProps) {
             <text x={MARGIN.left - 6} y={MARGIN.top + plotHeight - 2} textAnchor="end" fill={axisColor} fontSize="9">-{capDelta.toFixed(0)}%</text>
 
             {/* X-axis */}
-            <line x1={MARGIN.left} y1={MARGIN.top + plotHeight + 1} x2="calc(100% - 4px)" y2={MARGIN.top + plotHeight + 1} stroke={axisColor} strokeWidth="1.5" markerEnd="url(#arrowX)" />
+            <line x1={MARGIN.left} y1={MARGIN.top + plotHeight + 1} x2="100%" y2={MARGIN.top + plotHeight + 1} stroke={axisColor} strokeWidth="1.5" />
             <text x="50%" y={chartHeight - 4} textAnchor="middle" fill={axisColor} fontSize="10" fontWeight="600">
               AVAX Burned (bar width = share) — sorted by {sortMode === "growth" ? "highest growth" : "most burned"} first
             </text>
