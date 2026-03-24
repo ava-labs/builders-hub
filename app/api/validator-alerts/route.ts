@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthSession } from '@/lib/auth/authSession';
 import { prisma } from '@/prisma/prisma';
-import type { CreateAlertRequest } from '@/types/validator-alerts';
+import type { CreateAlertRequest, ValidatorP2P } from '@/types/validator-alerts';
+import { fetchLatestRelease, checkSingleAlert } from '@/server/services/validator-alert-check';
 
 const NODE_ID_REGEX = /^NodeID-[A-HJ-NP-Za-km-z1-9]{33,}$/;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -128,6 +129,22 @@ export async function POST(req: NextRequest) {
 
     if ('error' in txResult) {
       return NextResponse.json({ error: txResult.error }, { status: txResult.status });
+    }
+
+    // Run an immediate check for this validator so the user gets notified
+    // right away if the validator is already in a bad state.
+    try {
+      const validator = (validators as ValidatorP2P[]).find(
+        (v: ValidatorP2P) => v.node_id === body.node_id
+      );
+      if (validator) {
+        const [releaseResult] = await Promise.allSettled([fetchLatestRelease()]);
+        const latestRelease = releaseResult.status === 'fulfilled' ? releaseResult.value : null;
+        await checkSingleAlert(txResult.alert, validator, latestRelease);
+      }
+    } catch (err) {
+      // Non-fatal — the cron will catch it on the next run
+      console.error('Immediate alert check failed (non-fatal):', err);
     }
 
     return NextResponse.json(txResult.alert, { status: 201 });
