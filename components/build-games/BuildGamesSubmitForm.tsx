@@ -1642,12 +1642,22 @@ export default function BuildGamesSubmitForm({
     if (n === 4) {
       return (
         <div className="space-y-5">
+          <div className="rounded-xl border border-[#66acd6]/30 bg-[rgba(102,172,214,0.06)] p-5">
+            <p className="font-['Aeonik:Medium',sans-serif] text-[15px] text-white mb-1">
+              Stage 4 is a live presentation in front of judges
+            </p>
+            <p className="font-['Aeonik:Regular',sans-serif] text-[14px] text-white/60">
+              The real judging happens live — judges will watch your live pitch, ask questions, and evaluate your project in real time. The submission below serves as a dry run and will complete your project profile, but it does not replace the live presentation.
+            </p>
+          </div>
+
           <MultiLinkInput
             name="demo_link"
             label="Pitch Recording & Slides"
             placeholder="https://docs.google.com/presentation/..."
             plainLabel
-            description="Record your pitch again — this time you have up to 7 minutes. Use this as a dry-run for your live final pitch. Update it so it reflects the current state of your project, include a short demo, and share any information you think judges will want to know. Consider that the final judges have never seen your project before and have no context from previous stages."
+            allowAllDomains
+            description="Up to 7 minutes. Include a short demo (you can pre-record the demo part to save time) and make sure it reflects the current state of your project. Assume judges have no context from previous stages."
           />
 
           <FormField
@@ -1696,59 +1706,6 @@ export default function BuildGamesSubmitForm({
             )}
           />
 
-          {/* ── Gaming Finals — only for consumer games ── */}
-          {form.watch("project_category") === "Gaming" &&
-            form.watch("bg_game_type") === "Consumer Game" && (
-            <>
-              <SectionDivider label="🎮 Gaming Finals" />
-
-              <FormField
-                control={form.control}
-                name="bg_game_metrics"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-white font-medium">
-                      Live player metrics &amp; traction
-                    </FormLabel>
-                    <p className="text-zinc-400 text-sm -mt-1">
-                      Share your current numbers: daily active players, average session length, Day-1 / Day-7 / Day-30 retention, on-chain transaction volume.
-                    </p>
-                    <FormControl>
-                      <Textarea
-                        placeholder="e.g. 340 DAU, avg session 22 min, D1 retention 61% / D7 38% / D30 18%. 12,400 on-chain transactions in the last 30 days. 1,800 unique wallet addresses..."
-                        className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6] min-h-[130px] resize-none"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="bg_game_vision"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-white font-medium">
-                      12-month vision
-                    </FormLabel>
-                    <p className="text-zinc-400 text-sm -mt-1">
-                      Where do you want the game to be in 12 months? Set targets for player count, revenue, content expansion, and ecosystem integrations.
-                    </p>
-                    <FormControl>
-                      <Textarea
-                        placeholder="e.g. 50k MAU by Q1 2027. Launch Season 2 with PvP ranked mode. Integrate with 2 Avalanche ecosystem protocols for in-game rewards. Mobile port in Q3. $500k ARR from marketplace fees and season passes..."
-                        className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6] min-h-[140px] resize-none"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </>
-          )}
         </div>
       );
     }
