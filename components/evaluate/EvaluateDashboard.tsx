@@ -324,11 +324,9 @@ export function EvaluateDashboard({
               onAdvanced={handleStageAdvanced}
             />
           )}
-          {isDevrel && (
-            <Button variant="outline" size="sm" onClick={() => setShowExport(true)} className="cursor-pointer">
-              Export
-            </Button>
-          )}
+          <Button variant="outline" size="sm" onClick={() => setShowExport(true)} className="cursor-pointer">
+            Export
+          </Button>
           <JudgeLeaderboard evaluations={allEvaluations} rows={rows} />
         </div>
       </div>
