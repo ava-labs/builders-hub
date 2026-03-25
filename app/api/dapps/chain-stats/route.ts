@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { queryClickHouse, C_CHAIN_ID, buildAddressFilter, buildSwapPricesCTE, getTotalChainGas } from '@/lib/clickhouse';
+import { queryClickHouse, C_CHAIN_ID, buildSwapPricesCTE, getTotalChainGas } from '@/lib/clickhouse';
 import { CONTRACT_REGISTRY, PROTOCOL_SLUGS } from '@/lib/contracts';
 
 // Cache for 10 minutes - heavy aggregation query
@@ -86,6 +86,22 @@ export interface ChainStatsResponse {
   lastUpdated: string;
 }
 
+// Row shape for per-address stats (current period)
+interface AddressStatsRow {
+  address: string;
+  tx_count: string;
+  total_gas: string;
+  avax_burned: number;
+  avax_burned_usd: number;
+}
+
+// Row shape for per-address stats (previous period — no USD, no uniqExact)
+interface PrevAddressStatsRow {
+  address: string;
+  total_gas: string;
+  avax_burned: number;
+}
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -108,55 +124,63 @@ export async function GET(request: Request) {
       protocolAddresses.set(contract.protocol, existing);
     }
 
-    const allAddresses = Array.from(protocolAddresses.values()).flat();
-    const addressFilter = buildAddressFilter(allAddresses);
-    const tAddressFilter = buildAddressFilter(allAddresses, 't.to');
+    // Build address→protocol lookup for JS-side filtering
+    const addressToProtocol = new Map<string, string>();
+    for (const [protocol, addresses] of protocolAddresses) {
+      for (const a of addresses) {
+        addressToProtocol.set(a.toLowerCase(), protocol);
+      }
+    }
 
-    // Time filters: current period and previous period (for delta)
-    let timeFilter: string;
-    let tTimeFilter: string;
+    // Build protocol→category lookup
+    const protocolCategory = new Map<string, string>();
+    for (const contract of Object.values(CONTRACT_REGISTRY)) {
+      if (!protocolCategory.has(contract.protocol)) {
+        protocolCategory.set(contract.protocol, contract.category);
+      }
+    }
+
+    // Time filters for each query
+    let currTimeFilter: string;
     let prevTimeFilter: string;
-    let tPrevTimeFilter: string;
     let dailyTimeFilter: string;
-    let tDailyTimeFilter: string;
+    let swapPricesCurrFilter: string;
+    let swapPricesDailyFilter: string;
 
     if (useAbsoluteRange) {
-      // Absolute: endDate inclusive (full day), previous = same-length window before startDate
-      timeFilter = `AND block_time >= '${startDate}' AND block_time < '${endDate}' + INTERVAL 1 DAY`;
-      tTimeFilter = `AND t.block_time >= '${startDate}' AND t.block_time < '${endDate}' + INTERVAL 1 DAY`;
-      // Calculate actual span from the dates (not the `days` query param fallback)
       const spanMs = new Date(endDate!).getTime() - new Date(startDate!).getTime();
       const spanDays = Math.max(1, Math.ceil(spanMs / (1000 * 60 * 60 * 24)) + 1);
-      prevTimeFilter = `AND block_time >= '${startDate}' - INTERVAL ${spanDays} DAY AND block_time < '${startDate}'`;
-      tPrevTimeFilter = `AND t.block_time >= '${startDate}' - INTERVAL ${spanDays} DAY AND t.block_time < '${startDate}'`;
-      dailyTimeFilter = timeFilter;
-      tDailyTimeFilter = tTimeFilter;
+      currTimeFilter = `AND t.block_time >= '${startDate}' AND t.block_time < '${endDate}' + INTERVAL 1 DAY`;
+      prevTimeFilter = `AND t.block_time >= '${startDate}' - INTERVAL ${spanDays} DAY AND t.block_time < '${startDate}'`;
+      dailyTimeFilter = currTimeFilter;
+      swapPricesCurrFilter = `AND block_time >= '${startDate}' AND block_time < '${endDate}' + INTERVAL 1 DAY`;
+      swapPricesDailyFilter = swapPricesCurrFilter;
     } else {
-      // Relative: existing now()-based behavior
-      timeFilter = days > 0 ? `AND block_time >= now() - INTERVAL ${days} DAY` : '';
-      tTimeFilter = days > 0 ? `AND t.block_time >= now() - INTERVAL ${days} DAY` : '';
+      currTimeFilter = days > 0 ? `AND t.block_time >= now() - INTERVAL ${days} DAY` : '';
       prevTimeFilter = days > 0
-        ? `AND block_time >= now() - INTERVAL ${days * 2} DAY AND block_time < now() - INTERVAL ${days} DAY`
-        : '';
-      tPrevTimeFilter = days > 0
         ? `AND t.block_time >= now() - INTERVAL ${days * 2} DAY AND t.block_time < now() - INTERVAL ${days} DAY`
         : '';
       const dailyDays = days > 0 ? days : 90;
-      dailyTimeFilter = `AND block_time >= now() - INTERVAL ${dailyDays} DAY`;
-      tDailyTimeFilter = `AND t.block_time >= now() - INTERVAL ${dailyDays} DAY`;
+      dailyTimeFilter = `AND t.block_time >= now() - INTERVAL ${dailyDays} DAY`;
+      swapPricesCurrFilter = days > 0 ? `AND block_time >= now() - INTERVAL ${days} DAY` : '';
+      swapPricesDailyFilter = `AND block_time >= now() - INTERVAL ${dailyDays} DAY`;
     }
 
-    // Run queries in parallel
+    const hasPrevPeriod = days > 0 || useAbsoluteRange;
+
+    // ──────────────────────────────────────────────────────────────
+    // Run queries in parallel — NO `to IN (addresses)` filter.
+    // Instead: scan ALL txs grouped by `to`, filter by registry in JS.
+    // This avoids a pathological scan on the non-indexed Nullable `to`
+    // column (36s with IN vs 6s without on ClickHouse 26.2).
+    // ──────────────────────────────────────────────────────────────
     const [
       watermarkResult,
-      contractStatsResult,
-      prevContractStatsResult,
+      currStatsResult,
+      prevStatsResult,
       dailyStatsResult,
       totalChainStats,
-      nativeTransferResult,
-      contractDeployResult,
-      prevNativeTransferResult,
-      prevContractDeployResult,
+      nativeDeployResult,
     ] = await Promise.all([
       // 1. Get watermark for latest block
       queryClickHouse<{
@@ -168,76 +192,56 @@ export async function GET(request: Request) {
         WHERE chain_id = ${C_CHAIN_ID}
       `),
 
-      // 2. Get per-contract stats for the CURRENT period
-      queryClickHouse<{
-        address: string;
-        tx_count: string;
-        total_gas: string;
-        avax_burned: number;
-        avax_burned_usd: number;
-        gas_cost_usd: number;
-        unique_senders: string;
-      }>(`
-        WITH ${buildSwapPricesCTE(timeFilter)}
+      // 2. Current period: per-address stats with swap_prices for USD
+      // ~6s on 30d (vs 36s with IN filter)
+      queryClickHouse<AddressStatsRow>(`
+        WITH ${buildSwapPricesCTE(swapPricesCurrFilter)}
         SELECT
           lower(concat('0x', hex(t.to))) as address,
           count() as tx_count,
           sum(t.gas_used) as total_gas,
           sum(toFloat64(t.gas_used) * toFloat64(t.gas_price)) / 1e18 as avax_burned,
-          sum(toFloat64(t.gas_used) * toFloat64(t.gas_price) / 1e18 * coalesce(p.price_usd, 0)) as avax_burned_usd,
-          sum(toFloat64(t.gas_used) * toFloat64(t.gas_price) / 1e18 * coalesce(p.price_usd, 0)) as gas_cost_usd,
-          uniqExact(t.from) as unique_senders
+          sum(toFloat64(t.gas_used) * toFloat64(t.gas_price) / 1e18 * coalesce(p.price_usd, 0)) as avax_burned_usd
         FROM raw_txs t
         LEFT JOIN swap_prices p ON toStartOfHour(t.block_time) = p.price_hour
         WHERE t.chain_id = ${C_CHAIN_ID}
-          AND ${tAddressFilter}
-          ${tTimeFilter}
+          AND t.to IS NOT NULL
+          ${currTimeFilter}
         GROUP BY t.to
+        HAVING avax_burned > 0
       `),
 
-      // 3. Get per-contract stats for the PREVIOUS period (for delta)
-      (days > 0 || useAbsoluteRange)
-        ? queryClickHouse<{
-            address: string;
-            tx_count: string;
-            total_gas: string;
-            avax_burned: number;
-            avax_burned_usd: number;
-            gas_cost_usd: number;
-            unique_senders: string;
-          }>(`
-            WITH ${buildSwapPricesCTE(prevTimeFilter)}
+      // 3. Previous period: per-address stats — AVAX only, no USD, no uniqExact
+      // Kept lean to stay fast (~9s). Only used for delta calculation.
+      hasPrevPeriod
+        ? queryClickHouse<PrevAddressStatsRow>(`
             SELECT
               lower(concat('0x', hex(t.to))) as address,
-              count() as tx_count,
               sum(t.gas_used) as total_gas,
-              sum(toFloat64(t.gas_used) * toFloat64(t.gas_price)) / 1e18 as avax_burned,
-              sum(toFloat64(t.gas_used) * toFloat64(t.gas_price) / 1e18 * coalesce(p.price_usd, 0)) as avax_burned_usd,
-              sum(toFloat64(t.gas_used) * toFloat64(t.gas_price) / 1e18 * coalesce(p.price_usd, 0)) as gas_cost_usd,
-              uniqExact(t.from) as unique_senders
+              sum(toFloat64(t.gas_used) * toFloat64(t.gas_price)) / 1e18 as avax_burned
             FROM raw_txs t
-            LEFT JOIN swap_prices p ON toStartOfHour(t.block_time) = p.price_hour
             WHERE t.chain_id = ${C_CHAIN_ID}
-              AND ${tAddressFilter}
-              ${tPrevTimeFilter}
+              AND t.to IS NOT NULL
+              ${prevTimeFilter}
             GROUP BY t.to
+            HAVING avax_burned > 0
           `)
         : Promise.resolve({ data: [], meta: [], rows: 0, statistics: { elapsed: 0, rows_read: 0, bytes_read: 0 } }),
 
-      // 4. Get daily stats per contract (for both aggregate daily stats and category timeline)
+      // 4. Daily stats per contract (for aggregate daily stats and category timeline)
       queryClickHouse<{
         date: string;
-        contract_address: string;
+        address: string;
         tx_count: string;
         total_gas: string;
         avax_burned: number;
         avax_burned_usd: number;
         weighted_gas_price_sum: number;
       }>(`
-        WITH ${buildSwapPricesCTE(dailyTimeFilter)}
+        WITH ${buildSwapPricesCTE(swapPricesDailyFilter)}
         SELECT
           toDate(t.block_time) as date,
-          hex(t.to) as contract_address,
+          lower(concat('0x', hex(t.to))) as address,
           count() as tx_count,
           sum(t.gas_used) as total_gas,
           sum(toFloat64(t.gas_used) * toFloat64(t.gas_price)) / 1e18 as avax_burned,
@@ -246,213 +250,113 @@ export async function GET(request: Request) {
         FROM raw_txs t
         LEFT JOIN swap_prices p ON toStartOfHour(t.block_time) = p.price_hour
         WHERE t.chain_id = ${C_CHAIN_ID}
-          AND ${tAddressFilter}
-          ${tDailyTimeFilter}
-        GROUP BY date, contract_address
+          AND t.to IS NOT NULL
+          ${dailyTimeFilter}
+        GROUP BY date, t.to
+        HAVING avax_burned > 0.0001
         ORDER BY date
       `),
 
       // 5. Get total chain gas (for coverage %)
       getTotalChainGas(days, startDate, endDate),
 
-      // 6. Native transfers: current period
+      // 6. Native transfers + contract deploys — combined, current period only
+      // Previous period delta for native/deploy is low-value, skip to save a query
       queryClickHouse<{
-        tx_count: string;
-        total_gas: string;
-        avax_burned: number;
-        avax_burned_usd: number;
-        gas_cost_usd: number;
-        unique_senders: string;
+        native_tx: string;
+        native_gas: string;
+        native_burned: number;
+        native_burned_usd: number;
+        native_senders: string;
+        deploy_tx: string;
+        deploy_gas: string;
+        deploy_burned: number;
+        deploy_burned_usd: number;
+        deploy_senders: string;
       }>(`
-        WITH ${buildSwapPricesCTE(timeFilter)}
+        WITH ${buildSwapPricesCTE(swapPricesCurrFilter)}
         SELECT
-          count() as tx_count,
-          sum(t.gas_used) as total_gas,
-          sum(toFloat64(t.gas_used) * toFloat64(t.gas_price)) / 1e18 as avax_burned,
-          sum(toFloat64(t.gas_used) * toFloat64(t.gas_price) / 1e18 * coalesce(p.price_usd, 0)) as avax_burned_usd,
-          sum(toFloat64(t.gas_used) * toFloat64(t.gas_price) / 1e18 * coalesce(p.price_usd, 0)) as gas_cost_usd,
-          uniqExact(t.from) as unique_senders
+          countIf(t.to IS NOT NULL AND length(t.input) <= 1) as native_tx,
+          sumIf(t.gas_used, t.to IS NOT NULL AND length(t.input) <= 1) as native_gas,
+          sumIf(toFloat64(t.gas_used) * toFloat64(t.gas_price) / 1e18, t.to IS NOT NULL AND length(t.input) <= 1) as native_burned,
+          sumIf(toFloat64(t.gas_used) * toFloat64(t.gas_price) / 1e18 * coalesce(p.price_usd, 0), t.to IS NOT NULL AND length(t.input) <= 1) as native_burned_usd,
+          uniqExactIf(t.from, t.to IS NOT NULL AND length(t.input) <= 1) as native_senders,
+          countIf(t.to IS NULL) as deploy_tx,
+          sumIf(t.gas_used, t.to IS NULL) as deploy_gas,
+          sumIf(toFloat64(t.gas_used) * toFloat64(t.gas_price) / 1e18, t.to IS NULL) as deploy_burned,
+          sumIf(toFloat64(t.gas_used) * toFloat64(t.gas_price) / 1e18 * coalesce(p.price_usd, 0), t.to IS NULL) as deploy_burned_usd,
+          uniqExactIf(t.from, t.to IS NULL) as deploy_senders
         FROM raw_txs t
         LEFT JOIN swap_prices p ON toStartOfHour(t.block_time) = p.price_hour
         WHERE t.chain_id = ${C_CHAIN_ID}
-          AND t.to IS NOT NULL
-          AND length(t.input) <= 1
-          ${tTimeFilter}
+          ${currTimeFilter}
       `),
-
-      // 7. Contract deploys: current period
-      queryClickHouse<{
-        tx_count: string;
-        total_gas: string;
-        avax_burned: number;
-        avax_burned_usd: number;
-        gas_cost_usd: number;
-        unique_senders: string;
-      }>(`
-        WITH ${buildSwapPricesCTE(timeFilter)}
-        SELECT
-          count() as tx_count,
-          sum(t.gas_used) as total_gas,
-          sum(toFloat64(t.gas_used) * toFloat64(t.gas_price)) / 1e18 as avax_burned,
-          sum(toFloat64(t.gas_used) * toFloat64(t.gas_price) / 1e18 * coalesce(p.price_usd, 0)) as avax_burned_usd,
-          sum(toFloat64(t.gas_used) * toFloat64(t.gas_price) / 1e18 * coalesce(p.price_usd, 0)) as gas_cost_usd,
-          uniqExact(t.from) as unique_senders
-        FROM raw_txs t
-        LEFT JOIN swap_prices p ON toStartOfHour(t.block_time) = p.price_hour
-        WHERE t.chain_id = ${C_CHAIN_ID}
-          AND t.to IS NULL
-          ${tTimeFilter}
-      `),
-
-      // 8. Native transfers: previous period (for delta)
-      (days > 0 || useAbsoluteRange)
-        ? queryClickHouse<{
-            tx_count: string;
-            total_gas: string;
-            avax_burned: number;
-            avax_burned_usd: number;
-            gas_cost_usd: number;
-            unique_senders: string;
-          }>(`
-            WITH ${buildSwapPricesCTE(prevTimeFilter)}
-            SELECT
-              count() as tx_count,
-              sum(t.gas_used) as total_gas,
-              sum(toFloat64(t.gas_used) * toFloat64(t.gas_price)) / 1e18 as avax_burned,
-              sum(toFloat64(t.gas_used) * toFloat64(t.gas_price) / 1e18 * coalesce(p.price_usd, 0)) as avax_burned_usd,
-              sum(toFloat64(t.gas_used) * toFloat64(t.gas_price) / 1e18 * coalesce(p.price_usd, 0)) as gas_cost_usd,
-              uniqExact(t.from) as unique_senders
-            FROM raw_txs t
-            LEFT JOIN swap_prices p ON toStartOfHour(t.block_time) = p.price_hour
-            WHERE t.chain_id = ${C_CHAIN_ID}
-              AND t.to IS NOT NULL
-              AND length(t.input) <= 1
-              ${tPrevTimeFilter}
-          `)
-        : Promise.resolve({ data: [{ tx_count: '0', total_gas: '0', avax_burned: 0, avax_burned_usd: 0, gas_cost_usd: 0, unique_senders: '0' }], meta: [], rows: 1, statistics: { elapsed: 0, rows_read: 0, bytes_read: 0 } }),
-
-      // 9. Contract deploys: previous period (for delta)
-      (days > 0 || useAbsoluteRange)
-        ? queryClickHouse<{
-            tx_count: string;
-            total_gas: string;
-            avax_burned: number;
-            avax_burned_usd: number;
-            gas_cost_usd: number;
-            unique_senders: string;
-          }>(`
-            WITH ${buildSwapPricesCTE(prevTimeFilter)}
-            SELECT
-              count() as tx_count,
-              sum(t.gas_used) as total_gas,
-              sum(toFloat64(t.gas_used) * toFloat64(t.gas_price)) / 1e18 as avax_burned,
-              sum(toFloat64(t.gas_used) * toFloat64(t.gas_price) / 1e18 * coalesce(p.price_usd, 0)) as avax_burned_usd,
-              sum(toFloat64(t.gas_used) * toFloat64(t.gas_price) / 1e18 * coalesce(p.price_usd, 0)) as gas_cost_usd,
-              uniqExact(t.from) as unique_senders
-            FROM raw_txs t
-            LEFT JOIN swap_prices p ON toStartOfHour(t.block_time) = p.price_hour
-            WHERE t.chain_id = ${C_CHAIN_ID}
-              AND t.to IS NULL
-              ${tPrevTimeFilter}
-          `)
-        : Promise.resolve({ data: [{ tx_count: '0', total_gas: '0', avax_burned: 0, avax_burned_usd: 0, gas_cost_usd: 0, unique_senders: '0' }], meta: [], rows: 1, statistics: { elapsed: 0, rows_read: 0, bytes_read: 0 } }),
-
     ]);
 
-    // Build protocol category lookup
-    const protocolCategory = new Map<string, string>();
-    for (const contract of Object.values(CONTRACT_REGISTRY)) {
-      if (!protocolCategory.has(contract.protocol)) {
-        protocolCategory.set(contract.protocol, contract.category);
+    // --- JS-side aggregation: filter query results through the contract registry ---
+
+    type ProtocolStats = { txCount: number; gasUsed: number; avaxBurned: number; gasCostUsd: number; avaxBurnedUsd: number; uniqueSenders: number };
+    const currentProtocolStats = new Map<string, ProtocolStats>();
+    const prevProtocolStats = new Map<string, ProtocolStats>();
+
+    // Initialize all protocols with zeros
+    for (const [protocol] of protocolAddresses) {
+      currentProtocolStats.set(protocol, { txCount: 0, gasUsed: 0, avaxBurned: 0, gasCostUsd: 0, avaxBurnedUsd: 0, uniqueSenders: 0 });
+      prevProtocolStats.set(protocol, { txCount: 0, gasUsed: 0, avaxBurned: 0, gasCostUsd: 0, avaxBurnedUsd: 0, uniqueSenders: 0 });
+    }
+
+    // Current period: filter by registry, aggregate into protocols
+    for (const row of currStatsResult.data) {
+      const protocol = addressToProtocol.get(row.address);
+      if (!protocol) continue;
+
+      const s = currentProtocolStats.get(protocol)!;
+      s.txCount += parseInt(row.tx_count) || 0;
+      s.gasUsed += parseInt(row.total_gas) || 0;
+      s.avaxBurned += row.avax_burned || 0;
+      s.gasCostUsd += row.avax_burned_usd || 0;
+      s.avaxBurnedUsd += row.avax_burned_usd || 0;
+    }
+
+    // Previous period: filter by registry, only gas/avaxBurned (for delta)
+    for (const row of prevStatsResult.data) {
+      const protocol = addressToProtocol.get(row.address);
+      if (!protocol) continue;
+
+      const s = prevProtocolStats.get(protocol)!;
+      s.gasUsed += parseInt(row.total_gas) || 0;
+      s.avaxBurned += row.avax_burned || 0;
+    }
+
+    // Add native transfers + deploys
+    const nd = nativeDeployResult.data[0];
+    if (nd) {
+      const nativeTx = parseInt(nd.native_tx) || 0;
+      if (nativeTx > 0) {
+        currentProtocolStats.set('Native Transfers', {
+          txCount: nativeTx,
+          gasUsed: parseInt(nd.native_gas) || 0,
+          avaxBurned: nd.native_burned || 0,
+          gasCostUsd: nd.native_burned_usd || 0,
+          avaxBurnedUsd: nd.native_burned_usd || 0,
+          uniqueSenders: parseInt(nd.native_senders) || 0,
+        });
+        protocolCategory.set('Native Transfers', 'native');
+      }
+
+      const deployTx = parseInt(nd.deploy_tx) || 0;
+      if (deployTx > 0) {
+        currentProtocolStats.set('Contract Deploys', {
+          txCount: deployTx,
+          gasUsed: parseInt(nd.deploy_gas) || 0,
+          avaxBurned: nd.deploy_burned || 0,
+          gasCostUsd: nd.deploy_burned_usd || 0,
+          avaxBurnedUsd: nd.deploy_burned_usd || 0,
+          uniqueSenders: parseInt(nd.deploy_senders) || 0,
+        });
+        protocolCategory.set('Contract Deploys', 'infrastructure');
       }
     }
-
-    // Pre-build O(1) address → protocol lookup
-    const addressToProtocol = new Map<string, string>();
-    for (const [protocol, addresses] of protocolAddresses) {
-      for (const a of addresses) {
-        addressToProtocol.set(a.toLowerCase(), protocol);
-      }
-    }
-
-    // Helper: aggregate per-address rows into protocol stats
-    function aggregateByProtocol(rows: { address: string; tx_count: string; total_gas: string; avax_burned: number; avax_burned_usd: number; gas_cost_usd: number; unique_senders: string }[]) {
-      const stats = new Map<string, { txCount: number; gasUsed: number; avaxBurned: number; gasCostUsd: number; avaxBurnedUsd: number; uniqueSenders: number }>();
-      for (const [protocol] of protocolAddresses) {
-        stats.set(protocol, { txCount: 0, gasUsed: 0, avaxBurned: 0, gasCostUsd: 0, avaxBurnedUsd: 0, uniqueSenders: 0 });
-      }
-      for (const row of rows) {
-        const protocol = addressToProtocol.get(row.address);
-        if (protocol) {
-          const s = stats.get(protocol)!;
-          s.txCount += parseInt(row.tx_count) || 0;
-          s.gasUsed += parseInt(row.total_gas) || 0;
-          s.avaxBurned += row.avax_burned || 0;
-          s.gasCostUsd += row.gas_cost_usd || 0;
-          s.avaxBurnedUsd += row.avax_burned_usd || 0;
-          s.uniqueSenders += parseInt(row.unique_senders) || 0;
-        }
-      }
-      return stats;
-    }
-
-    // Aggregate current and previous periods
-    const currentProtocolStats = aggregateByProtocol(contractStatsResult.data);
-    const prevProtocolStats = aggregateByProtocol(prevContractStatsResult.data);
-
-    // Add native transfers
-    const nativeData = nativeTransferResult.data[0];
-    const nativeTxCount = parseInt(nativeData?.tx_count) || 0;
-    const nativeGas = parseInt(nativeData?.total_gas) || 0;
-    const nativeBurned = nativeData?.avax_burned || 0;
-    if (nativeTxCount > 0) {
-      currentProtocolStats.set('Native Transfers', {
-        txCount: nativeTxCount,
-        gasUsed: nativeGas,
-        avaxBurned: nativeBurned,
-        gasCostUsd: nativeData?.gas_cost_usd || 0,
-        avaxBurnedUsd: nativeData?.avax_burned_usd || 0,
-        uniqueSenders: parseInt(nativeData?.unique_senders) || 0,
-      });
-      protocolCategory.set('Native Transfers', 'native');
-    }
-
-    const prevNativeData = prevNativeTransferResult.data[0];
-    prevProtocolStats.set('Native Transfers', {
-      txCount: parseInt(prevNativeData?.tx_count) || 0,
-      gasUsed: parseInt(prevNativeData?.total_gas) || 0,
-      avaxBurned: prevNativeData?.avax_burned || 0,
-      gasCostUsd: prevNativeData?.gas_cost_usd || 0,
-      avaxBurnedUsd: prevNativeData?.avax_burned_usd || 0,
-      uniqueSenders: parseInt(prevNativeData?.unique_senders) || 0,
-    });
-
-    // Add contract deploys
-    const deployData = contractDeployResult.data[0];
-    const deployTxCount = parseInt(deployData?.tx_count) || 0;
-    const deployGas = parseInt(deployData?.total_gas) || 0;
-    const deployBurned = deployData?.avax_burned || 0;
-    if (deployTxCount > 0) {
-      currentProtocolStats.set('Contract Deploys', {
-        txCount: deployTxCount,
-        gasUsed: deployGas,
-        avaxBurned: deployBurned,
-        gasCostUsd: deployData?.gas_cost_usd || 0,
-        avaxBurnedUsd: deployData?.avax_burned_usd || 0,
-        uniqueSenders: parseInt(deployData?.unique_senders) || 0,
-      });
-      protocolCategory.set('Contract Deploys', 'infrastructure');
-    }
-
-    const prevDeployData = prevContractDeployResult.data[0];
-    prevProtocolStats.set('Contract Deploys', {
-      txCount: parseInt(prevDeployData?.tx_count) || 0,
-      gasUsed: parseInt(prevDeployData?.total_gas) || 0,
-      avaxBurned: prevDeployData?.avax_burned || 0,
-      gasCostUsd: prevDeployData?.gas_cost_usd || 0,
-      avaxBurnedUsd: prevDeployData?.avax_burned_usd || 0,
-      uniqueSenders: parseInt(prevDeployData?.unique_senders) || 0,
-    });
 
     // Calculate tagged totals
     let taggedTxCount = 0;
@@ -546,28 +450,28 @@ export async function GET(request: Request) {
       .filter(c => c.gasUsed > 0)
       .sort((a, b) => b.gasUsed - a.gasUsed);
 
-    // Aggregate daily stats from per-contract rows
+    // Aggregate daily stats from per-contract rows (filter by registry in JS)
     const dailyAgg = new Map<string, { txCount: number; gasUsed: number; avaxBurned: number; avaxBurnedUsd: number }>();
-    // Also build per-date per-category breakdown for timeline chart
     const dailyCatAgg = new Map<string, { categories: Map<string, number>; totalGas: number; weightedGasPriceSum: number }>();
 
     for (const row of dailyStatsResult.data) {
       const date = row.date;
-      // Aggregate daily totals
-      if (!dailyAgg.has(date)) {
-        dailyAgg.set(date, { txCount: 0, gasUsed: 0, avaxBurned: 0, avaxBurnedUsd: 0 });
-      }
-      const agg = dailyAgg.get(date)!;
-      agg.txCount += parseInt(row.tx_count) || 0;
-      agg.gasUsed += parseInt(row.total_gas) || 0;
-      agg.avaxBurned += row.avax_burned || 0;
-      agg.avaxBurnedUsd += row.avax_burned_usd || 0;
-
-      // Map contract → protocol → category
-      const addr = '0x' + row.contract_address.toLowerCase();
-      const protocol = addressToProtocol.get(addr);
+      const protocol = addressToProtocol.get(row.address);
       const category = protocol ? (protocolCategory.get(protocol) || 'other') : 'other';
 
+      // Aggregate daily totals (only for registered contracts)
+      if (protocol) {
+        if (!dailyAgg.has(date)) {
+          dailyAgg.set(date, { txCount: 0, gasUsed: 0, avaxBurned: 0, avaxBurnedUsd: 0 });
+        }
+        const agg = dailyAgg.get(date)!;
+        agg.txCount += parseInt(row.tx_count) || 0;
+        agg.gasUsed += parseInt(row.total_gas) || 0;
+        agg.avaxBurned += row.avax_burned || 0;
+        agg.avaxBurnedUsd += row.avax_burned_usd || 0;
+      }
+
+      // Category timeline includes all contracts (registered get their category, others go to 'other')
       if (!dailyCatAgg.has(date)) {
         dailyCatAgg.set(date, { categories: new Map(), totalGas: 0, weightedGasPriceSum: 0 });
       }
@@ -601,51 +505,28 @@ export async function GET(request: Request) {
       });
 
     // Find top burner address (highest avax_burned among classified contracts)
-    const topBurnerRow = contractStatsResult.data.reduce<{ address: string; avax_burned: number } | null>(
-      (best, row) => (!best || row.avax_burned > best.avax_burned) ? row : best,
-      null
-    );
-    const topBurnerAddress = topBurnerRow ? topBurnerRow.address : null;
+    let topBurnerAddress: string | null = null;
+    let topBurnerBurned = 0;
+    for (const row of currStatsResult.data) {
+      if (addressToProtocol.has(row.address) && row.avax_burned > topBurnerBurned) {
+        topBurnerBurned = row.avax_burned;
+        topBurnerAddress = row.address;
+      }
+    }
 
     const watermark = watermarkResult.data[0];
 
-    // Run breadcrumbs query separately (heavy — NOT in critical path)
-    let topBreadcrumbs: { address: string; txCount: number; gasUsed: number; avaxBurned: number }[] = [];
-    try {
-      const breadcrumbsResult = await Promise.race([
-        queryClickHouse<{
-          address: string;
-          tx_count: string;
-          total_gas: string;
-          avax_burned: number;
-        }>(`
-          SELECT
-            lower(concat('0x', hex(t.to))) as address,
-            count() as tx_count,
-            sum(t.gas_used) as total_gas,
-            sum(toFloat64(t.gas_used) * toFloat64(t.gas_price)) / 1e18 as avax_burned
-          FROM raw_txs t
-          WHERE t.chain_id = ${C_CHAIN_ID}
-            AND t.to IS NOT NULL
-            AND NOT ${tAddressFilter}
-            ${tTimeFilter}
-          GROUP BY t.to
-          ORDER BY avax_burned DESC
-          LIMIT 10
-        `),
-        new Promise<null>((resolve) => setTimeout(() => resolve(null), 15000)), // 15s timeout
-      ]);
-      if (breadcrumbsResult) {
-        topBreadcrumbs = breadcrumbsResult.data.map(row => ({
-          address: row.address,
-          txCount: parseInt(row.tx_count) || 0,
-          gasUsed: parseInt(row.total_gas) || 0,
-          avaxBurned: row.avax_burned || 0,
-        }));
-      }
-    } catch {
-      // Non-critical — breadcrumbs tooltip is nice-to-have
-    }
+    // Breadcrumbs: top unclassified contracts — derived from currStatsResult (no extra query)
+    const topBreadcrumbs = currStatsResult.data
+      .filter(row => !addressToProtocol.has(row.address))
+      .sort((a, b) => b.avax_burned - a.avax_burned)
+      .slice(0, 10)
+      .map(row => ({
+        address: row.address,
+        txCount: parseInt(row.tx_count) || 0,
+        gasUsed: parseInt(row.total_gas) || 0,
+        avaxBurned: row.avax_burned || 0,
+      }));
 
     const response: ChainStatsResponse = {
       totalTransactions: taggedTxCount,
