@@ -167,6 +167,16 @@ function BulkAdvanceModal({
     return filtered;
   }, [eligible, criteriaType, threshold, limitEnabled, maxProjects]);
 
+  const tiedCount = useMemo(() => {
+    if (!limitEnabled || qualifying.length === 0) return 0;
+    const lastItem = qualifying[qualifying.length - 1];
+    const lastScore = lastItem.avgOverallScore ?? lastItem.avgVerdictScore ?? 0;
+    return eligible.filter((p) => {
+      const s = p.avgOverallScore ?? p.avgVerdictScore ?? 0;
+      return s === lastScore && !qualifying.includes(p);
+    }).length;
+  }, [qualifying, eligible, limitEnabled]);
+
   const handleAdvance = async () => {
     if (!confirming) {
       setConfirming(true);
@@ -356,6 +366,13 @@ function BulkAdvanceModal({
                     </div>
                   );
                 })}
+              </div>
+            )}
+            {tiedCount > 0 && (
+              <div className="px-3 py-2 border-t border-zinc-200 dark:border-zinc-800">
+                <p className="text-xs text-amber-600 dark:text-amber-400">
+                  {tiedCount} more project{tiedCount !== 1 ? "s" : ""} with the same score at the cutoff. Consider increasing the limit.
+                </p>
               </div>
             )}
           </div>
