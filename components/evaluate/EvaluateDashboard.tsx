@@ -3,6 +3,7 @@
 import { useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -23,6 +24,7 @@ import { SubmissionDetailPanel } from "./SubmissionDetailPanel";
 import { VerdictBadge } from "./EvaluationPanel";
 import { JudgeLeaderboard } from "./JudgeLeaderboard";
 import { BulkAdvanceButton } from "./BulkAdvanceModal";
+import { ExportModal } from "./ExportModal";
 import { STAGE_BADGE_COLORS, STAGE_LABELS } from "./colors";
 import type {
   SubmissionRow,
@@ -299,6 +301,8 @@ export function EvaluateDashboard({
     };
   }, [selectedStage, includeAdvanced, rows, allEvaluations, getCurrentStage]); // includeAdvanced derived from stageFilter
 
+  const [showExport, setShowExport] = useState(false);
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -319,6 +323,11 @@ export function EvaluateDashboard({
               getCurrentStage={getCurrentStage}
               onAdvanced={handleStageAdvanced}
             />
+          )}
+          {isDevrel && (
+            <Button variant="outline" size="sm" onClick={() => setShowExport(true)} className="cursor-pointer">
+              Export
+            </Button>
           )}
           <JudgeLeaderboard evaluations={allEvaluations} rows={rows} />
         </div>
@@ -589,6 +598,17 @@ export function EvaluateDashboard({
           />
         );
       })()}
+
+      {/* Export Modal */}
+      {showExport && (
+        <ExportModal
+          rows={sorted}
+          hackathonTitle={hackathons.find((h) => h.id === selectedHackathonId)?.title ?? "All-Hackathons"}
+          getEvaluations={getEvaluations}
+          getCurrentStage={getCurrentStage}
+          onClose={() => setShowExport(false)}
+        />
+      )}
     </div>
   );
 }
