@@ -14,6 +14,7 @@ export interface ProtocolBreakdown {
   protocol: string;
   slug: string | null;
   category: string;
+  subcategory: string | null;
   txCount: number;
   gasUsed: number;
   avaxBurned: number;
@@ -39,6 +40,19 @@ export const CATEGORY_LABELS: Record<string, string> = {
   native: "Native Transfers",
   rwa: "RWA",
   other: "Other",
+};
+
+export const SUBCATEGORY_LABELS: Record<string, string> = {
+  arbitrage: "Arbitrage",
+  jit: "JIT Liquidity",
+  "heavy-arb": "Heavy Arb",
+  "flash-loan-arb": "Flash Loan Arb",
+  "market-maker": "Market Maker",
+  "high-frequency": "High Frequency",
+  sandwich: "Sandwich",
+  backrunner: "Backrunner",
+  yield: "Yield Strategy",
+  executor: "Executor",
 };
 
 export const CATEGORY_COLORS: Record<string, { light: string; dark: string }> = {

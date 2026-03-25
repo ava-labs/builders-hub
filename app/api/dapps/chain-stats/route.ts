@@ -32,6 +32,7 @@ export interface ChainStatsResponse {
     protocol: string;
     slug: string | null;
     category: string;
+    subcategory: string | null;
     txCount: number;
     gasUsed: number;
     avaxBurned: number;
@@ -132,11 +133,13 @@ export async function GET(request: Request) {
       }
     }
 
-    // Build protocol→category lookup
+    // Build protocol→category and protocol→subcategory lookups
     const protocolCategory = new Map<string, string>();
+    const protocolSubcategory = new Map<string, string | null>();
     for (const contract of Object.values(CONTRACT_REGISTRY)) {
       if (!protocolCategory.has(contract.protocol)) {
         protocolCategory.set(contract.protocol, contract.category);
+        protocolSubcategory.set(contract.protocol, contract.subcategory || null);
       }
     }
 
@@ -382,6 +385,7 @@ export async function GET(request: Request) {
           protocol,
           slug: PROTOCOL_SLUGS[protocol] || null,
           category: protocolCategory.get(protocol) || 'other',
+          subcategory: protocolSubcategory.get(protocol) || null,
           txCount: stats.txCount,
           gasUsed: stats.gasUsed,
           avaxBurned: stats.avaxBurned,

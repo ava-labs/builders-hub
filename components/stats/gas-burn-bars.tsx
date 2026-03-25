@@ -4,6 +4,7 @@ import { useState, useMemo, useRef } from "react";
 import { ArrowUpDown, AlertTriangle } from "lucide-react";
 import {
   CATEGORY_LABELS,
+  SUBCATEGORY_LABELS,
   CATEGORY_COLORS,
   formatAvax,
   type ProtocolBreakdown,
@@ -56,15 +57,16 @@ export function GasBurnBars({ protocols, isDark }: GasBurnBarsProps) {
     }
 
     const entries: BarEntry[] = [];
-    const aggregated = new Map<string, ProtocolBreakdown[]>();
+    // Group large categories by subcategory (e.g., MEV → arbitrage, jit, flash-loan-arb)
+    const toAggregate = new Map<string, ProtocolBreakdown[]>(); // key = "cat:subcategory"
 
     for (const p of filtered) {
       const count = catCounts.get(p.category) || 0;
-      // Aggregate if category has many entries AND we're not filtering to that specific category
       if (count > AGGREGATE_THRESHOLD && categoryFilter !== p.category) {
-        const list = aggregated.get(p.category) || [];
+        const groupKey = `${p.category}:${p.subcategory || 'other'}`;
+        const list = toAggregate.get(groupKey) || [];
         list.push(p);
-        aggregated.set(p.category, list);
+        toAggregate.set(groupKey, list);
       } else {
         entries.push({
           key: p.protocol,
@@ -78,20 +80,20 @@ export function GasBurnBars({ protocols, isDark }: GasBurnBarsProps) {
       }
     }
 
-    // Create aggregated entries
-    for (const [cat, protos] of aggregated) {
+    // Create aggregated entries per subcategory
+    for (const [groupKey, protos] of toAggregate) {
+      const [cat, sub] = groupKey.split(':');
       const totalBurned = protos.reduce((s, p) => s + p.avaxBurned, 0);
       const totalGas = protos.reduce((s, p) => s + p.gasUsed, 0);
-      // Weighted average delta by gas used
       const weightedDelta = totalGas > 0
         ? protos.reduce((s, p) => s + p.delta * p.gasUsed, 0) / totalGas
         : 0;
       const totalGasShare = protos.reduce((s, p) => s + p.gasShare, 0);
 
-      const catLabel = CATEGORY_LABELS[cat] || cat;
+      const subLabel = SUBCATEGORY_LABELS[sub] || CATEGORY_LABELS[cat] || cat;
       entries.push({
-        key: `agg:${cat}`,
-        label: `${catLabel} (${protos.length})`,
+        key: `agg:${groupKey}`,
+        label: `${subLabel} (${protos.length})`,
         category: cat,
         avaxBurned: totalBurned,
         delta: weightedDelta,

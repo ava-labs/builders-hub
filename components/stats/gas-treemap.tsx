@@ -25,6 +25,7 @@ import type { DateRange } from "react-day-picker";
 import { useTheme } from "@/components/content-design/theme-observer";
 import {
   CATEGORY_LABELS,
+  SUBCATEGORY_LABELS,
   formatNumber,
   formatAvax,
   formatUsd,
@@ -228,6 +229,7 @@ interface ProtocolItem extends SquarifyItem {
   value: number;
   protocol: string;
   category: string;
+  subcategory: string | null;
   gasShare: number;
   burnShare: number;
   delta: number;
@@ -258,6 +260,7 @@ type HoveredInfo =
       type: "protocol";
       label: string;
       categoryLabel: string;
+      subcategoryLabel: string | null;
       delta: number;
       gasShare: number;
       burnShare: number;
@@ -371,6 +374,7 @@ function buildProtocolHover(p: ProtocolItem, catLabel: string): HoveredInfo {
     type: "protocol",
     label: p.protocol,
     categoryLabel: catLabel,
+    subcategoryLabel: p.subcategory ? (SUBCATEGORY_LABELS[p.subcategory] || p.subcategory) : null,
     delta: p.delta,
     gasShare: p.gasShare,
     burnShare: p.burnShare,
@@ -608,6 +612,7 @@ export default function GasTreemap() {
         value: p.avaxBurned,
         protocol: p.protocol,
         category: cat.category,
+        subcategory: p.subcategory || null,
         gasShare: p.gasShare,
         burnShare: allBurned > 0 ? (p.avaxBurned / allBurned) * 100 : 0,
         delta: p.delta,
@@ -678,7 +683,9 @@ export default function GasTreemap() {
           {data && (
             <>
               <span className="text-xs px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400">
-                {data.coverage?.taggedGasPercent.toFixed(1)}% classified
+                {data.coverage?.totalChainBurned
+                  ? ((data.totalAvaxBurned / data.coverage.totalChainBurned) * 100).toFixed(1)
+                  : data.coverage?.taggedGasPercent.toFixed(1)}% classified
               </span>
               <span className="text-xs px-2 py-0.5 rounded-full bg-red-500/10 text-red-400 border border-red-500/20">
                 {formatAvax(data.coverage?.totalChainBurned ?? data.totalAvaxBurned)}
@@ -1111,6 +1118,9 @@ export default function GasTreemap() {
                   {hovered.type === "protocol" && (
                     <span className="text-zinc-400 dark:text-zinc-500 text-[10px] uppercase tracking-wider block mb-0.5">
                       {hovered.categoryLabel}
+                      {hovered.subcategoryLabel && (
+                        <span className="text-zinc-300 dark:text-zinc-600"> / {hovered.subcategoryLabel}</span>
+                      )}
                     </span>
                   )}
                   <span className="font-semibold text-zinc-900 dark:text-white text-base">

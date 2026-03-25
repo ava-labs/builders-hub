@@ -5,6 +5,7 @@ import { SearchInputWithClear } from "@/components/stats/SearchInputWithClear";
 import { SortIcon } from "@/components/stats/SortIcon";
 import {
   CATEGORY_LABELS,
+  SUBCATEGORY_LABELS,
   formatNumber,
   formatUsd,
   getDeltaBgClass,
@@ -152,6 +153,9 @@ export function GasTreemapTable({ protocols }: GasTreemapTableProps) {
                 <td className="px-3 py-2 hidden sm:table-cell">
                   <span className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-700 text-zinc-500 dark:text-zinc-400 whitespace-nowrap">
                     {CATEGORY_LABELS[p.category] || p.category}
+                    {p.subcategory && (
+                      <span className="text-zinc-400 dark:text-zinc-500"> / {SUBCATEGORY_LABELS[p.subcategory] || p.subcategory}</span>
+                    )}
                   </span>
                 </td>
                 <td className="px-3 py-2 text-right font-mono text-zinc-900 dark:text-zinc-100">
