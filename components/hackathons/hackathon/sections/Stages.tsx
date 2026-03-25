@@ -2,10 +2,11 @@
 
 import { HackathonStage, TagItem as StageTagItem } from "@/types/hackathon-stage";
 import { JSX, useEffect, useMemo, useState } from "react";
+import StageSubmitDialog from "./StageSubmitDialog";
 
 type StageStatus = "completed" | "current" | "upcoming";
 
-export default function Stages({ stages }: { stages: HackathonStage[] }): JSX.Element {
+export default function Stages({ isParticipant, stages }: { isParticipant: boolean; stages: HackathonStage[] }): JSX.Element {
   const [todayDate, setTodayDate] = useState<Date>(() => new Date());
   const [selectedPhaseIndex, setSelectedPhaseIndex] = useState<number>(0);
 
@@ -182,11 +183,17 @@ export default function Stages({ stages }: { stages: HackathonStage[] }): JSX.El
               <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[#d66666]/30 to-transparent" />
             </div>
 
-            {selectedStage.component?.type === "cards" ? (
-              <CardsComponent stage={selectedStage} />
-            ) : selectedStage.component?.type === "tags" ? (
-              <TagsComponent stage={selectedStage} />
-            ) : null}
+            {renderStageComponent(selectedStage)}
+
+            {
+              selectedStage.submitForm && (
+                <StageSubmitDialog
+                  onSubmit={() => { }}
+                  selectedStage={selectedStage}
+                  stageIndex={selectedPhaseIndex}
+                />
+              )
+            }
           </div>
         )}
       </div>
@@ -217,8 +224,8 @@ function DesktopTimeline({
             <button
               onClick={(): void => onPhaseClick(index)}
               className={`rounded-full p-1 transition-all duration-300 active:scale-95 mb-4 hover:bg-[#d66666]/10 ${index === selectedIndex
-                  ? "bg-[#d66666]/20 px-6 py-3 rounded-full shadow-lg shadow-amber-500/20"
-                  : "px-2 py-2"
+                ? "bg-[#d66666]/20 px-6 py-3 rounded-full shadow-lg shadow-amber-500/20"
+                : "px-2 py-2"
                 }`}
             >
               <PhaseIcon status={status} />
@@ -227,8 +234,8 @@ function DesktopTimeline({
             <div className="flex flex-col items-center px-2">
               <span
                 className={`text-[14px] text-center ${status === "completed" || status === "current"
-                    ? "text-white"
-                    : "text-[rgba(255,255,255,0.5)]"
+                  ? "text-white"
+                  : "text-[rgba(255,255,255,0.5)]"
                   }`}
               >
                 {phase.label}
@@ -242,8 +249,8 @@ function DesktopTimeline({
             {index < phases.length - 1 && (
               <div
                 className={`absolute top-[15px] left-[calc(50%+20px)] w-[calc(100%-40px)] h-[2px] ${nextPhaseStatus === "completed" || nextPhaseStatus === "current"
-                    ? "bg-[#d66666]"
-                    : "bg-[rgba(214,102,102,0.3)]"
+                  ? "bg-[#d66666]"
+                  : "bg-[rgba(214,102,102,0.3)]"
                   }`}
               />
             )}
@@ -307,9 +314,9 @@ function CardsComponent({ stage }: { stage: HackathonStage }): JSX.Element | nul
           <div className="absolute inset-0 bg-gradient-to-br from-[#d66666]/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl" />
 
           <div className="relative">
-            <div className="flex items-center justify-center w-12 h-12 mb-4 rounded-lg bg-[#d66666]/10 border border-[#d66666]/20">
+            {/* <div className="flex items-center justify-center w-12 h-12 mb-4 rounded-lg bg-[#d66666]/10 border border-[#d66666]/20">
               {renderIcon(item.icon)}
-            </div>
+            </div> */}
 
             <h3 className="text-lg font-medium text-white mb-3">{item.title}</h3>
 
@@ -348,9 +355,9 @@ function TagsComponent({ stage }: { stage: HackathonStage }): JSX.Element | null
         <div className="space-y-6">
           {items.map((item: StageTagItem, index: number): JSX.Element => (
             <div key={`${item.title}-${index}`} className="flex gap-4 items-start">
-              <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-[#d66666]/20 border border-[#d66666]/30 flex items-center justify-center">
+              {/* <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-[#d66666]/20 border border-[#d66666]/30 flex items-center justify-center">
                 {renderIcon(item.icon, "small")}
-              </div>
+              </div> */}
 
               <div className="flex-1">
                 <h4 className="text-[17px] text-white mb-2">{item.title}</h4>
@@ -403,77 +410,17 @@ function formatStageDate(dateString: string): string {
   });
 }
 
-function renderIcon(icon: string, size: "default" | "small" = "default"): JSX.Element {
-  const iconClassName: string =
-    size === "small" ? "w-5 h-5 text-[#d66666]" : "w-6 h-6 text-[#d66666]";
+function renderStageComponent(stage: HackathonStage): React.JSX.Element | null {
+  if (!stage.component) return null
 
-  if (icon === "calendar") {
-    return (
-      <svg className={iconClassName} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10m-11 9h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2v11a2 2 0 002 2z" />
-      </svg>
-    );
+  switch (stage.component.type) {
+    case 'cards':
+      return <CardsComponent stage={stage} />
+
+    case 'tags':
+      return <TagsComponent stage={stage} />
+
+    default:
+      return null
   }
-
-  if (icon === "check") {
-    return (
-      <svg className={iconClassName} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-      </svg>
-    );
-  }
-
-  if (icon === "shield") {
-    return (
-      <svg className={iconClassName} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3l7 4v5c0 5-3.5 8-7 9-3.5-1-7-4-7-9V7l7-4z" />
-      </svg>
-    );
-  }
-
-  if (icon === "users") {
-    return (
-      <svg className={iconClassName} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-      </svg>
-    );
-  }
-
-  if (icon === "file-text") {
-    return (
-      <svg className={iconClassName} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-      </svg>
-    );
-  }
-
-  if (icon === "lightbulb") {
-    return (
-      <svg className={iconClassName} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3a7 7 0 00-4 12.74V18a2 2 0 002 2h4a2 2 0 002-2v-2.26A7 7 0 0012 3z" />
-      </svg>
-    );
-  }
-
-  if (icon === "cpu" || icon === "server") {
-    return (
-      <svg className={iconClassName} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 3v2.25M14.25 3v2.25M9.75 18.75V21M14.25 18.75V21M3 9.75h2.25M18.75 9.75H21M3 14.25h2.25M18.75 14.25H21M7.5 6.75h9a.75.75 0 01.75.75v9a.75.75 0 01-.75.75h-9a.75.75 0 01-.75-.75v-9a.75.75 0 01.75-.75z" />
-      </svg>
-    );
-  }
-
-  if (icon === "layout") {
-    return (
-      <svg className={iconClassName} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5h16v14H4V5zm0 4h16M9 9v10" />
-      </svg>
-    );
-  }
-
-  return (
-    <svg className={iconClassName} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z" />
-    </svg>
-  );
 }

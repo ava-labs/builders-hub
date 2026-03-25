@@ -37,12 +37,14 @@ export enum SubmitFormFieldType {
 }
 
 export type TextStagesSubmitFormField = {
-  id: string;
-  type: SubmitFormFieldType.Text;
-  label: string;
-  placeholder: string;
-  required: boolean;
-};
+  id: string
+  type: SubmitFormFieldType.Text
+  label: string
+  placeholder: string
+  required: boolean
+  maxCharacters: number | null
+  rows: number | null
+}
 
 export type LinkStagesSubmitFormField = {
   id: string;
@@ -53,12 +55,13 @@ export type LinkStagesSubmitFormField = {
 };
 
 export type ChipsStagesSubmitFormField = {
-  id: string;
-  type: SubmitFormFieldType.Chips;
-  label: string;
-  placeholder: string;
-  required: boolean;
-};
+  id: string
+  type: SubmitFormFieldType.Chips
+  label: string
+  placeholder: string
+  required: boolean
+  chips: string[]
+}
 
 export type SubmitFormField =
   | TextStagesSubmitFormField

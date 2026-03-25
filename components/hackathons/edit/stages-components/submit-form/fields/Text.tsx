@@ -48,6 +48,41 @@ export default function TextStagesSubmitFormField({
         />
       </div>
 
+      <div className="space-y-2">
+        <Label htmlFor={`text-max-characters-${field.id}`}>
+          Max characters
+        </Label>
+        <Input
+          id={`text-max-characters-${field.id}`}
+          type="number"
+          value={field.maxCharacters ?? ''}
+          onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+            onChange({
+              ...field,
+              maxCharacters:
+                event.target.value === '' ? null : Number(event.target.value),
+            })
+          }
+          placeholder="E.g. 280"
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor={`text-rows-${field.id}`}>Rows</Label>
+        <Input
+          id={`text-rows-${field.id}`}
+          type="number"
+          value={field.rows ?? ''}
+          onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+            onChange({
+              ...field,
+              rows: event.target.value === '' ? null : Number(event.target.value),
+            })
+          }
+          placeholder="E.g. 4"
+        />
+      </div>
+
       <label className="flex items-center gap-2">
         <input
           type="checkbox"

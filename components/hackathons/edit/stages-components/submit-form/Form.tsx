@@ -43,6 +43,8 @@ function createTextStagesSubmitFormField(
     label: '',
     placeholder: '',
     required: false,
+    maxCharacters: null,
+    rows: null,
   }
 }
 
@@ -67,6 +69,7 @@ function createChipsStagesSubmitFormField(
     label: '',
     placeholder: '',
     required: false,
+    chips: [],
   }
 }
 

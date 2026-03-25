@@ -98,6 +98,8 @@ const createTextStagesSubmitFormField =
       type: SubmitFormFieldType.Text,
       label: '',
       placeholder: '',
+      maxCharacters: null,
+      rows: null,
       required: false,
     }
   }
@@ -113,16 +115,16 @@ const createLinkStagesSubmitFormField =
     }
   }
 
-const createChipsStagesSubmitFormField =
-  (): ChipsStagesSubmitFormField => {
-    return {
-      id: crypto.randomUUID(),
-      type: SubmitFormFieldType.Chips,
-      label: '',
-      placeholder: '',
-      required: false,
-    }
+export function createChipsStagesSubmitFormField(): ChipsStagesSubmitFormField {
+  return {
+    id: crypto.randomUUID(),
+    type: SubmitFormFieldType.Chips,
+    label: '',
+    placeholder: '',
+    required: false,
+    chips: [],
   }
+}
 
 const createDefaultSubmitFormField = (
   type: SubmitFormFieldType
@@ -168,6 +170,7 @@ export default function HackathonsEditStages({
 
   const syncStagesToParent = (updatedStages: HackathonStage[]): void => {
     setStages(updatedStages)
+    console.log('Updated stages:', updatedStages)
 
     setFormDataContent({
       ...formDataContent,
