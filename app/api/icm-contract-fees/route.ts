@@ -3,13 +3,17 @@ import { getICMContractFeesData } from "@/lib/icm-clickhouse";
 
 const CACHE_CONTROL_HEADER = 'public, max-age=14400, s-maxage=14400, stale-while-revalidate=86400';
 
-export async function GET(_request: Request) {
+export async function GET(request: Request) {
   try {
-    const result = await getICMContractFeesData();
+    const { searchParams } = new URL(request.url);
+    const timeRange = searchParams.get("timeRange") || "all";
+    const result = await getICMContractFeesData(timeRange);
+
     return NextResponse.json(result, {
       headers: {
         'Cache-Control': CACHE_CONTROL_HEADER,
-        'X-Data-Source': 'fresh',
+        'X-Data-Source': result.dataSource,
+        'X-Cache-Timestamp': result.lastUpdated,
       }
     });
   } catch (error) {
