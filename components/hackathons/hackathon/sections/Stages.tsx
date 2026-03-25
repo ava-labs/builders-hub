@@ -174,21 +174,23 @@ export default function Stages({ isParticipant, stages }: { isParticipant: boole
         </div>
 
         {selectedStage && (
-          <div className="mb-12 w-full">
-            <div className="flex items-center gap-4 mb-8">
-              <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[#d66666]/30 to-transparent" />
-              <h3 className="text-[32px] font-medium text-white">
-                {selectedStage.label}
-              </h3>
-              <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[#d66666]/30 to-transparent" />
+          <div className="flex flex-col items-center gap-4 w-full">
+            <div className="mb-12 !w-full">
+              <div className="flex items-center gap-4 mb-8">
+                <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[#d66666]/30 to-transparent" />
+                <h3 className="text-[32px] font-medium text-white">
+                  {selectedStage.label}
+                </h3>
+                <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[#d66666]/30 to-transparent" />
+              </div>
+
+              {renderStageComponent(selectedStage)}
+
             </div>
-
-            {renderStageComponent(selectedStage)}
-
             {
               selectedStage.submitForm && (
                 <StageSubmitDialog
-                  onSubmit={() => { }}
+                  onSubmit={(form) => {console.log("Form submitted for stage:", form)}}
                   selectedStage={selectedStage}
                   stageIndex={selectedPhaseIndex}
                 />

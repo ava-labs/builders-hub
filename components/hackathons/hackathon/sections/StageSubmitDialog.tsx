@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { useForm } from 'react-hook-form'
-import { ArrowRight, Upload, X } from 'lucide-react'
+import { Upload } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -29,7 +29,7 @@ import {
   TextStagesSubmitFormField,
 } from '@/types/hackathon-stage'
 
-type StageSubmitValues = Record<string, string | string[]>
+type StageSubmitValues = Record<string, string>
 
 type StageSubmitDialogProps = {
   stageIndex: number
@@ -48,7 +48,7 @@ function buildDefaultValues(stage: HackathonStage): StageSubmitValues {
   return fields.reduce(
     (acc: StageSubmitValues, field: SubmitFormField): StageSubmitValues => {
       if (field.type === SubmitFormFieldType.Chips) {
-        acc[field.id] = (field as ChipsStagesSubmitFormField).chips ?? []
+        acc[field.id] = ''
         return acc
       }
 
@@ -67,7 +67,6 @@ export default function StageSubmitDialog({
 }: StageSubmitDialogProps): React.JSX.Element | null {
   const [open, setOpen] = React.useState<boolean>(false)
   const [isSubmitting, setIsSubmitting] = React.useState<boolean>(false)
-  const [chipDrafts, setChipDrafts] = React.useState<Record<string, string>>({})
 
   const form = useForm<StageSubmitValues>({
     defaultValues: buildDefaultValues(selectedStage),
@@ -75,55 +74,10 @@ export default function StageSubmitDialog({
 
   React.useEffect((): void => {
     form.reset(buildDefaultValues(selectedStage))
-    setChipDrafts({})
   }, [selectedStage, form])
 
   if (!selectedStage.submitForm?.fields.length) {
     return null
-  }
-
-  const handleAddChip = (field: ChipsStagesSubmitFormField): void => {
-    const currentDraft: string = (chipDrafts[field.id] ?? '').trim()
-
-    if (!currentDraft) {
-      return
-    }
-
-    const currentValue: StageSubmitValues = form.getValues()
-    const currentChips: string[] = Array.isArray(currentValue[field.id])
-      ? (currentValue[field.id] as string[])
-      : []
-
-    form.setValue(field.id, [...currentChips, currentDraft], {
-      shouldDirty: true,
-      shouldValidate: true,
-    })
-
-    setChipDrafts((prev: Record<string, string>): Record<string, string> => {
-      return {
-        ...prev,
-        [field.id]: '',
-      }
-    })
-  }
-
-  const handleRemoveChip = (
-    field: ChipsStagesSubmitFormField,
-    chipToRemove: string
-  ): void => {
-    const currentValue: StageSubmitValues = form.getValues()
-    const currentChips: string[] = Array.isArray(currentValue[field.id])
-      ? (currentValue[field.id] as string[])
-      : []
-
-    form.setValue(
-      field.id,
-      currentChips.filter((chip: string): boolean => chip !== chipToRemove),
-      {
-        shouldDirty: true,
-        shouldValidate: true,
-      }
-    )
   }
 
   const renderField = (field: SubmitFormField): React.JSX.Element | null => {
@@ -144,10 +98,10 @@ export default function StageSubmitDialog({
             name={textField.id}
             render={({ field: rhfField }) => (
               <FormItem className="space-y-2">
-                <FormLabel className="text-white font-medium">
+                <FormLabel className="font-medium text-white">
                   {textField.label}
                   {textField.required ? (
-                    <span className="ml-1 text-[#66acd6]">*</span>
+                    <span className="ml-1 text-[#d66666]">*</span>
                   ) : null}
                 </FormLabel>
 
@@ -159,7 +113,7 @@ export default function StageSubmitDialog({
                       placeholder={textField.placeholder}
                       rows={rows}
                       maxLength={textField.maxCharacters ?? undefined}
-                      className="min-h-[120px] resize-none border-zinc-700 bg-zinc-900/80 text-white placeholder:text-zinc-500 focus:border-[#66acd6]"
+                      className="min-h-[120px] resize-none border-zinc-700 bg-zinc-900/80 text-white placeholder:text-zinc-500 focus:border-[#d66666]"
                     />
                   ) : (
                     <Input
@@ -167,7 +121,7 @@ export default function StageSubmitDialog({
                       onChange={rhfField.onChange}
                       placeholder={textField.placeholder}
                       maxLength={textField.maxCharacters ?? undefined}
-                      className="border-zinc-700 bg-zinc-900/80 text-white placeholder:text-zinc-500 focus:border-[#66acd6]"
+                      className="border-zinc-700 bg-zinc-900/80 text-white placeholder:text-zinc-500 focus:border-[#d66666]"
                     />
                   )}
                 </FormControl>
@@ -186,26 +140,61 @@ export default function StageSubmitDialog({
             key={linkField.id}
             control={form.control}
             name={linkField.id}
-            render={({ field: rhfField }) => (
-              <FormItem className="space-y-2">
-                <FormLabel className="text-white font-medium">
-                  {linkField.label}
-                  {linkField.required ? (
-                    <span className="ml-1 text-[#66acd6]">*</span>
-                  ) : null}
-                </FormLabel>
+            render={({ field: rhfField }) => {
+              const value: string = (rhfField.value as string) ?? ''
 
-                <FormControl>
-                  <Input
-                    type="url"
-                    value={(rhfField.value as string) ?? ''}
-                    onChange={rhfField.onChange}
-                    placeholder={linkField.placeholder}
-                    className="border-zinc-700 bg-zinc-900/80 text-white placeholder:text-zinc-500 focus:border-[#66acd6]"
-                  />
-                </FormControl>
-              </FormItem>
-            )}
+              // Basic normalization to avoid broken links
+              const normalizedUrl: string =
+                value && !value.startsWith('http://') && !value.startsWith('https://')
+                  ? `https://${value}`
+                  : value
+
+              return (
+                <FormItem className="space-y-2">
+                  <FormLabel className="font-medium text-white">
+                    {linkField.label}
+                    {linkField.required ? (
+                      <span className="ml-1 text-[#d66666]">*</span>
+                    ) : null}
+                  </FormLabel>
+
+                  <FormControl>
+                    <Input
+                      type="url"
+                      value={value}
+                      onChange={rhfField.onChange}
+                      placeholder={linkField.placeholder}
+                      className="border-zinc-700 bg-zinc-900/80 text-white placeholder:text-zinc-500 focus:border-[#d66666]"
+                    />
+                  </FormControl>
+
+                  {/* Preview */}
+                  {!!value && (() => {
+                    const maxLength: number = 40
+
+                    const displayValue: string =
+                      value.length > maxLength
+                        ? `${value.slice(0, maxLength)}...`
+                        : value
+
+                    return (
+                      <div className="pt-1 text-sm text-zinc-400">
+                        Visit your link:{' '}
+                        <a
+                          href={normalizedUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[#d66666] underline hover:text-[#ff8a8a]"
+                          title={value} // full value on hover
+                        >
+                          {displayValue}
+                        </a>
+                      </div>
+                    )
+                  })()}
+                </FormItem>
+              )
+            }}
           />
         )
       }
@@ -220,71 +209,44 @@ export default function StageSubmitDialog({
             control={form.control}
             name={chipsField.id}
             render={({ field: rhfField }) => {
-              const chips: string[] = Array.isArray(rhfField.value)
-                ? (rhfField.value as string[])
-                : chipsField.chips ?? []
+              const chips: string[] = chipsField.chips ?? []
 
               return (
                 <FormItem className="space-y-3">
-                  <FormLabel className="text-white font-medium">
+                  <FormLabel className="font-medium text-white">
                     {chipsField.label}
                     {chipsField.required ? (
-                      <span className="ml-1 text-[#66acd6]">*</span>
+                      <span className="ml-1 text-[#d66666]">*</span>
                     ) : null}
                   </FormLabel>
 
-                  <div className="flex gap-2">
-                    <Input
-                      value={chipDrafts[chipsField.id] ?? ''}
-                      onChange={(
-                        event: React.ChangeEvent<HTMLInputElement>
-                      ): void => {
-                        setChipDrafts(
-                          (
-                            prev: Record<string, string>
-                          ): Record<string, string> => {
-                            return {
-                              ...prev,
-                              [chipsField.id]: event.target.value,
-                            }
-                          }
-                        )
-                      }}
-                      placeholder={chipsField.placeholder}
-                      className="border-zinc-700 bg-zinc-900/80 text-white placeholder:text-zinc-500 focus:border-[#66acd6]"
-                    />
-
-                    <Button
-                      type="button"
-                      onClick={() => handleAddChip(chipsField)}
-                      className="bg-[#66acd6] text-[#152d44] hover:bg-[#7fc0e5]"
-                    >
-                      Add
-                    </Button>
-                  </div>
-
                   {!!chips.length && (
-                    <div className="flex flex-wrap gap-2">
-                      {chips.map(
-                        (chip: string, index: number): React.JSX.Element => (
-                          <div
-                            key={`${chip}-${index}`}
-                            className="flex items-center gap-2 rounded-md border border-zinc-700 bg-zinc-900/80 px-3 py-1.5 text-sm text-white"
-                          >
-                            <span>{chip}</span>
+                    <div className="flex flex-wrap gap-3">
+                      {chips.map((chip: string, index: number): React.JSX.Element => {
+                        const isSelected: boolean = rhfField.value === chip
 
-                            <button
-                              type="button"
-                              className="cursor-pointer text-zinc-400 transition-colors hover:text-red-400"
-                              onClick={() =>
-                                handleRemoveChip(chipsField, chip)
-                              }
-                            >
-                              <X size={14} />
-                            </button>
-                          </div>
+                        return (
+                          <button
+                            key={`${chip}-${index}`}
+                            type="button"
+                            onClick={(): void => {
+                              form.setValue(chipsField.id, chip, {
+                                shouldDirty: true,
+                                shouldValidate: true,
+                              })
+                            }}
+                            className={[
+                              'rounded-lg border px-6 py-2 text-base font-medium transition-all duration-200',
+                              'bg-[#0f1016]',
+                              isSelected
+                                ? 'border-[#d66666] text-[#ff8a8a] shadow-[0_0_0_1px_rgba(214,102,102,0.35),0_0_18px_rgba(214,102,102,0.22)]'
+                                : 'border-white/10 text-white/85 hover:border-[#d66666]/45 hover:text-white',
+                            ].join(' ')}
+                          >
+                            {chip}
+                          </button>
                         )
-                      )}
+                      })}
                     </div>
                   )}
                 </FormItem>
@@ -317,18 +279,19 @@ export default function StageSubmitDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
+      <DialogTrigger asChild className="">
         <button type="button" className="group relative inline-flex">
-          <div className="absolute -inset-1 rounded-xl bg-gradient-to-r from-[#66acd6] via-[#38bdf8] to-[#66acd6] blur-sm opacity-40 transition duration-500 group-hover:opacity-70" />
-          <div className="relative flex items-center gap-3 rounded-xl bg-[#66acd6] px-10 py-5 font-['Aeonik:Medium',sans-serif] font-medium text-[#152d44] shadow-xl shadow-cyan-500/30 transition-all duration-200 group-hover:scale-105 group-hover:bg-[#7fc0e5] group-hover:shadow-cyan-500/50">
-            <Upload className="h-5 w-5" />
-            <span className="text-[17px]">{triggerLabel}</span>
-            <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
+          <div className="relative flex items-center gap-3 rounded-xl bg-[#d66666] px-10 py-5 font-['Aeonik:Medium',sans-serif] font-medium text-[#152d44] shadow-xl shadow-[#d66666]/30 transition-all duration-200 group-hover:scale-105 group-hover:bg-[#e57f7f] group-hover:shadow-[#d66666]/50">
+            <div className="absolute -inset-1 cursor-pointer rounded-xl bg-gradient-to-r from-[#d66666] via-[#f83838] to-[#d66666] blur-sm opacity-40 transition duration-500 group-hover:opacity-70" />
+            <Upload className="h-5 w-5 text-zinc-900" />
+            <span className="text-[17px] font-semibold text-zinc-900">
+              {triggerLabel}
+            </span>
           </div>
         </button>
       </DialogTrigger>
 
-      <DialogContent className="max-h-[85vh] overflow-y-auto border-zinc-800 bg-[#0b0b0f] text-white sm:max-w-2xl">
+      <DialogContent className="max-h-[85vh] overflow-y-auto border-[#d66666]/20 bg-[#0b0b0f] text-white sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle className="text-2xl font-semibold text-white">
             {selectedStage.label}
@@ -342,11 +305,11 @@ export default function StageSubmitDialog({
           >
             {selectedStage.submitForm.fields.map(renderField)}
 
-            <div className="pt-4">
+            <div className="flex w-full justify-center pt-4">
               <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full bg-[#66acd6] py-4 text-base font-semibold text-[#152d44] hover:bg-[#7fc0e5]"
+                className="w-[40%] bg-[#d66666] py-4 text-base font-semibold text-zinc-900 hover:bg-[#e57f7f]"
               >
                 {isSubmitting ? 'Saving...' : `Save ${selectedStage.label}`}
               </Button>
