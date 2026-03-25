@@ -234,12 +234,42 @@ interface ContractFeesCacheData {
   fetchedAt: number;
 }
 
+type ContractFeesDataSource = "fresh" | "cache" | "stale-cache" | "empty-fallback";
+
+interface ContractFeesCacheResult {
+  cacheData: ContractFeesCacheData;
+  dataSource: ContractFeesDataSource;
+}
+
 const CACHE_TTL = 4 * 60 * 60 * 1000; // 4 hours
 
 let cache: ICMCacheData | null = null;
 let fetchPromise: Promise<ICMCacheData> | null = null;
-let contractFeesCache: ContractFeesCacheData | null = null;
-let contractFeesFetchPromise: Promise<ContractFeesCacheData> | null = null;
+const contractFeesCacheByKey = new Map<string, ContractFeesCacheData>();
+const contractFeesFetchPromises = new Map<string, Promise<ContractFeesCacheResult>>();
+
+function getContractFeesQueryConfig(timeRange = "all"): { cacheKey: string; days?: number } {
+  switch (timeRange) {
+    case "7d":
+      return { cacheKey: "7d", days: 7 };
+    case "30d":
+      return { cacheKey: "30d", days: 30 };
+    case "90d":
+      return { cacheKey: "90d", days: 90 };
+    case "1y":
+      return { cacheKey: "1y", days: 365 };
+    case "all":
+    default:
+      return { cacheKey: "all" };
+  }
+}
+
+function createEmptyContractFeesCache(): ContractFeesCacheData {
+  return {
+    contractFees: [],
+    fetchedAt: Date.now(),
+  };
+}
 
 function sqlDailyIncoming(): string {
   return `
@@ -292,15 +322,20 @@ function sqlCrossChainFlows(days?: number): string {
   `;
 }
 
-function sqlContractFees(): string {
+function sqlContractFees(days?: number): string {
+  const prewhereClauses = ["chain_id = 43114"];
+  if (days && Number.isFinite(days) && days > 0) {
+    prewhereClauses.push(`block_time >= now() - INTERVAL ${Math.ceil(days)} DAY`);
+  }
+
   return `
     SELECT
       toDate(block_time) AS day,
       toString(sum(toUInt256(gas_used) * toUInt256(gas_price))) AS fees_paid,
       count() AS tx_count
     FROM raw_txs
-    WHERE chain_id = 43114
-      AND \`to\` = unhex('${TELEPORTER_ADDRESS_HEX}')
+    PREWHERE ${prewhereClauses.join(" AND ")}
+    WHERE \`to\` = unhex('${TELEPORTER_ADDRESS_HEX}')
     GROUP BY day
     ORDER BY day
     FORMAT JSONEachRow
@@ -317,7 +352,7 @@ async function refreshCache(): Promise<ICMCacheData> {
     dailyIncoming,
     dailyOutgoing,
     crossChainFlows: cache?.crossChainFlows ?? [],
-    contractFees: contractFeesCache?.contractFees ?? [],
+    contractFees: contractFeesCacheByKey.get("all")?.contractFees ?? [],
     fetchedAt: Date.now(),
   };
 }
@@ -377,9 +412,9 @@ async function getICMCacheData(): Promise<ICMCacheData> {
   return fetchPromise;
 }
 
-async function refreshContractFeesCache(): Promise<ContractFeesCacheData> {
+async function refreshContractFeesCache(days?: number): Promise<ContractFeesCacheData> {
   const contractFees = await queryClickHouseDirect<ContractFee>(
-    sqlContractFees(),
+    sqlContractFees(days),
     CONTRACT_FEES_QUERY_TIMEOUT_MS
   );
 
@@ -389,51 +424,71 @@ async function refreshContractFeesCache(): Promise<ContractFeesCacheData> {
   };
 }
 
-async function getContractFeesCacheData(): Promise<ContractFeesCacheData> {
-  if (contractFeesCache && Date.now() - contractFeesCache.fetchedAt < CACHE_TTL) {
-    return contractFeesCache;
-  }
-
-  if (contractFeesCache) {
-    if (!contractFeesFetchPromise) {
-      contractFeesFetchPromise = refreshContractFeesCache()
-        .then((data) => {
-          contractFeesCache = data;
-          return data;
-        })
-        .catch((err) => {
-          console.warn(
-            "[icm-clickhouse] Contract fees query failed; reusing the last successful contract fees snapshot:",
-            err
-          );
-          return contractFeesCache!;
-        })
-        .finally(() => {
-          contractFeesFetchPromise = null;
-        });
-    }
-    return contractFeesCache;
-  }
-
-  if (!contractFeesFetchPromise) {
-    contractFeesFetchPromise = refreshContractFeesCache()
-      .then((data) => {
-        contractFeesCache = data;
-        return data;
-      })
-      .catch((err) => {
-        console.warn("[icm-clickhouse] Contract fees query failed with no warm cache:", err);
+function startContractFeesRefresh(
+  cacheKey: string,
+  days?: number
+): Promise<ContractFeesCacheResult> {
+  const refreshPromise = refreshContractFeesCache(days)
+    .then((data) => {
+      contractFeesCacheByKey.set(cacheKey, data);
+      return {
+        cacheData: data,
+        dataSource: "fresh" as const,
+      };
+    })
+    .catch((err) => {
+      const existing = contractFeesCacheByKey.get(cacheKey);
+      if (existing) {
+        console.warn(
+          "[icm-clickhouse] Contract fees query failed; reusing the last successful contract fees snapshot:",
+          err
+        );
         return {
-          contractFees: [],
-          fetchedAt: Date.now(),
+          cacheData: existing,
+          dataSource: "stale-cache" as const,
         };
-      })
-      .finally(() => {
-        contractFeesFetchPromise = null;
-      });
+      }
+
+      console.warn("[icm-clickhouse] Contract fees query failed with no warm cache:", err);
+      return {
+        cacheData: createEmptyContractFeesCache(),
+        dataSource: "empty-fallback" as const,
+      };
+    })
+    .finally(() => {
+      contractFeesFetchPromises.delete(cacheKey);
+    });
+
+  contractFeesFetchPromises.set(cacheKey, refreshPromise);
+  return refreshPromise;
+}
+
+async function getContractFeesCacheData(timeRange = "all"): Promise<ContractFeesCacheResult> {
+  const { cacheKey, days } = getContractFeesQueryConfig(timeRange);
+  const cached = contractFeesCacheByKey.get(cacheKey);
+  if (cached && Date.now() - cached.fetchedAt < CACHE_TTL) {
+    return {
+      cacheData: cached,
+      dataSource: "cache",
+    };
   }
 
-  return contractFeesFetchPromise;
+  if (cached) {
+    if (!contractFeesFetchPromises.has(cacheKey)) {
+      void startContractFeesRefresh(cacheKey, days);
+    }
+    return {
+      cacheData: cached,
+      dataSource: "stale-cache",
+    };
+  }
+
+  const inFlight = contractFeesFetchPromises.get(cacheKey);
+  if (inFlight) {
+    return inFlight;
+  }
+
+  return startContractFeesRefresh(cacheKey, days);
 }
 
 function dayToTimestamp(day: string): number {
@@ -560,12 +615,13 @@ interface DailyFeeData {
   txCount: number;
 }
 
-export async function getICMContractFeesData(): Promise<{
+export async function getICMContractFeesData(timeRange = "all"): Promise<{
   data: DailyFeeData[];
   totalFees: number;
   lastUpdated: string;
+  dataSource: ContractFeesDataSource;
 }> {
-  const cacheData = await getContractFeesCacheData();
+  const { cacheData, dataSource } = await getContractFeesCacheData(timeRange);
 
   const dailyData: DailyFeeData[] = cacheData.contractFees.map((row) => ({
     date: row.day,
@@ -581,7 +637,8 @@ export async function getICMContractFeesData(): Promise<{
   return {
     data: dailyData,
     totalFees,
-    lastUpdated: new Date().toISOString(),
+    lastUpdated: new Date(cacheData.fetchedAt).toISOString(),
+    dataSource,
   };
 }
 
