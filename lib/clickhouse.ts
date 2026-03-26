@@ -77,7 +77,12 @@ export function toUnhex(address: string): string {
 }
 
 // Build WHERE clause for multiple addresses
+const ALLOWED_ADDRESS_COLUMNS = new Set(['to', 'from', 't.to', 't.from', 'tr.to', 'tr.from', 'l.address']);
+
 export function buildAddressFilter(addresses: string[], column: string = 'to'): string {
+  if (!ALLOWED_ADDRESS_COLUMNS.has(column)) {
+    throw new Error(`buildAddressFilter: disallowed column "${column}"`);
+  }
   if (addresses.length === 0) return '1=0';
   if (addresses.length === 1) {
     return `${column} = unhex('${toUnhex(addresses[0])}')`;

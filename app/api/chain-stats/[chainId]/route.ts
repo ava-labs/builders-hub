@@ -6,7 +6,10 @@ export const dynamic = 'force-dynamic';
 
 const REQUEST_TIMEOUT_MS = 8000;
 const CACHE_CONTROL_HEADER = 'public, max-age=14400, s-maxage=14400, stale-while-revalidate=86400';
-const METRICS_API_URL = process.env.METRICS_API_URL || 'https://44.221.18.159.sslip.io';
+const METRICS_API_URL = process.env.METRICS_API_URL;
+if (!METRICS_API_URL) {
+  console.warn('METRICS_API_URL is not set — chain-stats endpoint will fail');
+}
 
 interface ChainMetrics {
   activeAddresses: {
