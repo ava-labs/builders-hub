@@ -133,6 +133,13 @@ export function UserButton() {
                 </DropdownMenuItem>
               )
             }
+            {
+              (session?.user?.custom_attributes.includes('devrel') || session?.user?.custom_attributes?.includes('judge')) && (
+                <DropdownMenuItem asChild className='cursor-pointer'>
+                  <Link href='/evaluate'>Evaluate Hackathons</Link>
+                </DropdownMenuItem>
+              )
+            }
             {/* <DropdownMenuItem asChild className='cursor-pointer'>
               <Link href='/profile#settings'>Settings</Link>
             </DropdownMenuItem> */}
