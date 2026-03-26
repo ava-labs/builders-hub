@@ -1,11 +1,10 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { Search, ChevronDown, ChevronUp, ExternalLink, Flame, ArrowRightLeft, Zap, CalendarDays } from "lucide-react";
+import { Search, ChevronDown, ChevronUp, ExternalLink, Flame, ArrowRightLeft, Zap } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { differenceInCalendarDays, subMonths, format } from "date-fns";
+import { CustomDateRangePicker } from "@/components/custom-date-range-picker";
+import { differenceInCalendarDays, format } from "date-fns";
 import type { DateRange } from "react-day-picker";
 import { isAddress } from "viem";
 
@@ -510,44 +509,23 @@ export default function ContractGasXray({ initialAddress }: ContractGasXrayProps
                 </button>
               ))}
 
-              <Popover open={customPopoverOpen} onOpenChange={setCustomPopoverOpen}>
-                <PopoverTrigger asChild>
-                  <button
-                    className={`px-2.5 py-1.5 text-xs font-medium rounded-md transition-colors flex items-center gap-1 ${
-                      days === "custom"
-                        ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
-                        : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                    }`}
-                  >
-                    <CalendarDays className="w-3 h-3" />
-                    {customLabel || "Custom"}
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto max-w-[calc(100vw-2rem)] p-0" align="end">
-                  <Calendar
-                    mode="range"
-                    selected={customRange}
-                    onSelect={(range: DateRange | undefined) => {
-                      setCustomRange(range);
-                      if (range?.from && range?.to) {
-                        const span = differenceInCalendarDays(range.to, range.from);
-                        if (span <= 183) {
-                          setDays("custom");
-                          setCustomPopoverOpen(false);
-                        }
-                      }
-                    }}
-                    disabled={[
-                      { before: subMonths(new Date(), 6) },
-                      { after: new Date() },
-                    ]}
-                    numberOfMonths={1}
-                  />
-                  {customRange?.from && customRange?.to && differenceInCalendarDays(customRange.to, customRange.from) > 183 && (
-                    <p className="text-xs text-red-400 px-3 pb-2">Max 6 months</p>
-                  )}
-                </PopoverContent>
-              </Popover>
+              <CustomDateRangePicker
+                customRange={customRange}
+                setCustomRange={setCustomRange}
+                isCustomActive={days === "custom"}
+                open={customPopoverOpen}
+                onOpenChange={setCustomPopoverOpen}
+                timeRangeLabel={customLabel}
+                onApply={() => {
+                  if (customRange?.from && customRange?.to) {
+                    const span = differenceInCalendarDays(customRange.to, customRange.from);
+                    if (span <= 183) {
+                      setDays("custom");
+                      setCustomPopoverOpen(false);
+                    }
+                  }
+                }}
+              />
             </div>
 
             <button
