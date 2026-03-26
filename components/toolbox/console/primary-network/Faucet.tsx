@@ -16,6 +16,7 @@ import { AccountRequirementsConfigKey } from "../../hooks/useAccountRequirements
 import { useFaucetRateLimit } from "@/hooks/useFaucetRateLimit";
 import { useFaucetBalance } from "@/hooks/useFaucetBalance";
 import { Check, Droplets, ExternalLink, Clock, Wallet, RefreshCw, Loader2, AlertTriangle } from "lucide-react";
+import { utils } from "@avalabs/avalanchejs";
 import { useWalletStore } from "../../stores/walletStore";
 import { useWallet } from "../../hooks/useWallet";
 import Link from "next/link";
@@ -125,6 +126,55 @@ function EVMFaucetCard({ chain }: { chain: L1ListItem }) {
   );
 }
 
+const BECH32_CHARSET = "qpzry9x8gf2tvdw0s3jn54khce6mua7l";
+
+function validatePChainAddress(raw: string): { valid: true; normalized: string } | { valid: false; error: string } {
+  const trimmed = raw.trim().toLowerCase();
+
+  if (!trimmed) {
+    return { valid: false, error: "Address is required." };
+  }
+
+  // Reject hex addresses
+  if (trimmed.startsWith("0x")) {
+    return { valid: false, error: "This looks like a C-Chain address. P-Chain addresses start with P-fuji1 or P-avax1." };
+  }
+
+  // Strip optional "P-" prefix
+  const withoutP = trimmed.startsWith("p-") ? trimmed.slice(2) : trimmed;
+
+  // Must have fuji1 or avax1 prefix
+  const isFuji = withoutP.startsWith("fuji1");
+  const isAvax = withoutP.startsWith("avax1");
+  if (!isFuji && !isAvax) {
+    return { valid: false, error: "P-Chain addresses must start with P-fuji1 (testnet) or P-avax1 (mainnet)." };
+  }
+
+  // Detect double-prefixed addresses (e.g. fuji1fuji1...)
+  const hrp = isFuji ? "fuji" : "avax";
+  const dataAfterSep = withoutP.slice(hrp.length + 1); // after "fuji1" or "avax1"
+  if (dataAfterSep.startsWith(`${hrp}1`)) {
+    return { valid: false, error: `Address appears double-prefixed. Remove the extra "${hrp}1".` };
+  }
+
+  // Validate bech32 character set in the data part
+  for (const ch of dataAfterSep) {
+    if (!BECH32_CHARSET.includes(ch)) {
+      return { valid: false, error: `Invalid character "${ch}" in address. Bech32 addresses use only: ${BECH32_CHARSET}` };
+    }
+  }
+
+  // Validate checksum via avalanchejs
+  const normalized = `P-${withoutP}`;
+  try {
+    utils.bech32ToBytes(normalized);
+  } catch {
+    return { valid: false, error: "Invalid address checksum. Please check for typos." };
+  }
+
+  return { valid: true, normalized };
+}
+
 function ManualPChainFaucetInput() {
   const [address, setAddress] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -132,15 +182,21 @@ function ManualPChainFaucetInput() {
   const [success, setSuccess] = useState(false);
   const { notify } = useConsoleNotifications();
 
+  const handleAddressChange = useCallback((value: string) => {
+    // Auto-convert mixed case to lowercase
+    setAddress(value.toLowerCase());
+    setError(null);
+    setSuccess(false);
+  }, []);
+
   const handleClaim = useCallback(async () => {
-    const trimmed = address.trim();
-    if (!trimmed) return;
+    const result = validatePChainAddress(address);
+    if (!result.valid) {
+      setError(result.error);
+      return;
+    }
 
-    // Auto-prepend P-chain prefix if user pasted bare address from CLI
-    const normalizedAddress = trimmed.startsWith("P-")
-      ? trimmed
-      : `P-fuji1${trimmed}`;
-
+    const normalizedAddress = result.normalized;
     setError(null);
     setIsClaiming(true);
     setSuccess(false);
@@ -180,21 +236,17 @@ function ManualPChainFaucetInput() {
   return (
     <div className="mt-3 pt-3 border-t border-zinc-200/80 dark:border-zinc-800">
       <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-2">
-        Using platform-cli? Paste your address from{" "}
+        Paste your P-Chain address (e.g.{" "}
         <code className="bg-zinc-100 dark:bg-zinc-800 px-1 py-0.5 rounded text-[10px] font-mono">
-          platform wallet balance
+          P-fuji1...
         </code>
-        {" "}&mdash; the <code className="bg-zinc-100 dark:bg-zinc-800 px-1 py-0.5 rounded text-[10px] font-mono">P-fuji1</code> prefix is added automatically.
+        ). Case is auto-corrected.
       </p>
       <div className="flex gap-2">
         <input
           type="text"
           value={address}
-          onChange={(e) => {
-            setAddress(e.target.value);
-            setError(null);
-            setSuccess(false);
-          }}
+          onChange={(e) => handleAddressChange(e.target.value)}
           placeholder="P-fuji1..."
           className="flex-1 px-3 py-2 text-xs font-mono rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-500/20"
         />
