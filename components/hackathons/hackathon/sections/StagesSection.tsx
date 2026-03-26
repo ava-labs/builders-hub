@@ -4,12 +4,14 @@ import { HackathonStage } from "@/types/hackathon-stage";
 import { JSX, useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import Stages from "./Stages";
+import { HackathonHeader } from "@/types/hackathons";
 
 type Props = {
   stages: HackathonStage[];
+  hackathon: HackathonHeader;
 };
 
-export default function StagesSection({ stages }: Props): JSX.Element {
+export default function StagesSection({ stages, hackathon }: Props): JSX.Element {
   const { status, data: session } = useSession();
   const [isParticipant, setIsParticipant] = useState(false);
   useEffect(() => {
@@ -23,6 +25,6 @@ export default function StagesSection({ stages }: Props): JSX.Element {
       .catch(() => { });
   }, [status]);
   return (
-    <Stages stages={stages} isParticipant={isParticipant} />
+    <Stages stages={stages} isParticipant={isParticipant} hackathon={hackathon} />
   );
 }

@@ -3,10 +3,13 @@
 import { HackathonStage, TagItem as StageTagItem } from "@/types/hackathon-stage";
 import { JSX, useEffect, useMemo, useState } from "react";
 import StageSubmitDialog from "./StageSubmitDialog";
+import Link from "next/link";
+import { HackathonHeader } from "@/types/hackathons";
+import { Upload } from "lucide-react";
 
 type StageStatus = "completed" | "current" | "upcoming";
 
-export default function Stages({ isParticipant, stages }: { isParticipant: boolean; stages: HackathonStage[] }): JSX.Element {
+export default function Stages({ isParticipant, stages, hackathon }: { isParticipant: boolean; stages: HackathonStage[]; hackathon: HackathonHeader }): JSX.Element {
   const [todayDate, setTodayDate] = useState<Date>(() => new Date());
   const [selectedPhaseIndex, setSelectedPhaseIndex] = useState<number>(0);
 
@@ -189,11 +192,17 @@ export default function Stages({ isParticipant, stages }: { isParticipant: boole
             </div>
             {
               selectedStage.submitForm && (
-                <StageSubmitDialog
-                  onSubmit={(form) => {console.log("Form submitted for stage:", form)}}
-                  selectedStage={selectedStage}
-                  stageIndex={selectedPhaseIndex}
-                />
+                <Link href={`/hackathons/${hackathon.id}/stage-form?stage=${selectedPhaseIndex}`}>
+                  <button type="button" className="group relative inline-flex cursor-pointer">
+                    <div className="absolute -inset-1 rounded-xl bg-gradient-to-r from-[#d66666] via-[#f83838] to-[#d66666] blur-sm opacity-40 transition duration-500 group-hover:opacity-70" />
+                    <div className="relative flex items-center gap-3 rounded-xl bg-[#d66666] px-10 py-5 font-['Aeonik:Medium',sans-serif] font-medium text-[#152d44] shadow-xl shadow-[#d66666]/30 transition-all duration-200 group-hover:scale-105 group-hover:bg-[#e57f7f] group-hover:shadow-[#d66666]/50">
+                      <Upload className="h-5 w-5 text-zinc-900" />
+                      <span className="text-[17px] font-semibold text-zinc-900">
+                        Submit
+                      </span>
+                    </div>
+                  </button>
+                </Link>
               )
             }
           </div>
