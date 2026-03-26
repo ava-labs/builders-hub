@@ -1,10 +1,8 @@
 import { useMemo } from 'react';
 import { useWalletStore } from '../stores/walletStore';
 import { useViemChainStore } from '../stores/toolboxStore';
-import { parseEther, formatEther } from 'viem';
-import { readContract } from 'viem/actions';
+import { createPublicClient, http, parseEther, formatEther } from 'viem';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
-import { useWallet } from './useWallet';
 import { useWalletClient } from 'wagmi';
 
 export interface ERC20TokenHook {
@@ -30,54 +28,64 @@ export function useERC20Token(tokenAddress: string | null, abi: any): ERC20Token
   const { walletEVMAddress } = useWalletStore();
   const viemChain = useViemChainStore();
   const { notify } = useConsoleNotifications();
-  const { avalancheWalletClient } = useWallet();
   const { data: walletClient } = useWalletClient();
+
+  // Create a public client for read operations based on the user's current chain.
+  // Previously this used avalancheWalletClient which was hardcoded to C-Chain,
+  // causing read operations to fail on L1 chains.
+  const publicClient = useMemo(() => {
+    if (!viemChain?.rpcUrls?.default?.http?.[0]) return null;
+    return createPublicClient({
+      chain: viemChain,
+      transport: http(viemChain.rpcUrls.default.http[0]),
+    });
+  }, [viemChain]);
 
   const isReady = Boolean(tokenAddress && walletClient && viemChain);
 
   const allowance = async (owner: string, spender: string): Promise<string> => {
-    if (!avalancheWalletClient || !tokenAddress) throw new Error('Contract not ready');
-    
-    const allowanceAmount = await readContract(avalancheWalletClient as any, {
+    if (!publicClient || !tokenAddress) throw new Error('Contract not ready');
+
+    const allowanceAmount = await publicClient.readContract({
       address: tokenAddress as `0x${string}`,
       abi: abi,
       functionName: 'allowance',
       args: [owner, spender]
     });
-    
+
     return formatEther(allowanceAmount as bigint);
   };
 
   const balanceOf = async (account: string): Promise<string> => {
-    if (!avalancheWalletClient || !tokenAddress) throw new Error('Contract not ready');
-    
-    const balance = await readContract(avalancheWalletClient as any, {
+    if (!publicClient || !tokenAddress) throw new Error('Contract not ready');
+
+    const balance = await publicClient.readContract({
       address: tokenAddress as `0x${string}`,
       abi: abi,
       functionName: 'balanceOf',
       args: [account]
     });
-    
+
     return formatEther(balance as bigint);
   };
 
   const totalSupply = async (): Promise<string> => {
-    if (!avalancheWalletClient || !tokenAddress) throw new Error('Contract not ready');
-    
-    const supply = await readContract(avalancheWalletClient as any, {
+    if (!publicClient || !tokenAddress) throw new Error('Contract not ready');
+
+    const supply = await publicClient.readContract({
       address: tokenAddress as `0x${string}`,
       abi: abi,
       functionName: 'totalSupply',
       args: []
     });
-    
+
     return formatEther(supply as bigint);
   };
 
   const name = async (): Promise<string> => {
-    if (!avalancheWalletClient || !tokenAddress) throw new Error('Contract not ready');
-    
-    return await readContract(avalancheWalletClient as any, {
+    if (!publicClient || !tokenAddress) throw new Error('Contract not ready');
+
+    return await publicClient.readContract({
       address: tokenAddress as `0x${string}`,
       abi: abi,
       functionName: 'name',
@@ -86,9 +94,9 @@ export function useERC20Token(tokenAddress: string | null, abi: any): ERC20Token
   };
 
   const symbol = async (): Promise<string> => {
-    if (!avalancheWalletClient || !tokenAddress) throw new Error('Contract not ready');
-    
-    return await readContract(avalancheWalletClient as any, {
+    if (!publicClient || !tokenAddress) throw new Error('Contract not ready');
+
+    return await publicClient.readContract({
       address: tokenAddress as `0x${string}`,
       abi: abi,
       functionName: 'symbol',
@@ -97,9 +105,9 @@ export function useERC20Token(tokenAddress: string | null, abi: any): ERC20Token
   };
 
   const decimals = async (): Promise<number> => {
-    if (!avalancheWalletClient || !tokenAddress) throw new Error('Contract not ready');
-    
-    return await readContract(avalancheWalletClient as any, {
+    if (!publicClient || !tokenAddress) throw new Error('Contract not ready');
+
+    return await publicClient.readContract({
       address: tokenAddress as `0x${string}`,
       abi: abi,
       functionName: 'decimals',

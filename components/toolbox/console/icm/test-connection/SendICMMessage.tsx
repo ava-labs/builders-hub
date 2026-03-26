@@ -4,7 +4,7 @@ import { useToolboxStore, useViemChainStore, getToolboxStore } from "@/component
 import { useState, useMemo } from "react";
 import { createPublicClient, http } from 'viem';
 import ICMDemoABI from "@/contracts/example-contracts/compiled/ICMDemo.json";
-import { cb58ToHex } from '@/components/toolbox/console/utilities/format-converter/FormatConverter';
+import { cb58ToHex } from '@/components/tools/common/utils/cb58';
 import SelectBlockchainId from "@/components/toolbox/components/SelectBlockchainId";
 import { useL1ByChainId, useSelectedL1 } from "@/components/toolbox/stores/l1ListStore";
 import { useEffect } from "react";
