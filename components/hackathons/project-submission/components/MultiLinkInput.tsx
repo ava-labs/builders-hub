@@ -24,6 +24,8 @@ interface MultiLinkInputProps {
   plainLabel?: boolean;
   /** Optional description rendered between the label and the input. */
   description?: string;
+  /** When true, skips domain-origin validation (e.g. allows YouTube/Loom links). */
+  allowAllDomains?: boolean;
 }
 
 export const MultiLinkInput: React.FC<MultiLinkInputProps> = ({
@@ -33,6 +35,7 @@ export const MultiLinkInput: React.FC<MultiLinkInputProps> = ({
   validationMessage,
   plainLabel = false,
   description,
+  allowAllDomains = false,
 }) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const form = useFormContext<any>();
@@ -51,7 +54,7 @@ export const MultiLinkInput: React.FC<MultiLinkInputProps> = ({
       const url = new URL(formattedLink);
 
 
-      if (name === 'demo_link' && (
+      if (!allowAllDomains && name === 'demo_link' && (
         url.hostname.includes('youtube.com') ||
         url.hostname.includes('youtu.be') ||
         url.hostname.includes('loom.com')
