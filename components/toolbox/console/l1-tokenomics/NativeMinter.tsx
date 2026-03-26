@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 import { useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
 import { Button } from "@/components/toolbox/components/Button";
+import { WalletGuard } from "@/components/toolbox/components/WalletGuard";
 import { Input } from "@/components/toolbox/components/Input";
 import { ResultField } from "@/components/toolbox/components/ResultField";
 import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput";
@@ -136,16 +137,18 @@ function NativeMinter({ onSuccess }: BaseConsoleToolProps) {
             />
           )}
 
-          <Button
-            variant="primary"
-            onClick={handleMint}
-            loading={isMinting}
-            disabled={!canMint}
-          >
-            {!walletEVMAddress
-              ? "Connect Wallet to Mint"
-              : "Mint Native Tokens"}
-          </Button>
+          <WalletGuard context="native-minter">
+            <Button
+              variant="primary"
+              onClick={handleMint}
+              loading={isMinting}
+              disabled={!canMint}
+            >
+              {!walletEVMAddress
+                ? "Connect Wallet to Mint"
+                : "Mint Native Tokens"}
+            </Button>
+          </WalletGuard>
         </div>
       </PrecompileCodeViewer>
     </CheckPrecompile>

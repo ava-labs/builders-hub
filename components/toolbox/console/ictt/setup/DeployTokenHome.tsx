@@ -10,6 +10,7 @@ import { useWrappedNativeToken, WellKnownERC20 } from "@/components/toolbox/stor
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/toolbox/components/Button";
+import { WalletGuard } from "@/components/toolbox/components/WalletGuard";
 import { Success } from "@/components/toolbox/components/Success";
 import { Input, Suggestion } from "@/components/toolbox/components/Input";
 import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput";
@@ -334,16 +335,18 @@ function DeployTokenHome() {
 
       <Success label="Token Home Address" value={getTokenHomeAddress() || ""} />
 
-      <Button
-        variant={getTokenHomeAddress() ? "secondary" : "primary"}
-        onClick={handleDeploy}
-        loading={isDeploying}
-        disabled={
-          !teleporterRegistryAddress || !tokenAddress || tokenDecimals === "0"
-        }
-      >
-        {getTokenHomeAddress() ? "Re-Deploy Token Home" : "Deploy Token Home"}
-      </Button>
+      <WalletGuard context="deploy-token-home">
+        <Button
+          variant={getTokenHomeAddress() ? "secondary" : "primary"}
+          onClick={handleDeploy}
+          loading={isDeploying}
+          disabled={
+            !teleporterRegistryAddress || !tokenAddress || tokenDecimals === "0"
+          }
+        >
+          {getTokenHomeAddress() ? "Re-Deploy Token Home" : "Deploy Token Home"}
+        </Button>
+      </WalletGuard>
       </div>
     </ContractDeployViewer>
   );

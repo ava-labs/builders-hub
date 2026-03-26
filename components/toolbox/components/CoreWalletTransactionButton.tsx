@@ -5,6 +5,7 @@ import { Button } from "./Button";
 import { cn } from "../lib/utils";
 import { useWalletStore } from "../stores/walletStore";
 import { Loader2, Terminal, Copy, Check, ExternalLink, ArrowRight, Download } from "lucide-react";
+import { WalletGuard } from "./WalletGuard";
 
 interface DownloadFileConfig {
   data: string;
@@ -99,7 +100,7 @@ export function CoreWalletTransactionButton({
 
   if (hasCoreWallet) {
     return (
-      <>
+      <WalletGuard context="core-wallet-transaction">
         <div className={cn("space-y-2", className)}>
           <button
             onClick={onClick}
@@ -144,7 +145,7 @@ export function CoreWalletTransactionButton({
             <CliCommandBlock command={cliCommand} />
           </div>
         )}
-      </>
+      </WalletGuard>
     );
   }
 

@@ -14,6 +14,7 @@ import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 import { useWalletClient } from 'wagmi';
 import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/toolbox/components/Button";
+import { WalletGuard } from "@/components/toolbox/components/WalletGuard";
 import { Success } from "@/components/toolbox/components/Success";
 import { Input, Suggestion } from "@/components/toolbox/components/Input";
 import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput";
@@ -362,25 +363,27 @@ function DeployERC20TokenRemote() {
         value={erc20TokenRemoteAddress || ""}
       />
 
-      <Button
-        variant={erc20TokenRemoteAddress ? "secondary" : "primary"}
-        onClick={handleDeploy}
-        loading={isDeploying}
-        disabled={
-          isDeploying ||
-          !tokenHomeAddress ||
-          !tokenHomeBlockchainIDHex ||
-          tokenDecimals === "0" ||
-          !tokenName ||
-          !tokenSymbol ||
-          !teleporterRegistryAddress ||
-          !!sourceChainError
-        }
-      >
-        {erc20TokenRemoteAddress
-          ? "Re-Deploy ERC20 Token Remote"
-          : "Deploy ERC20 Token Remote"}
-      </Button>
+      <WalletGuard context="deploy-erc20-token-remote">
+        <Button
+          variant={erc20TokenRemoteAddress ? "secondary" : "primary"}
+          onClick={handleDeploy}
+          loading={isDeploying}
+          disabled={
+            isDeploying ||
+            !tokenHomeAddress ||
+            !tokenHomeBlockchainIDHex ||
+            tokenDecimals === "0" ||
+            !tokenName ||
+            !tokenSymbol ||
+            !teleporterRegistryAddress ||
+            !!sourceChainError
+          }
+        >
+          {erc20TokenRemoteAddress
+            ? "Re-Deploy ERC20 Token Remote"
+            : "Deploy ERC20 Token Remote"}
+        </Button>
+      </WalletGuard>
       </LockedContent>
       </div>
     </ContractDeployViewer>

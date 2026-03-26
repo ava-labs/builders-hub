@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 import { useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
 import { Button } from "@/components/toolbox/components/Button";
+import { WalletGuard } from "@/components/toolbox/components/WalletGuard";
 import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput";
 import { AllowlistComponent } from "@/components/toolbox/components/AllowListComponents";
 import { ResultField } from "@/components/toolbox/components/ResultField";
@@ -333,16 +334,18 @@ function RewardManager({ onSuccess }: BaseConsoleToolProps) {
                   Allow validators to specify their own fee recipient address. When enabled, each validator
                   can direct transaction fees to their preferred address.
                 </p>
-                <Button
-                  variant="primary"
-                  onClick={handleAllowFeeRecipients}
-                  disabled={!walletEVMAddress || isAnyOperationInProgress}
-                  loading={isAllowingFeeRecipients}
-                  className="w-full"
-                >
-                  <Users className="w-4 h-4 mr-2" />
-                  Allow Fee Recipients
-                </Button>
+                <WalletGuard context="reward-manager-allow">
+                  <Button
+                    variant="primary"
+                    onClick={handleAllowFeeRecipients}
+                    disabled={!walletEVMAddress || isAnyOperationInProgress}
+                    loading={isAllowingFeeRecipients}
+                    className="w-full"
+                  >
+                    <Users className="w-4 h-4 mr-2" />
+                    Allow Fee Recipients
+                  </Button>
+                </WalletGuard>
               </div>
             )}
 
@@ -358,16 +361,18 @@ function RewardManager({ onSuccess }: BaseConsoleToolProps) {
                   onChange={setRewardAddress}
                   disabled={isSettingRewardAddress}
                 />
-                <Button
-                  variant="primary"
-                  onClick={handleSetRewardAddress}
-                  disabled={!canSetRewardAddress}
-                  loading={isSettingRewardAddress}
-                  className="w-full"
-                >
-                  <MapPin className="w-4 h-4 mr-2" />
-                  Set Reward Address
-                </Button>
+                <WalletGuard context="reward-manager-set">
+                  <Button
+                    variant="primary"
+                    onClick={handleSetRewardAddress}
+                    disabled={!canSetRewardAddress}
+                    loading={isSettingRewardAddress}
+                    className="w-full"
+                  >
+                    <MapPin className="w-4 h-4 mr-2" />
+                    Set Reward Address
+                  </Button>
+                </WalletGuard>
               </div>
             )}
 
@@ -382,16 +387,18 @@ function RewardManager({ onSuccess }: BaseConsoleToolProps) {
                     <strong>Warning:</strong> This will prevent any rewards from being distributed.
                   </p>
                 </div>
-                <Button
-                  variant="secondary"
-                  onClick={handleDisableRewards}
-                  disabled={!walletEVMAddress || isAnyOperationInProgress}
-                  loading={isDisablingRewards}
-                  className="w-full"
-                >
-                  <XCircle className="w-4 h-4 mr-2" />
-                  Disable Rewards
-                </Button>
+                <WalletGuard context="reward-manager-disable">
+                  <Button
+                    variant="secondary"
+                    onClick={handleDisableRewards}
+                    disabled={!walletEVMAddress || isAnyOperationInProgress}
+                    loading={isDisablingRewards}
+                    className="w-full"
+                  >
+                    <XCircle className="w-4 h-4 mr-2" />
+                    Disable Rewards
+                  </Button>
+                </WalletGuard>
               </div>
             )}
           </div>

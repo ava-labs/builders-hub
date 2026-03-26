@@ -5,6 +5,7 @@ import { useToolboxStore } from "@/components/toolbox/stores/toolboxStore";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 import { useState } from "react";
 import { Button } from "@/components/toolbox/components/Button";
+import { WalletGuard } from "@/components/toolbox/components/WalletGuard";
 import { Success } from "@/components/toolbox/components/Success";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 import { ExternalLink } from "lucide-react";
@@ -83,14 +84,16 @@ function DeployExampleERC20() {
           </p>
         </div>
 
-        <Button
-          variant={exampleErc20Address ? "secondary" : "primary"}
-          onClick={handleDeploy}
-          loading={isDeploying}
-          disabled={isDeploying}
-        >
-          {exampleErc20Address ? "Re-Deploy ERC20 Token" : "Deploy ERC20 Token"}
-        </Button>
+        <WalletGuard context="deploy-example-erc20">
+          <Button
+            variant={exampleErc20Address ? "secondary" : "primary"}
+            onClick={handleDeploy}
+            loading={isDeploying}
+            disabled={isDeploying}
+          >
+            {exampleErc20Address ? "Re-Deploy ERC20 Token" : "Deploy ERC20 Token"}
+          </Button>
+        </WalletGuard>
 
         <Success
           label="ERC20 Token Address"

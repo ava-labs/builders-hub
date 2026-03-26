@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 import { useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
 import { Button } from "@/components/toolbox/components/Button";
+import { WalletGuard } from "@/components/toolbox/components/WalletGuard";
 import { Input } from "@/components/toolbox/components/Input";
 import { ResultField } from "@/components/toolbox/components/ResultField";
 import feeManagerAbi from "@/contracts/precompiles/FeeManager.json";
@@ -364,15 +365,17 @@ function FeeManager({ onSuccess }: BaseConsoleToolProps) {
 
           {/* Actions */}
           <div className="flex flex-col sm:flex-row gap-3 pt-2">
-            <Button
-              onClick={handleSetFeeConfig}
-              loading={isSettingConfig}
-              variant="primary"
-              disabled={!canSetFeeConfig}
-              className="flex-1"
-            >
-              Set Fee Configuration
-            </Button>
+            <WalletGuard context="fee-manager-set">
+              <Button
+                onClick={handleSetFeeConfig}
+                loading={isSettingConfig}
+                variant="primary"
+                disabled={!canSetFeeConfig}
+                className="flex-1"
+              >
+                Set Fee Configuration
+              </Button>
+            </WalletGuard>
             <Button
               onClick={handleGetFeeConfig}
               loading={isReadingConfig}

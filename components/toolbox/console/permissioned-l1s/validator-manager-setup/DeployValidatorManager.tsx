@@ -5,6 +5,7 @@ import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 import { useState } from "react";
 import { createPublicClient, http } from "viem";
 import { Button } from "@/components/toolbox/components/Button";
+import { WalletGuard } from "@/components/toolbox/components/WalletGuard";
 import ValidatorManagerABI from "@/contracts/icm-contracts/compiled/ValidatorManager.json";
 import ValidatorMessagesABI from "@/contracts/icm-contracts/compiled/ValidatorMessages.json";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
@@ -197,15 +198,17 @@ function DeployValidatorContracts({ onSuccess }: BaseConsoleToolProps) {
                     />
                   </div>
                 ) : (
-                  <Button
-                    variant="primary"
-                    onClick={deployValidatorMessages}
-                    loading={isDeployingMessages}
-                    disabled={isDeployingMessages}
-                    className="mt-3"
-                  >
-                    Deploy Library
-                  </Button>
+                  <WalletGuard context="deploy-validator-messages">
+                    <Button
+                      variant="primary"
+                      onClick={deployValidatorMessages}
+                      loading={isDeployingMessages}
+                      disabled={isDeployingMessages}
+                      className="mt-3"
+                    >
+                      Deploy Library
+                    </Button>
+                  </WalletGuard>
                 )}
               </div>
             </div>
@@ -286,15 +289,17 @@ function DeployValidatorContracts({ onSuccess }: BaseConsoleToolProps) {
                     />
                   </div>
                 ) : (
-                  <Button
-                    variant="primary"
-                    onClick={deployValidatorManager}
-                    loading={isDeployingManager}
-                    disabled={isDeployingManager || !step1Complete}
-                    className="mt-3"
-                  >
-                    Deploy Contract
-                  </Button>
+                  <WalletGuard context="deploy-validator-manager">
+                    <Button
+                      variant="primary"
+                      onClick={deployValidatorManager}
+                      loading={isDeployingManager}
+                      disabled={isDeployingManager || !step1Complete}
+                      className="mt-3"
+                    >
+                      Deploy Contract
+                    </Button>
+                  </WalletGuard>
                 )}
               </div>
             </div>

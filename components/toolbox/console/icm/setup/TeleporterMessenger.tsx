@@ -8,6 +8,7 @@ import TeleporterMessengerDeploymentTransaction from '@/contracts/icm-contracts-
 import TeleporterMessengerDeployerAddress from '@/contracts/icm-contracts-releases/v1.0.0/TeleporterMessenger_Deployer_Address_v1.0.0.txt.json';
 import TeleporterMessengerAddress from '@/contracts/icm-contracts-releases/v1.0.0/TeleporterMessenger_Contract_Address_v1.0.0.txt.json';
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
+import { WalletGuard } from "@/components/toolbox/components/WalletGuard";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
 import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
 import versions from '@/scripts/versions.json';
@@ -287,14 +288,16 @@ function TeleporterMessenger({ onSuccess }: BaseConsoleToolProps) {
               </p>
             </div>
           ) : (
-            <button
-              onClick={handleDeploy}
-              disabled={isDeploying || !hasEnoughBalance}
-              className="w-full py-2.5 text-sm font-medium rounded-lg bg-blue-500 hover:bg-blue-600 text-white disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
-            >
-              <Rocket className="w-4 h-4" />
-              {isDeploying ? 'Deploying...' : 'Deploy TeleporterMessenger'}
-            </button>
+            <WalletGuard context="deploy-teleporter-messenger">
+              <button
+                onClick={handleDeploy}
+                disabled={isDeploying || !hasEnoughBalance}
+                className="w-full py-2.5 text-sm font-medium rounded-lg bg-blue-500 hover:bg-blue-600 text-white disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+              >
+                <Rocket className="w-4 h-4" />
+                {isDeploying ? 'Deploying...' : 'Deploy TeleporterMessenger'}
+              </button>
+            </WalletGuard>
           )}
         </div>
 
