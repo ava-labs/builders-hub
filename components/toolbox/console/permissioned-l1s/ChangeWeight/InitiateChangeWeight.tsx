@@ -25,8 +25,10 @@ interface InitiateChangeWeightProps {
   initialNodeId?: string;
   initialValidationId?: string;
   initialWeight?: string;
-  ownershipState: 'contract' | 'currentWallet' | 'differentEOA' | 'loading';
+  ownershipState: 'contract' | 'currentWallet' | 'differentEOA' | 'loading' | 'error';
   contractTotalWeight: bigint;
+  refetchOwnership?: () => void;
+  ownershipError?: string | null;
 }
 
 const InitiateChangeWeight: React.FC<InitiateChangeWeightProps> = ({
@@ -40,6 +42,8 @@ const InitiateChangeWeight: React.FC<InitiateChangeWeightProps> = ({
   initialWeight,
   ownershipState,
   contractTotalWeight,
+  refetchOwnership,
+  ownershipError,
 }) => {
   const { walletEVMAddress: connectedAddress } = useWalletStore();
   const chainPublicClient = useChainPublicClient();
@@ -97,6 +101,9 @@ const InitiateChangeWeight: React.FC<InitiateChangeWeightProps> = ({
     }
     if (ownershipState === 'loading') {
       setErrorState("Verifying contract ownership... please wait."); return;
+    }
+    if (ownershipState === 'error') {
+      setErrorState("Ownership verification failed. Please retry."); return;
     }
 
     setIsProcessing(true);
@@ -243,19 +250,32 @@ const InitiateChangeWeight: React.FC<InitiateChangeWeightProps> = ({
         </Button>
       )}
 
-      {(ownershipState === 'differentEOA' || ownershipState === 'loading') && (
+      {ownershipState === 'differentEOA' && (
         <Button
           onClick={handleInitiateChangeWeight}
           disabled={true}
-          error={
-            ownershipState === 'differentEOA'
-              ? "You are not the owner of this contract. Only the contract owner can change validator weights."
-              : ownershipState === 'loading'
-                ? "Verifying ownership..."
-                : (!validatorManagerAddress && subnetId ? "Could not find Validator Manager for this L1." : undefined)
-          }
+          error="You are not the owner of this contract. Only the contract owner can change validator weights."
         >
-          {ownershipState === 'loading' ? 'Verifying...' : 'Initiate Change Weight'}
+          Initiate Change Weight
+        </Button>
+      )}
+
+      {ownershipState === 'loading' && (
+        <Button
+          onClick={handleInitiateChangeWeight}
+          disabled={true}
+          error="Verifying ownership..."
+        >
+          Verifying...
+        </Button>
+      )}
+
+      {ownershipState === 'error' && (
+        <Button
+          onClick={() => refetchOwnership?.()}
+          error={ownershipError || "Failed to verify contract ownership. Click to retry."}
+        >
+          Retry Ownership Check
         </Button>
       )}
 

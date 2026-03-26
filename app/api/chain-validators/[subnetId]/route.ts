@@ -76,13 +76,13 @@ async function fetchValidatorVersions(): Promise<Map<string, string>> {
   }
 }
 
-async function fetchAllValidators(subnetId: string, versionMap: Map<string, string>): Promise<ValidatorData[]> {
-  const avalanche = new Avalanche({ network: "mainnet" });
+async function fetchAllValidators(subnetId: string, versionMap: Map<string, string>, network: "mainnet" | "fuji" = "mainnet"): Promise<ValidatorData[]> {
+  const avalanche = new Avalanche({ network });
   const validators: ValidatorData[] = [];
-  
+
   try {
     const isPrimaryNetwork = subnetId === "11111111111111111111111111111111LpoYY";
-    
+
     let result;
     if (isPrimaryNetwork) {
       // Use listValidators for Primary Network
@@ -90,14 +90,14 @@ async function fetchAllValidators(subnetId: string, versionMap: Map<string, stri
         pageSize: PAGE_SIZE,
         validationStatus: "active",
         subnetId: subnetId,
-        network: "mainnet",
+        network,
       });
     } else {
       // Use listL1Validators for L1 subnets
       result = await avalanche.data.primaryNetwork.listL1Validators({
         pageSize: PAGE_SIZE,
         subnetId: subnetId,
-        network: "mainnet",
+        network,
         includeInactiveL1Validators: false,
       });
     }
@@ -208,7 +208,9 @@ export async function GET(
 ) {
   try {
     const { subnetId } = await params;
-    
+    const url = new URL(_request.url);
+    const network: "mainnet" | "fuji" = url.searchParams.get('network') === 'testnet' || url.searchParams.get('network') === 'fuji' ? 'fuji' : 'mainnet';
+
     if (!subnetId) {
       return NextResponse.json(
         { error: "Subnet ID is required" },
@@ -216,8 +218,9 @@ export async function GET(
       );
     }
 
+    const cacheKey = `${network}:${subnetId}`;
     const now = Date.now();
-    const cachedData = cacheStore.get(subnetId);
+    const cachedData = cacheStore.get(cacheKey);
 
     if (cachedData && (now - cachedData.timestamp) < CACHE_DURATION) {
       return NextResponse.json(
@@ -237,17 +240,17 @@ export async function GET(
     }
 
     const versionMap = await fetchValidatorVersions();
-    
+
     const validators = await Promise.race([
-      fetchAllValidators(subnetId, versionMap),
-      new Promise<ValidatorData[]>((_, reject) => 
+      fetchAllValidators(subnetId, versionMap, network),
+      new Promise<ValidatorData[]>((_, reject) =>
         setTimeout(() => reject(new Error('Request timeout')), FETCH_TIMEOUT)
       )
     ]);
     
     const versionBreakdown = calculateVersionBreakdown(validators);
     
-    cacheStore.set(subnetId, {
+    cacheStore.set(cacheKey, {
       data: validators,
       timestamp: now,
       versionBreakdown,

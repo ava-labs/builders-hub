@@ -16,6 +16,8 @@ import {
   BarChart3,
   ExternalLink,
   RefreshCw,
+  Copy,
+  Check,
 } from "lucide-react";
 import { useL1Dashboard, type L1HealthStatus } from "@/hooks/useL1Dashboard";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -23,6 +25,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 
 // Health status badge component
 function HealthStatusBadge({ status, size = "default" }: { status: L1HealthStatus; size?: "default" | "large" }) {
@@ -36,6 +39,11 @@ function HealthStatusBadge({ status, size = "default" }: { status: L1HealthStatu
       label: "Degraded",
       className: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
       dot: "bg-yellow-500",
+    },
+    stale: {
+      label: "Stale",
+      className: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
+      dot: "bg-orange-500",
     },
     offline: {
       label: "Offline",
@@ -194,6 +202,8 @@ export default function MyL1DashboardPage() {
     setupProgressPercent,
     isLoading,
   } = useL1Dashboard();
+
+  const { copiedId, copyToClipboard } = useCopyToClipboard();
 
   // If not connected to an L1, show the not connected state
   if (!isConnected || !isConnectedToL1 || !currentL1) {
@@ -385,46 +395,100 @@ export default function MyL1DashboardPage() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div className="p-3 rounded-lg bg-muted/50">
+            <div className="p-3 rounded-lg bg-muted/50 group">
               <p className="text-xs text-muted-foreground mb-1">RPC URL</p>
-              <p className="text-sm font-mono text-foreground truncate" title={currentL1.rpcUrl}>
-                {currentL1.rpcUrl}
-              </p>
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-mono text-foreground truncate flex-1" title={currentL1.rpcUrl}>
+                  {currentL1.rpcUrl}
+                </p>
+                <button
+                  onClick={() => copyToClipboard(currentL1.rpcUrl, "rpc-url")}
+                  className="p-1 rounded hover:bg-muted transition-colors shrink-0"
+                  title="Copy RPC URL"
+                >
+                  {copiedId === "rpc-url" ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />}
+                </button>
+              </div>
             </div>
-            <div className="p-3 rounded-lg bg-muted/50">
+            <div className="p-3 rounded-lg bg-muted/50 group">
               <p className="text-xs text-muted-foreground mb-1">Subnet ID</p>
-              <p className="text-sm font-mono text-foreground truncate" title={currentL1.subnetId}>
-                {currentL1.subnetId}
-              </p>
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-mono text-foreground truncate flex-1" title={currentL1.subnetId}>
+                  {currentL1.subnetId}
+                </p>
+                <button
+                  onClick={() => copyToClipboard(currentL1.subnetId, "subnet-id")}
+                  className="p-1 rounded hover:bg-muted transition-colors shrink-0"
+                  title="Copy Subnet ID"
+                >
+                  {copiedId === "subnet-id" ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />}
+                </button>
+              </div>
             </div>
-            <div className="p-3 rounded-lg bg-muted/50">
+            <div className="p-3 rounded-lg bg-muted/50 group">
               <p className="text-xs text-muted-foreground mb-1">Blockchain ID</p>
-              <p className="text-sm font-mono text-foreground truncate" title={currentL1.id}>
-                {currentL1.id}
-              </p>
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-mono text-foreground truncate flex-1" title={currentL1.id}>
+                  {currentL1.id}
+                </p>
+                <button
+                  onClick={() => copyToClipboard(currentL1.id, "blockchain-id")}
+                  className="p-1 rounded hover:bg-muted transition-colors shrink-0"
+                  title="Copy Blockchain ID"
+                >
+                  {copiedId === "blockchain-id" ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />}
+                </button>
+              </div>
             </div>
             {currentL1.validatorManagerAddress && (
-              <div className="p-3 rounded-lg bg-muted/50">
+              <div className="p-3 rounded-lg bg-muted/50 group">
                 <p className="text-xs text-muted-foreground mb-1">Validator Manager</p>
-                <p className="text-sm font-mono text-foreground truncate" title={currentL1.validatorManagerAddress}>
-                  {currentL1.validatorManagerAddress}
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-mono text-foreground truncate flex-1" title={currentL1.validatorManagerAddress}>
+                    {currentL1.validatorManagerAddress}
+                  </p>
+                  <button
+                    onClick={() => copyToClipboard(currentL1.validatorManagerAddress, "validator-manager")}
+                    className="p-1 rounded hover:bg-muted transition-colors shrink-0"
+                    title="Copy Validator Manager Address"
+                  >
+                    {copiedId === "validator-manager" ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />}
+                  </button>
+                </div>
               </div>
             )}
             {currentL1.wellKnownTeleporterRegistryAddress && (
-              <div className="p-3 rounded-lg bg-muted/50">
+              <div className="p-3 rounded-lg bg-muted/50 group">
                 <p className="text-xs text-muted-foreground mb-1">Teleporter Registry</p>
-                <p className="text-sm font-mono text-foreground truncate" title={currentL1.wellKnownTeleporterRegistryAddress}>
-                  {currentL1.wellKnownTeleporterRegistryAddress}
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-mono text-foreground truncate flex-1" title={currentL1.wellKnownTeleporterRegistryAddress}>
+                    {currentL1.wellKnownTeleporterRegistryAddress}
+                  </p>
+                  <button
+                    onClick={() => copyToClipboard(currentL1.wellKnownTeleporterRegistryAddress!, "teleporter-registry")}
+                    className="p-1 rounded hover:bg-muted transition-colors shrink-0"
+                    title="Copy Teleporter Registry Address"
+                  >
+                    {copiedId === "teleporter-registry" ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />}
+                  </button>
+                </div>
               </div>
             )}
             {currentL1.wrappedTokenAddress && (
-              <div className="p-3 rounded-lg bg-muted/50">
+              <div className="p-3 rounded-lg bg-muted/50 group">
                 <p className="text-xs text-muted-foreground mb-1">Wrapped Token</p>
-                <p className="text-sm font-mono text-foreground truncate" title={currentL1.wrappedTokenAddress}>
-                  {currentL1.wrappedTokenAddress}
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-mono text-foreground truncate flex-1" title={currentL1.wrappedTokenAddress}>
+                    {currentL1.wrappedTokenAddress}
+                  </p>
+                  <button
+                    onClick={() => copyToClipboard(currentL1.wrappedTokenAddress, "wrapped-token")}
+                    className="p-1 rounded hover:bg-muted transition-colors shrink-0"
+                    title="Copy Wrapped Token Address"
+                  >
+                    {copiedId === "wrapped-token" ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />}
+                  </button>
+                </div>
               </div>
             )}
           </div>
