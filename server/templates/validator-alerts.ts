@@ -1,5 +1,8 @@
 import { getUnsubscribeUrl } from '@/server/services/unsubscribe-token';
 
+const EXPLORER_BASE = 'https://subnets.avax.network';
+const GITHUB_RELEASE_BASE = 'https://github.com/ava-labs/avalanchego/releases/tag';
+
 function wrapTemplate(title: string, content: string, accentColor = '#EF4444', alertId?: string): string {
   const unsubscribeLink = alertId
     ? `<p style="font-size: 11px; color: #71717A; text-align: center; margin-top: 16px;"><a href="${getUnsubscribeUrl(alertId)}" style="color: #71717A; text-decoration: underline;">Unsubscribe from these alerts</a></p>`
@@ -12,12 +15,21 @@ function wrapTemplate(title: string, content: string, accentColor = '#EF4444', a
         <a href="https://build.avax.network/validator-alerts" style="display: inline-block; background-color: ${accentColor}; color: white; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: bold; font-size: 14px;">View Dashboard</a>
       </div>
       <div style="margin-top: 24px; text-align: center;">
-        <img src="https://build.avax.network/logo-black.png" alt="Avalanche" style="max-width: 120px; margin-bottom: 10px;">
-        <p style="font-size: 12px; color: #A1A1AA;">Avalanche Builder's Hub</p>
+        <img src="https://build.avax.network/logo-white.png" alt="Avalanche" style="max-width: 120px; margin-bottom: 10px;">
+        <p style="font-size: 12px; color: #A1A1AA;">Avalanche Builders Hub</p>
       </div>
       ${unsubscribeLink}
     </div>
   `;
+}
+
+function explorerLink(nodeId: string): string {
+  return `<a href="${EXPLORER_BASE}/validators/${nodeId}" style="color: #3B82F6; text-decoration: underline;">${EXPLORER_BASE}/validators/${nodeId.slice(0, 15)}...</a>`;
+}
+
+function releaseLink(version: string): string {
+  const tag = version.replace('avalanchego/', 'v');
+  return `<a href="${GITHUB_RELEASE_BASE}/${tag}" style="color: #3B82F6; text-decoration: underline;">${tag}</a>`;
 }
 
 function dataRow(label: string, value: string, valueColor = 'white'): string {
@@ -64,7 +76,8 @@ export function uptimeAlertTemplate(params: {
         dataRow('Validator', name, 'white') +
         dataRow('Current Uptime', `${params.uptime.toFixed(1)}%`, '#EF4444') +
         dataRow('Your Threshold', `${params.threshold}%`, '#D1D5DB')
-      ),
+      ) +
+      `<p style="font-size: 13px; margin: 12px 0 0 0;">View on explorer: ${explorerLink(params.nodeId)}</p>`,
       'You will not receive another uptime alert for this validator within 24 hours.'
     ),
     '#EF4444',
@@ -138,7 +151,8 @@ export function versionMandatoryTemplate(params: {
         dataRow('Upgrade Deadline', deadlineStr, deadlineColor) +
         acpLine
       ) +
-      `<p style="font-size: 13px; color: #EF4444; margin: 12px 0 0 0; font-weight: bold;">Failure to upgrade before the deadline may result in your node being benched.</p>`,
+      `<p style="font-size: 13px; color: #EF4444; margin: 12px 0 0 0; font-weight: bold;">Failure to upgrade before the deadline may result in your node being benched.</p>` +
+      `<p style="font-size: 13px; margin: 8px 0 0 0;">Release notes: ${releaseLink(params.requiredVersion)} | Explorer: ${explorerLink(params.nodeId)}</p>`,
       `Next alert in ${cooldownText} if still not upgraded.`
     ),
     borderColor,
@@ -171,7 +185,8 @@ export function versionOptionalTemplate(params: {
         dataRow('Validator', name, 'white') +
         dataRow('Running Version', params.currentVersion, '#F59E0B') +
         dataRow('Latest Version', params.latestVersion, '#34D399')
-      ),
+      ) +
+      `<p style="font-size: 13px; margin: 12px 0 0 0;">Release notes: ${releaseLink(params.latestVersion)} | Explorer: ${explorerLink(params.nodeId)}</p>`,
       'This is an optional update. You will not receive another version alert for 7 days.'
     ),
     '#3B82F6',
@@ -212,7 +227,8 @@ export function expiryAlertTemplate(params: {
         dataRow('Validator', name, 'white') +
         dataRow('Days Remaining', String(params.daysLeft), borderColor) +
         dataRow('Expiry Date', params.expiryDate, '#D1D5DB')
-      ),
+      ) +
+      `<p style="font-size: 13px; margin: 12px 0 0 0;">View on explorer: ${explorerLink(params.nodeId)}</p>`,
       `Next alert in ${cooldown} if stake is not renewed.`
     ),
     borderColor,
@@ -245,7 +261,8 @@ export function expiryCriticalTemplate(params: {
         dataRow('Validator', name, 'white') +
         dataRow('Time Remaining', `~${minutesLeft} minutes`, '#EF4444') +
         dataRow('Expiry Time', params.expiryDate, '#D1D5DB')
-      ),
+      ) +
+      `<p style="font-size: 13px; margin: 12px 0 0 0;">View on explorer: ${explorerLink(params.nodeId)}</p>`,
       'This is a one-time critical alert.'
     ),
     '#EF4444',
