@@ -19,7 +19,7 @@ interface CustomDateRangePickerProps {
   customRange: DateRange | undefined;
   setCustomRange: (range: DateRange | undefined) => void;
   isCustomActive: boolean;
-  onApply: () => void;
+  onApply: (range: DateRange) => void;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   timeRangeLabel: string | null;
@@ -41,9 +41,9 @@ export function CustomDateRangePicker({
   const applyPreset = (presetDays: number) => {
     const to = new Date();
     const from = subDays(to, presetDays - 1);
-    setCustomRange({ from, to });
-    // React 18+ batches setState calls, so onApply reads the updated range
-    onApply();
+    const range = { from, to };
+    setCustomRange(range);
+    onApply(range);
   };
 
   return (
@@ -108,11 +108,10 @@ export function CustomDateRangePicker({
             selected={customRange}
             onSelect={(range: DateRange | undefined) => {
               setCustomRange(range);
-              // Auto-apply when both dates are selected and within limit
               if (range?.from && range?.to) {
                 const span = differenceInCalendarDays(range.to, range.from);
                 if (span <= MAX_DAYS) {
-                  onApply();
+                  onApply(range as DateRange);
                 }
               }
             }}

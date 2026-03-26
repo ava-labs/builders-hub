@@ -646,9 +646,9 @@ export default function GasTreemap() {
             open={customPopoverOpen}
             onOpenChange={setCustomPopoverOpen}
             timeRangeLabel={timeRangeLabel}
-            onApply={() => {
-              if (customRange?.from && customRange?.to) {
-                const span = differenceInCalendarDays(customRange.to, customRange.from);
+            onApply={(range) => {
+              if (range.from && range.to) {
+                const span = differenceInCalendarDays(range.to, range.from);
                 if (span <= 183) {
                   setTimeRange("custom");
                   setCustomPopoverOpen(false);
