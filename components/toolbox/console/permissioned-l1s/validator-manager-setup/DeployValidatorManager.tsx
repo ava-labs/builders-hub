@@ -15,6 +15,7 @@ import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 import { getLinkedBytecode } from "@/components/toolbox/utils/contract-deployment";
 import { ContractDeployViewer, type ContractSource } from "@/components/console/contract-deploy-viewer";
+import { retryWithBackoff } from "@/lib/retry";
 import { Check, BookOpen, GraduationCap } from "lucide-react";
 import { ManualAddressInput } from "./ManualAddressInput";
 import Link from "next/link";
@@ -76,13 +77,15 @@ function DeployValidatorContracts({ onSuccess }: BaseConsoleToolProps) {
       await walletClient.addChain({ chain: viemChain });
       await walletClient.switchChain({ id: viemChain.id });
 
-      const deployPromise = walletClient.deployContract({
-        abi: ValidatorMessagesABI.abi as any,
-        bytecode: ValidatorMessagesABI.bytecode.object as `0x${string}`,
-        args: [],
-        chain: viemChain,
-        account: walletEVMAddress as `0x${string}`,
-      });
+      const deployPromise = retryWithBackoff(() =>
+        walletClient.deployContract({
+          abi: ValidatorMessagesABI.abi as any,
+          bytecode: ValidatorMessagesABI.bytecode.object as `0x${string}`,
+          args: [],
+          chain: viemChain,
+          account: walletEVMAddress as `0x${string}`,
+        })
+      );
 
       notify({ type: "deploy", name: "ValidatorMessages Library" }, deployPromise, viemChain ?? undefined);
 
@@ -112,13 +115,15 @@ function DeployValidatorContracts({ onSuccess }: BaseConsoleToolProps) {
       await walletClient.addChain({ chain: viemChain });
       await walletClient.switchChain({ id: viemChain.id });
 
-      const deployPromise = walletClient.deployContract({
-        abi: ValidatorManagerABI.abi as any,
-        bytecode: getLinkedValidatorManagerBytecode(),
-        args: [0],
-        chain: viemChain,
-        account: walletEVMAddress as `0x${string}`,
-      });
+      const deployPromise = retryWithBackoff(() =>
+        walletClient.deployContract({
+          abi: ValidatorManagerABI.abi as any,
+          bytecode: getLinkedValidatorManagerBytecode(),
+          args: [0],
+          chain: viemChain,
+          account: walletEVMAddress as `0x${string}`,
+        })
+      );
 
       notify({ type: "deploy", name: "ValidatorManager" }, deployPromise, viemChain ?? undefined);
 

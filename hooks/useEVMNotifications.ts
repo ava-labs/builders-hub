@@ -4,6 +4,7 @@ import { useConsoleLog } from './use-console-log';
 import { Chain, createPublicClient, http } from 'viem';
 import { usePathname } from 'next/navigation';
 import { showCustomErrorToast } from '@/components/ui/custom-error-toast';
+import { parseError } from '@/lib/error-parser';
 import posthog from 'posthog-js';
 import l1ChainsData from '@/constants/l1-chains.json';
 import { getAllCustomChains, findCustomChainByEvmChainId } from '@/components/explorer/utils/chainConverter';
@@ -178,7 +179,10 @@ const useEVMNotifications = () => {
                 });
             })
             .catch((error) => {
-                const errorMessage = messages.error + error.message;
+                const parsed = parseError(error);
+                const errorMessage = parsed.suggestion
+                    ? `${parsed.title}: ${parsed.description} ${parsed.suggestion}`
+                    : `${messages.error}${error.message}`;
 
                 toast.dismiss(toastId);
                 showCustomErrorToast(errorMessage);

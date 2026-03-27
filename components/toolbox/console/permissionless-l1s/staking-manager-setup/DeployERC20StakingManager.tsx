@@ -13,6 +13,7 @@ import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 import { getLinkedBytecode } from "@/components/toolbox/utils/contract-deployment";
 import { ContractDeployViewer, type ContractSource } from "@/components/console/contract-deploy-viewer";
+import { retryWithBackoff } from "@/lib/retry";
 import ERC20TokenStakingManager from "@/contracts/icm-contracts/compiled/ERC20TokenStakingManager.json";
 import ValidatorMessagesABI from "@/contracts/icm-contracts/compiled/ValidatorMessages.json";
 import { Check, BookOpen, GraduationCap } from "lucide-react";
@@ -73,13 +74,15 @@ function DeployERC20StakingManager({ onSuccess }: BaseConsoleToolProps) {
     await walletClient.addChain({ chain: viemChain });
     await walletClient.switchChain({ id: viemChain.id });
 
-    const deployPromise = walletClient.deployContract({
-      abi: ValidatorMessagesABI.abi as any,
-      bytecode: ValidatorMessagesABI.bytecode.object as `0x${string}`,
-      args: [],
-      chain: viemChain,
-      account: walletEVMAddress as `0x${string}`,
-    });
+    const deployPromise = retryWithBackoff(() =>
+      walletClient.deployContract({
+        abi: ValidatorMessagesABI.abi as any,
+        bytecode: ValidatorMessagesABI.bytecode.object as `0x${string}`,
+        args: [],
+        chain: viemChain,
+        account: walletEVMAddress as `0x${string}`,
+      })
+    );
 
     notify({ type: "deploy", name: "ValidatorMessages Library" }, deployPromise, viemChain ?? undefined);
 
@@ -100,13 +103,15 @@ function DeployERC20StakingManager({ onSuccess }: BaseConsoleToolProps) {
     await walletClient.addChain({ chain: viemChain });
     await walletClient.switchChain({ id: viemChain.id });
 
-    const deployPromise = walletClient.deployContract({
-      abi: ERC20TokenStakingManager.abi as any,
-      bytecode: getLinkedStakingManagerBytecode(),
-      args: [0], // ICMInitializable.Allowed
-      chain: viemChain,
-      account: walletEVMAddress as `0x${string}`,
-    });
+    const deployPromise = retryWithBackoff(() =>
+      walletClient.deployContract({
+        abi: ERC20TokenStakingManager.abi as any,
+        bytecode: getLinkedStakingManagerBytecode(),
+        args: [0], // ICMInitializable.Allowed
+        chain: viemChain,
+        account: walletEVMAddress as `0x${string}`,
+      })
+    );
 
     notify({ type: "deploy", name: "ERC20TokenStakingManager" }, deployPromise, viemChain ?? undefined);
 

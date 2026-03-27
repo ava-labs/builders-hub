@@ -97,6 +97,12 @@ const errorMappings: Record<string, Omit<ParsedError, "originalError" | "severit
     suggestion: "Check your network connection or try a different RPC endpoint.",
     link: "/console/layer-1/create",
   },
+  "internal error": {
+    title: "L1 RPC Internal Error",
+    description: "Your L1's RPC node returned an internal error. This often happens on freshly-created chains that aren't fully ready yet.",
+    suggestion: "Wait a few minutes for the chain to stabilize, then retry. The deployment will auto-retry up to 3 times.",
+    severity: "warning",
+  },
 
   // Wallet errors
   "user rejected": {
@@ -342,7 +348,8 @@ export function isRetryableError(error: unknown): boolean {
     errorString.includes("rpc error") ||
     errorString.includes("connection") ||
     errorString.includes("ECONNREFUSED") ||
-    errorString.includes("ETIMEDOUT")
+    errorString.includes("ETIMEDOUT") ||
+    errorString.includes("internal error")
   );
 }
 
