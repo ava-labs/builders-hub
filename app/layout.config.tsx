@@ -29,6 +29,7 @@ import {
   GitBranch,
   DraftingCompass,
   Gamepad2,
+  Flame,
 } from 'lucide-react';
 import Image from 'next/image';
 import { UserButtonWrapper } from '@/components/login/user-button/UserButtonWrapper';
@@ -183,6 +184,16 @@ export const stats: LinkItemType = {
       "View the latest metrics for the Avalanche Primary Network validators.",
       menu: {
         className: 'lg:col-start-3 lg:row-start-1',
+      },
+    },
+    {
+      icon: <Flame />,
+      text: <span className="inline-flex items-center gap-2">AVAX Burners<span className="text-[10px] font-bold uppercase tracking-wider bg-red-500 text-white px-1.5 py-0.5 rounded">New</span></span>,
+      url: "/stats/dapps/treemap",
+      description:
+      "See which protocols are burning the most AVAX on the C-Chain.",
+      menu: {
+        className: 'lg:col-start-3 lg:row-start-2',
       },
     },
   ],
@@ -429,7 +440,7 @@ export const grantsMenu: LinkItemType = {
         banner: (
           <div className='-mx-3 -mt-3'>
             <Image
-              src={"https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/codebase-banner-VKmQyN5sPojnIOU09p0lCkUgR6YTpQ.png"}
+              src={"https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/9000-logo-FYhqyinnspUefGJcGgj9AcT116yq98.png"}
               alt='Preview'
               width={900}
               height={400}
@@ -442,11 +453,11 @@ export const grantsMenu: LinkItemType = {
         ),
         className: 'md:row-span-2',
       },
-      icon: <BriefcaseBusiness />,
-      text: 'Codebase',
+      icon: <MessageSquareQuote />,
+      text: 'Retro9000',
       description:
-        'We help transform good ideas into great web3 companies & ambitious builders into extraordinary founders.',
-      url: '/codebase',
+        'Build innovative projects on Avalanche. Get rewarded for your creativity and impact.',
+      url: 'https://retro9000.avax.network',
     },
     {
       icon: <Cpu />,
@@ -466,16 +477,6 @@ export const grantsMenu: LinkItemType = {
       url: '/grants/infrabuidlai',
       menu: {
         className: 'lg:col-start-2',
-      },
-    },
-    {
-      icon: <MessageSquareQuote />,
-      text: 'Retro9000',
-      description:
-        'Build innovative projects on Avalanche. Get rewarded for your creativity.',
-      url: 'https://retro9000.avax.network',
-      menu: {
-        className: 'lg:col-start-3 lg:row-start-1',
       },
     },
     {

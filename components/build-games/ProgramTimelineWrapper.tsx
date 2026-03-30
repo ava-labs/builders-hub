@@ -8,9 +8,16 @@ const ProgramTimeline = dynamic(() => import("./ProgramTimeline"), {
   ssr: false,
 });
 
+export interface StageResult {
+  projectName: string;
+  stage1Result: string | null;
+  stage2Result: string | null;
+}
+
 export default function ProgramTimelineWrapper() {
   const { status } = useSession();
   const [isParticipant, setIsParticipant] = useState(false);
+  const [stageResults, setStageResults] = useState<StageResult[]>([]);
 
   useEffect(() => {
     if (status !== "authenticated") return;
@@ -19,9 +26,10 @@ export default function ProgramTimelineWrapper() {
       .then((res) => res.json())
       .then((data) => {
         setIsParticipant(!!data.isParticipant);
+        setStageResults(data.stageResults ?? []);
       })
       .catch(() => {});
   }, [status]);
 
-  return <ProgramTimeline isParticipant={isParticipant} />;
+  return <ProgramTimeline isParticipant={isParticipant} stageResults={stageResults} />;
 }

@@ -1,5 +1,5 @@
 "use client"
-import React, { useState, useMemo } from 'react'
+import React, { useState } from 'react'
 import { Button } from "@/components/toolbox/components/Button"
 import { Alert } from '@/components/toolbox/components/Alert'
 import SelectSubnetId from "@/components/toolbox/components/SelectSubnetId"
@@ -7,7 +7,6 @@ import { ValidatorManagerDetails } from "@/components/toolbox/components/Validat
 import { Success } from "@/components/toolbox/components/Success"
 
 import { useCreateChainStore } from "@/components/toolbox/stores/createChainStore"
-import { useWalletStore } from "@/components/toolbox/stores/walletStore"
 import { useValidatorManagerDetails } from "@/components/toolbox/hooks/useValidatorManagerDetails"
 
 import InitiateValidatorRemoval from "@/components/toolbox/console/permissioned-l1s/RemoveValidator/InitiateValidatorRemoval"
@@ -104,7 +103,6 @@ const RemoveValidatorExpert: React.FC<BaseConsoleToolProps> = ({ onSuccess }) =>
   const [pChainTxId, setPChainTxId] = useState<string>("")
 
   // Form state
-  const { walletEVMAddress } = useWalletStore()
   const { walletClient } = useConnectedWallet()
   const createChainStoreSubnetId = useCreateChainStore()(state => state.subnetId)
   const [subnetIdL1, setSubnetIdL1] = useState<string>(createChainStoreSubnetId || "")
@@ -127,28 +125,10 @@ const RemoveValidatorExpert: React.FC<BaseConsoleToolProps> = ({ onSuccess }) =>
     isLoadingL1Weight,
     ownershipError,
     ownerType,
-    isDetectingOwnerType
+    isDetectingOwnerType,
+    ownershipStatus,
+    refetchOwnership
   } = useValidatorManagerDetails({ subnetId: subnetIdL1 })
-
-  // Simple ownership check - direct computation
-  const isContractOwner = useMemo(() => {
-    return contractOwner && walletEVMAddress
-      ? walletEVMAddress.toLowerCase() === contractOwner.toLowerCase()
-      : null;
-  }, [contractOwner, walletEVMAddress]);
-
-  const ownershipState = useMemo(() => {
-    if (isOwnerContract) {
-      return 'contract';
-    }
-    if (isContractOwner === true) {
-      return 'currentWallet';
-    }
-    if (isContractOwner === false) {
-      return 'differentEOA';
-    }
-    return 'loading';
-  }, [isOwnerContract, isContractOwner]);
 
   const handleReset = () => {
     setGlobalError(null)
@@ -220,7 +200,9 @@ const RemoveValidatorExpert: React.FC<BaseConsoleToolProps> = ({ onSuccess }) =>
                 resetForm={resetInitiateForm}
                 initialNodeId={nodeId}
                 initialValidationId={validationId}
-                ownershipState={ownershipState}
+                ownershipState={ownershipStatus}
+                refetchOwnership={refetchOwnership}
+                ownershipError={ownershipError}
                 onSuccess={(data) => {
                   setNodeId(data.nodeId)
                   setValidationId(data.validationId)
@@ -271,7 +253,7 @@ const RemoveValidatorExpert: React.FC<BaseConsoleToolProps> = ({ onSuccess }) =>
                 validationId={validationId}
                 pChainTxId={pChainTxId}
                 eventData={null}
-                isContractOwner={isContractOwner}
+                isContractOwner={ownershipStatus === 'currentWallet' ? true : ownershipStatus === 'differentEOA' ? false : null}
                 validatorManagerAddress={validatorManagerAddress}
                 signingSubnetId={signingSubnetId}
                 contractOwner={contractOwner}

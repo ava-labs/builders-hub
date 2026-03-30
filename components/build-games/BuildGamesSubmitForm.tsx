@@ -5,7 +5,7 @@ import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useLoginModalTrigger } from "@/hooks/useLoginModal";
 import axios from "axios";
-import { useForm } from "react-hook-form";
+import { useForm, useFieldArray, Controller } from "react-hook-form";
 import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
@@ -25,6 +25,7 @@ import {
   Loader2,
   ChevronDown,
   Lock,
+  X,
 } from "lucide-react";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { MultiLinkInput } from "@/components/hackathons/project-submission/components/MultiLinkInput";
@@ -124,6 +125,15 @@ const FormSchema = z.object({
   bg_game_monetization: z.string().optional().or(z.literal("")),
   bg_game_competitors: z.string().optional().or(z.literal("")),
 
+  // ── Stage 3 — Milestones (all categories) ────────────────────────────────
+  bg_milestones: z
+    .array(z.object({ period: z.string(), description: z.string() }))
+    .optional(),
+
+  // ── Stage 4 ───────────────────────────────────────────────────────────────
+  bg_summary: z.string().optional().or(z.literal("")),
+  bg_support_needed: z.string().optional().or(z.literal("")),
+
   // ── Stage 4 — Gaming Finals ───────────────────────────────────────────────
   bg_game_metrics: z.string().optional().or(z.literal("")),
   bg_game_vision: z.string().optional().or(z.literal("")),
@@ -199,10 +209,22 @@ export default function BuildGamesSubmitForm({
       bg_game_community: "",
       bg_game_monetization: "",
       bg_game_competitors: "",
+      bg_milestones: [{ period: "", description: "" }],
+      bg_summary: "",
+      bg_support_needed: "",
       bg_game_metrics: "",
       bg_game_vision: "",
     },
   });
+
+  const { fields: milestoneFields, append: appendMilestone, remove: removeMilestone } = useFieldArray({
+    control: form.control,
+    name: "bg_milestones",
+  });
+
+  const handleRemoveMilestone = useCallback((index: number) => {
+    removeMilestone(index);
+  }, [removeMilestone]);
 
   // ── Effects ────────────────────────────────────────────────────────────────
 
@@ -330,6 +352,11 @@ export default function BuildGamesSubmitForm({
             bg_game_community: bg.game_community ?? "",
             bg_game_monetization: bg.game_monetization ?? "",
             bg_game_competitors: bg.game_competitors ?? "",
+            bg_milestones: Array.isArray(bg.milestones) && bg.milestones.length > 0
+              ? bg.milestones
+              : [{ period: "", description: "" }],
+            bg_summary: bg.summary ?? "",
+            bg_support_needed: bg.support_needed ?? "",
             bg_game_metrics: bg.game_metrics ?? "",
             bg_game_vision: bg.game_vision ?? "",
           });
@@ -410,6 +437,11 @@ export default function BuildGamesSubmitForm({
             game_community: data.bg_game_community ?? "",
             game_monetization: data.bg_game_monetization ?? "",
             game_competitors: data.bg_game_competitors ?? "",
+            milestones: (data.bg_milestones ?? []).filter(
+              (m) => (m.period ?? "") !== "" || (m.description ?? "") !== ""
+            ),
+            summary: data.bg_summary ?? "",
+            support_needed: data.bg_support_needed ?? "",
             game_metrics: data.bg_game_metrics ?? "",
             game_vision: data.bg_game_vision ?? "",
           },
@@ -1384,6 +1416,40 @@ export default function BuildGamesSubmitForm({
     }
 
     if (n === 3) {
+      const bgCategory = form.watch("project_category");
+      const isGamingConsumer = bgCategory === "Gaming" && form.watch("bg_game_type") === "Consumer Game";
+      const gtm = isGamingConsumer
+        ? {
+            section: "🎮 Gaming GTM",
+            acquisitionLabel: "Player acquisition strategy",
+            acquisitionDesc: "How do you acquire your first 1,000 active players? Which channels — content, influencers, guilds, tournaments, referrals?",
+            acquisitionPlaceholder: "e.g. Partner with 5 gaming guilds on Avalanche for a launch tournament with a $5k prize pool. Micro-influencer campaign on TikTok targeting Web3 gamers. Referral bonus: invite 3 friends → earn a rare NFT item...",
+            communityLabel: "Community & guild strategy",
+            communityDesc: "How are you building your player community? Discord, tournaments, ambassador programs, DAO governance for in-game decisions?",
+            communityPlaceholder: "e.g. Weekly tournaments streamed on Twitch. Discord with 2,000 members and active guild channels. Community votes on new game modes each season via snapshot...",
+            monetizationLabel: "Monetization model",
+            monetizationDesc: "How does the game generate sustainable revenue? Describe primary and secondary market mechanics without compromising gameplay fairness.",
+            monetizationPlaceholder: "e.g. Free-to-play with cosmetic NFT sales (no pay-to-win). 2.5% marketplace fee on player-to-player trades. Season pass ($9.99) for early access to new content. No token required to play...",
+            competitorsLabel: "Competitive landscape",
+            competitorsDesc: "Name 2–3 games you compete with directly. What makes players choose yours over them?",
+            competitorsPlaceholder: "e.g. Gods Unchained (card game, larger player base but Ethereum fees). Pixels (farming game, similar audience but no combat). We differ by combining real-time combat with fully on-chain item ownership at near-zero gas on Avalanche...",
+          }
+        : {
+            section: "📈 Go-to-Market",
+            acquisitionLabel: "User acquisition strategy",
+            acquisitionDesc: "How do you reach and convert your first users? Which channels — content, partnerships, referrals, community, or paid?",
+            acquisitionPlaceholder: "e.g. Developer relations program targeting existing Web3 builders, partnership with 3 protocols for distribution, content marketing via technical blog posts and tutorials...",
+            communityLabel: "Community strategy",
+            communityDesc: "How are you building and engaging your community? Discord, forums, ambassador programs, governance, events?",
+            communityPlaceholder: "e.g. Active Discord with dedicated support channels, monthly community calls, ambassador program rewarding top contributors, DAO governance for protocol decisions...",
+            monetizationLabel: "Revenue & sustainability model",
+            monetizationDesc: "How does your project generate sustainable revenue or value? Describe fees, subscriptions, token mechanics, or other monetization approaches.",
+            monetizationPlaceholder: "e.g. 0.3% protocol fee on transactions, 20% of fees directed to treasury for grants, token holders receive fee-sharing after 12-month lockup...",
+            competitorsLabel: "Competitive landscape",
+            competitorsDesc: "Name 2–3 direct competitors or alternatives. What makes users choose your project over them?",
+            competitorsPlaceholder: "e.g. Competitor A (larger user base but higher fees). Competitor B (similar feature set but no cross-chain). We differ by combining X with Y at near-zero cost on Avalanche...",
+          };
+
       return (
         <div className="space-y-5">
           <FormField
@@ -1392,15 +1458,14 @@ export default function BuildGamesSubmitForm({
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-white font-medium">
-                  GTM Plan &amp; Vision
+                  Product Vision
                 </FormLabel>
                 <p className="text-zinc-400 text-sm -mt-1">
-                  Include your go-to-market plan, growth strategy, target user
-                  personas, competitive analysis, and long-term product vision.
+                  Where is your product headed long-term? Describe the future you're building toward.
                 </p>
                 <FormControl>
                   <Textarea
-                    placeholder="Describe your go-to-market strategy, growth plan, target users, competitive landscape, and long-term vision..."
+                    placeholder="e.g. We're building the go-to platform for X. In 3 years we see ourselves as..."
                     className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6] min-h-[200px] resize-none"
                     {...field}
                   />
@@ -1417,105 +1482,159 @@ export default function BuildGamesSubmitForm({
             plainLabel
           />
 
-          {/* ── Gaming GTM — only for consumer games ── */}
-          {form.watch("project_category") === "Gaming" &&
-            form.watch("bg_game_type") === "Consumer Game" && (
-            <>
-              <SectionDivider label="🎮 Gaming GTM" />
+          {/* ── GTM — shown for all categories ── */}
+          <>
+            <SectionDivider label={gtm.section} />
 
-              <FormField
-                control={form.control}
-                name="bg_game_acquisition"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-white font-medium">
-                      Player acquisition strategy
-                    </FormLabel>
-                    <p className="text-zinc-400 text-sm -mt-1">
-                      How do you acquire your first 1,000 active players? Which channels — content, influencers, guilds, tournaments, referrals?
-                    </p>
-                    <FormControl>
-                      <Textarea
-                        placeholder="e.g. Partner with 5 gaming guilds on Avalanche for a launch tournament with a $5k prize pool. Micro-influencer campaign on TikTok targeting Web3 gamers. Referral bonus: invite 3 friends → earn a rare NFT item..."
-                        className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6] min-h-[140px] resize-none"
-                        {...field}
+            <div>
+              <p className="text-white font-medium text-sm mb-1">Milestones &amp; Roadmap</p>
+              <p className="text-zinc-400 text-sm mb-3">
+                Add your key milestones by period.
+              </p>
+              <div className="space-y-2">
+                {milestoneFields.map((mf, index) => (
+                  <div
+                    key={mf.id}
+                    className="rounded-lg border border-zinc-700/60 bg-zinc-900/60 p-4 space-y-2"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Controller
+                        control={form.control}
+                        name={`bg_milestones.${index}.period`}
+                        render={({ field: f }) => (
+                          <Input
+                            {...f}
+                            placeholder='Period — e.g. "Completed", "Q2 2026", "Q3 2026"'
+                            className="flex-1 bg-transparent border-zinc-700 text-white placeholder:text-zinc-600 focus:border-[#66acd6] text-sm font-medium"
+                          />
+                        )}
                       />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveMilestone(index)}
+                        className="shrink-0 p-1.5 rounded text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800 transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
 
-              <FormField
-                control={form.control}
-                name="bg_game_community"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-white font-medium">
-                      Community &amp; guild strategy
-                    </FormLabel>
-                    <p className="text-zinc-400 text-sm -mt-1">
-                      How are you building your player community? Discord, tournaments, ambassador programs, DAO governance for in-game decisions?
-                    </p>
-                    <FormControl>
-                      <Textarea
-                        placeholder="e.g. Weekly tournaments streamed on Twitch. Discord with 2,000 members and active guild channels. Community votes on new game modes each season via snapshot..."
-                        className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6] min-h-[130px] resize-none"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                    <Controller
+                      control={form.control}
+                      name={`bg_milestones.${index}.description`}
+                      render={({ field: f }) => (
+                        <Textarea
+                          {...f}
+                          placeholder={"- What you achieved or plan to achieve\n- Key deliverable\n- ..."}
+                          className="bg-transparent border-zinc-700 text-white placeholder:text-zinc-600 focus:border-[#66acd6] min-h-[90px] resize-none text-sm font-mono"
+                        />
+                      )}
+                    />
+                  </div>
+                ))}
 
-              <FormField
-                control={form.control}
-                name="bg_game_monetization"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-white font-medium">
-                      Monetization model
-                    </FormLabel>
-                    <p className="text-zinc-400 text-sm -mt-1">
-                      How does the game generate sustainable revenue? Describe primary and secondary market mechanics without compromising gameplay fairness.
-                    </p>
-                    <FormControl>
-                      <Textarea
-                        placeholder="e.g. Free-to-play with cosmetic NFT sales (no pay-to-win). 2.5% marketplace fee on player-to-player trades. Season pass ($9.99) for early access to new content. No token required to play..."
-                        className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6] min-h-[130px] resize-none"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                <button
+                  type="button"
+                  onClick={() => appendMilestone({ period: "", description: "" })}
+                  className="flex items-center gap-2 text-sm text-zinc-400 hover:text-white transition-colors py-2"
+                >
+                  <span className="w-5 h-5 rounded border border-zinc-700 flex items-center justify-center text-zinc-400 hover:border-zinc-500">+</span>
+                  Add milestone
+                </button>
+              </div>
+            </div>
 
-              <FormField
-                control={form.control}
-                name="bg_game_competitors"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-white font-medium">
-                      Competitive landscape
-                    </FormLabel>
-                    <p className="text-zinc-400 text-sm -mt-1">
-                      Name 2–3 games you compete with directly. What makes players choose yours over them?
-                    </p>
-                    <FormControl>
-                      <Textarea
-                        placeholder="e.g. Gods Unchained (card game, larger player base but Ethereum fees). Pixels (farming game, similar audience but no combat). We differ by combining real-time combat with fully on-chain item ownership at near-zero gas on Avalanche..."
-                        className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6] min-h-[130px] resize-none"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </>
-          )}
+            <FormField
+              control={form.control}
+              name="bg_game_acquisition"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-white font-medium">
+                    {gtm.acquisitionLabel}
+                  </FormLabel>
+                  <p className="text-zinc-400 text-sm -mt-1">
+                    {gtm.acquisitionDesc}
+                  </p>
+                  <FormControl>
+                    <Textarea
+                      placeholder={gtm.acquisitionPlaceholder}
+                      className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6] min-h-[140px] resize-none"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="bg_game_community"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-white font-medium">
+                    {gtm.communityLabel}
+                  </FormLabel>
+                  <p className="text-zinc-400 text-sm -mt-1">
+                    {gtm.communityDesc}
+                  </p>
+                  <FormControl>
+                    <Textarea
+                      placeholder={gtm.communityPlaceholder}
+                      className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6] min-h-[130px] resize-none"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="bg_game_monetization"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-white font-medium">
+                    {gtm.monetizationLabel}
+                  </FormLabel>
+                  <p className="text-zinc-400 text-sm -mt-1">
+                    {gtm.monetizationDesc}
+                  </p>
+                  <FormControl>
+                    <Textarea
+                      placeholder={gtm.monetizationPlaceholder}
+                      className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6] min-h-[130px] resize-none"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="bg_game_competitors"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-white font-medium">
+                    {gtm.competitorsLabel}
+                  </FormLabel>
+                  <p className="text-zinc-400 text-sm -mt-1">
+                    {gtm.competitorsDesc}
+                  </p>
+                  <FormControl>
+                    <Textarea
+                      placeholder={gtm.competitorsPlaceholder}
+                      className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6] min-h-[130px] resize-none"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </>
         </div>
       );
     }
@@ -1523,28 +1642,38 @@ export default function BuildGamesSubmitForm({
     if (n === 4) {
       return (
         <div className="space-y-5">
+          <div className="rounded-xl border border-[#66acd6]/30 bg-[rgba(102,172,214,0.06)] p-5">
+            <p className="font-['Aeonik:Medium',sans-serif] text-[15px] text-white mb-1">
+              Stage 4 is a live presentation in front of judges
+            </p>
+            <p className="font-['Aeonik:Regular',sans-serif] text-[14px] text-white/60">
+              The real judging happens live — judges will watch your live pitch, ask questions, and evaluate your project in real time. The submission below serves as a dry run and will complete your project profile, but it does not replace the live presentation.
+            </p>
+          </div>
+
           <MultiLinkInput
             name="demo_link"
-            label="Pitch Deck & Demo Links"
+            label="Pitch Recording & Slides"
             placeholder="https://docs.google.com/presentation/..."
             plainLabel
+            allowAllDomains
+            description="Up to 7 minutes. Include a short demo (you can pre-record the demo part to save time) and make sure it reflects the current state of your project. Assume judges have no context from previous stages."
           />
 
           <FormField
             control={form.control}
-            name="full_description"
+            name="bg_summary"
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-white font-medium">
-                  Complete Project Documentation
+                  Project Summary
                 </FormLabel>
                 <p className="text-zinc-400 text-sm -mt-1">
-                  Provide complete documentation covering your project&apos;s
-                  technical implementation, business model, and traction.
+                  Keep it short. Include your project&apos;s website, X (Twitter), and any other links or information about your team or your project that you think judges should know about.
                 </p>
                 <FormControl>
                   <Textarea
-                    placeholder="Complete documentation of your project: technical implementation, business model, user traction, roadmap..."
+                    placeholder="Brief summary of your project. Website: https://... | X: https://x.com/... | Any other relevant links or context..."
                     className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6] min-h-[250px] resize-none"
                     {...field}
                   />
@@ -1554,59 +1683,29 @@ export default function BuildGamesSubmitForm({
             )}
           />
 
-          {/* ── Gaming Finals — only for consumer games ── */}
-          {form.watch("project_category") === "Gaming" &&
-            form.watch("bg_game_type") === "Consumer Game" && (
-            <>
-              <SectionDivider label="🎮 Gaming Finals" />
+          <FormField
+            control={form.control}
+            name="bg_support_needed"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-white font-medium">
+                  What type of support do you need to succeed?
+                </FormLabel>
+                <p className="text-zinc-400 text-sm -mt-1">
+                  Tell us what kind of support would make the biggest difference for your project — e.g. technical guidance, BD introductions, legal, marketing, funding, ecosystem partnerships.
+                </p>
+                <FormControl>
+                  <Textarea
+                    placeholder="e.g. We need help with go-to-market strategy and introductions to potential partners in the DeFi space..."
+                    className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6] min-h-[130px] resize-none"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-              <FormField
-                control={form.control}
-                name="bg_game_metrics"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-white font-medium">
-                      Live player metrics &amp; traction
-                    </FormLabel>
-                    <p className="text-zinc-400 text-sm -mt-1">
-                      Share your current numbers: daily active players, average session length, Day-1 / Day-7 / Day-30 retention, on-chain transaction volume.
-                    </p>
-                    <FormControl>
-                      <Textarea
-                        placeholder="e.g. 340 DAU, avg session 22 min, D1 retention 61% / D7 38% / D30 18%. 12,400 on-chain transactions in the last 30 days. 1,800 unique wallet addresses..."
-                        className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6] min-h-[130px] resize-none"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="bg_game_vision"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-white font-medium">
-                      12-month vision
-                    </FormLabel>
-                    <p className="text-zinc-400 text-sm -mt-1">
-                      Where do you want the game to be in 12 months? Set targets for player count, revenue, content expansion, and ecosystem integrations.
-                    </p>
-                    <FormControl>
-                      <Textarea
-                        placeholder="e.g. 50k MAU by Q1 2027. Launch Season 2 with PvP ranked mode. Integrate with 2 Avalanche ecosystem protocols for in-game rewards. Mobile port in Q3. $500k ARR from marketplace fees and season passes..."
-                        className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-[#66acd6] min-h-[140px] resize-none"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </>
-          )}
         </div>
       );
     }

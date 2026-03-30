@@ -3,7 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Divider } from '@/components/ui/divider';
 import { SearchEventInput } from '@/components/ui/search-event-input';
-import { TimeZoneSelect } from '@/components/ui/timezone-select';
+import { TimeZoneSelect, resolveTimezone } from '@/components/ui/timezone-select';
 import { HackathonHeader, ScheduleActivity } from '@/types/hackathons';
 import {
   Link as LinkIcon,
@@ -17,21 +17,41 @@ import Image from 'next/image';
 import { Separator } from '@/components/ui/separator';
 import DeadLine from '../DeadLine';
 import { Button } from '@/components/ui/button';
+import { useSchedule, ScheduleSource, GoogleCalendarConfig } from '@/hooks/useSchedule';
 
-function Schedule({ hackathon }: { hackathon: HackathonHeader }) {
+export type ScheduleProps = {
+  hackathon: HackathonHeader;
+  /** Data source for schedule: 'database' (default) or 'google-calendar' */
+  scheduleSource?: ScheduleSource;
+  /** Google Calendar configuration (required when scheduleSource is 'google-calendar') */
+  googleCalendarConfig?: GoogleCalendarConfig;
+};
+
+function Schedule({ hackathon, scheduleSource = 'database', googleCalendarConfig }: ScheduleProps) {
   const [search, setSearch] = useState<string>('');
   const [timeZone, setTimeZone] = useState<string>('');
   const [selectedDay, setSelectedDay] = useState<string>('');
 
+  // Use the schedule strategy hook - source is determined programmatically via scheduleSource prop
+  const { schedule: scheduleData, calendarTimeZone } = useSchedule({
+    source: scheduleSource,
+    hackathonId: hackathon.id,
+    existingSchedule: hackathon.content.schedule,
+    googleCalendarConfig,
+  });
+
   useEffect(() => {
-    if (hackathon.timezone) {
-      setTimeZone(hackathon.timezone);
+    // Use hackathon timezone, or calendar timezone from Google Calendar as fallback
+    // resolveTimezone finds a matching timezone in our selector if exact match not found
+    const rawTimeZone = hackathon.timezone || calendarTimeZone || '';
+    if (rawTimeZone) {
+      setTimeZone(resolveTimezone(rawTimeZone));
     }
     // Set initial selected day to the first day in schedule
-    const groupedActivities = groupActivitiesByDay(hackathon.content.schedule);
+    const groupedActivities = groupActivitiesByDay(scheduleData);
     const firstDay = Object.keys(groupedActivities)[0];
     setSelectedDay(firstDay);
-  }, [hackathon]);
+  }, [hackathon, scheduleData, calendarTimeZone]);
 
   const defineTimeZone = (formatDateParams: any) => {
     if (timeZone) return { ...formatDateParams, timeZone: timeZone };
@@ -137,8 +157,9 @@ function Schedule({ hackathon }: { hackathon: HackathonHeader }) {
         Schedule
       </h2>
       <Separator className='my-2 sm:my-8 bg-zinc-300 dark:bg-zinc-800' />
+      
       <span className='dark:text-zinc-50 text-zinc-900 text-lg font-medium sm:text-base'>
-        {getDateRange(hackathon.content.schedule)}
+        {getDateRange(scheduleData)}
       </span>
       <div className='flex flex-col lg:flex-row justify-between gap-4 md:gap-10 mt-4 min-w-full'>
         <div className='flex flex-col md:flex-row items-start md:items-center justify-start lg:justify-center gap-4 md:gap-10 w-full md:w-auto'>
@@ -151,7 +172,7 @@ function Schedule({ hackathon }: { hackathon: HackathonHeader }) {
       <div className='bg-zinc-200 dark:bg-zinc-800 backdrop-blur-sm rounded-lg py-1 sm:w-fit w-full sm:max-w-none flex items-center gap-2'>
         <button
           onClick={() => {
-            const days = Object.keys(groupActivitiesByDay(hackathon.content.schedule));
+            const days = Object.keys(groupActivitiesByDay(scheduleData));
             const currentIndex = days.findIndex(day => day === selectedDay);
             if (currentIndex > 0) {
               setSelectedDay(days[currentIndex - 1]);
@@ -163,7 +184,7 @@ function Schedule({ hackathon }: { hackathon: HackathonHeader }) {
         </button>
         <div className='flex items-center overflow-x-auto no-scrollbar w-full sm:w-auto'>
           <div className='flex w-full sm:w-auto divide-x divide-zinc-300 dark:divide-zinc-700'>
-            {Object.entries(groupActivitiesByDay(hackathon.content.schedule)).map(
+            {Object.entries(groupActivitiesByDay(scheduleData)).map(
               ([formattedDate, activities], index) => {
                 if (!activities || activities.length === 0 || !activities[0]?.date) {
                   return null;
@@ -198,7 +219,7 @@ function Schedule({ hackathon }: { hackathon: HackathonHeader }) {
         </div>
         <button
           onClick={() => {
-            const days = Object.keys(groupActivitiesByDay(hackathon.content.schedule));
+            const days = Object.keys(groupActivitiesByDay(scheduleData));
             const currentIndex = days.findIndex(day => day === selectedDay);
             if (currentIndex < days.length - 1) {
               setSelectedDay(days[currentIndex + 1]);
@@ -210,7 +231,7 @@ function Schedule({ hackathon }: { hackathon: HackathonHeader }) {
         </button>
       </div>
       <div className='grid grid-cols-1 xl:grid-cols-2 gap-5'>
-        {Object.entries(groupActivitiesByDay(hackathon.content.schedule))
+        {Object.entries(groupActivitiesByDay(scheduleData))
           .filter(([date], index, array) => {
             const selectedIndex = array.findIndex(([d]) => d === selectedDay);
             return index === selectedIndex || index === selectedIndex + 1;
@@ -377,17 +398,43 @@ function Schedule({ hackathon }: { hackathon: HackathonHeader }) {
                               </div>
                             )}
                             <div
-                              className={`flex flex-row sm:gap-4 ${
+                              className={`flex flex-col sm:flex-row sm:gap-4 ${
                                 voidHost
-                                  ? 'flex-1 items-center'
+                                  ? 'flex-1 items-start sm:items-center'
                                   : 'justify-between'
                               }`}
                             >
-                              <div className='flex flex-row items-center gap-2'>
-                                <MapPin color='#8F8F99' className='w-5 h-5' />
-                                <span className='dark:text-zinc-50 zinc-900 sm:text-sm font-normal'>
-                                  {activity.location}
-                                </span>
+                              <div className='flex flex-col gap-1'>
+                                {/* Video call link */}
+                                {activity.video_call_url && (
+                                  <div className='flex flex-row items-center gap-2'>
+                                    <LinkIcon color='#8F8F99' className='w-5 h-5' />
+                                    <Link
+                                      href={activity.video_call_url}
+                                      target='_blank'
+                                      className='dark:text-zinc-50 text-zinc-900 sm:text-sm font-normal hover:text-red-500 dark:hover:text-red-400 transition-colors'
+                                    >
+                                      Join video call
+                                    </Link>
+                                  </div>
+                                )}
+                                {/* Physical location */}
+                                <div className='flex flex-row items-center gap-2'>
+                                  <MapPin color='#8F8F99' className='w-5 h-5' />
+                                  {activity.location && activity.location !== 'TBD' ? (
+                                    <Link
+                                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(activity.location)}`}
+                                      target='_blank'
+                                      className='dark:text-zinc-50 text-zinc-900 sm:text-sm font-normal hover:text-red-500 dark:hover:text-red-400 transition-colors'
+                                    >
+                                      {activity.location.split(',').slice(0, 2).join(',')}
+                                    </Link>
+                                  ) : (
+                                    <span className='dark:text-zinc-50 text-zinc-900 sm:text-sm font-normal'>
+                                      {activity.location || 'TBD'}
+                                    </span>
+                                  )}
+                                </div>
                               </div>
                               {/* <Button
                                   variant="secondary"

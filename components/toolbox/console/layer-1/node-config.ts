@@ -519,6 +519,7 @@ export const generateDockerCommand = (
         `-p ${isRPC ? "" : "127.0.0.1:"}9650:9650 -p 9651:9651`,
         "-v ~/.avalanchego:/root/.avalanchego",
         "-e AVAGO_CONFIG_FILE=/root/.avalanchego/configs/node.json",
+        `-e VM_ID=${vmId}`,
         `avaplatform/subnet-evm_avalanchego:${versions['avaplatform/subnet-evm_avalanchego']}`
     ];
 

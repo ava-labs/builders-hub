@@ -6,8 +6,8 @@ import {
 } from "@/server/services/hackathons";
 import { getRegisterForm } from "@/server/services/registerForms";
 import { getAuthSession } from "@/lib/auth/authSession";
-import HackathonEventLayout from "@/components/hackathons/event-layouts/HackathonEventLayout";
-import WorkshopBootcampEventLayout from "@/components/hackathons/event-layouts/WorkshopBootcampEventLayout";
+import LegacyEventLayout from "@/components/hackathons/event-layouts/LegacyEventLayout";
+import ModernEventLayout from "@/components/hackathons/event-layouts/ModernEventLayout";
 import { createMetadata } from "@/utils/metadata";
 import type { Metadata } from "next";
 
@@ -83,16 +83,12 @@ export default async function HackathonPage({
 
   if (!hackathon) redirect("/hackathons");
 
-  // Determine event type - default to "hackathon" for backwards compatibility
-  const eventType = hackathon.event || "hackathon";
-  const isHackathon = eventType === "hackathon";
-  const isWorkshopOrBootcamp =
-    eventType === "workshop" || eventType === "bootcamp";
+  // Layout depends only on new_layout; when null/undefined, use legacy
+  const useModernLayout = hackathon.new_layout === true;
 
-  // Render appropriate layout based on event type
-  if (isWorkshopOrBootcamp) {
+  if (useModernLayout) {
     return (
-      <WorkshopBootcampEventLayout
+      <ModernEventLayout
         hackathon={hackathon}
         id={id}
         isRegistered={isRegistered}
@@ -101,9 +97,8 @@ export default async function HackathonPage({
     );
   }
 
-  // Default to hackathon layout (for hackathon type or any other/unknown types)
   return (
-    <HackathonEventLayout
+    <LegacyEventLayout
       hackathon={hackathon}
       id={id}
       isRegistered={isRegistered}
