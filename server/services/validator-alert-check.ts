@@ -314,19 +314,19 @@ export async function checkSingleAlert(
       );
       if (didSend) sent++;
     } else if (latestRelease.type === 'mandatory') {
+      // No parseable deadline — don't escalate to mandatory tier.
+      // Send as optional with a note that it may be mandatory.
       const didSend = await trySend(
         alert.id,
         alert.email,
-        'version_mandatory',
-        versionMandatoryTemplate({
+        'version_optional',
+        versionOptionalTemplate({
           alertId: alert.id,
           nodeId: alert.node_id,
           label: alert.label,
           currentVersion: validator.version,
-          requiredVersion: latestRelease.tag,
-          deadline: null,
-          acps: latestRelease.acps,
-          urgency: 'notice',
+          latestVersion: latestRelease.tag,
+          maybeMandatory: true,
         }),
         errors,
         alert.node_id
