@@ -4,6 +4,7 @@ import WrappedNativeToken from "@/contracts/icm-contracts/compiled/WrappedNative
 import { useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
 import { useWrappedNativeToken, useSetWrappedNativeToken } from "@/components/toolbox/stores/l1ListStore";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
+import { useWalletClient } from 'wagmi';
 import { useNativeCurrencyInfo, useSetNativeCurrencyInfo } from "@/components/toolbox/stores/l1ListStore";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/toolbox/components/Button";
@@ -18,6 +19,19 @@ import DisplayWrappedBalance from "./wrappedNativeToken/DisplayWrappedBalance";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 import { useContractDeployer } from "@/components/toolbox/hooks/contracts";
+import versions from "@/scripts/versions.json";
+import { ContractDeployViewer, type ContractSource } from "@/components/console/contract-deploy-viewer";
+
+const ICM_COMMIT = versions["ava-labs/icm-contracts"];
+
+const CONTRACT_SOURCES: ContractSource[] = [
+  {
+    name: "WrappedNativeToken",
+    filename: "WrappedNativeToken.sol",
+    url: `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/ictt/mocks/WrappedNativeToken.sol`,
+    description: "ERC20 wrapper for the L1's native token, enabling it to be used with ICTT bridges.",
+  },
+];
 
 // Pre-deployed wrapped native token address (from genesis)
 // This is the standard address used in the pre-installed contracts section
@@ -47,7 +61,8 @@ function DeployWrappedNative({ onSuccess }: BaseConsoleToolProps) {
     const [wrappedNativeTokenAddress, setLocalWrappedNativeTokenAddress] = useState<string>(cachedWrappedToken || '');
     const [hasPredeployedToken, setHasPredeployedToken] = useState(!!cachedWrappedToken);
     const [isCheckingToken, setIsCheckingToken] = useState(!cachedWrappedToken);
-    const { walletChainId, walletEVMAddress, coreWalletClient } = useWalletStore();
+    const { walletChainId, walletEVMAddress } = useWalletStore();
+    const { data: walletClient } = useWalletClient();
     const setNativeCurrencyInfo = useSetNativeCurrencyInfo();
     const viemChain = useViemChainStore();
     const { deploy, isDeploying } = useContractDeployer();
@@ -179,7 +194,7 @@ function DeployWrappedNative({ onSuccess }: BaseConsoleToolProps) {
     }, [isMounted, viemChain, walletEVMAddress, selectedL1, walletChainId, cachedWrappedToken, cachedNativeCurrency, wrappedNativeTokenAddress]);
    
     async function handleDeploy() {
-        if (!coreWalletClient) {
+        if (!walletClient) {
             setCriticalError(new Error("Core wallet not found"));
             return;
         }
@@ -210,6 +225,7 @@ function DeployWrappedNative({ onSuccess }: BaseConsoleToolProps) {
     }
 
     return (
+        <ContractDeployViewer contracts={CONTRACT_SOURCES}>
         <div className="space-y-6">
             {/* Token Address Display */}
             {wrappedNativeTokenAddress && (
@@ -278,6 +294,7 @@ function DeployWrappedNative({ onSuccess }: BaseConsoleToolProps) {
                 </div>
             )}
         </div>
+        </ContractDeployViewer>
     );
 }
 

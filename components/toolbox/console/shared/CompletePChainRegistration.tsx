@@ -1,20 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
-import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { Button } from '@/components/toolbox/components/Button';
 import { Input } from '@/components/toolbox/components/Input';
 import { Success } from '@/components/toolbox/components/Success';
 import { Alert } from '@/components/toolbox/components/Alert';
 import { GetRegistrationJustification } from '@/components/toolbox/console/permissioned-l1s/ValidatorManager/justification';
 import { packWarpIntoAccessList } from '@/components/toolbox/console/permissioned-l1s/ValidatorManager/packWarp';
-import { hexToBytes, bytesToHex } from 'viem';
+import { hexToBytes, bytesToHex, encodeFunctionData, Abi } from 'viem';
 import NativeTokenStakingManager from '@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json';
 import ERC20TokenStakingManager from '@/contracts/icm-contracts/compiled/ERC20TokenStakingManager.json';
+import ValidatorManagerABI from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
 import { packL1ValidatorRegistration } from '@/components/toolbox/coreViem/utils/convertWarp';
 import { getValidationIdHex } from '@/components/toolbox/coreViem/hooks/getValidationID';
 import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { useValidatorManager, usePoAManager, useNativeTokenStakingManager, useERC20TokenStakingManager } from '@/components/toolbox/hooks/contracts';
+import { fetchRegisterL1ValidatorData } from './fetchRegisterL1ValidatorData';
+import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
+import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
+import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 
 export type ManagerType = 'PoA' | 'PoS-Native' | 'PoS-ERC20';
 export type OwnerType = 'PoAManager' | 'StakingManager' | 'EOA' | null;
@@ -32,7 +36,7 @@ export interface CompletePChainRegistrationProps {
     managerAddress: string;
     
     // For PoA: ownership and multisig
-    ownershipState?: 'contract' | 'currentWallet' | 'differentEOA' | 'loading';
+    ownershipState?: 'contract' | 'currentWallet' | 'differentEOA' | 'loading' | 'error';
     contractOwner?: string | null;
     isLoadingOwnership?: boolean;
     ownerType?: OwnerType;
@@ -58,11 +62,13 @@ const CompletePChainRegistration: React.FC<CompletePChainRegistrationProps> = ({
     isLoadingOwnership,
     ownerType,
 }) => {
-    const { coreWalletClient, publicClient, avalancheNetworkID } = useWalletStore();
+    const { avalancheNetworkID, isTestnet } = useWalletStore();
+    const walletType = useWalletStore((s) => s.walletType);
+    const isCoreWallet = walletType === 'core';
+    const chainPublicClient = useChainPublicClient();
+    const viemChain = useViemChainStore();
     const { aggregateSignature } = useAvalancheSDKChainkit();
     const { notify } = useConsoleNotifications();
-    const viemChain = useViemChainStore();
-    
     const [pChainTxIdState, setPChainTxIdState] = useState(pChainTxId || '');
     const [isProcessing, setIsProcessing] = useState(false);
     const [error, setErrorState] = useState<string | null>(null);
@@ -77,6 +83,7 @@ const CompletePChainRegistration: React.FC<CompletePChainRegistrationProps> = ({
         weight: bigint;
         validationId?: string;
     } | null>(null);
+    const [castAccessList, setCastAccessList] = useState<any[] | null>(null);
 
     // Determine contract configuration based on manager type
     const isPoA = managerType === 'PoA';
@@ -123,7 +130,7 @@ const CompletePChainRegistration: React.FC<CompletePChainRegistrationProps> = ({
             onError("Manager address is required.");
             return false;
         }
-        if (!coreWalletClient || !publicClient || !viemChain || !coreWalletClient.account) {
+        if (!chainPublicClient) {
             setErrorState("Wallet or chain configuration is not properly initialized.");
             onError("Wallet or chain configuration is not properly initialized.");
             return false;
@@ -163,9 +170,7 @@ const CompletePChainRegistration: React.FC<CompletePChainRegistrationProps> = ({
         setIsProcessing(true);
         try {
             // Step 1: Extract RegisterL1ValidatorMessage from P-Chain transaction
-            const registrationMessageData = await coreWalletClient!.extractRegisterL1ValidatorMessage({
-                txId: pChainTxIdState
-            });
+            const registrationMessageData = await fetchRegisterL1ValidatorData(pChainTxIdState, isTestnet);
 
             setExtractedData({
                 subnetID: registrationMessageData.subnetID,
@@ -181,7 +186,7 @@ const CompletePChainRegistration: React.FC<CompletePChainRegistrationProps> = ({
             if (isPoS || useStakingManager) {
                 try {
                     const queryAddress = isPoS ? managerAddress : contractOwner;
-                    const settings = await publicClient!.readContract({
+                    const settings = await chainPublicClient!.readContract({
                         address: queryAddress as `0x${string}`,
                         abi: managerType === 'PoS-ERC20' ? ERC20TokenStakingManager.abi : NativeTokenStakingManager.abi,
                         functionName: 'getStakingManagerSettings',
@@ -195,7 +200,7 @@ const CompletePChainRegistration: React.FC<CompletePChainRegistrationProps> = ({
 
             // Step 3: Get validation ID from contract using nodeID
             const validationId = await getValidationIdHex(
-                publicClient!,
+                chainPublicClient!,
                 validationIdQueryAddress as `0x${string}`,
                 registrationMessageData.nodeID
             );
@@ -219,7 +224,7 @@ const CompletePChainRegistration: React.FC<CompletePChainRegistrationProps> = ({
             const justification = await GetRegistrationJustification(
                 validationId,
                 subnetIdL1,
-                publicClient!
+                chainPublicClient!
             );
 
             if (!justification) {
@@ -245,6 +250,12 @@ const CompletePChainRegistration: React.FC<CompletePChainRegistrationProps> = ({
             // Step 7: Complete the validator registration on EVM
             const signedPChainWarpMsgBytes = hexToBytes(`0x${signature.signedMessage}`);
             const accessList = packWarpIntoAccessList(signedPChainWarpMsgBytes);
+            setCastAccessList(accessList);
+
+            // Non-Core wallet: stop here and show cast command
+            if (!isCoreWallet) {
+                return;
+            }
 
             // Call appropriate hook based on manager type
             let hash: string;
@@ -265,7 +276,7 @@ const CompletePChainRegistration: React.FC<CompletePChainRegistrationProps> = ({
 
             setTxHash(hash);
 
-            const receipt = await publicClient!.waitForTransactionReceipt({ hash: hash as `0x${string}` });
+            const receipt = await chainPublicClient!.waitForTransactionReceipt({ hash: hash as `0x${string}` });
             if (receipt.status !== 'success') {
                 throw new Error(`Transaction failed with status: ${receipt.status}`);
             }
@@ -295,6 +306,39 @@ const CompletePChainRegistration: React.FC<CompletePChainRegistrationProps> = ({
         }
     };
 
+    // Determine the target contract address for cast command
+    const castTargetAddress = (() => {
+        if (isPoA) {
+            if (useMultisig && contractOwner) return contractOwner;
+            if (useStakingManager && contractOwner) return contractOwner;
+            return managerAddress;
+        }
+        return managerAddress;
+    })();
+
+    function generateCastCommand(): string {
+        if (!pChainSignature || !castAccessList) return '';
+        const rpcUrl = viemChain?.rpcUrls?.default?.http?.[0] || '<L1_RPC_URL>';
+        const addr = castTargetAddress || '<CONTRACT_ADDRESS>';
+
+        const calldata = encodeFunctionData({
+            abi: ValidatorManagerABI.abi as Abi,
+            functionName: 'completeValidatorRegistration',
+            args: [0],
+        });
+
+        const accessListJson = JSON.stringify(castAccessList);
+
+        return [
+            `cast send ${addr} \\`,
+            `  ${calldata} \\`,
+            `  --access-list '${accessListJson}' \\`,
+            `  --gas-limit 2000000 \\`,
+            `  --rpc-url ${rpcUrl} \\`,
+            `  --private-key $PRIVATE_KEY`,
+        ].join('\n');
+    }
+
     if (!subnetIdL1) {
         return (
             <div className="text-sm text-zinc-500 dark:text-zinc-400">
@@ -303,11 +347,12 @@ const CompletePChainRegistration: React.FC<CompletePChainRegistrationProps> = ({
         );
     }
 
-    const isButtonDisabled = isProcessing || 
-        !!txHash || 
-        !pChainTxIdState.trim() || 
+    const isButtonDisabled = isProcessing ||
+        !!txHash ||
+        !pChainTxIdState.trim() ||
         isLoadingOwnership ||
-        (isPoA && ownershipState === 'differentEOA' && !useMultisig && !useStakingManager);
+        (isPoA && ownershipState === 'differentEOA' && !useMultisig && !useStakingManager) ||
+        (!isCoreWallet && !!pChainSignature);
 
     return (
         <div className="space-y-4">
@@ -367,25 +412,28 @@ const CompletePChainRegistration: React.FC<CompletePChainRegistrationProps> = ({
                 </div>
             )}
 
-            <Alert variant="info">
-                <p className="text-sm">
-                    <strong>Before completing registration:</strong>
-                </p>
-                <ul className="list-disc list-inside text-sm mt-2 space-y-1">
-                    <li>Ensure the P-Chain registration has been confirmed</li>
-                    <li>Wait a few minutes for the transaction to propagate</li>
-                    <li>The warp message from the P-Chain will be aggregated and submitted</li>
-                    <li>Once completed, your validator will be active on the L1</li>
-                </ul>
-            </Alert>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                Ensure the P-Chain registration is confirmed before proceeding. The warp message will be aggregated and submitted to complete registration.
+            </p>
 
             <Button
                 onClick={handleCompleteRegistration}
                 disabled={isButtonDisabled}
                 loading={isProcessing}
             >
-                {isLoadingOwnership ? 'Checking ownership...' : (isProcessing ? 'Processing...' : 'Complete Validator Registration')}
+                {isLoadingOwnership ? 'Checking ownership...' : (isProcessing ? 'Processing...' : (isCoreWallet ? 'Complete Validator Registration' : 'Aggregate Signatures'))}
             </Button>
+
+            {!isCoreWallet && pChainSignature && !txHash && (
+                <div className="space-y-3">
+                    <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 border border-blue-200 dark:border-blue-800">
+                        <p className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                            Signatures aggregated. Run this command to complete the validator registration:
+                        </p>
+                    </div>
+                    <DynamicCodeBlock lang="bash" code={generateCastCommand()} />
+                </div>
+            )}
 
             {txHash && (
                 <>

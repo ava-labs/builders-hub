@@ -475,7 +475,7 @@ export const generatePrimaryNetworkNodeConfig = (
 
 /**
  * Generates the Docker run command for Primary Network nodes
- * Config is read from mounted volume - no env vars needed!
+ * Volume mount provides config files; AVAGO_CONFIG_FILE tells AvalancheGo where to find node.json
  */
 export const generatePrimaryNetworkDockerCommand = (
     nodeType: 'validator' | 'rpc' | 'archival',
@@ -490,6 +490,7 @@ export const generatePrimaryNetworkDockerCommand = (
         "--name avago",
         `-p ${isRPC ? "" : "127.0.0.1:"}9650:9650 -p 9651:9651`,
         "-v ~/.avalanchego:/root/.avalanchego",
+        "-e AVAGO_CONFIG_FILE=/root/.avalanchego/configs/node.json",
         `avaplatform/avalanchego:${versions['avaplatform/avalanchego']}`
     ];
 
@@ -498,7 +499,7 @@ export const generatePrimaryNetworkDockerCommand = (
 
 /**
  * Generates the Docker run command for L1 nodes
- * Config is read from mounted volume - no env vars needed!
+ * Volume mount provides config files; AVAGO_CONFIG_FILE tells AvalancheGo where to find node.json
  */
 export const generateDockerCommand = (
     subnetId: string,
@@ -517,6 +518,8 @@ export const generateDockerCommand = (
         "--name avago",
         `-p ${isRPC ? "" : "127.0.0.1:"}9650:9650 -p 9651:9651`,
         "-v ~/.avalanchego:/root/.avalanchego",
+        "-e AVAGO_CONFIG_FILE=/root/.avalanchego/configs/node.json",
+        `-e VM_ID=${vmId}`,
         `avaplatform/subnet-evm_avalanchego:${versions['avaplatform/subnet-evm_avalanchego']}`
     ];
 

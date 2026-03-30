@@ -1,18 +1,15 @@
 import { NextResponse } from 'next/server';
-import { Avalanche } from "@avalanche-sdk/chainkit";
 import { TimeSeriesDataPoint, TimeSeriesMetric, ICMDataPoint, ICMMetric, STATS_CONFIG, getTimestampsFromTimeRange, createTimeSeriesMetric, createICMMetric } from "@/types/stats";
-import l1ChainsData from "@/constants/l1-chains.json";
-
-// Filter to only mainnet chains for ICM aggregation
-const mainnetChains = l1ChainsData.filter(c => (c as { isTestnet?: boolean }).isTestnet !== true);
+import { getChainICMData } from "@/lib/icm-clickhouse";
 
 export const dynamic = 'force-dynamic';
 
 const REQUEST_TIMEOUT_MS = 8000;
 const CACHE_CONTROL_HEADER = 'public, max-age=14400, s-maxage=14400, stale-while-revalidate=86400';
-const getRlToken = () => process.env.METRICS_BYPASS_TOKEN || '';
-
-const avalanche = new Avalanche({ network: "mainnet" });
+const METRICS_API_URL = process.env.METRICS_API_URL;
+if (!METRICS_API_URL) {
+  console.warn('METRICS_API_URL is not set — chain-stats endpoint will fail');
+}
 
 interface ChainMetrics {
   activeAddresses: {
@@ -71,19 +68,54 @@ async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutM
   }
 }
 
+async function fetchMetricsApi(
+  chainId: string,
+  metric: string,
+  timeInterval: string,
+  startTimestamp: number,
+  endTimestamp: number,
+  pageSize: number,
+  fetchAllPages: boolean
+): Promise<{ value: number; timestamp: number }[]> {
+  const resolvedChainId = chainId === 'all' ? 'mainnet' : chainId;
+  const allResults: { value: number; timestamp: number }[] = [];
+  let pageToken: string | undefined;
+
+  do {
+    const url = new URL(`${METRICS_API_URL}/v2/chains/${resolvedChainId}/metrics/${metric}`);
+    url.searchParams.set('timeInterval', timeInterval);
+    url.searchParams.set('startTimestamp', String(startTimestamp));
+    url.searchParams.set('endTimestamp', String(endTimestamp));
+    url.searchParams.set('pageSize', String(pageSize));
+    if (pageToken) url.searchParams.set('pageToken', pageToken);
+
+    const res = await fetchWithTimeout(url.toString());
+    if (!res.ok) throw new Error(`metrics-api ${res.status}: ${res.statusText}`);
+    const data = await res.json();
+
+    if (data.results && Array.isArray(data.results)) {
+      allResults.push(...data.results);
+    }
+
+    pageToken = data.nextPageToken || undefined;
+  } while (fetchAllPages && pageToken);
+
+  return allResults;
+}
+
 async function getTimeSeriesData(
-  metricType: string, 
+  metricType: string,
   chainId: string,
   timeRange: string,
   startTimestamp?: number,
   endTimestamp?: number,
-  pageSize: number = 365, 
+  pageSize: number = 365,
   fetchAllPages: boolean = false
 ): Promise<TimeSeriesDataPoint[]> {
   try {
     let finalStartTimestamp: number;
     let finalEndTimestamp: number;
-    
+
     if (startTimestamp !== undefined && endTimestamp !== undefined) {
       finalStartTimestamp = startTimestamp;
       finalEndTimestamp = endTimestamp;
@@ -92,34 +124,16 @@ async function getTimeSeriesData(
       finalStartTimestamp = timestamps.startTimestamp;
       finalEndTimestamp = timestamps.endTimestamp;
     }
-    
-    let allResults: any[] = [];
-    const rlToken = getRlToken();
-    
-    const params: any = {
-      metric: metricType as any,
-      startTimestamp: finalStartTimestamp,
-      endTimestamp: finalEndTimestamp,
-      timeInterval: "day",
-      pageSize,
-    };
-    
-    params.chainId = chainId === "all" ? "mainnet" : chainId;
-    if (rlToken) params.rltoken = rlToken;
-    
-    const result = await avalanche.metrics.chains.getMetrics(params);
 
-    for await (const page of result) {
-      if (!page?.result?.results || !Array.isArray(page.result.results)) {
-        continue;
-      }
-      allResults = allResults.concat(page.result.results);
-      if (!fetchAllPages) break;
-    }
+    const results = await fetchMetricsApi(
+      chainId, metricType, 'day',
+      finalStartTimestamp, finalEndTimestamp,
+      pageSize, fetchAllPages
+    );
 
-    return allResults
-      .sort((a: any, b: any) => b.timestamp - a.timestamp)
-      .map((result: any) => ({
+    return results
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .map((result) => ({
         timestamp: result.timestamp,
         value: result.value || 0,
         date: new Date(result.timestamp * 1000).toISOString().split('T')[0]
@@ -131,18 +145,18 @@ async function getTimeSeriesData(
 }
 
 async function getActiveAddressesData(
-  chainId: string, 
-  timeRange: string, 
-  interval: 'day' | 'week' | 'month', 
+  chainId: string,
+  timeRange: string,
+  interval: 'day' | 'week' | 'month',
   startTimestampParam?: number,
   endTimestampParam?: number,
-  pageSize: number = 365, 
+  pageSize: number = 365,
   fetchAllPages: boolean = false
 ): Promise<TimeSeriesDataPoint[]> {
   try {
     let startTimestamp: number;
     let endTimestamp: number;
-    
+
     if (startTimestampParam !== undefined && endTimestampParam !== undefined) {
       startTimestamp = startTimestampParam;
       endTimestamp = endTimestampParam;
@@ -151,34 +165,16 @@ async function getActiveAddressesData(
       startTimestamp = timestamps.startTimestamp;
       endTimestamp = timestamps.endTimestamp;
     }
-    
-    let allResults: any[] = [];
-    const rlToken = getRlToken();
-    
-    const params: any = {
-      metric: 'activeAddresses',
-      startTimestamp,
-      endTimestamp,
-      timeInterval: interval,
-      pageSize,
-    };
-    
-    params.chainId = chainId === "all" ? "mainnet" : chainId;
-    if (rlToken) params.rltoken = rlToken;
-    
-    const result = await avalanche.metrics.chains.getMetrics(params);
-    
-    for await (const page of result) {
-      if (!page?.result?.results || !Array.isArray(page.result.results)) {
-        continue;
-      }
-      allResults = allResults.concat(page.result.results);
-      if (!fetchAllPages) break;
-    }
-    
-    return allResults
-      .sort((a: any, b: any) => b.timestamp - a.timestamp)
-      .map((result: any) => ({
+
+    const results = await fetchMetricsApi(
+      chainId, 'activeAddresses', interval,
+      startTimestamp, endTimestamp,
+      pageSize, fetchAllPages
+    );
+
+    return results
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .map((result) => ({
         timestamp: result.timestamp,
         value: result.value || 0,
         date: new Date(result.timestamp * 1000).toISOString().split('T')[0]
@@ -503,114 +499,26 @@ async function getICMData(
           case '7d': return 7;
           case '30d': return 30;
           case '90d': return 90;
-          case 'all': return 365;
+          case 'all': return 730;
           default: return 30;
         }
       };
       days = getDaysFromTimeRange(timeRange);
     }
 
-    // For "all" chains, aggregate data from all mainnet chains
-    if (chainId === "all") {
-      return await aggregateAllChainsICMData(days, startTimestamp, endTimestamp);
-    }
-
-    const response = await fetchWithTimeout(
-      `https://idx6.solokhin.com/api/${chainId}/metrics/dailyMessageVolume?days=${days}`,
-      { headers: { 'Accept': 'application/json' } }
-    );
-
-    if (!response.ok) return [];
-    const data = await response.json();
-    if (!Array.isArray(data)) return [];
-
-    let filteredData = data
-      .sort((a: any, b: any) => b.timestamp - a.timestamp)
-      .map((item: any) => ({
-        timestamp: item.timestamp,
-        date: item.date,
-        messageCount: item.messageCount || 0,
-        incomingCount: item.incomingCount || 0,
-        outgoingCount: item.outgoingCount || 0,
-      }));
+    let result = await getChainICMData(chainId, days);
 
     if (startTimestamp !== undefined && endTimestamp !== undefined) {
-      filteredData = filteredData.filter((item: ICMDataPoint) =>
+      result = result.filter((item) =>
         item.timestamp >= startTimestamp && item.timestamp <= endTimestamp
       );
     }
 
-    return filteredData;
+    return result;
   } catch (error) {
-    if (error instanceof Error && error.name !== 'AbortError') {
-      console.warn(`[getICMData] Failed for chain ${chainId}:`, error);
-    }
+    console.warn(`[getICMData] Failed for chain ${chainId}:`, error);
     return [];
   }
-}
-
-// Helper function to aggregate ICM data from all mainnet chains
-async function aggregateAllChainsICMData(
-  days: number,
-  startTimestamp?: number,
-  endTimestamp?: number
-): Promise<ICMDataPoint[]> {
-  const aggregatedByDate = new Map<string, ICMDataPoint>();
-
-  // Process chains in batches to avoid overwhelming the API
-  const BATCH_SIZE = 20;
-
-  for (let i = 0; i < mainnetChains.length; i += BATCH_SIZE) {
-    const batch = mainnetChains.slice(i, i + BATCH_SIZE);
-
-    await Promise.all(
-      batch.map(async (chain) => {
-        try {
-          const response = await fetchWithTimeout(
-            `https://idx6.solokhin.com/api/${chain.chainId}/metrics/dailyMessageVolume?days=${days}`,
-            { headers: { 'Accept': 'application/json' } }
-          );
-
-          if (response.ok) {
-            const data = await response.json();
-            if (Array.isArray(data)) {
-              data.forEach((item: any) => {
-                const dateKey = item.date;
-                const existing = aggregatedByDate.get(dateKey);
-
-                if (existing) {
-                  existing.messageCount += item.messageCount || 0;
-                  existing.incomingCount += item.incomingCount || 0;
-                  existing.outgoingCount += item.outgoingCount || 0;
-                } else {
-                  aggregatedByDate.set(dateKey, {
-                    timestamp: item.timestamp,
-                    date: item.date,
-                    messageCount: item.messageCount || 0,
-                    incomingCount: item.incomingCount || 0,
-                    outgoingCount: item.outgoingCount || 0,
-                  });
-                }
-              });
-            }
-          }
-        } catch {
-          // skip chains that fail or timeout
-        }
-      })
-    );
-  }
-
-  let result = Array.from(aggregatedByDate.values())
-    .sort((a, b) => b.timestamp - a.timestamp);
-
-  if (startTimestamp !== undefined && endTimestamp !== undefined) {
-    result = result.filter((item) =>
-      item.timestamp >= startTimestamp && item.timestamp <= endTimestamp
-    );
-  }
-
-  return result;
 }
 
 const ALL_METRICS = [

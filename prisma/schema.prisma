@@ -29,6 +29,8 @@ model Hackathon {
   is_public       Boolean?
   updated_by      String?
   event           String?        @default("hackathon")
+  new_layout      Boolean?       @default(false)
+  google_calendar_id String?  
   created_by_user User?          @relation(fields: [created_by], references: [id])
   updated_by_user User?          @relation("HackathonUpdatedBy", fields: [updated_by], references: [id])
   projects        Project[]
@@ -71,6 +73,8 @@ model User {
   statsPlaygrounds         StatsPlayground[]
   statsPlaygroundFavorites StatsPlaygroundFavorite[] @relation("StatsPlaygroundFavorites")
   badges                   UserBadge[]
+  oauthCodes               OAuthCode[]
+  evaluations              Evaluation[]            @relation("Evaluations")
 }
 
 model VerificationToken {
@@ -322,12 +326,35 @@ model ChatMessage {
 }
 
 model FormData {
-  id         String   @id @default(dbgenerated("gen_random_uuid()"))
-  form_data  Json
-  timestamp  DateTime @db.Timestamptz(6)
-  origin     String   @default("unknown")
-  project_id String
-  project    Project  @relation(fields: [project_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  id             String       @id @default(dbgenerated("gen_random_uuid()"))
+  form_data      Json
+  timestamp      DateTime     @db.Timestamptz(6)
+  origin         String       @default("unknown")
+  project_id     String
+  final_verdict  String?
+  current_stage  Int          @default(0)
+  project        Project      @relation(fields: [project_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  evaluations    Evaluation[]
+}
+
+model Evaluation {
+  id             String   @id @default(uuid())
+  form_data_id   String
+  evaluator_id   String
+  verdict        String
+  comment        String?
+  score_overall  Float?
+  scores         Json?
+  stage          Int      @default(0)
+  created_at     DateTime @default(now()) @db.Timestamptz(3)
+  updated_at     DateTime @updatedAt @db.Timestamptz(3)
+
+  formData  FormData @relation(fields: [form_data_id], references: [id], onDelete: Cascade)
+  evaluator User     @relation("Evaluations", fields: [evaluator_id], references: [id], onDelete: Cascade)
+
+  @@unique([form_data_id, evaluator_id, stage])
+  @@index([form_data_id])
+  @@index([evaluator_id])
 }
 
 model BuildGamesApplication {
@@ -363,6 +390,17 @@ model BuildGamesApplication {
   @@index([created_at])
   @@index([referrer_handle])
   @@index([area_of_focus])
+}
+
+model OAuthCode {
+  code       String   @id
+  client_id  String
+  user_id    String
+  expires_at DateTime @db.Timestamptz(3)
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([expires_at])
 }
 
 model Retro9000ReturningApplication {

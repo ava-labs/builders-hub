@@ -1,16 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { Input } from '@/components/toolbox/components/Input';
 import { Button } from '@/components/toolbox/components/Button';
 import SelectValidationID, { ValidationSelection } from '@/components/toolbox/components/SelectValidationID';
 import { getValidatorWeight } from '@/components/toolbox/coreViem/hooks/getValidatorWeight';
 import { validateStakePercentage } from '@/components/toolbox/coreViem/hooks/getTotalStake';
-import validatorManagerAbi from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
 import { Success } from '@/components/toolbox/components/Success';
 import { Alert } from '@/components/toolbox/components/Alert';
 import { MultisigOption } from '@/components/toolbox/components/MultisigOption';
 import { useValidatorManager } from '@/components/toolbox/hooks/contracts';
+import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
 
 interface InitiateChangeWeightProps {
   subnetId: string;
@@ -26,8 +25,10 @@ interface InitiateChangeWeightProps {
   initialNodeId?: string;
   initialValidationId?: string;
   initialWeight?: string;
-  ownershipState: 'contract' | 'currentWallet' | 'differentEOA' | 'loading';
+  ownershipState: 'contract' | 'currentWallet' | 'differentEOA' | 'loading' | 'error';
   contractTotalWeight: bigint;
+  refetchOwnership?: () => void;
+  ownershipError?: string | null;
 }
 
 const InitiateChangeWeight: React.FC<InitiateChangeWeightProps> = ({
@@ -41,9 +42,11 @@ const InitiateChangeWeight: React.FC<InitiateChangeWeightProps> = ({
   initialWeight,
   ownershipState,
   contractTotalWeight,
+  refetchOwnership,
+  ownershipError,
 }) => {
-  const { coreWalletClient, publicClient } = useWalletStore();
-  const viemChain = useViemChainStore();
+  const { walletEVMAddress: connectedAddress } = useWalletStore();
+  const chainPublicClient = useChainPublicClient();
   const [validation, setValidation] = useState<ValidationSelection>({
     validationId: initialValidationId || '',
     nodeId: initialNodeId || ''
@@ -72,8 +75,8 @@ const InitiateChangeWeight: React.FC<InitiateChangeWeightProps> = ({
     setErrorState(null);
     setTxSuccess(null);
 
-    if (!coreWalletClient || !coreWalletClient.account) {
-      setErrorState("Core wallet not found");
+    if (!connectedAddress) {
+      setErrorState("Wallet not connected");
       return;
     }
 
@@ -99,13 +102,16 @@ const InitiateChangeWeight: React.FC<InitiateChangeWeightProps> = ({
     if (ownershipState === 'loading') {
       setErrorState("Verifying contract ownership... please wait."); return;
     }
+    if (ownershipState === 'error') {
+      setErrorState("Ownership verification failed. Please retry."); return;
+    }
 
     setIsProcessing(true);
     try {
       let validatorCurrentWeight: bigint | null = null;
       if (validation.validationId) {
         validatorCurrentWeight = await getValidatorWeight(
-          publicClient,
+          chainPublicClient!,
           validatorManagerAddress as `0x${string}`,
           validation.validationId
         );
@@ -133,7 +139,7 @@ const InitiateChangeWeight: React.FC<InitiateChangeWeightProps> = ({
       const hash = await validatorManager.initiateValidatorWeightUpdate(validation.validationId, weightBigInt);
 
       // Wait for transaction receipt to check if it was successful
-      const receipt = await publicClient.waitForTransactionReceipt({
+      const receipt = await chainPublicClient!.waitForTransactionReceipt({
         hash: hash as `0x${string}`
       });
 
@@ -244,19 +250,32 @@ const InitiateChangeWeight: React.FC<InitiateChangeWeightProps> = ({
         </Button>
       )}
 
-      {(ownershipState === 'differentEOA' || ownershipState === 'loading') && (
+      {ownershipState === 'differentEOA' && (
         <Button
           onClick={handleInitiateChangeWeight}
           disabled={true}
-          error={
-            ownershipState === 'differentEOA'
-              ? "You are not the owner of this contract. Only the contract owner can change validator weights."
-              : ownershipState === 'loading'
-                ? "Verifying ownership..."
-                : (!validatorManagerAddress && subnetId ? "Could not find Validator Manager for this L1." : undefined)
-          }
+          error="You are not the owner of this contract. Only the contract owner can change validator weights."
         >
-          {ownershipState === 'loading' ? 'Verifying...' : 'Initiate Change Weight'}
+          Initiate Change Weight
+        </Button>
+      )}
+
+      {ownershipState === 'loading' && (
+        <Button
+          onClick={handleInitiateChangeWeight}
+          disabled={true}
+          error="Verifying ownership..."
+        >
+          Verifying...
+        </Button>
+      )}
+
+      {ownershipState === 'error' && (
+        <Button
+          onClick={() => refetchOwnership?.()}
+          error={ownershipError || "Failed to verify contract ownership. Click to retry."}
+        >
+          Retry Ownership Check
         </Button>
       )}
 

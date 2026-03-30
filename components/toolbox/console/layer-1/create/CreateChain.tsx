@@ -2,26 +2,29 @@
 
 import { useCreateChainStore } from "@/components/toolbox/stores/createChainStore";
 import { useState, useRef } from "react";
-import { Button } from "@/components/toolbox/components/Button";
 import { GenesisBuilderInner } from '@/components/toolbox/console/layer-1/create/GenesisBuilder';
 import { Step, Steps } from "fumadocs-ui/components/steps";
 import { SUBNET_EVM_VM_ID } from "@/constants/console";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
-import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
+import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
+import { AlertTriangle } from "lucide-react";
+import Link from "next/link";
+import { CoreWalletTransactionButton } from "@/components/toolbox/components/CoreWalletTransactionButton";
+import { Success } from "@/components/toolbox/components/Success";
+import { ensureCoreNetworkMode, restoreCoreChain } from "@/components/toolbox/coreViem";
 
-// Import new Genesis Wizard components
+// Import Genesis Wizard components
 import { GenesisWizard } from "@/components/toolbox/components/genesis/GenesisWizard";
-import { SubnetStep } from "@/components/toolbox/components/genesis/SubnetStep";
 import { ChainConfigStep, generateRandomChainName } from "@/components/toolbox/components/genesis/ChainConfigStep";
 
 const metadata: ConsoleToolMetadata = {
     title: "Create Chain",
-    description: "Create a subnet and add a new blockchain with custom parameters and genesis data",
+    description: <>A <Link href="/docs/avalanche-l1s/building-your-first-avalanche-l1" className="text-primary hover:underline">chain</Link> is your L1 configuration running on a <Link href="/docs/avalanche-l1s" className="text-primary hover:underline">Subnet</Link>. A Subnet can have one or more chains, each with its own name, <Link href="/docs/avalanche-l1s/evm-customization/customize-your-l1-evm" className="text-primary hover:underline">virtual machine</Link>, and <Link href="/academy/avalanche-l1/avalanche-fundamentals" className="text-primary hover:underline">genesis parameters</Link>.</>,
     toolRequirements: [
-        WalletRequirementsConfigKey.PChainBalance
+        WalletRequirementsConfigKey.WalletConnected
     ],
     githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
 };
@@ -33,13 +36,14 @@ interface CreateChainProps extends BaseConsoleToolProps {
 function CreateChain({ onSuccess, embedded = false }: CreateChainProps) {
     const store = useCreateChainStore();
     const subnetId = store(state => state.subnetId);
+    const chainID = store(state => state.chainID);
     const setChainID = store(state => state.setChainID);
-    const setSubnetID = store(state => state.setSubnetID);
     const genesisData = store(state => state.genesisData);
     const setGenesisData = store(state => state.setGenesisData);
     const setChainName = store(state => state.setChainName);
 
-    const { coreWalletClient } = useConnectedWallet();
+    const coreWalletClient = useWalletStore((s) => s.coreWalletClient);
+    const { isTestnet } = useWalletStore();
     const { notify } = useConsoleNotifications();
 
     const [isCreatingChain, setIsCreatingChain] = useState(false);
@@ -57,93 +61,94 @@ function CreateChain({ onSuccess, embedded = false }: CreateChainProps) {
     };
 
     async function handleCreateChain() {
+        if (!coreWalletClient) return;
+
         setIsCreatingChain(true);
 
-        const createChainTx = coreWalletClient.createChain({
-            chainName: localChainName,
-            subnetId: subnetId,
-            vmId,
-            fxIds: [],
-            genesisData: genesisData,
-            subnetAuth: [0],
-        })
-
-        notify('createChain', createChainTx);
-
         try {
+            // Ensure Core Wallet is in the correct network mode for P-Chain ops
+            const previousChainId = await ensureCoreNetworkMode(isTestnet);
+
+            const createChainTx = coreWalletClient.createChain({
+                chainName: localChainName,
+                subnetId: subnetId,
+                vmId,
+                fxIds: [],
+                genesisData: genesisData,
+                subnetAuth: [0],
+            })
+
+            notify('createChain', createChainTx);
+
             const txID = await createChainTx;
+
+            if (previousChainId) await restoreCoreChain(previousChainId);
+
             setChainID(txID);
             setChainName(localChainName);
             setLocalChainName(generateRandomChainName());
-
         } finally {
             setIsCreatingChain(false);
         }
     }
 
-    const canProceedToStep2 = !!subnetId;
-    const canProceedToStep3 = canProceedToStep2 && !!localChainName;
-    const canProceedToStep4 = canProceedToStep3 && !!genesisData && genesisData !== "" && !genesisData.startsWith("Error:");
-    const canCreateChain = canProceedToStep4;
+    const hasSubnet = !!subnetId;
+    const canProceedToStep2 = hasSubnet && !!localChainName;
+    const canProceedToStep3 = canProceedToStep2 && !!genesisData && genesisData !== "" && !genesisData.startsWith("Error:");
+    const canCreateChain = canProceedToStep3;
+
+    // Show warning if no subnet selected
+    if (!hasSubnet) {
+        return (
+            <div className="flex flex-col items-center justify-center py-12 px-4">
+                <div className="p-4 rounded-full bg-yellow-100 dark:bg-yellow-900/30 mb-4">
+                    <AlertTriangle className="h-8 w-8 text-yellow-600 dark:text-yellow-400" />
+                </div>
+                <h3 className="text-sm font-semibold text-center mb-2">No Subnet Selected</h3>
+                <p className="text-sm text-muted-foreground text-center max-w-md">
+                    Please go back to the previous step and create or select a subnet before configuring your chain.
+                </p>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6">
             <Steps>
-                {/* Step 1: Create Subnet */}
+                {/* Step 1: Chain Configuration */}
                 <Step>
-                    <SubnetStep
-                        subnetId={subnetId}
-                        onSubnetIdChange={setSubnetID}
+                    <div>
+                        <h2 className="text-sm font-semibold mb-1">Chain Configuration</h2>
+                        <p className="text-xs text-muted-foreground">
+                            Configure your chain name and virtual machine.
+                        </p>
+                    </div>
+                    <ChainConfigStep
+                        chainName={localChainName}
+                        onChainNameChange={setLocalChainName}
+                        vmId={vmId}
+                        onVmIdChange={handleVmIdChange}
                     />
                 </Step>
 
-                {/* Step 2: Chain Configuration */}
+                {/* Step 2: Genesis Configuration */}
                 <Step>
                     <div>
-                        <h2 className="text-[14px] font-semibold mb-1">Chain Configuration</h2>
-                        <p className="text-[12px] text-zinc-500 dark:text-zinc-400">
-                            Configure your chain name and virtual machine.
+                        <h2 className="text-sm font-semibold mb-1">Genesis Configuration</h2>
+                        <p className="text-xs text-muted-foreground">
+                            {vmId === SUBNET_EVM_VM_ID
+                                ? "Configure the genesis parameters for your chain."
+                                : "Provide the genesis JSON for your custom virtual machine."}
                         </p>
                     </div>
                     {!canProceedToStep2 ? (
                         <div className="flex items-center justify-center py-12">
                             <div className="text-center">
-                                <h3 className="text-lg font-medium text-zinc-900 dark:text-zinc-100 mb-2">
-                                    Create or Select a Subnet First
-                                </h3>
-                                <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                                    Please complete the subnet selection in Step 1 before proceeding.
-                                </p>
-                            </div>
-                        </div>
-                    ) : (
-                        <ChainConfigStep
-                            chainName={localChainName}
-                            onChainNameChange={setLocalChainName}
-                            vmId={vmId}
-                            onVmIdChange={handleVmIdChange}
-                        />
-                    )}
-                </Step>
-
-                {/* Step 3: Genesis Configuration */}
-                <Step>
-                    <div>
-                        <h2 className="text-[14px] font-semibold mb-1">Genesis Configuration</h2>
-                        <p className="text-[12px] text-zinc-500 dark:text-zinc-400">
-                            {vmId === SUBNET_EVM_VM_ID 
-                                ? "Configure the genesis parameters for your chain."
-                                : "Provide the genesis JSON for your custom virtual machine."}
-                        </p>
-                    </div>
-                    {!canProceedToStep3 ? (
-                        <div className="flex items-center justify-center py-12">
-                            <div className="text-center">
-                                <h3 className="text-lg font-medium text-zinc-900 dark:text-zinc-100 mb-2">
+                                <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
                                     Configure Chain First
                                 </h3>
-                                <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                                    Please configure your chain name and VM in Step 2 before proceeding.
+                                <p className="text-sm text-muted-foreground">
+                                    Please configure your chain name in Step 1 before proceeding.
                                 </p>
                             </div>
                         </div>
@@ -176,7 +181,7 @@ function CreateChain({ onSuccess, embedded = false }: CreateChainProps) {
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <div>
                                 <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
                                     Genesis JSON
@@ -208,41 +213,51 @@ function CreateChain({ onSuccess, embedded = false }: CreateChainProps) {
                     )}
                 </Step>
 
-                {/* Step 4: Create Chain */}
+                {/* Step 3: Create Blockchain */}
                 <Step>
                     <div>
-                        <h2 className="text-[14px] font-semibold mb-1">Create Chain</h2>
-                        <p className="text-[12px] text-zinc-500 dark:text-zinc-400">
-                            Create your chain by issuing a CreateChainTx transaction.
+                        <h2 className="text-sm font-semibold mb-1">Create Chain</h2>
+                        <p className="text-xs text-muted-foreground">
+                            Issues a{" "}
+                            <Link
+                                href="/docs/rpcs/p-chain/txn-format#unsigned-create-chain-tx"
+                                className="text-primary hover:underline"
+                            >
+                                CreateChainTx
+                            </Link>{" "}
+                            on the P-Chain.
                         </p>
                     </div>
-                    {!canProceedToStep4 ? (
+                    {!canProceedToStep3 ? (
                         <div className="flex items-center justify-center py-12">
                             <div className="text-center">
-                                <h3 className="text-lg font-medium text-zinc-900 dark:text-zinc-100 mb-2">
+                                <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
                                     Configure Genesis First
                                 </h3>
-                                <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                                    Please complete the genesis configuration in Step 3 before creating your chain.
+                                <p className="text-sm text-muted-foreground">
+                                    Please complete the genesis configuration in Step 2 before creating your chain.
                                 </p>
                             </div>
                         </div>
                     ) : (
-                        <div className="flex items-center justify-center py-12">
-                            <Button
-                                onClick={handleCreateChain}
-                                loading={isCreatingChain}
-                                loadingText="Creating Chain..."
-                                disabled={!canCreateChain}
-                                className="px-8"
-                                size="lg"
-                            >
-                                Create Chain
-                            </Button>
-                        </div>
+                        <CoreWalletTransactionButton
+                            onClick={handleCreateChain}
+                            loading={isCreatingChain}
+                            loadingText="Creating Chain..."
+                            disabled={!canCreateChain}
+                            className="w-full"
+                            cliCommand={`platform chain create --subnet-id ${subnetId || "<subnet-id>"} --genesis ./genesis.json --name "${localChainName}"${vmId !== SUBNET_EVM_VM_ID ? ` --vm-id ${vmId}` : ""} --network ${isTestnet ? "fuji" : "mainnet"}`}
+                            downloadFile={genesisData ? { data: genesisData, filename: "genesis.json" } : undefined}
+                        >
+                            Create Chain
+                        </CoreWalletTransactionButton>
                     )}
                 </Step>
             </Steps>
+
+            {chainID && (
+                <Success label="Chain Created" value={chainID} />
+            )}
         </div>
     );
 }

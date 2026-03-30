@@ -1,13 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { useWalletStore } from '@/components/toolbox/stores/walletStore';
+import React, { useState } from 'react';
+import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
 import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { Button } from '@/components/toolbox/components/Button';
 import { Success } from '@/components/toolbox/components/Success';
 import { Alert } from '@/components/toolbox/components/Alert';
-import NativeTokenStakingManager from '@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json';
-import ERC20TokenStakingManager from '@/contracts/icm-contracts/compiled/ERC20TokenStakingManager.json';
-import { formatEther } from 'viem';
 import { useNativeTokenStakingManager, useERC20TokenStakingManager } from '@/components/toolbox/hooks/contracts';
+import { useWalletClient } from 'wagmi';
 
 type TokenType = 'native' | 'erc20';
 
@@ -26,7 +24,8 @@ const ClaimDelegationFees: React.FC<ClaimDelegationFeesProps> = ({
     onSuccess,
     onError,
 }) => {
-    const { coreWalletClient, publicClient, walletEVMAddress } = useWalletStore();
+    const chainPublicClient = useChainPublicClient();
+    const { data: walletClient } = useWalletClient();
     const viemChain = useViemChainStore();
 
     const nativeStakingManager = useNativeTokenStakingManager(tokenType === 'native' ? stakingManagerAddress : null);
@@ -35,46 +34,14 @@ const ClaimDelegationFees: React.FC<ClaimDelegationFeesProps> = ({
     const [isProcessing, setIsProcessing] = useState(false);
     const [error, setErrorState] = useState<string | null>(null);
     const [txHash, setTxHash] = useState<string | null>(null);
-    const [claimableAmount, setClaimableAmount] = useState<bigint | null>(null);
-    const [isCheckingFees, setIsCheckingFees] = useState(false);
 
-    const contractAbi = tokenType === 'native' ? NativeTokenStakingManager.abi : ERC20TokenStakingManager.abi;
     const tokenLabel = tokenType === 'native' ? 'Native Token' : 'ERC20 Token';
-
-    // Check claimable fees when component mounts or validationID changes
-    useEffect(() => {
-        const checkClaimableFees = async () => {
-            if (!publicClient || !stakingManagerAddress || !validationID) {
-                setClaimableAmount(null);
-                return;
-            }
-
-            setIsCheckingFees(true);
-            try {
-                const amount = await publicClient.readContract({
-                    address: stakingManagerAddress as `0x${string}`,
-                    abi: contractAbi,
-                    functionName: 'valueToClaim',
-                    args: [validationID as `0x${string}`],
-                }) as bigint;
-
-                setClaimableAmount(amount);
-            } catch (err) {
-                console.warn('Could not fetch claimable fees:', err);
-                setClaimableAmount(null);
-            } finally {
-                setIsCheckingFees(false);
-            }
-        };
-
-        checkClaimableFees();
-    }, [publicClient, stakingManagerAddress, validationID, contractAbi]);
 
     const handleClaimFees = async () => {
         setErrorState(null);
         setTxHash(null);
 
-        if (!coreWalletClient || !publicClient || !viemChain) {
+        if (!walletClient || !chainPublicClient || !viemChain) {
             setErrorState("Wallet or chain configuration is not properly initialized.");
             onError("Wallet or chain configuration is not properly initialized.");
             return;
@@ -102,29 +69,12 @@ const ClaimDelegationFees: React.FC<ClaimDelegationFeesProps> = ({
             setTxHash(hash);
 
             // Wait for confirmation
-            const receipt = await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
+            const receipt = await chainPublicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
             if (receipt.status !== 'success') {
                 throw new Error(`Transaction failed with status: ${receipt.status}`);
             }
 
-            // Try to extract claimed amount from logs
-            let claimedAmount: bigint | null = null;
-            try {
-                const feeClaimTopic = receipt.logs.find(log =>
-                    log.topics[0]?.toLowerCase().includes('fee') ||
-                    log.topics[0]?.toLowerCase().includes('claim')
-                );
-
-                if (feeClaimTopic && feeClaimTopic.data) {
-                    claimedAmount = claimableAmount;
-                }
-            } catch (err) {
-                console.warn('Could not extract claimed amount from logs:', err);
-            }
-
-            const successMsg = claimedAmount
-                ? `Successfully claimed ${formatEther(claimedAmount)} delegation fees.`
-                : 'Delegation fees claimed successfully.';
+            const successMsg = 'Delegation fees claimed successfully.';
 
             onSuccess({
                 txHash: hash,
@@ -167,31 +117,6 @@ const ClaimDelegationFees: React.FC<ClaimDelegationFeesProps> = ({
                 </div>
             </div>
 
-            {isCheckingFees ? (
-                <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-md">
-                    <p className="text-sm text-blue-800 dark:text-blue-200">
-                        Checking claimable delegation fees...
-                    </p>
-                </div>
-            ) : claimableAmount !== null ? (
-                <div className={`p-3 rounded-md ${claimableAmount > 0n
-                    ? 'bg-green-50 dark:bg-green-900/20'
-                    : 'bg-yellow-50 dark:bg-yellow-900/20'
-                    }`}>
-                    <p className={`text-sm ${claimableAmount > 0n
-                        ? 'text-green-800 dark:text-green-200'
-                        : 'text-yellow-800 dark:text-yellow-200'
-                        }`}>
-                        <strong>Claimable Fees:</strong> {formatEther(claimableAmount)} tokens
-                    </p>
-                    {claimableAmount === 0n && (
-                        <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
-                            No fees available to claim yet. Fees accumulate when delegators remove their delegations.
-                        </p>
-                    )}
-                </div>
-            ) : null}
-
             <Alert variant="info">
                 <p className="text-sm">
                     <strong>About Delegation Fees:</strong>
@@ -206,12 +131,7 @@ const ClaimDelegationFees: React.FC<ClaimDelegationFeesProps> = ({
 
             <Button
                 onClick={handleClaimFees}
-                disabled={
-                    isProcessing ||
-                    isCheckingFees ||
-                    !!txHash ||
-                    claimableAmount === 0n
-                }
+                disabled={isProcessing || !!txHash}
                 loading={isProcessing}
             >
                 {isProcessing ? 'Processing...' : 'Claim Delegation Fees'}

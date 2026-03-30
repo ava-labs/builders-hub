@@ -7,6 +7,9 @@ import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalanch
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { Alert } from '@/components/toolbox/components/Alert';
 import { decodeAbiParameters } from 'viem';
+import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
+import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
+import { ensureCoreNetworkMode, restoreCoreChain } from '@/components/toolbox/coreViem';
 
 interface SubmitPChainTxRegisterL1ValidatorProps {
   subnetIdL1: string;
@@ -29,7 +32,10 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
   onSuccess,
   onError,
 }) => {
-  const { coreWalletClient, pChainAddress, publicClient } = useWalletStore();
+  const { coreWalletClient, pChainAddress, isTestnet } = useWalletStore();
+  const chainPublicClient = useChainPublicClient();
+  const walletType = useWalletStore((s) => s.walletType);
+  const isCoreWallet = walletType === 'core';
   const { aggregateSignature } = useAvalancheSDKChainkit();
   const { notify } = useConsoleNotifications();
   const [evmTxHashState, setEvmTxHashState] = useState(evmTxHash || '');
@@ -39,6 +45,7 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
   const [unsignedWarpMessage, setUnsignedWarpMessage] = useState<string | null>(null);
   const [signedWarpMessage, setSignedWarpMessage] = useState<string | null>(null);
   const [evmTxHashError, setEvmTxHashError] = useState<string | null>(null);
+  const [manualPChainTxId, setManualPChainTxId] = useState('');
 
   useEffect(() => {
     if (evmTxHash && !evmTxHashState) {
@@ -57,14 +64,14 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
   useEffect(() => {
     const extractWarpMessage = async () => {
       const validTxHash = validateAndCleanTxHash(evmTxHashState);
-      if (!publicClient || !validTxHash) {
+      if (!chainPublicClient || !validTxHash) {
         setUnsignedWarpMessage(null);
         setSignedWarpMessage(null);
         return;
       }
 
       try {
-        const receipt = await publicClient.waitForTransactionReceipt({ hash: validTxHash });
+        const receipt = await chainPublicClient.waitForTransactionReceipt({ hash: validTxHash });
         if (!receipt.logs || receipt.logs.length === 0) {
           throw new Error("Failed to get warp message from transaction receipt.");
         }
@@ -127,13 +134,13 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
     };
 
     extractWarpMessage();
-  }, [evmTxHashState, publicClient]);
+  }, [evmTxHashState, chainPublicClient]);
 
   const handleSubmitPChainTx = async () => {
     setErrorState(null);
     setTxSuccess(null);
 
-    if (!coreWalletClient) {
+    if (isCoreWallet && !coreWalletClient) {
       setErrorState("Core wallet not found");
       return;
     }
@@ -171,7 +178,7 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
       return;
     }
 
-    if (!pChainAddress) {
+    if (isCoreWallet && !pChainAddress) {
       setErrorState("P-Chain address is missing. Please connect your wallet.");
       onError("P-Chain address is missing.");
       return;
@@ -192,7 +199,16 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
 
       setSignedWarpMessage(signedMessage);
 
-      const registerL1ValidatorPromise = coreWalletClient.registerL1Validator({
+      if (!isCoreWallet) {
+        // Generic wallet: aggregation done, CLI command shown in render
+        return;
+      }
+
+      // Ensure Core Wallet is in the correct network mode for P-Chain ops.
+      // Switching to an L1 chain can silently flip Core into mainnet mode.
+      const previousChainId = await ensureCoreNetworkMode(isTestnet);
+
+      const registerL1ValidatorPromise = coreWalletClient!.registerL1Validator({
         balance: validatorBalance.trim(),
         blsProofOfPossession: blsProofOfPossession.trim(),
         signedWarpMessage: signedMessage,
@@ -200,6 +216,10 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
       notify('registerL1Validator', registerL1ValidatorPromise);
 
       const pChainTxId = await registerL1ValidatorPromise;
+
+      // Restore the L1 chain if we had to switch for the P-Chain op
+      if (previousChainId) await restoreCoreChain(previousChainId);
+
       setTxSuccess(`P-Chain transaction successful! ID: ${pChainTxId}`);
       onSuccess(pChainTxId);
     } catch (err: any) {
@@ -226,6 +246,29 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
     setErrorState(null);
     setTxSuccess(null);
     setSignedWarpMessage(null);
+    setManualPChainTxId('');
+  };
+
+  const handleContinueWithManualTxId = () => {
+    if (!manualPChainTxId.trim()) {
+      setErrorState("P-Chain transaction ID is required");
+      return;
+    }
+    setTxSuccess(`P-Chain transaction submitted! ID: ${manualPChainTxId}`);
+    onSuccess(manualPChainTxId);
+  };
+
+  const generateCLICommand = () => {
+    if (!signedWarpMessage) return '';
+    const network = isTestnet ? 'fuji' : 'mainnet';
+    return [
+      `platform l1 register-validator \\`,
+      `  --message "${signedWarpMessage}" \\`,
+      `  --pop "${blsProofOfPossession || '<BLS_PROOF>'}" \\`,
+      `  --balance ${validatorBalance || '<BALANCE_AVAX>'} \\`,
+      `  --network ${network} \\`,
+      `  --key-name <your-key-name>`,
+    ].join('\n');
   };
 
   if (!subnetIdL1) {
@@ -248,32 +291,58 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
       />
 
       {(validatorBalance || blsProofOfPossession) && (
-        <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-lg p-4 border border-zinc-200 dark:border-zinc-700">
-          <h3 className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">
-            Validator Details
-          </h3>
-          <div className="space-y-2 text-sm text-zinc-600 dark:text-zinc-400">
-            {validatorBalance && (
-              <p><span className="font-medium">Initial AVAX Balance:</span> {validatorBalance} AVAX</p>
-            )}
-            {userPChainBalanceNavax && validatorBalance && BigInt(Number(validatorBalance) * 1e9) > userPChainBalanceNavax && (
-              <p className="text-xs mt-1 text-red-500 dark:text-red-400">
-                Validator balance ({validatorBalance} AVAX) exceeds your P-Chain balance ({(Number(userPChainBalanceNavax) / 1e9).toFixed(2)} AVAX).
-              </p>
-            )}
-            {blsProofOfPossession && (
-              <p><span className="font-medium">BLS Proof of Possession:</span> {blsProofOfPossession.substring(0, 50)}...</p>
-            )}
-          </div>
+        <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 px-4 py-3 space-y-3">
+          {validatorBalance && (
+            <div className="flex items-baseline justify-between">
+              <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Initial Balance</span>
+              <span className="text-sm font-mono text-zinc-800 dark:text-zinc-200">{validatorBalance} AVAX</span>
+            </div>
+          )}
+          {userPChainBalanceNavax && validatorBalance && BigInt(Number(validatorBalance) * 1e9) > userPChainBalanceNavax && (
+            <p className="text-xs text-red-600 dark:text-red-400">
+              Exceeds P-Chain balance ({(Number(userPChainBalanceNavax) / 1e9).toFixed(2)} AVAX)
+            </p>
+          )}
+          {blsProofOfPossession && (
+            <div className="space-y-1">
+              <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">BLS Proof of Possession</span>
+              <div className="text-xs font-mono text-zinc-600 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-800/50 rounded border border-zinc-200 dark:border-zinc-700/50 px-3 py-2 break-all">
+                {blsProofOfPossession}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
       <Button
         onClick={handleSubmitPChainTx}
-        disabled={isProcessing || !evmTxHashState.trim() || !validatorBalance || !blsProofOfPossession || !unsignedWarpMessage || txSuccess !== null}
+        disabled={isProcessing || !evmTxHashState.trim() || !validatorBalance || !blsProofOfPossession || !unsignedWarpMessage || txSuccess !== null || (!!signedWarpMessage && !isCoreWallet)}
       >
-        {isProcessing ? 'Processing...' : 'Sign & Submit to P-Chain'}
+        {isProcessing ? 'Processing...' : (isCoreWallet ? 'Sign & Submit to P-Chain' : 'Aggregate Signatures')}
       </Button>
+
+      {!isCoreWallet && signedWarpMessage && !txSuccess && (
+        <div className="space-y-3">
+          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 border border-blue-200 dark:border-blue-800">
+            <p className="text-sm font-medium text-blue-700 dark:text-blue-300">
+              Signatures aggregated successfully. Run this command to submit the P-Chain transaction:
+            </p>
+          </div>
+          <DynamicCodeBlock lang="bash" code={generateCLICommand()} />
+          <Input
+            label="P-Chain Transaction ID"
+            value={manualPChainTxId}
+            onChange={setManualPChainTxId}
+            placeholder="Paste the P-Chain transaction ID after running the command above"
+          />
+          <Button
+            onClick={handleContinueWithManualTxId}
+            disabled={!manualPChainTxId.trim()}
+          >
+            Continue with P-Chain TX ID
+          </Button>
+        </div>
+      )}
 
       {error && (
         <Alert variant="error">{error}</Alert>

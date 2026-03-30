@@ -2,7 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { HackathonHeader } from "@/types/hackathons";
 import { format } from "date-fns";
-import { Calendar, MapPin, Users } from "lucide-react";
+import { Calendar, MapPin, Tag } from "lucide-react";
 import Link from "next/link";
 import React from "react";
 import HackathonStatus from "../HackathonStatus";
@@ -19,6 +19,17 @@ type Props = {
   customRedirectUrl?: string;
 };
 
+function normalizeEventType(event?: string) {
+  return (event || "hackathon").toLowerCase();
+}
+
+function labelForEventType(eventType: string) {
+  if (eventType === "hackathon") return "Hackathon";
+  if (eventType === "workshop") return "Workshop";
+  if (eventType === "bootcamp") return "Bootcamp";
+  return eventType.charAt(0).toUpperCase() + eventType.slice(1);
+}
+
 export default function OverviewBanner({ hackathon, id, isTopMost, isRegistered, utm = "", isPreview = false, hideTextOverlay = false, customRedirectUrl }: Props) {
   const now = new Date();
   const defaultStartDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
@@ -30,6 +41,7 @@ export default function OverviewBanner({ hackathon, id, isTopMost, isRegistered,
   const validEndDate = isNaN(endDate.getTime()) ? defaultEndDate : endDate;
   const startMonth = format(validStartDate, "MMMM");
   const endMonth = format(validEndDate, "MMMM");
+  const eventType = normalizeEventType(hackathon.event);
 
   const formattedDate =
     startMonth === endMonth
@@ -82,16 +94,22 @@ export default function OverviewBanner({ hackathon, id, isTopMost, isRegistered,
         {!hideTextOverlay && (
           <div className="flex flex-col">
             <div className="hidden md:flex flex-col gap-2 max-w-[60%] md:max-w-[45%] xl:max-w-[60%]">
-              <div className="flex justify-between gap-2 text-gray-400">
-                <Calendar color="#F5F5F9" className="w-4 lg:w-5 h-4 lg:h-5" />
-                <span className="text-s xl:text-sm text-zinc-50">
+              <div className="flex items-center gap-3 text-gray-400">
+                <Calendar
+                  color="#F5F5F9"
+                  className="w-4 h-4 lg:w-5 lg:h-5 flex-shrink-0"
+                />
+                <span className="text-sm xl:text-sm text-zinc-50 text-left">
                   {formattedDate}
                 </span>
               </div>
-              <div className="flex justify-between gap-2 text-gray-400">
-                <MapPin color="#F5F5F9" className="w-4 lg:w-5 h-4 lg:h-5" />
+              <div className="flex items-center gap-3 text-gray-400">
+                <MapPin
+                  color="#F5F5F9"
+                  className="w-4 h-4 lg:w-5 lg:h-5 flex-shrink-0"
+                />
                 {hackathon.location && (
-                  <span className="text-s xl:text-sm text-zinc-300">
+                  <span className="text-sm xl:text-sm text-zinc-50 text-left">
                     {hackathon.location}
                   </span>
                 )}
@@ -108,16 +126,14 @@ export default function OverviewBanner({ hackathon, id, isTopMost, isRegistered,
               ))}
             </div>
             <div className="hidden md:flex justify-between gap-4 mt-4 max-w-[90%]">
-              <div className="flex gap-2 text-gray-400">
-                <Users
+              <div className="flex gap-2 text-gray-400 items-center">
+                <Tag
                   color="#F5F5F9"
                   className="w-4 lg:w-5 h-4 lg:h-5 drop-shadow-[0_0_2px_black]"
                 />
-                {hackathon.participants && (
-                  <span className="text-xs xl:text-sm text-zinc-50">
-                    {hackathon.participants}
-                  </span>
-                )}
+                <span className="text-xs xl:text-sm text-zinc-50">
+                  {labelForEventType(eventType)}
+                </span>
               </div>
               <HackathonStatus status={hackathon.status} />
             </div>

@@ -7,6 +7,9 @@ import { Alert } from '@/components/toolbox/components/Alert';
 import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { decodeAbiParameters } from 'viem';
+import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
+import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
+import { ensureCoreNetworkMode, restoreCoreChain } from '@/components/toolbox/coreViem';
 
 export interface WeightUpdateEventData {
     validationID: `0x${string}`;
@@ -52,10 +55,13 @@ const SubmitPChainTxWeightUpdate: React.FC<SubmitPChainTxWeightUpdateProps> = ({
     onSuccess,
     onError,
 }) => {
-    const { coreWalletClient, pChainAddress, publicClient } = useWalletStore();
+    const { coreWalletClient, pChainAddress, isTestnet } = useWalletStore();
+    const chainPublicClient = useChainPublicClient();
+    const walletType = useWalletStore((s) => s.walletType);
+    const isCoreWallet = walletType === 'core';
     const { aggregateSignature } = useAvalancheSDKChainkit();
     const { notify } = useConsoleNotifications();
-    
+
     const [evmTxHash, setEvmTxHash] = useState(initialEvmTxHash || '');
     const [isProcessing, setIsProcessing] = useState(false);
     const [error, setErrorState] = useState<string | null>(null);
@@ -63,6 +69,7 @@ const SubmitPChainTxWeightUpdate: React.FC<SubmitPChainTxWeightUpdateProps> = ({
     const [unsignedWarpMessage, setUnsignedWarpMessage] = useState<string | null>(null);
     const [signedWarpMessage, setSignedWarpMessage] = useState<string | null>(null);
     const [eventData, setEventData] = useState<WeightUpdateEventData | null>(null);
+    const [manualPChainTxId, setManualPChainTxId] = useState('');
 
     // Update evmTxHash when initialEvmTxHash prop changes
     useEffect(() => {
@@ -83,7 +90,7 @@ const SubmitPChainTxWeightUpdate: React.FC<SubmitPChainTxWeightUpdateProps> = ({
     useEffect(() => {
         const extractWarpMessage = async () => {
             const validTxHash = validateAndCleanTxHash(evmTxHash);
-            if (!publicClient || !validTxHash) {
+            if (!chainPublicClient || !validTxHash) {
                 setUnsignedWarpMessage(null);
                 setEventData(null);
                 setSignedWarpMessage(null);
@@ -91,7 +98,7 @@ const SubmitPChainTxWeightUpdate: React.FC<SubmitPChainTxWeightUpdateProps> = ({
             }
 
             try {
-                const receipt = await publicClient.waitForTransactionReceipt({ hash: validTxHash });
+                const receipt = await chainPublicClient.waitForTransactionReceipt({ hash: validTxHash });
                 if (!receipt.logs || receipt.logs.length === 0) {
                     throw new Error("Failed to get warp message from transaction receipt.");
                 }
@@ -201,13 +208,13 @@ const SubmitPChainTxWeightUpdate: React.FC<SubmitPChainTxWeightUpdateProps> = ({
         };
 
         extractWarpMessage();
-    }, [evmTxHash, publicClient]);
+    }, [evmTxHash, chainPublicClient]);
 
     const handleSubmitPChainTx = async () => {
         setErrorState(null);
         setTxSuccess(null);
 
-        if (!coreWalletClient) {
+        if (isCoreWallet && !coreWalletClient) {
             setErrorState("Core wallet not found");
             return;
         }
@@ -227,7 +234,7 @@ const SubmitPChainTxWeightUpdate: React.FC<SubmitPChainTxWeightUpdateProps> = ({
             onError("Unsigned warp message not found.");
             return;
         }
-        if (!pChainAddress) {
+        if (isCoreWallet && !pChainAddress) {
             setErrorState("P-Chain address is missing. Please connect your wallet.");
             onError("P-Chain address is missing.");
             return;
@@ -250,17 +257,30 @@ const SubmitPChainTxWeightUpdate: React.FC<SubmitPChainTxWeightUpdateProps> = ({
             const { signedMessage } = await aggregateSignaturePromise;
             setSignedWarpMessage(signedMessage);
 
+            if (!isCoreWallet) {
+                // Generic wallet: aggregation done, CLI command shown in render
+                return;
+            }
+
+            // Ensure Core Wallet is in the correct network mode for P-Chain ops.
+            // Switching to an L1 chain can silently flip Core into mainnet mode.
+            const previousChainId = await ensureCoreNetworkMode(isTestnet);
+
             // Step 2: Submit to P-Chain using setL1ValidatorWeight
-            const pChainTxIdPromise = coreWalletClient.setL1ValidatorWeight({
+            const pChainTxIdPromise = coreWalletClient!.setL1ValidatorWeight({
                 signedWarpMessage: signedMessage,
             });
-            
+
             notify({
                 type: 'local',
                 name: 'Submit P-Chain Transaction'
             }, pChainTxIdPromise);
-            
+
             const pChainTxId = await pChainTxIdPromise;
+
+            // Restore the L1 chain if we had to switch for the P-Chain op
+            if (previousChainId) await restoreCoreChain(previousChainId);
+
             setTxSuccess(pChainTxId);
             onSuccess(pChainTxId, eventData || undefined);
         } catch (err: any) {
@@ -288,6 +308,27 @@ const SubmitPChainTxWeightUpdate: React.FC<SubmitPChainTxWeightUpdateProps> = ({
         setErrorState(null);
         setTxSuccess(null);
         setSignedWarpMessage(null);
+        setManualPChainTxId('');
+    };
+
+    const handleContinueWithManualTxId = () => {
+        if (!manualPChainTxId.trim()) {
+            setErrorState("P-Chain transaction ID is required");
+            return;
+        }
+        setTxSuccess(manualPChainTxId);
+        onSuccess(manualPChainTxId, eventData || undefined);
+    };
+
+    const generateCLICommand = () => {
+        if (!signedWarpMessage) return '';
+        const network = isTestnet ? 'fuji' : 'mainnet';
+        return [
+            `platform l1 set-weight \\`,
+            `  --message "${signedWarpMessage}" \\`,
+            `  --network ${network} \\`,
+            `  --key-name <your-key-name>`,
+        ].join('\n');
     };
 
     // Don't render if no subnet is selected
@@ -346,24 +387,36 @@ const SubmitPChainTxWeightUpdate: React.FC<SubmitPChainTxWeightUpdateProps> = ({
                 </div>
             )}
 
-            <Alert variant="info">
-                <p className="text-sm">
-                    <strong>This step will:</strong>
-                </p>
-                <ul className="list-disc list-inside text-sm mt-2 space-y-1">
-                    <li>Aggregate signatures from L1 validators (67% quorum)</li>
-                    <li>Submit the signed warp message to the P-Chain</li>
-                    <li>Update the validator&apos;s weight on the network</li>
-                </ul>
-            </Alert>
-
             <Button
                 onClick={handleSubmitPChainTx}
-                disabled={isProcessing || !unsignedWarpMessage || !!txSuccess}
+                disabled={isProcessing || !unsignedWarpMessage || !!txSuccess || (!!signedWarpMessage && !isCoreWallet)}
                 loading={isProcessing}
             >
-                {isProcessing ? 'Processing...' : 'Sign & Submit to P-Chain'}
+                {isProcessing ? 'Processing...' : (isCoreWallet ? 'Sign & Submit to P-Chain' : 'Aggregate Signatures')}
             </Button>
+
+            {!isCoreWallet && signedWarpMessage && !txSuccess && (
+                <div className="space-y-3">
+                    <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 border border-blue-200 dark:border-blue-800">
+                        <p className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                            Signatures aggregated successfully. Run this command to submit the P-Chain transaction:
+                        </p>
+                    </div>
+                    <DynamicCodeBlock lang="bash" code={generateCLICommand()} />
+                    <Input
+                        label="P-Chain Transaction ID"
+                        value={manualPChainTxId}
+                        onChange={setManualPChainTxId}
+                        placeholder="Paste the P-Chain transaction ID after running the command above"
+                    />
+                    <Button
+                        onClick={handleContinueWithManualTxId}
+                        disabled={!manualPChainTxId.trim()}
+                    >
+                        Continue with P-Chain TX ID
+                    </Button>
+                </div>
+            )}
 
             {txSuccess && (
                 <Success

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
+import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
 import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { Button } from '@/components/toolbox/components/Button';
 import { Input } from '@/components/toolbox/components/Input';
@@ -12,6 +13,7 @@ import ExampleERC20 from '@/contracts/icm-contracts/compiled/ExampleERC20.json';
 import { parseEther, formatEther } from 'viem';
 import { useNativeTokenStakingManager, useERC20TokenStakingManager } from '@/components/toolbox/hooks/contracts';
 import { useERC20Token } from '@/components/toolbox/hooks/useERC20Token';
+import { useWalletClient } from 'wagmi';
 
 interface ContractSettings {
     minimumStakeAmount: string;
@@ -45,7 +47,9 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
     onSuccess,
     onError,
 }) => {
-    const { coreWalletClient, publicClient, walletEVMAddress, pChainAddress } = useWalletStore();
+    const { walletEVMAddress, pChainAddress } = useWalletStore();
+    const chainPublicClient = useChainPublicClient();
+    const { data: walletClient } = useWalletClient();
     const viemChain = useViemChainStore();
 
     // Initialize hooks
@@ -72,11 +76,11 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
     // Fetch contract settings to help with debugging
     useEffect(() => {
         const fetchSettings = async () => {
-            if (!publicClient || !stakingManagerAddress) return;
+            if (!chainPublicClient || !stakingManagerAddress) return;
 
             try {
                 // Use getStakingManagerSettings which returns all settings in one call
-                const settings = await publicClient.readContract({
+                const settings = await chainPublicClient.readContract({
                     address: stakingManagerAddress as `0x${string}`,
                     abi: contractAbi,
                     functionName: 'getStakingManagerSettings',
@@ -106,10 +110,10 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
         };
 
         fetchSettings();
-    }, [publicClient, stakingManagerAddress, contractAbi]);
+    }, [chainPublicClient, stakingManagerAddress, contractAbi]);
 
     const handleApproveERC20 = async () => {
-        if (!erc20TokenAddress || !coreWalletClient || !publicClient || !viemChain) {
+        if (!erc20TokenAddress || !walletClient || !chainPublicClient || !viemChain) {
             setErrorState("ERC20 token address or wallet not available");
             return;
         }
@@ -121,7 +125,7 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
             const amountWei = parseEther(stakeAmount);
 
             const hash = await erc20Token.approve(stakingManagerAddress as `0x${string}`, amountWei.toString());
-            await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
+            await chainPublicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
 
             setErrorState(null);
         } catch (err: any) {
@@ -137,7 +141,7 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
         setTxHash(null);
         setValidationID(null);
 
-        if (!coreWalletClient || !publicClient || !viemChain) {
+        if (!walletClient || !chainPublicClient || !viemChain) {
             setErrorState("Wallet or chain configuration is not properly initialized.");
             onError("Wallet or chain configuration is not properly initialized.");
             return;
@@ -276,7 +280,7 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
             setTxHash(hash);
 
             // Wait for confirmation
-            const receipt = await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
+            const receipt = await chainPublicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
             if (receipt.status !== 'success') {
                 throw new Error(`Transaction failed with status: ${receipt.status}`);
             }
@@ -309,6 +313,12 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
                 message = `Insufficient ${tokenLabel.toLowerCase()} balance for staking`;
             } else if (message.includes('ERC20: insufficient allowance')) {
                 message = 'Insufficient ERC20 allowance. Please approve tokens first.';
+            } else if (message.includes('0xdfae8801') || message.includes('MaxChurnRateExceeded')) {
+                message = `Stake amount too high — exceeds the maximum churn rate. The network limits how much weight can change at once (typically 20% of total weight). Try staking a smaller amount and increase it incrementally.`;
+            } else if (message.includes('0x4c8eb65e') || message.includes('InvalidBLSKeyLength')) {
+                message = 'Invalid BLS public key length. Expected 48 bytes. Please check the validator credentials.';
+            } else if (message.includes('reverted')) {
+                message = `Transaction reverted. This may be due to: churn rate exceeded (stake too high), invalid node credentials, or the node already being registered. Try a smaller stake amount.`;
             }
 
             setErrorState(`Failed to initiate validator registration: ${message}`);

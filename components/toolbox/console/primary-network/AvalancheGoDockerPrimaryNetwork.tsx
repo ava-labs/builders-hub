@@ -15,6 +15,8 @@ import { StorageRequirements } from "@/components/toolbox/components/StorageRequ
 import { generateChainConfig, generatePrimaryNetworkNodeConfig, generatePrimaryNetworkDockerCommand } from "@/components/toolbox/console/layer-1/node-config";
 import { useNodeConfigHighlighting } from "@/components/toolbox/console/layer-1/useNodeConfigHighlighting";
 import { C_CHAIN_ID } from "@/components/toolbox/console/layer-1/create/config";
+import { useAddToWallet } from "@/hooks/useAddToWallet";
+import { nipify } from "@/components/toolbox/components/HostInput";
 
 function AvalancheGoDockerPrimaryNetworkInner() {
     const { setHighlightPath, clearHighlight, highlightPath } = useGenesisHighlight();
@@ -69,10 +71,16 @@ function AvalancheGoDockerPrimaryNetworkInner() {
     // Show advanced settings
     const [showAdvancedSettings, setShowAdvancedSettings] = useState<boolean>(false);
 
-    // Network selection (allows explicit choice independent of wallet)
+    // Wallet integration for RPC nodes
+    const { addToWallet, isAdding: isAddingToWallet } = useAddToWallet();
+
+    // Network selection — syncs with wallet when connected
     const [selectedNetwork, setSelectedNetwork] = useState<"mainnet" | "fuji">("mainnet");
 
-    const { avalancheNetworkID } = useWalletStore();
+    const { isTestnet: walletIsTestnet } = useWalletStore();
+    useEffect(() => {
+        setSelectedNetwork(walletIsTestnet ? "fuji" : "mainnet");
+    }, [walletIsTestnet]);
 
     // Use selected network for configuration (1 = mainnet, 5 = fuji)
     const effectiveNetworkID = selectedNetwork === "fuji" ? 5 : 1;
@@ -1233,6 +1241,60 @@ sudo ufw status`}
                                 chainId={C_CHAIN_ID}
                                 showHealthCheck={true}
                             />
+                        </Step>
+                    )}
+
+                    {isRPC && (
+                        <Step>
+                            <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Add Network to Wallet</h3>
+                            <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
+                                Point your wallet at your own C-Chain RPC endpoint.
+                            </p>
+
+                            <div className="space-y-3">
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-lg p-3 border border-zinc-200 dark:border-zinc-800">
+                                        <div className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 mb-1">RPC Endpoint</div>
+                                        <code className="text-xs text-zinc-900 dark:text-zinc-100 break-all">
+                                            {domain
+                                                ? `https://${nipify(domain)}/ext/bc/C/rpc`
+                                                : `http://localhost:9650/ext/bc/C/rpc`
+                                            }
+                                        </code>
+                                    </div>
+                                    <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-lg p-3 border border-zinc-200 dark:border-zinc-800">
+                                        <div className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 mb-1">EVM Chain ID</div>
+                                        <code className="text-sm text-zinc-900 dark:text-zinc-100">
+                                            {selectedNetwork === "fuji" ? "43113" : "43114"}
+                                        </code>
+                                    </div>
+                                </div>
+
+                                <Button
+                                    onClick={() => addToWallet({
+                                        rpcUrl: domain
+                                            ? `https://${nipify(domain)}/ext/bc/C/rpc`
+                                            : `http://localhost:9650/ext/bc/C/rpc`,
+                                        chainName: selectedNetwork === "fuji"
+                                            ? "Avalanche Fuji C-Chain"
+                                            : "Avalanche C-Chain",
+                                        chainId: selectedNetwork === "fuji" ? 43113 : 43114,
+                                        nativeCurrency: {
+                                            name: "AVAX",
+                                            symbol: "AVAX",
+                                            decimals: 18,
+                                        },
+                                    })}
+                                    disabled={isAddingToWallet}
+                                >
+                                    {isAddingToWallet ? "Adding..." : "Add to Wallet"}
+                                </Button>
+                            </div>
+
+                            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-3">
+                                Works with Core, MetaMask, and other EVM wallets connected via RainbowKit.
+                                {selectedNetwork === "fuji" && " This will add the Fuji testnet using your own node as the RPC provider."}
+                            </p>
                         </Step>
                     )}
 

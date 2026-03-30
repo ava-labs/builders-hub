@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { Button } from '@/components/toolbox/components/Button';
 import SelectValidationID, { ValidationSelection } from '@/components/toolbox/components/SelectValidationID';
-import validatorManagerAbi from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
 import { Success } from '@/components/toolbox/components/Success';
 import { Alert } from '@/components/toolbox/components/Alert';
 import { MultisigOption } from '@/components/toolbox/components/MultisigOption';
 import { useValidatorManager } from '@/components/toolbox/hooks/contracts';
+import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
 
 interface InitiateValidatorRemovalProps {
   subnetId: string;
@@ -21,7 +20,9 @@ interface InitiateValidatorRemovalProps {
   resetForm?: boolean;
   initialNodeId?: string;
   initialValidationId?: string;
-  ownershipState: 'contract' | 'currentWallet' | 'differentEOA' | 'loading';
+  ownershipState: 'contract' | 'currentWallet' | 'differentEOA' | 'loading' | 'error';
+  refetchOwnership?: () => void;
+  ownershipError?: string | null;
 }
 
 const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
@@ -33,9 +34,11 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
   initialNodeId,
   initialValidationId,
   ownershipState,
+  refetchOwnership,
+  ownershipError,
 }) => {
-  const { coreWalletClient, publicClient } = useWalletStore();
-  const viemChain = useViemChainStore();
+  const { walletEVMAddress: connectedAddress } = useWalletStore();
+  const chainPublicClient = useChainPublicClient();
   const [validation, setValidation] = useState<ValidationSelection>({
     validationId: initialValidationId || '',
     nodeId: initialNodeId || ''
@@ -84,6 +87,11 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
       return false;
     }
 
+    if (ownershipState === 'error') {
+      setErrorState("Ownership verification failed. Please retry.");
+      return false;
+    }
+
     return true;
   };
 
@@ -91,8 +99,8 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
     setErrorState(null);
     setTxSuccess(null);
 
-    if (!coreWalletClient) {
-      setErrorState("Core wallet not found");
+    if (!connectedAddress) {
+      setErrorState("Wallet not connected");
       return;
     }
 
@@ -102,7 +110,6 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
 
     setIsProcessing(true);
     try {
-      const [account] = await coreWalletClient.requestAddresses();
 
       let hash;
       let receipt;
@@ -112,7 +119,7 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
         hash = await validatorManager.initiateValidatorRemoval(validation.validationId);
 
         // Wait for transaction receipt to check if it was successful
-        receipt = await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
+        receipt = await chainPublicClient!.waitForTransactionReceipt({ hash: hash as `0x${string}` });
 
         if (receipt.status === 'reverted') {
           setErrorState(`Transaction reverted. Hash: ${hash}`);
@@ -131,7 +138,7 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
         // Use resendValidatorRemovalMessage as fallback
         try {
           const fallbackHash = await validatorManager.resendValidatorRemovalMessage(validation.validationId);
-          const fallbackReceipt = await publicClient.waitForTransactionReceipt({ hash: fallbackHash as `0x${string}` });
+          const fallbackReceipt = await chainPublicClient!.waitForTransactionReceipt({ hash: fallbackHash as `0x${string}` });
 
           if (fallbackReceipt.status === 'reverted') {
             setErrorState(`Fallback transaction reverted. Hash: ${fallbackHash}`);
@@ -253,19 +260,32 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
         </Button>
       )}
 
-      {(ownershipState === 'differentEOA' || ownershipState === 'loading') && (
+      {ownershipState === 'differentEOA' && (
         <Button
           onClick={handleInitiateRemoval}
           disabled={true}
-          error={
-            ownershipState === 'differentEOA'
-              ? "You are not the owner of this contract. Only the contract owner can remove validators."
-              : ownershipState === 'loading'
-                ? "Verifying ownership..."
-                : (!validatorManagerAddress && subnetId ? "Could not find Validator Manager for this L1." : undefined)
-          }
+          error="You are not the owner of this contract. Only the contract owner can remove validators."
         >
-          {ownershipState === 'loading' ? 'Verifying...' : 'Initiate Validator Removal'}
+          Initiate Validator Removal
+        </Button>
+      )}
+
+      {ownershipState === 'loading' && (
+        <Button
+          onClick={handleInitiateRemoval}
+          disabled={true}
+          error="Verifying ownership..."
+        >
+          Verifying...
+        </Button>
+      )}
+
+      {ownershipState === 'error' && (
+        <Button
+          onClick={() => refetchOwnership?.()}
+          error={ownershipError || "Failed to verify contract ownership. Click to retry."}
+        >
+          Retry Ownership Check
         </Button>
       )}
 

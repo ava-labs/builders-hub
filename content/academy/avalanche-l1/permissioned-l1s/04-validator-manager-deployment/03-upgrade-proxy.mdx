@@ -6,6 +6,7 @@ authors: [nicolasarnedo]
 icon: Terminal
 ---
 
+import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx"
 import UpgradeProxy from "@/components/toolbox/console/permissioned-l1s/validator-manager-setup/UpgradeProxy.tsx"
 
 After deploying both the validator manager contract, we will need to link them by upgrading the proxy to point to your Validator Manager implementation.
@@ -29,6 +30,8 @@ This will cause the **TransparentUpgradeableProxy** contract to (via *delegateca
 Make sure you have your L1 selected in the wallet component below
 </Callout>
 
-<UpgradeProxy />
+<ToolboxMdxWrapper walletMode="l1">
+    <UpgradeProxy />
+</ToolboxMdxWrapper>
 
 <Quiz quizId="421"/>

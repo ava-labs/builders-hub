@@ -71,7 +71,7 @@ export default function ApiKeyCreatedModal({
                                 Your API key has been created. Copy and store it securely - it won't be shown again.
                             </p>
 
-                            <div className="flex items-center gap-2 p-3 bg-zinc-50 dark:bg-zinc-900 rounded-lg">
+                            <div className="flex items-center gap-2 p-3 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/80 dark:border-zinc-800 rounded-xl">
                                 <code className="flex-1 text-xs font-mono text-zinc-700 dark:text-zinc-300 break-all">
                                     {createdKey.key}
                                 </code>

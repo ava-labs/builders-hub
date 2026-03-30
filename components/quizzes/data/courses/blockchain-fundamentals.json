@@ -547,6 +547,98 @@
           "explanation": "Many DeFi interfaces request unlimited (type(uint256).max) approval for convenience — so users only need to approve once instead of before every transaction. However, this means the approved contract has permission to transfer the user's ENTIRE balance of that token at any time. If the contract has a vulnerability that is later exploited, or if the contract is upgradeable and the owner turns malicious, the attacker can call transferFrom to drain every token the user holds. Notable hacks have exploited this exact pattern. Best practice is to approve only the exact amount needed for each transaction, or to use time-limited approvals. Several wallet interfaces now warn users about unlimited approvals and suggest setting specific limits instead."
         }
       ]
+    },
+    "109": {
+      "question": "In the soda dispenser analogy, what does the 'state' of the machine represent? (Select all that apply)",
+      "options": [
+        "The soda flavors",
+        "The current balance",
+        "The number of cans available per flavor",
+        "The location of the machine"
+      ],
+      "correctAnswers": [
+        1,
+        2
+      ],
+      "hint": "Think about what information the machine needs to keep track of to function properly.",
+      "explanation": "In the soda dispenser analogy, the 'state' of the machine represents the current balance, total revenue, and the number of cans available per brand.",
+      "chapter": "Virtual Machines & Blockchains"
+    },
+    "110": {
+      "question": "In the soda dispenser analogy, what of the following are operations of the machine? (Select all that apply)",
+      "options": [
+        "Inserting coins",
+        "The current balance",
+        "The location of the machine",
+        "Selecting a soda flavour"
+      ],
+      "correctAnswers": [
+        0,
+        3
+      ],
+      "hint": "Think about what actions a user can take when interacting with the machine.",
+      "explanation": "In the soda dispenser analogy, the operations of the machine include inserting coins and selecting a soda flavor.",
+      "chapter": "Virtual Machines & Blockchains"
+    },
+    "111": {
+      "question": "What are the advantages of implementing state machines? (Select all that apply)",
+      "options": [
+        "Increased network speed",
+        "Decreased transaction costs",
+        "Reproducibility",
+        "Clear interface"
+      ],
+      "correctAnswers": [
+        2,
+        3
+      ],
+      "hint": "Think about how state machines simplify interactions and ensure consistency.",
+      "explanation": "State machines, like the virtual machines in a blockchain, have a clear interface that makes it straightforward to interact with them. They are also reproducible, meaning multiple identical instances can be created.",
+      "chapter": "Virtual Machines & Blockchains"
+    },
+    "112": {
+      "question": "In blockchain systems, what role do validators play? (Select all that apply)",
+      "options": [
+        "They reach consensus on the sequence in which transactions are carried out",
+        "They determine the prices of the digital assets",
+        "They regulate the blockchain's electricity usage",
+        "They operate one or more instances of the virtual machines"
+      ],
+      "correctAnswers": [
+        0,
+        3
+      ],
+      "hint": "Think about the role validators play in maintaining the blockchain's integrity.",
+      "explanation": "Validators in blockchain systems operate one or more instances of virtual machines and reach consensus on the sequence in which transactions are carried out.",
+      "chapter": "Virtual Machines & Blockchains"
+    },
+    "113": {
+      "question": "How do the validators make sure that they all have the same view on the state?",
+      "options": [
+        "By assigning each validator a unique part of the blockchain to monitor",
+        "Through the execution of operations on the local instance of the VM by all validators in the same order",
+        "Through the manual checking of each transaction by a centralized authority"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Think about how validators ensure that they all have the same view of the blockchain's state.",
+      "explanation": "Validators ensure they all have the same view on the state by executing operations on their local instance of the VM in the same order. This ensures consistency across the network.",
+      "chapter": "Virtual Machines & Blockchains"
+    },
+    "114": {
+      "question": "What is a Virtual Machine (VM) in the context of blockchain?",
+      "options": [
+        "A decentralized computer that can execute a program in a controlled environment",
+        "A physical machine that runs a blockchain network",
+        "A machine that dispenses soda"
+      ],
+      "correctAnswers": [
+        0
+      ],
+      "hint": "Think about how a VM operates in a blockchain system.",
+      "explanation": "A Virtual Machine (VM) in the context of blockchain is like a decentralized computer that can execute a program in a controlled environment. It defines the application-level logic of a blockchain.",
+      "chapter": "Virtual Machines & Blockchains"
     }
   }
 }

@@ -3,6 +3,7 @@ import { useViemChainStore } from '../../../stores/toolboxStore';
 import { readContract } from 'viem/actions';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { useWallet } from '../../useWallet';
+import { useWalletClient } from 'wagmi';
 import ERC20TokenStakingManagerAbi from '@/contracts/icm-contracts/compiled/ERC20TokenStakingManager.json';
 import { StakingManagerSettings } from './useNativeTokenStakingManager';
 
@@ -65,10 +66,11 @@ export function useERC20TokenStakingManager(
   contractAddress: string | null,
   abi?: any
 ): ERC20TokenStakingManagerHook {
-  const { coreWalletClient, walletEVMAddress, publicClient } = useWalletStore();
+  const { walletEVMAddress, publicClient } = useWalletStore();
   const viemChain = useViemChainStore();
   const { notify } = useConsoleNotifications();
   const { avalancheWalletClient } = useWallet();
+  const { data: walletClient } = useWalletClient();
 
   const contractAbi = abi ?? ERC20TokenStakingManagerAbi.abi;
   const isReady = Boolean(contractAddress && avalancheWalletClient && viemChain);
@@ -153,11 +155,11 @@ export function useERC20TokenStakingManager(
     stakeAmount: bigint,
     rewardRecipient: string
   ): Promise<string> => {
-    if (!coreWalletClient || !contractAddress || !walletEVMAddress || !viemChain) {
+    if (!walletClient || !contractAddress || !walletEVMAddress || !viemChain) {
       throw new Error('Wallet not connected or contract not ready');
     }
 
-    const writePromise = coreWalletClient.writeContract({
+    const writePromise = walletClient!.writeContract({
       address: contractAddress as `0x${string}`,
       abi: contractAbi,
       functionName: 'initiateValidatorRegistration',
@@ -176,7 +178,7 @@ export function useERC20TokenStakingManager(
   };
 
   const completeValidatorRegistration = async (messageIndex: number, accessList?: any[]): Promise<string> => {
-    if (!coreWalletClient || !contractAddress || !walletEVMAddress || !viemChain) {
+    if (!walletClient || !contractAddress || !walletEVMAddress || !viemChain) {
       throw new Error('Wallet not connected or contract not ready');
     }
 
@@ -194,7 +196,7 @@ export function useERC20TokenStakingManager(
       txConfig.accessList = accessList;
     }
 
-    const writePromise = coreWalletClient.writeContract(txConfig);
+    const writePromise = walletClient!.writeContract(txConfig);
 
     notify({
       type: 'call',
@@ -205,11 +207,11 @@ export function useERC20TokenStakingManager(
   };
 
   const initiateValidatorRemoval = async (validationID: string): Promise<string> => {
-    if (!coreWalletClient || !contractAddress || !walletEVMAddress || !viemChain) {
+    if (!walletClient || !contractAddress || !walletEVMAddress || !viemChain) {
       throw new Error('Wallet not connected or contract not ready');
     }
 
-    const writePromise = coreWalletClient.writeContract({
+    const writePromise = walletClient!.writeContract({
       address: contractAddress as `0x${string}`,
       abi: contractAbi,
       functionName: 'initiateValidatorRemoval',
@@ -228,7 +230,7 @@ export function useERC20TokenStakingManager(
   };
 
   const completeValidatorRemoval = async (messageIndex: number, accessList?: any[]): Promise<string> => {
-    if (!coreWalletClient || !contractAddress || !walletEVMAddress || !viemChain) {
+    if (!walletClient || !contractAddress || !walletEVMAddress || !viemChain) {
       throw new Error('Wallet not connected or contract not ready');
     }
 
@@ -246,7 +248,7 @@ export function useERC20TokenStakingManager(
       txConfig.accessList = accessList;
     }
 
-    const writePromise = coreWalletClient.writeContract(txConfig);
+    const writePromise = walletClient!.writeContract(txConfig);
 
     notify({
       type: 'call',
@@ -257,11 +259,11 @@ export function useERC20TokenStakingManager(
   };
 
   const forceInitiateValidatorRemoval = async (validationID: string, includeUptime: boolean, messageIndex: number): Promise<string> => {
-    if (!coreWalletClient || !contractAddress || !walletEVMAddress || !viemChain) {
+    if (!walletClient || !contractAddress || !walletEVMAddress || !viemChain) {
       throw new Error('Wallet not connected or contract not ready');
     }
 
-    const writePromise = coreWalletClient.writeContract({
+    const writePromise = walletClient!.writeContract({
       address: contractAddress as `0x${string}`,
       abi: contractAbi,
       functionName: 'forceInitiateValidatorRemoval',
@@ -281,11 +283,11 @@ export function useERC20TokenStakingManager(
 
   // Write functions - Delegator operations
   const initiateDelegatorRegistration = async (validationID: string, delegationAmount: bigint, rewardRecipient: string): Promise<string> => {
-    if (!coreWalletClient || !contractAddress || !walletEVMAddress || !viemChain) {
+    if (!walletClient || !contractAddress || !walletEVMAddress || !viemChain) {
       throw new Error('Wallet not connected or contract not ready');
     }
 
-    const writePromise = coreWalletClient.writeContract({
+    const writePromise = walletClient!.writeContract({
       address: contractAddress as `0x${string}`,
       abi: contractAbi,
       functionName: 'initiateDelegatorRegistration',
@@ -304,7 +306,7 @@ export function useERC20TokenStakingManager(
   };
 
   const completeDelegatorRegistration = async (messageIndex: number, delegationID: string, accessList?: any[]): Promise<string> => {
-    if (!coreWalletClient || !contractAddress || !walletEVMAddress || !viemChain) {
+    if (!walletClient || !contractAddress || !walletEVMAddress || !viemChain) {
       throw new Error('Wallet not connected or contract not ready');
     }
 
@@ -312,7 +314,7 @@ export function useERC20TokenStakingManager(
       address: contractAddress as `0x${string}`,
       abi: contractAbi,
       functionName: 'completeDelegatorRegistration',
-      args: [messageIndex, delegationID],
+      args: [delegationID, messageIndex],
       chain: viemChain,
       account: walletEVMAddress as `0x${string}`,
       gas: BigInt(1_000_000),
@@ -322,7 +324,7 @@ export function useERC20TokenStakingManager(
       txConfig.accessList = accessList;
     }
 
-    const writePromise = coreWalletClient.writeContract(txConfig);
+    const writePromise = walletClient!.writeContract(txConfig);
 
     notify({
       type: 'call',
@@ -333,11 +335,11 @@ export function useERC20TokenStakingManager(
   };
 
   const initiateDelegatorRemoval = async (delegationID: string): Promise<string> => {
-    if (!coreWalletClient || !contractAddress || !walletEVMAddress || !viemChain) {
+    if (!walletClient || !contractAddress || !walletEVMAddress || !viemChain) {
       throw new Error('Wallet not connected or contract not ready');
     }
 
-    const writePromise = coreWalletClient.writeContract({
+    const writePromise = walletClient!.writeContract({
       address: contractAddress as `0x${string}`,
       abi: contractAbi,
       functionName: 'initiateDelegatorRemoval',
@@ -356,7 +358,7 @@ export function useERC20TokenStakingManager(
   };
 
   const completeDelegatorRemoval = async (delegationID: string, messageIndex: number, accessList?: any[]): Promise<string> => {
-    if (!coreWalletClient || !contractAddress || !walletEVMAddress || !viemChain) {
+    if (!walletClient || !contractAddress || !walletEVMAddress || !viemChain) {
       throw new Error('Wallet not connected or contract not ready');
     }
 
@@ -374,7 +376,7 @@ export function useERC20TokenStakingManager(
       txConfig.accessList = accessList;
     }
 
-    const writePromise = coreWalletClient.writeContract(txConfig);
+    const writePromise = walletClient!.writeContract(txConfig);
 
     notify({
       type: 'call',
@@ -385,11 +387,11 @@ export function useERC20TokenStakingManager(
   };
 
   const forceInitiateDelegatorRemoval = async (delegationID: string, includeUptime: boolean): Promise<string> => {
-    if (!coreWalletClient || !contractAddress || !walletEVMAddress || !viemChain) {
+    if (!walletClient || !contractAddress || !walletEVMAddress || !viemChain) {
       throw new Error('Wallet not connected or contract not ready');
     }
 
-    const writePromise = coreWalletClient.writeContract({
+    const writePromise = walletClient!.writeContract({
       address: contractAddress as `0x${string}`,
       abi: contractAbi,
       functionName: 'forceInitiateDelegatorRemoval',
@@ -408,11 +410,11 @@ export function useERC20TokenStakingManager(
   };
 
   const resendUpdateDelegator = async (delegationID: string): Promise<string> => {
-    if (!coreWalletClient || !contractAddress || !walletEVMAddress || !viemChain) {
+    if (!walletClient || !contractAddress || !walletEVMAddress || !viemChain) {
       throw new Error('Wallet not connected or contract not ready');
     }
 
-    const writePromise = coreWalletClient.writeContract({
+    const writePromise = walletClient!.writeContract({
       address: contractAddress as `0x${string}`,
       abi: contractAbi,
       functionName: 'resendUpdateDelegator',
@@ -432,11 +434,11 @@ export function useERC20TokenStakingManager(
 
   // Write functions - Reward operations
   const changeValidatorRewardRecipient = async (validationID: string, rewardRecipient: string): Promise<string> => {
-    if (!coreWalletClient || !contractAddress || !walletEVMAddress || !viemChain) {
+    if (!walletClient || !contractAddress || !walletEVMAddress || !viemChain) {
       throw new Error('Wallet not connected or contract not ready');
     }
 
-    const writePromise = coreWalletClient.writeContract({
+    const writePromise = walletClient!.writeContract({
       address: contractAddress as `0x${string}`,
       abi: contractAbi,
       functionName: 'changeValidatorRewardRecipient',
@@ -455,11 +457,11 @@ export function useERC20TokenStakingManager(
   };
 
   const changeDelegatorRewardRecipient = async (delegationID: string, rewardRecipient: string): Promise<string> => {
-    if (!coreWalletClient || !contractAddress || !walletEVMAddress || !viemChain) {
+    if (!walletClient || !contractAddress || !walletEVMAddress || !viemChain) {
       throw new Error('Wallet not connected or contract not ready');
     }
 
-    const writePromise = coreWalletClient.writeContract({
+    const writePromise = walletClient!.writeContract({
       address: contractAddress as `0x${string}`,
       abi: contractAbi,
       functionName: 'changeDelegatorRewardRecipient',
@@ -478,11 +480,11 @@ export function useERC20TokenStakingManager(
   };
 
   const claimDelegationFees = async (validationID: string): Promise<string> => {
-    if (!coreWalletClient || !contractAddress || !walletEVMAddress || !viemChain) {
+    if (!walletClient || !contractAddress || !walletEVMAddress || !viemChain) {
       throw new Error('Wallet not connected or contract not ready');
     }
 
-    const writePromise = coreWalletClient.writeContract({
+    const writePromise = walletClient!.writeContract({
       address: contractAddress as `0x${string}`,
       abi: contractAbi,
       functionName: 'claimDelegationFees',
@@ -501,11 +503,11 @@ export function useERC20TokenStakingManager(
   };
 
   const submitUptimeProof = async (validationID: string, messageIndex: number): Promise<string> => {
-    if (!coreWalletClient || !contractAddress || !walletEVMAddress || !viemChain) {
+    if (!walletClient || !contractAddress || !walletEVMAddress || !viemChain) {
       throw new Error('Wallet not connected or contract not ready');
     }
 
-    const writePromise = coreWalletClient.writeContract({
+    const writePromise = walletClient!.writeContract({
       address: contractAddress as `0x${string}`,
       abi: contractAbi,
       functionName: 'submitUptimeProof',
@@ -525,11 +527,11 @@ export function useERC20TokenStakingManager(
 
   // Write functions - Setup
   const initialize = async (settings: StakingManagerSettings, tokenAddress: string): Promise<string> => {
-    if (!coreWalletClient || !contractAddress || !walletEVMAddress || !viemChain) {
+    if (!walletClient || !contractAddress || !walletEVMAddress || !viemChain) {
       throw new Error('Wallet not connected or contract not ready');
     }
 
-    const writePromise = coreWalletClient.writeContract({
+    const writePromise = walletClient!.writeContract({
       address: contractAddress as `0x${string}`,
       abi: contractAbi,
       functionName: 'initialize',

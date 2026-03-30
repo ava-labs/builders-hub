@@ -13,7 +13,6 @@ import { useWallet } from '../../hooks/useWallet';
 import { useModalState } from '../../hooks/useModal';
 import { useLookupChain } from '@/components/toolbox/hooks/useLookupChain';
 import { toast } from '@/lib/toast';
-import { type Chain } from 'viem';
 import type { ChainData } from '@/types/wallet';
 
 interface AddChainFormData {
@@ -31,7 +30,7 @@ interface AddChainFormData {
 
 export function AddChainModal() {
     const { isOpen, options, closeModal } = useModalState();
-    const { client: coreWalletClient } = useWallet();
+    const { client: walletClient } = useWallet();
     const { l1List } = useL1ListStore()();
     const { addL1 } = useL1ListStore()();
     const { anyChainId, setAnyChainId, error, isLookingUp, lookup } = useLookupChain();
@@ -183,30 +182,34 @@ export function AddChainModal() {
     }, [rpcUrl, setValue, form, trigger, checkChainExists]);
 
     const addChainDirect = async (chainData: ChainData): Promise<boolean> => {
-        if (!coreWalletClient) {
+        if (!walletClient) {
             toast.error('Wallet not connected', 'Please connect your wallet first');
             return false;
         }
 
         try {
-            const viemChain: Chain = {
-                id: chainData.evmChainId,
-                name: chainData.name,
-                rpcUrls: {
-                    default: { http: [chainData.rpcUrl] },
-                },
-                nativeCurrency: {
-                    name: chainData.coinName,
-                    symbol: chainData.coinName,
-                    decimals: 18,
-                }
-            };
+            const chainIdHex = `0x${chainData.evmChainId.toString(16)}`;
 
-            await coreWalletClient.addChain({ 
-                chain: { ...viemChain, isTestnet: chainData.isTestnet } 
+            // Send wallet_addEthereumChain directly instead of viem's addChain,
+            // which only forwards standard EIP-3085 fields and drops Core wallet's
+            // proprietary isTestnet flag.
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            await walletClient.request({
+                method: 'wallet_addEthereumChain',
+                params: [{
+                    chainId: chainIdHex,
+                    chainName: chainData.name,
+                    nativeCurrency: {
+                        name: chainData.coinName,
+                        symbol: chainData.coinName,
+                        decimals: 18,
+                    },
+                    rpcUrls: [chainData.rpcUrl],
+                    isTestnet: chainData.isTestnet,
+                }] as any, // isTestnet is a Core wallet extension to EIP-3085
             });
-            
-            await coreWalletClient.switchChain({
+
+            await walletClient.switchChain({
                 id: chainData.evmChainId
             });
 
@@ -286,7 +289,7 @@ export function AddChainModal() {
                                     onClick={() => setShowLookup(!showLookup)}
                                     className="text-blue-500 border-b border-dashed border-blue-500 hover:text-blue-700 focus:outline-none"
                                 >
-                                    {showLookup ? "Hide lookup form" : "Lookup from Core Wallet"}
+                                    {showLookup ? "Hide lookup form" : "Lookup by Chain ID"}
                                 </button>
 
                                 {showLookup && (

@@ -1,18 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
+import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
 import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { Button } from '@/components/toolbox/components/Button';
 import { Input } from '@/components/toolbox/components/Input';
 import { Success } from '@/components/toolbox/components/Success';
 import { Alert } from '@/components/toolbox/components/Alert';
-import NativeTokenStakingManager from '@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json';
-import ERC20TokenStakingManager from '@/contracts/icm-contracts/compiled/ERC20TokenStakingManager.json';
 import { hexToBytes, bytesToHex } from 'viem';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { packWarpIntoAccessList } from '@/components/toolbox/console/permissioned-l1s/ValidatorManager/packWarp';
 import { useNativeTokenStakingManager, useERC20TokenStakingManager } from '@/components/toolbox/hooks/contracts';
 import { packL1ValidatorWeightMessage } from '@/components/toolbox/coreViem/utils/convertWarp';
 import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
+import { useWalletClient } from 'wagmi';
 
 type TokenType = 'native' | 'erc20';
 
@@ -37,7 +37,9 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
     onSuccess,
     onError,
 }) => {
-    const { coreWalletClient, publicClient, walletEVMAddress, avalancheNetworkID } = useWalletStore();
+    const { coreWalletClient, walletEVMAddress, avalancheNetworkID } = useWalletStore();
+    const chainPublicClient = useChainPublicClient();
+    const { data: walletClient } = useWalletClient();
     const { aggregateSignature } = useAvalancheSDKChainkit();
     const viemChain = useViemChainStore();
     const { notify } = useConsoleNotifications();
@@ -61,7 +63,6 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
         rewardsDistributed: boolean;
     } | null>(null);
 
-    const contractAbi = tokenType === 'native' ? NativeTokenStakingManager.abi : ERC20TokenStakingManager.abi;
     const tokenLabel = tokenType === 'native' ? 'Native Token' : 'ERC20 Token';
 
     // Update pChainTxId when prop changes
@@ -78,7 +79,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
         setPChainSignature(null);
         setExtractedData(null);
 
-        if (!coreWalletClient || !publicClient || !viemChain) {
+        if (!walletClient || !chainPublicClient || !viemChain) {
             setErrorState("Wallet or chain configuration is not properly initialized.");
             onError("Wallet or chain configuration is not properly initialized.");
             return;
@@ -112,6 +113,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
         setIsProcessing(true);
         try {
             // Step 1: Extract L1ValidatorWeightMessage from P-Chain transaction
+            if (!coreWalletClient) { throw new Error('This operation requires Core Wallet'); }
             const weightMessageData = await coreWalletClient.extractL1ValidatorWeightMessage({
                 txId: pChainTxId
             });
@@ -138,32 +140,47 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
             const effectiveSigningSubnetId = signingSubnetId || subnetIdL1;
             let signature;
             let lastError;
-            
-            // Try different quorum percentages if needed
+
+            // Try different quorum percentages with delay between retries
             const quorumPercentages = [67, 80, 100];
-            for (const quorum of quorumPercentages) {
+            for (let i = 0; i < quorumPercentages.length; i++) {
+                const quorum = quorumPercentages[i];
                 try {
                     const aggregateSignaturePromise = aggregateSignature({
                         message: bytesToHex(l1ValidatorWeightMessage),
                         signingSubnetId: effectiveSigningSubnetId,
                         quorumPercentage: quorum,
                     });
-                    
+
                     notify({
                         type: 'local',
                         name: `Aggregate P-Chain Signatures (${quorum}% quorum)`
                     }, aggregateSignaturePromise);
-                    
+
                     signature = await aggregateSignaturePromise;
                     break; // Success, exit loop
                 } catch (err) {
                     lastError = err;
-                    // Continue to next quorum percentage
+                    // Wait before retrying with a higher quorum
+                    if (i < quorumPercentages.length - 1) {
+                        await new Promise(resolve => setTimeout(resolve, 3000));
+                    }
                 }
             }
-            
+
             if (!signature) {
-                throw new Error(`Failed to aggregate signatures after trying multiple quorum percentages. Signing subnet: ${effectiveSigningSubnetId}. Last error: ${lastError instanceof Error ? lastError.message : String(lastError)}`);
+                const errMsg = lastError instanceof Error ? lastError.message : String(lastError);
+                const isServerError = errMsg.includes('500') || errMsg.includes('InternalServerError') || errMsg.includes('Failed to process');
+
+                if (isServerError) {
+                    throw new Error(
+                        `Signature aggregation service returned a server error. This is usually a transient issue. ` +
+                        `Please wait a few minutes and try again. If the problem persists, verify that your L1 validator nodes ` +
+                        `are online and reachable. Signing subnet: ${effectiveSigningSubnetId}`
+                    );
+                }
+
+                throw new Error(`Failed to aggregate signatures. Signing subnet: ${effectiveSigningSubnetId}. Error: ${errMsg}`);
             }
             
             setPChainSignature(signature.signedMessage);
@@ -180,7 +197,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
             setTxHash(hash);
 
             // Wait for confirmation
-            const receipt = await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
+            const receipt = await chainPublicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
             if (receipt.status !== 'success') {
                 throw new Error(`Transaction failed with status: ${receipt.status}`);
             }

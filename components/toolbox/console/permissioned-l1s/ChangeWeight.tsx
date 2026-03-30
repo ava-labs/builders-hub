@@ -1,5 +1,5 @@
 "use client"
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/toolbox/components/Button';
 import { Alert } from '@/components/toolbox/components/Alert';
 import SelectSubnetId from '@/components/toolbox/components/SelectSubnetId';
@@ -7,7 +7,6 @@ import { ValidatorManagerDetails } from '@/components/toolbox/components/Validat
 import { useValidatorManagerDetails } from '@/components/toolbox/hooks/useValidatorManagerDetails';
 import { Step, Steps } from "fumadocs-ui/components/steps";
 import { Success } from '@/components/toolbox/components/Success';
-import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 
 import InitiateChangeWeight from '@/components/toolbox/console/permissioned-l1s/ChangeWeight/InitiateChangeWeight';
 import SubmitPChainTxWeightUpdate from '@/components/toolbox/console/shared/SubmitPChainTxWeightUpdate';
@@ -17,13 +16,76 @@ import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalle
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from '../../components/WithConsoleToolMetadata';
 import { useConnectedWallet } from '@/components/toolbox/contexts/ConnectedWalletContext';
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
+import { StepCodeViewer } from "@/components/console/step-code-viewer";
+import versions from "@/scripts/versions.json";
+
+const ICM_COMMIT = versions["ava-labs/icm-contracts"];
+
+const PCHAIN_WEIGHT_CODE = `// Step 3a: Aggregate signatures using Avalanche SDK
+import { Avalanche } from "@avalabs/avalanche-sdk";
+
+const sdk = new Avalanche({ network: "fuji" });
+
+// Get the unsigned warp message from the EVM transaction receipt
+const receipt = await publicClient.waitForTransactionReceipt({
+  hash: initiateWeightUpdateTxHash
+});
+const unsignedWarpMessage = receipt.logs[0].data;
+
+// Aggregate signatures from the subnet validators (67% quorum)
+const { signedMessage } = await sdk.data.signatureAggregator.aggregate({
+  signatureAggregatorRequest: {
+    message: unsignedWarpMessage,
+    signingSubnetId: subnetId,
+    quorumPercentage: 67,
+  }
+});
+
+// Step 3b: Submit SetL1ValidatorWeightTx to P-Chain
+// Updates the validator's weight on the P-Chain
+const txHash = await walletClient.setL1ValidatorWeight({
+  signedWarpMessage: signedMessage,
+});`;
+
+// Step configuration for the code viewer
+const STEP_CONFIG = [
+  { id: 'select', title: 'Select L1', description: 'Choose your L1 subnet' },
+  {
+    id: 'initiate',
+    title: 'Initiate Weight Change',
+    description: 'Call initiateValidatorWeightUpdate on ValidatorManager',
+    codeType: 'solidity' as const,
+    sourceUrl: `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/validator-manager/ValidatorManager.sol`,
+    githubUrl: `https://github.com/ava-labs/icm-contracts/blob/${ICM_COMMIT}/contracts/validator-manager/ValidatorManager.sol`,
+    highlightFunction: 'initiateValidatorWeightUpdate',
+    filename: 'ValidatorManager.sol',
+  },
+  {
+    id: 'pchain',
+    title: 'P-Chain Weight Update',
+    description: 'Aggregate signatures and submit SetL1ValidatorWeightTx',
+    codeType: 'typescript' as const,
+    code: PCHAIN_WEIGHT_CODE,
+    filename: 'setL1ValidatorWeight.ts',
+    githubUrl: 'https://github.com/ava-labs/avalanche-sdk',
+  },
+  {
+    id: 'complete',
+    title: 'Complete Weight Change',
+    description: 'Call completeValidatorWeightUpdate on ValidatorManager',
+    codeType: 'solidity' as const,
+    sourceUrl: `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/validator-manager/ValidatorManager.sol`,
+    githubUrl: `https://github.com/ava-labs/icm-contracts/blob/${ICM_COMMIT}/contracts/validator-manager/ValidatorManager.sol`,
+    highlightFunction: 'completeValidatorWeightUpdate',
+    filename: 'ValidatorManager.sol',
+  },
+];
 
 const metadata: ConsoleToolMetadata = {
   title: "Change Consensus Weight of Validators",
   description: "Modify a validator's consensus weight to determine their influence in the network",
   toolRequirements: [
-    WalletRequirementsConfigKey.EVMChainBalance,
-    WalletRequirementsConfigKey.PChainBalance
+    WalletRequirementsConfigKey.WalletConnected
   ],
   githubUrl: generateConsoleToolGitHubUrl(import.meta.url)
 };
@@ -32,14 +94,14 @@ const ChangeWeightStateless: React.FC<BaseConsoleToolProps> = ({ onSuccess }) =>
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [globalSuccess, setGlobalSuccess] = useState<string | null>(null);
   const [isValidatorManagerDetailsExpanded, setIsValidatorManagerDetailsExpanded] = useState<boolean>(false);
+  const [activeStep, setActiveStep] = useState<number>(1); // Start at step 2 (initiate) which has code
 
   // State for passing data between components
   const [evmTxHash, setEvmTxHash] = useState<string>('');
   const [pChainTxId, setPChainTxId] = useState<string>('');
 
   // Form state
-  const { walletEVMAddress } = useWalletStore();
-  const { coreWalletClient } = useConnectedWallet();
+  const { walletClient } = useConnectedWallet();
   const createChainStoreSubnetId = useCreateChainStore()(state => state.subnetId);
   const [subnetIdL1, setSubnetIdL1] = useState<string>(createChainStoreSubnetId || "");
   const [nodeId, setNodeId] = useState<string>('');
@@ -62,32 +124,17 @@ const ChangeWeightStateless: React.FC<BaseConsoleToolProps> = ({ onSuccess }) =>
     isLoadingL1Weight,
     ownershipError,
     ownerType,
-    isDetectingOwnerType
+    isDetectingOwnerType,
+    ownershipStatus,
+    refetchOwnership
   } = useValidatorManagerDetails({ subnetId: subnetIdL1 });
 
-  // Simple ownership check - direct computation
-  const isContractOwner = useMemo(() => {
-    return contractOwner && walletEVMAddress
-      ? walletEVMAddress.toLowerCase() === contractOwner.toLowerCase()
+  // Derive isContractOwner for CompletePChainWeightUpdate from centralized ownershipStatus
+  const isContractOwner = ownershipStatus === 'currentWallet'
+    ? true
+    : ownershipStatus === 'differentEOA'
+      ? false
       : null;
-  }, [contractOwner, walletEVMAddress]);
-
-  // Determine UI state based on ownership:
-  // Case 1: Contract is owned by another contract → show MultisigOption
-  // Case 2: Contract is owned by current wallet → show regular button
-  // Case 3: Contract is owned by different EOA → show error
-  const ownershipState = useMemo(() => {
-    if (isOwnerContract) {
-      return 'contract'; // Case 1: Show MultisigOption
-    }
-    if (isContractOwner === true) {
-      return 'currentWallet'; // Case 2: Show regular button
-    }
-    if (isContractOwner === false) {
-      return 'differentEOA'; // Case 3: Show error
-    }
-    return 'loading'; // Still determining ownership
-  }, [isOwnerContract, isContractOwner]);
 
   const handleReset = () => {
     setGlobalError(null);
@@ -99,14 +146,16 @@ const ChangeWeightStateless: React.FC<BaseConsoleToolProps> = ({ onSuccess }) =>
     setValidationId('');
     setNewWeight('');
     setResetInitiateForm(true);
+    setActiveStep(1);
     setResetKey(prev => prev + 1); // Force re-render of all child components
     // Reset the flag after a brief delay to allow the child component to process it
     setTimeout(() => setResetInitiateForm(false), 100);
   };
 
   return (
-    <>
-        <div className="space-y-6">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Left: Wizard Steps */}
+      <div className="space-y-6">
           {globalError && (
             <Alert variant="error">Error: {globalError}</Alert>
           )}
@@ -148,72 +197,88 @@ const ChangeWeightStateless: React.FC<BaseConsoleToolProps> = ({ onSuccess }) =>
             <Step>
               <h2 className="text-lg font-semibold">Initiate Weight Change</h2>
               <p className="text-sm text-gray-500 mb-4">
-                Start the weight change process by specifying the validator and new weight and calling the <a href="https://github.com/ava-labs/icm-contracts/blob/main/contracts/validator-manager/ValidatorManager.sol#L642" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline">initiateValidatorWeightUpdate</a> function on the Validator Manager contract. This transaction will emit an <a href="/docs/acps/77-reinventing-subnets#l1validatorweightmessage" className="text-blue-600 hover:text-blue-800 underline">L1ValidatorWeightMessage</a> warp message.
+                Call <code className="px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-sm font-mono">initiateValidatorWeightUpdate</code> on the Validator Manager contract.
               </p>
-              <InitiateChangeWeight
-                subnetId={subnetIdL1}
-                validatorManagerAddress={validatorManagerAddress}
-                resetForm={resetInitiateForm}
-                initialNodeId={nodeId}
-                initialValidationId={validationId}
-                initialWeight={newWeight}
-                ownershipState={ownershipState}
-                contractTotalWeight={contractTotalWeight}
-                onSuccess={(data) => {
-                  setNodeId(data.nodeId);
-                  setValidationId(data.validationId);
-                  setNewWeight(data.weight);
-                  setEvmTxHash(data.txHash);
-                  setGlobalError(null);
-                  setResetInitiateForm(false);
-                }}
-                onError={(message) => setGlobalError(message)}
-              />
+
+              {/* Focus wrapper - switches code viewer to step 2 */}
+              <div onFocus={() => setActiveStep(1)}>
+                <InitiateChangeWeight
+                  subnetId={subnetIdL1}
+                  validatorManagerAddress={validatorManagerAddress}
+                  resetForm={resetInitiateForm}
+                  initialNodeId={nodeId}
+                  initialValidationId={validationId}
+                  initialWeight={newWeight}
+                  ownershipState={ownershipStatus}
+                  refetchOwnership={refetchOwnership}
+                  ownershipError={ownershipError}
+                  contractTotalWeight={contractTotalWeight}
+                  onSuccess={(data) => {
+                    setNodeId(data.nodeId);
+                    setValidationId(data.validationId);
+                    setNewWeight(data.weight);
+                    setEvmTxHash(data.txHash);
+                    setGlobalError(null);
+                    setResetInitiateForm(false);
+                    setActiveStep(2); // Advance to P-Chain step
+                  }}
+                  onError={(message) => setGlobalError(message)}
+                />
+              </div>
             </Step>
 
             <Step>
-              <h2 className="text-lg font-semibold">Sign L1ValidatorWeightMessage & Submit SetL1ValidatorWeightTx to P-Chain</h2>
+              <h2 className="text-lg font-semibold">Submit to P-Chain</h2>
               <p className="text-sm text-gray-500 mb-4">
-                Sign the <a href="/docs/acps/77-reinventing-subnets#l1validatorweightmessage" className="text-blue-600 hover:text-blue-800 underline">L1ValidatorWeightMessage</a> and submit a <a href="/docs/acps/77-reinventing-subnets#setl1validatorweighttx" className="text-blue-600 hover:text-blue-800 underline">SetL1ValidatorWeightTx</a> to the P-Chain.
+                Aggregate validator signatures and submit <code className="px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-sm font-mono">SetL1ValidatorWeightTx</code> to P-Chain.
               </p>
-              <SubmitPChainTxWeightUpdate
-                key={`submit-pchain-${resetKey}`}
-                subnetIdL1={subnetIdL1}
-                initialEvmTxHash={evmTxHash}
-                signingSubnetId={signingSubnetId}
-                txHashLabel="initiateValidatorWeightUpdate Transaction Hash"
-                txHashPlaceholder="Enter the transaction hash from step 2 (0x...)"
-                onSuccess={(pChainTxId) => {
-                  setPChainTxId(pChainTxId);
-                  setGlobalError(null);
-                }}
-                onError={(message) => setGlobalError(message)}
-              />
+
+              {/* Focus wrapper - switches code viewer to step 3 */}
+              <div onFocus={() => setActiveStep(2)}>
+                <SubmitPChainTxWeightUpdate
+                  key={`submit-pchain-${resetKey}`}
+                  subnetIdL1={subnetIdL1}
+                  initialEvmTxHash={evmTxHash}
+                  signingSubnetId={signingSubnetId}
+                  txHashLabel="initiateValidatorWeightUpdate Transaction Hash"
+                  txHashPlaceholder="Enter the transaction hash from step 2 (0x...)"
+                  onSuccess={(pChainTxId) => {
+                    setPChainTxId(pChainTxId);
+                    setGlobalError(null);
+                    setActiveStep(3); // Advance to complete step
+                  }}
+                  onError={(message) => setGlobalError(message)}
+                />
+              </div>
             </Step>
 
             <Step>
-              <h2 className="text-lg font-semibold">Sign P-Chain L1ValidatorWeightMessage & Submit completeValidatorWeightUpdate on Validator Manager contract</h2>
+              <h2 className="text-lg font-semibold">Complete Weight Change</h2>
               <p className="text-sm text-gray-500 mb-4">
-                Complete the weight change by signing the P-Chain <a href="/docs/acps/77-reinventing-subnets#l1validatorweightmessage" className="text-blue-600 hover:text-blue-800 underline">L1ValidatorWeightMessage</a> and calling the <a href="https://github.com/ava-labs/icm-contracts/blob/main/contracts/validator-manager/ValidatorManager.sol#L690" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline">completeValidatorWeightUpdate</a> function on the Validator Manager contract.
+                Call <code className="px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-sm font-mono">completeValidatorWeightUpdate</code> on the Validator Manager contract.
               </p>
-              <CompletePChainWeightUpdate
-                key={`complete-change-${resetKey}`}
-                subnetIdL1={subnetIdL1}
-                pChainTxId={pChainTxId}
-                signingSubnetId={signingSubnetId}
-                updateType="ChangeWeight"
-                managerAddress={validatorManagerAddress}
-                isContractOwner={isContractOwner}
-                contractOwner={contractOwner}
-                isLoadingOwnership={isLoadingOwnership}
-                ownerType={ownerType}
-                onSuccess={(data) => {
-                  setGlobalSuccess(data.message);
-                  setGlobalError(null);
-                  onSuccess?.();
-                }}
-                onError={(message) => setGlobalError(message)}
-              />
+
+              {/* Focus wrapper - switches code viewer to step 4 */}
+              <div onFocus={() => setActiveStep(3)}>
+                <CompletePChainWeightUpdate
+                  key={`complete-change-${resetKey}`}
+                  subnetIdL1={subnetIdL1}
+                  pChainTxId={pChainTxId}
+                  signingSubnetId={signingSubnetId}
+                  updateType="ChangeWeight"
+                  managerAddress={validatorManagerAddress}
+                  isContractOwner={isContractOwner}
+                  contractOwner={contractOwner}
+                  isLoadingOwnership={isLoadingOwnership}
+                  ownerType={ownerType}
+                  onSuccess={(data) => {
+                    setGlobalSuccess(data.message);
+                    setGlobalError(null);
+                    onSuccess?.();
+                  }}
+                  onError={(message) => setGlobalError(message)}
+                />
+              </div>
             </Step>
           </Steps>
 
@@ -229,8 +294,15 @@ const ChangeWeightStateless: React.FC<BaseConsoleToolProps> = ({ onSuccess }) =>
               Reset All Steps
             </Button>
           )}
-        </div>
-    </>
+      </div>
+
+      {/* Right: Code Viewer - follows activeStep */}
+      <StepCodeViewer
+        activeStep={activeStep}
+        steps={STEP_CONFIG}
+        className="lg:sticky lg:top-4 lg:self-start"
+      />
+    </div>
   );
 };
 

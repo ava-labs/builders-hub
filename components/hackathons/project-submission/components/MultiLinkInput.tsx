@@ -13,14 +13,19 @@ import {
   FormControl,
   FormMessage,
 } from "@/components/ui/form";
-import { SubmissionForm } from "../hooks/useSubmissionFormSecure";
 import { FormLabelWithCheck } from "./FormLabelWithCheck";
 
 interface MultiLinkInputProps {
-  name: keyof SubmissionForm;
+  name: string;
   label: string;
   placeholder: string;
   validationMessage?: string;
+  /** When true, renders a plain FormLabel instead of FormLabelWithCheck. */
+  plainLabel?: boolean;
+  /** Optional description rendered between the label and the input. */
+  description?: string;
+  /** When true, skips domain-origin validation (e.g. allows YouTube/Loom links). */
+  allowAllDomains?: boolean;
 }
 
 export const MultiLinkInput: React.FC<MultiLinkInputProps> = ({
@@ -28,8 +33,12 @@ export const MultiLinkInput: React.FC<MultiLinkInputProps> = ({
   label,
   placeholder,
   validationMessage,
+  plainLabel = false,
+  description,
+  allowAllDomains = false,
 }) => {
-  const form = useFormContext<SubmissionForm>();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const form = useFormContext<any>();
   const [newLink, setNewLink] = React.useState("");
 
   const handleAddLink = async () => {
@@ -45,7 +54,7 @@ export const MultiLinkInput: React.FC<MultiLinkInputProps> = ({
       const url = new URL(formattedLink);
 
 
-      if (name === 'demo_link' && (
+      if (!allowAllDomains && name === 'demo_link' && (
         url.hostname.includes('youtube.com') ||
         url.hostname.includes('youtu.be') ||
         url.hostname.includes('loom.com')
@@ -99,10 +108,17 @@ export const MultiLinkInput: React.FC<MultiLinkInputProps> = ({
       name={name}
       render={({ field, fieldState }) => (
         <FormItem>
-          <FormLabelWithCheck
-            label={label}
-            checked={!!field.value && (field.value as string[]).length > 0}
-          />
+          {plainLabel ? (
+            <FormLabel>{label}</FormLabel>
+          ) : (
+            <FormLabelWithCheck
+              label={label}
+              checked={!!field.value && (field.value as string[]).length > 0}
+            />
+          )}
+          {description && (
+            <p className="text-zinc-400 text-sm -mt-1">{description}</p>
+          )}
           <FormControl>
             <div className="space-y-2">
               <Input
