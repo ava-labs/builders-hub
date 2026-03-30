@@ -48,7 +48,7 @@ export const useTestnetFaucet = () => {
         try {
           data = JSON.parse(rawText);
         } catch (parseError) {
-          throw new Error(`Invalid response: ${rawText.substring(0, 100)}...`);
+          throw new Error('Faucet temporarily unavailable. Please try again later.');
         }
 
         if (!response.ok) {
@@ -111,7 +111,7 @@ export const useTestnetFaucet = () => {
         try {
           data = JSON.parse(rawText);
         } catch (parseError) {
-          throw new Error(`Invalid response: ${rawText.substring(0, 100)}...`);
+          throw new Error('Faucet temporarily unavailable. Please try again later.');
         }
 
         if (!response.ok) {
