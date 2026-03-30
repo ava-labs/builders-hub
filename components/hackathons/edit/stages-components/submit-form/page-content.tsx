@@ -17,8 +17,9 @@ import {
   TextStagesSubmitFormField,
 } from '@/types/hackathon-stage'
 import { HackathonHeader } from '@/types/hackathons'
+import { X } from 'lucide-react'
 
-type StageSubmitValues = Record<string, string>
+type StageSubmitValues = Record<string, string | string[]>
 
 type StageSubmitPageContentProps = {
   hackathon: HackathonHeader
@@ -38,6 +39,11 @@ function buildDefaultValues(stage: HackathonStage): StageSubmitValues {
 
   return fields.reduce(
     (acc: StageSubmitValues, field: SubmitFormField): StageSubmitValues => {
+      if (field.type === SubmitFormFieldType.Link) {
+        acc[field.id] = []
+        return acc
+      }
+
       acc[field.id] = ''
       return acc
     },
@@ -53,6 +59,7 @@ export default function StageSubmitPageContent({
   onSubmit,
 }: StageSubmitPageContentProps): React.JSX.Element | null {
   const [isSubmitting, setIsSubmitting] = React.useState<boolean>(false)
+  const [linkDrafts, setLinkDrafts] = React.useState<Record<string, string>>({})
   const [activeTab, setActiveTab] = React.useState<string>('form')
 
   const form = useForm<StageSubmitValues>({
@@ -62,6 +69,7 @@ export default function StageSubmitPageContent({
 
   React.useEffect((): void => {
     form.reset(buildDefaultValues(stage))
+    setLinkDrafts({})
   }, [stage, form])
 
   if (!stage.submitForm?.fields.length) {
@@ -129,15 +137,66 @@ export default function StageSubmitPageContent({
             control={form.control}
             name={linkField.id}
             render={({ field: rhfField }) => {
-              const value: string = (rhfField.value as string) ?? ''
+              const links: string[] = Array.isArray(rhfField.value)
+                ? (rhfField.value as string[])
+                : []
 
-              const normalizedUrl: string =
-                value && !value.startsWith('http://') && !value.startsWith('https://')
-                  ? `https://${value}`
-                  : value
+              const draftValue: string = linkDrafts[linkField.id] ?? ''
+
+              const normalizeUrl = (url: string): string => {
+                const trimmedUrl: string = url.trim()
+
+                if (
+                  trimmedUrl.startsWith('http://') ||
+                  trimmedUrl.startsWith('https://')
+                ) {
+                  return trimmedUrl
+                }
+
+                return `https://${trimmedUrl}`
+              }
+
+              const handleAddLink = (): void => {
+                const trimmedValue: string = draftValue.trim()
+
+                if (!trimmedValue) {
+                  return
+                }
+
+                const normalizedUrl: string = normalizeUrl(trimmedValue)
+
+                if (links.includes(normalizedUrl)) {
+                  setLinkDrafts((prev: Record<string, string>): Record<string, string> => ({
+                    ...prev,
+                    [linkField.id]: '',
+                  }))
+                  return
+                }
+
+                form.setValue(linkField.id, [...links, normalizedUrl], {
+                  shouldDirty: true,
+                  shouldValidate: true,
+                })
+
+                setLinkDrafts((prev: Record<string, string>): Record<string, string> => ({
+                  ...prev,
+                  [linkField.id]: '',
+                }))
+              }
+
+              const handleRemoveLink = (linkToRemove: string): void => {
+                form.setValue(
+                  linkField.id,
+                  links.filter((link: string): boolean => link !== linkToRemove),
+                  {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  }
+                )
+              }
 
               return (
-                <FormItem className="space-y-2">
+                <FormItem className="space-y-3">
                   <FormLabel className="font-medium text-white">
                     {linkField.label}
                     {linkField.required ? (
@@ -145,39 +204,75 @@ export default function StageSubmitPageContent({
                     ) : null}
                   </FormLabel>
 
-                  <FormControl>
-                    <Input
-                      type="url"
-                      value={value}
-                      onChange={rhfField.onChange}
-                      placeholder={linkField.placeholder}
-                      className="border-zinc-700 bg-zinc-900/80 text-white placeholder:text-zinc-500 focus:border-[#d66666]"
-                    />
-                  </FormControl>
+                  <div className="flex gap-2">
+                    <FormControl>
+                      <Input
+                        type="url"
+                        value={draftValue}
+                        onChange={(event: React.ChangeEvent<HTMLInputElement>): void => {
+                          setLinkDrafts(
+                            (prev: Record<string, string>): Record<string, string> => ({
+                              ...prev,
+                              [linkField.id]: event.target.value,
+                            })
+                          )
+                        }}
+                        onKeyDown={(event: React.KeyboardEvent<HTMLInputElement>): void => {
+                          if (event.key === 'Enter') {
+                            event.preventDefault()
+                            handleAddLink()
+                          }
+                        }}
+                        placeholder={linkField.placeholder}
+                        className="border-zinc-700 bg-zinc-900/80 text-white placeholder:text-zinc-500 focus:border-[#d66666]"
+                      />
+                    </FormControl>
 
-                  {!!value && (() => {
-                    const maxLength: number = 40
+                    <Button
+                      type="button"
+                      onClick={handleAddLink}
+                      className="bg-[#d66666] text-zinc-900 hover:bg-[#e57f7f]"
+                    >
+                      Add
+                    </Button>
+                  </div>
 
-                    const displayValue: string =
-                      value.length > maxLength
-                        ? `${value.slice(0, maxLength)}...`
-                        : value
+                  {!!links.length && (
+                    <div className="flex flex-wrap gap-2">
+                      {links.map((link: string, index: number): React.JSX.Element => {
+                        const maxLength: number = 40
+                        const displayValue: string =
+                          link.length > maxLength
+                            ? `${link.slice(0, maxLength)}...`
+                            : link
 
-                    return (
-                      <div className="pt-1 text-sm text-zinc-400">
-                        Visit your link:{' '}
-                        <a
-                          href={normalizedUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-[#d66666] underline hover:text-[#ff8a8a]"
-                          title={value}
-                        >
-                          {displayValue}
-                        </a>
-                      </div>
-                    )
-                  })()}
+                        return (
+                          <div
+                            key={`${link}-${index}`}
+                            className="flex items-center gap-2 rounded-md border border-[#d66666]/20 bg-[rgba(255,255,255,0.03)] px-3 py-1.5 text-sm text-white"
+                          >
+                            <a
+                              href={link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[#d66666] underline hover:text-[#ff8a8a]"
+                              title={link}
+                            >
+                              {displayValue}
+                            </a>
+
+                            <button
+                              type="button"
+                              className="cursor-pointer text-zinc-400 transition-colors hover:text-[#d66666]"
+                              onClick={(): void => handleRemoveLink(link)}
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
                 </FormItem>
               )
             }}
