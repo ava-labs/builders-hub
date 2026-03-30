@@ -18,15 +18,32 @@ type L1ChainEntry = {
   blockchainId?: string;
 };
 
-// Clickhouse x402 proxy server (primary) + direct fallback via same URL
-const CLICKHOUSE_PROXY_URL = process.env.CLICKHOUSE_PROXY_URL || "";
+const CLICKHOUSE_URL = process.env.CLICKHOUSE_URL || "";
 const CLICKHOUSE_PASSWORD = process.env.CLICKHOUSE_PASSWORD || "";
+const QUERY_TIMEOUT_MS = 10_000;
+const CONTRACT_FEES_QUERY_TIMEOUT_MS = 60_000;
 
 // x402 payer wallet — signs USDC transfer authorizations on Avalanche C-Chain
 const X402_PAYER_PRIVATE_KEY = process.env.X402_PAYER_PRIVATE_KEY || "";
 
+async function fetchWithTimeout(
+  fetchFn: typeof fetch,
+  url: string,
+  init: RequestInit,
+  timeoutMs = QUERY_TIMEOUT_MS
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetchFn(url, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 function createX402Fetch() {
-  if (!CLICKHOUSE_PROXY_URL || !X402_PAYER_PRIVATE_KEY) return null;
+  if (!CLICKHOUSE_URL || !X402_PAYER_PRIVATE_KEY) return null;
 
   try {
     const account = privateKeyToAccount(X402_PAYER_PRIVATE_KEY as `0x${string}`);
@@ -44,9 +61,9 @@ function createX402Fetch() {
 const x402Fetch = createX402Fetch();
 
 async function queryClickHouseX402<T = Record<string, unknown>>(sql: string): Promise<T[]> {
-  const proxyUrl = CLICKHOUSE_PROXY_URL.endsWith("/query") ? CLICKHOUSE_PROXY_URL : CLICKHOUSE_PROXY_URL.replace(/\/$/, "") + "/query";
+  const proxyUrl = CLICKHOUSE_URL.endsWith("/query") ? CLICKHOUSE_URL : CLICKHOUSE_URL.replace(/\/$/, "") + "/query";
 
-  const response = await x402Fetch!(proxyUrl, {
+  const response = await fetchWithTimeout(x402Fetch!, proxyUrl, {
     method: "POST",
     headers: { "Content-Type": "text/plain" },
     body: sql,
@@ -63,15 +80,18 @@ async function queryClickHouseX402<T = Record<string, unknown>>(sql: string): Pr
   return text.split("\n").map((line) => JSON.parse(line) as T);
 }
 
-async function queryClickHouseDirect<T = Record<string, unknown>>(sql: string): Promise<T[]> {
-  if (!CLICKHOUSE_PROXY_URL) {
-    console.warn("[icm-clickhouse] CLICKHOUSE_PROXY_URL not set – returning empty results");
+async function queryClickHouseDirect<T = Record<string, unknown>>(
+  sql: string,
+  timeoutMs = QUERY_TIMEOUT_MS
+): Promise<T[]> {
+  if (!CLICKHOUSE_URL) {
+    console.warn("[icm-clickhouse] CLICKHOUSE_URL not set – returning empty results");
     return [];
   }
 
-  const url = CLICKHOUSE_PROXY_URL.endsWith("/") ? CLICKHOUSE_PROXY_URL : CLICKHOUSE_PROXY_URL + "/";
+  const url = CLICKHOUSE_URL.endsWith("/") ? CLICKHOUSE_URL : CLICKHOUSE_URL + "/";
 
-  const response = await fetch(url, {
+  const response = await fetchWithTimeout(fetch, url, {
     method: "POST",
     headers: {
       "X-ClickHouse-User": "readonly",
@@ -80,7 +100,7 @@ async function queryClickHouseDirect<T = Record<string, unknown>>(sql: string): 
       "Content-Type": "text/plain",
     },
     body: sql,
-  });
+  }, timeoutMs);
 
   if (!response.ok) {
     const text = await response.text();
@@ -94,15 +114,14 @@ async function queryClickHouseDirect<T = Record<string, unknown>>(sql: string): 
 }
 
 async function queryClickHouse<T = Record<string, unknown>>(sql: string): Promise<T[]> {
-  // Try x402 proxy first, fall back to direct connection via CLICKHOUSE_PROXY_URL
-  if (CLICKHOUSE_PROXY_URL && x402Fetch) {
-    try {
-      return await queryClickHouseX402<T>(sql);
-    } catch (err) {
-      console.warn("[icm-clickhouse] x402 proxy failed, falling back to direct ClickHouse:", err);
-    }
-  }
-
+  // Temporarily bypass the x402 proxy and read directly from ClickHouse.
+  // if (CLICKHOUSE_URL && x402Fetch) {
+  //   try {
+  //     return await queryClickHouseX402<T>(sql);
+  //   } catch (err) {
+  //     console.warn("[icm-clickhouse] x402 proxy failed, falling back to direct ClickHouse:", err);
+  //   }
+  // }
   return queryClickHouseDirect<T>(sql);
 }
 
@@ -208,10 +227,47 @@ interface ICMCacheData {
   fetchedAt: number;
 }
 
+interface ContractFeesCacheData {
+  contractFees: ContractFee[];
+  fetchedAt: number;
+}
+
+type ContractFeesDataSource = "fresh" | "cache" | "stale-cache" | "empty-fallback";
+
+interface ContractFeesCacheResult {
+  cacheData: ContractFeesCacheData;
+  dataSource: ContractFeesDataSource;
+}
+
 const CACHE_TTL = 4 * 60 * 60 * 1000; // 4 hours
 
 let cache: ICMCacheData | null = null;
 let fetchPromise: Promise<ICMCacheData> | null = null;
+const contractFeesCacheByKey = new Map<string, ContractFeesCacheData>();
+const contractFeesFetchPromises = new Map<string, Promise<ContractFeesCacheResult>>();
+
+function getContractFeesQueryConfig(timeRange = "all"): { cacheKey: string; days?: number } {
+  switch (timeRange) {
+    case "7d":
+      return { cacheKey: "7d", days: 7 };
+    case "30d":
+      return { cacheKey: "30d", days: 30 };
+    case "90d":
+      return { cacheKey: "90d", days: 90 };
+    case "1y":
+      return { cacheKey: "1y", days: 365 };
+    case "all":
+    default:
+      return { cacheKey: "all" };
+  }
+}
+
+function createEmptyContractFeesCache(): ContractFeesCacheData {
+  return {
+    contractFees: [],
+    fetchedAt: Date.now(),
+  };
+}
 
 function sqlDailyIncoming(): string {
   return `
@@ -244,7 +300,12 @@ function sqlDailyOutgoing(): string {
 
 // ReceiveCrossChainMessage: topic2 = sourceBlockchainID (indexed bytes32)
 // chain_id = destination chain
-function sqlCrossChainFlows(): string {
+function sqlCrossChainFlows(days?: number): string {
+  const dayFilter =
+    days && Number.isFinite(days) && days > 0
+      ? `AND block_time >= now() - INTERVAL ${Math.ceil(days)} DAY`
+      : "";
+
   return `
     SELECT
       chain_id AS dest_chain_id,
@@ -252,21 +313,27 @@ function sqlCrossChainFlows(): string {
       count() AS msg_count
     FROM raw_logs
     WHERE topic0 = unhex('${RECEIVE_CROSS_CHAIN_MSG_TOPIC0}')
+      ${dayFilter}
     GROUP BY dest_chain_id, source_blockchain_hex
     ORDER BY msg_count DESC
     FORMAT JSONEachRow
   `;
 }
 
-function sqlContractFees(): string {
+function sqlContractFees(days?: number): string {
+  const prewhereClauses = ["chain_id = 43114"];
+  if (days && Number.isFinite(days) && days > 0) {
+    prewhereClauses.push(`block_time >= now() - INTERVAL ${Math.ceil(days)} DAY`);
+  }
+
   return `
     SELECT
       toDate(block_time) AS day,
       toString(sum(toUInt256(gas_used) * toUInt256(gas_price))) AS fees_paid,
       count() AS tx_count
     FROM raw_txs
-    WHERE chain_id = 43114
-      AND \`to\` = unhex('${TELEPORTER_ADDRESS_HEX}')
+    PREWHERE ${prewhereClauses.join(" AND ")}
+    WHERE \`to\` = unhex('${TELEPORTER_ADDRESS_HEX}')
     GROUP BY day
     ORDER BY day
     FORMAT JSONEachRow
@@ -274,14 +341,23 @@ function sqlContractFees(): string {
 }
 
 async function refreshCache(): Promise<ICMCacheData> {
-  const [dailyIncoming, dailyOutgoing, rawFlows, contractFees] = await Promise.all([
+  const [dailyIncoming, dailyOutgoing] = await Promise.all([
     queryClickHouse<DailyIncoming>(sqlDailyIncoming()),
     queryClickHouse<DailyOutgoing>(sqlDailyOutgoing()),
-    queryClickHouse<RawCrossChainFlow>(sqlCrossChainFlows()),
-    queryClickHouse<ContractFee>(sqlContractFees()),
   ]);
 
-  // Resolve source_blockchain_hex → source_chain_id using the static mapping
+  return {
+    dailyIncoming,
+    dailyOutgoing,
+    crossChainFlows: cache?.crossChainFlows ?? [],
+    contractFees: contractFeesCacheByKey.get("all")?.contractFees ?? [],
+    fetchedAt: Date.now(),
+  };
+}
+
+async function fetchCrossChainFlows(days: number): Promise<CrossChainFlow[]> {
+  const rawFlows = await queryClickHouse<RawCrossChainFlow>(sqlCrossChainFlows(days));
+
   const crossChainFlows: CrossChainFlow[] = [];
   for (const row of rawFlows) {
     const sourceChainId = blockchainHexToChainId.get(row.source_blockchain_hex);
@@ -293,13 +369,7 @@ async function refreshCache(): Promise<ICMCacheData> {
     });
   }
 
-  return {
-    dailyIncoming,
-    dailyOutgoing,
-    crossChainFlows,
-    contractFees,
-    fetchedAt: Date.now(),
-  };
+  return crossChainFlows;
 }
 
 async function getICMCacheData(): Promise<ICMCacheData> {
@@ -338,6 +408,85 @@ async function getICMCacheData(): Promise<ICMCacheData> {
       });
   }
   return fetchPromise;
+}
+
+async function refreshContractFeesCache(days?: number): Promise<ContractFeesCacheData> {
+  const contractFees = await queryClickHouseDirect<ContractFee>(
+    sqlContractFees(days),
+    CONTRACT_FEES_QUERY_TIMEOUT_MS
+  );
+
+  return {
+    contractFees,
+    fetchedAt: Date.now(),
+  };
+}
+
+function startContractFeesRefresh(
+  cacheKey: string,
+  days?: number
+): Promise<ContractFeesCacheResult> {
+  const refreshPromise = refreshContractFeesCache(days)
+    .then((data) => {
+      contractFeesCacheByKey.set(cacheKey, data);
+      return {
+        cacheData: data,
+        dataSource: "fresh" as const,
+      };
+    })
+    .catch((err) => {
+      const existing = contractFeesCacheByKey.get(cacheKey);
+      if (existing) {
+        console.warn(
+          "[icm-clickhouse] Contract fees query failed; reusing the last successful contract fees snapshot:",
+          err
+        );
+        return {
+          cacheData: existing,
+          dataSource: "stale-cache" as const,
+        };
+      }
+
+      console.warn("[icm-clickhouse] Contract fees query failed with no warm cache:", err);
+      return {
+        cacheData: createEmptyContractFeesCache(),
+        dataSource: "empty-fallback" as const,
+      };
+    })
+    .finally(() => {
+      contractFeesFetchPromises.delete(cacheKey);
+    });
+
+  contractFeesFetchPromises.set(cacheKey, refreshPromise);
+  return refreshPromise;
+}
+
+async function getContractFeesCacheData(timeRange = "all"): Promise<ContractFeesCacheResult> {
+  const { cacheKey, days } = getContractFeesQueryConfig(timeRange);
+  const cached = contractFeesCacheByKey.get(cacheKey);
+  if (cached && Date.now() - cached.fetchedAt < CACHE_TTL) {
+    return {
+      cacheData: cached,
+      dataSource: "cache",
+    };
+  }
+
+  if (cached) {
+    if (!contractFeesFetchPromises.has(cacheKey)) {
+      void startContractFeesRefresh(cacheKey, days);
+    }
+    return {
+      cacheData: cached,
+      dataSource: "stale-cache",
+    };
+  }
+
+  const inFlight = contractFeesFetchPromises.get(cacheKey);
+  if (inFlight) {
+    return inFlight;
+  }
+
+  return startContractFeesRefresh(cacheKey, days);
 }
 
 function dayToTimestamp(day: string): number {
@@ -431,11 +580,11 @@ interface ICMFlowData {
   messageCount: number;
 }
 
-export async function getICMFlowData(_days: number): Promise<ICMFlowData[]> {
-  const data = await getICMCacheData();
+export async function getICMFlowData(days: number): Promise<ICMFlowData[]> {
+  const crossChainFlows = await fetchCrossChainFlows(days);
 
   const flows: ICMFlowData[] = [];
-  for (const row of data.crossChainFlows) {
+  for (const row of crossChainFlows) {
     const src = lookupChain(row.source_chain_id);
     const dst = lookupChain(row.dest_chain_id);
     if (!src || !dst) continue;
@@ -464,12 +613,13 @@ interface DailyFeeData {
   txCount: number;
 }
 
-export async function getICMContractFeesData(): Promise<{
+export async function getICMContractFeesData(timeRange = "all"): Promise<{
   data: DailyFeeData[];
   totalFees: number;
   lastUpdated: string;
+  dataSource: ContractFeesDataSource;
 }> {
-  const cacheData = await getICMCacheData();
+  const { cacheData, dataSource } = await getContractFeesCacheData(timeRange);
 
   const dailyData: DailyFeeData[] = cacheData.contractFees.map((row) => ({
     date: row.day,
@@ -485,7 +635,8 @@ export async function getICMContractFeesData(): Promise<{
   return {
     data: dailyData,
     totalFees,
-    lastUpdated: new Date().toISOString(),
+    lastUpdated: new Date(cacheData.fetchedAt).toISOString(),
+    dataSource,
   };
 }
 

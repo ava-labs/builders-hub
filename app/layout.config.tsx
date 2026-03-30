@@ -30,6 +30,7 @@ import {
   DraftingCompass,
   Gamepad2,
   Users,
+  Flame,
 } from 'lucide-react';
 import Image from 'next/image';
 import { UserButtonWrapper } from '@/components/login/user-button/UserButtonWrapper';
@@ -184,6 +185,16 @@ export const stats: LinkItemType = {
       "View the latest metrics for the Avalanche Primary Network validators.",
       menu: {
         className: 'lg:col-start-3 lg:row-start-1',
+      },
+    },
+    {
+      icon: <Flame />,
+      text: <span className="inline-flex items-center gap-2">AVAX Burners<span className="text-[10px] font-bold uppercase tracking-wider bg-red-500 text-white px-1.5 py-0.5 rounded">New</span></span>,
+      url: "/stats/dapps/treemap",
+      description:
+      "See which protocols are burning the most AVAX on the C-Chain.",
+      menu: {
+        className: 'lg:col-start-3 lg:row-start-2',
       },
     },
   ],
