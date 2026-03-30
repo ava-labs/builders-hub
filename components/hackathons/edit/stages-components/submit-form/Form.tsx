@@ -42,6 +42,7 @@ function createTextStagesSubmitFormField(
     type: SubmitFormFieldType.Text,
     label: '',
     placeholder: '',
+    description: '',
     required: false,
     maxCharacters: null,
     rows: null,
@@ -56,6 +57,7 @@ function createLinkStagesSubmitFormField(
     type: SubmitFormFieldType.Link,
     label: '',
     placeholder: '',
+    description: '',
     required: false,
   }
 }
@@ -67,7 +69,7 @@ function createChipsStagesSubmitFormField(
     id,
     type: SubmitFormFieldType.Chips,
     label: '',
-    placeholder: '',
+    description: '',
     required: false,
     chips: [],
   }

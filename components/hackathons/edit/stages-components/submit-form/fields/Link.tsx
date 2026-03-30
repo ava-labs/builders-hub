@@ -33,6 +33,20 @@ export default function LinkStagesSubmitFormField({
           placeholder="Field label"
         />
       </div>
+      <div className="space-y-2">
+        <Label htmlFor={`text-label-${field.id}`}>Description</Label>
+        <Input
+          id={`text-label-${field.id}`}
+          value={field.description}
+          onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+            onChange({
+              ...field,
+              description: event.target.value,
+            })
+          }
+          placeholder="Field description"
+        />
+      </div>
 
       <div className="space-y-2">
         <Label htmlFor={`text-placeholder-${field.id}`}>Placeholder</Label>

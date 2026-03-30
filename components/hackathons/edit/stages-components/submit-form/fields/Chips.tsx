@@ -60,17 +60,17 @@ export default function ChipsStagesSubmitFormField({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor={`chips-placeholder-${field.id}`}>Placeholder</Label>
+        <Label htmlFor={`chips-description-${field.id}`}>Description</Label>
         <Input
-          id={`chips-placeholder-${field.id}`}
-          value={field.placeholder}
+          id={`chips-description-${field.id}`}
+          value={field.description}
           onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
             onChange({
               ...field,
-              placeholder: event.target.value,
+              description: event.target.value,
             })
           }
-          placeholder="Field placeholder"
+          placeholder="Field description"
         />
       </div>
 

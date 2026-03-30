@@ -41,6 +41,7 @@ export type TextStagesSubmitFormField = {
   type: SubmitFormFieldType.Text
   label: string
   placeholder: string
+  description: string
   required: boolean
   maxCharacters: number | null
   rows: number | null
@@ -51,6 +52,7 @@ export type LinkStagesSubmitFormField = {
   type: SubmitFormFieldType.Link;
   label: string;
   placeholder: string;
+  description: string
   required: boolean;
 };
 
@@ -58,7 +60,7 @@ export type ChipsStagesSubmitFormField = {
   id: string
   type: SubmitFormFieldType.Chips
   label: string
-  placeholder: string
+  description: string
   required: boolean
   chips: string[]
 }

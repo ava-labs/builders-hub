@@ -98,6 +98,7 @@ const createTextStagesSubmitFormField =
       type: SubmitFormFieldType.Text,
       label: '',
       placeholder: '',
+      description: '',
       maxCharacters: null,
       rows: null,
       required: false,
@@ -111,6 +112,7 @@ const createLinkStagesSubmitFormField =
       type: SubmitFormFieldType.Link,
       label: '',
       placeholder: '',
+      description: '',
       required: false,
     }
   }
@@ -120,7 +122,7 @@ export function createChipsStagesSubmitFormField(): ChipsStagesSubmitFormField {
     id: crypto.randomUUID(),
     type: SubmitFormFieldType.Chips,
     label: '',
-    placeholder: '',
+    description: '',
     required: false,
     chips: [],
   }
