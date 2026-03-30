@@ -4,7 +4,7 @@ import React from 'react'
 import { useForm } from 'react-hook-form'
 import Image from 'next/image'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form'
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
@@ -94,14 +94,14 @@ export default function StageSubmitPageContent({
             control={form.control}
             name={textField.id}
             render={({ field: rhfField }) => (
-              <FormItem className="space-y-2">
+              <FormItem>
                 <FormLabel className="font-medium text-white">
                   {textField.label}
                   {textField.required ? (
                     <span className="ml-1 text-[#d66666]">*</span>
                   ) : null}
                 </FormLabel>
-
+                <FormDescription className="text-sm text-zinc-400">{textField.description}</FormDescription>
                 <FormControl>
                   {rows > 1 ? (
                     <Textarea
@@ -197,14 +197,14 @@ export default function StageSubmitPageContent({
               }
 
               return (
-                <FormItem className="space-y-3">
+                <FormItem >
                   <FormLabel className="font-medium text-white">
                     {linkField.label}
                     {linkField.required ? (
                       <span className="ml-1 text-[#d66666]">*</span>
                     ) : null}
                   </FormLabel>
-
+                  <FormDescription className="text-sm text-zinc-400">{linkField.description}</FormDescription>
                   <div className="flex gap-2">
                     <FormControl>
                       <Input
@@ -294,13 +294,14 @@ export default function StageSubmitPageContent({
               const chips: string[] = chipsField.chips ?? []
 
               return (
-                <FormItem className="space-y-3">
+                <FormItem>
                   <FormLabel className="font-medium text-white">
                     {chipsField.label}
                     {chipsField.required ? (
                       <span className="ml-1 text-[#d66666]">*</span>
                     ) : null}
                   </FormLabel>
+                  <FormDescription className="text-sm text-zinc-400">{chipsField.description}</FormDescription>
 
                   {!!chips.length && (
                     <div className="flex flex-wrap gap-3">
