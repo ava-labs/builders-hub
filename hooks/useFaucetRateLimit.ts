@@ -40,10 +40,52 @@ const DEFAULT_STATUS: RateLimitStatus = {
 // Simple client-side cache to prevent redundant API calls
 const rateLimitCache = new Map<string, CachedRateLimitData>();
 const CACHE_TTL_MS = 60 * 1000; // 60 seconds cache
-const COUNTDOWN_UPDATE_INTERVAL = 60 * 1000; // Update countdown every 60 seconds
+const COUNTDOWN_UPDATE_INTERVAL = 1000; // Update countdown every second for responsive UX
 
 function getCacheKey(faucetType: string, destinationAddress: string, chainId?: string | number): string {
   return `${faucetType}:${destinationAddress}:${chainId || 'null'}`;
+}
+
+// localStorage helpers for persisting rate limit across refreshes
+const LS_PREFIX = 'faucet-ratelimit:';
+
+function getLSKey(faucetType: string, chainId?: string | number): string {
+  return `${LS_PREFIX}${faucetType}:${chainId || 'default'}`;
+}
+
+function saveRateLimitToStorage(faucetType: string, chainId: string | number | undefined, status: RateLimitStatus): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const key = getLSKey(faucetType, chainId);
+    if (!status.allowed && status.resetTime) {
+      localStorage.setItem(key, JSON.stringify({
+        resetTime: status.resetTime.toISOString(),
+        reason: status.reason,
+        savedAt: Date.now(),
+      }));
+    } else if (status.allowed) {
+      localStorage.removeItem(key);
+    }
+  } catch { /* localStorage unavailable */ }
+}
+
+function loadRateLimitFromStorage(faucetType: string, chainId?: string | number): { resetTime: Date; reason?: string } | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const key = getLSKey(faucetType, chainId);
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    const resetTime = new Date(parsed.resetTime);
+    // If reset time has passed, clean up and return null
+    if (resetTime.getTime() <= Date.now()) {
+      localStorage.removeItem(key);
+      return null;
+    }
+    return { resetTime, reason: parsed.reason };
+  } catch {
+    return null;
+  }
 }
 
 export const useFaucetRateLimit = (options: UseFaucetRateLimitOptions) => {
@@ -51,7 +93,20 @@ export const useFaucetRateLimit = (options: UseFaucetRateLimitOptions) => {
   const { data: session } = useSession();
   const { walletEVMAddress, pChainAddress, isTestnet } = useWalletStore();
   
-  const [status, setStatus] = useState<RateLimitStatus>(DEFAULT_STATUS);
+  // Initialize from localStorage for instant UI on page refresh
+  const [status, setStatus] = useState<RateLimitStatus>(() => {
+    const stored = loadRateLimitFromStorage(faucetType, chainId);
+    if (stored) {
+      return {
+        ...DEFAULT_STATUS,
+        allowed: false,
+        reason: stored.reason as RateLimitStatus['reason'],
+        resetTime: stored.resetTime,
+        isLoading: false,
+      };
+    }
+    return DEFAULT_STATUS;
+  });
   const [timeUntilReset, setTimeUntilReset] = useState<string | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const countdownRef = useRef<NodeJS.Timeout | null>(null);
@@ -115,6 +170,9 @@ export const useFaucetRateLimit = (options: UseFaucetRateLimitOptions) => {
         data: newStatus,
         timestamp: Date.now()
       });
+
+      // Persist to localStorage so cooldown survives page refresh
+      saveRateLimitToStorage(faucetType, chainId, newStatus);
 
       setStatus(newStatus);
     } catch (error) {
@@ -215,10 +273,28 @@ export const useFaucetRateLimit = (options: UseFaucetRateLimitOptions) => {
     return 'Rate limited';
   }, [status, timeUntilReset]);
 
+  // Called after a 429 from the claim endpoint to immediately disable the button
+  const markRateLimited = useCallback(() => {
+    // Assume 24h cooldown (standard faucet window) — will be corrected on next API check
+    const resetTime = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const limitedStatus: RateLimitStatus = {
+      ...status,
+      allowed: false,
+      reason: 'user_limit_exceeded',
+      resetTime,
+      isLoading: false,
+    };
+    setStatus(limitedStatus);
+    saveRateLimitToStorage(faucetType, chainId, limitedStatus);
+    // Also refresh from API to get the real resetTime
+    setTimeout(() => checkRateLimit(true), 500);
+  }, [status, faucetType, chainId, checkRateLimit]);
+
   return {
     ...status,
     timeUntilReset,
     checkRateLimit: () => checkRateLimit(true), // Expose force refresh version
+    markRateLimited,
     getRateLimitMessage,
     canClaim: status.allowed && !status.isLoading && !status.error && isTestnet && !!destinationAddress
   };

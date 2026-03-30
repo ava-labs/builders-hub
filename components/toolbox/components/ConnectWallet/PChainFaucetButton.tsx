@@ -21,13 +21,14 @@ export const PChainFaucetButton = ({
   const { pChainAddress, isTestnet, pChainBalance } =
     useWalletStore();
   const { claimPChainAVAX, isClaimingPChain } = useTestnetFaucet();
-  const { 
-    canClaim, 
-    isLoading: isCheckingRateLimit, 
+  const {
+    canClaim,
+    isLoading: isCheckingRateLimit,
     getRateLimitMessage,
     allowed,
     timeUntilReset,
-    checkRateLimit
+    checkRateLimit,
+    markRateLimited,
   } = useFaucetRateLimit({ faucetType: 'pchain' });
 
   const isDisabled = isClaimingPChain || !canClaim || isCheckingRateLimit;
@@ -40,7 +41,11 @@ export const PChainFaucetButton = ({
       // Refresh rate limit status after successful claim
       setTimeout(() => checkRateLimit(), 1000);
     } catch (error) {
-      // error handling done via notifications
+      // Immediately disable button if rate limited
+      const msg = error instanceof Error ? error.message : '';
+      if (msg.toLowerCase().includes('rate limit') || msg.toLowerCase().includes('daily limit')) {
+        markRateLimited();
+      }
     }
   };
 
