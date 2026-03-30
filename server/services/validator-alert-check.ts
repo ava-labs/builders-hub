@@ -18,12 +18,12 @@ const GITHUB_RELEASES_URL = 'https://api.github.com/repos/ava-labs/avalanchego/r
  */
 export const COOLDOWNS: Record<AlertType, number> = {
   uptime: 24,
-  version_mandatory: 48,
+  version_mandatory: 24,
   version_mandatory_urgent: 12,
   version_mandatory_critical: 4,
   version_optional: 168, // 7 days
-  expiry: 72,
-  expiry_urgent: 12,
+  expiry: 24,
+  expiry_urgent: 6, // every 6 hours in the last 24 hours
   expiry_critical: Infinity, // one-shot — never re-send
 };
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -99,6 +99,18 @@ export function AlertDashboard() {
     fetchAlerts();
     fetchValidators();
   });
+
+  // Also catch returning users who skip the full login flow (OTP → terms → profile)
+  // where triggerLoginComplete() never fires but session status transitions
+  const prevStatus = useRef(status);
+  useEffect(() => {
+    if (prevStatus.current !== 'authenticated' && status === 'authenticated') {
+      setLoading(true);
+      fetchAlerts();
+      fetchValidators();
+    }
+    prevStatus.current = status;
+  }, [status, fetchAlerts, fetchValidators]);
 
   async function handleAdd(data: CreateAlertRequest): Promise<{ error?: string }> {
     const res = await fetch('/api/validator-alerts', {

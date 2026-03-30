@@ -78,7 +78,7 @@ export function uptimeAlertTemplate(params: {
         dataRow('Your Threshold', `${params.threshold}%`, '#D1D5DB')
       ) +
       `<p style="font-size: 13px; margin: 12px 0 0 0;">View on explorer: ${explorerLink(params.nodeId)}</p>`,
-      'You will not receive another uptime alert for this validator within 24 hours.'
+      'We\'ll check again in 24 hours and alert you if the node uptime is still below recommended threshold.'
     ),
     '#EF4444',
     params.alertId
@@ -112,7 +112,7 @@ export function versionMandatoryTemplate(params: {
         minute: '2-digit',
         timeZoneName: 'short',
       })
-    : 'TBD — check release notes';
+    : 'Deadline not yet announced — monitor release notes';
 
   const urgencyPrefix =
     params.urgency === 'critical' ? '🚨 CRITICAL: '
@@ -133,11 +133,16 @@ export function versionMandatoryTemplate(params: {
   const cooldownText =
     params.urgency === 'critical' ? '4 hours'
     : params.urgency === 'urgent' ? '12 hours'
-    : '48 hours';
+    : '24 hours';
 
   const borderColor = params.urgency === 'critical' ? '#EF4444' : '#F59E0B';
 
-  const text = `${urgencyPrefix}Your validator ${name} is running ${params.currentVersion} but ${params.requiredVersion} is required. Upgrade deadline: ${deadlineStr}. Failure to upgrade may result in your node being benched.`;
+  const benchWarning =
+    params.urgency === 'critical' ? 'Your node will be benched imminently if not upgraded now.'
+    : params.urgency === 'urgent' ? 'Your node will be benched if not upgraded before the deadline.'
+    : 'Failure to upgrade before the deadline may result in your node being benched.';
+
+  const text = `${urgencyPrefix}Your validator ${name} is running ${params.currentVersion} but ${params.requiredVersion} is required. Upgrade deadline: ${deadlineStr}. ${benchWarning}`;
 
   const html = wrapTemplate(
     `${urgencyPrefix}AvalancheGo Upgrade Required`,
@@ -151,7 +156,7 @@ export function versionMandatoryTemplate(params: {
         dataRow('Upgrade Deadline', deadlineStr, deadlineColor) +
         acpLine
       ) +
-      `<p style="font-size: 13px; color: #EF4444; margin: 12px 0 0 0; font-weight: bold;">Failure to upgrade before the deadline may result in your node being benched.</p>` +
+      `<p style="font-size: 13px; color: #EF4444; margin: 12px 0 0 0; font-weight: bold;">${benchWarning}</p>` +
       `<p style="font-size: 13px; margin: 8px 0 0 0;">Release notes: ${releaseLink(params.requiredVersion)} | Explorer: ${explorerLink(params.nodeId)}</p>`,
       `Next alert in ${cooldownText} if still not upgraded.`
     ),
@@ -216,7 +221,7 @@ export function expiryAlertTemplate(params: {
   const heading = params.urgency === 'urgent'
     ? 'Your validator stake expires tomorrow'
     : 'Your validator stake is expiring soon';
-  const cooldown = params.urgency === 'urgent' ? '12 hours' : '3 days';
+  const cooldown = params.urgency === 'urgent' ? '6 hours' : '24 hours';
 
   const html = wrapTemplate(
     `${prefix}Stake Expiry Alert`,
@@ -229,7 +234,7 @@ export function expiryAlertTemplate(params: {
         dataRow('Expiry Date', params.expiryDate, '#D1D5DB')
       ) +
       `<p style="font-size: 13px; margin: 12px 0 0 0;">View on explorer: ${explorerLink(params.nodeId)}</p>`,
-      `Next alert in ${cooldown} if stake is not renewed.`
+      `We'll alert you again in ${cooldown} if your validation period is not renewed.`
     ),
     borderColor,
     params.alertId
@@ -263,7 +268,7 @@ export function expiryCriticalTemplate(params: {
         dataRow('Expiry Time', params.expiryDate, '#D1D5DB')
       ) +
       `<p style="font-size: 13px; margin: 12px 0 0 0;">View on explorer: ${explorerLink(params.nodeId)}</p>`,
-      'This is a one-time critical alert.'
+      'This is a final reminder — no further alerts will be sent for this expiry.'
     ),
     '#EF4444',
     params.alertId
