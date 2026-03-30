@@ -2,10 +2,12 @@
 import { withAuth } from '@/lib/protectedRoute';
 import { del, put } from '@vercel/blob';
 import { NextResponse, NextRequest } from 'next/server';
-import { 
+import {
   canUserDeleteFile,
   canUserUploadFile,
-  isValidFileSize
+  isValidFileSize,
+  isValidFileType,
+  doesExtensionMatchMimeType
 } from '@/server/services/fileValidation';
 
 
@@ -19,6 +21,22 @@ export const POST = withAuth(async (request: Request, context: any, session: any
     }
 
     const typedFile = file as File;
+
+    // Validate MIME type against allowlist
+    if (!isValidFileType(typedFile)) {
+      return NextResponse.json(
+        { error: 'File type not supported. Please upload a PNG, JPG, or SVG.' },
+        { status: 400 }
+      );
+    }
+
+    // Validate file extension matches declared MIME type
+    if (!doesExtensionMatchMimeType(typedFile)) {
+      return NextResponse.json(
+        { error: 'File extension does not match its content type.' },
+        { status: 400 }
+      );
+    }
 
     // Validate file size (max 10MB)
     if (!isValidFileSize(typedFile, 10)) {
