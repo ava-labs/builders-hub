@@ -177,24 +177,36 @@ export function versionOptionalTemplate(params: {
   label: string | null;
   currentVersion: string;
   latestVersion: string;
+  maybeMandatory?: boolean;
 }): { subject: string; html: string; text: string } {
   const name = params.label ? `${params.label} (${params.nodeId})` : params.nodeId;
-  const subject = `AvalancheGo ${params.latestVersion.replace('avalanchego/', 'v')} Available (Optional)`;
-  const text = `Your validator ${name} is running ${params.currentVersion}. A new optional release ${params.latestVersion} is available.`;
+  const mandatoryNote = params.maybeMandatory
+    ? ' — this release may be mandatory, check release notes for details'
+    : '';
+  const subject = params.maybeMandatory
+    ? `AvalancheGo ${params.latestVersion.replace('avalanchego/', 'v')} Available (Possibly Mandatory)`
+    : `AvalancheGo ${params.latestVersion.replace('avalanchego/', 'v')} Available (Optional)`;
+  const text = `Your validator ${name} is running ${params.currentVersion}. A new release ${params.latestVersion} is available${mandatoryNote}.`;
+  const heading = params.maybeMandatory
+    ? 'A new release is available — this release may be mandatory, check release notes for deadline'
+    : 'A new optional release is available (recommended but not required)';
+  const footnote = params.maybeMandatory
+    ? 'This release may be mandatory but no deadline could be determined. Check the release notes. You will not receive another alert for 7 days.'
+    : 'This is an optional update. You will not receive another version alert for 7 days.';
   const html = wrapTemplate(
     'AvalancheGo Update Available',
     section(
-      '#3B82F6',
-      'A new optional release is available (recommended but not required)',
+      params.maybeMandatory ? '#F59E0B' : '#3B82F6',
+      heading,
       dataTable(
         dataRow('Validator', name, 'white') +
         dataRow('Running Version', params.currentVersion, '#F59E0B') +
         dataRow('Latest Version', params.latestVersion, '#34D399')
       ) +
       `<p style="font-size: 13px; margin: 12px 0 0 0;">Release notes: ${releaseLink(params.latestVersion)} | Explorer: ${explorerLink(params.nodeId)}</p>`,
-      'This is an optional update. You will not receive another version alert for 7 days.'
+      footnote
     ),
-    '#3B82F6',
+    params.maybeMandatory ? '#F59E0B' : '#3B82F6',
     params.alertId
   );
   return { subject, html, text };
@@ -234,7 +246,7 @@ export function expiryAlertTemplate(params: {
         dataRow('Expiry Date', params.expiryDate, '#D1D5DB')
       ) +
       `<p style="font-size: 13px; margin: 12px 0 0 0;">View on explorer: ${explorerLink(params.nodeId)}</p>`,
-      `We'll alert you again in ${cooldown} if your validation period is not renewed.`
+      `We'll alert you again in ${cooldown} if your validator is still expiring.`
     ),
     borderColor,
     params.alertId
