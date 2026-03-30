@@ -3,7 +3,7 @@ import { getHackathon } from '@/server/services/hackathons'
 import { getAuthSession } from '@/lib/auth/authSession'
 import { getRegisterForm } from '@/server/services/registerForms'
 import { getUserById } from '@/server/services/getUser'
-import StageSubmitPageContent from '@/components/hackathons/edit/stages-components/submit-form/page-content'
+import StageSubmitPageContent from '@/components/hackathons/project-submission/stages/submit-form/page-content'
 
 type SubmitPageProps = {
   params: Promise<{ id: string }>
