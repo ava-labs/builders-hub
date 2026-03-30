@@ -54,6 +54,7 @@ interface ChainData {
   chainName: string;
   chainLogoURI: string;
   subnetId: string;
+  isTestnet?: boolean;
   blockchainId?: string;
   slug: string;
   color: string;
@@ -99,19 +100,22 @@ export default function ChainValidatorsPage() {
   // Find chain info by slug - must be done before any hooks that depend on it
   const chainFromData = (l1ChainsData as ChainData[]).find((c) => c.slug === slug);
 
-  useEffect(() => {
-    if (!chainFromData) {
-      return;
-    }
+  if (!chainFromData || chainFromData.isTestnet) {
+    notFound();
+  }
 
-    setChainInfo(chainFromData);
+  const activeChain = chainFromData;
+
+  useEffect(() => {
+    setChainInfo(activeChain);
 
     async function fetchValidators() {
-      if (!chainFromData) return;
-
       try {
         setLoading(true);
-        const response = await fetch(`/api/chain-validators/${chainFromData.subnetId}`);
+        const network = activeChain.isTestnet ? "testnet" : "mainnet";
+        const response = await fetch(
+          `/api/chain-validators/${activeChain.subnetId}?network=${network}`
+        );
 
         if (!response.ok) {
           throw new Error(`Failed to fetch validators: ${response.status}`);
@@ -151,7 +155,7 @@ export default function ChainValidatorsPage() {
     }
 
     fetchValidators();
-  }, [slug, chainFromData]);
+  }, [slug, activeChain]);
 
   const formatNumber = (num: number | string): string => {
     if (typeof num === "string") {
