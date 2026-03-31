@@ -457,6 +457,9 @@ model ValidatorAlert {
   expiry_days       Int                 @default(7)
   balance_alert     Boolean             @default(false)
   balance_threshold Float               @default(5000000000)
+  balance_threshold_days Int            @default(30)
+  security_alert   Boolean              @default(false)
+  last_known_ip    String?
   email             String
   active            Boolean             @default(true)
   created_at        DateTime            @default(now()) @db.Timestamptz(3)

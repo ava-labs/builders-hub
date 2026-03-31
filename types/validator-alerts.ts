@@ -38,7 +38,11 @@ export type AlertType =
   | 'expiry_critical'
   | 'balance_low'
   | 'balance_low_urgent'
-  | 'balance_low_critical';
+  | 'balance_critical'
+  | 'balance_low_critical' // legacy
+  | 'security_port_exposed'
+  | 'security_ip_changed'
+  | 'welcome';
 
 export interface ReleaseClassification {
   tag: string;
@@ -55,6 +59,10 @@ export interface ValidatorAlertConfig {
   version_alert: boolean;
   expiry_alert: boolean;
   expiry_days: number;
+  balance_alert: boolean;
+  balance_threshold: number;
+  balance_threshold_days: number;
+  security_alert: boolean;
   email: string;
 }
 
@@ -71,6 +79,9 @@ export interface ValidatorAlertResponse {
   expiry_days: number;
   balance_alert: boolean;
   balance_threshold: number;
+  balance_threshold_days: number;
+  security_alert: boolean;
+  last_known_ip: string | null;
   email: string;
   active: boolean;
   created_at: string;
@@ -96,6 +107,8 @@ export interface CreateAlertRequest {
   expiry_days?: number;
   balance_alert?: boolean;
   balance_threshold?: number;
+  balance_threshold_days?: number;
+  security_alert?: boolean;
   email?: string;
 }
 
@@ -108,6 +121,8 @@ export interface UpdateAlertRequest {
   expiry_days?: number;
   balance_alert?: boolean;
   balance_threshold?: number;
+  balance_threshold_days?: number;
+  security_alert?: boolean;
   email?: string;
   active?: boolean;
 }

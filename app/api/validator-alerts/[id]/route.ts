@@ -76,6 +76,15 @@ export async function PUT(
     if (isL1 && body.expiry_alert === true) {
       return NextResponse.json({ error: 'Stake expiry alerts are not available for L1 validators.' }, { status: 400 });
     }
+    if (!isL1 && body.balance_alert === true) {
+      return NextResponse.json({ error: 'Balance alerts are only available for L1 validators.' }, { status: 400 });
+    }
+    if (!isL1 && (body.balance_threshold !== undefined || body.balance_threshold_days !== undefined)) {
+      return NextResponse.json({ error: 'Balance threshold settings are only available for L1 validators.' }, { status: 400 });
+    }
+    if (isL1 && body.security_alert === true) {
+      return NextResponse.json({ error: 'Security checks are currently available for Primary Network validators only.' }, { status: 400 });
+    }
 
     if (body.expiry_alert !== undefined) updateData.expiry_alert = body.expiry_alert;
     if (body.expiry_days !== undefined) {
@@ -86,11 +95,18 @@ export async function PUT(
     }
     if (body.balance_alert !== undefined) updateData.balance_alert = body.balance_alert;
     if (body.balance_threshold !== undefined) {
-      if (body.balance_threshold <= 0) {
+      if (!Number.isFinite(body.balance_threshold) || body.balance_threshold <= 0) {
         return NextResponse.json({ error: 'Balance threshold must be greater than 0.' }, { status: 400 });
       }
       updateData.balance_threshold = body.balance_threshold;
     }
+    if (body.balance_threshold_days !== undefined) {
+      if (!Number.isInteger(body.balance_threshold_days) || body.balance_threshold_days < 1 || body.balance_threshold_days > 365) {
+        return NextResponse.json({ error: 'Balance threshold days must be between 1 and 365.' }, { status: 400 });
+      }
+      updateData.balance_threshold_days = body.balance_threshold_days;
+    }
+    if (body.security_alert !== undefined) updateData.security_alert = body.security_alert;
     if (body.email !== undefined) updateData.email = body.email;
     if (body.active !== undefined) updateData.active = body.active;
 

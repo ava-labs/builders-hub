@@ -8,12 +8,18 @@ import {
   expiryCriticalTemplate,
   balanceLowAlertTemplate,
   balanceCriticalTemplate,
+  welcomeAlertTemplate,
+  securityPortExposedTemplate,
+  securityIpChangedTemplate,
 } from '@/server/templates/validator-alerts';
 import type { ValidatorP2P, AlertType, ReleaseClassification, L1ValidatorData } from '@/types/validator-alerts';
 import { getL1ChainName } from '@/server/services/l1-chain-metadata';
+import net from 'node:net';
 
 const P2P_API_URL = 'https://52.203.183.9.sslip.io/api/validators';
 const GITHUB_RELEASES_URL = 'https://api.github.com/repos/ava-labs/avalanchego/releases';
+const DEFAULT_L1_FEE_MONTHLY_N_AVAX = Number(process.env.L1_VALIDATOR_FEE_MONTHLY_N_AVAX ?? '1330000000');
+const DEFAULT_L1_FEE_DAILY_N_AVAX = DEFAULT_L1_FEE_MONTHLY_N_AVAX / 30;
 
 /**
  * Cooldown periods in hours per alert type.
@@ -30,7 +36,11 @@ export const COOLDOWNS: Record<AlertType, number> = {
   expiry_critical: Infinity, // one-shot — never re-send
   balance_low: 24,
   balance_low_urgent: 12,
+  balance_critical: Infinity, // one-shot
   balance_low_critical: Infinity, // one-shot
+  security_port_exposed: 168, // weekly
+  security_ip_changed: 24,
+  welcome: Infinity, // one-shot
 };
 
 // ---------------------------------------------------------------------------
@@ -168,6 +178,58 @@ function extractACPs(body: string): string[] {
   return [...acps];
 }
 
+function normalizeVersionTag(version: string): string {
+  return version.startsWith('avalanchego/') ? version : `avalanchego/${version}`;
+}
+
+export function estimateL1DaysRemaining(remainingBalance: number): number {
+  if (!Number.isFinite(remainingBalance)) return Infinity;
+  if (!Number.isFinite(DEFAULT_L1_FEE_DAILY_N_AVAX) || DEFAULT_L1_FEE_DAILY_N_AVAX <= 0) return Infinity;
+  return remainingBalance / DEFAULT_L1_FEE_DAILY_N_AVAX;
+}
+
+export function estimateBalanceThresholdDays(alert: AlertRecord): number {
+  if (Number.isFinite(alert.balance_threshold_days) && alert.balance_threshold_days > 0) {
+    return alert.balance_threshold_days;
+  }
+  if (Number.isFinite(alert.balance_threshold) && alert.balance_threshold > 0) {
+    return Math.max(1, Math.round(alert.balance_threshold / DEFAULT_L1_FEE_DAILY_N_AVAX));
+  }
+  return 30;
+}
+
+function isPublicIpv4(ip: string): boolean {
+  const parts = ip.split('.').map((part) => Number(part));
+  if (parts.length !== 4 || parts.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) {
+    return false;
+  }
+  // Skip private, loopback, link-local, and unspecified ranges.
+  if (parts[0] === 10) return false;
+  if (parts[0] === 127) return false;
+  if (parts[0] === 0) return false;
+  if (parts[0] === 169 && parts[1] === 254) return false;
+  if (parts[0] === 192 && parts[1] === 168) return false;
+  if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return false;
+  if (parts[0] >= 224) return false;
+  return true;
+}
+
+async function isTcpPortReachable(host: string, port: number, timeoutMs = 1500): Promise<boolean> {
+  return new Promise((resolve) => {
+    const socket = net.createConnection({ host, port });
+    const onDone = (reachable: boolean) => {
+      socket.removeAllListeners();
+      if (!socket.destroyed) socket.destroy();
+      resolve(reachable);
+    };
+
+    socket.setTimeout(timeoutMs);
+    socket.on('connect', () => onDone(true));
+    socket.on('timeout', () => onDone(false));
+    socket.on('error', () => onDone(false));
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Cooldown check
 // ---------------------------------------------------------------------------
@@ -234,6 +296,118 @@ export async function trySend(
   }
 }
 
+export async function sendWelcomeEmail(
+  alert: AlertRecord,
+  options: {
+    primaryValidator?: ValidatorP2P | null;
+    l1Validator?: L1ValidatorData | null;
+    latestRelease?: ReleaseClassification | null;
+  }
+): Promise<{ sent: number; errors: string[] }> {
+  const errors: string[] = [];
+  const isL1 = alert.subnet_id !== 'primary';
+  const l1Validator = options.l1Validator ?? null;
+  const primaryValidator = options.primaryValidator ?? null;
+  const latestRelease = options.latestRelease ?? null;
+  const currentVersion = isL1
+    ? (l1Validator?.version ? normalizeVersionTag(l1Validator.version) : null)
+    : (primaryValidator?.version ?? null);
+
+  const didSend = await trySend(
+    alert.id,
+    alert.email,
+    'welcome',
+    welcomeAlertTemplate({
+      alertId: alert.id,
+      nodeId: alert.node_id,
+      label: alert.label,
+      subnetId: alert.subnet_id,
+      chainName: getL1ChainName(alert.subnet_id),
+      uptime: primaryValidator?.p50_uptime ?? null,
+      currentVersion,
+      latestVersion: latestRelease?.tag ?? null,
+      expiryDate: primaryValidator?.end_time ?? null,
+      daysLeft: primaryValidator?.days_left ?? null,
+      remainingBalance: l1Validator?.remainingBalance ?? null,
+      balanceDaysRemaining: l1Validator ? estimateL1DaysRemaining(l1Validator.remainingBalance) : null,
+      securityEnabled: alert.security_alert,
+    }),
+    errors,
+    alert.node_id
+  );
+
+  return { sent: didSend ? 1 : 0, errors };
+}
+
+export async function checkSecurityAlerts(
+  alert: AlertRecord,
+  validator: ValidatorP2P
+): Promise<{ sent: number; errors: string[] }> {
+  const errors: string[] = [];
+  let sent = 0;
+
+  if (!alert.security_alert) return { sent, errors };
+  const ip = validator.public_ip?.trim();
+  if (!ip || !isPublicIpv4(ip)) return { sent, errors };
+
+  // 1) Detect IP change and persist the current IP for future comparisons.
+  if (alert.last_known_ip && alert.last_known_ip !== ip) {
+    const didSend = await trySend(
+      alert.id,
+      alert.email,
+      'security_ip_changed',
+      securityIpChangedTemplate({
+        alertId: alert.id,
+        nodeId: alert.node_id,
+        label: alert.label,
+        previousIp: alert.last_known_ip,
+        currentIp: ip,
+      }),
+      errors,
+      alert.node_id
+    );
+    if (didSend) sent++;
+  }
+
+  if (alert.last_known_ip !== ip) {
+    try {
+      await prisma.validatorAlert.update({
+        where: { id: alert.id },
+        data: { last_known_ip: ip },
+      });
+      alert.last_known_ip = ip;
+    } catch (err) {
+      errors.push(`security_ip_persist for ${alert.node_id}: ${err}`);
+    }
+  }
+
+  // 2) Port 9650 reachability check.
+  try {
+    const isExposed = await isTcpPortReachable(ip, 9650);
+    if (isExposed) {
+      const didSend = await trySend(
+        alert.id,
+        alert.email,
+        'security_port_exposed',
+        securityPortExposedTemplate({
+          alertId: alert.id,
+          nodeId: alert.node_id,
+          label: alert.label,
+          ip,
+          port: 9650,
+        }),
+        errors,
+        alert.node_id
+      );
+      if (didSend) sent++;
+    }
+  } catch (err) {
+    errors.push(`security_port_check for ${alert.node_id}: ${err}`);
+  }
+
+  return { sent, errors };
+}
+
 // ---------------------------------------------------------------------------
 // Per-alert check logic (shared between cron and on-create)
 // ---------------------------------------------------------------------------
@@ -251,6 +425,9 @@ interface AlertRecord {
   expiry_days: number;
   balance_alert: boolean;
   balance_threshold: number;
+  balance_threshold_days: number;
+  security_alert: boolean;
+  last_known_ip: string | null;
 }
 
 /**
@@ -418,6 +595,11 @@ export async function checkSingleAlert(
     }
   }
 
+  // --- 4. Security checks ---
+  const securityResult = await checkSecurityAlerts(alert, validator);
+  sent += securityResult.sent;
+  errors.push(...securityResult.errors);
+
   return { sent, errors };
 }
 
@@ -435,7 +617,7 @@ export async function fetchL1Validators(subnetId: string): Promise<L1ValidatorDa
   const data = await res.json();
   if (!Array.isArray(data.validators)) return [];
   return data.validators
-    .filter((v: Record<string, unknown>) => typeof v.remainingBalance === 'number' && (v.remainingBalance as number) > 0)
+    .filter((v: Record<string, unknown>) => Number.isFinite(v.remainingBalance as number) && (v.remainingBalance as number) >= 0)
     .map((v: Record<string, unknown>) => ({
       nodeId: v.nodeId as string,
       weight: (v.weight as number) ?? 0,
@@ -461,9 +643,7 @@ export async function checkL1Alert(
 
   // --- 1. Version check (same logic as Primary Network) ---
   if (alert.version_alert && latestRelease) {
-    const normalizedVersion = validator.version.startsWith('avalanchego/')
-      ? validator.version
-      : `avalanchego/${validator.version}`;
+    const normalizedVersion = normalizeVersionTag(validator.version);
 
     if (normalizedVersion !== latestRelease.tag) {
       if (latestRelease.type === 'mandatory' && latestRelease.deadline) {
@@ -510,28 +690,29 @@ export async function checkL1Alert(
     }
   }
 
-  // --- 2. Balance check (tiered) ---
-  if (alert.balance_alert && validator.remainingBalance <= alert.balance_threshold) {
-    const criticalThreshold = alert.balance_threshold * 0.05;
-    const urgentThreshold = alert.balance_threshold * 0.25;
+  // --- 2. Balance check (tiered by projected days of fee runway) ---
+  const thresholdDays = estimateBalanceThresholdDays(alert);
+  const daysRemaining = estimateL1DaysRemaining(validator.remainingBalance);
+  if (alert.balance_alert && daysRemaining <= thresholdDays) {
+    const urgentDays = Math.max(1, thresholdDays * 0.25);
 
-    if (validator.remainingBalance <= criticalThreshold) {
+    if (daysRemaining <= 7) {
       const didSend = await trySend(
-        alert.id, alert.email, 'balance_low_critical',
+        alert.id, alert.email, 'balance_critical',
         balanceCriticalTemplate({
           alertId: alert.id, nodeId: alert.node_id, label: alert.label,
-          chainName, remainingBalance: validator.remainingBalance,
+          chainName, remainingBalance: validator.remainingBalance, daysRemaining,
         }),
         errors, alert.node_id
       );
       if (didSend) sent++;
-    } else if (validator.remainingBalance <= urgentThreshold) {
+    } else if (daysRemaining <= urgentDays) {
       const didSend = await trySend(
         alert.id, alert.email, 'balance_low_urgent',
         balanceLowAlertTemplate({
           alertId: alert.id, nodeId: alert.node_id, label: alert.label,
           chainName, remainingBalance: validator.remainingBalance,
-          threshold: alert.balance_threshold, urgency: 'urgent',
+          thresholdDays, daysRemaining, urgency: 'urgent',
         }),
         errors, alert.node_id
       );
@@ -542,7 +723,7 @@ export async function checkL1Alert(
         balanceLowAlertTemplate({
           alertId: alert.id, nodeId: alert.node_id, label: alert.label,
           chainName, remainingBalance: validator.remainingBalance,
-          threshold: alert.balance_threshold, urgency: 'notice',
+          thresholdDays, daysRemaining, urgency: 'notice',
         }),
         errors, alert.node_id
       );

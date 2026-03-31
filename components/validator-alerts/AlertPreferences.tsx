@@ -14,14 +14,6 @@ interface AlertPreferencesProps {
   onSave: (id: string, data: UpdateAlertRequest) => Promise<void>;
 }
 
-function formatAvax(nAvax: number): string {
-  return (nAvax / 1_000_000_000).toFixed(2);
-}
-
-function parseAvaxToNAvax(avax: string): number {
-  return Math.round(parseFloat(avax) * 1_000_000_000);
-}
-
 export function AlertPreferences({ alert, onSave }: AlertPreferencesProps) {
   const isL1 = alert.subnet_id !== 'primary';
 
@@ -31,7 +23,8 @@ export function AlertPreferences({ alert, onSave }: AlertPreferencesProps) {
   const [expiryAlert, setExpiryAlert] = useState(alert.expiry_alert);
   const [expiryDays, setExpiryDays] = useState(alert.expiry_days);
   const [balanceAlert, setBalanceAlert] = useState(alert.balance_alert);
-  const [balanceThresholdAvax, setBalanceThresholdAvax] = useState(formatAvax(alert.balance_threshold));
+  const [balanceThresholdDays, setBalanceThresholdDays] = useState(alert.balance_threshold_days ?? 30);
+  const [securityAlert, setSecurityAlert] = useState(alert.security_alert ?? false);
   const [email, setEmail] = useState(alert.email);
   const [saving, setSaving] = useState(false);
 
@@ -42,7 +35,8 @@ export function AlertPreferences({ alert, onSave }: AlertPreferencesProps) {
     expiryAlert !== alert.expiry_alert ||
     expiryDays !== alert.expiry_days ||
     balanceAlert !== alert.balance_alert ||
-    parseAvaxToNAvax(balanceThresholdAvax) !== alert.balance_threshold ||
+    balanceThresholdDays !== (alert.balance_threshold_days ?? 30) ||
+    securityAlert !== (alert.security_alert ?? false) ||
     email !== alert.email;
 
   async function handleSave() {
@@ -54,11 +48,12 @@ export function AlertPreferences({ alert, onSave }: AlertPreferencesProps) {
           uptime_threshold: uptimeThreshold,
           expiry_alert: expiryAlert,
           expiry_days: expiryDays,
+          security_alert: securityAlert,
         }),
         version_alert: versionAlert,
         ...(isL1 ? {
           balance_alert: balanceAlert,
-          balance_threshold: parseAvaxToNAvax(balanceThresholdAvax),
+          balance_threshold_days: Math.max(1, Math.min(365, Math.round(balanceThresholdDays))),
         } : {}),
         email,
       });
@@ -132,7 +127,10 @@ export function AlertPreferences({ alert, onSave }: AlertPreferencesProps) {
                 min={1}
                 max={365}
                 value={expiryDays}
-                onChange={(e) => setExpiryDays(Number(e.target.value))}
+                onChange={(e) => {
+                  const value = Number(e.target.value);
+                  if (Number.isFinite(value)) setExpiryDays(value);
+                }}
                 className="mt-2 w-24 h-8 text-sm"
               />
               <p className="text-xs text-muted-foreground mt-2 italic">
@@ -150,7 +148,7 @@ export function AlertPreferences({ alert, onSave }: AlertPreferencesProps) {
             <div>
               <Label className="text-sm font-medium">Low Balance Alerts</Label>
               <p className="text-xs text-muted-foreground">
-                Alert when validator remaining balance is running low
+                Alert when projected fee runway falls below your threshold
               </p>
             </div>
             <Switch checked={balanceAlert} onCheckedChange={setBalanceAlert} />
@@ -158,21 +156,37 @@ export function AlertPreferences({ alert, onSave }: AlertPreferencesProps) {
           {balanceAlert && (
             <div className="pl-1">
               <Label className="text-xs text-muted-foreground">
-                Alert when balance drops below (AVAX)
+                Alert threshold (days of runway)
               </Label>
               <Input
                 type="number"
-                min={0.01}
-                step={0.01}
-                value={balanceThresholdAvax}
-                onChange={(e) => setBalanceThresholdAvax(e.target.value)}
-                className="mt-2 w-32 h-8 text-sm"
+                min={1}
+                max={365}
+                value={balanceThresholdDays}
+                onChange={(e) => {
+                  const value = Number(e.target.value);
+                  if (Number.isFinite(value)) setBalanceThresholdDays(value);
+                }}
+                className="mt-2 w-28 h-8 text-sm"
               />
               <p className="text-xs text-muted-foreground mt-2 italic">
-                You&apos;ll also receive escalated alerts at 25% and 5% of your threshold.
+                Critical alerts trigger at 7 days or less of projected runway.
               </p>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Security Alert — Primary Network only */}
+      {!isL1 && (
+        <div className="flex items-center justify-between">
+          <div>
+            <Label className="text-sm font-medium">Security Checks</Label>
+            <p className="text-xs text-muted-foreground">
+              Detect public port 9650 exposure and notify on validator IP changes
+            </p>
+          </div>
+          <Switch checked={securityAlert} onCheckedChange={setSecurityAlert} />
         </div>
       )}
 

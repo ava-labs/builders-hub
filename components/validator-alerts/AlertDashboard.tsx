@@ -21,6 +21,7 @@ import {
   Clock,
   GitBranch,
   Wallet,
+  Shield,
 } from 'lucide-react';
 import l1Chains from '@/constants/l1-chains.json';
 import { useLoginModalTrigger, useLoginCompleteListener } from '@/hooks/useLoginModal';
@@ -48,10 +49,6 @@ interface ValidatorP2P {
 function getL1ChainName(subnetId: string): string {
   const chain = (l1Chains as { subnetId: string; chainName: string }[]).find((c) => c.subnetId === subnetId);
   return chain?.chainName ?? `L1 (${subnetId.slice(0, 8)}...)`;
-}
-
-function formatAvax(nAvax: number): string {
-  return (nAvax / 1_000_000_000).toFixed(2);
 }
 
 export function AlertDashboard() {
@@ -313,8 +310,8 @@ export function AlertDashboard() {
             </CardHeader>
 
             <CardContent className="pt-0">
-              {/* Live validator status */}
-              {validator ? (
+              {/* Live validator status (Primary Network only) */}
+              {!isL1 && validator ? (
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-md border border-border bg-muted/40 px-3 py-2 mb-3 text-xs text-muted-foreground">
                   <span className="flex items-center gap-1">
                     <Activity className="h-3 w-3" />
@@ -347,7 +344,7 @@ export function AlertDashboard() {
                     </span>
                   </span>
                 </div>
-              ) : validatorData.size > 0 ? (
+              ) : !isL1 && validatorData.size > 0 ? (
                 <div className="rounded-md border border-border bg-muted/40 px-3 py-2 mb-3 text-xs text-muted-foreground">
                   Not in active set
                 </div>
@@ -384,11 +381,20 @@ export function AlertDashboard() {
                 ))}
                 {isL1 && (alert.balance_alert ? (
                   <Badge variant="outline" className="text-xs gap-1">
-                    <Wallet className="h-3 w-3" /> Balance &lt; {formatAvax(alert.balance_threshold)} AVAX
+                    <Wallet className="h-3 w-3" /> Balance &lt; {alert.balance_threshold_days}d runway
                   </Badge>
                 ) : (
                   <Badge variant="outline" className="text-xs gap-1 opacity-50">
                     <BellOff className="h-3 w-3" /> Balance off
+                  </Badge>
+                ))}
+                {!isL1 && (alert.security_alert ? (
+                  <Badge variant="outline" className="text-xs gap-1">
+                    <Shield className="h-3 w-3" /> Security checks on
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-xs gap-1 opacity-50">
+                    <Shield className="h-3 w-3" /> Security checks off
                   </Badge>
                 ))}
                 {recentAlerts > 0 && (
