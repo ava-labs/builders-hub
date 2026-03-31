@@ -20,7 +20,9 @@ import {
   Activity,
   Clock,
   GitBranch,
+  Wallet,
 } from 'lucide-react';
+import l1Chains from '@/constants/l1-chains.json';
 import { useLoginModalTrigger, useLoginCompleteListener } from '@/hooks/useLoginModal';
 import { toast } from '@/lib/toast';
 import { AddValidatorDialog } from './AddValidatorDialog';
@@ -41,6 +43,15 @@ interface ValidatorP2P {
   end_time: string;
   weight: number;
   total_stake: number;
+}
+
+function getL1ChainName(subnetId: string): string {
+  const chain = (l1Chains as { subnetId: string; chainName: string }[]).find((c) => c.subnetId === subnetId);
+  return chain?.chainName ?? `L1 (${subnetId.slice(0, 8)}...)`;
+}
+
+function formatAvax(nAvax: number): string {
+  return (nAvax / 1_000_000_000).toFixed(2);
 }
 
 export function AlertDashboard() {
@@ -239,6 +250,7 @@ export function AlertDashboard() {
         const isExpanded = expandedId === alert.id;
         const recentAlerts = alert.alert_logs.length;
         const validator = validatorData.get(alert.node_id);
+        const isL1 = alert.subnet_id !== 'primary';
         return (
           <Card key={alert.id} className="overflow-hidden">
             <CardHeader className="pb-3">
@@ -248,6 +260,11 @@ export function AlertDashboard() {
                     <CardTitle className="text-base font-mono truncate">
                       {alert.label ?? alert.node_id}
                     </CardTitle>
+                    {isL1 && (
+                      <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400 border-blue-200 dark:border-blue-800">
+                        {getL1ChainName(alert.subnet_id)}
+                      </Badge>
+                    )}
                     {!alert.active && (
                       <Badge variant="secondary" className="text-xs">
                         Paused
@@ -338,7 +355,7 @@ export function AlertDashboard() {
 
               {/* Status badges */}
               <div className="flex flex-wrap gap-2 mb-3">
-                {alert.uptime_alert ? (
+                {!isL1 && (alert.uptime_alert ? (
                   <Badge variant="outline" className="text-xs gap-1">
                     <Bell className="h-3 w-3" /> Uptime &lt; {alert.uptime_threshold}%
                   </Badge>
@@ -346,7 +363,7 @@ export function AlertDashboard() {
                   <Badge variant="outline" className="text-xs gap-1 opacity-50">
                     <BellOff className="h-3 w-3" /> Uptime off
                   </Badge>
-                )}
+                ))}
                 {alert.version_alert ? (
                   <Badge variant="outline" className="text-xs gap-1">
                     <Bell className="h-3 w-3" /> AvalancheGo Upgrade
@@ -356,7 +373,7 @@ export function AlertDashboard() {
                     <BellOff className="h-3 w-3" /> Upgrade off
                   </Badge>
                 )}
-                {alert.expiry_alert ? (
+                {!isL1 && (alert.expiry_alert ? (
                   <Badge variant="outline" className="text-xs gap-1">
                     <Bell className="h-3 w-3" /> Expiry &lt; {alert.expiry_days}d
                   </Badge>
@@ -364,7 +381,16 @@ export function AlertDashboard() {
                   <Badge variant="outline" className="text-xs gap-1 opacity-50">
                     <BellOff className="h-3 w-3" /> Expiry off
                   </Badge>
-                )}
+                ))}
+                {isL1 && (alert.balance_alert ? (
+                  <Badge variant="outline" className="text-xs gap-1">
+                    <Wallet className="h-3 w-3" /> Balance &lt; {formatAvax(alert.balance_threshold)} AVAX
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-xs gap-1 opacity-50">
+                    <BellOff className="h-3 w-3" /> Balance off
+                  </Badge>
+                ))}
                 {recentAlerts > 0 && (
                   <Badge variant="secondary" className="text-xs gap-1">
                     <AlertTriangle className="h-3 w-3" /> {recentAlerts} recent

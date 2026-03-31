@@ -66,12 +66,30 @@ export async function PUT(
       updateData.uptime_threshold = body.uptime_threshold;
     }
     if (body.version_alert !== undefined) updateData.version_alert = body.version_alert;
+
+    const isL1 = existing.subnet_id !== 'primary';
+
+    // L1 validators don't have uptime or expiry — reject attempts to enable
+    if (isL1 && body.uptime_alert === true) {
+      return NextResponse.json({ error: 'Uptime alerts are not available for L1 validators.' }, { status: 400 });
+    }
+    if (isL1 && body.expiry_alert === true) {
+      return NextResponse.json({ error: 'Stake expiry alerts are not available for L1 validators.' }, { status: 400 });
+    }
+
     if (body.expiry_alert !== undefined) updateData.expiry_alert = body.expiry_alert;
     if (body.expiry_days !== undefined) {
       if (body.expiry_days < 1 || body.expiry_days > 365) {
         return NextResponse.json({ error: 'Expiry days must be between 1 and 365.' }, { status: 400 });
       }
       updateData.expiry_days = body.expiry_days;
+    }
+    if (body.balance_alert !== undefined) updateData.balance_alert = body.balance_alert;
+    if (body.balance_threshold !== undefined) {
+      if (body.balance_threshold <= 0) {
+        return NextResponse.json({ error: 'Balance threshold must be greater than 0.' }, { status: 400 });
+      }
+      updateData.balance_threshold = body.balance_threshold;
     }
     if (body.email !== undefined) updateData.email = body.email;
     if (body.active !== undefined) updateData.active = body.active;

@@ -18,6 +18,15 @@ export interface ValidatorP2P {
   block_count_14d: number;
 }
 
+export interface L1ValidatorData {
+  nodeId: string;
+  weight: number;
+  remainingBalance: number;
+  version: string;
+  creationTimestamp?: number;
+  validationId?: string;
+}
+
 export type AlertType =
   | 'uptime'
   | 'version_mandatory'
@@ -26,7 +35,10 @@ export type AlertType =
   | 'version_optional'
   | 'expiry'
   | 'expiry_urgent'
-  | 'expiry_critical';
+  | 'expiry_critical'
+  | 'balance_low'
+  | 'balance_low_urgent'
+  | 'balance_low_critical';
 
 export interface ReleaseClassification {
   tag: string;
@@ -50,12 +62,15 @@ export interface ValidatorAlertResponse {
   id: string;
   user_id: string;
   node_id: string;
+  subnet_id: string;
   label: string | null;
   uptime_alert: boolean;
   uptime_threshold: number;
   version_alert: boolean;
   expiry_alert: boolean;
   expiry_days: number;
+  balance_alert: boolean;
+  balance_threshold: number;
   email: string;
   active: boolean;
   created_at: string;
@@ -65,19 +80,22 @@ export interface ValidatorAlertResponse {
 
 export interface AlertLogResponse {
   id: string;
-  alert_type: AlertType;
+  alert_type: string;
   message: string;
   sent_at: string;
 }
 
 export interface CreateAlertRequest {
   node_id: string;
+  subnet_id?: string;
   label?: string;
   uptime_alert?: boolean;
   uptime_threshold?: number;
   version_alert?: boolean;
   expiry_alert?: boolean;
   expiry_days?: number;
+  balance_alert?: boolean;
+  balance_threshold?: number;
   email?: string;
 }
 
@@ -88,6 +106,8 @@ export interface UpdateAlertRequest {
   version_alert?: boolean;
   expiry_alert?: boolean;
   expiry_days?: number;
+  balance_alert?: boolean;
+  balance_threshold?: number;
   email?: string;
   active?: boolean;
 }

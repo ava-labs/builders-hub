@@ -287,3 +287,88 @@ export function expiryCriticalTemplate(params: {
   );
   return { subject, html, text };
 }
+
+// ---------------------------------------------------------------------------
+// L1 Validator Balance Alert (tiered: notice / urgent)
+// ---------------------------------------------------------------------------
+
+function formatAvax(nAvax: number): string {
+  return (nAvax / 1_000_000_000).toFixed(2);
+}
+
+export function balanceLowAlertTemplate(params: {
+  alertId: string;
+  nodeId: string;
+  label: string | null;
+  chainName: string;
+  remainingBalance: number;
+  threshold: number;
+  urgency: 'notice' | 'urgent';
+}): { subject: string; html: string; text: string } {
+  const name = params.label ? `${params.label} (${params.nodeId})` : params.nodeId;
+  const balanceAvax = formatAvax(params.remainingBalance);
+  const thresholdAvax = formatAvax(params.threshold);
+  const prefix = params.urgency === 'urgent' ? '⚠️ ' : '';
+  const subject = `${prefix}Low Balance: ${params.chainName} validator — ${balanceAvax} AVAX remaining`;
+  const text = `${prefix}Your L1 validator ${name} on ${params.chainName} has ${balanceAvax} AVAX remaining (threshold: ${thresholdAvax} AVAX). Top up to avoid deactivation.`;
+
+  const borderColor = params.urgency === 'urgent' ? '#EF4444' : '#F59E0B';
+  const heading = params.urgency === 'urgent'
+    ? 'Your L1 validator balance is critically low'
+    : 'Your L1 validator balance is running low';
+  const cooldown = params.urgency === 'urgent' ? '12 hours' : '24 hours';
+
+  const html = wrapTemplate(
+    `${prefix}L1 Validator Balance Alert`,
+    section(
+      borderColor,
+      heading,
+      dataTable(
+        dataRow('Validator', name, 'white') +
+        dataRow('L1 Chain', params.chainName, '#89B4FA') +
+        dataRow('Remaining Balance', `${balanceAvax} AVAX`, borderColor) +
+        dataRow('Alert Threshold', `${thresholdAvax} AVAX`, '#D1D5DB')
+      ) +
+      `<p style="font-size: 13px; margin: 12px 0 0 0;">View on explorer: ${explorerLink(params.nodeId)}</p>`,
+      `We'll alert you again in ${cooldown} if balance is not topped up.`
+    ),
+    borderColor,
+    params.alertId
+  );
+  return { subject, html, text };
+}
+
+// ---------------------------------------------------------------------------
+// L1 Validator Balance — Critical (< 5% of threshold)
+// ---------------------------------------------------------------------------
+
+export function balanceCriticalTemplate(params: {
+  alertId: string;
+  nodeId: string;
+  label: string | null;
+  chainName: string;
+  remainingBalance: number;
+}): { subject: string; html: string; text: string } {
+  const name = params.label ? `${params.label} (${params.nodeId})` : params.nodeId;
+  const balanceAvax = formatAvax(params.remainingBalance);
+  const subject = `🚨 Validator Nearly Empty: ${params.chainName} — ${balanceAvax} AVAX left`;
+  const text = `CRITICAL: Your L1 validator ${name} on ${params.chainName} has only ${balanceAvax} AVAX remaining. Immediate top-up required to prevent deactivation.`;
+  const html = wrapTemplate(
+    '🚨 L1 Validator Balance Critical',
+    section(
+      '#EF4444',
+      'Immediate action required — your validator is nearly out of balance',
+      dataTable(
+        dataRow('Validator', name, 'white') +
+        dataRow('L1 Chain', params.chainName, '#89B4FA') +
+        dataRow('Remaining Balance', `${balanceAvax} AVAX`, '#EF4444')
+      ) +
+      `<p style="font-size: 13px; color: #EF4444; margin: 12px 0 0 0; font-weight: bold;">Your validator will be deactivated when balance reaches zero.</p>` +
+      `<p style="font-size: 13px; margin: 8px 0 0 0;">View on explorer: ${explorerLink(params.nodeId)}</p>`,
+      'This is a final reminder — no further balance alerts will be sent for this validator.'
+    ),
+    '#EF4444',
+    params.alertId
+  );
+  return { subject, html, text };
+}

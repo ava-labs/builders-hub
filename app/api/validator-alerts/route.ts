@@ -3,6 +3,7 @@ import { getAuthSession } from '@/lib/auth/authSession';
 import { prisma } from '@/prisma/prisma';
 import type { CreateAlertRequest, ValidatorP2P } from '@/types/validator-alerts';
 import { fetchLatestRelease, checkSingleAlert } from '@/server/services/validator-alert-check';
+import { getAllMainnetSubnetIds } from '@/server/services/l1-chain-metadata';
 
 const NODE_ID_REGEX = /^NodeID-[A-HJ-NP-Za-km-z1-9]{33,}$/;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -58,6 +59,9 @@ export async function POST(req: NextRequest) {
     if (body.expiry_days !== undefined && (body.expiry_days < 1 || body.expiry_days > 365)) {
       return NextResponse.json({ error: 'Expiry days must be between 1 and 365.' }, { status: 400 });
     }
+    if (body.balance_threshold !== undefined && body.balance_threshold <= 0) {
+      return NextResponse.json({ error: 'Balance threshold must be greater than 0.' }, { status: 400 });
+    }
     if (body.email !== undefined && !EMAIL_REGEX.test(body.email)) {
       return NextResponse.json({ error: 'Invalid email address.' }, { status: 400 });
     }
@@ -67,21 +71,51 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'A valid email address is required.' }, { status: 400 });
     }
 
-    // Verify the node exists via upstream API (outside transaction — network call)
+    // Verify the node exists — check Primary Network first, then L1 subnets
+    let detectedSubnetId = 'primary';
+    let validators: ValidatorP2P[] = [];
+
     const upstreamRes = await fetch(P2P_API_URL);
-    if (!upstreamRes.ok) {
-      return NextResponse.json({ error: 'Failed to verify validator. Please try again.' }, { status: 502 });
+    if (upstreamRes.ok) {
+      validators = await upstreamRes.json();
     }
-    const validators = await upstreamRes.json();
-    const validatorExists = Array.isArray(validators) && validators.some(
+
+    const isPrimaryValidator = Array.isArray(validators) && validators.some(
       (v: { node_id: string }) => v.node_id === body.node_id
     );
-    if (!validatorExists) {
-      return NextResponse.json(
-        { error: `Validator ${body.node_id} not found in the active validator set.` },
-        { status: 404 }
-      );
+
+    if (!isPrimaryValidator) {
+      // Not on Primary Network — search L1 subnets
+      const subnetIds = getAllMainnetSubnetIds();
+      let foundOnL1 = false;
+
+      for (const subnetId of subnetIds) {
+        try {
+          const l1Res = await fetch(`${req.nextUrl.origin}/api/chain-validators/${subnetId}`);
+          if (!l1Res.ok) continue;
+          const l1Data = await l1Res.json();
+          const match = Array.isArray(l1Data.validators) && l1Data.validators.some(
+            (v: { nodeId: string }) => v.nodeId === body.node_id
+          );
+          if (match) {
+            detectedSubnetId = subnetId;
+            foundOnL1 = true;
+            break;
+          }
+        } catch {
+          continue;
+        }
+      }
+
+      if (!foundOnL1) {
+        return NextResponse.json(
+          { error: `Validator ${body.node_id} not found in the Primary Network or any known L1.` },
+          { status: 404 }
+        );
+      }
     }
+
+    const isL1 = detectedSubnetId !== 'primary';
 
     // Rate limiting + duplicate check + create in a serializable transaction
     // to prevent concurrent requests from bypassing limits
@@ -103,7 +137,7 @@ export async function POST(req: NextRequest) {
       }
 
       const existing = await tx.validatorAlert.findUnique({
-        where: { user_id_node_id: { user_id: userId, node_id: body.node_id } },
+        where: { user_id_node_id_subnet_id: { user_id: userId, node_id: body.node_id, subnet_id: detectedSubnetId } },
       });
       if (existing) {
         return { error: 'You already have an alert configured for this validator.', status: 409 };
@@ -113,12 +147,16 @@ export async function POST(req: NextRequest) {
         data: {
           user_id: userId,
           node_id: body.node_id,
+          subnet_id: detectedSubnetId,
           label: body.label ?? null,
-          uptime_alert: body.uptime_alert ?? true,
+          // L1 validators don't have uptime or fixed expiry
+          uptime_alert: isL1 ? false : (body.uptime_alert ?? true),
           uptime_threshold: body.uptime_threshold ?? 95,
           version_alert: body.version_alert ?? true,
-          expiry_alert: body.expiry_alert ?? true,
+          expiry_alert: isL1 ? false : (body.expiry_alert ?? true),
           expiry_days: body.expiry_days ?? 7,
+          balance_alert: isL1 ? (body.balance_alert ?? true) : false,
+          balance_threshold: body.balance_threshold ?? 5_000_000_000,
           email,
         },
         include: { alert_logs: true },

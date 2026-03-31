@@ -6,8 +6,11 @@ import {
   versionOptionalTemplate,
   expiryAlertTemplate,
   expiryCriticalTemplate,
+  balanceLowAlertTemplate,
+  balanceCriticalTemplate,
 } from '@/server/templates/validator-alerts';
-import type { ValidatorP2P, AlertType, ReleaseClassification } from '@/types/validator-alerts';
+import type { ValidatorP2P, AlertType, ReleaseClassification, L1ValidatorData } from '@/types/validator-alerts';
+import { getL1ChainName } from '@/server/services/l1-chain-metadata';
 
 const P2P_API_URL = 'https://52.203.183.9.sslip.io/api/validators';
 const GITHUB_RELEASES_URL = 'https://api.github.com/repos/ava-labs/avalanchego/releases';
@@ -25,6 +28,9 @@ export const COOLDOWNS: Record<AlertType, number> = {
   expiry: 24,
   expiry_urgent: 6, // every 6 hours in the last 24 hours
   expiry_critical: Infinity, // one-shot — never re-send
+  balance_low: 24,
+  balance_low_urgent: 12,
+  balance_low_critical: Infinity, // one-shot
 };
 
 // ---------------------------------------------------------------------------
@@ -235,6 +241,7 @@ export async function trySend(
 interface AlertRecord {
   id: string;
   node_id: string;
+  subnet_id: string;
   email: string;
   label: string | null;
   uptime_alert: boolean;
@@ -242,6 +249,8 @@ interface AlertRecord {
   version_alert: boolean;
   expiry_alert: boolean;
   expiry_days: number;
+  balance_alert: boolean;
+  balance_threshold: number;
 }
 
 /**
@@ -404,6 +413,138 @@ export async function checkSingleAlert(
         }),
         errors,
         alert.node_id
+      );
+      if (didSend) sent++;
+    }
+  }
+
+  return { sent, errors };
+}
+
+// ---------------------------------------------------------------------------
+// L1 validator data fetching
+// ---------------------------------------------------------------------------
+
+const CHAIN_VALIDATORS_BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://build.avax.network';
+
+export async function fetchL1Validators(subnetId: string): Promise<L1ValidatorData[]> {
+  const res = await fetch(`${CHAIN_VALIDATORS_BASE}/api/chain-validators/${subnetId}`, {
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`chain-validators API returned ${res.status} for ${subnetId}`);
+  const data = await res.json();
+  if (!Array.isArray(data.validators)) return [];
+  return data.validators
+    .filter((v: Record<string, unknown>) => typeof v.remainingBalance === 'number' && (v.remainingBalance as number) > 0)
+    .map((v: Record<string, unknown>) => ({
+      nodeId: v.nodeId as string,
+      weight: (v.weight as number) ?? 0,
+      remainingBalance: v.remainingBalance as number,
+      version: (v.version as string) ?? 'Unknown',
+      creationTimestamp: v.creationTimestamp as number | undefined,
+      validationId: v.validationId as string | undefined,
+    }));
+}
+
+// ---------------------------------------------------------------------------
+// Per-alert check logic for L1 validators
+// ---------------------------------------------------------------------------
+
+export async function checkL1Alert(
+  alert: AlertRecord,
+  validator: L1ValidatorData,
+  latestRelease: ReleaseClassification | null,
+): Promise<{ sent: number; errors: string[] }> {
+  let sent = 0;
+  const errors: string[] = [];
+  const chainName = getL1ChainName(alert.subnet_id);
+
+  // --- 1. Version check (same logic as Primary Network) ---
+  if (alert.version_alert && latestRelease) {
+    const normalizedVersion = validator.version.startsWith('avalanchego/')
+      ? validator.version
+      : `avalanchego/${validator.version}`;
+
+    if (normalizedVersion !== latestRelease.tag) {
+      if (latestRelease.type === 'mandatory' && latestRelease.deadline) {
+        const hoursToDeadline = (latestRelease.deadline.getTime() - Date.now()) / 3_600_000;
+        let alertType: AlertType;
+        if (hoursToDeadline <= 24) alertType = 'version_mandatory_critical';
+        else if (hoursToDeadline <= 72) alertType = 'version_mandatory_urgent';
+        else alertType = 'version_mandatory';
+
+        const didSend = await trySend(
+          alert.id, alert.email, alertType,
+          versionMandatoryTemplate({
+            alertId: alert.id, nodeId: alert.node_id, label: alert.label,
+            currentVersion: normalizedVersion, requiredVersion: latestRelease.tag,
+            deadline: latestRelease.deadline, acps: latestRelease.acps,
+            urgency: alertType === 'version_mandatory_critical' ? 'critical'
+              : alertType === 'version_mandatory_urgent' ? 'urgent' : 'notice',
+          }),
+          errors, alert.node_id
+        );
+        if (didSend) sent++;
+      } else if (latestRelease.type === 'mandatory') {
+        const didSend = await trySend(
+          alert.id, alert.email, 'version_optional',
+          versionOptionalTemplate({
+            alertId: alert.id, nodeId: alert.node_id, label: alert.label,
+            currentVersion: normalizedVersion, latestVersion: latestRelease.tag,
+            maybeMandatory: true,
+          }),
+          errors, alert.node_id
+        );
+        if (didSend) sent++;
+      } else {
+        const didSend = await trySend(
+          alert.id, alert.email, 'version_optional',
+          versionOptionalTemplate({
+            alertId: alert.id, nodeId: alert.node_id, label: alert.label,
+            currentVersion: normalizedVersion, latestVersion: latestRelease.tag,
+          }),
+          errors, alert.node_id
+        );
+        if (didSend) sent++;
+      }
+    }
+  }
+
+  // --- 2. Balance check (tiered) ---
+  if (alert.balance_alert && validator.remainingBalance <= alert.balance_threshold) {
+    const criticalThreshold = alert.balance_threshold * 0.05;
+    const urgentThreshold = alert.balance_threshold * 0.25;
+
+    if (validator.remainingBalance <= criticalThreshold) {
+      const didSend = await trySend(
+        alert.id, alert.email, 'balance_low_critical',
+        balanceCriticalTemplate({
+          alertId: alert.id, nodeId: alert.node_id, label: alert.label,
+          chainName, remainingBalance: validator.remainingBalance,
+        }),
+        errors, alert.node_id
+      );
+      if (didSend) sent++;
+    } else if (validator.remainingBalance <= urgentThreshold) {
+      const didSend = await trySend(
+        alert.id, alert.email, 'balance_low_urgent',
+        balanceLowAlertTemplate({
+          alertId: alert.id, nodeId: alert.node_id, label: alert.label,
+          chainName, remainingBalance: validator.remainingBalance,
+          threshold: alert.balance_threshold, urgency: 'urgent',
+        }),
+        errors, alert.node_id
+      );
+      if (didSend) sent++;
+    } else {
+      const didSend = await trySend(
+        alert.id, alert.email, 'balance_low',
+        balanceLowAlertTemplate({
+          alertId: alert.id, nodeId: alert.node_id, label: alert.label,
+          chainName, remainingBalance: validator.remainingBalance,
+          threshold: alert.balance_threshold, urgency: 'notice',
+        }),
+        errors, alert.node_id
       );
       if (didSend) sent++;
     }
