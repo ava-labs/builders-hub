@@ -18,7 +18,7 @@ import {
 } from '@/types/hackathon-stage'
 import { HackathonHeader } from '@/types/hackathons'
 import { X } from 'lucide-react'
-import TeamCollaborationPanel from './team-collaboration-panel'
+import TeamMembersWrapper from './team-members-wrapper'
 
 type StageSubmitValues = Record<string, string | string[]>
 
@@ -459,10 +459,15 @@ export default function StageSubmitPageContent({
               <h3 className='font-medium  text-lg md:text-xl' id='team'>
                 Team &amp; Collaboration
               </h3>
-              <TeamCollaborationPanel
-                hackathonTitle={hackathon.title}
-                currentUserName={'Current user'}
-                currentUserEmail={''}
+              <TeamMembersWrapper
+                hackathonId={hackathon.id}
+                projectId={''}
+                teamName={''}
+                userId={''}
+                stage={0}
+                userEmail={''}
+                userName={''}
+                availableTracks={hackathon.content.tracks}
               />
             </section>
           </TabsContent>
