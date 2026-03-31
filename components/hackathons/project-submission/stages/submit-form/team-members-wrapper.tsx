@@ -9,24 +9,25 @@ type Props = {
   projectId: string
   hackathonId: string
   userId: string
-  teamName: string
   stage: number
   userEmail: string
   userName: string
   availableTracks: Track[]
 }
 
-export default function TeamMembersWrapper({ hackathonId, projectId, teamName, userId, stage, userEmail, userName, availableTracks }: Props): React.JSX.Element {
+export default function TeamMembersWrapper({ hackathonId, projectId, userId, stage, userEmail, userName, availableTracks }: Props): React.JSX.Element {
   const { state: projectState, dispatch } = useProjectSubmission();
   const invitationLink = ''
-  const { hackathon, project, timeLeft, getProject } = useHackathonProject(
+  const { hackathon, project, timeLeft} = useHackathonProject(
     hackathonId as string,
     invitationLink as string
   );
   const { handleSaveWithoutRoute } = useSubmissionFormSecure();
 
+
   const openCurrentProject = projectState.openCurrentProject;
   const openJoinTeamDialog = projectState.openJoinTeam;
+  const teamName = projectState.teamName;
 
 
   return (
@@ -49,7 +50,7 @@ export default function TeamMembersWrapper({ hackathonId, projectId, teamName, u
       }
       currentEmail={userEmail}
       currentUserName={userName}
-      onProjectCreated={getProject}
+      onProjectCreated={undefined}
       onHandleSave={async () => {
         await handleSaveWithoutRoute();
       }}

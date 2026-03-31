@@ -462,11 +462,10 @@ export default function StageSubmitPageContent({
               <TeamMembersWrapper
                 hackathonId={hackathon.id}
                 projectId={''}
-                teamName={''}
-                userId={''}
+                userId={'123'}
                 stage={0}
-                userEmail={''}
-                userName={''}
+                userEmail={'team@voyager.com'}
+                userName={'voyager'}
                 availableTracks={hackathon.content.tracks}
               />
             </section>

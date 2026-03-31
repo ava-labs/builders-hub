@@ -4,6 +4,7 @@ import { getAuthSession } from '@/lib/auth/authSession'
 import { getRegisterForm } from '@/server/services/registerForms'
 import { getUserById } from '@/server/services/getUser'
 import StageSubmitPageContent from '@/components/hackathons/project-submission/stages/submit-form/page-content'
+import { ProjectSubmissionProvider } from '@/components/hackathons/project-submission/context/ProjectSubmissionContext'
 
 type SubmitPageProps = {
   params: Promise<{ id: string }>
@@ -48,19 +49,21 @@ export default async function HackathonSubmitPage({
   const hackathonCreator = await getUserById(hackathon.created_by)
 
   return (
-    <main className="container py-4 sm:px-2 lg:py-16">
-      <div className="mt-8 px-4">
-        <StageSubmitPageContent
-          hackathon={hackathon}
-          hackathonCreator={hackathonCreator}
-          stage={stage}
-          stageIndex={stageIndex}
-          onSubmit={async (payload) => {
-            'use server'
-            console.log(payload)
-          }}
-        />
-      </div>
-    </main>
+    <ProjectSubmissionProvider>
+      <main className="container py-4 sm:px-2 lg:py-16">
+        <div className="mt-8 px-4">
+          <StageSubmitPageContent
+            hackathon={hackathon}
+            hackathonCreator={hackathonCreator}
+            stage={stage}
+            stageIndex={stageIndex}
+            onSubmit={async (payload) => {
+              'use server'
+              console.log(payload)
+            }}
+          />
+        </div>
+      </main>
+    </ProjectSubmissionProvider>
   )
 }
