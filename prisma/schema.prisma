@@ -460,6 +460,7 @@ model ValidatorAlert {
   balance_threshold_days Int            @default(30)
   security_alert   Boolean              @default(false)
   last_known_ip    String?
+  last_security_check_at DateTime?      @db.Timestamptz(3)
   email             String
   active            Boolean             @default(true)
   created_at        DateTime            @default(now()) @db.Timestamptz(3)

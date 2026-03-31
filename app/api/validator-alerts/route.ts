@@ -154,9 +154,6 @@ export async function POST(req: NextRequest) {
     const isL1 = detectedSubnetId !== 'primary';
     const primaryValidator = validators.find((v: ValidatorP2P) => v.node_id === body.node_id) ?? null;
 
-    if (isL1 && body.security_alert === true) {
-      return NextResponse.json({ error: 'Security checks are currently available for Primary Network validators only.' }, { status: 400 });
-    }
     if (!isL1 && body.balance_alert === true) {
       return NextResponse.json({ error: 'Balance alerts are only available for L1 validators.' }, { status: 400 });
     }

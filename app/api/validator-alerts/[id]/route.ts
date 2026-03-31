@@ -3,6 +3,8 @@ import { getAuthSession } from '@/lib/auth/authSession';
 import { prisma } from '@/prisma/prisma';
 import type { UpdateAlertRequest } from '@/types/validator-alerts';
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 async function getOwnedAlert(alertId: string, userId: string) {
   return prisma.validatorAlert.findFirst({
     where: { id: alertId, user_id: userId },
@@ -107,7 +109,12 @@ export async function PUT(
       updateData.balance_threshold_days = body.balance_threshold_days;
     }
     if (body.security_alert !== undefined) updateData.security_alert = body.security_alert;
-    if (body.email !== undefined) updateData.email = body.email;
+    if (body.email !== undefined) {
+      if (!EMAIL_REGEX.test(body.email)) {
+        return NextResponse.json({ error: 'Invalid email address.' }, { status: 400 });
+      }
+      updateData.email = body.email;
+    }
     if (body.active !== undefined) updateData.active = body.active;
 
     const alert = await prisma.validatorAlert.update({

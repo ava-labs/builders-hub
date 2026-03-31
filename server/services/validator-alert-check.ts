@@ -381,28 +381,45 @@ export async function checkSecurityAlerts(
     }
   }
 
-  // 2) Port 9650 reachability check.
-  try {
-    const isExposed = await isTcpPortReachable(ip, 9650);
-    if (isExposed) {
-      const didSend = await trySend(
-        alert.id,
-        alert.email,
-        'security_port_exposed',
-        securityPortExposedTemplate({
-          alertId: alert.id,
-          nodeId: alert.node_id,
-          label: alert.label,
-          ip,
-          port: 9650,
-        }),
-        errors,
-        alert.node_id
-      );
-      if (didSend) sent++;
+  // 2) Port 9650 reachability check (at most once per week per alert).
+  const weekMs = 7 * 24 * 60 * 60 * 1000;
+  const now = Date.now();
+  const shouldProbePort = !alert.last_security_check_at || (now - alert.last_security_check_at.getTime()) >= weekMs;
+
+  if (shouldProbePort) {
+    try {
+      const isExposed = await isTcpPortReachable(ip, 9650);
+      if (isExposed) {
+        const didSend = await trySend(
+          alert.id,
+          alert.email,
+          'security_port_exposed',
+          securityPortExposedTemplate({
+            alertId: alert.id,
+            nodeId: alert.node_id,
+            label: alert.label,
+            ip,
+            port: 9650,
+          }),
+          errors,
+          alert.node_id
+        );
+        if (didSend) sent++;
+      }
+    } catch (err) {
+      errors.push(`security_port_check for ${alert.node_id}: ${err}`);
+    } finally {
+      try {
+        const checkedAt = new Date(now);
+        await prisma.validatorAlert.update({
+          where: { id: alert.id },
+          data: { last_security_check_at: checkedAt },
+        });
+        alert.last_security_check_at = checkedAt;
+      } catch (err) {
+        errors.push(`security_probe_persist for ${alert.node_id}: ${err}`);
+      }
     }
-  } catch (err) {
-    errors.push(`security_port_check for ${alert.node_id}: ${err}`);
   }
 
   return { sent, errors };
@@ -428,6 +445,7 @@ interface AlertRecord {
   balance_threshold_days: number;
   security_alert: boolean;
   last_known_ip: string | null;
+  last_security_check_at: Date | null;
 }
 
 /**
