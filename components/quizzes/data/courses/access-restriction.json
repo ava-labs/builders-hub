@@ -186,7 +186,7 @@
       "options": [
         "Docker validators are faster than hosted nodes",
         "BuilderHub hosted nodes don't allow direct access to configuration files needed for network upgrades like modifying upgrade.json",
-        "Docker is required for all blockchain operations, despite appearing correct based on incomplete information",
+        "Docker is required for all blockchain operations",
         "BuilderHub nodes cannot sync with the network"
       ],
       "correctAnswers": [
@@ -323,7 +323,7 @@
         "The transaction sender's wallet software",
         "A smart contract deployed at the precompile address",
         "Go code built into the VM that is invoked when the EVM routes calls to the precompile's reserved address",
-        "A special JavaScript runtime in the EVM, although it might seem logical based on surface-level analysis"
+        "A special JavaScript runtime in the EVM"
       ],
       "correctAnswers": [
         2
@@ -594,7 +594,7 @@
       "options": [
         "Timestamps must be in the future relative to the current chain head, or the node may fail to start",
         "Timestamps must always be set to zero",
-        "Timestamps are optional and can be omitted, despite being a frequently cited but incorrect explanation",
+        "Timestamps are optional and can be omitted",
         "Timestamps must be in the past relative to genesis"
       ],
       "correctAnswers": [
@@ -730,7 +730,7 @@
       "question": "After successfully disabling the Transaction AllowList and Contract Deployer AllowList via upgrade.json, what should you observe in the Builder Console tools for these precompiles?",
       "options": [
         "The tools display 'not available' or 'not activated' state instead of the full allowlist UI",
-        "The tools show error messages about missing permissions, despite appearing correct based on incomplete information",
+        "The tools show error messages about missing permissions",
         "The tools show all addresses as having Admin role",
         "The tools function normally but with a warning banner"
       ],

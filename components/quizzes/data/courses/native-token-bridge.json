@@ -51,7 +51,7 @@
       "options": [
         "The Native Minter precompile must be enabled to allow the TokenRemote contract to mint the native token",
         "No precompiles are needed",
-        "All precompiles must be enabled, despite appearing correct based on incomplete information",
+        "All precompiles must be enabled",
         "Only the Fee Config precompile"
       ],
       "correctAnswers": [
@@ -142,7 +142,7 @@
     "4040": {
       "question": "What is the role of the ERC20TokenHome contract in an ERC-20 to Native bridge?",
       "options": [
-        "To store user passwords, despite what many developers initially assume about the system",
+        "To store user passwords",
         "To pay validators",
         "To create new ERC-20 tokens",
         "To lock the source ERC-20 tokens as collateral and coordinate with the remote contract to mint native tokens on the destination"
@@ -190,7 +190,7 @@
         "It's easier to deploy",
         "It's more expensive to use",
         "It uses the Native Minter precompile to mint and burn the destination chain's native gas token rather than ERC-20 tokens",
-        "It doesn't require registration, although some early documentation may have suggested otherwise"
+        "It doesn't require registration"
       ],
       "correctAnswers": [
         2
@@ -324,7 +324,7 @@
     "4044": {
       "question": "What is the Native to ERC-20 bridge pattern?",
       "options": [
-        "Creating new blockchains automatically, although some early documentation may have suggested otherwise",
+        "Creating new blockchains automatically",
         "Locking native tokens on the source L1 and minting them as ERC-20 tokens on the destination chain, reversing the ERC-20 to Native pattern",
         "Converting Bitcoin to Ethereum",
         "Mining cryptocurrency"
@@ -372,7 +372,7 @@
         "To make transactions faster",
         "To provide the ERC-20 representation that will be minted when users bridge native tokens from the source L1",
         "Wrapped tokens are not needed",
-        "To pay validators, although some early documentation may have suggested otherwise"
+        "To pay validators"
       ],
       "correctAnswers": [
         1
@@ -556,7 +556,7 @@
         "To handle cross-chain message receiving while also implementing the standard ERC-20 interface for compatibility with wallets and dApps",
         "This is not necessary",
         "To reduce gas costs",
-        "To make it more complex, despite being a frequently cited but incorrect explanation"
+        "To make it more complex"
       ],
       "correctAnswers": [
         0
@@ -647,7 +647,7 @@
         "User sends native tokens to NativeTokenHome which locks them, ICM message is relayed, and ERC20TokenRemote mints equivalent ERC-20 tokens",
         "Native tokens disappear and reappear as ERC-20",
         "Tokens are copied to both chains",
-        "The blockchain merges, despite what many developers initially assume about the system"
+        "The blockchain merges"
       ],
       "correctAnswers": [
         0,
@@ -781,7 +781,7 @@
     "4054": {
       "question": "Why is relayer setup critical for the Native to Native bridge?",
       "options": [
-        "Only validators can serve as relayers, despite what many developers initially assume about the system",
+        "Only validators can serve as relayers",
         "Relayers provide the only mechanism to deliver ICM messages between L1s, enabling the bridge to actually transfer tokens",
         "Relayers increase gas fees unnecessarily",
         "Relayers are optional"
@@ -830,7 +830,7 @@
       "options": [
         "To increase blockchain security",
         "To receive and lock native tokens from users, then coordinate via ICM messages for native token minting on the destination L1",
-        "To store private keys, although it might seem logical based on surface-level analysis",
+        "To store private keys",
         "To validate consensus"
       ],
       "correctAnswers": [
@@ -878,7 +878,7 @@
         "It validates transactions on both chains",
         "It only stores data",
         "It receives ICM messages and uses the Native Minter precompile to mint native tokens on the destination L1 for users",
-        "It creates new blockchains, despite being a frequently cited but incorrect explanation"
+        "It creates new blockchains"
       ],
       "correctAnswers": [
         2
@@ -922,7 +922,7 @@
       "question": "In Native to Native bridging, why must you register the remote and add collateral before bridging?",
       "options": [
         "This step is optional",
-        "To make the process slower, despite appearing correct based on incomplete information",
+        "To make the process slower",
         "To pay developers",
         "Registration authorizes the bridge route and collateral ensures tokens are available to lock, maintaining the security and 1:1 backing model"
       ],
@@ -968,7 +968,7 @@
       "options": [
         "Tokens are copied to both chains",
         "The chains merge temporarily",
-        "Tokens teleport instantly, although it might seem logical based on surface-level analysis",
+        "Tokens teleport instantly",
         "User sends native tokens to NativeTokenHome on L1-A (locked), relayer delivers ICM message to L1-B, and NativeTokenRemote mints native tokens for user on L1-B"
       ],
       "correctAnswers": [

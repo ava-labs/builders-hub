@@ -98,7 +98,7 @@
         "Project-specific L1s keep NFT transactions isolated from C-Chain congestion and allow full control over the network",
         "NFTs can only be traded on marketplaces if they are deployed on C-Chain Mainnet",
         "L1 deployments automatically make NFTs more valuable than those on C-Chain",
-        "L1 deployments have lower security and are easier to hack, making them better for testing, although it might seem logical based on surface-level analysis"
+        "L1 deployments have lower security and are easier to hack, making them better for testing"
       ],
       "correctAnswers": [
         0
@@ -141,7 +141,7 @@
       "question": "The content states that 'Low Fees Enable Microtransactions' as an observation from Avalanche's current uses. Why is this specifically important for ERC-20 and ERC-1155 tokens compared to traditional blockchain networks?",
       "options": [
         "Because high transaction fees on other networks make small-value transfers economically impractical when fees exceed the transfer amount",
-        "Because ERC-20 and ERC-1155 tokens can only store small amounts of value, although it might seem logical based on surface-level analysis",
+        "Because ERC-20 and ERC-1155 tokens can only store small amounts of value",
         "Because microtransactions require batch transfers which only Avalanche supports",
         "Because microtransactions are only possible with encrypted tokens"
       ],
@@ -186,7 +186,7 @@
       "question": "According to the limitations discussed, why does the transparency of ERC-20, ERC-721, and ERC-1155 standards create problems for regulated financial institutions? (Select all that apply)",
       "options": [
         "Because public visibility of balances, transactions, and ownership history conflicts with requirements for trade secrecy, personal data protection, and sensitive transaction management",
-        "Because transparency makes tokens incompatible with traditional banking systems, despite appearing correct based on incomplete information",
+        "Because transparency makes tokens incompatible with traditional banking systems",
         "Because public blockchains cannot process the transaction volume required by financial institutions",
         "Because financial institutions are legally required to hide all transaction data from regulators"
       ],
@@ -553,7 +553,7 @@
       "options": [
         "By hiding all transaction data and trusting users not to cheat",
         "By using zero-knowledge proofs that mathematically prove a transaction is valid without revealing the actual amounts being transferred",
-        "By storing transaction amounts in a centralized database off-chain, although it might seem logical based on surface-level analysis",
+        "By storing transaction amounts in a centralized database off-chain",
         "By only allowing small transactions that are too insignificant to hide"
       ],
       "correctAnswers": [
@@ -643,7 +643,7 @@
     "2015": {
       "question": "According to the comparison table, what is the trade-off that eERC makes compared to standard ERC-20 tokens?",
       "options": [
-        "eERC tokens work on fewer blockchains than ERC-20, although it might seem logical based on surface-level analysis",
+        "eERC tokens work on fewer blockchains than ERC-20",
         "eERC tokens cannot be used in DeFi applications",
         "eERC completely eliminates all transaction costs",
         "eERC has slightly higher gas costs due to encryption and proof verification, but this is offset by Avalanche's low fees and the gained privacy benefits"
@@ -916,7 +916,7 @@
     "2021": {
       "question": "Why might an L1 created for tokenized real-world assets (RWA) choose to use eERC instead of standard ERC-20? (Select all that apply)",
       "options": [
-        "Because RWAs are illegal if publicly traded, although some early documentation may have suggested otherwise",
+        "Because RWAs are illegal if publicly traded",
         "Because eERC tokens are worth more than ERC-20 tokens",
         "Because privacy-enabled trading protects confidential transaction details while the built-in auditability module allows compliance oversight from authorized regulators",
         "Because L1s cannot use ERC-20 tokens"
@@ -1008,7 +1008,7 @@
     "2023": {
       "question": "When deploying an eERC, why might a developer choose to configure auditor access even though it is listed as 'Optional'?",
       "options": [
-        "Because auditor access is required for transactions to be validated, despite appearing correct based on incomplete information",
+        "Because auditor access is required for transactions to be validated",
         "Because many regulated industries and jurisdictions require the ability to provide transaction details to authorities for compliance, making auditor access essential for legal operation even though technically optional",
         "Because auditor access makes transactions faster",
         "Because auditor access reduces gas costs"
@@ -1100,7 +1100,7 @@
       "question": "How do the three cryptographic components (BabyJubJub curve, ElGamal encryption, and Poseidon hashing) work together in eERC? (Select all that apply)",
       "options": [
         "BabyJubJub provides the mathematical foundation optimized for zero-knowledge proofs, ElGamal encrypts the balances and amounts on this curve, and Poseidon creates efficient hashes for proof inputs and verification",
-        "They compete with each other and developers choose one, despite being a frequently cited but incorrect explanation",
+        "They compete with each other and developers choose one",
         "They are independent backup systems that each provide privacy in different ways",
         "They are all the same technology with different names"
       ],
@@ -1330,7 +1330,7 @@
         "Because key rotation makes transactions faster",
         "Because auditor roles may change over time, keys could be compromised, or regulatory requirements might shift, requiring the ability to securely revoke and reassign auditor access without redeploying contracts",
         "Because Avalanche requires quarterly key rotation for all smart contracts",
-        "Because auditor keys expire every 30 days automatically, although it might seem logical based on surface-level analysis"
+        "Because auditor keys expire every 30 days automatically"
       ],
       "correctAnswers": [
         1

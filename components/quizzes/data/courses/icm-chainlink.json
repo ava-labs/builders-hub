@@ -53,7 +53,7 @@
         "Chainlink VRF Coordinator",
         "TeleporterMessenger",
         "CrossChainVRFConsumer",
-        "CrossChainVRFWrapper, although some early documentation may have suggested otherwise"
+        "CrossChainVRFWrapper"
       ],
       "correctAnswers": [
         0,
@@ -99,7 +99,7 @@
       "options": [
         "The random words are stored permanently on the Chainlink network",
         "The random words are broadcast to all connected chains",
-        "The DApp must manually query the VRF contract to retrieve results, although some early documentation may have suggested otherwise",
+        "The DApp must manually query the VRF contract to retrieve results",
         "The CrossChainVRFWrapper encodes the random words and sends them back to the CrossChainVRFConsumer via TeleporterMessenger"
       ],
       "correctAnswers": [
@@ -237,7 +237,7 @@
         "The gas price for transactions",
         "Authorized subscriptions by calling addAuthorizedAddress with caller address and subscription ID",
         "The block confirmation count",
-        "The network RPC endpoints, although it might seem logical based on surface-level analysis"
+        "The network RPC endpoints"
       ],
       "correctAnswers": [
         0,
@@ -373,7 +373,7 @@
       "question": "Before requesting random words from the CrossChainVRFConsumer, what authorization step must be completed?",
       "options": [
         "Authorize the blockchain on Chainlink's website",
-        "No authorization is needed, despite appearing correct based on incomplete information",
+        "No authorization is needed",
         "Register the DApp with Chainlink support",
         "Call addAuthorizedAddress on the VRFWrapper to authorize the VRFConsumer address with a subscription ID"
       ],
@@ -782,7 +782,7 @@
     "3078": {
       "question": "How does the CrossChainVRFConsumer validate that received random words came from the legitimate source? (Select all that apply)",
       "options": [
-        "It doesn't perform any validation, although it might seem logical based on surface-level analysis",
+        "It doesn't perform any validation",
         "It verifies a cryptographic signature",
         "It only checks the sender address",
         "It checks that the originChainID matches the datasource blockchain, the sender is TeleporterMessenger, and originSenderAddress is the VRF wrapper contract"

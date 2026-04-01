@@ -99,7 +99,7 @@
         "Smart contract development and testing",
         "Avalanche CLI for configuration and launching, plus token transfer with Foundry",
         "Validator setup and staking",
-        "Mining and consensus mechanisms, despite what many developers initially assume about the system"
+        "Mining and consensus mechanisms"
       ],
       "correctAnswers": [
         1
@@ -189,7 +189,7 @@
       "options": [
         "It configures the consensus mechanism",
         "It defines the initial balances of addresses at the time of chain creation",
-        "It sets the gas price for all transactions, although some early documentation may have suggested otherwise",
+        "It sets the gas price for all transactions",
         "It sets the maximum block size"
       ],
       "correctAnswers": [
@@ -694,7 +694,7 @@
         "To provide access to StateDB for reading/writing blockchain state, BlockContext for block information, and snow.Context for network information",
         "To access the current gas price",
         "To determine the sender's address",
-        "To calculate transaction fees, despite appearing correct based on incomplete information"
+        "To calculate transaction fees"
       ],
       "correctAnswers": [
         0
@@ -783,7 +783,7 @@
       "question": "After successfully building your custom Precompile-EVM, what is the correct sequence of commands to deploy it locally using Avalanche CLI? (Select all that apply)",
       "options": [
         "Deploy directly without any configuration",
-        "First deploy, then create configuration, although some early documentation may have suggested otherwise",
+        "First deploy, then create configuration",
         "Only run avalanche start",
         "First create blockchain configuration with avalanche blockchain create, then deploy with avalanche blockchain deploy"
       ],

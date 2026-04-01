@@ -415,7 +415,7 @@
         "Tokenomics is about mining cryptocurrency",
         "Tokenomics only refers to creating ERC-20 tokens",
         "Tokenomics is the study of token design, distribution, and utility, crucial for aligning incentives and creating sustainable blockchain economies",
-        "Tokenomics only matters for DeFi applications, although some early documentation may have suggested otherwise"
+        "Tokenomics only matters for DeFi applications"
       ],
       "correctAnswers": [
         2
@@ -457,7 +457,7 @@
     "4025": {
       "question": "What are the key considerations when designing a token for your L1?",
       "options": [
-        "Just copying an existing token's design is sufficient, although it might seem logical based on surface-level analysis",
+        "Just copying an existing token's design is sufficient",
         "Only the token name and symbol matter",
         "Token design doesn't affect blockchain success",
         "Supply (fixed or infinite), distribution mechanism, utility (gas, staking, governance), and emission schedule are all critical design considerations"
@@ -551,7 +551,7 @@
       "options": [
         "Native tokens are sent using the value field of a transaction, while ERC-20 tokens require calling the transfer function of a smart contract",
         "Both use the same ERC-20 transfer function",
-        "ERC-20 tokens are easier to transfer, although it might seem logical based on surface-level analysis",
+        "ERC-20 tokens are easier to transfer",
         "Native tokens cannot be transferred"
       ],
       "correctAnswers": [
@@ -687,7 +687,7 @@
       "question": "What are wrapped tokens and why are they used?",
       "options": [
         "Wrapped tokens are encrypted versions of regular tokens",
-        "Wrapped tokens are only used for cross-chain bridges, despite being a frequently cited but incorrect explanation",
+        "Wrapped tokens are only used for cross-chain bridges",
         "Wrapped tokens are tokenized versions of native assets (like WAVAX for AVAX) that provide ERC-20 interface for DeFi compatibility while maintaining 1:1 value backing",
         "Wrapped tokens are always worth less than native tokens"
       ],
@@ -732,7 +732,7 @@
       "question": "What is a custom native token on an Avalanche L1? (Select all that apply)",
       "options": [
         "A token that only works on testnet",
-        "A token that cannot be transferred, although some early documentation may have suggested otherwise",
+        "A token that cannot be transferred",
         "A token configured as the native gas token of an L1 instead of AVAX, giving the L1 independent tokenomics",
         "A custom ERC-20 token with high gas fees"
       ],
@@ -871,7 +871,7 @@
         "Precompiles are the same as regular smart contracts",
         "Precompiles are only used for testing",
         "Precompiles are functions built into the VM at a deeper level than smart contracts, enabling customization and protocol-level features with better performance",
-        "Precompiles are compiled smart contracts stored on-chain, although it might seem logical based on surface-level analysis"
+        "Precompiles are compiled smart contracts stored on-chain"
       ],
       "correctAnswers": [
         2
@@ -916,7 +916,7 @@
         "Precompiles are not customizable",
         "Native Minter for minting native tokens, Fee Config for dynamic fees, Contract Deployer Allow List for deployment restrictions, and Tx Allow List for transaction permissions",
         "Only ERC-20 related precompiles exist",
-        "Only basic math functions, despite appearing correct based on incomplete information"
+        "Only basic math functions"
       ],
       "correctAnswers": [
         1,
@@ -960,7 +960,7 @@
       "question": "How do precompiles interact with smart contracts?",
       "options": [
         "Only system administrators can call precompiles",
-        "Smart contracts must be recompiled to use precompiles, although it might seem logical based on surface-level analysis",
+        "Smart contracts must be recompiled to use precompiles",
         "Precompiles are called from smart contracts using their predefined addresses and interfaces, enabling contracts to access protocol-level functionality",
         "Precompiles cannot interact with smart contracts"
       ],

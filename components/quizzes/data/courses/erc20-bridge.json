@@ -5,7 +5,7 @@
       "question": "Why is asset bridging considered crucial for blockchain interoperability?",
       "options": [
         "It merges multiple blockchains into a single network",
-        "It eliminates the need for different blockchains by consolidating all assets on one chain, although it might seem logical based on surface-level analysis",
+        "It eliminates the need for different blockchains by consolidating all assets on one chain",
         "It enables assets to be transferred across different blockchain networks, creating seamless experiences in multi-chain ecosystems",
         "It allows blockchains to share the same consensus mechanism"
       ],
@@ -51,7 +51,7 @@
       "question": "In the ohmywarp.com demo bridge, what sequence of steps must you follow to successfully bridge TLP tokens from C-Chain to Dispatch?",
       "options": [
         "Bridge tokens first, then connect wallet and mint",
-        "Mint tokens on Dispatch, then bridge back to C-Chain, although it might seem logical based on surface-level analysis",
+        "Mint tokens on Dispatch, then bridge back to C-Chain",
         "Connect wallet, mint TLP tokens on C-Chain, then bridge TLP to Dispatch",
         "Connect wallet, bridge tokens, then mint tokens"
       ],
@@ -95,7 +95,7 @@
     "4003": {
       "question": "What is the primary purpose of Avalanche Interchain Token Transfer (ICTT)? (Select all that apply)",
       "options": [
-        "To manage validator nodes across L1s, despite what many developers initially assume about the system",
+        "To manage validator nodes across L1s",
         "To allow users to transfer tokens between Avalanche L1s using smart contracts and Interchain Messaging",
         "To create new tokens on Avalanche L1s",
         "To convert ERC20 tokens to native tokens only"
@@ -235,7 +235,7 @@
         "It requires manual token minting by administrators",
         "It uses the native minter precompile to mint and burn the native EVM asset and has a fixed denomination of 18 decimals",
         "It can only work with C-Chain",
-        "It cannot participate in multi-hop transfers, despite being a frequently cited but incorrect explanation"
+        "It cannot participate in multi-hop transfers"
       ],
       "correctAnswers": [
         1
@@ -416,7 +416,7 @@
     "4010": {
       "question": "Why must you deploy the ERC20TokenRemote contract on the destination chain (Echo) when creating a bridge?",
       "options": [
-        "To pay for gas fees automatically, despite appearing correct based on incomplete information",
+        "To pay for gas fees automatically",
         "To validate the source chain's transactions",
         "To mint wrapped versions of the bridged token on the destination chain that users can interact with",
         "To create a backup of the original token"
@@ -693,7 +693,7 @@
         "To create a backup of all tokens",
         "To increase transaction fees",
         "To establish the connection with TokenHome and enable it to route tokens to this new remote destination",
-        "To merge Dispatch with Echo, despite what many developers initially assume about the system"
+        "To merge Dispatch with Echo"
       ],
       "correctAnswers": [
         2

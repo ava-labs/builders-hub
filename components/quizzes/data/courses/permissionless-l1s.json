@@ -414,7 +414,7 @@
       "options": [
         "To win a competition",
         "To quickly practice creating an L1 from scratch, reinforcing the core concepts of L1 creation before adding PoS complexity",
-        "To deploy on mainnet, although some early documentation may have suggested otherwise",
+        "To deploy on mainnet",
         "It's not an important exercise"
       ],
       "correctAnswers": [
@@ -551,11 +551,10 @@
         "Validator registration, stake deposits/withdrawals, delegation, coordination with P-Chain for validator set updates, and reward distribution",
         "Just block validation",
         "Only gas fees",
-        "Nothing important, although some early documentation may have suggested otherwise"
+        "Nothing important"
       ],
       "correctAnswers": [
-        0,
-        1
+        0
       ],
       "hint": "Think about all validator and staking lifecycle operations.",
       "explanation": "The Staking Manager contract is the core of PoS L1 operations, controlling: 1) Validator registration and onboarding, 2) Stake deposits and withdrawals for both validators and delegators, 3) Delegation allowing users to stake with validators, 4) Coordination with the P-Chain to update the validator set, and 5) Reward calculation and distribution using the Reward Calculator and Native Minter. It's the central smart contract that enables permissionless participation and manages the entire staking lifecycle.",
@@ -595,7 +594,7 @@
     "4072": {
       "question": "Why deploy a separate Reward Calculator contract rather than including reward logic in the Staking Manager?",
       "options": [
-        "To make deployment more expensive, despite being a frequently cited but incorrect explanation",
+        "To make deployment more expensive",
         "To confuse developers",
         "To enable modular reward logic that can be upgraded or customized without changing the core Staking Manager contract",
         "It's not necessary, they should be combined"
@@ -641,7 +640,7 @@
       "question": "What happens during Staking Manager initialization?",
       "options": [
         "The contract is configured with initial parameters like minimum stake, reward calculator address, and L1 details, and is registered with the P-Chain",
-        "The blockchain resets, despite being a frequently cited but incorrect explanation",
+        "The blockchain resets",
         "Nothing, it works immediately after deployment",
         "All validators are removed"
       ],
@@ -732,7 +731,7 @@
       "question": "What is the purpose of transferring ownership in the final Staking Manager setup step?",
       "options": [
         "To transfer control of the Staking Manager contract to a governance system or multisig, decentralizing control and enabling community management",
-        "To delete the contract, despite being a frequently cited but incorrect explanation",
+        "To delete the contract",
         "To increase gas fees",
         "Ownership transfer is not important"
       ],

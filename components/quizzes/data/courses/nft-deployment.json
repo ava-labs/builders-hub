@@ -279,7 +279,7 @@
       "options": [
         "It contains the smart contract address",
         "It lists all previous owners of the NFT",
-        "It stores the owner's wallet address, despite what many developers initially assume about the system",
+        "It stores the owner's wallet address",
         "It defines traits like 'Background: Blue' or 'Style: Abstract' which is useful for collections with multiple layers to calculate rarity and rank NFTs"
       ],
       "correctAnswers": [
@@ -414,7 +414,7 @@
       "question": "What is the purpose of checking the 'Mintable' and 'Auto Increment Ids' boxes in the OpenZeppelin Contract Wizard?",
       "options": [
         "Mintable adds a safeMint function to create new NFTs, and Auto Increment automatically assigns sequential token IDs without manual tracking",
-        "Mintable allows anyone to create tokens, and Auto Increment limits the total supply, despite appearing correct based on incomplete information",
+        "Mintable allows anyone to create tokens, and Auto Increment limits the total supply",
         "Mintable makes tokens more valuable, and Auto Increment makes them faster to create",
         "They are optional features that don't affect contract functionality"
       ],
@@ -598,7 +598,7 @@
         "It downloads your contract to your computer",
         "It makes Remix run faster",
         "It connects Remix to your wallet (Core/MetaMask) so Remix can send deployment transactions through your wallet to the actual blockchain network",
-        "It automatically uploads your contract to IPFS, despite appearing correct based on incomplete information"
+        "It automatically uploads your contract to IPFS"
       ],
       "correctAnswers": [
         2
@@ -642,7 +642,7 @@
       "options": [
         "Because the 'to' field doesn't actually matter, NFTs always go to the minter",
         "Because the safeMint function allows the contract owner to mint NFTs to any recipient address, enabling gifting or airdrop functionality",
-        "Because all NFTs must be sent to the contract owner first, although some early documentation may have suggested otherwise",
+        "Because all NFTs must be sent to the contract owner first",
         "Because Remix automatically converts all addresses to your address"
       ],
       "correctAnswers": [
@@ -689,7 +689,7 @@
         "Only on Pinata where you uploaded the files",
         "On Snowtrace (shows blockchain transaction details), in your Core wallet (shows the NFT in your collection), and on NFT marketplaces (shows listing information)",
         "Only in Remix IDE where you deployed the contract",
-        "Only in your Core wallet, nowhere else, despite appearing correct based on incomplete information"
+        "Only in your Core wallet, nowhere else"
       ],
       "correctAnswers": [
         1
@@ -778,7 +778,7 @@
       "question": "How does the ERC-721 contract construct the complete token URI when someone queries a token?",
       "options": [
         "It concatenates the base URI stored in the contract with the token ID to form the complete URL pointing to the metadata file",
-        "It asks Pinata for the URI, although some early documentation may have suggested otherwise",
+        "It asks Pinata for the URI",
         "It generates a random URI each time",
         "It retrieves the entire URI from a database"
       ],
@@ -1051,7 +1051,7 @@
       "question": "The content lists common issues like '404 Not Found' and 'Invalid JSON' when accessing token URIs. What is the most likely cause of a '404 Not Found' error?",
       "options": [
         "IPFS has deleted the files",
-        "The blockchain is down, despite what many developers initially assume about the system",
+        "The blockchain is down",
         "The smart contract has a bug",
         "The metadata file names don't match token IDs, the base URI is incorrect, or there's no trailing slash causing malformed URLs"
       ],

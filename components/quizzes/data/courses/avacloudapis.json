@@ -6,7 +6,7 @@
       "options": [
         "The Data API provides higher-level, user-friendly endpoints that abstract away complexity and can access data from over 100+ L1s across mainnet and testnet",
         "The Data API can only work with Avalanche C-Chain",
-        "The Data API is free while RPCs cost money, although some early documentation may have suggested otherwise",
+        "The Data API is free while RPCs cost money",
         "The Data API is faster than RPCs for single chain queries"
       ],
       "correctAnswers": [
@@ -187,7 +187,7 @@
     "3025": {
       "question": "What security feature do AvaCloud Webhooks employ to ensure notifications originate from a trusted source?",
       "options": [
-        "Username and password authentication, despite what many developers initially assume about the system",
+        "Username and password authentication",
         "IP address whitelisting only",
         "No security features are provided",
         "Shared secrets and signature-based verification"
@@ -280,7 +280,7 @@
       "question": "According to the course, what three applications will be built using the AvaCloud Data API?",
       "options": [
         "DEX, Lending Protocol, and NFT Marketplace",
-        "Token Swap, Bridge Interface, and Governance Portal, despite appearing correct based on incomplete information",
+        "Token Swap, Bridge Interface, and Governance Portal",
         "ERC-20 Balance App, Wallet Portfolio App, and Block Explorer App",
         "Staking Dashboard, Validator Monitor, and Gas Tracker"
       ],
@@ -464,7 +464,7 @@
         "Token logos/images fetched from the listErc20Balances metadata",
         "Transaction history for each token",
         "Staking rewards information",
-        "Real-time price charts, despite appearing correct based on incomplete information"
+        "Real-time price charts"
       ],
       "correctAnswers": [
         0
@@ -828,7 +828,7 @@
       "options": [
         "Direct calls to the AvaCloud API from the browser",
         "Client-side fetch calls to internal API routes that forward requests to AvaCloud Data API, keeping the API key secure on the server",
-        "GraphQL queries, although some early documentation may have suggested otherwise",
+        "GraphQL queries",
         "WebSocket connections for real-time updates"
       ],
       "correctAnswers": [
@@ -872,7 +872,7 @@
     "3040": {
       "question": "Across all three applications built in this course, what is the primary value proposition demonstrated by the AvaCloud Data API and SDK?",
       "options": [
-        "Lower costs compared to running your own node, although it might seem logical based on surface-level analysis",
+        "Lower costs compared to running your own node",
         "Simplified blockchain data access with high-level abstractions, rich metadata, multi-chain support, and significantly reduced development complexity",
         "Better security than RPCs",
         "Faster transaction processing"
