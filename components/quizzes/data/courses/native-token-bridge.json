@@ -282,7 +282,6 @@
         "The user must manually move tokens"
       ],
       "correctAnswers": [
-        0,
         1
       ],
       "hint": "Think about the lock, relay, and mint sequence.",
@@ -465,7 +464,6 @@
         "Native to ERC-20 requires three relayers"
       ],
       "correctAnswers": [
-        1,
         2
       ],
       "hint": "Think about bidirectional message delivery.",
@@ -649,8 +647,7 @@
         "The blockchain merges"
       ],
       "correctAnswers": [
-        0,
-        1
+        0
       ],
       "hint": "Think about the lock, relay, mint sequence.",
       "explanation": "The complete Native to ERC-20 bridge process: 1) User sends native tokens to the NativeTokenHome contract (payable transaction), 2) NativeTokenHome locks these native tokens as collateral and creates an ICM message, 3) Relayer delivers the ICM message to the destination chain, 4) ERC20TokenRemote receives the message and mints equivalent ERC-20 tokens to the user's address. The user now has ERC-20 representations of their native tokens. To bridge back, they burn the ERC-20s, triggering the native tokens to be released.",
@@ -833,7 +830,6 @@
         "To validate consensus"
       ],
       "correctAnswers": [
-        0,
         1
       ],
       "hint": "Think about managing native tokens on the source chain.",

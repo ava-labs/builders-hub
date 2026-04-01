@@ -191,8 +191,7 @@
         "Because financial institutions are legally required to hide all transaction data from regulators"
       ],
       "correctAnswers": [
-        0,
-        2
+        0
       ],
       "hint": "The content mentions that transparency is 'problematic for regulated financial institutions, enterprises managing sensitive transactions, and use cases requiring trade secrecy or personal data protection.'",
       "explanation": "The transparency of standard token implementations creates a conflict for regulated financial institutions because it exposes information that needs to be confidential. When balances are public, competitors can track holdings and trading patterns. When transactions are visible, sensitive business deals and payment relationships become public. When asset ownership is transparent, strategic positions are revealed. This conflicts with legitimate business needs for trade secrecy, compliance with data protection regulations (like GDPR), and management of confidential financial information. Regulators often need access to data, but that's different from making everything publicly visible.",
@@ -374,8 +373,7 @@
         "Because Avalanche does not support compliance features at all"
       ],
       "correctAnswers": [
-        2,
-        3
+        2
       ],
       "hint": "The content lists three specific problems that arise when compliance must be built as a custom layer.",
       "explanation": "Standard token implementations don't include compliance mechanisms like whitelisting addresses, blacklisting jurisdictions, or selective disclosure to authorized parties. This means every project must build these features themselves as custom additions. As the content explains, this approach: (1) increases development and auditing costs because each project must solve the same problem independently, (2) introduces potential security risks if compliance features aren't implemented correctly, and (3) creates inconsistency between projects, making interoperability harder since each uses different compliance approaches. This is why built-in compliance features in standards like eERC are valuable.",
@@ -557,8 +555,7 @@
         "By only allowing small transactions that are too insignificant to hide"
       ],
       "correctAnswers": [
-        1,
-        3
+        1
       ],
       "hint": "The content mentions that eERC 'uses zero-knowledge proofs to validate transactions without revealing amounts.'",
       "explanation": "eERC uses zero-knowledge proofs (zk-SNARKs) to solve the seemingly impossible problem of validating transactions without seeing their details. These cryptographic proofs allow a sender to mathematically demonstrate that: they have sufficient balance for the transfer, the transaction follows all protocol rules, and the amounts are correct - all WITHOUT revealing the actual amounts or balances. The network can verify the proof is valid and process the transaction with confidence, while keeping the sensitive financial details encrypted. This is fundamentally different from trust-based systems, centralized databases, or transaction size limitations.",
@@ -739,8 +736,7 @@
         "Because it is required by Avalanche protocol"
       ],
       "correctAnswers": [
-        0,
-        2
+        0
       ],
       "hint": "The content describes BabyJubJub as 'optimized for zk-SNARKs' and mentions its specific benefits for proof validation.",
       "explanation": "BabyJubJub is chosen specifically because it's optimized for zero-knowledge proof systems. While many elliptic curves are secure, not all are efficient inside zk-SNARK circuits. BabyJubJub is a twisted Edwards elliptic curve designed to make operations inside proof circuits computationally efficient, enabling fast signature verification and proof generation. This optimization is crucial because eERC needs to prove transaction validity inside zero-knowledge proofs, and using an inefficient curve would make the gas costs prohibitively high. The choice is about proof efficiency, not general security, protocol requirements, or storage - it's specifically about making privacy practical.",
@@ -922,7 +918,6 @@
         "Because L1s cannot use ERC-20 tokens"
       ],
       "correctAnswers": [
-        1,
         2
       ],
       "hint": "Think about what makes RWA trading sensitive and what regulatory requirements exist in traditional asset markets.",
@@ -1105,8 +1100,7 @@
         "They are all the same technology with different names"
       ],
       "correctAnswers": [
-        0,
-        2
+        0
       ],
       "hint": "Each component has a specific role: the curve is the foundation, ElGamal operates on the curve, and Poseidon handles hashing.",
       "explanation": "These three components form an integrated cryptographic system: (1) BabyJubJub provides the elliptic curve foundation that's optimized for efficient operations inside zk-SNARK circuits, (2) ElGamal encryption operates on this curve to encrypt token balances and transfer amounts, taking advantage of the curve's homomorphic properties to allow balance updates without decryption, and (3) Poseidon hashing creates efficient commitments and integrity checks for the encrypted data, being specifically designed to be ZK-friendly with minimal gas costs. Together, they enable the full privacy system - the curve enables efficient proofs, ElGamal provides encryption, and Poseidon ensures integrity.",
@@ -1287,8 +1281,7 @@
         "Because Standalone Mode is deprecated and no longer supported"
       ],
       "correctAnswers": [
-        1,
-        3
+        1
       ],
       "hint": "Consider that Converter Mode is presented first with detailed steps as a learning path, while Standalone Mode comes after.",
       "explanation": "The guide structures learning progressively: Converter Mode is explained in detail because it's a good entry point - developers work with familiar ERC-20 tokens and learn the privacy features incrementally. By the time they reach Standalone Mode, they should understand the core concepts: how encryption works, how proofs are generated, how balances are managed, and how the contracts interact. Standalone Mode is more complex because you're creating a fully private token from scratch with options like hidden total supply, requiring deeper understanding of the architecture. The community engagement suggestion encourages active learning and ensures developers have support when tackling more advanced implementations. It's not about deprecation, network restrictions, or secrecy.",

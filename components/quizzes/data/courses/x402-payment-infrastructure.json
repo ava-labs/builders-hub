@@ -283,8 +283,7 @@
         "Because signed authorizations are more secure than transactions"
       ],
       "correctAnswers": [
-        0,
-        3
+        0
       ],
       "hint": "The content explicitly states: 'The client does NOT submit a blockchain transaction. The authorization is gasless—the server or facilitator will submit it.'",
       "explanation": "Gasless payments are crucial for user experience. In traditional blockchain interactions, users must pay gas fees for every transaction, requiring them to hold the native token (like ETH or AVAX), understand gas prices, and wait for transaction confirmation. With x402, clients simply sign an authorization using EIP-712 (which is free and instant), and the server or facilitator submits the actual blockchain transaction, paying the gas fees. This means: users don't need native tokens, signing is instant (no waiting for blocks), the process feels like a traditional API call, and the user experience is seamless. The cryptographic signature proves consent and authorization, which is verified on-chain when the facilitator submits it.",
@@ -466,7 +465,6 @@
         "Faster finality only matters for large transactions"
       ],
       "correctAnswers": [
-        0,
         1
       ],
       "hint": "The content emphasizes: 'Users wait only ~1.5-2 seconds for content delivery' and this enables 'real-time payment verification possible.'",

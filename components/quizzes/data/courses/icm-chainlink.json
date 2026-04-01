@@ -56,7 +56,6 @@
         "CrossChainVRFWrapper"
       ],
       "correctAnswers": [
-        0,
         2
       ],
       "hint": "This contract lives on the L1 that doesn't have direct Chainlink support.",
@@ -240,7 +239,6 @@
         "The network RPC endpoints"
       ],
       "correctAnswers": [
-        0,
         1
       ],
       "hint": "Think about access control - who is allowed to request randomness?",
@@ -423,8 +421,7 @@
         "A hash of the requester's private key"
       ],
       "correctAnswers": [
-        0,
-        3
+        0
       ],
       "hint": "This parameter identifies which Chainlink oracle key to use for generating randomness.",
       "explanation": "The keyHash parameter in a Chainlink VRF request represents the VRF key hash used by Chainlink's oracle for random word generation. This is a specific identifier that corresponds to a particular Chainlink VRF key pair. The keyHash is used to specify which Chainlink oracle node and key pair should fulfill the randomness request, allowing the network to support multiple oracle nodes and key pairs. Different keyHashes may have different characteristics such as confirmation times or costs. The keyHash is essential for the cryptographic verification process that makes the random numbers verifiable - anyone can verify that the random number was generated correctly using the oracle's public key corresponding to the keyHash.",
@@ -605,7 +602,6 @@
         "Whether to pay immediately or defer payment"
       ],
       "correctAnswers": [
-        0,
         2
       ],
       "hint": "This relates to which token is used to pay for the VRF service.",
@@ -788,7 +784,6 @@
         "It checks that the originChainID matches the datasource blockchain, the sender is TeleporterMessenger, and originSenderAddress is the VRF wrapper contract"
       ],
       "correctAnswers": [
-        1,
         3
       ],
       "hint": "Multiple checks are needed to ensure the message is authentic and from the expected source.",

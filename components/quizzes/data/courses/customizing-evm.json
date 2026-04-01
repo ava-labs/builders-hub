@@ -55,8 +55,7 @@
         "Subnet-EVM uses a different programming language than Coreth"
       ],
       "correctAnswers": [
-        1,
-        3
+        1
       ],
       "hint": "Consider what Subnet-EVM was specifically designed to enable for custom L1s.",
       "explanation": "Subnet-EVM is a fork of Coreth specifically designed to facilitate launching customized EVM-based blockchains on Avalanche L1s. Key differences include: (1) Configurable Fees and Gas Limits that can be set in the genesis file, (2) All Avalanche hardforks merged into a single unified 'Subnet-EVM' hardfork for simpler upgrades, (3) Removal of atomic transactions and shared memory support that were specific to C-Chain, and (4) Removal of multicoin contracts and state tracking. These changes make Subnet-EVM lighter and more focused on enabling customization for independent L1s, whereas Coreth remains optimized for the C-Chain's role in the primary Avalanche network.",
@@ -239,8 +238,7 @@
         "Precompiles are easier to write than Solidity code"
       ],
       "correctAnswers": [
-        1,
-        3
+        1
       ],
       "hint": "Consider why Python often uses C implementations for performance-critical operations.",
       "explanation": "The main advantage of precompiles is performance - they execute significantly faster and more efficiently because they run low-level Go code directly in the EVM rather than interpreted Solidity bytecode. This is similar to how Python leverages C implementations for core functions. Precompiles are mapped to reserved addresses, and when a contract calls one of these addresses, the EVM executes the Go implementation instead of Solidity code. This allows access to optimized Go libraries, better gas efficiency, and the ability to implement complex operations (like SHA256 hashing or cryptographic functions) that would be prohibitively expensive or slow in Solidity. From a developer's perspective, precompiles can be called like any other contract through a Solidity interface, but they execute with native code performance.",
@@ -421,8 +419,7 @@
         "Ability to introduce advanced cryptographic operations that would be too computationally expensive in Solidity"
       ],
       "correctAnswers": [
-        2,
-        3
+        2
       ],
       "hint": "Precompiles still consume gas - they're just more efficient.",
       "explanation": "While precompiles offer many advantages including performance optimization, security through audited libraries, gas efficiency, and enabling advanced features, they do NOT automatically reduce gas costs to zero. Precompiles still consume gas - they're just more efficient than equivalent Solidity implementations. The gas efficiency advantage means operations cost less gas, not zero gas. For example, the SHA256 precompile is much cheaper than implementing SHA256 in Solidity, but it still has an associated gas cost. Precompiles provide better gas efficiency by executing optimized Go code directly in the EVM rather than interpreted Solidity bytecode.",
@@ -605,7 +602,6 @@
         "Trigonometric functions: sin, cos, tan"
       ],
       "correctAnswers": [
-        1,
         2
       ],
       "hint": "The tutorial builds a specific set of three mathematical functions to demonstrate different precompile scenarios.",
@@ -788,7 +784,6 @@
         "First create blockchain configuration with avalanche blockchain create, then deploy with avalanche blockchain deploy"
       ],
       "correctAnswers": [
-        0,
         3
       ],
       "hint": "Configuration must exist before you can deploy it.",

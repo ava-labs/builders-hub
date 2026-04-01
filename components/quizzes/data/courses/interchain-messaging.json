@@ -651,7 +651,6 @@
         "It ensures source chain transactions are confirmed and immutable, allowing destination chain actions to execute securely without risk of source chain reverting"
       ],
       "correctAnswers": [
-        0,
         3
       ],
       "hint": "Think about what happens if the source chain could revert after the destination acts.",
@@ -835,8 +834,7 @@
         "To make the system more centralized for no reason"
       ],
       "correctAnswers": [
-        1,
-        3
+        1
       ],
       "hint": "Think about quality of service and security considerations.",
       "explanation": "Restricting relayers allows you to ensure message delivery quality and maintain specific service level agreements (SLAs). You might want to guarantee that only relayers you trust or have contracted with can deliver messages to your application. This can help prevent spam, ensure reliable delivery times, maintain security standards, and give you control over the message delivery infrastructure. While AWM is permissionless by default, applications can implement their own restrictions based on their specific reliability and security requirements.",

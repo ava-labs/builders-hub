@@ -56,8 +56,7 @@
         "Send a single transaction to a smart contract that returns all balances"
       ],
       "correctAnswers": [
-        0,
-        3
+        0
       ],
       "hint": "Consider what raw blockchain data looks like and how much processing is needed to extract meaningful information.",
       "explanation": "Querying a user's ERC-20 portfolio using just RPCs is extremely complex and time-consuming. You would need to: (1) Query every block on the network for transaction logs, (2) Parse each transaction log to identify ERC-20 token transfers, (3) Extract the ERC-20 token contract address from each transfer, (4) For each unique ERC-20 token contract, make a separate query to get the user's balance, (5) Parse and aggregate all the data to present a complete portfolio. This process is error-prone and requires significant blockchain knowledge. In contrast, the AvaCloud Data API provides a single endpoint (listErc20Balances) that returns a neatly formatted response with all token balances, metadata, logos, and current prices - reducing development time dramatically.",
@@ -238,7 +237,6 @@
         "As a query parameter in the URL"
       ],
       "correctAnswers": [
-        0,
         2
       ],
       "hint": "API keys for web services are typically passed in HTTP headers for security reasons.",
@@ -421,7 +419,6 @@
         "No validation is performed"
       ],
       "correctAnswers": [
-        0,
         2
       ],
       "hint": "Think about what makes an Ethereum address structurally valid before making any blockchain calls.",
@@ -603,8 +600,7 @@
         "fetch('api/wallet/listERC721Balances/' + address)"
       ],
       "correctAnswers": [
-        0,
-        2
+        0
       ],
       "hint": "Template literals use backticks to allow variable interpolation.",
       "explanation": "The correct format uses template literals (backticks) to interpolate the address variable into the query string: fetch(`api/wallet?method=listERC721Balances&address=${address}`). Template literals in JavaScript allow you to embed expressions directly in strings using ${expression} syntax, which is essential for constructing dynamic API calls. Using single quotes ('') would prevent variable interpolation and pass the literal string '${address}' instead of the actual address value. The endpoint follows a consistent pattern across the app where the method parameter specifies which backend function to call, and additional parameters like address are passed as query parameters.",
@@ -785,8 +781,7 @@
         "Transaction[]"
       ],
       "correctAnswers": [
-        0,
-        3
+        0
       ],
       "hint": "The function should return an array of typed block objects.",
       "explanation": "The fetchRecentBlocks function should return EvmBlock[], which is an array of EvmBlock objects. This type provides strong typing for the block data returned from the API, ensuring that the TypeScript compiler can verify correct usage of block properties throughout the application. The EvmBlock type includes fields like blockNumber, blockTimestamp, blockHash, transactions, gasUsed, gasLimit, and other block-specific information. Using proper TypeScript types (rather than 'any') improves code quality by catching errors at compile time, provides better IDE autocomplete support, and makes the code more maintainable by clearly documenting what data structure the function returns.",

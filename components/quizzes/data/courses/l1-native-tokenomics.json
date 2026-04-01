@@ -555,8 +555,7 @@
         "Native tokens cannot be transferred"
       ],
       "correctAnswers": [
-        0,
-        1
+        0
       ],
       "hint": "Think about the difference between protocol-level tokens and contract tokens.",
       "explanation": "Native tokens and ERC-20 tokens are transferred differently. Native tokens are sent by including a value in the value field of a transaction, which is processed at the protocol level. ERC-20 tokens, being smart contracts, require calling the transfer function of the token contract, which then updates balances in the contract's state. This fundamental difference affects how wallets interact with these tokens and how gas fees are calculated.",
@@ -737,8 +736,7 @@
         "A custom ERC-20 token with high gas fees"
       ],
       "correctAnswers": [
-        2,
-        3
+        2
       ],
       "hint": "Think about what token users pay for gas fees.",
       "explanation": "A custom native token is a token that serves as the gas token for an Avalanche L1 instead of using AVAX. This gives the L1 independent tokenomics where users pay gas fees in the custom token rather than AVAX. It's configured at the L1 level and allows the chain to have its own economic model separate from the Avalanche C-Chain. This is particularly useful for application-specific chains that want complete control over their token economics.",
@@ -919,8 +917,7 @@
         "Only basic math functions"
       ],
       "correctAnswers": [
-        1,
-        2
+        1
       ],
       "hint": "Think about chain-level features beyond smart contract capabilities.",
       "explanation": "Avalanche offers several powerful precompiles for L1 customization: 1) Native Minter allows authorized contracts to mint native tokens, 2) Fee Config enables dynamic adjustment of gas fees, 3) Contract Deployer Allow List restricts who can deploy contracts, 4) Tx Allow List controls who can submit transactions, and 5) Reward Manager configures block rewards. These precompiles enable protocol-level features that give L1 operators fine-grained control over their chain's behavior and economics.",

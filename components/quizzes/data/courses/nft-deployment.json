@@ -100,8 +100,7 @@
         "They are functionally identical, just different names for the same thing"
       ],
       "correctAnswers": [
-        1,
-        3
+        1
       ],
       "hint": "Consider scenarios where you might want to let someone transfer just one NFT versus scenarios where you want them to manage your entire collection.",
       "explanation": "The two approval levels serve different use cases: Single token approval (via 'approve') lets you authorize someone to transfer ONE SPECIFIC NFT - useful when selling a particular piece or lending it temporarily. Operator approval (via 'setApprovalForAll') gives someone permission to manage ALL your NFTs - useful for marketplace contracts where you want the platform to list and sell any of your items without repeated approvals, or for gaming contracts that need to move multiple items. This flexibility allows users to grant exactly the level of access needed for different situations.",
@@ -283,7 +282,6 @@
         "It defines traits like 'Background: Blue' or 'Style: Abstract' which is useful for collections with multiple layers to calculate rarity and rank NFTs"
       ],
       "correctAnswers": [
-        1,
         3
       ],
       "hint": "The content mentions the attributes field is 'particularly useful for NFT collections with multiple layers. It's used to calculate rarity and rank NFTs based on how frequently their traits appear.'",
@@ -464,8 +462,7 @@
         "It automatically sends minted NFTs to the owner"
       ],
       "correctAnswers": [
-        0,
-        3
+        0
       ],
       "hint": "The content explains: 'The onlyOwner modifier means only the contract owner can mint NFTs. For a public mint, you would remove this modifier and add payment logic.'",
       "explanation": "The 'onlyOwner' modifier (inherited from OpenZeppelin's Ownable contract) restricts function execution to only the address that deployed the contract. This creates a controlled minting scenario where you, as the owner, decide when and to whom NFTs are minted - essentially an airdrop or allow-list mechanism. This is useful for exclusive collections, gifting, or controlled distributions. For a public sale where anyone can mint by paying, you'd remove 'onlyOwner' and add 'payable' with price checks. The modifier doesn't affect security beyond access control, gas costs, or where tokens are sent - it purely controls WHO can call the function.",
@@ -646,7 +643,6 @@
         "Because Remix automatically converts all addresses to your address"
       ],
       "correctAnswers": [
-        0,
         1
       ],
       "hint": "The content notes: 'You can mint to any address, not just your own. This is useful for gifting NFTs or airdrops!'",
@@ -828,7 +824,6 @@
         "The image field contains the token ID number"
       ],
       "correctAnswers": [
-        0,
         2
       ],
       "hint": "Look at the example metadata where the 'image' field contains a URL like 'https://gateway.pinata.cloud/ipfs/QmHash/0.png'",
@@ -1010,8 +1005,7 @@
         "Because it makes the URI look more professional"
       ],
       "correctAnswers": [
-        1,
-        2
+        1
       ],
       "hint": "The content shows: '✅ https://gateway.pinata.cloud/ipfs/QmHash/' vs '❌ https://gateway.pinata.cloud/ipfs/QmHash'",
       "explanation": "The trailing slash is crucial for proper URL formation. With trailing slash: 'https://example.com/ipfs/QmHash/' + '0' = 'https://example.com/ipfs/QmHash/0' (correct). Without trailing slash: 'https://example.com/ipfs/QmHash' + '0' = 'https://example.com/ipfs/QmHash0' (wrong - the hash and token ID run together). IPFS would see 'QmHash0' as a completely different hash, not as a file in the QmHash folder. This small detail can break your entire collection's metadata linking. This is about URL structure and path concatenation, not security, appearance, or pricing.",

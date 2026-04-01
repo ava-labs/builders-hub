@@ -101,8 +101,7 @@
         "To convert ERC20 tokens to native tokens only"
       ],
       "correctAnswers": [
-        1,
-        3
+        1
       ],
       "hint": "Think about what ICTT enables users to do with their tokens across different chains.",
       "explanation": "ICTT is an application that allows users to transfer tokens between Avalanche L1s. It consists of smart contracts deployed across multiple Avalanche L1s that leverage Interchain Messaging for cross-chain communication. The bridge enables seamless token transfers across the Avalanche ecosystem.",
@@ -466,8 +465,7 @@
         "To merge the two blockchains"
       ],
       "correctAnswers": [
-        1,
-        2
+        1
       ],
       "hint": "Think about how the home contract knows which remote contracts are valid destinations.",
       "explanation": "Registration is a one-time setup process that establishes the connection between the TokenHome and TokenRemote contracts. It informs the TokenHome contract about the destination blockchain and bridge settings, allowing the home contract to validate and authorize token transfers to that specific remote. This prevents tokens from being sent to invalid or malicious remote addresses. Once registration is complete, token transfers can proceed between the chains.",
@@ -649,7 +647,6 @@
         "It replaces the need for a TokenHome contract"
       ],
       "correctAnswers": [
-        0,
         1
       ],
       "hint": "Think about how tokens travel from one remote to another in multi-hop.",

@@ -415,7 +415,6 @@
         "The mempool check provides fast, local rejection to prevent spam, while the execution check is canonical and ensures network-wide consensus"
       ],
       "correctAnswers": [
-        2,
         3
       ],
       "hint": "Think about the difference between local validation and consensus-critical validation.",
@@ -597,8 +596,7 @@
         "Timestamps must be in the past relative to genesis"
       ],
       "correctAnswers": [
-        0,
-        3
+        0
       ],
       "hint": "Think about what happens when a node encounters an upgrade entry with a past timestamp.",
       "explanation": "When creating network upgrade entries in upgrade.json, timestamps must be in the future relative to the current chain head. If a node encounters an upgrade entry with a blockTimestamp that is in the past relative to the head of the chain, it can fail to start. This is a critical rule because the node expects upgrades to activate at future blocks. The practical takeaway is to set timestamps to (current time + a few minutes) rather than 'right now' to ensure the upgrade activates properly. Additionally, upgrade entries must be in increasing timestamp order.",
@@ -780,8 +778,7 @@
         "adminAddresses automatically copy from the genesis configuration"
       ],
       "correctAnswers": [
-        2,
-        3
+        2
       ],
       "hint": "Think about what happens to the precompile's state when it's disabled.",
       "explanation": "When you disable a precompile, it destructs (clears) its storage as part of the deactivation process. This means all role assignments are wiped out. When you re-enable the precompile via a later upgrade.json entry, it's effectively a fresh initialization from scratch - there are no existing Admin, Manager, or Enabled addresses. Therefore, you must include adminAddresses in the re-enable configuration to set initial administrators who can then manage roles. Without this, the precompile would be active but nobody would have permission to use it or manage access, creating an immediate lock-out scenario.",
