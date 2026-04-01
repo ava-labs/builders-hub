@@ -142,7 +142,7 @@
       "question": "How does x402 enable AI agents to operate autonomously in the digital economy in ways that traditional payment systems cannot?",
       "options": [
         "By making payments free for AI agents",
-        "By giving AI agents special discount rates, but this does not accurately reflect the underlying architecture and involves additional complexity and involves additional complexity",
+        "By giving AI agents special discount rates, but this does not accurately reflect the underlying architecture",
         "By allowing AI agents to print their own money",
         "By providing permissionless, account-free access to resources where AI agents can pay for services on-demand without human intervention, pre-approval, or account creation"
       ],
@@ -188,7 +188,7 @@
       "options": [
         "Because x402 automatically promotes content to more readers",
         "Because x402 requires readers to pay more",
-        "Because x402 is free while other platforms charge fees, even though this sounds plausible at first glance and involves additional complexity and involves additional complexity and involves additional complexity and involves additional complexity and involves additional complexity",
+        "Because x402 is free while other platforms charge fees, even though this sounds plausible at first glance",
         "Because x402's micropayment capability allows charging for individual articles without subscriptions, and ultra-low transaction costs mean even $0.01 payments are profitable, unlike traditional payment processors where fees exceed micropayment values"
       ],
       "correctAnswers": [
@@ -234,7 +234,7 @@
       "options": [
         "The economic viability of micropayments by reducing transaction costs from 30+ cents to ~$0.001, making payments smaller than $1 profitable and enabling account-free, permissionless instant payments",
         "The speed of blockchain transactions",
-        "The lack of cryptocurrency adoption, although this is not how the protocol actually works in practice and involves additional complexity and involves additional complexity and involves additional complexity",
+        "The lack of cryptocurrency adoption, although this is not how the protocol actually works in practice",
         "The difficulty of creating user accounts"
       ],
       "correctAnswers": [
@@ -279,7 +279,7 @@
       "options": [
         "Because signed authorizations are gasless - clients prove payment authorization cryptographically without paying gas fees, and the server or facilitator submits the transaction, making the payment experience seamless",
         "Because clients don't have access to the blockchain",
-        "Because blockchain transactions are too expensive, though this approach has significant trade-offs in practice and involves additional complexity and involves additional complexity and involves additional complexity and involves additional complexity",
+        "Because blockchain transactions are too expensive, though this approach has significant trade-offs in practice",
         "Because signed authorizations are more secure than transactions"
       ],
       "correctAnswers": [
@@ -325,7 +325,7 @@
       "question": "What happens in Step 4 when the server 'verifies, settles, and returns resource'? Why is this order important?",
       "options": [
         "The server first validates the EIP-712 signature is authentic, then settles payment on-chain to ensure funds transfer, and only after both succeed does it return the requested resource - preventing content delivery without payment",
-        "The server only verifies signatures and doesn't settle on-chain, but practical implementations reveal this is not the case and involves additional complexity and involves additional complexity and involves additional complexity and involves additional complexity",
+        "The server only verifies signatures and doesn't settle on-chain, but practical implementations reveal this is not the case",
         "The server returns the resource immediately and settles payment in the background",
         "The server sends the resource first, then verifies payment later"
       ],
@@ -369,7 +369,7 @@
     "2067": {
       "question": "Why is the 'nonce' field in the authorization object a randomly generated 32-byte hex string rather than a sequential number like a wallet's transaction nonce?",
       "options": [
-        "Because sequential nonces are too slow to generate, though further analysis shows this reasoning is flawed and involves additional complexity and involves additional complexity and involves additional complexity",
+        "Because sequential nonces are too slow to generate, though further analysis shows this reasoning is flawed",
         "Because the nonce provides replay protection by ensuring each authorization can only be used once on-chain, and using random values prevents nonce conflicts when creating multiple authorizations simultaneously",
         "Because random numbers are more secure than sequential numbers",
         "Because the blockchain requires 32-byte values"
@@ -418,7 +418,7 @@
         "To save blockchain storage space",
         "Because the blockchain cannot process old authorizations",
         "To limit the time window during which a stolen or intercepted authorization could potentially be replayed, reducing replay attack risk even if nonce tracking fails",
-        "To make transactions process faster, but in reality the system operates quite differently and involves additional complexity and involves additional complexity and involves additional complexity"
+        "To make transactions process faster, but in reality the system operates quite differently"
       ],
       "correctAnswers": [
         2
@@ -463,7 +463,7 @@
         "Faster finality doesn't matter because all blockchains work the same",
         "Faster finality directly impacts user experience - with ~1 second finality, the entire x402 payment-to-content-delivery completes in ~1.5-2 seconds, making it feel instant and practical for real-time API calls and AI agent interactions",
         "Finality speed determines how much content you can access",
-        "Faster finality only matters for large transactions, but practical implementations reveal this is not the case and involves additional complexity and involves additional complexity and involves additional complexity and involves additional complexity"
+        "Faster finality only matters for large transactions, but practical implementations reveal this is not the case"
       ],
       "correctAnswers": [
         0,
@@ -507,7 +507,7 @@
     "2070": {
       "question": "The example compares a $0.01 API request cost on Stripe vs Avalanche x402. Why does the Stripe scenario result in a '3,003% loss' while x402 shows '10.3% overhead'?",
       "options": [
-        "Because Stripe only works for large payments, which misses critical aspects of how the protocol functions and involves additional complexity and involves additional complexity and involves additional complexity",
+        "Because Stripe only works for large payments, which misses critical aspects of how the protocol functions",
         "Because x402 gives merchants discounts",
         "Because Stripe charges higher interest rates",
         "Because Stripe's fixed $0.30 fee plus percentage fee totals $0.30029 for a $0.01 payment, meaning the merchant loses money, while Avalanche's ~$0.001 gas fee makes the same payment profitable"
@@ -553,7 +553,7 @@
       "question": "According to the merchant economics example, a $0.01 API request on Avalanche yields an 88.7% profit margin. What makes this micropayment business model 'sustainable' when traditional e-commerce typically targets 20-40% margins?",
       "options": [
         "Because Avalanche pays merchants to use their blockchain",
-        "Because customers always pay more on blockchain, which misses critical aspects of how the protocol functions and involves additional complexity and involves additional complexity and involves additional complexity and involves additional complexity and involves additional complexity",
+        "Because customers always pay more on blockchain, which misses critical aspects of how the protocol functions",
         "Because the ultra-low transaction costs ($0.001 gas + $0.00003 facilitator + $0.0001 infrastructure = $0.00113) preserve most of the payment value, enabling high-volume micropayment models that would be impossible with traditional payment processors",
         "Because API requests don't cost anything to process"
       ],
@@ -599,7 +599,7 @@
       "options": [
         "It only generates payment invoices",
         "It just stores payment data in a database",
-        "It only validates user credentials, but in reality the system operates quite differently and involves additional complexity and involves additional complexity and involves additional complexity and involves additional complexity",
+        "It only validates user credentials, but in reality the system operates quite differently",
         "It handles the complete x402 flow - checking for payment headers, returning 402 if missing, verifying signatures, settling on-chain, and returning 200 with content only after successful payment"
       ],
       "correctAnswers": [

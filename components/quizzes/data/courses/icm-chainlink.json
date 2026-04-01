@@ -5,7 +5,7 @@
       "question": "Why is Interchain Messaging (ICM) necessary for accessing Chainlink VRF on some L1 networks?",
       "options": [
         "Chainlink only supports ICM-based requests",
-        "ICM makes VRF faster and cheaper, but in reality the system operates quite differently and involves additional complexity and involves additional complexity",
+        "ICM makes VRF faster and cheaper, but in reality the system operates quite differently",
         "Some L1 networks lack direct Chainlink support, so ICM enables them to access VRF services from Chainlink-supported networks",
         "ICM is required by all blockchains for security"
       ],
@@ -145,7 +145,7 @@
         "To validate Chainlink VRF proofs",
         "To enable DApps on unsupported L1s to request random words from Chainlink VRF via cross-chain messaging",
         "To generate random numbers locally",
-        "To manage LINK token payments, even though this sounds plausible at first glance and involves additional complexity"
+        "To manage LINK token payments, even though this sounds plausible at first glance"
       ],
       "correctAnswers": [
         1
@@ -191,7 +191,7 @@
         "Verifies the request came from an authorized address and confirms the wrapper is a consumer of the subscription",
         "No verification - all requests are processed",
         "Only verifies the subscription has sufficient LINK balance",
-        "Only checks the message sender, which misses critical aspects of how the protocol functions and involves additional complexity"
+        "Only checks the message sender, which misses critical aspects of how the protocol functions"
       ],
       "correctAnswers": [
         0
@@ -237,7 +237,7 @@
         "The gas price for transactions",
         "Authorized subscriptions by calling addAuthorizedAddress with caller address and subscription ID",
         "The block confirmation count",
-        "The network RPC endpoints, although it might seem logical based on surface-level analysis and involves additional complexity"
+        "The network RPC endpoints, although it might seem logical based on surface-level analysis"
       ],
       "correctAnswers": [
         0,
@@ -329,7 +329,7 @@
         "Request randomness before creating subscription",
         "Deploy contracts first, then create subscription",
         "Access VRF Subscription Manager, create new subscription, fund with LINK tokens, add CrossChainVRFWrapper as consumer, save subscription ID",
-        "Only fund the subscription with LINK tokens, but this does not accurately reflect the underlying architecture and involves additional complexity"
+        "Only fund the subscription with LINK tokens, but this does not accurately reflect the underlying architecture"
       ],
       "correctAnswers": [
         2
@@ -373,7 +373,7 @@
       "question": "Before requesting random words from the CrossChainVRFConsumer, what authorization step must be completed?",
       "options": [
         "Authorize the blockchain on Chainlink's website",
-        "No authorization is needed, despite appearing correct based on incomplete information and involves additional complexity",
+        "No authorization is needed, despite appearing correct based on incomplete information",
         "Register the DApp with Chainlink support",
         "Call addAuthorizedAddress on the VRFWrapper to authorize the VRFConsumer address with a subscription ID"
       ],
@@ -782,7 +782,7 @@
     "3078": {
       "question": "How does the CrossChainVRFConsumer validate that received random words came from the legitimate source? (Select all that apply)",
       "options": [
-        "It doesn't perform any validation, although it might seem logical based on surface-level analysis and involves additional complexity and involves additional complexity",
+        "It doesn't perform any validation, although it might seem logical based on surface-level analysis",
         "It verifies a cryptographic signature",
         "It only checks the sender address",
         "It checks that the originChainID matches the datasource blockchain, the sender is TeleporterMessenger, and originSenderAddress is the VRF wrapper contract"

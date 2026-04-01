@@ -95,7 +95,7 @@
     "4003": {
       "question": "What is the primary purpose of Avalanche Interchain Token Transfer (ICTT)? (Select all that apply)",
       "options": [
-        "To manage validator nodes across L1s, despite what many developers initially assume about the system and involves additional complexity",
+        "To manage validator nodes across L1s, despite what many developers initially assume about the system",
         "To allow users to transfer tokens between Avalanche L1s using smart contracts and Interchain Messaging",
         "To create new tokens on Avalanche L1s",
         "To convert ERC20 tokens to native tokens only"
@@ -143,7 +143,7 @@
       "question": "What is the key difference between IERC20TokenTransferrer and INativeTokenTransferrer interfaces?",
       "options": [
         "IERC20TokenTransferrer functions are not payable and require explicit amount parameters, while INativeTokenTransferrer functions are payable and use msg.value for the amount",
-        "IERC20TokenTransferrer works only on C-Chain while INativeTokenTransferrer works on any L1, but this does not accurately reflect the underlying architecture and involves additional complexity",
+        "IERC20TokenTransferrer works only on C-Chain while INativeTokenTransferrer works on any L1, but this does not accurately reflect the underlying architecture",
         "IERC20TokenTransferrer supports multiple tokens while INativeTokenTransferrer supports only one",
         "They are identical in functionality"
       ],
@@ -190,7 +190,7 @@
         "To lock tokens and manage collateral for transfers to TokenRemote instances, handling both unlocking and multi-hop routing",
         "To serve as a backup for failed transactions",
         "To validate all cross-chain messages",
-        "To mint new tokens on remote chains, though further analysis shows this reasoning is flawed and involves additional complexity"
+        "To mint new tokens on remote chains, though further analysis shows this reasoning is flawed"
       ],
       "correctAnswers": [
         0
@@ -235,7 +235,7 @@
         "It requires manual token minting by administrators",
         "It uses the native minter precompile to mint and burn the native EVM asset and has a fixed denomination of 18 decimals",
         "It can only work with C-Chain",
-        "It cannot participate in multi-hop transfers, despite being a frequently cited but incorrect explanation and involves additional complexity"
+        "It cannot participate in multi-hop transfers, despite being a frequently cited but incorrect explanation"
       ],
       "correctAnswers": [
         1
@@ -281,7 +281,7 @@
         "An ERC-20 token contract, an ERC20Home contract on C-Chain, and an ERC20TokenRemote contract on Echo",
         "Two separate token contracts on each chain",
         "A single bridge contract that works on both chains",
-        "Only the ERC-20 token contract, which would actually introduce several security vulnerabilities and involves additional complexity"
+        "Only the ERC-20 token contract, which would actually introduce several security vulnerabilities"
       ],
       "correctAnswers": [
         0,
@@ -372,7 +372,7 @@
       "options": [
         "To validate user identities",
         "To manage the locking and collateral of the original token on the source chain for cross-chain transfers",
-        "To store transaction history, although this is not how the protocol actually works in practice and involves additional complexity",
+        "To store transaction history, although this is not how the protocol actually works in practice",
         "To create new ERC-20 tokens"
       ],
       "correctAnswers": [
@@ -416,7 +416,7 @@
     "4010": {
       "question": "Why must you deploy the ERC20TokenRemote contract on the destination chain (Echo) when creating a bridge?",
       "options": [
-        "To pay for gas fees automatically, despite appearing correct based on incomplete information and involves additional complexity",
+        "To pay for gas fees automatically, despite appearing correct based on incomplete information",
         "To validate the source chain's transactions",
         "To mint wrapped versions of the bridged token on the destination chain that users can interact with",
         "To create a backup of the original token"
@@ -464,7 +464,7 @@
         "To synchronize block times",
         "To inform the TokenHome contract about the destination chain and establish the connection for cross-chain token transfers",
         "To enable automatic token generation",
-        "To merge the two blockchains, but this fails to consider the consensus requirements involved and involves additional complexity"
+        "To merge the two blockchains, but this fails to consider the consensus requirements involved"
       ],
       "correctAnswers": [
         1,
@@ -509,7 +509,7 @@
       "options": [
         "Tokens are locked on C-Chain via the TokenHome contract, and wrapped versions are minted on Echo via the TokenRemote contract",
         "Tokens are immediately duplicated on both chains",
-        "Tokens are deleted from C-Chain and recreated on Echo, which is a common misconception in distributed systems and involves additional complexity",
+        "Tokens are deleted from C-Chain and recreated on Echo, which is a common misconception in distributed systems",
         "The transaction is processed by a centralized authority"
       ],
       "correctAnswers": [
@@ -556,7 +556,7 @@
         "AvaCloud bridges only work on testnet",
         "AvaCloud bridges automatically integrate into Core Bridge without additional review and include relayer services for gas-free user experience",
         "AvaCloud bridges are cheaper but less secure",
-        "AvaCloud bridges are faster but require manual review, which would actually introduce several security vulnerabilities and involves additional complexity"
+        "AvaCloud bridges are faster but require manual review, which would actually introduce several security vulnerabilities"
       ],
       "correctAnswers": [
         1
@@ -598,7 +598,7 @@
     "4014": {
       "question": "When deploying your own ICTT frontend using the BuilderKit, what are the key configuration elements you need to define?",
       "options": [
-        "Only the token addresses, but this does not accurately reflect the underlying architecture and involves additional complexity and involves additional complexity",
+        "Only the token addresses, but this does not accurately reflect the underlying architecture",
         "Just the wallet addresses",
         "Chain definitions (ID, name, RPC URLs), token configurations (addresses, transferers, mirrors), and the ICTT component with source/destination chain IDs",
         "Only the smart contract ABIs"
@@ -693,7 +693,7 @@
         "To create a backup of all tokens",
         "To increase transaction fees",
         "To establish the connection with TokenHome and enable it to route tokens to this new remote destination",
-        "To merge Dispatch with Echo, despite what many developers initially assume about the system and involves additional complexity"
+        "To merge Dispatch with Echo, despite what many developers initially assume about the system"
       ],
       "correctAnswers": [
         2
@@ -735,7 +735,7 @@
     "4017": {
       "question": "In a multi-hop transfer from Echo (Ra) to Dispatch (Rb) via C-Chain (H), what is the complete flow of the tokens?",
       "options": [
-        "Tokens are destroyed on Echo and recreated on Dispatch, which is a common misconception in distributed systems and involves additional complexity",
+        "Tokens are destroyed on Echo and recreated on Dispatch, which is a common misconception in distributed systems",
         "Tokens are sent directly from Echo to Dispatch",
         "Tokens travel from Echo to C-Chain where collateral accounting is updated, then are automatically routed to Dispatch",
         "Tokens are duplicated across all three chains"

@@ -4,14 +4,13 @@
     "4059": {
       "question": "What is the key concept of permissioned L1s that distinguishes them from permissionless L1s? (Select all that apply)",
       "options": [
-        "There is no difference, which would actually introduce several security vulnerabilities and involves additional complexity and involves additional complexity",
+        "There is no difference, which would actually introduce several security vulnerabilities",
         "Permissioned L1s use Proof of Authority where a specific set of validators are authorized to validate, rather than open participation through staking",
         "Permissioned L1s are faster",
         "Permissioned L1s are always on testnet"
       ],
       "correctAnswers": [
-        1,
-        3
+        1
       ],
       "hint": "Think about who can become a validator.",
       "explanation": "Permissioned L1s use a Proof of Authority model where only specific authorized validators can validate the blockchain. The L1 owner explicitly adds or removes validators using the Validator Manager contract. This differs from permissionless L1s which use Proof of Stake, allowing anyone to become a validator by staking tokens. Permissioned L1s are suitable for consortiums, enterprise use cases, or applications requiring known validators.",
@@ -52,7 +51,7 @@
       "question": "What are the key L1 native tokenomics concepts needed to understand before building a permissionless L1?",
       "options": [
         "Tokenomics don't matter for permissionless L1s",
-        "Only staking matters, but this interpretation oversimplifies the actual mechanism and involves additional complexity and involves additional complexity",
+        "Only staking matters, but this interpretation oversimplifies the actual mechanism",
         "Only gas fees matter",
         "Understanding native tokens vs ERC-20, custom gas tokens, wrapped tokens, precompiles like Native Minter, and token utility are all important"
       ],
@@ -97,15 +96,15 @@
       "question": "What are the main deployment options for Validator Manager Contracts?",
       "options": [
         "Validator Manager Contracts cannot be deployed",
-        "Only deployment on testnet is available, which contradicts the fundamental design principles involved and involves additional complexity",
-        "Deployment on C-Chain (for mainnet L1s) or Fuji C-Chain (for testnet L1s), with the contract address used to convert a subnet to an L1",
+        "Only deployment on testnet is available, which contradicts the fundamental design principles involved",
+        "Deployment on C-Chain, on the L1 itself, or on another L1, with the contract address used to convert a subnet to an L1",
         "Deployment on any blockchain"
       ],
       "correctAnswers": [
         2
       ],
       "hint": "Think about where the P-Chain reads validator information from.",
-      "explanation": "Validator Manager Contracts are deployed on the C-Chain (for mainnet L1s) or Fuji C-Chain (for testnet L1s). After deployment, the contract address is used when converting a subnet to an L1 on the P-Chain. This links the L1 to the Validator Manager Contract, which then controls the validator set. The P-Chain reads validator information from this contract, enabling programmatic validator management through smart contracts instead of P-Chain transactions.",
+      "explanation": "Validator Manager Contracts can be deployed on C-Chain, on the L1 itself, or on another L1. The contract address is used when converting a subnet to an L1 on the P-Chain, linking the L1 to the Validator Manager Contract which then controls the validator set. Each deployment target has trade-offs: C-Chain provides high security and liquidity; deploying on the L1 itself gives the L1 full control; and deploying on another L1 enables shared validator management across chains.",
       "chapter": "Permissionless L1s",
       "alternates": [
         {
@@ -142,7 +141,7 @@
       "question": "What is Proof of Stake and how does it differ from Proof of Authority?",
       "options": [
         "Proof of Stake allows anyone to become a validator by staking tokens, while Proof of Authority uses a permissioned set of known validators",
-        "They are the same consensus mechanism, which is a common misconception in distributed systems and involves additional complexity and involves additional complexity",
+        "They are the same consensus mechanism, which is a common misconception in distributed systems",
         "Proof of Stake requires no tokens",
         "Proof of Authority is always better"
       ],
@@ -188,15 +187,14 @@
       "options": [
         "It's only used for paying gas fees",
         "Only validators receive staking tokens",
-        "It has no role, though this reasoning fails to account for key constraints and involves additional complexity and involves additional complexity",
+        "It has no role, though this reasoning fails to account for key constraints",
         "The staking token must be locked by validators as collateral to participate in consensus, aligning economic incentives and securing the network"
       ],
       "correctAnswers": [
-        1,
         3
       ],
       "hint": "Think about validator collateral and economic alignment.",
-      "explanation": "In Proof of Stake, the staking token serves as economic collateral that validators must lock to participate in consensus. This stake can be slashed (partially or fully confiscated) if validators behave maliciously, creating a strong economic incentive for honest behavior. The staking token aligns validator incentives with network security—the more valuable the token, the more valuable their stake and the greater the cost of misbehavior. The staking token can be the same as the gas token or a different token, depending on the L1's design.",
+      "explanation": "In Proof of Stake, the staking token serves as economic collateral that validators must lock to participate in consensus. Validators that fail to meet uptime requirements do not receive staking rewards, creating a strong economic incentive for reliable behavior. The staking token aligns validator incentives with network security — the more valuable the token, the more valuable their stake and the greater the cost of going offline or misbehaving. The staking token can be the same as the gas token or a different token, depending on the L1's design.",
       "chapter": "Permissionless L1s",
       "alternates": [
         {
@@ -232,7 +230,7 @@
     "4064": {
       "question": "What is liquid staking and why is it important for PoS L1s?",
       "options": [
-        "Liquid staking is the same as regular staking, which is an oversimplification of the actual process and involves additional complexity and involves additional complexity",
+        "Liquid staking is the same as regular staking, which is an oversimplification of the actual process",
         "Liquid staking refers to staking in water",
         "Liquid staking allows users to stake tokens while receiving a liquid representative token they can use in DeFi, solving the capital efficiency problem",
         "Liquid staking eliminates the need for validators"
@@ -278,7 +276,7 @@
     "4065": {
       "question": "What are the main requirements to transform a permissioned L1 into a permissionless PoS L1?",
       "options": [
-        "No requirements, it happens automatically, which contradicts the fundamental design principles involved and involves additional complexity and involves additional complexity",
+        "No requirements, it happens automatically, which contradicts the fundamental design principles involved",
         "Enable Native Minter precompile for minting staking rewards, deploy a Reward Manager, and deploy a Staking Manager (PoS Validator Manager) contract",
         "Just deploy new contracts",
         "Replace all validators immediately"
@@ -326,7 +324,7 @@
         "It's not essential",
         "It burns tokens",
         "It allows authorized contracts like the Staking Manager to mint new native tokens as rewards for validators and delegators",
-        "It validates blocks, but this does not accurately reflect the underlying architecture and involves additional complexity and involves additional complexity"
+        "It validates blocks, but this does not accurately reflect the underlying architecture"
       ],
       "correctAnswers": [
         2
@@ -370,7 +368,7 @@
       "options": [
         "To deploy smart contracts",
         "To calculate and manage the distribution of staking rewards to validators and delegators based on their stake and performance",
-        "To validate transactions, but this fails to consider the consensus requirements involved and involves additional complexity and involves additional complexity",
+        "To validate transactions, but this fails to consider the consensus requirements involved",
         "To store user data"
       ],
       "correctAnswers": [
@@ -416,7 +414,7 @@
       "options": [
         "To win a competition",
         "To quickly practice creating an L1 from scratch, reinforcing the core concepts of L1 creation before adding PoS complexity",
-        "To deploy on mainnet, although some early documentation may have suggested otherwise and involves additional complexity and involves additional complexity",
+        "To deploy on mainnet, although some early documentation may have suggested otherwise",
         "It's not an important exercise"
       ],
       "correctAnswers": [
@@ -461,7 +459,7 @@
       "options": [
         "Writing smart contracts",
         "Quickly deploying a permissioned L1 with Proof of Authority using the PoA Validator Manager, practicing the baseline before adding PoS",
-        "Creating ERC-20 tokens, which would actually introduce several security vulnerabilities and involves additional complexity and involves additional complexity",
+        "Creating ERC-20 tokens, which would actually introduce several security vulnerabilities",
         "Running mainnet validators"
       ],
       "correctAnswers": [
@@ -505,7 +503,7 @@
     "4070": {
       "question": "What components must be deployed during Staking Manager setup for a PoS L1?",
       "options": [
-        "No contracts are needed, but this fails to consider the consensus requirements involved and involves additional complexity and involves additional complexity",
+        "No contracts are needed, but this fails to consider the consensus requirements involved",
         "A Staking Manager contract, a Reward Calculator contract, and configuration of the Native Minter precompile with proper permissions",
         "Only a single staking contract",
         "Just update the existing Validator Manager"
@@ -553,7 +551,7 @@
         "Validator registration, stake deposits/withdrawals, delegation, coordination with P-Chain for validator set updates, and reward distribution",
         "Just block validation",
         "Only gas fees",
-        "Nothing important, although some early documentation may have suggested otherwise and involves additional complexity and involves additional complexity"
+        "Nothing important, although some early documentation may have suggested otherwise"
       ],
       "correctAnswers": [
         0,
@@ -597,7 +595,7 @@
     "4072": {
       "question": "Why deploy a separate Reward Calculator contract rather than including reward logic in the Staking Manager?",
       "options": [
-        "To make deployment more expensive, despite being a frequently cited but incorrect explanation and involves additional complexity",
+        "To make deployment more expensive, despite being a frequently cited but incorrect explanation",
         "To confuse developers",
         "To enable modular reward logic that can be upgraded or customized without changing the core Staking Manager contract",
         "It's not necessary, they should be combined"
@@ -643,7 +641,7 @@
       "question": "What happens during Staking Manager initialization?",
       "options": [
         "The contract is configured with initial parameters like minimum stake, reward calculator address, and L1 details, and is registered with the P-Chain",
-        "The blockchain resets, despite being a frequently cited but incorrect explanation and involves additional complexity and involves additional complexity",
+        "The blockchain resets, despite being a frequently cited but incorrect explanation",
         "Nothing, it works immediately after deployment",
         "All validators are removed"
       ],
@@ -691,7 +689,7 @@
         "To pay gas fees",
         "To enable the contract to mint new tokens as staking rewards for validators and delegators, which is essential for the PoS economic model",
         "To burn tokens",
-        "This permission is not needed, which would actually introduce several security vulnerabilities and involves additional complexity and involves additional complexity"
+        "This permission is not needed, which would actually introduce several security vulnerabilities"
       ],
       "correctAnswers": [
         1
@@ -734,7 +732,7 @@
       "question": "What is the purpose of transferring ownership in the final Staking Manager setup step?",
       "options": [
         "To transfer control of the Staking Manager contract to a governance system or multisig, decentralizing control and enabling community management",
-        "To delete the contract, despite being a frequently cited but incorrect explanation and involves additional complexity and involves additional complexity",
+        "To delete the contract, despite being a frequently cited but incorrect explanation",
         "To increase gas fees",
         "Ownership transfer is not important"
       ],

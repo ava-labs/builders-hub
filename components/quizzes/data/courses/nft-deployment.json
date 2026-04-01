@@ -50,7 +50,7 @@
       "question": "Looking at the ERC-721 data structure, why does it include a 'holders' mapping in addition to the 'balances' mapping that ERC-20 uses?",
       "options": [
         "The holders mapping tracks which address owns each specific token by its unique ID, enabling individual token ownership tracking",
-        "The holders mapping is used to prevent token transfers, though further analysis shows this reasoning is flawed and involves additional complexity",
+        "The holders mapping is used to prevent token transfers, though further analysis shows this reasoning is flawed",
         "The holders mapping stores the metadata for each token",
         "The holders mapping stores how much each address paid for their tokens"
       ],
@@ -96,7 +96,7 @@
       "options": [
         "Single token approval is cheaper in gas costs than operator approval",
         "Single token approval allows transferring one specific NFT, while operator approval allows someone to manage all your NFTs, providing flexibility for different use cases",
-        "Single token approval is for selling and operator approval is for buying, but this interpretation oversimplifies the actual mechanism and involves additional complexity and involves additional complexity",
+        "Single token approval is for selling and operator approval is for buying, but this interpretation oversimplifies the actual mechanism",
         "They are functionally identical, just different names for the same thing"
       ],
       "correctAnswers": [
@@ -143,7 +143,7 @@
         "They all require high-quality images",
         "They all represent unique items where each token has distinct characteristics, value, or properties that make them non-interchangeable",
         "They all involve expensive items that cost a lot of money",
-        "They all must be stored on IPFS, though further analysis shows this reasoning is flawed and involves additional complexity and involves additional complexity"
+        "They all must be stored on IPFS, though further analysis shows this reasoning is flawed"
       ],
       "correctAnswers": [
         1
@@ -187,7 +187,7 @@
       "question": "Why is it critical that image file names start consistently with either 0 or 1 throughout the collection?",
       "options": [
         "Because Pinata requires all files to start with 0",
-        "Because numbered files are easier to upload, but practical implementations reveal this is not the case and involves additional complexity",
+        "Because numbered files are easier to upload, but practical implementations reveal this is not the case",
         "Because the numbering choice must match how the smart contract assigns token IDs, or the wrong images will be linked to the wrong tokens",
         "Because IPFS only accepts files named starting with 0"
       ],
@@ -233,7 +233,7 @@
       "question": "After uploading your image folder to Pinata and getting the image URL, what will you use this URL for in the NFT creation process?",
       "options": [
         "You will put it directly in the smart contract as the base URI",
-        "You will send it to users who want to mint NFTs, even though this sounds plausible at first glance and involves additional complexity",
+        "You will send it to users who want to mint NFTs, even though this sounds plausible at first glance",
         "You will use it to deploy the contract on Remix",
         "You will include it in the metadata JSON file's 'image' field so the metadata points to where the actual image is stored"
       ],
@@ -279,7 +279,7 @@
       "options": [
         "It contains the smart contract address",
         "It lists all previous owners of the NFT",
-        "It stores the owner's wallet address, despite what many developers initially assume about the system and involves additional complexity and involves additional complexity",
+        "It stores the owner's wallet address, despite what many developers initially assume about the system",
         "It defines traits like 'Background: Blue' or 'Style: Abstract' which is useful for collections with multiple layers to calculate rarity and rank NFTs"
       ],
       "correctAnswers": [
@@ -325,7 +325,7 @@
       "options": [
         "Because the smart contract automatically appends token IDs to the base URI to fetch different metadata files, making it scalable for the entire collection",
         "Because individual file URLs are too long to fit in the smart contract",
-        "Because Pinata only allows folder URLs in smart contracts, but in reality the system operates quite differently and involves additional complexity and involves additional complexity",
+        "Because Pinata only allows folder URLs in smart contracts, but in reality the system operates quite differently",
         "Because individual URLs are more expensive in gas fees"
       ],
       "correctAnswers": [
@@ -370,7 +370,7 @@
       "options": [
         "Because IPFS cannot store images and metadata in the same folder",
         "Because the smart contract's base URI points to the metadata folder, and each metadata file contains a reference to its corresponding image in the separate image folder, creating a proper linking structure",
-        "Because it makes the files download faster, though further analysis shows this reasoning is flawed and involves additional complexity and involves additional complexity and involves additional complexity and involves additional complexity",
+        "Because it makes the files download faster, though further analysis shows this reasoning is flawed",
         "Because Pinata charges extra if you mix different file types"
       ],
       "correctAnswers": [
@@ -459,7 +459,7 @@
       "question": "Looking at the generated contract code, what is the purpose of the 'onlyOwner' modifier on the safeMint function? (Select all that apply)",
       "options": [
         "It restricts the ability to mint NFTs to only the contract owner, creating a controlled minting mechanism rather than allowing anyone to mint",
-        "It prevents the contract from being hacked, though this reasoning fails to account for key constraints and involves additional complexity and involves additional complexity",
+        "It prevents the contract from being hacked, though this reasoning fails to account for key constraints",
         "It makes minting cheaper by reducing gas costs",
         "It automatically sends minted NFTs to the owner"
       ],
@@ -506,7 +506,7 @@
       "question": "The current safeMint function is described as functioning like an 'airdrop' mechanism. What would you need to change to convert it to a public sale mechanism?",
       "options": [
         "Change the function name to 'publicMint'",
-        "Upload different metadata files, which would actually introduce several security vulnerabilities and involves additional complexity and involves additional complexity and involves additional complexity",
+        "Upload different metadata files, which would actually introduce several security vulnerabilities",
         "Just increase the gas limit",
         "Remove the 'onlyOwner' modifier, make the function 'payable', add price checks to ensure sufficient payment is sent, and optionally add supply and per-wallet minting limits"
       ],
@@ -552,7 +552,7 @@
       "options": [
         "Because Pinata requires testnet AVAX to store files",
         "Because you need to buy NFTs with testnet AVAX",
-        "Because testnet AVAX is required to prove you're a legitimate developer, which would actually introduce several security vulnerabilities and involves additional complexity",
+        "Because testnet AVAX is required to prove you're a legitimate developer, which would actually introduce several security vulnerabilities",
         "Because deploying a smart contract is a blockchain transaction that requires gas fees, and testnet AVAX pays those fees on the Fuji testnet"
       ],
       "correctAnswers": [
@@ -598,7 +598,7 @@
         "It downloads your contract to your computer",
         "It makes Remix run faster",
         "It connects Remix to your wallet (Core/MetaMask) so Remix can send deployment transactions through your wallet to the actual blockchain network",
-        "It automatically uploads your contract to IPFS, despite appearing correct based on incomplete information and involves additional complexity and involves additional complexity"
+        "It automatically uploads your contract to IPFS, despite appearing correct based on incomplete information"
       ],
       "correctAnswers": [
         2
@@ -642,7 +642,7 @@
       "options": [
         "Because the 'to' field doesn't actually matter, NFTs always go to the minter",
         "Because the safeMint function allows the contract owner to mint NFTs to any recipient address, enabling gifting or airdrop functionality",
-        "Because all NFTs must be sent to the contract owner first, although some early documentation may have suggested otherwise and involves additional complexity",
+        "Because all NFTs must be sent to the contract owner first, although some early documentation may have suggested otherwise",
         "Because Remix automatically converts all addresses to your address"
       ],
       "correctAnswers": [
@@ -689,7 +689,7 @@
         "Only on Pinata where you uploaded the files",
         "On Snowtrace (shows blockchain transaction details), in your Core wallet (shows the NFT in your collection), and on NFT marketplaces (shows listing information)",
         "Only in Remix IDE where you deployed the contract",
-        "Only in your Core wallet, nowhere else, despite appearing correct based on incomplete information and involves additional complexity and involves additional complexity"
+        "Only in your Core wallet, nowhere else, despite appearing correct based on incomplete information"
       ],
       "correctAnswers": [
         1
@@ -733,7 +733,7 @@
       "options": [
         "Because smart contracts are immutable once deployed - bugs in mainnet contracts cannot be fixed and could result in loss of funds, permanent errors, or security vulnerabilities with real financial consequences",
         "Because testnet has better tools than mainnet",
-        "Because mainnet doesn't allow testing, though further analysis shows this reasoning is flawed and involves additional complexity and involves additional complexity and involves additional complexity and involves additional complexity",
+        "Because mainnet doesn't allow testing, though further analysis shows this reasoning is flawed",
         "Because testnet is faster than mainnet"
       ],
       "correctAnswers": [
@@ -778,7 +778,7 @@
       "question": "How does the ERC-721 contract construct the complete token URI when someone queries a token?",
       "options": [
         "It concatenates the base URI stored in the contract with the token ID to form the complete URL pointing to the metadata file",
-        "It asks Pinata for the URI, although some early documentation may have suggested otherwise and involves additional complexity",
+        "It asks Pinata for the URI, although some early documentation may have suggested otherwise",
         "It generates a random URI each time",
         "It retrieves the entire URI from a database"
       ],
@@ -823,7 +823,7 @@
       "question": "In the metadata JSON structure, what is the relationship between the 'image' field and the actual image file? (Select all that apply)",
       "options": [
         "The image field contains the actual image data encoded in base64",
-        "The image field is optional and not used by marketplaces, which misses critical aspects of how the protocol functions and involves additional complexity",
+        "The image field is optional and not used by marketplaces, which misses critical aspects of how the protocol functions",
         "The image field contains a URL that points to where the actual image file is stored on IPFS, creating a reference link rather than embedding the image",
         "The image field contains the token ID number"
       ],
@@ -868,7 +868,7 @@
     "2050": {
       "question": "Why is IPFS preferred over traditional centralized storage (like AWS S3) for NFT metadata and images?",
       "options": [
-        "Because blockchains can only read from IPFS, but in reality the system operates quite differently and involves additional complexity and involves additional complexity and involves additional complexity and involves additional complexity",
+        "Because blockchains can only read from IPFS, but in reality the system operates quite differently",
         "Because IPFS is always free while AWS charges fees",
         "Because IPFS is faster than all other storage options",
         "Because IPFS provides decentralized, content-addressed, immutable storage where files are identified by their content hash and remain accessible as long as they're pinned, ensuring NFTs aren't dependent on a single company or server"
@@ -913,7 +913,7 @@
     "2051": {
       "question": "Looking at the tokenURI function code, why does it first check 'require(_exists(tokenId))' before returning the URI?",
       "options": [
-        "To verify the metadata file is correctly formatted, but this fails to consider the consensus requirements involved and involves additional complexity",
+        "To verify the metadata file is correctly formatted, but this fails to consider the consensus requirements involved",
         "To verify the token has been minted before constructing its URI, preventing the contract from returning URIs for non-existent tokens",
         "To check if the owner has paid their gas fees",
         "To check if IPFS is working"
@@ -960,7 +960,7 @@
       "options": [
         "Because updating URIs costs a lot of gas",
         "Because IPFS doesn't allow URI updates",
-        "Because marketplaces don't display updated URIs, though this approach has significant trade-offs in practice and involves additional complexity and involves additional complexity and involves additional complexity and involves additional complexity",
+        "Because marketplaces don't display updated URIs, though this approach has significant trade-offs in practice",
         "Because if creators can change metadata after people purchase NFTs, they could alter the images, traits, or properties that people paid for, which violates the expectation of immutability and could constitute a rug pull"
       ],
       "correctAnswers": [
@@ -1004,7 +1004,7 @@
     "2053": {
       "question": "Why is it critical to include a trailing slash at the end of your base URI? (Select all that apply)",
       "options": [
-        "Because IPFS requires it for security, though this reasoning fails to account for key constraints and involves additional complexity and involves additional complexity and involves additional complexity",
+        "Because IPFS requires it for security, though this reasoning fails to account for key constraints",
         "Because without it, the concatenation of base URI and token ID would create a malformed URL where they run together without separation, breaking the link to metadata files",
         "Because Pinata charges extra without a trailing slash",
         "Because it makes the URI look more professional"
@@ -1051,7 +1051,7 @@
       "question": "The content lists common issues like '404 Not Found' and 'Invalid JSON' when accessing token URIs. What is the most likely cause of a '404 Not Found' error?",
       "options": [
         "IPFS has deleted the files",
-        "The blockchain is down, despite what many developers initially assume about the system and involves additional complexity and involves additional complexity",
+        "The blockchain is down, despite what many developers initially assume about the system",
         "The smart contract has a bug",
         "The metadata file names don't match token IDs, the base URI is incorrect, or there's no trailing slash causing malformed URLs"
       ],
@@ -1097,7 +1097,7 @@
       "question": "Now that you understand the complete NFT deployment process, what are the key components that work together to make an NFT functional?",
       "options": [
         "Just the metadata files",
-        "Just the images on IPFS, which is a common misconception in distributed systems and involves additional complexity and involves additional complexity and involves additional complexity and involves additional complexity",
+        "Just the images on IPFS, which is a common misconception in distributed systems",
         "Just the smart contract on-chain",
         "The smart contract (stores ownership and base URI on-chain), metadata files (describe each token), image files (visual representation), and IPFS (stores metadata and images), all linked together through URIs"
       ],

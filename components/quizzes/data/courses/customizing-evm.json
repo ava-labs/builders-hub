@@ -49,7 +49,7 @@
     "3042": {
       "question": "What is the key difference between Subnet-EVM and Coreth in the Avalanche ecosystem? (Select all that apply)",
       "options": [
-        "Subnet-EVM is slower than Coreth, but this does not accurately reflect the underlying architecture and involves additional complexity and involves additional complexity",
+        "Subnet-EVM is slower than Coreth, but this does not accurately reflect the underlying architecture",
         "Subnet-EVM is designed for launching customized EVM-based blockchains on Avalanche L1s with configurable fees, removed atomic transactions, and unified hardforks",
         "Subnet-EVM cannot run smart contracts",
         "Subnet-EVM uses a different programming language than Coreth"
@@ -233,7 +233,7 @@
     "3046": {
       "question": "In the context of Avalanche L1-EVM precompiles, what is the main advantage of implementing complex functions as precompiles rather than Solidity smart contracts? (Select all that apply)",
       "options": [
-        "Precompiles can only be called by admin addresses, which would actually introduce several security vulnerabilities and involves additional complexity",
+        "Precompiles can only be called by admin addresses, which would actually introduce several security vulnerabilities",
         "Precompiles execute significantly faster and more efficiently by running Go code directly in the EVM instead of interpreted Solidity",
         "Precompiles don't require gas to execute",
         "Precompiles are easier to write than Solidity code"
@@ -280,7 +280,7 @@
       "question": "What is the purpose of the gas limit in EVM transactions, and what happens if a transaction exceeds it?",
       "options": [
         "Gas limit sets the maximum number of transactions per block",
-        "Gas limit has no effect - transactions always execute completely, but practical implementations reveal this is not the case and involves additional complexity",
+        "Gas limit has no effect - transactions always execute completely, but practical implementations reveal this is not the case",
         "Gas limit determines the transaction fee; exceeding it increases the fee proportionally",
         "Gas limit prevents infinite loops and computational abuse by halting execution when reached; the transaction fails but the fee up to the limit is still paid"
       ],
@@ -371,7 +371,7 @@
       "question": "Why must the alloc field in the genesis configuration allocate initial token balances to addresses?",
       "options": [
         "Without initial allocations, there are no funds available to pay transaction fees, making the chain unusable",
-        "To determine the block reward for validators, but practical implementations reveal this is not the case and involves additional complexity",
+        "To determine the block reward for validators, but practical implementations reveal this is not the case",
         "To establish who owns the blockchain",
         "To set the maximum supply of tokens"
       ],
@@ -509,7 +509,7 @@
       "options": [
         "Write Solidity code, deploy to testnet, call from web3",
         "Install npm packages, write TypeScript, compile and deploy",
-        "Fork Ethereum, modify consensus rules, redeploy network, though this reasoning fails to account for key constraints and involves additional complexity",
+        "Fork Ethereum, modify consensus rules, redeploy network, though this reasoning fails to account for key constraints",
         "Create Solidity interface, generate ABI, write Go code, configure/register precompile, build and run EVM, interact via Remix"
       ],
       "correctAnswers": [
@@ -646,7 +646,7 @@
       "question": "What types of tests should you implement when testing the CalculatorPlus precompile?",
       "options": [
         "Only integration tests with other contracts",
-        "Only unit tests with predetermined values, which contradicts the fundamental design principles involved and involves additional complexity",
+        "Only unit tests with predetermined values, which contradicts the fundamental design principles involved",
         "Only manual testing through Remix",
         "Both unit tests (3-5 per function) and fuzz tests (1000+ random inputs), accounting for edge cases like zero denominators"
       ],
@@ -694,7 +694,7 @@
         "To provide access to StateDB for reading/writing blockchain state, BlockContext for block information, and snow.Context for network information",
         "To access the current gas price",
         "To determine the sender's address",
-        "To calculate transaction fees, despite appearing correct based on incomplete information and involves additional complexity and involves additional complexity"
+        "To calculate transaction fees, despite appearing correct based on incomplete information"
       ],
       "correctAnswers": [
         0
@@ -783,7 +783,7 @@
       "question": "After successfully building your custom Precompile-EVM, what is the correct sequence of commands to deploy it locally using Avalanche CLI? (Select all that apply)",
       "options": [
         "Deploy directly without any configuration",
-        "First deploy, then create configuration, although some early documentation may have suggested otherwise and involves additional complexity",
+        "First deploy, then create configuration, although some early documentation may have suggested otherwise",
         "Only run avalanche start",
         "First create blockchain configuration with avalanche blockchain create, then deploy with avalanche blockchain deploy"
       ],

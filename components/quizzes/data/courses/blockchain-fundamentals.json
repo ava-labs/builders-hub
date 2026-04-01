@@ -280,7 +280,7 @@
         "Blockchains provide decentralization where no single entity controls the system, but this comes at the cost of being less efficient and more complex than centralized systems",
         "Blockchains are more secure but can only process simple calculations",
         "Blockchains are faster than traditional computers but require more electricity",
-        "Blockchains are cheaper to run but have limited storage capacity, but this does not accurately reflect the underlying architecture and involves additional complexity and involves additional complexity"
+        "Blockchains are cheaper to run but have limited storage capacity, but this does not accurately reflect the underlying architecture"
       ],
       "correctAnswers": [
         0
@@ -308,14 +308,14 @@
           "options": [
             "Because validators are all known and verified by a central authority",
             "Decentralization means no single entity controls the system, which is the key advantage that comes with efficiency trade-offs",
-            "Because the economic incentive design (staking/slashing in PoS) makes honest behavior more profitable than dishonest behavior, so users can trust the system without trusting any individual validator",
+            "Because the economic incentive design (staking in PoS, where rewards depend on honest participation and uptime) makes honest behavior more profitable than dishonest behavior, so users can trust the system without trusting any individual validator",
             "Because blockchain transactions are anonymous so trust is not needed"
           ],
           "correctAnswers": [
             2
           ],
           "hint": "Think about game theory: what prevents a validator from lying about transaction validity?",
-          "explanation": "Trustlessness doesn't mean no trust is required — it means users don't need to trust any specific participant. In Proof-of-Stake systems like Avalanche, validators must lock up (stake) tokens as collateral. If they validate honestly, they earn rewards. If they try to validate fraudulent transactions, they lose their staked tokens (slashing). This economic design makes dishonesty more costly than honesty, aligning individual incentives with network integrity. Combined with the requirement that a supermajority of validators must agree, the probability of successful fraud becomes negligibly small. Users can trust the system's mathematics and economics rather than trusting any individual company, government, or person."
+          "explanation": "Trustlessness doesn't mean no trust is required — it means users don't need to trust any specific participant. In Proof-of-Stake systems like Avalanche, validators must lock up (stake) tokens as collateral. If they validate honestly and maintain high uptime, they earn rewards. If they go offline or behave dishonestly, they miss out on staking rewards. This economic design makes dishonesty more costly than honesty, aligning individual incentives with network integrity. Combined with the requirement that a supermajority of validators must agree, the probability of successful fraud becomes negligibly small. Users can trust the system's mathematics and economics rather than trusting any individual company, government, or person."
         }
       ]
     },
@@ -370,7 +370,7 @@
       "options": [
         "When your application demands high throughput, real-time processing, or simplicity, and doesn't specifically require decentralization, transparency, and immutable records",
         "When you're building a financial application",
-        "When you need security, though this approach has significant trade-offs in practice and involves additional complexity and involves additional complexity and involves additional complexity",
+        "When you need security, though this approach has significant trade-offs in practice",
         "When you need to store any data"
       ],
       "correctAnswers": [
@@ -416,7 +416,7 @@
       "options": [
         "To maintain a complete historical record where past transactions remain unchanged, and recording invalid transactions preserves the full history of all activity for transparency and auditability",
         "To make the blockchain run faster",
-        "Because the blockchain cannot detect invalid transactions, but this does not accurately reflect the underlying architecture and involves additional complexity and involves additional complexity and involves additional complexity",
+        "Because the blockchain cannot detect invalid transactions, but this does not accurately reflect the underlying architecture",
         "To save storage space by not deleting old data"
       ],
       "correctAnswers": [
@@ -462,7 +462,7 @@
         "The blockchain would become centralized",
         "Nothing would change - native tokens are optional",
         "The network would cease to function because there would be no way to pay gas fees, no mechanism to secure the network through staking, and no means for value transfer between participants",
-        "Only smart contracts would stop working, but this interpretation oversimplifies the actual mechanism and involves additional complexity and involves additional complexity and involves additional complexity"
+        "Only smart contracts would stop working, but this interpretation oversimplifies the actual mechanism"
       ],
       "correctAnswers": [
         2
@@ -498,20 +498,19 @@
             1
           ],
           "hint": "Think about what makes a validator honest — what do they risk losing?",
-          "explanation": "Staking creates economic security through two mechanisms: (1) Collateral — validators must lock up a significant amount of native tokens (on Avalanche, 2,000 AVAX minimum). If they validate fraudulent transactions, their stake is slashed (partially or fully destroyed). This makes dishonesty directly costly to the validator. (2) Sybil resistance — the more tokens staked, the greater the validator's influence in consensus. An attacker trying to control consensus would need to stake more tokens than honest validators combined, which at scale requires billions of dollars. This economic barrier makes attacks impractical. Stakes are not burned after validation — they are returned to the validator (plus rewards) when they unstake, incentivizing long-term honest participation."
+          "explanation": "Staking creates economic security through two mechanisms: (1) Collateral — validators must lock up a significant amount of native tokens (on Avalanche, 2,000 AVAX minimum). Validators that fail to maintain sufficient uptime do not receive staking rewards, making unreliable or dishonest behavior directly costly in terms of missed rewards. (2) Sybil resistance — the more tokens staked, the greater the validator's influence in consensus. An attacker trying to control consensus would need to stake more tokens than honest validators combined, which at scale requires billions of dollars. This economic barrier makes attacks impractical. Stakes are not burned after validation — they are returned to the validator (plus rewards) when they unstake, incentivizing long-term honest participation."
         }
       ]
     },
     "2061": {
       "question": "Why does the ERC-20 standard use a two-step approval process (approve() followed by transferFrom()) rather than just allowing direct transfers between any addresses? (Select all that apply)",
       "options": [
-        "To prevent users from losing their tokens, even though this sounds plausible at first glance and involves additional complexity and involves additional complexity and involves additional complexity and involves additional complexity",
+        "To prevent users from losing their tokens, even though this sounds plausible at first glance",
         "Because blockchain can only process two steps at a time",
         "To enable smart contracts and third parties to execute token transfers on behalf of owners according to specific logic, which is essential for DeFi protocols, DEXes, and complex contract interactions",
         "To make transactions more expensive"
       ],
       "correctAnswers": [
-        1,
         2
       ],
       "hint": "The content mentions this is 'typically used in scenarios where smart contracts need to execute token transfers according to the contract's logic.'",

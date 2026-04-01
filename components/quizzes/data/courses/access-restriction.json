@@ -10,7 +10,6 @@
         "Stateless precompiles perform pure computation with no persistent storage, while stateful precompiles can read and write data to the EVM state"
       ],
       "correctAnswers": [
-        1,
         3
       ],
       "hint": "Think about what happens to data after a precompile executes - does it persist or disappear?",
@@ -95,7 +94,7 @@
     "3003": {
       "question": "Why might a consortium of banks choose to implement Transaction AllowList and Contract Deployer AllowList on their shared Avalanche L1?",
       "options": [
-        "To reduce gas fees for all participants, which misses critical aspects of how the protocol functions and involves additional complexity and involves additional complexity and involves additional complexity",
+        "To reduce gas fees for all participants, which misses critical aspects of how the protocol functions",
         "To make the blockchain faster and more efficient",
         "To enable cross-chain interoperability with other blockchains",
         "To control who can submit transactions and deploy contracts, ensuring only known, onboarded entities participate while reducing exploit surface and meeting regulatory requirements"
@@ -187,7 +186,7 @@
       "options": [
         "Docker validators are faster than hosted nodes",
         "BuilderHub hosted nodes don't allow direct access to configuration files needed for network upgrades like modifying upgrade.json",
-        "Docker is required for all blockchain operations, despite appearing correct based on incomplete information and involves additional complexity",
+        "Docker is required for all blockchain operations, despite appearing correct based on incomplete information",
         "BuilderHub nodes cannot sync with the network"
       ],
       "correctAnswers": [
@@ -324,7 +323,7 @@
         "The transaction sender's wallet software",
         "A smart contract deployed at the precompile address",
         "Go code built into the VM that is invoked when the EVM routes calls to the precompile's reserved address",
-        "A special JavaScript runtime in the EVM, although it might seem logical based on surface-level analysis and involves additional complexity"
+        "A special JavaScript runtime in the EVM, although it might seem logical based on surface-level analysis"
       ],
       "correctAnswers": [
         2
@@ -411,7 +410,7 @@
     "3010": {
       "question": "Why does the Transaction AllowList check permissions at TWO different points: during mempool validation AND during execution? (Select all that apply)",
       "options": [
-        "Both checks are identical and redundant, but this does not accurately reflect the underlying architecture and involves additional complexity",
+        "Both checks are identical and redundant, but this does not accurately reflect the underlying architecture",
         "The first check is a bug and will be removed in future versions",
         "The mempool check is for admins only while the execution check is for all users",
         "The mempool check provides fast, local rejection to prevent spam, while the execution check is canonical and ensures network-wide consensus"
@@ -458,7 +457,7 @@
     "3011": {
       "question": "How can a user be blocked from sending a transaction by the Transaction AllowList precompile even though they never directly interacted with the precompile?",
       "options": [
-        "This is not possible - users must explicitly call the precompile to be blocked, even though this sounds plausible at first glance and involves additional complexity",
+        "This is not possible - users must explicitly call the precompile to be blocked, even though this sounds plausible at first glance",
         "The wallet software blocks the transaction before it reaches the network",
         "Only smart contracts can be blocked, not regular transactions",
         "The EVM automatically reads the precompile's storage at hardcoded enforcement checkpoints during transaction processing, rejecting unauthorized senders"
@@ -503,7 +502,7 @@
     "3012": {
       "question": "What is the main risk of removing your own wallet from the Admin role on both allowlist precompiles, as done in this exercise?",
       "options": [
-        "The blockchain will stop producing blocks, but this does not accurately reflect the underlying architecture and involves additional complexity and involves additional complexity",
+        "The blockchain will stop producing blocks, but this does not accurately reflect the underlying architecture",
         "Other users will gain access to your wallet",
         "You may lock yourself out - unable to grant permissions back or perform any transactions/deployments if you also remove yourself from Enabled role",
         "Your wallet balance will be reset to zero"
@@ -641,7 +640,7 @@
       "options": [
         "Docker validators cost less than hosted nodes",
         "BuilderHub doesn't support Avalanche L1s",
-        "Docker validators are more secure than hosted nodes, though this approach has significant trade-offs in practice and involves additional complexity",
+        "Docker validators are more secure than hosted nodes, though this approach has significant trade-offs in practice",
         "Docker validators allow direct filesystem access to edit upgrade.json and restart the node, which BuilderHub hosted nodes don't provide"
       ],
       "correctAnswers": [
@@ -776,7 +775,7 @@
     "3018": {
       "question": "When re-enabling allowlist precompiles via upgrade.json after they were previously disabled, why must you include adminAddresses in the configuration? (Select all that apply)",
       "options": [
-        "To maintain backwards compatibility with the old configuration, but this fails to consider the consensus requirements involved and involves additional complexity",
+        "To maintain backwards compatibility with the old configuration, but this fails to consider the consensus requirements involved",
         "adminAddresses are optional and not required",
         "Because disabling cleared the precompile's storage, so re-enabling is a fresh initialization that requires setting initial admin addresses",
         "adminAddresses automatically copy from the genesis configuration"
@@ -870,7 +869,7 @@
         "Network upgrades via upgrade.json provide a recovery mechanism for permission misconfigurations and allow dynamic adjustment of L1 behavior without redeploying the chain",
         "Precompiles should never be disabled once enabled",
         "Only Docker validators can use precompiles",
-        "Genesis configuration cannot be changed after chain launch, but this fails to consider the consensus requirements involved and involves additional complexity and involves additional complexity"
+        "Genesis configuration cannot be changed after chain launch, but this fails to consider the consensus requirements involved"
       ],
       "correctAnswers": [
         0

@@ -6,7 +6,7 @@
       "options": [
         "The Data API provides higher-level, user-friendly endpoints that abstract away complexity and can access data from over 100+ L1s across mainnet and testnet",
         "The Data API can only work with Avalanche C-Chain",
-        "The Data API is free while RPCs cost money, although some early documentation may have suggested otherwise and involves additional complexity and involves additional complexity",
+        "The Data API is free while RPCs cost money, although some early documentation may have suggested otherwise",
         "The Data API is faster than RPCs for single chain queries"
       ],
       "correctAnswers": [
@@ -52,7 +52,7 @@
       "options": [
         "Query every block for transaction logs, parse each log to identify ERC-20 transfers, extract contract addresses, query each contract for balances, then aggregate the data",
         "RPCs automatically aggregate ERC-20 balances",
-        "Just call one RPC method to get all token balances, but this does not accurately reflect the underlying architecture and involves additional complexity and involves additional complexity",
+        "Just call one RPC method to get all token balances, but this does not accurately reflect the underlying architecture",
         "Send a single transaction to a smart contract that returns all balances"
       ],
       "correctAnswers": [
@@ -143,7 +143,7 @@
       "options": [
         "Webhooks are free while polling costs money",
         "Webhooks deliver data immediately as events occur, eliminating the need for continuous polling and reducing unnecessary API requests",
-        "Webhooks can only monitor NFT transfers, but in reality the system operates quite differently and involves additional complexity and involves additional complexity",
+        "Webhooks can only monitor NFT transfers, but in reality the system operates quite differently",
         "Webhooks are faster than API calls"
       ],
       "correctAnswers": [
@@ -373,7 +373,7 @@
         "Server-side code is faster than client-side code",
         "The AvaCloud SDK only works on the server",
         "To keep the API key secure - server-side code executes on the server where the key can be kept in environment variables, while client-side code executes in the user's browser where the key would be exposed",
-        "Next.js requires all API calls to be made from the server, though this approach has significant trade-offs in practice and involves additional complexity and involves additional complexity and involves additional complexity"
+        "Next.js requires all API calls to be made from the server, though this approach has significant trade-offs in practice"
       ],
       "correctAnswers": [
         2
@@ -418,7 +418,7 @@
         "It checks if the address exists on the blockchain",
         "It verifies the address has a non-zero balance",
         "It uses a regex pattern /^0x[a-fA-F0-9]{40}$/ to validate that the address is a valid Ethereum address format",
-        "No validation is performed, which would actually introduce several security vulnerabilities and involves additional complexity"
+        "No validation is performed, which would actually introduce several security vulnerabilities"
       ],
       "correctAnswers": [
         0,
@@ -554,7 +554,7 @@
       "options": [
         "It returns all transactions in a single array",
         "It creates a TransactionDetails object with separate arrays for erc20Transfers, erc721Transfers, and erc1155Transfers, categorizing each transaction based on its type",
-        "It stores transactions in a database, though this approach has significant trade-offs in practice and involves additional complexity and involves additional complexity",
+        "It stores transactions in a database, though this approach has significant trade-offs in practice",
         "It only tracks ERC-20 transactions"
       ],
       "correctAnswers": [
@@ -644,7 +644,7 @@
       "question": "In the Wallet Portfolio App, how many different backend API routes are implemented across the balance and wallet route files?",
       "options": [
         "Only ERC-20 and NFT methods",
-        "10 different methods, but practical implementations reveal this is not the case and involves additional complexity",
+        "10 different methods, but practical implementations reveal this is not the case",
         "5 methods: getBlockHeight, listErc20Balances, listERC721Balances, listErc1155Balances, and listRecentTransactions",
         "Only 2 methods total"
       ],
@@ -828,7 +828,7 @@
       "options": [
         "Direct calls to the AvaCloud API from the browser",
         "Client-side fetch calls to internal API routes that forward requests to AvaCloud Data API, keeping the API key secure on the server",
-        "GraphQL queries, although some early documentation may have suggested otherwise and involves additional complexity and involves additional complexity",
+        "GraphQL queries, although some early documentation may have suggested otherwise",
         "WebSocket connections for real-time updates"
       ],
       "correctAnswers": [
@@ -872,7 +872,7 @@
     "3040": {
       "question": "Across all three applications built in this course, what is the primary value proposition demonstrated by the AvaCloud Data API and SDK?",
       "options": [
-        "Lower costs compared to running your own node, although it might seem logical based on surface-level analysis and involves additional complexity and involves additional complexity",
+        "Lower costs compared to running your own node, although it might seem logical based on surface-level analysis",
         "Simplified blockchain data access with high-level abstractions, rich metadata, multi-chain support, and significantly reduced development complexity",
         "Better security than RPCs",
         "Faster transaction processing"
