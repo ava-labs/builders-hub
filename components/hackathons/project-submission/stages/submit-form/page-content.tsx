@@ -24,7 +24,7 @@ type StageSubmitValues = Record<string, string | string[]>
 
 type StageSubmitPageContentProps = {
   hackathon: HackathonHeader
-  hackathonCreator: any // Replace 'any' with the correct type for the hackathon creator
+  hackathonCreator?: any // Replace 'any' with the correct type for the hackathon creator
   stage: HackathonStage
   stageIndex: number
   onSubmit: (payload: {
@@ -33,6 +33,7 @@ type StageSubmitPageContentProps = {
     stageIndex: number
     values: StageSubmitValues
   }) => Promise<void> | void
+  renderInPreview?: boolean
 }
 
 function buildDefaultValues(stage: HackathonStage): StageSubmitValues {
@@ -58,6 +59,7 @@ export default function StageSubmitPageContent({
   stage,
   stageIndex,
   onSubmit,
+  renderInPreview
 }: StageSubmitPageContentProps): React.JSX.Element | null {
   const [isSubmitting, setIsSubmitting] = React.useState<boolean>(false)
   const [linkDrafts, setLinkDrafts] = React.useState<Record<string, string>>({})
@@ -73,9 +75,6 @@ export default function StageSubmitPageContent({
     setLinkDrafts({})
   }, [stage, form])
 
-  if (!stage.submitForm?.fields.length) {
-    return null
-  }
 
   const renderField = (field: SubmitFormField): React.JSX.Element | null => {
     switch (field.type) {
@@ -357,6 +356,48 @@ export default function StageSubmitPageContent({
     } finally {
       setIsSubmitting(false)
     }
+  }
+  function onlySubmitForm() {
+    if (!stage.submitForm?.fields.length) {
+      return null
+    }
+    return (
+      <div className="rounded-2xl border border-[#d66666]/20 bg-[#0b0b0f] p-6 text-white sm:p-8">
+        <div className="mb-8">
+          <p className="text-sm uppercase tracking-[0.2em] text-[#d66666]">
+            Form
+          </p>
+          <h2 className="mt-2 text-3xl font-semibold text-white">
+            {stage.label}
+          </h2>
+        </div>
+
+        <Form {...form}>
+          <form
+            onSubmit={form.handleSubmit(handleSubmit)}
+            className="space-y-5"
+          >
+            {stage.submitForm.fields.map(renderField)}
+
+            <div className="flex justify-center pt-4">
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className=" bg-[#d66666] py-4 text-base font-semibold text-zinc-900 hover:bg-[#e57f7f]"
+              >
+                {isSubmitting ? 'Saving...' : `Save ${stage.label}`}
+              </Button>
+            </div>
+          </form>
+        </Form>
+      </div>
+    )
+  }
+  if (!stage.submitForm?.fields.length) {
+    return null
+  }
+  if (renderInPreview) {
+    return onlySubmitForm()
   }
 
   return (

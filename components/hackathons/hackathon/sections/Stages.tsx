@@ -2,14 +2,19 @@
 
 import { HackathonStage, TagItem as StageTagItem } from "@/types/hackathon-stage";
 import { JSX, useEffect, useMemo, useState } from "react";
-import StageSubmitDialog from "./StageSubmitDialog";
 import Link from "next/link";
 import { HackathonHeader } from "@/types/hackathons";
+import {
+  Dialog,
+  DialogContent,
+  DialogTrigger,
+} from '@/components/ui/dialog'
 import { Upload } from "lucide-react";
+import StageSubmitPageContent from '@/components/hackathons/project-submission/stages/submit-form/page-content'
 
 type StageStatus = "completed" | "current" | "upcoming";
 
-export default function Stages({ isParticipant, stages, hackathon }: { isParticipant: boolean; stages: HackathonStage[]; hackathon: HackathonHeader }): JSX.Element {
+export default function Stages({ isParticipant, stages, hackathon, renderInPreview }: { isParticipant: boolean; stages: HackathonStage[]; hackathon: HackathonHeader; renderInPreview?: boolean }): JSX.Element {
   const [todayDate, setTodayDate] = useState<Date>(() => new Date());
   const [selectedPhaseIndex, setSelectedPhaseIndex] = useState<number>(0);
 
@@ -192,17 +197,49 @@ export default function Stages({ isParticipant, stages, hackathon }: { isPartici
             </div>
             {
               selectedStage.submitForm && (
-                <Link href={`/hackathons/${hackathon.id}/stage-form?stage=${selectedPhaseIndex}`}>
-                  <button type="button" className="group relative inline-flex cursor-pointer">
-                    <div className="absolute -inset-1 rounded-xl bg-gradient-to-r from-[#d66666] via-[#f83838] to-[#d66666] blur-sm opacity-40 transition duration-500 group-hover:opacity-70" />
-                    <div className="relative flex items-center gap-3 rounded-xl bg-[#d66666] px-10 py-5 font-['Aeonik:Medium',sans-serif] font-medium text-[#152d44] shadow-xl shadow-[#d66666]/30 transition-all duration-200 group-hover:scale-105 group-hover:bg-[#e57f7f] group-hover:shadow-[#d66666]/50">
-                      <Upload className="h-5 w-5 text-zinc-900" />
-                      <span className="text-[17px] font-semibold text-zinc-900">
-                        Submit
-                      </span>
-                    </div>
-                  </button>
-                </Link>
+                renderInPreview ? (
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <button
+                        type="button"
+                        className="group relative inline-flex cursor-pointer"
+                      >
+                        <div className="absolute -inset-1 rounded-xl bg-gradient-to-r from-[#d66666] via-[#f83838] to-[#d66666] blur-sm opacity-40 transition duration-500 group-hover:opacity-70" />
+                        <div className="relative flex items-center gap-3 rounded-xl bg-[#d66666] px-10 py-5 font-['Aeonik:Medium',sans-serif] font-medium text-[#152d44] shadow-xl shadow-[#d66666]/30 transition-all duration-200 group-hover:scale-105 group-hover:bg-[#e57f7f] group-hover:shadow-[#d66666]/50">
+                          <Upload className="h-5 w-5 text-zinc-900" />
+                          <span className="text-[17px] font-semibold text-zinc-900">
+                            Submit
+                          </span>
+                        </div>
+                      </button>
+                    </DialogTrigger>
+
+                    <DialogContent>
+                      <StageSubmitPageContent
+                        hackathon={hackathon}
+                        hackathonCreator={''}
+                        stage={selectedStage}
+                        stageIndex={selectedPhaseIndex}
+                        renderInPreview={renderInPreview}
+                        onSubmit={async (payload) => {
+                          console.log(payload)
+                        }}
+                      />
+                    </DialogContent>
+                  </Dialog>
+                ) : (
+                  <Link href={`/hackathons/${hackathon.id}/stage-form?stage=${selectedPhaseIndex}`}>
+                    <button type="button" className="group relative inline-flex cursor-pointer">
+                      <div className="absolute -inset-1 rounded-xl bg-gradient-to-r from-[#d66666] via-[#f83838] to-[#d66666] blur-sm opacity-40 transition duration-500 group-hover:opacity-70" />
+                      <div className="relative flex items-center gap-3 rounded-xl bg-[#d66666] px-10 py-5 font-['Aeonik:Medium',sans-serif] font-medium text-[#152d44] shadow-xl shadow-[#d66666]/30 transition-all duration-200 group-hover:scale-105 group-hover:bg-[#e57f7f] group-hover:shadow-[#d66666]/50">
+                        <Upload className="h-5 w-5 text-zinc-900" />
+                        <span className="text-[17px] font-semibold text-zinc-900">
+                          Submit
+                        </span>
+                      </div>
+                    </button>
+                  </Link>
+                )
               )
             }
           </div>

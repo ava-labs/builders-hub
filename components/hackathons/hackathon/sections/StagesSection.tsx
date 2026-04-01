@@ -9,9 +9,10 @@ import { HackathonHeader } from "@/types/hackathons";
 type Props = {
   stages: HackathonStage[];
   hackathon: HackathonHeader;
+  renderInPreview?: boolean
 };
 
-export default function StagesSection({ stages, hackathon }: Props): JSX.Element {
+export default function StagesSection({ stages, hackathon, renderInPreview }: Props): JSX.Element {
   const { status, data: session } = useSession();
   const [isParticipant, setIsParticipant] = useState(false);
   useEffect(() => {
@@ -25,6 +26,6 @@ export default function StagesSection({ stages, hackathon }: Props): JSX.Element
       .catch(() => { });
   }, [status]);
   return (
-    <Stages stages={stages} isParticipant={isParticipant} hackathon={hackathon} />
+    <Stages stages={stages} isParticipant={isParticipant} hackathon={hackathon} renderInPreview={renderInPreview} />
   );
 }

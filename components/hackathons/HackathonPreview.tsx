@@ -267,7 +267,7 @@ export default function HackathonPreview({ hackathonData, isRegistered = false, 
                 <div className="py-8 sm:p-8 flex flex-col gap-20">
                   {
                     transformedHackathon.content.stages && transformedHackathon.content.stages.length > 0 && (
-                      <StagesSection stages={transformedHackathon.content.stages} hackathon={transformedHackathon} />
+                      <StagesSection stages={transformedHackathon.content.stages} hackathon={transformedHackathon} renderInPreview={true} />
                     )
                   }
                   {transformedHackathon.content.tracks_text && (
