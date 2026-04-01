@@ -13,12 +13,14 @@ import {
 import { Separator } from "@/components/ui/separator";
 import TrackCard from "../TrackCard";
 import TrackDialogContent from "../TrackDialogContent";
+import { normalizeEventsLang, t } from "@/lib/events/i18n";
 
 function Tracks({ hackathon }: { hackathon: HackathonHeader }) {
+  const lang = normalizeEventsLang(hackathon.content?.language);
   return (
     <section>
       <h2 className="text-4xl font-bold mb-8" id="tracks">
-        Tracks
+        {t(lang, "section.tracks.title")}
       </h2>
       <Separator className="my-8 bg-zinc-300 dark:bg-zinc-800" />
       <div className="relative py-32 mt-24 grid">
@@ -32,12 +34,16 @@ function Tracks({ hackathon }: { hackathon: HackathonHeader }) {
               <span className="text-xl font-bold text-zinc-900">
                 ${(hackathon.total_prizes || 0).toLocaleString("en-US")}
               </span>
-              <span className="text-sm text-zinc-900">Total prize pool</span>
+              <span className="text-sm text-zinc-900">
+                {t(lang, "section.tracks.totalPrizePool")}
+              </span>
             </div>
           </CardContent>
         </Card>
         <div>
-          <h4 className="text-4xl font-bold mb-8 text-black">What to build</h4>
+          <h4 className="text-4xl font-bold mb-8 text-black">
+            {t(lang, "section.tracks.whatToBuild")}
+          </h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {hackathon.content?.tracks?.map((track, index) => (
               <Dialog key={index}>
