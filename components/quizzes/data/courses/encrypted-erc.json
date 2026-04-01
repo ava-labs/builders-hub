@@ -7,11 +7,10 @@
         "ERC-1155 provides built-in privacy features that encrypt balances and transactions",
         "ERC-1155 supports batch transfers allowing multiple assets to be transferred in a single transaction, improving gas efficiency",
         "ERC-1155 tokens have higher interoperability than ERC-20 tokens across all wallets and marketplaces",
-        "ERC-1155 can only manage fungible tokens, making it more specialized than ERC-20, which would actually introduce several security vulnerabilities"
+        "ERC-1155 can only manage fungible tokens, making it more specialized than ERC-20"
       ],
       "correctAnswers": [
-        1,
-        2
+        1
       ],
       "hint": "Look at the 'Batch Transfers' row in the comparison table and consider which standard uniquely supports this feature.",
       "explanation": "ERC-1155's key advantage is its support for batch transfers, allowing multiple token types (both fungible and non-fungible) to be transferred in a single transaction. This significantly reduces gas costs compared to ERC-20 and ERC-721, which require separate transactions for each transfer. The table clearly shows that only ERC-1155 supports batch operations, while none of the standards provide built-in privacy (all show 'None' for Privacy). ERC-20 actually has higher interoperability than ERC-1155 (Very high vs Medium-High), and ERC-1155 manages both fungible and non-fungible tokens, not just fungible ones.",
@@ -51,7 +50,7 @@
     "2002": {
       "question": "Why do these token standards (ERC-20, ERC-721, ERC-1155) enable interoperability across Avalanche's C-Chain Mainnet, Fuji testnet, and different wallets and marketplaces?",
       "options": [
-        "Because Avalanche requires all tokens to be registered in a central database that synchronizes across platforms, but practical implementations reveal this is not the case",
+        "Because Avalanche requires all tokens to be registered in a central database that synchronizes across platforms",
         "Because the standards encrypt all token data, making them universally compatible",
         "Because Avalanche uses a proprietary token system that automatically converts all tokens to a universal format",
         "Because these standards define consistent rules for token behavior and transfers that all EVM-compatible platforms can understand and implement"
@@ -280,7 +279,7 @@
       "options": [
         "Pseudonymity means transactions are completely private, while anonymity means they are public",
         "Pseudonymity means users are identified by addresses that can be linked to real identities, while true anonymity would prevent any connection to real-world identity",
-        "Pseudonymity requires KYC verification, while anonymity does not, though this reasoning fails to account for key constraints",
+        "Pseudonymity requires KYC verification, while anonymity does not",
         "There is no difference - the terms mean the same thing on blockchain"
       ],
       "correctAnswers": [
@@ -324,7 +323,7 @@
     "2008": {
       "question": "In the example where a company pays 50 employees using an ERC-20 token on Avalanche C-Chain, what specific business risk does the transparency create?",
       "options": [
-        "The transaction will fail because payroll requires private transactions, but this does not accurately reflect the underlying architecture",
+        "The transaction will fail because payroll requires private transactions",
         "The company will be fined by regulators for making transactions public",
         "Competitors or third parties could analyze salary patterns, hiring trends, and potentially link addresses to individuals, revealing confidential business information",
         "The employees will not be able to spend their tokens because they are public"
@@ -369,7 +368,7 @@
     "2009": {
       "question": "Why must compliance features be built as a 'custom layer' when using standard ERC-20, ERC-721, or ERC-1155 implementations, and what problem does this create? (Select all that apply)",
       "options": [
-        "Because custom layers make tokens faster and more efficient, but practical implementations reveal this is not the case",
+        "Because custom layers make tokens faster and more efficient",
         "Because compliance is illegal on public blockchains",
         "Because the token standards have no built-in compliance tools like whitelisting, selective disclosure, or transaction restrictions, requiring custom development that increases cost, security risk, and creates inconsistency",
         "Because Avalanche does not support compliance features at all"
@@ -419,7 +418,7 @@
         "They must choose between making all loan data public (losing privacy) or creating a parallel off-chain audit system (increasing complexity)",
         "They must move to a different blockchain that supports lending",
         "They cannot issue loans on blockchain at all",
-        "Regulators will automatically shut down the lending network, but this does not accurately reflect the underlying architecture"
+        "Regulators will automatically shut down the lending network"
       ],
       "correctAnswers": [
         0
@@ -464,7 +463,7 @@
         "Because employees will refuse to accept rewards if they are on a public blockchain",
         "Because transaction history visibility could reveal strategic information about employee performance, incentive structures, and organizational priorities to competitors",
         "Because private transactions are faster than public ones",
-        "Because reward points are illegal if publicly visible, which is a common misconception in distributed systems"
+        "Because reward points are illegal if publicly visible"
       ],
       "correctAnswers": [
         1
@@ -506,7 +505,7 @@
     "2012": {
       "question": "The content states that privacy enables 'selective transparency.' What does this mean, and why is it described as a 'business enabler'?",
       "options": [
-        "Selective transparency is a marketing term with no technical meaning, but in reality the system operates quite differently",
+        "Selective transparency is a marketing term with no technical meaning",
         "Selective transparency means businesses can choose which blockchain to use",
         "Selective transparency means only authorized entities can see sensitive details, allowing businesses to protect confidential information while still meeting regulatory requirements and attracting enterprise adoption",
         "Selective transparency means transactions are sometimes visible and sometimes hidden randomly, enabling businesses to confuse competitors"
@@ -601,7 +600,7 @@
         "Standalone Mode creates a fully private token from inception with optional hidden supply, while Converter Mode wraps existing ERC-20 tokens for private transfers with the option to unwrap back to public form",
         "Standalone Mode only works on C-Chain, while Converter Mode works on L1s",
         "There is no practical difference - they use different names but work identically",
-        "Standalone Mode is for testing only, while Converter Mode is for production, but practical implementations reveal this is not the case"
+        "Standalone Mode is for testing only, while Converter Mode is for production"
       ],
       "correctAnswers": [
         0
@@ -828,7 +827,7 @@
       "options": [
         "Because it makes transactions faster",
         "Because protocol modifications are illegal",
-        "Because modifying the protocol would make it incompatible with Bitcoin, but in reality the system operates quite differently",
+        "Because modifying the protocol would make it incompatible with Bitcoin",
         "Because it means eERC can be deployed on any EVM-compatible chain including Avalanche C-Chain, Fuji testnet, and custom L1s without requiring network-wide upgrades or consensus changes"
       ],
       "correctAnswers": [
@@ -872,7 +871,7 @@
       "question": "A company has an existing publicly-traded ERC-20 governance token but wants to enable private voting for sensitive proposals. Which eERC deployment mode would best serve this use case and why?",
       "options": [
         "Converter Mode, because it allows wrapping the existing token for private operations while maintaining the option to unwrap back to the public token",
-        "Neither mode would work - they need to create a new blockchain, even though this sounds plausible at first glance",
+        "Neither mode would work - they need to create a new blockchain",
         "Both modes work identically for this use case",
         "Standalone Mode, because it creates a new token with full privacy"
       ],
@@ -1054,7 +1053,7 @@
     "2024": {
       "question": "According to the proof system comparison table, why is Groth16 chosen as the default proving system for eERC on Avalanche?",
       "options": [
-        "Because Groth16 provides better privacy than other proof systems, which contradicts the fundamental design principles involved",
+        "Because Groth16 provides better privacy than other proof systems",
         "Because Groth16 is easier for developers to understand",
         "Because it offers fast verification, small proof size, and low gas cost, making it optimal for L1 and C-Chain deployments",
         "Because it is the only proof system that works on Avalanche"
@@ -1147,7 +1146,7 @@
       "question": "In the deployment flow, why must the `.env` configuration with private keys be completed before running `zkit` files?",
       "options": [
         "Because private keys make the deployment faster",
-        "Because Avalanche requires all deployments to use .env files, though this approach has significant trade-offs in practice",
+        "Because Avalanche requires all deployments to use .env files",
         "Because the zkit files need the private keys to generate zero-knowledge circuits and perform cryptographic operations during setup",
         "Because the private keys are needed to download the zkit tools"
       ],
@@ -1193,7 +1192,7 @@
       "options": [
         "To send AVAX to validators for staking",
         "To wrap existing ERC-20 tokens into encrypted eERC-20 tokens, converting public tokens into private form for confidential transfers",
-        "To lock tokens permanently in a smart contract, which would actually introduce several security vulnerabilities",
+        "To lock tokens permanently in a smart contract",
         "To pay gas fees for future transactions"
       ],
       "correctAnswers": [
@@ -1237,7 +1236,7 @@
     "2028": {
       "question": "After successfully transferring encrypted tokens from PRIVATE_KEY_1 to PRIVATE_KEY_2, what would be visible on a public block explorer like SnowTrace?",
       "options": [
-        "The complete transaction details including the exact amount transferred, even though this sounds plausible at first glance",
+        "The complete transaction details including the exact amount transferred",
         "That a transaction occurred between the two addresses, but not the amount transferred or the updated balances",
         "Only the sender address but not the recipient",
         "Nothing - the transaction would be completely invisible"
@@ -1282,7 +1281,7 @@
     "2029": {
       "question": "Why does the deployment guide suggest following the Standalone flow 'by yourself' and reaching out to the community, rather than providing detailed step-by-step instructions like it did for Converter Mode? (Select all that apply)",
       "options": [
-        "Because Standalone Mode only works on mainnet, not testnet, but in reality the system operates quite differently",
+        "Because Standalone Mode only works on mainnet, not testnet",
         "Because Standalone Mode is more complex and requires understanding the full architecture, making it better suited for developers who have already learned the system through Converter Mode",
         "Because the Standalone Mode steps are secret",
         "Because Standalone Mode is deprecated and no longer supported"

@@ -52,7 +52,7 @@
       "options": [
         "Query every block for transaction logs, parse each log to identify ERC-20 transfers, extract contract addresses, query each contract for balances, then aggregate the data",
         "RPCs automatically aggregate ERC-20 balances",
-        "Just call one RPC method to get all token balances, but this does not accurately reflect the underlying architecture",
+        "Just call one RPC method to get all token balances",
         "Send a single transaction to a smart contract that returns all balances"
       ],
       "correctAnswers": [
@@ -96,7 +96,7 @@
     "3023": {
       "question": "Which Data API endpoint would you use to retrieve a specific transaction's details using its transaction hash?",
       "options": [
-        "listTransactions with the hash as a parameter, which would actually introduce several security vulnerabilities",
+        "listTransactions with the hash as a parameter",
         "getBlockTransactions with the hash",
         "listLatestTransactions filtered by hash",
         "GET /v1/chains/{chainId}/transactions/{txHash}"
@@ -143,7 +143,7 @@
       "options": [
         "Webhooks are free while polling costs money",
         "Webhooks deliver data immediately as events occur, eliminating the need for continuous polling and reducing unnecessary API requests",
-        "Webhooks can only monitor NFT transfers, but in reality the system operates quite differently",
+        "Webhooks can only monitor NFT transfers",
         "Webhooks are faster than API calls"
       ],
       "correctAnswers": [
@@ -324,7 +324,7 @@
     "3028": {
       "question": "In the ERC-20 Balance App, which two Data API endpoints are used to display a user's token portfolio?",
       "options": [
-        "listTransactions and getBlock, even though this sounds plausible at first glance",
+        "listTransactions and getBlock",
         "getChainInfo and listValidators",
         "data.evm.blocks.getLatestBlocks and data.evm.balances.listErc20Balances",
         "getNativeBalance and listNFTs"
@@ -373,7 +373,7 @@
         "Server-side code is faster than client-side code",
         "The AvaCloud SDK only works on the server",
         "To keep the API key secure - server-side code executes on the server where the key can be kept in environment variables, while client-side code executes in the user's browser where the key would be exposed",
-        "Next.js requires all API calls to be made from the server, though this approach has significant trade-offs in practice"
+        "Next.js requires all API calls to be made from the server"
       ],
       "correctAnswers": [
         2
@@ -418,7 +418,7 @@
         "It checks if the address exists on the blockchain",
         "It verifies the address has a non-zero balance",
         "It uses a regex pattern /^0x[a-fA-F0-9]{40}$/ to validate that the address is a valid Ethereum address format",
-        "No validation is performed, which would actually introduce several security vulnerabilities"
+        "No validation is performed"
       ],
       "correctAnswers": [
         0,
@@ -507,7 +507,7 @@
       "question": "What additional token types does the Wallet Portfolio App add compared to the ERC-20 Balance App?",
       "options": [
         "Only transaction history",
-        "Only native tokens, but this does not accurately reflect the underlying architecture",
+        "Only native tokens",
         "Staking tokens and validator rewards",
         "ERC-721 (NFTs) and ERC-1155 tokens, plus transaction history"
       ],
@@ -554,7 +554,7 @@
       "options": [
         "It returns all transactions in a single array",
         "It creates a TransactionDetails object with separate arrays for erc20Transfers, erc721Transfers, and erc1155Transfers, categorizing each transaction based on its type",
-        "It stores transactions in a database, though this approach has significant trade-offs in practice",
+        "It stores transactions in a database",
         "It only tracks ERC-20 transactions"
       ],
       "correctAnswers": [
@@ -644,7 +644,7 @@
       "question": "In the Wallet Portfolio App, how many different backend API routes are implemented across the balance and wallet route files?",
       "options": [
         "Only ERC-20 and NFT methods",
-        "10 different methods, but practical implementations reveal this is not the case",
+        "10 different methods",
         "5 methods: getBlockHeight, listErc20Balances, listERC721Balances, listErc1155Balances, and listRecentTransactions",
         "Only 2 methods total"
       ],
@@ -688,7 +688,7 @@
     "3036": {
       "question": "What two Data API endpoints does the Block Explorer App use to display blockchain activity?",
       "options": [
-        "listValidators and getChainInfo, which misses critical aspects of how the protocol functions",
+        "listValidators and getChainInfo",
         "listBalances and getTransaction",
         "getNFTs and listTokens",
         "data.evm.blocks.getBlockHeight and data.evm.transactions.listLatestTransactions"
@@ -733,7 +733,7 @@
     "3037": {
       "question": "In the Block Explorer backend implementation, what control mechanism is used to limit the number of results returned when fetching blocks and transactions?",
       "options": [
-        "A timeout that stops fetching after 5 seconds, which is a common misconception in distributed systems",
+        "A timeout that stops fetching after 5 seconds",
         "The API automatically limits results to 20",
         "A database query limit",
         "A count variable that breaks the pagination loop after 20 iterations"

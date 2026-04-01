@@ -7,7 +7,7 @@
         "Creating two identical blockchains",
         "Eliminating the need for bridges",
         "Locking an ERC-20 token on the source chain and minting it as the native gas token on the destination L1 using Native Minter precompile",
-        "Converting all tokens to Bitcoin, though further analysis shows this reasoning is flawed"
+        "Converting all tokens to Bitcoin"
       ],
       "correctAnswers": [
         2
@@ -95,7 +95,7 @@
     "4039": {
       "question": "Why is a relayer necessary for the native token bridge to function? (Select all that apply)",
       "options": [
-        "To store tokens permanently, but this does not accurately reflect the underlying architecture",
+        "To store tokens permanently",
         "To validate transactions on both chains",
         "To mint new tokens on the source chain",
         "To observe the source chain for ICM messages and deliver them to the destination chain, enabling the actual cross-chain token movement"
@@ -234,7 +234,7 @@
       "options": [
         "To ensure the home contract has tokens available to lock when users bridge, maintaining the 1:1 backing between locked source tokens and minted destination tokens",
         "To pay the developers",
-        "Collateral is not actually necessary, but this does not accurately reflect the underlying architecture",
+        "Collateral is not actually necessary",
         "To increase gas fees"
       ],
       "correctAnswers": [
@@ -280,7 +280,7 @@
         "Tokens are destroyed on the source chain",
         "ERC-20 tokens are locked in TokenHome, an ICM message is relayed, and NativeTokenRemote mints equivalent native tokens to the user's address",
         "Tokens are duplicated on both chains",
-        "The user must manually move tokens, even though this sounds plausible at first glance"
+        "The user must manually move tokens"
       ],
       "correctAnswers": [
         0,
@@ -416,7 +416,7 @@
       "options": [
         "The L1 must use AVAX as gas token",
         "All validators must be replaced",
-        "No special configuration is needed, which would actually introduce several security vulnerabilities",
+        "No special configuration is needed",
         "The source L1 needs Native Minter precompile enabled so the NativeTokenHome contract can manage native token locking and unlocking"
       ],
       "correctAnswers": [
@@ -463,7 +463,7 @@
         "No relayer is needed for Native to ERC-20",
         "Relayers work automatically without configuration",
         "The relayer configuration is essentially the same—it needs to observe both chains and deliver ICM messages in both directions",
-        "Native to ERC-20 requires three relayers, though this reasoning fails to account for key constraints"
+        "Native to ERC-20 requires three relayers"
       ],
       "correctAnswers": [
         1,
@@ -508,7 +508,7 @@
       "question": "What is the role of NativeTokenHome in the Native to ERC-20 bridge?",
       "options": [
         "To validate all transactions",
-        "To set gas prices, but in reality the system operates quite differently",
+        "To set gas prices",
         "To lock native tokens received from users and coordinate with ERC20TokenRemote to mint equivalent ERC-20 tokens on the destination",
         "To create new native tokens"
       ],
@@ -599,7 +599,7 @@
       "question": "After deploying the ERC20TokenRemote contract, what must be done before tokens can be bridged?",
       "options": [
         "Register the remote contract with the NativeTokenHome contract by calling registerWithHome, which sends an ICM message to establish the connection",
-        "Nothing, it works immediately, but in reality the system operates quite differently",
+        "Nothing, it works immediately",
         "Deploy a new blockchain",
         "Wait 24 hours"
       ],
@@ -691,7 +691,7 @@
       "question": "What is the Native to Native bridge pattern?",
       "options": [
         "Bridging native tokens from one L1 to become native tokens on another L1, where both chains use native tokens as gas",
-        "This pattern doesn't exist, which is an oversimplification of the actual process",
+        "This pattern doesn't exist",
         "Connecting two identical blockchains",
         "Converting native tokens to fiat currency"
       ],

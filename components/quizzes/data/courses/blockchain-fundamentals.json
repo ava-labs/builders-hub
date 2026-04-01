@@ -280,7 +280,7 @@
         "Blockchains provide decentralization where no single entity controls the system, but this comes at the cost of being less efficient and more complex than centralized systems",
         "Blockchains are more secure but can only process simple calculations",
         "Blockchains are faster than traditional computers but require more electricity",
-        "Blockchains are cheaper to run but have limited storage capacity, but this does not accurately reflect the underlying architecture"
+        "Blockchains are cheaper to run but have limited storage capacity"
       ],
       "correctAnswers": [
         0
@@ -322,7 +322,7 @@
     "2057": {
       "question": "The content lists finance, supply chain management, and voting systems as excellent use cases for blockchain. What do these three applications have in common that makes blockchain particularly well-suited for them? (Select all that apply)",
       "options": [
-        "They all involve international transactions, but this does not accurately reflect the underlying architecture",
+        "They all involve international transactions",
         "They all process large amounts of data quickly",
         "They all need to be accessible from mobile devices",
         "They all require security, transparency, and immutable records where trust between parties is critical"
@@ -370,7 +370,7 @@
       "options": [
         "When your application demands high throughput, real-time processing, or simplicity, and doesn't specifically require decentralization, transparency, and immutable records",
         "When you're building a financial application",
-        "When you need security, though this approach has significant trade-offs in practice",
+        "When you need security",
         "When you need to store any data"
       ],
       "correctAnswers": [
@@ -416,7 +416,7 @@
       "options": [
         "To maintain a complete historical record where past transactions remain unchanged, and recording invalid transactions preserves the full history of all activity for transparency and auditability",
         "To make the blockchain run faster",
-        "Because the blockchain cannot detect invalid transactions, but this does not accurately reflect the underlying architecture",
+        "Because the blockchain cannot detect invalid transactions",
         "To save storage space by not deleting old data"
       ],
       "correctAnswers": [
@@ -505,7 +505,7 @@
     "2061": {
       "question": "Why does the ERC-20 standard use a two-step approval process (approve() followed by transferFrom()) rather than just allowing direct transfers between any addresses? (Select all that apply)",
       "options": [
-        "To prevent users from losing their tokens, even though this sounds plausible at first glance",
+        "To prevent users from losing their tokens",
         "Because blockchain can only process two steps at a time",
         "To enable smart contracts and third parties to execute token transfers on behalf of owners according to specific logic, which is essential for DeFi protocols, DEXes, and complex contract interactions",
         "To make transactions more expensive"

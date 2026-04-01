@@ -601,7 +601,7 @@
       "options": [
         "Interoperability is equally difficult in all cases",
         "Avalanche L1s all share the same state",
-        "All Avalanche L1s use the same consensus mechanism and virtual machine, but practical implementations reveal this is not the case",
+        "All Avalanche L1s use the same consensus mechanism and virtual machine",
         "Avalanche provides standardized cryptographic algorithms in AvalancheGo that enable cross-L1 communication out of the box, even when execution layers differ"
       ],
       "correctAnswers": [
@@ -647,7 +647,7 @@
       "options": [
         "It makes transactions faster on all chains",
         "It eliminates the need for validators",
-        "It reduces gas fees across chains, which would actually introduce several security vulnerabilities",
+        "It reduces gas fees across chains",
         "It ensures source chain transactions are confirmed and immutable, allowing destination chain actions to execute securely without risk of source chain reverting"
       ],
       "correctAnswers": [
@@ -693,7 +693,7 @@
       "options": [
         "A trustless, correct CCC protocol is impossible, as the problem reduces to the Fair Exchange problem which has been proven unsolvable",
         "Trustless CCC protocols are easy to implement",
-        "Trustless CCC protocols only work on Proof of Work chains, which is an oversimplification of the actual process",
+        "Trustless CCC protocols only work on Proof of Work chains",
         "Trustless CCC protocols require special hardware"
       ],
       "correctAnswers": [
@@ -785,7 +785,7 @@
       "options": [
         "To observe source chains for ICM messages and deliver them to destination chains, serving as the message delivery infrastructure",
         "To mine cryptocurrency",
-        "To validate transactions and create new blocks, but in reality the system operates quite differently",
+        "To validate transactions and create new blocks",
         "To store blockchain data permanently"
       ],
       "correctAnswers": [
@@ -829,7 +829,7 @@
     "4023": {
       "question": "Why might you want to restrict which relayers can deliver messages to your cross-chain application? (Select all that apply)",
       "options": [
-        "To eliminate all relayers, but practical implementations reveal this is not the case",
+        "To eliminate all relayers",
         "To ensure message delivery quality, prevent spam, guarantee SLAs, or maintain control over the delivery infrastructure for security and reliability",
         "To increase gas costs",
         "To make the system more centralized for no reason"

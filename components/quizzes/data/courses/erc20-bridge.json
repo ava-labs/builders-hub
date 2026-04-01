@@ -143,7 +143,7 @@
       "question": "What is the key difference between IERC20TokenTransferrer and INativeTokenTransferrer interfaces?",
       "options": [
         "IERC20TokenTransferrer functions are not payable and require explicit amount parameters, while INativeTokenTransferrer functions are payable and use msg.value for the amount",
-        "IERC20TokenTransferrer works only on C-Chain while INativeTokenTransferrer works on any L1, but this does not accurately reflect the underlying architecture",
+        "IERC20TokenTransferrer works only on C-Chain while INativeTokenTransferrer works on any L1",
         "IERC20TokenTransferrer supports multiple tokens while INativeTokenTransferrer supports only one",
         "They are identical in functionality"
       ],
@@ -190,7 +190,7 @@
         "To lock tokens and manage collateral for transfers to TokenRemote instances, handling both unlocking and multi-hop routing",
         "To serve as a backup for failed transactions",
         "To validate all cross-chain messages",
-        "To mint new tokens on remote chains, though further analysis shows this reasoning is flawed"
+        "To mint new tokens on remote chains"
       ],
       "correctAnswers": [
         0
@@ -281,7 +281,7 @@
         "An ERC-20 token contract, an ERC20Home contract on C-Chain, and an ERC20TokenRemote contract on Echo",
         "Two separate token contracts on each chain",
         "A single bridge contract that works on both chains",
-        "Only the ERC-20 token contract, which would actually introduce several security vulnerabilities"
+        "Only the ERC-20 token contract"
       ],
       "correctAnswers": [
         0,
@@ -509,7 +509,7 @@
       "options": [
         "Tokens are locked on C-Chain via the TokenHome contract, and wrapped versions are minted on Echo via the TokenRemote contract",
         "Tokens are immediately duplicated on both chains",
-        "Tokens are deleted from C-Chain and recreated on Echo, which is a common misconception in distributed systems",
+        "Tokens are deleted from C-Chain and recreated on Echo",
         "The transaction is processed by a centralized authority"
       ],
       "correctAnswers": [
@@ -556,7 +556,7 @@
         "AvaCloud bridges only work on testnet",
         "AvaCloud bridges automatically integrate into Core Bridge without additional review and include relayer services for gas-free user experience",
         "AvaCloud bridges are cheaper but less secure",
-        "AvaCloud bridges are faster but require manual review, which would actually introduce several security vulnerabilities"
+        "AvaCloud bridges are faster but require manual review"
       ],
       "correctAnswers": [
         1
@@ -598,7 +598,7 @@
     "4014": {
       "question": "When deploying your own ICTT frontend using the BuilderKit, what are the key configuration elements you need to define?",
       "options": [
-        "Only the token addresses, but this does not accurately reflect the underlying architecture",
+        "Only the token addresses",
         "Just the wallet addresses",
         "Chain definitions (ID, name, RPC URLs), token configurations (addresses, transferers, mirrors), and the ICTT component with source/destination chain IDs",
         "Only the smart contract ABIs"
@@ -735,7 +735,7 @@
     "4017": {
       "question": "In a multi-hop transfer from Echo (Ra) to Dispatch (Rb) via C-Chain (H), what is the complete flow of the tokens?",
       "options": [
-        "Tokens are destroyed on Echo and recreated on Dispatch, which is a common misconception in distributed systems",
+        "Tokens are destroyed on Echo and recreated on Dispatch",
         "Tokens are sent directly from Echo to Dispatch",
         "Tokens travel from Echo to C-Chain where collateral accounting is updated, then are automatically routed to Dispatch",
         "Tokens are duplicated across all three chains"

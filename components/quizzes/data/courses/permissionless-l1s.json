@@ -4,7 +4,7 @@
     "4059": {
       "question": "What is the key concept of permissioned L1s that distinguishes them from permissionless L1s? (Select all that apply)",
       "options": [
-        "There is no difference, which would actually introduce several security vulnerabilities",
+        "There is no difference",
         "Permissioned L1s use Proof of Authority where a specific set of validators are authorized to validate, rather than open participation through staking",
         "Permissioned L1s are faster",
         "Permissioned L1s are always on testnet"
@@ -96,7 +96,7 @@
       "question": "What are the main deployment options for Validator Manager Contracts?",
       "options": [
         "Validator Manager Contracts cannot be deployed",
-        "Only deployment on testnet is available, which contradicts the fundamental design principles involved",
+        "Only deployment on testnet is available",
         "Deployment on C-Chain, on the L1 itself, or on another L1, with the contract address used to convert a subnet to an L1",
         "Deployment on any blockchain"
       ],
@@ -141,7 +141,7 @@
       "question": "What is Proof of Stake and how does it differ from Proof of Authority?",
       "options": [
         "Proof of Stake allows anyone to become a validator by staking tokens, while Proof of Authority uses a permissioned set of known validators",
-        "They are the same consensus mechanism, which is a common misconception in distributed systems",
+        "They are the same consensus mechanism",
         "Proof of Stake requires no tokens",
         "Proof of Authority is always better"
       ],
@@ -187,7 +187,7 @@
       "options": [
         "It's only used for paying gas fees",
         "Only validators receive staking tokens",
-        "It has no role, though this reasoning fails to account for key constraints",
+        "It has no role",
         "The staking token must be locked by validators as collateral to participate in consensus, aligning economic incentives and securing the network"
       ],
       "correctAnswers": [
@@ -230,7 +230,7 @@
     "4064": {
       "question": "What is liquid staking and why is it important for PoS L1s?",
       "options": [
-        "Liquid staking is the same as regular staking, which is an oversimplification of the actual process",
+        "Liquid staking is the same as regular staking",
         "Liquid staking refers to staking in water",
         "Liquid staking allows users to stake tokens while receiving a liquid representative token they can use in DeFi, solving the capital efficiency problem",
         "Liquid staking eliminates the need for validators"
@@ -276,7 +276,7 @@
     "4065": {
       "question": "What are the main requirements to transform a permissioned L1 into a permissionless PoS L1?",
       "options": [
-        "No requirements, it happens automatically, which contradicts the fundamental design principles involved",
+        "No requirements, it happens automatically",
         "Enable Native Minter precompile for minting staking rewards, deploy a Reward Manager, and deploy a Staking Manager (PoS Validator Manager) contract",
         "Just deploy new contracts",
         "Replace all validators immediately"
@@ -324,7 +324,7 @@
         "It's not essential",
         "It burns tokens",
         "It allows authorized contracts like the Staking Manager to mint new native tokens as rewards for validators and delegators",
-        "It validates blocks, but this does not accurately reflect the underlying architecture"
+        "It validates blocks"
       ],
       "correctAnswers": [
         2
@@ -459,7 +459,7 @@
       "options": [
         "Writing smart contracts",
         "Quickly deploying a permissioned L1 with Proof of Authority using the PoA Validator Manager, practicing the baseline before adding PoS",
-        "Creating ERC-20 tokens, which would actually introduce several security vulnerabilities",
+        "Creating ERC-20 tokens",
         "Running mainnet validators"
       ],
       "correctAnswers": [
@@ -689,7 +689,7 @@
         "To pay gas fees",
         "To enable the contract to mint new tokens as staking rewards for validators and delegators, which is essential for the PoS economic model",
         "To burn tokens",
-        "This permission is not needed, which would actually introduce several security vulnerabilities"
+        "This permission is not needed"
       ],
       "correctAnswers": [
         1

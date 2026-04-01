@@ -6,7 +6,7 @@
       "options": [
         "Lower transaction fees",
         "The concept of programmable blockchains through smart contracts that execute autonomously",
-        "Better scalability than other blockchains, but this does not accurately reflect the underlying architecture",
+        "Better scalability than other blockchains",
         "Faster transaction processing than Bitcoin"
       ],
       "correctAnswers": [
@@ -49,7 +49,7 @@
     "3042": {
       "question": "What is the key difference between Subnet-EVM and Coreth in the Avalanche ecosystem? (Select all that apply)",
       "options": [
-        "Subnet-EVM is slower than Coreth, but this does not accurately reflect the underlying architecture",
+        "Subnet-EVM is slower than Coreth",
         "Subnet-EVM is designed for launching customized EVM-based blockchains on Avalanche L1s with configurable fees, removed atomic transactions, and unified hardforks",
         "Subnet-EVM cannot run smart contracts",
         "Subnet-EVM uses a different programming language than Coreth"
@@ -233,7 +233,7 @@
     "3046": {
       "question": "In the context of Avalanche L1-EVM precompiles, what is the main advantage of implementing complex functions as precompiles rather than Solidity smart contracts? (Select all that apply)",
       "options": [
-        "Precompiles can only be called by admin addresses, which would actually introduce several security vulnerabilities",
+        "Precompiles can only be called by admin addresses",
         "Precompiles execute significantly faster and more efficiently by running Go code directly in the EVM instead of interpreted Solidity",
         "Precompiles don't require gas to execute",
         "Precompiles are easier to write than Solidity code"
@@ -280,7 +280,7 @@
       "question": "What is the purpose of the gas limit in EVM transactions, and what happens if a transaction exceeds it?",
       "options": [
         "Gas limit sets the maximum number of transactions per block",
-        "Gas limit has no effect - transactions always execute completely, but practical implementations reveal this is not the case",
+        "Gas limit has no effect - transactions always execute completely",
         "Gas limit determines the transaction fee; exceeding it increases the fee proportionally",
         "Gas limit prevents infinite loops and computational abuse by halting execution when reached; the transaction fails but the fee up to the limit is still paid"
       ],
@@ -371,7 +371,7 @@
       "question": "Why must the alloc field in the genesis configuration allocate initial token balances to addresses?",
       "options": [
         "Without initial allocations, there are no funds available to pay transaction fees, making the chain unusable",
-        "To determine the block reward for validators, but practical implementations reveal this is not the case",
+        "To determine the block reward for validators",
         "To establish who owns the blockchain",
         "To set the maximum supply of tokens"
       ],
@@ -415,7 +415,7 @@
     "3050": {
       "question": "Which of the following is NOT a primary advantage of implementing functions as precompiles instead of Solidity smart contracts? (Select all that apply)",
       "options": [
-        "Access to thoroughly reviewed and audited Go libraries for enhanced security, but practical implementations reveal this is not the case",
+        "Access to thoroughly reviewed and audited Go libraries for enhanced security",
         "Performance optimization through native Go code execution",
         "Automatic reduction in gas costs to zero for all operations",
         "Ability to introduce advanced cryptographic operations that would be too computationally expensive in Solidity"
@@ -509,7 +509,7 @@
       "options": [
         "Write Solidity code, deploy to testnet, call from web3",
         "Install npm packages, write TypeScript, compile and deploy",
-        "Fork Ethereum, modify consensus rules, redeploy network, though this reasoning fails to account for key constraints",
+        "Fork Ethereum, modify consensus rules, redeploy network",
         "Create Solidity interface, generate ABI, write Go code, configure/register precompile, build and run EVM, interact via Remix"
       ],
       "correctAnswers": [
@@ -553,7 +553,7 @@
     "3053": {
       "question": "When you successfully call the MD5 precompile with the input string \"test\", what type of output do you receive?",
       "options": [
-        "An integer representation of the hash, which misses critical aspects of how the protocol functions",
+        "An integer representation of the hash",
         "A string representation of the hash",
         "A bytes16 hash value (0x098f6bcd4621d373cade4e832627b4f6)",
         "A bytes32 hash value"
@@ -646,7 +646,7 @@
       "question": "What types of tests should you implement when testing the CalculatorPlus precompile?",
       "options": [
         "Only integration tests with other contracts",
-        "Only unit tests with predetermined values, which contradicts the fundamental design principles involved",
+        "Only unit tests with predetermined values",
         "Only manual testing through Remix",
         "Both unit tests (3-5 per function) and fuzz tests (1000+ random inputs), accounting for edge cases like zero denominators"
       ],
@@ -737,7 +737,7 @@
       "question": "What functionality does the Counter stateful precompile provide to users?",
       "options": [
         "Only reading the counter value",
-        "Only setting the counter to zero, but practical implementations reveal this is not the case",
+        "Only setting the counter to zero",
         "Getting the current value, setting a new value, and incrementing the counter value",
         "Only incrementing the counter value"
       ],
@@ -829,7 +829,7 @@
       "question": "What does the --custom flag indicate when creating a blockchain with Avalanche CLI?",
       "options": [
         "It creates a private blockchain",
-        "It deploys to a custom network, but practical implementations reveal this is not the case",
+        "It deploys to a custom network",
         "It indicates you're using a custom VM (not a standard EVM)",
         "It enables custom gas fees"
       ],

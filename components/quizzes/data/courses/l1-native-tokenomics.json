@@ -505,7 +505,7 @@
       "options": [
         "Any ERC-20 token deployed on the chain",
         "The blockchain's built-in cryptocurrency used for gas fees and fundamental chain operations, like ETH on Ethereum or AVAX on Avalanche",
-        "A token that can only be used for staking, which contradicts the fundamental design principles involved",
+        "A token that can only be used for staking",
         "A token created by the blockchain developers"
       ],
       "correctAnswers": [
@@ -596,7 +596,7 @@
       "question": "What is the ERC-20 token standard and why is it important?",
       "options": [
         "ERC-20 is a type of blockchain consensus",
-        "ERC-20 is a programming language, but in reality the system operates quite differently",
+        "ERC-20 is a programming language",
         "ERC-20 is a standardized interface for fungible tokens on EVM chains, ensuring compatibility and interoperability across wallets and dApps",
         "ERC-20 is only used for stablecoins"
       ],
@@ -640,7 +640,7 @@
     "4029": {
       "question": "What are the key differences between native tokens and ERC-20 tokens on an L1?",
       "options": [
-        "ERC-20 tokens are always better than native tokens, but in reality the system operates quite differently",
+        "ERC-20 tokens are always better than native tokens",
         "Native tokens exist at the protocol level for gas fees and staking, while ERC-20 tokens are smart contracts with more flexibility but require gas to transfer",
         "There are no significant differences",
         "Native tokens can only be used on C-Chain"
@@ -779,7 +779,7 @@
       "question": "What is the difference between a custom native token and an ERC-20 gas token on an L1?",
       "options": [
         "Custom native tokens cannot be transferred",
-        "There is no difference, which is an oversimplification of the actual process",
+        "There is no difference",
         "Custom native tokens exist at protocol level and work like ETH on Ethereum, while ERC-20 gas tokens are smart contracts that can be used for gas via precompiles",
         "ERC-20 gas tokens are always better"
       ],
@@ -825,7 +825,7 @@
       "options": [
         "Yes, the native token can serve both as the gas token and the staking token, aligning economic incentives",
         "Staking is not possible on Avalanche L1s",
-        "Only ERC-20 tokens can be used for staking, which is a common misconception in distributed systems",
+        "Only ERC-20 tokens can be used for staking",
         "No, staking and gas must use different tokens"
       ],
       "correctAnswers": [
