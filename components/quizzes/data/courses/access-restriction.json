@@ -235,10 +235,9 @@
         "Your wallet has Manager role (can manage Enabled addresses only)"
       ],
       "correctAnswers": [
-        2,
         3
       ],
-      "hint": "Role values are: 0 = None, 1 = Enabled, 2 = Manager, 3 = Admin. Wait, check the actual mapping in the content!",
+      "hint": "Role values are: 0 = None, 1 = Enabled, 2 = Manager, 3 = Admin.",
       "explanation": "In the AllowList interface, the role values are mapped as follows: 0 = None (no access), 1 = Enabled (can use functionality), 2 = Manager (can manage Enabled addresses), and 3 = Admin (can manage all roles). When 'readAllowList' returns value '2', it indicates your wallet has the Manager role, which allows you to grant and revoke Enabled status for other addresses, but you cannot create new Admins or Managers. Note: The content shows '2' as Manager role based on the enumeration pattern.",
       "chapter": "Access Restriction",
       "alternates": [

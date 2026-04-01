@@ -101,7 +101,6 @@
         "To observe the source chain for ICM messages and deliver them to the destination chain, enabling the actual cross-chain token movement"
       ],
       "correctAnswers": [
-        1,
         3
       ],
       "hint": "Think about the message delivery mechanism.",

@@ -284,8 +284,7 @@
         "Only the ERC-20 token contract"
       ],
       "correctAnswers": [
-        0,
-        2
+        0
       ],
       "hint": "Think about the home and remote architecture of ICTT.",
       "explanation": "To set up an ERC-20 to ERC-20 bridge, you need three main components: 1) The original ERC-20 token contract deployed on the source chain (C-Chain), 2) The ERC20Home contract on the source chain that manages locking and collateral, and 3) The ERC20TokenRemote contract on the destination chain (Echo) that mints wrapped versions of the token. The remote must then be registered with the home before transfers can occur.",
