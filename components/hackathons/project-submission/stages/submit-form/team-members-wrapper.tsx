@@ -2,7 +2,6 @@ import React from 'react'
 import MembersComponent from '../../components/Members'
 import { Track } from '@/types/hackathons'
 import { useProjectSubmission } from '../../context/ProjectSubmissionContext'
-import { useHackathonProject } from '../../hooks/useHackathonProject'
 import { useSubmissionFormSecure } from '../../hooks/useSubmissionFormSecure'
 
 type Props = {
@@ -17,11 +16,6 @@ type Props = {
 
 export default function TeamMembersWrapper({ hackathonId, projectId, userId, stage, userEmail, userName, availableTracks }: Props): React.JSX.Element {
   const { state: projectState, dispatch } = useProjectSubmission();
-  const invitationLink = ''
-  const { hackathon, project, timeLeft} = useHackathonProject(
-    hackathonId as string,
-    invitationLink as string
-  );
   const { handleSaveWithoutRoute } = useSubmissionFormSecure();
 
 

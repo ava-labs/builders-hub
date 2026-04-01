@@ -5,6 +5,7 @@ import { getRegisterForm } from '@/server/services/registerForms'
 import { getUserById } from '@/server/services/getUser'
 import StageSubmitPageContent from '@/components/hackathons/project-submission/stages/submit-form/page-content'
 import { ProjectSubmissionProvider } from '@/components/hackathons/project-submission/context/ProjectSubmissionContext'
+import { useProjectByHackaUser } from '@/hooks/use-get-project-hacka-user'
 
 type SubmitPageProps = {
   params: Promise<{ id: string }>
@@ -31,8 +32,8 @@ export default async function HackathonSubmitPage({
     redirect('/hackathons')
   }
 
-  const session = await getAuthSession()
   let isRegistered: boolean = false
+  const session = await getAuthSession()
 
   if (session?.user?.email) {
     const registration = await getRegisterForm(session.user.email, id)
@@ -57,10 +58,7 @@ export default async function HackathonSubmitPage({
             hackathonCreator={hackathonCreator}
             stage={stage}
             stageIndex={stageIndex}
-            onSubmit={async (payload) => {
-              'use server'
-              console.log(payload)
-            }}
+            user={session?.user}
           />
         </div>
       </main>

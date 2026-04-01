@@ -19,6 +19,8 @@ import {
 import { HackathonHeader } from '@/types/hackathons'
 import { X } from 'lucide-react'
 import TeamMembersWrapper from './team-members-wrapper'
+import { getAuthSession } from '@/lib/auth/authSession'
+import { useProjectByHackaUser } from '@/hooks/use-get-project-hacka-user'
 
 type StageSubmitValues = Record<string, string | string[]>
 
@@ -27,12 +29,12 @@ type StageSubmitPageContentProps = {
   hackathonCreator?: any // Replace 'any' with the correct type for the hackathon creator
   stage: HackathonStage
   stageIndex: number
-  onSubmit: (payload: {
-    hackathon: HackathonHeader
-    stage: HackathonStage
-    stageIndex: number
-    values: StageSubmitValues
-  }) => Promise<void> | void
+  projectId?: string
+  user?: {
+    email?: string
+    id?: string
+    user_name?: string
+  }
   renderInPreview?: boolean
 }
 
@@ -58,12 +60,17 @@ export default function StageSubmitPageContent({
   hackathonCreator,
   stage,
   stageIndex,
-  onSubmit,
-  renderInPreview
+  renderInPreview,
+  user
 }: StageSubmitPageContentProps): React.JSX.Element | null {
   const [isSubmitting, setIsSubmitting] = React.useState<boolean>(false)
   const [linkDrafts, setLinkDrafts] = React.useState<Record<string, string>>({})
   const [activeTab, setActiveTab] = React.useState<string>('form')
+  const { projectId, teamName, loading } = useProjectByHackaUser({
+    hackathonId: hackathon.id,
+    userId: user?.id ?? '',
+  })
+  const [resolvedProjectId, setResolvedProjectId] = React.useState<string>(projectId ?? '')
 
   const form = useForm<StageSubmitValues>({
     defaultValues: buildDefaultValues(stage),
@@ -74,6 +81,10 @@ export default function StageSubmitPageContent({
     form.reset(buildDefaultValues(stage))
     setLinkDrafts({})
   }, [stage, form])
+
+  React.useEffect((): void => {
+    setResolvedProjectId(projectId ?? '')
+  }, [projectId])
 
 
   const renderField = (field: SubmitFormField): React.JSX.Element | null => {
@@ -347,16 +358,45 @@ export default function StageSubmitPageContent({
     try {
       setIsSubmitting(true)
 
-      await onSubmit({
-        hackathon,
-        stage,
-        stageIndex,
-        values,
+      const response: Response = await fetch('/api/project/form-data', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          hackathonId: hackathon.id,
+          projectId: resolvedProjectId,
+          stageIndex,
+          values,
+        }),
       })
+
+      const data: {
+        success?: boolean
+        error?: string
+        projectId?: string
+        formDataId?: string
+        currentStage?: number
+      } = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error ?? 'Failed to save stage submission')
+      }
+
+      if (data.projectId) {
+        setResolvedProjectId(data.projectId)
+      }
+    } catch (error: unknown) {
+      const message: string =
+        error instanceof Error ? error.message : 'Unknown error'
+
+      console.error('Error saving stage submission:', message)
     } finally {
       setIsSubmitting(false)
     }
   }
+
   function onlySubmitForm() {
     if (!stage.submitForm?.fields.length) {
       return null
@@ -502,11 +542,11 @@ export default function StageSubmitPageContent({
               </h3>
               <TeamMembersWrapper
                 hackathonId={hackathon.id}
-                projectId={''}
-                userId={'123'}
-                stage={0}
-                userEmail={'team@voyager.com'}
-                userName={'voyager'}
+                projectId={projectId || ''}
+                userId={user?.id || ''}
+                stage={stageIndex}
+                userEmail={user?.email || ''}
+                userName={user?.user_name || ''}
                 availableTracks={hackathon.content.tracks}
               />
             </section>
