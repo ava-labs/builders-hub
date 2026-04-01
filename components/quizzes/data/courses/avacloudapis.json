@@ -233,7 +233,7 @@
       "question": "Where do you pass your AvaCloud API key when making authenticated requests to the Data API? (Select all that apply)",
       "options": [
         "In the request body as a JSON parameter",
-        "In a cookie, although this is not how the protocol actually works in practice",
+        "In a cookie",
         "In the x-glacier-api-key header of your HTTP request",
         "As a query parameter in the URL"
       ],
@@ -598,7 +598,7 @@
       "question": "When implementing the fetchERC721Balances function in the frontend, what is the correct API route call format? (Select all that apply)",
       "options": [
         "fetch(`api/wallet?method=listERC721Balances&address=${address}`)",
-        "fetch(`api/balance?method=getNFTs&address=${address}`), but this fails to consider the consensus requirements involved",
+        "fetch(`api/balance?method=getNFTs&address=${address}`)",
         "fetch('api/wallet?method=listERC721Balances&address=${address}')",
         "fetch('api/wallet/listERC721Balances/' + address)"
       ],
@@ -780,7 +780,7 @@
       "question": "When implementing the fetchRecentBlocks function in the Block Explorer frontend, what data type should the function return? (Select all that apply)",
       "options": [
         "EvmBlock[]",
-        "string, but this fails to consider the consensus requirements involved",
+        "string",
         "any",
         "Transaction[]"
       ],

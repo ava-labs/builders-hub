@@ -234,7 +234,7 @@
       "options": [
         "The economic viability of micropayments by reducing transaction costs from 30+ cents to ~$0.001, making payments smaller than $1 profitable and enabling account-free, permissionless instant payments",
         "The speed of blockchain transactions",
-        "The lack of cryptocurrency adoption, although this is not how the protocol actually works in practice",
+        "The lack of cryptocurrency adoption",
         "The difficulty of creating user accounts"
       ],
       "correctAnswers": [

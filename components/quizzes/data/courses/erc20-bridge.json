@@ -328,7 +328,7 @@
         "Contact Avalanche support for balance verification",
         "Add the token to Core Wallet using the contract address and check the balance, or verify on Fuji Explorer",
         "Wait 24 hours for automatic synchronization",
-        "The balance is automatically visible without any action, but this interpretation oversimplifies the actual mechanism"
+        "The balance is automatically visible without any action"
       ],
       "correctAnswers": [
         1
@@ -372,7 +372,7 @@
       "options": [
         "To validate user identities",
         "To manage the locking and collateral of the original token on the source chain for cross-chain transfers",
-        "To store transaction history, although this is not how the protocol actually works in practice",
+        "To store transaction history",
         "To create new ERC-20 tokens"
       ],
       "correctAnswers": [
@@ -464,7 +464,7 @@
         "To synchronize block times",
         "To inform the TokenHome contract about the destination chain and establish the connection for cross-chain token transfers",
         "To enable automatic token generation",
-        "To merge the two blockchains, but this fails to consider the consensus requirements involved"
+        "To merge the two blockchains"
       ],
       "correctAnswers": [
         1,
@@ -647,7 +647,7 @@
         "It directly connects to the Echo remote contract",
         "It receives and mints tokens after the transfer is routed through the TokenHome on C-Chain",
         "It stores tokens from all chains",
-        "It replaces the need for a TokenHome contract, but this interpretation oversimplifies the actual mechanism"
+        "It replaces the need for a TokenHome contract"
       ],
       "correctAnswers": [
         0,

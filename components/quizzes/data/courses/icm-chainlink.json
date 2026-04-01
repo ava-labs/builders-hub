@@ -419,7 +419,7 @@
       "options": [
         "The VRF key hash used for random word generation by Chainlink's oracle",
         "The subscription ID in hashed form",
-        "A hash of the previous block, but this fails to consider the consensus requirements involved",
+        "A hash of the previous block",
         "A hash of the requester's private key"
       ],
       "correctAnswers": [
@@ -510,7 +510,7 @@
       "options": [
         "To specify the gas limit for executing the VRF callback function that delivers random words",
         "To limit the total cost of the VRF request",
-        "To control how long the oracle waits before responding, but this interpretation oversimplifies the actual mechanism",
+        "To control how long the oracle waits before responding",
         "To set the maximum gas price for the request"
       ],
       "correctAnswers": [

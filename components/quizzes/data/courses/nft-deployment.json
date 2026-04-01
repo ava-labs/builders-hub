@@ -96,7 +96,7 @@
       "options": [
         "Single token approval is cheaper in gas costs than operator approval",
         "Single token approval allows transferring one specific NFT, while operator approval allows someone to manage all your NFTs, providing flexibility for different use cases",
-        "Single token approval is for selling and operator approval is for buying, but this interpretation oversimplifies the actual mechanism",
+        "Single token approval is for selling and operator approval is for buying",
         "They are functionally identical, just different names for the same thing"
       ],
       "correctAnswers": [
@@ -913,7 +913,7 @@
     "2051": {
       "question": "Looking at the tokenURI function code, why does it first check 'require(_exists(tokenId))' before returning the URI?",
       "options": [
-        "To verify the metadata file is correctly formatted, but this fails to consider the consensus requirements involved",
+        "To verify the metadata file is correctly formatted",
         "To verify the token has been minted before constructing its URI, preventing the contract from returning URIs for non-existent tokens",
         "To check if the owner has paid their gas fees",
         "To check if IPFS is working"

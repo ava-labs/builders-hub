@@ -462,7 +462,7 @@
         "The blockchain would become centralized",
         "Nothing would change - native tokens are optional",
         "The network would cease to function because there would be no way to pay gas fees, no mechanism to secure the network through staking, and no means for value transfer between participants",
-        "Only smart contracts would stop working, but this interpretation oversimplifies the actual mechanism"
+        "Only smart contracts would stop working"
       ],
       "correctAnswers": [
         2

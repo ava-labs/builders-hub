@@ -51,7 +51,7 @@
       "question": "What are the key L1 native tokenomics concepts needed to understand before building a permissionless L1?",
       "options": [
         "Tokenomics don't matter for permissionless L1s",
-        "Only staking matters, but this interpretation oversimplifies the actual mechanism",
+        "Only staking matters",
         "Only gas fees matter",
         "Understanding native tokens vs ERC-20, custom gas tokens, wrapped tokens, precompiles like Native Minter, and token utility are all important"
       ],
@@ -368,7 +368,7 @@
       "options": [
         "To deploy smart contracts",
         "To calculate and manage the distribution of staking rewards to validators and delegators based on their stake and performance",
-        "To validate transactions, but this fails to consider the consensus requirements involved",
+        "To validate transactions",
         "To store user data"
       ],
       "correctAnswers": [
@@ -503,7 +503,7 @@
     "4070": {
       "question": "What components must be deployed during Staking Manager setup for a PoS L1?",
       "options": [
-        "No contracts are needed, but this fails to consider the consensus requirements involved",
+        "No contracts are needed",
         "A Staking Manager contract, a Reward Calculator contract, and configuration of the Native Minter precompile with proper permissions",
         "Only a single staking contract",
         "Just update the existing Validator Manager"

@@ -737,7 +737,7 @@
       "question": "When creating an L1 for Native to Native bridging, what precompile configuration is required on the destination L1?",
       "options": [
         "The Native Minter precompile must be enabled and the NativeTokenRemote contract must be granted minting permissions",
-        "No precompiles are needed, but this fails to consider the consensus requirements involved",
+        "No precompiles are needed",
         "Only Fee Config precompile is needed",
         "All precompiles must be disabled"
       ],

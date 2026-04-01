@@ -144,7 +144,7 @@
       "options": [
         "1000000000",
         "1000000000000000000 (1 * 10^18 wei)",
-        "100, but this interpretation oversimplifies the actual mechanism",
+        "100",
         "1"
       ],
       "correctAnswers": [
@@ -602,7 +602,7 @@
         "Basic arithmetic: add, subtract, multiply, divide",
         "Matrix operations: multiplication, transpose, inverse",
         "Powers of Three (square, cube, 4th power), Modulo+ (quotient and remainder), and Simplify Fraction",
-        "Trigonometric functions: sin, cos, tan, but this fails to consider the consensus requirements involved"
+        "Trigonometric functions: sin, cos, tan"
       ],
       "correctAnswers": [
         1,

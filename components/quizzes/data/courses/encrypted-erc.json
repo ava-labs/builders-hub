@@ -688,7 +688,7 @@
     "2016": {
       "question": "Why does the content suggest that ERC-20 remains the 'foundation for most tokens' even though eERC offers privacy features?",
       "options": [
-        "Because privacy features are illegal in most jurisdictions, but this interpretation oversimplifies the actual mechanism",
+        "Because privacy features are illegal in most jurisdictions",
         "Because ERC-20 is simpler and adequate for use cases where transparency is acceptable or desirable, while eERC is specifically designed for scenarios requiring confidentiality, compliance, and selective transparency",
         "Because eERC is experimental and untested",
         "Because eERC will eventually replace all ERC-20 tokens"
@@ -736,7 +736,7 @@
         "Because it is a twisted Edwards curve optimized for zk-SNARKs, offering fast signature verification inside zero-knowledge circuits",
         "Because it is the most secure curve available",
         "Because it uses less storage space than other curves",
-        "Because it is required by Avalanche protocol, but this fails to consider the consensus requirements involved"
+        "Because it is required by Avalanche protocol"
       ],
       "correctAnswers": [
         0,
@@ -781,7 +781,7 @@
       "options": [
         "To generate zero-knowledge proofs for transactions",
         "To store all token balances for all users",
-        "To process all token transfers, but this interpretation oversimplifies the actual mechanism",
+        "To process all token transfers",
         "To manage the list of authorized auditors and handle public keys for encryption and decryption permissions"
       ],
       "correctAnswers": [
@@ -962,7 +962,7 @@
     "2022": {
       "question": "In the private transfer flow described, at what point does the actual transaction amount become visible to the public?",
       "options": [
-        "When authorized auditors decrypt the transaction, but this fails to consider the consensus requirements involved",
+        "When authorized auditors decrypt the transaction",
         "During transaction creation when the amount is encrypted",
         "When the zk-SNARK proof is generated",
         "Never - the amount remains encrypted on-chain and is never publicly visible"

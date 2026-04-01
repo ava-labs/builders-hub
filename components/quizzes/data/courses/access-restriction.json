@@ -277,7 +277,7 @@
       "options": [
         "The transaction fails and reverts because the precompile blocks your address from deploying contracts",
         "The contract deploys successfully but with limited functionality",
-        "The contract is deployed to a temporary address, but this fails to consider the consensus requirements involved",
+        "The contract is deployed to a temporary address",
         "You receive a warning but the contract deploys normally"
       ],
       "correctAnswers": [
@@ -775,7 +775,7 @@
     "3018": {
       "question": "When re-enabling allowlist precompiles via upgrade.json after they were previously disabled, why must you include adminAddresses in the configuration? (Select all that apply)",
       "options": [
-        "To maintain backwards compatibility with the old configuration, but this fails to consider the consensus requirements involved",
+        "To maintain backwards compatibility with the old configuration",
         "adminAddresses are optional and not required",
         "Because disabling cleared the precompile's storage, so re-enabling is a fresh initialization that requires setting initial admin addresses",
         "adminAddresses automatically copy from the genesis configuration"
@@ -869,7 +869,7 @@
         "Network upgrades via upgrade.json provide a recovery mechanism for permission misconfigurations and allow dynamic adjustment of L1 behavior without redeploying the chain",
         "Precompiles should never be disabled once enabled",
         "Only Docker validators can use precompiles",
-        "Genesis configuration cannot be changed after chain launch, but this fails to consider the consensus requirements involved"
+        "Genesis configuration cannot be changed after chain launch"
       ],
       "correctAnswers": [
         0

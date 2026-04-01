@@ -740,7 +740,7 @@
       "options": [
         "Trust in a centralized bridge operator",
         "Trust in the validators of the source L1 signing the message, which is the same trust users already place when using that L1",
-        "Trust in a separate set of bridge validators unrelated to the L1, although this is not how the protocol actually works in practice",
+        "Trust in a separate set of bridge validators unrelated to the L1",
         "Trust in the destination L1 validators to verify the source"
       ],
       "correctAnswers": [
