@@ -94,12 +94,18 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
     })();
   }, [selectedL1?.subnetId]);
 
-  // Pre-fill desired implementation from store
+  // Pre-fill implementation addresses from store (both upgrade and deploy flows)
   useEffect(() => {
     if (validatorManagerAddress && !desiredImplementation) {
       setDesiredImplementation(validatorManagerAddress);
     }
   }, [validatorManagerAddress, desiredImplementation]);
+
+  useEffect(() => {
+    if (validatorManagerAddress && !deployImplementationAddress) {
+      setDeployImplementationAddress(validatorManagerAddress);
+    }
+  }, [validatorManagerAddress, deployImplementationAddress]);
 
   // Read proxy info when address changes
   useEffect(() => {
@@ -436,13 +442,21 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
 
                 {/* Implementation input - full width below */}
                 {!newProxyAddress && newProxyAdminAddress && (
-                  <input
-                    type="text"
-                    value={deployImplementationAddress}
-                    onChange={(e) => setDeployImplementationAddress(e.target.value)}
-                    className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-mono"
-                    placeholder="Implementation address for proxy..."
-                  />
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+                      Implementation Address (ValidatorManager from Step 1)
+                    </label>
+                    <input
+                      type="text"
+                      value={deployImplementationAddress}
+                      onChange={(e) => setDeployImplementationAddress(e.target.value)}
+                      className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-mono"
+                      placeholder="0x... (auto-filled from previous step)"
+                    />
+                    {validatorManagerAddress && deployImplementationAddress === validatorManagerAddress && (
+                      <p className="text-[10px] text-emerald-500">Auto-filled from Step 1</p>
+                    )}
+                  </div>
                 )}
               </div>
             )}
