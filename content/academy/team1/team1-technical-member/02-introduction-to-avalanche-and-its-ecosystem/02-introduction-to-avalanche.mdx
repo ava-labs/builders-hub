@@ -1,52 +1,28 @@
 ---
-title: "Section 2 – Introduction to Avalanche and Its Ecosystem"
-description: "High-level understanding of Avalanche, how it differs from other networks, and where L1s fit."
-updated: 2026-03-05
+title: "Prerequisite: Avalanche Fundamentals"
+description: Complete the Avalanche Fundamentals course before continuing with the Technical Member track.
+updated: 2026-03-31
 authors: [team1]
-icon: Code
+icon: BookOpen
 ---
 
-## Section 2 – Introduction to Avalanche and Its Ecosystem
+The second prerequisite for this course is a solid understanding of how Avalanche works as a platform. Complete the **Avalanche Fundamentals** course in the Avalanche Academy before moving on to the technical sections.
 
-Every Team1 member should also be able to explain how Avalanche works at a high level and why it is different.  
-The **Avalanche Fundamentals** course on Builder Hub covers consensus, multi‑chain architecture, and L1s in detail.[`https://build.avax.network/academy/avalanche-l1/avalanche-fundamentals`](https://build.avax.network/academy/avalanche-l1/avalanche-fundamentals)
+<Callout>
+  If you haven't done it yet, complete **Avalanche Fundamentals** at [build.avax.network/academy/avalanche-l1/avalanche-fundamentals](https://build.avax.network/academy/avalanche-l1/avalanche-fundamentals) before continuing.
+</Callout>
 
-**By the end of this section you should be able to:**
+## What You Should Already Know
 
-- **Explain what Avalanche is and what the C‑Chain is**
-  - Difference between the Avalanche network as a multi‑chain platform and the **Avalanche C‑Chain**, which is an EVM‑compatible chain within the primary network.[`https://build.avax.network/academy/avalanche-l1/avalanche-fundamentals`](https://build.avax.network/academy/avalanche-l1/avalanche-fundamentals)
+Tobe a technical member, after completing Avalanche Fundamentals you should be able to:
 
-- **Define what an L1 is**
-  - Explain L1 blockchains as base settlement and execution layers, and contrast them with L2s that sit on top of L1s.
+- **Explain what Avalanche is** — a multi-chain platform with a primary network consisting of the X-Chain, P-Chain, and C-Chain.
+- **Define what an L1 is** — understanding that Avalanche L1s have sovereign validator sets and do not post proofs to a parent chain.
+- **Compare Avalanche, Ethereum, and L2s** — the architectural and scalability differences, including Avalanche's multi-chain design versus Ethereum's single mainnet plus L2 ecosystem.
+- **Explain vertical vs. horizontal scalability** — vertical scaling improves a single chain; horizontal scaling adds more chains to distribute load.
+- **Describe Avalanche consensus** — the repeated random subsampling approach that achieves fast, probabilistic finality with high safety margins, and how it differs from classical Proof of Stake.
+- **Explain finality on Avalanche** — why Avalanche can achieve finality in 1-2 seconds.
+- **Name several live L1 blockchains** — Avalanche, Ethereum, Bitcoin, Solana, and others, and describe their main architectural trade-offs.
+- **Know what can be customized in an Avalanche L1** — VM, tokenomics, permissioning, fee structure, and precompiles.
 
-- **Compare Avalanche, Ethereum, and L2s**
-  - Explain architectural and scalability differences, including Avalanche’s multi‑chain design vs. Ethereum’s single mainnet plus L2 rollups.
-
-- **Explain vertical vs. horizontal scalability**
-  - Vertical: scaling a single chain with more powerful hardware.
-  - Horizontal: adding more chains or subnets to distribute load.
-
-- **Explain how Avalanche consensus differs from typical Proof of Stake**
-  - High‑level description of the repeated random subsampling approach and how it leads to fast, probabilistic consensus with high safety margins.[`https://build.avax.network/academy/avalanche-l1/avalanche-fundamentals`](https://build.avax.network/academy/avalanche-l1/avalanche-fundamentals)
-
-- **Describe Avalanche architecture and the roles of X‑, P‑, and C‑Chains**
-  - X‑Chain for asset transfers, P‑Chain for validators and subnets, C‑Chain for EVM smart contracts in the primary network.
-  - Why the **P‑Chain** is critical for interoperability and subnet management.
-
-- **Explain finality and why Avalanche can match block production time**
-  - Why Avalanche’s consensus plus its networking model allows finality to be effectively equal to the block production time rather than many blocks later.
-
-- **Know where to find stats about existing L1s**
-  - Use Avalanche explorer and ecosystem dashboards to see active L1s and their metrics.[`https://build.avax.network`](https://build.avax.network)
-
-- **Name at least five L1s and describe their focus**
-  - Examples: Avalanche (multi‑chain, custom L1s), Ethereum (general‑purpose smart contracts), Bitcoin (sound money), Solana (high‑throughput monolithic chain), etc.
-
-- **Explain what can be customized in an Avalanche L1**
-  - Parameters like virtual machine, tokenomics, permissioning, and precompiles, as covered in L1 and Customizing EVM academy tracks.[`https://build.avax.network/academy/avalanche-l1`](https://build.avax.network/academy/avalanche-l1)
-
-**Suggested learning path**
-
-- Complete **Avalanche Fundamentals** and related L1 courses in the Academy.[`https://build.avax.network/academy/avalanche-l1/avalanche-fundamentals`](https://build.avax.network/academy/avalanche-l1/avalanche-fundamentals)
-- Reinforce with Team1 workshops or bootcamp sessions that walk through Avalanche architecture and L1 customization.[`https://team1-latam-bootcamp.gitbook.io/team1-docs`](https://team1-latam-bootcamp.gitbook.io/team1-docs)
-
+If any of these topics feel unfamiliar, return to the Avalanche Fundamentals course before continuing. Sections 3 through 6 of this course assume fluency with Avalanche architecture and the EVM.

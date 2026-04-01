@@ -9,7 +9,9 @@
         "To replace core Avalanche engineering teams with volunteers",
         "To operate only as an online content-creation collective"
       ],
-      "correctAnswers": [1],
+      "correctAnswers": [
+        1
+      ],
       "hint": "Think about the kinds of contributions members make.",
       "explanation": "Team1 is a global network of builders, developers, creatives, gamers, and community members who grow the Avalanche ecosystem through events, education, content, and builder support—not trading or replacing core teams.",
       "chapter": "What Is Team1?"
@@ -22,7 +24,9 @@
         "The Ambassador DAO experience informed a more structured, scalable program with clearer roles, incentives, and expectations, now called Team1",
         "Team1 is a completely separate experiment with no connection to the Ambassador DAO"
       ],
-      "correctAnswers": [2],
+      "correctAnswers": [
+        2
+      ],
       "hint": "The course emphasizes continuity between early ambassadors and the current program.",
       "explanation": "Team1 grew out of lessons from the Avalanche Ambassador DAO: what worked and what didn't in a large, distributed community. Those learnings were used to design a more structured, scalable program with clear roles, incentives, and expectations—rather than abandoning the model entirely.",
       "chapter": "Origins: From Ambassadors to Team1"
@@ -35,7 +39,9 @@
         "Only private contributions with no public association to Avalanche or Team1",
         "Paid full-time work with guaranteed income and no performance expectations"
       ],
-      "correctAnswers": [1],
+      "correctAnswers": [
+        1
+      ],
       "hint": "Recall how the course connects expectations, values, and contribution types.",
       "explanation": "The fundamentals course and Team1 Manual emphasize that members are expected to contribute consistently, act as stewards of Avalanche's values, and behave professionally in both internal and public spaces—whether they focus on events, education, builders, content, or other tracks.",
       "chapter": "What's Expected from a Team1 Member"
@@ -48,24 +54,27 @@
         "Because Avalanche requires all members to use the same communication style and time zone",
         "Because only coordinators need to worry about interaction norms"
       ],
-      "correctAnswers": [1],
+      "correctAnswers": [
+        1
+      ],
       "hint": "Think about why channels, tone, and conflict resolution matter in a global community.",
       "explanation": "The course explains that Team1's impact comes not only from what members do, but from how they interact—internally and externally. Clear, respectful communication and good collaboration practices help maintain trust with the ecosystem and inside the program.",
       "chapter": "How Team1 Members Should Interact"
     },
     "4005": {
-      "question": "What is the main purpose of the “first 30 days” guidance in Team1 Fundamentals?",
+      "question": "What is the primary purpose of Team1’s bounty systems and XP recognition mechanisms?",
       "options": [
-        "To immediately push new members into leading large, budget-heavy global campaigns",
-        "To give new or aspiring members a concrete, low-friction roadmap for getting oriented and making their first meaningful contribution",
-        "To test whether members can complete as many disconnected tasks as possible in a short time",
-        "To assign a fixed track (events, builders, content, etc.) that can never change"
+        "To rank members by social media following and reward only the most popular ones",
+        "To reward concrete contributions, track consistent activity over time, and create a fair and transparent way to distribute opportunities",
+        "To replace salaries with a points system that has no real impact on a member’s role or responsibilities",
+        "To limit participation to members who can attend in-person events regularly"
       ],
-      "correctAnswers": [1],
-      "hint": "Remember how the course connects onboarding flow, documentation, and first contribution ideas.",
-      "explanation": "The “first 30 days” section is meant to make onboarding practical: helping members connect documentation, channels, and example contributions into a realistic first plan, rather than forcing them into high-risk projects or locking them into a single track.",
-      "chapter": "Getting Started: First 30 Days"
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Think about how incentive systems connect contribution quality, visibility, and growth within Team1.",
+      "explanation": "Team1’s bounty and XP systems are designed to reward high-quality contributions while making it transparent who is consistently active. This fairness layer helps ensure that opportunities and increased responsibility go to members who have demonstrated reliable engagement.",
+      "chapter": "Program Structure, Incentives & Growth Paths"
     }
   }
 }
-

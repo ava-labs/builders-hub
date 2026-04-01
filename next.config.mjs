@@ -1891,6 +1891,18 @@ const config = {
         ],
         destination: "/academy/entrepreneur",
         permanent: true,
+      },
+      {
+        source: "/academy",
+        has: [
+          {
+            type: 'query',
+            key: 'path',
+            value: 'team1',
+          },
+        ],
+        destination: "/academy/team1",
+        permanent: true,
       }
     ];
   },

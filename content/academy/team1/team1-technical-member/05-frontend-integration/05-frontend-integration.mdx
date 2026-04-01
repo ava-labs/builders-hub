@@ -1,38 +1,320 @@
 ---
-title: "Section 5 – Frontend Integration"
-description: "Connecting smart contracts to modern frontends (Next.js, wagmi, WalletConnect)."
-updated: 2026-03-05
+title: Frontend Integration
+description: Connect smart contracts to modern web frontends using Next.js, wagmi, and WalletConnect.
+updated: 2026-03-31
 authors: [team1]
-icon: Code
+icon: BookOpen
 ---
 
-## Section 5 – Frontend Integration
+A smart contract sitting on-chain is powerful, but most users will never open a terminal or interact with the blockchain directly. A frontend bridges the gap: it reads contract state, lets users sign transactions with their wallets, and reacts to on-chain events in real time. This section walks through the tooling and patterns that make that possible.
 
-Technical Team1 members should be able to help connect smart contracts to user interfaces, especially with modern frameworks like Next.js and popular Web3 tooling.
+## Frontend Frameworks
 
-**By the end of this section you should be able to:**
+A **frontend framework** is a structured set of tools and conventions for building interactive web UIs. Rather than writing raw HTML, CSS, and JavaScript and managing DOM updates by hand, a framework provides reusable components, a state model, and a build pipeline.
 
-- Understand frontend basics:
-  - What a **frontend framework** is (e.g., React/Next.js) and why it’s useful for dApps.
-  - What a **hook** is and examples of common hooks in React/Next.js (`useState`, `useEffect`, etc.).[`https://nextjs.org/docs`](https://nextjs.org/docs)
-  - What a **custom hook** is and when to create one.
-- Know what’s needed to interact with smart contracts:
-  - Contract **address**, **ABI**, network/RPC configuration, and the user’s wallet.
-  - What an **ABI** is and how it’s used by libraries to encode and decode function calls.
-- Use common tooling:
-  - **wagmi** for React hooks that interact with EVM chains (including Avalanche).[`https://wagmi.sh`](https://wagmi.sh)
-  - **WalletConnect** as an aggregation layer for multiple wallets, and awareness of major providers.[`https://walletconnect.com`](https://walletconnect.com)
-  - RPC endpoints: what they are and how to configure them for Avalanche networks in your frontend.
-- Implement common patterns:
-  - Reading contract state (single and multiple read functions).
-  - Interacting with write functions (sending transactions, handling errors).
-  - Listening to blockchain events and updating UI accordingly.
-  - Detecting transaction confirmations and giving user feedback.
-- Understand account abstraction basics:
-  - Recognize common account‑abstraction patterns supported by WalletConnect providers and how they can affect UX.
+**React** is the most widely used framework in Web3. It represents the UI as a tree of components that re-render automatically when their data changes. **Next.js** extends React with file-based routing, server-side rendering, static site generation, and API routes — making it the default choice for production dApps that need both a frontend and a lightweight backend.
 
-**Suggested learning path**
+Why does this matter for blockchain development? Smart contract frontends need to respond to asynchronous events (transaction confirmations, emitted events) and manage state that bridges off-chain user input and on-chain data. React's component and hook model is a natural fit for this.
 
-- Work through a sample dApp tutorial that uses Next.js + wagmi + WalletConnect to interact with contracts on Avalanche.[`https://build.avax.network`](https://build.avax.network)
-- Extend Bootcamp or workshop contracts with a simple UI and share it as a Team1 educational example.[`https://team1-latam-bootcamp.gitbook.io/team1-docs`](https://team1-latam-bootcamp.gitbook.io/team1-docs)
+## Hooks
 
+A **hook** is a React function that lets a component tap into React's state and lifecycle system. Hooks always start with `use` by convention. The most common built-in hooks are:
+
+- **`useState`**: declares a piece of component-local state. When that state changes, the component re-renders.
+- **`useEffect`**: runs a side effect (data fetching, subscriptions, timers) after the component renders. Accepts a dependency array; the effect re-runs when any dependency changes.
+- **`useCallback`**: memoizes a function reference to prevent unnecessary re-renders of child components.
+- **`useMemo`**: memoizes a computed value.
+- **`useRef`**: holds a mutable reference that does not trigger re-renders — useful for storing timers or DOM references.
+
+```tsx
+import { useState, useEffect } from 'react'
+
+function BlockNumber() {
+  const [blockNumber, setBlockNumber] = useState<number | null>(null)
+
+  useEffect(() => {
+    // fetch once on mount, then poll every 5 seconds
+    const interval = setInterval(async () => {
+      const res = await fetch('/api/block')
+      const data = await res.json()
+      setBlockNumber(data.number)
+    }, 5000)
+    return () => clearInterval(interval) // cleanup
+  }, []) // empty array = run once on mount
+
+  return <p>Current block: {blockNumber ?? 'loading…'}</p>
+}
+```
+
+**Next.js-specific hooks** include `useRouter` (to read and control navigation), `useSearchParams`, and `usePathname`.
+
+## Custom Hooks
+
+A **custom hook** is a function that composes one or more built-in hooks to encapsulate and reuse stateful logic. Any function whose name starts with `use` and that calls other hooks is a custom hook.
+
+Custom hooks are the right pattern whenever the same stateful logic appears in more than one component. For example, a hook that fetches an on-chain balance and refreshes it whenever a new block arrives:
+
+```tsx
+import { useState, useEffect } from 'react'
+import { usePublicClient } from 'wagmi'
+
+export function useNativeBalance(address: `0x${string}` | undefined) {
+  const client = usePublicClient()
+  const [balance, setBalance] = useState<bigint | null>(null)
+
+  useEffect(() => {
+    if (!address || !client) return
+    client.getBalance({ address }).then(setBalance)
+  }, [address, client])
+
+  return balance
+}
+```
+
+Any component can now call `useNativeBalance(address)` without duplicating the fetching logic.
+
+## What You Need to Interact with a Smart Contract
+
+Four pieces of information are required before a frontend can talk to a contract:
+
+1. **Contract address**: the 20-byte on-chain address where the contract was deployed.
+2. **ABI (Application Binary Interface)**: the JSON schema that describes the contract's functions and events. The frontend uses it to encode function call data and decode return values.
+3. **Network / RPC endpoint**: the URL of a node that speaks JSON-RPC for the target network (e.g., the Avalanche C-Chain or a custom L1).
+4. **User's wallet**: the signer that approves and signs transactions on the user's behalf.
+
+### What is an ABI?
+
+The **ABI** is the contract between a Solidity smart contract and the outside world. It is a JSON array describing every public function (its name, input types, output types, and state mutability) and every event (its name and argument types).
+
+When a frontend wants to call `transfer(address to, uint256 amount)`, it uses the ABI to look up the function, ABI-encode the arguments into the 4-byte function selector plus the padded parameters, and send that byte sequence as the transaction's `data` field. On return, it uses the ABI again to decode the raw bytes back into typed values.
+
+```json
+[
+  {
+    "type": "function",
+    "name": "transfer",
+    "inputs": [
+      { "name": "to", "type": "address" },
+      { "name": "amount", "type": "uint256" }
+    ],
+    "outputs": [{ "name": "", "type": "bool" }],
+    "stateMutability": "nonpayable"
+  }
+]
+```
+
+The ABI is generated by the compiler alongside the bytecode. In a Foundry project it lives in `out/ContractName.sol/ContractName.json`. Copy it into your frontend's source tree.
+
+## RPC and How to Configure It
+
+An **RPC endpoint** (Remote Procedure Call) is an HTTP or WebSocket URL that accepts JSON-RPC requests defined by the Ethereum API standard. When your frontend calls `eth_call` or `eth_sendRawTransaction`, it sends those requests to this endpoint, which forwards them to a node.
+
+For Avalanche networks, common endpoints are:
+
+| Network | RPC URL |
+|---|---|
+| Avalanche Mainnet C-Chain | `https://api.avax.network/ext/bc/C/rpc` |
+| Avalanche Fuji Testnet | `https://api.avax-test.network/ext/bc/C/rpc` |
+| Custom L1 (local) | `http://localhost:9650/ext/bc/<chainID>/rpc` |
+
+In a wagmi configuration you register these as chains:
+
+```ts
+import { createConfig, http } from 'wagmi'
+import { avalanche, avalancheFuji } from 'wagmi/chains'
+
+export const config = createConfig({
+  chains: [avalanche, avalancheFuji],
+  transports: {
+    [avalanche.id]: http('https://api.avax.network/ext/bc/C/rpc'),
+    [avalancheFuji.id]: http('https://api.avax-test.network/ext/bc/C/rpc'),
+  },
+})
+```
+
+## wagmi
+
+**wagmi** is a collection of React hooks for Ethereum-compatible chains. It abstracts away the raw `ethers.js` or `viem` API calls and provides strongly-typed, composable hooks for reading and writing contracts, managing wallet connections, listening to events, and more.
+
+wagmi is built on top of **viem**, a lightweight TypeScript library for low-level EVM interactions, and is the standard choice for Next.js-based dApps targeting Avalanche.
+
+### Reading a Contract
+
+```tsx
+import { useReadContract } from 'wagmi'
+import { erc20Abi } from 'viem'
+
+function TokenBalance({ token, owner }: { token: `0x${string}`, owner: `0x${string}` }) {
+  const { data: balance, isLoading } = useReadContract({
+    address: token,
+    abi: erc20Abi,
+    functionName: 'balanceOf',
+    args: [owner],
+  })
+
+  if (isLoading) return <p>Loading…</p>
+  return <p>Balance: {balance?.toString()}</p>
+}
+```
+
+### Calling Multiple Read Functions
+
+`useReadContracts` batches multiple reads into a single multicall, reducing RPC round trips:
+
+```tsx
+import { useReadContracts } from 'wagmi'
+import { erc20Abi } from 'viem'
+
+const token = '0xTokenAddress' as const
+
+function TokenInfo() {
+  const { data } = useReadContracts({
+    contracts: [
+      { address: token, abi: erc20Abi, functionName: 'name' },
+      { address: token, abi: erc20Abi, functionName: 'symbol' },
+      { address: token, abi: erc20Abi, functionName: 'totalSupply' },
+    ],
+  })
+
+  const [name, symbol, totalSupply] = data ?? []
+  return <p>{name?.result} ({symbol?.result}) — supply: {totalSupply?.result?.toString()}</p>
+}
+```
+
+### Interacting with Write Functions
+
+State-changing calls require the user to sign a transaction. `useWriteContract` handles this:
+
+```tsx
+import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
+import { erc20Abi, parseEther } from 'viem'
+
+function TransferButton({ token }: { token: `0x${string}` }) {
+  const { writeContract, data: hash, isPending } = useWriteContract()
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash })
+
+  function send() {
+    writeContract({
+      address: token,
+      abi: erc20Abi,
+      functionName: 'transfer',
+      args: ['0xRecipient', parseEther('10')],
+    })
+  }
+
+  return (
+    <div>
+      <button onClick={send} disabled={isPending}>
+        {isPending ? 'Confirm in wallet…' : 'Send 10 tokens'}
+      </button>
+      {isConfirming && <p>Waiting for confirmation…</p>}
+      {isSuccess && <p>Transfer confirmed!</p>}
+    </div>
+  )
+}
+```
+
+### Listening to Blockchain Events
+
+`useWatchContractEvent` subscribes to contract events over a WebSocket or polling connection. Use this to update the UI in real time when something happens on-chain:
+
+```tsx
+import { useWatchContractEvent } from 'wagmi'
+import { erc20Abi } from 'viem'
+
+function TransferListener({ token }: { token: `0x${string}` }) {
+  useWatchContractEvent({
+    address: token,
+    abi: erc20Abi,
+    eventName: 'Transfer',
+    onLogs(logs) {
+      logs.forEach(log => {
+        console.log(`Transfer: ${log.args.from} → ${log.args.to} (${log.args.value})`)
+      })
+    },
+  })
+  return null
+}
+```
+
+### Detecting Transaction Confirmations
+
+`useWaitForTransactionReceipt` polls until a transaction is included in a block and reaches a configurable number of confirmations. On Avalanche, finality is near-instant (1–2 seconds), so even a single confirmation is sufficient for most use cases.
+
+```tsx
+const { isLoading, isSuccess, data: receipt } = useWaitForTransactionReceipt({
+  hash: txHash,
+  confirmations: 1,
+})
+```
+
+## WalletConnect and Wallet Providers
+
+**WalletConnect** is an open protocol that creates an encrypted connection between a dApp and a mobile or hardware wallet. Instead of each dApp integrating with every wallet individually, wallets implement the WalletConnect protocol, and dApps connect to all of them through a single bridge.
+
+The main providers that build on top of WalletConnect are:
+
+- **Reown (formerly WalletConnect)**: the canonical provider with the largest wallet support, session management, and a cloud relay for signaling.
+- **RainbowKit**: a React UI library that bundles WalletConnect + MetaMask + Coinbase Wallet + others behind a polished "connect wallet" modal. Pairs well with wagmi.
+- **ConnectKit**: another polished modal UI for wagmi, with customizable themes.
+- **Dynamic**: an auth platform that adds email/social login on top of wallet connections, aimed at consumer applications.
+- **Privy**: similar to Dynamic, focused on progressive wallet creation for non-crypto-native users.
+
+A minimal setup with wagmi and RainbowKit:
+
+```tsx
+// app/providers.tsx
+'use client'
+import { WagmiProvider } from 'wagmi'
+import { RainbowKitProvider } from '@rainbow-me/rainbowkit'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { config } from './wagmi-config'
+
+const queryClient = new QueryClient()
+
+export function Providers({ children }: { children: React.ReactNode }) {
+  return (
+    <WagmiProvider config={config}>
+      <QueryClientProvider client={queryClient}>
+        <RainbowKitProvider>
+          {children}
+        </RainbowKitProvider>
+      </QueryClientProvider>
+    </WagmiProvider>
+  )
+}
+```
+
+```tsx
+// In any component
+import { ConnectButton } from '@rainbow-me/rainbowkit'
+
+export function Header() {
+  return <header><ConnectButton /></header>
+}
+```
+
+## Account Abstraction
+
+**Account abstraction (AA)** is a broad term for techniques that give smart contract wallets the same powers as EOAs, enabling features like gas sponsorship, batched transactions, and social recovery. The most important standard is **ERC-4337**, which introduces a new transaction type called a `UserOperation` processed through a shared `EntryPoint` contract, bypassing the need for protocol-level changes.
+
+Common AA patterns available through wallet providers:
+
+- **Embedded wallets**: providers like Privy and Dynamic create a wallet for the user on first login (using email, Google, etc.) and manage the key in the cloud or via MPC. Users never see a seed phrase.
+- **Paymasters / gas sponsorship**: a paymaster contract covers gas fees on behalf of users. This lets dApps run "gasless" transactions where users pay in ERC20 tokens or not at all — dramatically improving onboarding.
+- **Session keys**: short-lived delegated keys that can sign transactions within defined limits (specific contracts, time windows, maximum value) without requiring the user to approve each one. Common in games.
+- **Batched transactions**: submit multiple contract calls as a single `UserOperation`, so a user can approve and transfer a token in one click instead of two separate transactions.
+
+WalletConnect-compatible providers like **Biconomy**, **ZeroDev**, and **Pimlico** offer SDKs for integrating these patterns. The Avalanche C-Chain and most EVM-compatible L1s fully support ERC-4337.
+
+---
+
+## Key Takeaways
+
+- A frontend framework like Next.js provides the structure for building dApps; React hooks manage state and lifecycle.
+- Custom hooks encapsulate reusable stateful logic — the right pattern for smart contract interactions.
+- To interact with a contract you need its address, ABI, RPC endpoint, and a signer (wallet).
+- The ABI is the typed schema the frontend uses to encode calls and decode responses; without it, raw bytes are uninterpretable.
+- wagmi provides typed React hooks for reading, writing, and watching contracts on any EVM chain including Avalanche.
+- WalletConnect connects dApps to many wallets through a single protocol; providers like RainbowKit wrap it in a ready-made UI.
+- Account abstraction (ERC-4337) enables gasless transactions, embedded wallets, and session keys — improving UX for non-technical users.

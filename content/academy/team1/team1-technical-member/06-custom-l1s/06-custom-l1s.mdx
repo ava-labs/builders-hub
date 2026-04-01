@@ -1,43 +1,194 @@
 ---
-title: "Section 6 – Custom L1s on Avalanche"
-description: "Concepts, roles, and configuration for launching and operating Avalanche L1s."
-updated: 2026-03-05
+title: Custom L1s on Avalanche
+description: Understand the architecture, roles, precompiles, and configuration options for launching and operating custom Avalanche L1s.
+updated: 2026-03-31
 authors: [team1]
-icon: Code
+icon: BookOpen
 ---
 
-## Section 6 – Custom L1s on Avalanche
+One of Avalanche's most distinctive features is the ability for anyone to launch their own sovereign blockchain — called an **L1** — with custom virtual machines, tokenomics, access control, and fees. This section explains what that means, how it works under the hood, and the specific tools Avalanche provides to configure these chains.
 
-Avalanche makes it possible to launch custom L1s with tailored tokenomics, permissioning, and precompiles.  
-Builder Hub’s L1 courses (Permissionless L1s, Permissioned L1s, L1 Native Tokenomics, Customizing the EVM, etc.) cover these topics in depth.[`https://build.avax.network/academy/avalanche-l1`](https://build.avax.network/academy/avalanche-l1)
+## L1s vs L2s
 
-**By the end of this section you should be able to:**
+The terms L1 and L2 describe **where execution and settlement happen** in a blockchain stack.
 
-- Explain:
-  - What an **L1** is and how it differs from an L2 (base vs. layered execution).
-  - What a **node** is and its role in consensus and validation.
-- Know:
-  - The minimum number of nodes required to run a production‑ready Avalanche subnet / blockchain, based on current Avalanche documentation and best practices.[`https://build.avax.network/academy/avalanche-l1/permissionless-l1s`](https://build.avax.network/academy/avalanche-l1/permissionless-l1s)
-  - The minimum uptime required for node rewards according to Avalanche governance (ACP‑267 raises primary network validator uptime requirements from 80% to 90% for rewards eligibility).[`https://build.avax.network/academy`](https://build.avax.network/academy)
-- Understand roles & configuration:
-  - Difference between **admin**, **manager**, and **enabled** roles in custom L1 configuration, as described in L1 and access‑restriction courses.[`https://build.avax.network/academy/avalanche-l1/access-restriction`](https://build.avax.network/academy/avalanche-l1/access-restriction)
-  - What **precompiles** are and how they extend EVM behavior at the protocol level.
-- Understand Avalanche Warp Messaging (AWM):
-  - High‑level purpose of **AWM** as an interoperability primitive for L1s on Avalanche.[`https://build.avax.network/academy/avalanche-l1/interchain-messaging`](https://build.avax.network/academy/avalanche-l1/interchain-messaging)
-- Know the purpose of key precompiles:
-  - `deployerAllowListConfig`
-  - `nativeMinterConfig`
-  - `txAllowListConfig`
-  - `feeManagerConfig`
-  - `rewardManagerConfig`
-  - `warpConfig`
-  and how they relate to permissioning, token minting, fees, rewards, and messaging in a custom L1.
+An **L1 (Layer 1)** is a base blockchain that:
+- Maintains its own consensus mechanism.
+- Has its own validator set that independently agrees on the canonical chain.
+- Settles transactions directly on its own ledger — there is no parent chain it "reports back to" for finality.
+- Examples: Avalanche, Ethereum, Bitcoin, Solana.
 
-- Give **examples of custom L1s**:
-  - Describe at least a few live L1s built on Avalanche (e.g., app‑specific chains, gaming chains, DeFi‑focused chains) and what makes them unique, drawing from case studies in Builder Hub and Team1 content.[`https://build.avax.network/academy/avalanche-l1`](https://build.avax.network/academy/avalanche-l1)
+An **L2 (Layer 2)** is a system that:
+- Processes transactions off the main chain to increase throughput or reduce cost.
+- Relies on an L1 for final settlement and security. The L2 periodically posts proofs or compressed transaction data back to the L1.
+- Examples: Optimism, Arbitrum, zkSync (all posting to Ethereum).
 
-**Suggested learning path**
+Avalanche's custom chains are **true L1s** in this sense: each one has its own validator set running independent consensus, not a rollup posting proofs to another chain. They benefit from Avalanche's consensus protocol but are not dependent on the C-Chain for finality. This gives custom L1s much higher throughput limits and lower latency than L2 rollup approaches.
 
-- Complete the **Permissionless L1s**, **Permissioned L1s**, and related L1 courses on Builder Hub.[`https://build.avax.network/academy/avalanche-l1`](https://build.avax.network/academy/avalanche-l1)
-- Follow along with a Team1 workshop or bootcamp module that walks through creating and configuring a custom L1, similar to the privacy‑focused chain exercises in the Latam Bootcamp.[`https://team1-latam-bootcamp.gitbook.io/team1-docs`](https://team1-latam-bootcamp.gitbook.io/team1-docs)
+The distinction matters when advising builders: if they want full sovereignty, custom gas tokens, and maximum performance, an Avalanche L1 is the right architecture. If they want maximum liquidity and composability with Ethereum's existing ecosystem and are willing to pay rollup overhead, an Ethereum L2 may be better.
 
+## What is a Node?
+
+A **node** is a computer running the Avalanche client software (AvalancheGo) that participates in the network. Nodes perform two related roles:
+
+- **Validator**: a node that has staked AVAX (on the primary network) and is responsible for participating in consensus. Validators vote on the validity of transactions and the canonical ordering of blocks.
+- **Non-validating (RPC) node**: a node that tracks the chain state and answers API queries but does not participate in consensus voting. These are used for read-heavy applications.
+
+For an Avalanche custom L1, the validators are the specific nodes that have been registered as validators for that particular blockchain. They run their own consensus rounds independently of the rest of the Avalanche network.
+
+### Minimum Nodes to Run a Blockchain
+
+Avalanche's consensus protocol requires a minimum of **5 validators** to operate a custom L1 in a way that provides safety and liveness. With fewer nodes, the network becomes fragile: if any one node goes offline, the chain can stall. Five validators provide sufficient redundancy for a functional, though not highly decentralized, chain.
+
+In practice, production deployments use significantly more validators to ensure decentralization and fault tolerance. Many live L1s run with 10–20 validators, and larger networks run with many more.
+
+### Minimum Uptime for Node Rewards
+
+On the Avalanche primary network, validators must maintain a minimum uptime of **80%** over their staking period to be eligible for staking rewards. An ongoing governance proposal (ACP-267) proposes raising this threshold to **90%** to incentivize better infrastructure. Always check the current [Avalanche documentation](https://build.avax.network/academy/avalanche-l1/permissionless-l1s) for the latest requirement, as this parameter is subject to governance changes.
+
+Validators that fall below the uptime threshold receive no rewards for that period — they are not slashed (their stake is not taken), but they forfeit income.
+
+## Roles: Admin, Manager, and Enabled
+
+Avalanche precompiles and access-control contracts use a three-tier permission model to separate different levels of authority:
+
+**Admin**: the highest privilege level. An admin can add or remove other admins, add or remove managers, and add or remove enabled addresses. Admins can also directly perform any action available to lower tiers. The admin set should be tightly controlled — typically a multisig or governance contract.
+
+**Manager**: a mid-tier role introduced in more recent versions. A manager can add or remove enabled addresses but cannot change the admin or manager set. This allows operational teams to manage day-to-day access without having root control over the system.
+
+**Enabled**: addresses that are permitted to perform the specific action controlled by the precompile (e.g., deploy contracts, mint native tokens, submit transactions). They cannot modify any access lists.
+
+This role hierarchy follows the principle of least privilege: you grant the minimum permissions needed for each use case, limiting the blast radius of a compromised key.
+
+## What is AWM?
+
+**Avalanche Warp Messaging (AWM)** is a native, trust-minimized protocol for passing arbitrary messages between Avalanche blockchains. It works by having the sending chain's validators co-sign a message using BLS cryptography, producing an aggregated signature. The receiving chain's validators verify that signature against the registered validator set without relying on any bridge contract or external oracle.
+
+This is fundamentally different from "wrapped bridge" approaches where a centralized entity or a multisig controls the funds crossing the bridge. With AWM, the security is grounded in the consensus layer itself — the same validators that produce blocks also vouch for cross-chain messages.
+
+AWM is the foundation for **Teleporter** (the ICTT framework), which provides a higher-level API for cross-chain token transfers and contract calls. A technical Team1 member should understand AWM as the primitive and Teleporter as the developer-facing abstraction on top of it.
+
+## Precompiles
+
+A **precompile** is a smart contract with a well-known address whose logic is implemented directly in the Avalanche node software (Go code), not in Solidity bytecode. From the Solidity developer's perspective, precompiles look like normal contracts — you call them at a fixed address — but they execute natively, without EVM interpretation, making them far more gas-efficient and capable of operations the EVM cannot otherwise perform (like accessing validator sets or aggregating BLS signatures).
+
+Avalanche's custom L1s are configured through a set of precompiles enabled in the genesis file. Here is what each one does:
+
+### `deployerAllowListConfig`
+
+Controls **who can deploy smart contracts** on the chain. When enabled, only addresses in the "enabled" (or higher) list can submit deployment transactions (transactions with a blank `to` field). All other addresses receive a revert if they attempt to deploy.
+
+This is essential for permissioned environments: a gaming company running its own L1 might want only its own backend to deploy contracts, preventing third parties from deploying arbitrary logic on the chain.
+
+```json
+"deployerAllowListConfig": {
+  "blockTimestamp": 0,
+  "adminAddresses": ["0xAdminAddress"],
+  "enabledAddresses": ["0xDeployerAddress"]
+}
+```
+
+### `nativeMinterConfig`
+
+Controls **who can mint the chain's native token**. When enabled, only authorized addresses can call the precompile's `mintNativeCoin(address, amount)` function to create new native currency out of thin air.
+
+This powers app-specific tokenomics: a game chain might mint in-game currency as rewards for players, or a DeFi chain might have an inflation mechanism managed by a DAO contract.
+
+```json
+"nativeMinterConfig": {
+  "blockTimestamp": 0,
+  "adminAddresses": ["0xAdminAddress"],
+  "enabledAddresses": ["0xMinterContract"]
+}
+```
+
+### `txAllowListConfig`
+
+Controls **who can submit any transaction** on the chain. Even more restrictive than `deployerAllowListConfig`, this limits transaction submission to a whitelist of addresses. Only enabled addresses can send any transaction at all — regular transfers, contract calls, and deployments.
+
+Use cases: enterprise chains where only known participants may interact, KYC-gated chains where users must be verified before transacting, and testing environments.
+
+```json
+"txAllowListConfig": {
+  "blockTimestamp": 0,
+  "adminAddresses": ["0xAdminAddress"],
+  "enabledAddresses": ["0xUser1", "0xUser2"]
+}
+```
+
+### `feeManagerConfig`
+
+Controls **dynamic fee configuration** at runtime. Once enabled, authorized addresses can adjust fee parameters (base fee, block gas limit, target block rate) without redeploying the chain. This allows fee management to respond to changing network conditions or business requirements.
+
+Without `feeManagerConfig`, fee parameters are fixed at genesis and can only change through a hard fork. With it, a governance contract can vote to adjust fees and execute the change in a single transaction.
+
+```json
+"feeManagerConfig": {
+  "blockTimestamp": 0,
+  "adminAddresses": ["0xFeeGovernanceContract"]
+}
+```
+
+### `rewardManagerConfig`
+
+Controls **where block rewards go** and whether fee burning is enabled. Options include:
+- Burning all fees (deflationary; no validator rewards from fees).
+- Sending fees to validators (validator rewards from fees).
+- Sending fees to a fixed address (e.g., a treasury or redistribution contract).
+
+This precompile lets the chain's governance decide in real time how value flows from transaction fees — a key lever for custom tokenomics.
+
+```json
+"rewardManagerConfig": {
+  "blockTimestamp": 0,
+  "adminAddresses": ["0xRewardAdmin"],
+  "initialRewardConfig": {
+    "allowFeeRecipients": true
+  }
+}
+```
+
+### `warpConfig`
+
+Enables **Avalanche Warp Messaging** on the chain. This is the gateway precompile for cross-chain communication. It exposes:
+- `sendWarpMessage(bytes calldata payload)`: emits a message that validators sign.
+- `getVerifiedWarpMessage(uint32 index)`: reads a verified warp message from the block (after validators have verified it off-chain and embedded the result in the block header).
+
+Enabling `warpConfig` is a prerequisite for using Teleporter (ICTT) or any other cross-chain protocol on your L1.
+
+```json
+"warpConfig": {
+  "blockTimestamp": 0,
+  "quorumNumerator": 67
+}
+```
+
+The `quorumNumerator` defines the percentage of stake that must co-sign a warp message for it to be considered valid (default 67 = two-thirds).
+
+## Examples of Custom L1s
+
+The Avalanche ecosystem includes dozens of live custom L1s, each illustrating a different use case for sovereign blockchain infrastructure:
+
+**DFK Chain (DeFi Kingdoms)**: an app-specific gaming chain built for the DeFi Kingdoms RPG. By running on its own L1, the game's transactions do not compete for block space with other applications, enabling low fees and consistent performance during peak gameplay hours.
+
+**Dexalot**: a CLOB (central limit order book) DEX running on its own L1. Moving order-matching off the C-Chain allows sub-second order placement and cancellation at negligible cost — something impossible on a shared general-purpose chain.
+
+**Lamina1**: a metaverse-focused L1 designed for creators, with custom tokenomics to reward content creation and a permissioning model tailored to intellectual property management.
+
+**PLYR Chain**: a gaming infrastructure chain built by GG Chain with its own native token, designed to host multiple games under a single chain with shared liquidity.
+
+**Gunzilla Off The Grid**: a gaming L1 with a custom gas token (GUN), deployed to support a AAA battle royale game, demonstrating how major game studios are using Avalanche L1s to bring on-chain economies to mainstream gaming.
+
+Each of these chains benefits from the same qualities: full control over gas token, fee structure, transaction permissioning, and block production — while still being connected to the broader Avalanche ecosystem through AWM and Teleporter.
+
+---
+
+## Key Takeaways
+
+- Avalanche L1s are sovereign blockchains with their own validator sets and consensus. They differ from L2s, which depend on a parent chain for security and finality.
+- A node is a computer running AvalancheGo; a validator node participates in consensus and requires a minimum uptime (~80–90%) to earn rewards.
+- At least 5 validators are needed to run a functional custom L1.
+- The admin/manager/enabled role hierarchy separates governance authority from operational authority, following the principle of least privilege.
+- AWM is the native cross-chain messaging primitive; it uses BLS aggregate signatures from validators to verify messages without a centralized bridge.
+- Precompiles are native contracts (implemented in Go) enabled at genesis that extend the EVM with capabilities like contract deployment control, native token minting, transaction allow-lists, dynamic fees, configurable rewards, and cross-chain messaging.
+- Live examples like DFK Chain, Dexalot, and Gunzilla demonstrate why app-specific sovereignty is valuable: dedicated block space, custom tokenomics, and tailored permissioning.
