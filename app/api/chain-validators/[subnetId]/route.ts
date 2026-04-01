@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { Avalanche } from "@avalanche-sdk/chainkit";
-import { MAINNET_VALIDATOR_DISCOVERY_URL } from "@/constants/validator-discovery";
+import {
+  FUJI_VALIDATOR_DISCOVERY_URL,
+  MAINNET_VALIDATOR_DISCOVERY_URL,
+} from "@/constants/validator-discovery";
 
 const PAGE_SIZE = 100;
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
@@ -38,9 +41,9 @@ interface ValidatorVersion {
 const cacheStore = new Map<string, {data: ValidatorData[]; timestamp: number; versionBreakdown?: any}>();
 const versionCacheStore = new Map<string, {data: Map<string, string>; timestamp: number}>();
 
-async function fetchValidatorVersions(): Promise<Map<string, string>> {
+async function fetchValidatorVersions(network: "mainnet" | "fuji" = "mainnet"): Promise<Map<string, string>> {
   const now = Date.now();
-  const cached = versionCacheStore.get('mainnet');
+  const cached = versionCacheStore.get(network);
   
   if (cached && (now - cached.timestamp) < CACHE_DURATION) {
     return cached.data;
@@ -49,8 +52,10 @@ async function fetchValidatorVersions(): Promise<Map<string, string>> {
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), VERSION_FETCH_TIMEOUT);
+    const discoveryUrl =
+      network === "fuji" ? FUJI_VALIDATOR_DISCOVERY_URL : MAINNET_VALIDATOR_DISCOVERY_URL;
 
-    const response = await fetch(MAINNET_VALIDATOR_DISCOVERY_URL, {
+    const response = await fetch(discoveryUrl, {
       signal: controller.signal,
       headers: { 'Accept': 'application/json' },
     });
@@ -68,7 +73,7 @@ async function fetchValidatorVersions(): Promise<Map<string, string>> {
       versionMap.set(validator.nodeId, validator.version?.replace("avalanchego/", "") || "Unknown");
     }
 
-    versionCacheStore.set('mainnet', { data: versionMap, timestamp: now });
+    versionCacheStore.set(network, { data: versionMap, timestamp: now });
     return versionMap;
   } catch (error) {
     console.error('Error fetching validator versions:', error);
@@ -239,7 +244,7 @@ export async function GET(
       );
     }
 
-    const versionMap = await fetchValidatorVersions();
+    const versionMap = await fetchValidatorVersions(network);
 
     const validators = await Promise.race([
       fetchAllValidators(subnetId, versionMap, network),
@@ -278,4 +283,3 @@ export async function GET(
     );
   }
 }
-

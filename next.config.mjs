@@ -1906,6 +1906,50 @@ const config = {
       }
     ];
   },
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            key: 'X-Frame-Options',
+            value: 'DENY',
+          },
+          {
+            key: 'X-XSS-Protection',
+            value: '1; mode=block',
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'strict-origin-when-cross-origin',
+          },
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(), geolocation=()',
+          },
+          {
+            key: 'Content-Security-Policy-Report-Only',
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://us.i.posthog.com https://app.posthog.com https://mcp.figma.com",
+              "style-src 'self' 'unsafe-inline'",
+              "img-src 'self' data: blob: https://avatars.githubusercontent.com https://lh3.googleusercontent.com https://abs.twimg.com https://*.public.blob.vercel-storage.com https://images.ctfassets.net https://f005.backblazeb2.com https://explorer-binaryholdings.cogitus.io https://cdn.prod.website-files.com https://developers.avacloud.io https://dashboard-assets.dappradar.com",
+              "font-src 'self'",
+              "connect-src 'self' https://us.i.posthog.com https://app.posthog.com https://api.openai.com https://api.github.com https://www.googleapis.com https://api.hubapi.com https://api.dune.com https://glacier-api.avax.network https://accounts.google.com https://api.avax.network https://api.avax-test.network",
+              "frame-src 'self' https://calendar.google.com https://www.google.com https://chromewebstore.google.com",
+              "frame-ancestors 'none'",
+              "base-uri 'self'",
+              "form-action 'self'",
+            ].join('; '),
+          },
+        ],
+      },
+    ];
+  },
   async rewrites() {
     return [
       // Rewrite .md requests to serve raw markdown content
