@@ -13,6 +13,7 @@ import MentorsJudges from "@/components/hackathons/hackathon/sections/MentorsJud
 import OverviewBanner from "@/components/hackathons/hackathon/sections/OverviewBanner";
 import JoinBannerLink from "@/components/hackathons/hackathon/JoinBannerLink";
 import { normalizeEventsLang, t } from "@/lib/events/i18n";
+import StagesSection from './hackathon/sections/StagesSection';
 
 // Simple client-compatible Submission component for preview
 const SubmissionPreview = ({ hackathon }: { hackathon: any }) => {
@@ -31,7 +32,7 @@ const SubmissionPreview = ({ hackathon }: { hackathon: any }) => {
           <div className='mb-4 text-zinc-600 dark:text-zinc-400 text-2xl'>📅</div>
           <h3 className='text-xl font-semibold mb-2'>Deadline</h3>
           <p className='text-sm'>
-            {hackathon.content?.submission_deadline 
+            {hackathon.content?.submission_deadline
               ? `Submissions close on ${new Date(hackathon.content.submission_deadline).toLocaleDateString()}`
               : 'Deadline TBD'
             }
@@ -108,6 +109,7 @@ interface HackathonPreviewProps {
       judging_guidelines?: string;
       submission_deadline?: string;
       registration_deadline?: string;
+      stages: any
     };
     start_date?: string;
     end_date?: string;
@@ -126,8 +128,8 @@ export default function HackathonPreview({ hackathonData, isRegistered = false, 
     if (scrollTarget && previewRef.current) {
       const targetElement = previewRef.current.querySelector(`#${scrollTarget}`);
       if (targetElement) {
-        targetElement.scrollIntoView({ 
-          behavior: 'smooth', 
+        targetElement.scrollIntoView({
+          behavior: 'smooth',
           block: 'start',
           inline: 'nearest'
         });
@@ -162,8 +164,8 @@ export default function HackathonPreview({ hackathonData, isRegistered = false, 
       schedule: hackathonData.content?.schedule || [],
       speakers: hackathonData.content?.speakers || [],
       resources: hackathonData.content?.resources || [],
-      partners: (hackathonData.content?.partners || []).map((partner: any) => 
-        typeof partner === 'string' 
+      partners: (hackathonData.content?.partners || []).map((partner: any) =>
+        typeof partner === 'string'
           ? { name: partner, about: '', links: [] }
           : partner
       ),
@@ -178,6 +180,7 @@ export default function HackathonPreview({ hackathonData, isRegistered = false, 
       mentors_judges_img_url: '',
       speakers_text: '',
       speakers_banner: '',
+      stages: hackathonData.content?.stages
     },
     start_date: hackathonData.start_date || '',
     end_date: hackathonData.end_date || '',
@@ -216,75 +219,80 @@ export default function HackathonPreview({ hackathonData, isRegistered = false, 
           <>
             {/* Header */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
-              {transformedHackathon.title}
-            </h1>
-            <p className="text-zinc-600 dark:text-zinc-400 mt-1">
-              {transformedHackathon.description}
-            </p>
-          </div>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-zinc-500 dark:text-zinc-400">
-              ${transformedHackathon.total_prizes.toLocaleString()} in prizes
-            </span>
-            <Button className="bg-red-500 hover:bg-red-600 text-white">
-              {t(lang, "join.default")}
-            </Button>
-          </div>
-        </div>
-
-        {/* Navigation Menu */}
-        <div className="mb-6">
-          <NavigationMenu items={menuItems} />
-        </div>
-
-        {/* Main Content */}
-        <div className="flex flex-col mt-2">
-          <div className="sm:px-8 pt-6">
-            <div className="sm:block relative w-full">
-              <OverviewBanner 
-                hackathon={transformedHackathon} 
-                id={transformedHackathon.id} 
-                isTopMost={false} 
-                isRegistered={isRegistered} 
-                utm="" 
-                isPreview={true}
-              />
-              <JoinBannerLink
-                isRegistered={isRegistered}
-                hackathonId={transformedHackathon.id}
-                customLink={transformedHackathon.content.join_custom_link}
-                bannerSrc={transformedHackathon.banner}
-                altText="Hackathon background"
-                utm=""
-              />
+              <div>
+                <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
+                  {transformedHackathon.title}
+                </h1>
+                <p className="text-zinc-600 dark:text-zinc-400 mt-1">
+                  {transformedHackathon.description}
+                </p>
+              </div>
+              <div className="flex items-center gap-4">
+                <span className="text-sm text-zinc-500 dark:text-zinc-400">
+                  ${transformedHackathon.total_prizes.toLocaleString()} in prizes
+                </span>
+                <Button className="bg-red-500 hover:bg-red-600 text-white">
+                  {t(lang, "join.default")}
+                </Button>
+              </div>
             </div>
-            
-            <div className="py-8 sm:p-8 flex flex-col gap-20">
-              {transformedHackathon.content.tracks_text && (
-                <AboutPreview hackathon={transformedHackathon} />
-              )}
-              {transformedHackathon.content.tracks && transformedHackathon.content.tracks.length > 0 && (
-                <Tracks hackathon={transformedHackathon} />
-              )}
-              <Resources hackathon={transformedHackathon} />
-              <Schedule 
-                hackathon={transformedHackathon} 
-                scheduleSource="database"
-              />
-              <SubmissionPreview hackathon={transformedHackathon} />
-              {transformedHackathon.content.speakers && transformedHackathon.content.speakers.length > 0 && (
-                <MentorsJudges hackathon={transformedHackathon} />
-              )}
-              <Community hackathon={transformedHackathon} />
-              {/* Partners section hidden */}
-              {/* {transformedHackathon.content.partners?.length > 0 && (
+
+            {/* Navigation Menu */}
+            <div className="mb-6">
+              <NavigationMenu items={menuItems} />
+            </div>
+
+            {/* Main Content */}
+            <div className="flex flex-col mt-2">
+              <div className="sm:px-8 pt-6">
+                <div className="sm:block relative w-full">
+                  <OverviewBanner
+                    hackathon={transformedHackathon}
+                    id={transformedHackathon.id}
+                    isTopMost={false}
+                    isRegistered={isRegistered}
+                    utm=""
+                    isPreview={true}
+                  />
+                  <JoinBannerLink
+                    isRegistered={isRegistered}
+                    hackathonId={transformedHackathon.id}
+                    customLink={transformedHackathon.content.join_custom_link}
+                    bannerSrc={transformedHackathon.banner}
+                    altText="Hackathon background"
+                    utm=""
+                  />
+                </div>
+
+                <div className="py-8 sm:p-8 flex flex-col gap-20">
+                  {
+                    transformedHackathon.content.stages && transformedHackathon.content.stages.length > 0 && (
+                      <StagesSection stages={transformedHackathon.content.stages} hackathon={transformedHackathon} />
+                    )
+                  }
+                  {transformedHackathon.content.tracks_text && (
+                    <AboutPreview hackathon={transformedHackathon} />
+                  )}
+                  {transformedHackathon.content.tracks && transformedHackathon.content.tracks.length > 0 && (
+                    <Tracks hackathon={transformedHackathon} />
+                  )}
+                  <Resources hackathon={transformedHackathon} />
+                  <Schedule
+                    hackathon={transformedHackathon}
+                    scheduleSource="database"
+                  />
+                  <SubmissionPreview hackathon={transformedHackathon} />
+                  {transformedHackathon.content.speakers && transformedHackathon.content.speakers.length > 0 && (
+                    <MentorsJudges hackathon={transformedHackathon} />
+                  )}
+                  <Community hackathon={transformedHackathon} />
+                  {/* Partners section hidden */}
+                  {/* {transformedHackathon.content.partners?.length > 0 && (
                 <Sponsors hackathon={transformedHackathon} />
               )} */}
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
           </>
         )}
       </div>

@@ -1862,7 +1862,8 @@ const HackathonsEdit = () => {
       registration_deadline: "",
       speakers_banner: "",
       become_sponsor_link: "",
-      submission_custom_link: null
+      submission_custom_link: null,
+      stages: []
     });
 
     setCollapsed({
@@ -3517,6 +3518,7 @@ const HackathonsEdit = () => {
                   judging_guidelines: formDataContent.judging_guidelines,
                   submission_deadline: formDataContent.submission_deadline,
                   registration_deadline: formDataContent.registration_deadline,
+                  stages: formDataContent.stages
                 },
                 start_date: formDataLatest.start_date,
                 end_date: formDataLatest.end_date,
