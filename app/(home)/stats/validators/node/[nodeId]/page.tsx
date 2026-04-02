@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis, ComposedChart, Line, LineChart } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { type ChartConfig, ChartContainer, ChartTooltip } from "@/components/ui/chart";
-import { ArrowLeft, ArrowUpRight, Copy, Check, Activity, Shield, Clock, AlertTriangle, Blocks, TrendingUp, Info } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, Copy, Check, Activity, Shield, Clock, AlertTriangle, Bell, Blocks, TrendingUp, Info } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { StatsBreadcrumb } from "@/components/navigation/StatsBreadcrumb";
 import { ChartSkeletonLoader } from "@/components/ui/chart-skeleton";
@@ -271,6 +271,12 @@ export default function ValidatorNodeDetailPage() {
               <Copy className="h-4 w-4 text-zinc-400" />
             )}
           </button>
+          <Link
+            href="/validator-alerts"
+            className="text-sm text-blue-500 hover:underline flex items-center gap-1"
+          >
+            <Bell className="h-3.5 w-3.5" /> Enable Alerts
+          </Link>
         </div>
 
         <div className="flex items-center gap-3 flex-wrap text-sm">
