@@ -128,6 +128,44 @@ const useEVMNotifications = () => {
                     });
                     const receipt = await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
 
+                    // Check if the transaction reverted
+                    if (receipt.status === 'reverted') {
+                        logData = {
+                            txHash: hash,
+                            chainId: viemChain.id,
+                            network: isTestnet ? 'testnet' : 'mainnet'
+                        };
+
+                        toast.error(`Transaction reverted`, {
+                            id: toastId,
+                            action: {
+                                label: 'Open in Explorer',
+                                onClick: () => window.open(getEVMExplorerUrl(hash, viemChain), '_blank')
+                            }
+                        });
+
+                        addLog({
+                            status: 'error',
+                            actionPath,
+                            data: { ...logData, error: 'Transaction reverted' }
+                        });
+
+                        posthog.capture('console_action_error', {
+                            action_type: options.type,
+                            action_name: options.name,
+                            action_path: actionPath,
+                            network: isTestnet ? 'testnet' : 'mainnet',
+                            ...(viemChain.id && { chain_id: viemChain.id }),
+                            ...(viemChain.name && { chain_name: viemChain.name }),
+                            error_message: 'Transaction reverted',
+                            tx_hash: hash,
+                            context: pathname?.includes('/academy') ? 'academy' : (pathname?.includes('/docs') ? 'docs' : 'console'),
+                            chain_type: 'evm'
+                        });
+
+                        return;
+                    }
+
                     // For deployments, include the deployed contract address
                     if (options.type === 'deploy' && receipt.contractAddress) {
                         logData = {
