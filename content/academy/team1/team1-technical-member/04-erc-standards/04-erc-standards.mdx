@@ -8,6 +8,8 @@ icon: BookOpen
 
 Token standards are one of the most consequential inventions in smart contract history. By agreeing on a common interface, the entire ecosystem — wallets, exchanges, frontends, and other contracts — can interact with any token without needing custom integration. Three standards dominate the EVM world: ERC20 for fungible tokens, ERC721 for unique non-fungible tokens, and ERC1155 for mixed collections.
 
+For implementation walkthroughs, testing, and deployment practice on Avalanche, pair this overview with Avalanche Academy’s **[Intro to Solidity](https://build.avax.network/academy/blockchain/solidity-foundry)** course. The **[ERC-20 Smart Contracts](https://build.avax.network/academy/blockchain/solidity-foundry/07-erc20-smart-contracts/01-erc20-intro)** module matches the ERC20 section below especially closely.
+
 ## ERC20: Fungible Tokens
 
 A **fungible** asset is one where every unit is identical and interchangeable. One dollar bill is worth exactly the same as any other dollar bill. ERC20 brings this concept on-chain.
@@ -40,6 +42,8 @@ ERC20 introduces an approval mechanism that allows a third-party contract to spe
 - **`approve(spender, amount)`** authorizes `spender` to transfer up to `amount` tokens from the caller's balance. This sets an entry in the `allowances` mapping.
 - **`allowance(owner, spender)`** returns how much `spender` is still allowed to transfer on behalf of `owner`.
 - **`transferFrom(from, to, amount)`** moves `amount` tokens from `from` to `to`, deducting from the previously set allowance. The caller must be the approved spender.
+
+For a full technical build of an ERC-20—including interfaces, tests, and mainnet-style flows—follow the **[ERC-20 Smart Contracts](https://build.avax.network/academy/blockchain/solidity-foundry/07-erc20-smart-contracts/01-erc20-intro)** lessons in **[Intro to Solidity](https://build.avax.network/academy/blockchain/solidity-foundry)**.
 
 ```
 Alice                    DEX Contract
@@ -76,6 +80,8 @@ interface IERC721 {
 
 Note that `balanceOf` here returns the total number of NFTs an address owns, not a token amount. `ownerOf` is unique to ERC721 and returns the owner of a specific token ID.
 
+ERC721 and ERC1155 patterns build on the same Solidity foundations as the Academy course; use **[Intro to Solidity](https://build.avax.network/academy/blockchain/solidity-foundry)** for contract structure, inheritance, and testing habits, then apply them to your NFT contracts.
+
 ### Token Metadata and IPFS
 
 NFTs often need to display images, names, and descriptions. The ERC721 standard includes an optional `tokenURI(tokenId)` function that returns a URL pointing to a JSON metadata file. This file follows a convention like:
@@ -97,6 +103,8 @@ The `image` field typically points to **IPFS** (the InterPlanetary File System),
 ## ERC1155: The Multi-Token Standard
 
 **ERC1155** is a single contract that can manage many token types at once — some fungible, some non-fungible, and some semi-fungible. Each token type is identified by a numeric `id`. This was designed for gaming and other applications where you need hundreds of different item types (gold coins, swords, shields, potions) under one contract.
+
+Implementing ERC1155 uses the same Solidity and testing skills taught in **[Intro to Solidity](https://build.avax.network/academy/blockchain/solidity-foundry)**; extend those patterns with the standard’s batch and `id`-based balance model below.
 
 Key advantages over deploying separate ERC20 and ERC721 contracts:
 - A single contract address manages all item types — simpler integration.
