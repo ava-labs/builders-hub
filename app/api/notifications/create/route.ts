@@ -1,6 +1,13 @@
 import { getToken, encode } from "next-auth/jwt";
 import { NextResponse } from "next/server";
 
+function stripMdxExpressions(content: string): string {
+  return content
+    .replace(/^export\s[^\n]*/gm, "")
+    .replace(/^import\s[^\n]*/gm, "")
+    .replace(/\{[^}]*\}/g, "")
+    .trim();
+}
 
 export async function POST(req: any): Promise<Response> {
   try {
@@ -16,6 +23,13 @@ export async function POST(req: any): Promise<Response> {
     const baseUrl: string | undefined = process.env.NEXT_PUBLIC_AVALANCHE_WORKERS_URL;
 
     const body: any = await req.json();
+
+    if (Array.isArray(body.notifications)) {
+      body.notifications = body.notifications.map((n: any) => ({
+        ...n,
+        content: typeof n.content === "string" ? stripMdxExpressions(n.content) : n.content,
+      }));
+    }
 
     const avalancheWorkersApiKey: string | undefined =
       process.env.AVALANCHE_WORKERS_API_KEY;
