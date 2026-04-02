@@ -81,6 +81,7 @@ export default function ValidatorStatsPage() {
   // Helper function to find the slug for a subnet ID
   const getSlugForSubnetId = (subnetId: string): string | null => {
     const chain = (l1ChainsData as any[]).find((c) => c.subnetId === subnetId);
+    if (chain?.isTestnet) return null;
     return chain?.slug || null;
   };
 
@@ -822,12 +823,16 @@ export default function ValidatorStatsPage() {
                           size="sm"
                           variant="outline"
                           disabled={
-                            subnet.id !==
+                            network !== "mainnet" ||
+                            (subnet.id !==
                               "11111111111111111111111111111111LpoYY" &&
-                            (!subnet.isL1 || !getSlugForSubnetId(subnet.id))
+                              (!subnet.isL1 || !getSlugForSubnetId(subnet.id)))
                           }
                           onClick={(e) => {
                             e.stopPropagation();
+                            if (network !== "mainnet") {
+                              return;
+                            }
                             if (
                               subnet.id ===
                               "11111111111111111111111111111111LpoYY"

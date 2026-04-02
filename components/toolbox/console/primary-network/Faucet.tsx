@@ -181,7 +181,14 @@ function ManualPChainFaucetInput() {
     try {
       const faucetRequest = async () => {
         const response = await fetch(`/api/pchain-faucet?address=${encodeURIComponent(normalizedAddress)}`);
-        const data = await response.json();
+        const rawText = await response.text();
+
+        let data;
+        try {
+          data = JSON.parse(rawText);
+        } catch {
+          throw new Error('Faucet temporarily unavailable. Please try again later.');
+        }
 
         if (!response.ok) {
           if (response.status === 429) {
