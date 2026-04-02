@@ -1,7 +1,8 @@
 import { HackathonHeader } from "@/types/hackathons";
 import React from "react";
 import { Separator } from "@/components/ui/separator";
-import { MDXRemote } from "next-mdx-remote/rsc";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { sanitizeHtml } from "@/utils/sanitizeMarkdown";
 
 function About({ hackathon }: { hackathon: HackathonHeader }) {
@@ -14,7 +15,9 @@ function About({ hackathon }: { hackathon: HackathonHeader }) {
       <div className="pt-5 pb-5">
         <div className="prose prose-sm max-w-none dark:prose-invert">
           {hackathon.content?.tracks_text && (
-            <MDXRemote source={hackathon.content.tracks_text} />
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {hackathon.content.tracks_text}
+            </ReactMarkdown>
           )}
         </div>
       </div>
