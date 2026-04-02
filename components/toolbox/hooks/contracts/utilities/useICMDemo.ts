@@ -1,8 +1,7 @@
 import { useWalletStore } from '../../../stores/walletStore';
 import { useViemChainStore } from '../../../stores/toolboxStore';
-import { readContract } from 'viem/actions';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
-import { useWallet } from '../../useWallet';
+import { useChainPublicClient } from '../../useChainPublicClient';
 import { useWalletClient } from 'wagmi';
 import ICMDemoAbi from '@/contracts/example-contracts/compiled/ICMDemo.json';
 
@@ -30,7 +29,7 @@ export function useICMDemo(
   const { walletEVMAddress } = useWalletStore();
   const viemChain = useViemChainStore();
   const { notify } = useConsoleNotifications();
-  const { avalancheWalletClient } = useWallet();
+  const publicClient = useChainPublicClient();
   const { data: walletClient } = useWalletClient();
 
   const contractAbi = abi ?? ICMDemoAbi.abi;
@@ -38,9 +37,9 @@ export function useICMDemo(
 
   // Read functions
   const lastMessage = async (): Promise<bigint> => {
-    if (!avalancheWalletClient || !contractAddress) throw new Error('Contract not ready');
+    if (!publicClient || !contractAddress) throw new Error('Contract not ready');
 
-    const result = await readContract(avalancheWalletClient as any, {
+    const result = await publicClient.readContract({
       address: contractAddress as `0x${string}`,
       abi: contractAbi,
       functionName: 'lastMessage',

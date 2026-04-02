@@ -1,8 +1,7 @@
 import { useWalletStore } from '../../../stores/walletStore';
 import { useViemChainStore } from '../../../stores/toolboxStore';
-import { readContract } from 'viem/actions';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
-import { useWallet } from '../../useWallet';
+import { useChainPublicClient } from '../../useChainPublicClient';
 import { useWalletClient } from 'wagmi';
 import NativeTokenStakingManagerAbi from '@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json';
 
@@ -76,17 +75,17 @@ export function useNativeTokenStakingManager(
   const { walletEVMAddress } = useWalletStore();
   const viemChain = useViemChainStore();
   const { notify } = useConsoleNotifications();
-  const { avalancheWalletClient } = useWallet();
+  const publicClient = useChainPublicClient();
   const { data: walletClient } = useWalletClient();
 
   const contractAbi = abi ?? NativeTokenStakingManagerAbi.abi;
-  const isReady = Boolean(contractAddress && avalancheWalletClient && viemChain);
+  const isReady = Boolean(contractAddress && publicClient && viemChain);
 
   // Read functions
   const getStakingManagerSettings = async (): Promise<StakingManagerSettings> => {
-    if (!avalancheWalletClient || !contractAddress) throw new Error('Contract not ready');
+    if (!publicClient || !contractAddress) throw new Error('Contract not ready');
 
-    const result = await readContract(avalancheWalletClient as any, {
+    const result = await publicClient.readContract({
       address: contractAddress as `0x${string}`,
       abi: contractAbi,
       functionName: 'getStakingManagerSettings',
@@ -97,9 +96,9 @@ export function useNativeTokenStakingManager(
   };
 
   const getStakingValidator = async (validationID: string): Promise<any> => {
-    if (!avalancheWalletClient || !contractAddress) throw new Error('Contract not ready');
+    if (!publicClient || !contractAddress) throw new Error('Contract not ready');
 
-    return await readContract(avalancheWalletClient as any, {
+    return await publicClient.readContract({
       address: contractAddress as `0x${string}`,
       abi: contractAbi,
       functionName: 'getStakingValidator',
@@ -108,9 +107,9 @@ export function useNativeTokenStakingManager(
   };
 
   const getDelegatorInfo = async (delegationID: string): Promise<any> => {
-    if (!avalancheWalletClient || !contractAddress) throw new Error('Contract not ready');
+    if (!publicClient || !contractAddress) throw new Error('Contract not ready');
 
-    return await readContract(avalancheWalletClient as any, {
+    return await publicClient.readContract({
       address: contractAddress as `0x${string}`,
       abi: contractAbi,
       functionName: 'getDelegatorInfo',
@@ -119,9 +118,9 @@ export function useNativeTokenStakingManager(
   };
 
   const valueToWeight = async (value: bigint): Promise<bigint> => {
-    if (!avalancheWalletClient || !contractAddress) throw new Error('Contract not ready');
+    if (!publicClient || !contractAddress) throw new Error('Contract not ready');
 
-    return await readContract(avalancheWalletClient as any, {
+    return await publicClient.readContract({
       address: contractAddress as `0x${string}`,
       abi: contractAbi,
       functionName: 'valueToWeight',
@@ -130,9 +129,9 @@ export function useNativeTokenStakingManager(
   };
 
   const weightToValue = async (weight: bigint): Promise<bigint> => {
-    if (!avalancheWalletClient || !contractAddress) throw new Error('Contract not ready');
+    if (!publicClient || !contractAddress) throw new Error('Contract not ready');
 
-    return await readContract(avalancheWalletClient as any, {
+    return await publicClient.readContract({
       address: contractAddress as `0x${string}`,
       abi: contractAbi,
       functionName: 'weightToValue',

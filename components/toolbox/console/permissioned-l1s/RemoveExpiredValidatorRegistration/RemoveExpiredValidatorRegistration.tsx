@@ -14,7 +14,7 @@ import { useValidatorManagerDetails } from "@/components/toolbox/hooks/useValida
 import ValidatorManagerABI from "@/contracts/icm-contracts/compiled/ValidatorManager.json";
 import PoAManagerABI from "@/contracts/icm-contracts/compiled/PoAManager.json";
 import { useAvalancheSDKChainkit } from "@/components/toolbox/stores/useAvalancheSDKChainkit";
-import { cb58ToHex } from "@/components/toolbox/console/utilities/format-converter/FormatConverter";
+import { cb58ToHex } from "@/components/tools/common/utils/cb58";
 import { GetRegistrationJustification } from "@/components/toolbox/console/permissioned-l1s/ValidatorManager/justification";
 import { packL1ValidatorRegistration } from "@/components/toolbox/coreViem/utils/convertWarp";
 import { packWarpIntoAccessList } from "@/components/toolbox/console/permissioned-l1s/ValidatorManager/packWarp";

@@ -18,7 +18,7 @@ import ERC20TokenStakingManager from "@/contracts/icm-contracts/compiled/ERC20To
 import { parseEther } from "viem";
 import { useWalletClient } from 'wagmi';
 import versions from '@/scripts/versions.json';
-import { cb58ToHex } from '@/components/toolbox/console/utilities/format-converter/FormatConverter';
+import { cb58ToHex } from '@/components/tools/common/utils/cb58';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { toast } from 'sonner';
 import { useCriticalError } from "@/components/toolbox/hooks/useCriticalError";

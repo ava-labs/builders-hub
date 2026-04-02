@@ -1,8 +1,7 @@
 import { useWalletStore } from '../../../stores/walletStore';
 import { useViemChainStore } from '../../../stores/toolboxStore';
-import { readContract } from 'viem/actions';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
-import { useWallet } from '../../useWallet';
+import { useChainPublicClient } from '../../useChainPublicClient';
 import { useWalletClient } from 'wagmi';
 import ERC20TokenStakingManagerAbi from '@/contracts/icm-contracts/compiled/ERC20TokenStakingManager.json';
 import { StakingManagerSettings } from './useNativeTokenStakingManager';
@@ -66,20 +65,20 @@ export function useERC20TokenStakingManager(
   contractAddress: string | null,
   abi?: any
 ): ERC20TokenStakingManagerHook {
-  const { walletEVMAddress, publicClient } = useWalletStore();
+  const { walletEVMAddress } = useWalletStore();
   const viemChain = useViemChainStore();
   const { notify } = useConsoleNotifications();
-  const { avalancheWalletClient } = useWallet();
+  const publicClient = useChainPublicClient();
   const { data: walletClient } = useWalletClient();
 
   const contractAbi = abi ?? ERC20TokenStakingManagerAbi.abi;
-  const isReady = Boolean(contractAddress && avalancheWalletClient && viemChain);
+  const isReady = Boolean(contractAddress && publicClient && viemChain);
 
   // Read functions
   const getStakingManagerSettings = async (): Promise<StakingManagerSettings> => {
-    if (!avalancheWalletClient || !contractAddress) throw new Error('Contract not ready');
+    if (!publicClient || !contractAddress) throw new Error('Contract not ready');
 
-    const result = await readContract(avalancheWalletClient as any, {
+    const result = await publicClient.readContract({
       address: contractAddress as `0x${string}`,
       abi: contractAbi,
       functionName: 'getStakingManagerSettings',
@@ -90,9 +89,9 @@ export function useERC20TokenStakingManager(
   };
 
   const getStakingValidator = async (validationID: string): Promise<any> => {
-    if (!avalancheWalletClient || !contractAddress) throw new Error('Contract not ready');
+    if (!publicClient || !contractAddress) throw new Error('Contract not ready');
 
-    return await readContract(avalancheWalletClient as any, {
+    return await publicClient.readContract({
       address: contractAddress as `0x${string}`,
       abi: contractAbi,
       functionName: 'getStakingValidator',
@@ -101,9 +100,9 @@ export function useERC20TokenStakingManager(
   };
 
   const getDelegatorInfo = async (delegationID: string): Promise<any> => {
-    if (!avalancheWalletClient || !contractAddress) throw new Error('Contract not ready');
+    if (!publicClient || !contractAddress) throw new Error('Contract not ready');
 
-    return await readContract(avalancheWalletClient as any, {
+    return await publicClient.readContract({
       address: contractAddress as `0x${string}`,
       abi: contractAbi,
       functionName: 'getDelegatorInfo',
@@ -112,9 +111,9 @@ export function useERC20TokenStakingManager(
   };
 
   const valueToWeight = async (value: bigint): Promise<bigint> => {
-    if (!avalancheWalletClient || !contractAddress) throw new Error('Contract not ready');
+    if (!publicClient || !contractAddress) throw new Error('Contract not ready');
 
-    return await readContract(avalancheWalletClient as any, {
+    return await publicClient.readContract({
       address: contractAddress as `0x${string}`,
       abi: contractAbi,
       functionName: 'valueToWeight',
@@ -123,9 +122,9 @@ export function useERC20TokenStakingManager(
   };
 
   const weightToValue = async (weight: bigint): Promise<bigint> => {
-    if (!avalancheWalletClient || !contractAddress) throw new Error('Contract not ready');
+    if (!publicClient || !contractAddress) throw new Error('Contract not ready');
 
-    return await readContract(avalancheWalletClient as any, {
+    return await publicClient.readContract({
       address: contractAddress as `0x${string}`,
       abi: contractAbi,
       functionName: 'weightToValue',
@@ -134,9 +133,9 @@ export function useERC20TokenStakingManager(
   };
 
   const erc20 = async (): Promise<string> => {
-    if (!avalancheWalletClient || !contractAddress) throw new Error('Contract not ready');
+    if (!publicClient || !contractAddress) throw new Error('Contract not ready');
 
-    return await readContract(avalancheWalletClient as any, {
+    return await publicClient.readContract({
       address: contractAddress as `0x${string}`,
       abi: contractAbi,
       functionName: 'erc20',

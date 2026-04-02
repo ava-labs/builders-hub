@@ -3,7 +3,7 @@ import { bytesToHex, hexToBytes } from 'viem';
 import { packValidationUptimeMessage } from '@/components/toolbox/coreViem/utils/convertWarp';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
-import { cb58ToHex, hexToCB58 } from '@/components/toolbox/console/utilities/format-converter/FormatConverter';
+import { cb58ToHex, hexToCB58 } from '@/components/tools/common/utils/cb58';
 
 interface UptimeProofResult {
     uptimeSeconds: bigint;

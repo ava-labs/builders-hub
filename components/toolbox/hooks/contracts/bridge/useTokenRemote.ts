@@ -1,8 +1,7 @@
 import { useWalletStore } from '../../../stores/walletStore';
 import { useViemChainStore } from '../../../stores/toolboxStore';
-import { readContract } from 'viem/actions';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
-import { useWallet } from '../../useWallet';
+import { useChainPublicClient } from '../../useChainPublicClient';
 import { useWalletClient } from 'wagmi';
 import ERC20TokenRemoteAbi from '@/contracts/icm-contracts/compiled/ERC20TokenRemote.json';
 import NativeTokenRemoteAbi from '@/contracts/icm-contracts/compiled/NativeTokenRemote.json';
@@ -80,7 +79,7 @@ export function useTokenRemote(
   const { walletEVMAddress } = useWalletStore();
   const viemChain = useViemChainStore();
   const { notify } = useConsoleNotifications();
-  const { avalancheWalletClient } = useWallet();
+  const publicClient = useChainPublicClient();
   const { data: walletClient } = useWalletClient();
 
   // Auto-select ABI based on token type if not provided
@@ -94,9 +93,9 @@ export function useTokenRemote(
 
   // Read functions - ERC20-like
   const name = async (): Promise<string> => {
-    if (!avalancheWalletClient || !contractAddress) throw new Error('Contract not ready');
+    if (!publicClient || !contractAddress) throw new Error('Contract not ready');
 
-    return await readContract(avalancheWalletClient as any, {
+    return await publicClient.readContract({
       address: contractAddress as `0x${string}`,
       abi: abi,
       functionName: 'name',
@@ -105,9 +104,9 @@ export function useTokenRemote(
   };
 
   const symbol = async (): Promise<string> => {
-    if (!avalancheWalletClient || !contractAddress) throw new Error('Contract not ready');
+    if (!publicClient || !contractAddress) throw new Error('Contract not ready');
 
-    return await readContract(avalancheWalletClient as any, {
+    return await publicClient.readContract({
       address: contractAddress as `0x${string}`,
       abi: abi,
       functionName: 'symbol',
@@ -116,9 +115,9 @@ export function useTokenRemote(
   };
 
   const decimals = async (): Promise<number> => {
-    if (!avalancheWalletClient || !contractAddress) throw new Error('Contract not ready');
+    if (!publicClient || !contractAddress) throw new Error('Contract not ready');
 
-    return await readContract(avalancheWalletClient as any, {
+    return await publicClient.readContract({
       address: contractAddress as `0x${string}`,
       abi: abi,
       functionName: 'decimals',
@@ -127,9 +126,9 @@ export function useTokenRemote(
   };
 
   const balanceOf = async (account: string): Promise<bigint> => {
-    if (!avalancheWalletClient || !contractAddress) throw new Error('Contract not ready');
+    if (!publicClient || !contractAddress) throw new Error('Contract not ready');
 
-    return await readContract(avalancheWalletClient as any, {
+    return await publicClient.readContract({
       address: contractAddress as `0x${string}`,
       abi: abi,
       functionName: 'balanceOf',
@@ -138,9 +137,9 @@ export function useTokenRemote(
   };
 
   const totalSupply = async (): Promise<bigint> => {
-    if (!avalancheWalletClient || !contractAddress) throw new Error('Contract not ready');
+    if (!publicClient || !contractAddress) throw new Error('Contract not ready');
 
-    return await readContract(avalancheWalletClient as any, {
+    return await publicClient.readContract({
       address: contractAddress as `0x${string}`,
       abi: abi,
       functionName: 'totalSupply',
@@ -149,9 +148,9 @@ export function useTokenRemote(
   };
 
   const allowance = async (owner: string, spender: string): Promise<bigint> => {
-    if (!avalancheWalletClient || !contractAddress) throw new Error('Contract not ready');
+    if (!publicClient || !contractAddress) throw new Error('Contract not ready');
 
-    return await readContract(avalancheWalletClient as any, {
+    return await publicClient.readContract({
       address: contractAddress as `0x${string}`,
       abi: abi,
       functionName: 'allowance',
@@ -161,9 +160,9 @@ export function useTokenRemote(
 
   // Read functions - Remote-specific
   const getTokenHomeAddress = async (): Promise<string> => {
-    if (!avalancheWalletClient || !contractAddress) throw new Error('Contract not ready');
+    if (!publicClient || !contractAddress) throw new Error('Contract not ready');
 
-    return await readContract(avalancheWalletClient as any, {
+    return await publicClient.readContract({
       address: contractAddress as `0x${string}`,
       abi: abi,
       functionName: 'getTokenHomeAddress',
@@ -172,9 +171,9 @@ export function useTokenRemote(
   };
 
   const getTokenHomeBlockchainID = async (): Promise<string> => {
-    if (!avalancheWalletClient || !contractAddress) throw new Error('Contract not ready');
+    if (!publicClient || !contractAddress) throw new Error('Contract not ready');
 
-    return await readContract(avalancheWalletClient as any, {
+    return await publicClient.readContract({
       address: contractAddress as `0x${string}`,
       abi: abi,
       functionName: 'getTokenHomeBlockchainID',
@@ -183,9 +182,9 @@ export function useTokenRemote(
   };
 
   const getBlockchainID = async (): Promise<string> => {
-    if (!avalancheWalletClient || !contractAddress) throw new Error('Contract not ready');
+    if (!publicClient || !contractAddress) throw new Error('Contract not ready');
 
-    return await readContract(avalancheWalletClient as any, {
+    return await publicClient.readContract({
       address: contractAddress as `0x${string}`,
       abi: abi,
       functionName: 'getBlockchainID',
@@ -194,9 +193,9 @@ export function useTokenRemote(
   };
 
   const getTokenMultiplier = async (): Promise<TokenMultiplier> => {
-    if (!avalancheWalletClient || !contractAddress) throw new Error('Contract not ready');
+    if (!publicClient || !contractAddress) throw new Error('Contract not ready');
 
-    const result = await readContract(avalancheWalletClient as any, {
+    const result = await publicClient.readContract({
       address: contractAddress as `0x${string}`,
       abi: abi,
       functionName: 'getTokenMultiplier',
@@ -207,9 +206,9 @@ export function useTokenRemote(
   };
 
   const getInitialReserveImbalance = async (): Promise<bigint> => {
-    if (!avalancheWalletClient || !contractAddress) throw new Error('Contract not ready');
+    if (!publicClient || !contractAddress) throw new Error('Contract not ready');
 
-    return await readContract(avalancheWalletClient as any, {
+    return await publicClient.readContract({
       address: contractAddress as `0x${string}`,
       abi: abi,
       functionName: 'getInitialReserveImbalance',
@@ -218,9 +217,9 @@ export function useTokenRemote(
   };
 
   const getIsCollateralized = async (): Promise<boolean> => {
-    if (!avalancheWalletClient || !contractAddress) throw new Error('Contract not ready');
+    if (!publicClient || !contractAddress) throw new Error('Contract not ready');
 
-    return await readContract(avalancheWalletClient as any, {
+    return await publicClient.readContract({
       address: contractAddress as `0x${string}`,
       abi: abi,
       functionName: 'getIsCollateralized',
@@ -229,9 +228,9 @@ export function useTokenRemote(
   };
 
   const getMultiplyOnRemote = async (): Promise<boolean> => {
-    if (!avalancheWalletClient || !contractAddress) throw new Error('Contract not ready');
+    if (!publicClient || !contractAddress) throw new Error('Contract not ready');
 
-    return await readContract(avalancheWalletClient as any, {
+    return await publicClient.readContract({
       address: contractAddress as `0x${string}`,
       abi: abi,
       functionName: 'getMultiplyOnRemote',
@@ -240,9 +239,9 @@ export function useTokenRemote(
   };
 
   const owner = async (): Promise<string> => {
-    if (!avalancheWalletClient || !contractAddress) throw new Error('Contract not ready');
+    if (!publicClient || !contractAddress) throw new Error('Contract not ready');
 
-    return await readContract(avalancheWalletClient as any, {
+    return await publicClient.readContract({
       address: contractAddress as `0x${string}`,
       abi: abi,
       functionName: 'owner',
@@ -251,9 +250,9 @@ export function useTokenRemote(
   };
 
   const getMinTeleporterVersion = async (): Promise<bigint> => {
-    if (!avalancheWalletClient || !contractAddress) throw new Error('Contract not ready');
+    if (!publicClient || !contractAddress) throw new Error('Contract not ready');
 
-    return await readContract(avalancheWalletClient as any, {
+    return await publicClient.readContract({
       address: contractAddress as `0x${string}`,
       abi: abi,
       functionName: 'getMinTeleporterVersion',
@@ -262,9 +261,9 @@ export function useTokenRemote(
   };
 
   const isTeleporterAddressPaused = async (address: string): Promise<boolean> => {
-    if (!avalancheWalletClient || !contractAddress) throw new Error('Contract not ready');
+    if (!publicClient || !contractAddress) throw new Error('Contract not ready');
 
-    return await readContract(avalancheWalletClient as any, {
+    return await publicClient.readContract({
       address: contractAddress as `0x${string}`,
       abi: abi,
       functionName: 'isTeleporterAddressPaused',

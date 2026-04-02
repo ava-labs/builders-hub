@@ -3,7 +3,7 @@
 import { Calendar, Clock, Users, Coins, Copy, Check } from "lucide-react";
 import { Button } from "@/components/toolbox/components/Button";
 import { formatAvaxBalance } from "@/components/toolbox/coreViem/utils/format";
-import { cb58ToHex } from "@/components/toolbox/console/utilities/format-converter/FormatConverter";
+import { cb58ToHex } from "@/components/tools/common/utils/cb58";
 import { ValidatorResponse, formatTimestamp, formatStake } from "./types";
 
 interface ValidatorDetailsProps {

@@ -1,8 +1,7 @@
 import { useWalletStore } from '../../../stores/walletStore';
 import { useViemChainStore } from '../../../stores/toolboxStore';
-import { readContract } from 'viem/actions';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
-import { useWallet } from '../../useWallet';
+import { useChainPublicClient } from '../../useChainPublicClient';
 import { useWalletClient } from 'wagmi';
 import ERC20TokenHomeAbi from '@/contracts/icm-contracts/compiled/ERC20TokenHome.json';
 import NativeTokenHomeAbi from '@/contracts/icm-contracts/compiled/NativeTokenHome.json';
@@ -72,7 +71,7 @@ export function useTokenHome(
   const { walletEVMAddress } = useWalletStore();
   const viemChain = useViemChainStore();
   const { notify } = useConsoleNotifications();
-  const { avalancheWalletClient } = useWallet();
+  const publicClient = useChainPublicClient();
   const { data: walletClient } = useWalletClient();
 
   // Auto-select ABI based on token type if not provided
@@ -86,9 +85,9 @@ export function useTokenHome(
 
   // Read functions
   const getTokenAddress = async (): Promise<string> => {
-    if (!avalancheWalletClient || !contractAddress) throw new Error('Contract not ready');
+    if (!publicClient || !contractAddress) throw new Error('Contract not ready');
 
-    return await readContract(avalancheWalletClient as any, {
+    return await publicClient.readContract({
       address: contractAddress as `0x${string}`,
       abi: abi,
       functionName: 'getTokenAddress',
@@ -97,9 +96,9 @@ export function useTokenHome(
   };
 
   const getRemoteTokenTransferrerSettings = async (blockchainID: string): Promise<RemoteTokenTransferrerSettings> => {
-    if (!avalancheWalletClient || !contractAddress) throw new Error('Contract not ready');
+    if (!publicClient || !contractAddress) throw new Error('Contract not ready');
 
-    const result = await readContract(avalancheWalletClient as any, {
+    const result = await publicClient.readContract({
       address: contractAddress as `0x${string}`,
       abi: abi,
       functionName: 'getRemoteTokenTransferrerSettings',
@@ -110,9 +109,9 @@ export function useTokenHome(
   };
 
   const getTransferredBalance = async (blockchainID: string): Promise<bigint> => {
-    if (!avalancheWalletClient || !contractAddress) throw new Error('Contract not ready');
+    if (!publicClient || !contractAddress) throw new Error('Contract not ready');
 
-    return await readContract(avalancheWalletClient as any, {
+    return await publicClient.readContract({
       address: contractAddress as `0x${string}`,
       abi: abi,
       functionName: 'getTransferredBalance',
@@ -121,9 +120,9 @@ export function useTokenHome(
   };
 
   const getBlockchainID = async (): Promise<string> => {
-    if (!avalancheWalletClient || !contractAddress) throw new Error('Contract not ready');
+    if (!publicClient || !contractAddress) throw new Error('Contract not ready');
 
-    return await readContract(avalancheWalletClient as any, {
+    return await publicClient.readContract({
       address: contractAddress as `0x${string}`,
       abi: abi,
       functionName: 'getBlockchainID',
@@ -132,9 +131,9 @@ export function useTokenHome(
   };
 
   const owner = async (): Promise<string> => {
-    if (!avalancheWalletClient || !contractAddress) throw new Error('Contract not ready');
+    if (!publicClient || !contractAddress) throw new Error('Contract not ready');
 
-    return await readContract(avalancheWalletClient as any, {
+    return await publicClient.readContract({
       address: contractAddress as `0x${string}`,
       abi: abi,
       functionName: 'owner',
@@ -143,9 +142,9 @@ export function useTokenHome(
   };
 
   const getMinTeleporterVersion = async (): Promise<bigint> => {
-    if (!avalancheWalletClient || !contractAddress) throw new Error('Contract not ready');
+    if (!publicClient || !contractAddress) throw new Error('Contract not ready');
 
-    return await readContract(avalancheWalletClient as any, {
+    return await publicClient.readContract({
       address: contractAddress as `0x${string}`,
       abi: abi,
       functionName: 'getMinTeleporterVersion',
@@ -154,9 +153,9 @@ export function useTokenHome(
   };
 
   const isTeleporterAddressPaused = async (address: string): Promise<boolean> => {
-    if (!avalancheWalletClient || !contractAddress) throw new Error('Contract not ready');
+    if (!publicClient || !contractAddress) throw new Error('Contract not ready');
 
-    return await readContract(avalancheWalletClient as any, {
+    return await publicClient.readContract({
       address: contractAddress as `0x${string}`,
       abi: abi,
       functionName: 'isTeleporterAddressPaused',

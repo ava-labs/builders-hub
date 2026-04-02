@@ -1,8 +1,7 @@
 import { useWalletStore } from '../../../stores/walletStore';
 import { useViemChainStore } from '../../../stores/toolboxStore';
-import { readContract } from 'viem/actions';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
-import { useWallet } from '../../useWallet';
+import { useChainPublicClient } from '../../useChainPublicClient';
 import { useWalletClient } from 'wagmi';
 import FeeManagerAbi from '@/contracts/precompiles/FeeManager.json';
 import RewardManagerAbi from '@/contracts/precompiles/RewardManager.json';
@@ -62,7 +61,7 @@ export function usePrecompiles(): PrecompilesHook {
   const { walletEVMAddress } = useWalletStore();
   const viemChain = useViemChainStore();
   const { notify } = useConsoleNotifications();
-  const { avalancheWalletClient } = useWallet();
+  const publicClient = useChainPublicClient();
   const { data: walletClient } = useWalletClient();
 
   const isReady = Boolean(walletClient && viemChain);
@@ -102,9 +101,9 @@ export function usePrecompiles(): PrecompilesHook {
     },
 
     getFeeConfig: async (): Promise<FeeConfig> => {
-      if (!avalancheWalletClient) throw new Error('Client not ready');
+      if (!publicClient) throw new Error('Client not ready');
 
-      const result = await readContract(avalancheWalletClient as any, {
+      const result = await publicClient.readContract({
         address: FEE_MANAGER_ADDRESS,
         abi: FeeManagerAbi.abi,
         functionName: 'getFeeConfig',
@@ -115,9 +114,9 @@ export function usePrecompiles(): PrecompilesHook {
     },
 
     getFeeConfigLastChangedAt: async (): Promise<bigint> => {
-      if (!avalancheWalletClient) throw new Error('Client not ready');
+      if (!publicClient) throw new Error('Client not ready');
 
-      return await readContract(avalancheWalletClient as any, {
+      return await publicClient.readContract({
         address: FEE_MANAGER_ADDRESS,
         abi: FeeManagerAbi.abi,
         functionName: 'getFeeConfigLastChangedAt',
@@ -152,9 +151,9 @@ export function usePrecompiles(): PrecompilesHook {
     },
 
     areFeeRecipientsAllowed: async (): Promise<boolean> => {
-      if (!avalancheWalletClient) throw new Error('Client not ready');
+      if (!publicClient) throw new Error('Client not ready');
 
-      const result = await readContract(avalancheWalletClient as any, {
+      const result = await publicClient.readContract({
         address: REWARD_MANAGER_ADDRESS,
         abi: RewardManagerAbi.abi,
         functionName: 'areFeeRecipientsAllowed',
@@ -188,9 +187,9 @@ export function usePrecompiles(): PrecompilesHook {
     },
 
     currentRewardAddress: async (): Promise<string> => {
-      if (!avalancheWalletClient) throw new Error('Client not ready');
+      if (!publicClient) throw new Error('Client not ready');
 
-      return await readContract(avalancheWalletClient as any, {
+      return await publicClient.readContract({
         address: REWARD_MANAGER_ADDRESS,
         abi: RewardManagerAbi.abi,
         functionName: 'currentRewardAddress',
@@ -248,9 +247,9 @@ export function usePrecompiles(): PrecompilesHook {
     },
 
     readAllowList: async (address: string): Promise<number> => {
-      if (!avalancheWalletClient) throw new Error('Client not ready');
+      if (!publicClient) throw new Error('Client not ready');
 
-      return await readContract(avalancheWalletClient as any, {
+      return await publicClient.readContract({
         address: NATIVE_MINTER_ADDRESS,
         abi: NativeMinterAbi.abi,
         functionName: 'readAllowList',

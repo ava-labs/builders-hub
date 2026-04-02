@@ -15,7 +15,7 @@ import SelectSubnetId from "@/components/toolbox/components/SelectSubnetId"
 import { Tooltip } from "@/components/toolbox/components/Tooltip"
 import { formatAvaxBalance } from "@/components/toolbox/coreViem/utils/format"
 import { useL1ListStore, L1ListItem } from "@/components/toolbox/stores/l1ListStore"
-import { cb58ToHex } from "@/components/toolbox/console/utilities/format-converter/FormatConverter"
+import { cb58ToHex } from "@/components/tools/common/utils/cb58"
 import NativeTokenStakingManager from '@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json'
 import ERC20TokenStakingManager from '@/contracts/icm-contracts/compiled/ERC20TokenStakingManager.json'
 import ValidatorManagerAbi from '@/contracts/icm-contracts/compiled/ValidatorManager.json'

@@ -1,8 +1,7 @@
 import { useWalletStore } from '../../../stores/walletStore';
 import { useViemChainStore } from '../../../stores/toolboxStore';
-import { readContract } from 'viem/actions';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
-import { useWallet } from '../../useWallet';
+import { useChainPublicClient } from '../../useChainPublicClient';
 import { useWalletClient } from 'wagmi';
 import ProxyAdminAbi from '@/contracts/openzeppelin-4.9/compiled/ProxyAdmin.json';
 
@@ -35,7 +34,7 @@ export function useProxyAdmin(
   const { walletEVMAddress } = useWalletStore();
   const viemChain = useViemChainStore();
   const { notify } = useConsoleNotifications();
-  const { avalancheWalletClient } = useWallet();
+  const publicClient = useChainPublicClient();
   const { data: walletClient } = useWalletClient();
 
   const contractAbi = abi ?? ProxyAdminAbi.abi;
@@ -43,9 +42,9 @@ export function useProxyAdmin(
 
   // Read functions
   const owner = async (): Promise<string> => {
-    if (!avalancheWalletClient || !contractAddress) throw new Error('Contract not ready');
+    if (!publicClient || !contractAddress) throw new Error('Contract not ready');
 
-    return await readContract(avalancheWalletClient as any, {
+    return await publicClient.readContract({
       address: contractAddress as `0x${string}`,
       abi: contractAbi,
       functionName: 'owner',
@@ -54,9 +53,9 @@ export function useProxyAdmin(
   };
 
   const getProxyImplementation = async (proxy: string): Promise<string> => {
-    if (!avalancheWalletClient || !contractAddress) throw new Error('Contract not ready');
+    if (!publicClient || !contractAddress) throw new Error('Contract not ready');
 
-    return await readContract(avalancheWalletClient as any, {
+    return await publicClient.readContract({
       address: contractAddress as `0x${string}`,
       abi: contractAbi,
       functionName: 'getProxyImplementation',
@@ -65,9 +64,9 @@ export function useProxyAdmin(
   };
 
   const getProxyAdmin = async (proxy: string): Promise<string> => {
-    if (!avalancheWalletClient || !contractAddress) throw new Error('Contract not ready');
+    if (!publicClient || !contractAddress) throw new Error('Contract not ready');
 
-    return await readContract(avalancheWalletClient as any, {
+    return await publicClient.readContract({
       address: contractAddress as `0x${string}`,
       abi: contractAbi,
       functionName: 'getProxyAdmin',

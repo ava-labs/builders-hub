@@ -17,7 +17,7 @@ import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalle
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
-import { cb58ToHex } from "@/components/toolbox/console/utilities/format-converter/FormatConverter";
+import { cb58ToHex } from "@/components/tools/common/utils/cb58";
 import { ContractFunctionViewer } from "@/components/console/contract-function-viewer";
 import { Check, ChevronDown, ChevronRight } from "lucide-react";
 import { DynamicCodeBlock } from "fumadocs-ui/components/dynamic-codeblock";

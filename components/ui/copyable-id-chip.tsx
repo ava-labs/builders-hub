@@ -3,7 +3,7 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Copy, Check, ChevronDown } from "lucide-react";
-import { hexToCB58, cb58ToHex } from "@/components/toolbox/console/utilities/format-converter/FormatConverter";
+import { hexToCB58, cb58ToHex } from "@/components/tools/common/utils/cb58";
 
 type IdFormat = "cb58" | "hex";
 

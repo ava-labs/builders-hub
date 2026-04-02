@@ -1,8 +1,8 @@
-import { useMemo } from 'react';
 import { useWalletStore } from '../stores/walletStore';
 import { useViemChainStore } from '../stores/toolboxStore';
-import { createPublicClient, http, parseEther, formatEther } from 'viem';
+import { parseEther, formatEther } from 'viem';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
+import { useChainPublicClient } from './useChainPublicClient';
 import { useWalletClient } from 'wagmi';
 
 export interface ERC20TokenHook {
@@ -28,18 +28,8 @@ export function useERC20Token(tokenAddress: string | null, abi: any): ERC20Token
   const { walletEVMAddress } = useWalletStore();
   const viemChain = useViemChainStore();
   const { notify } = useConsoleNotifications();
+  const publicClient = useChainPublicClient();
   const { data: walletClient } = useWalletClient();
-
-  // Create a public client for read operations based on the user's current chain.
-  // Previously this used avalancheWalletClient which was hardcoded to C-Chain,
-  // causing read operations to fail on L1 chains.
-  const publicClient = useMemo(() => {
-    if (!viemChain?.rpcUrls?.default?.http?.[0]) return null;
-    return createPublicClient({
-      chain: viemChain,
-      transport: http(viemChain.rpcUrls.default.http[0]),
-    });
-  }, [viemChain]);
 
   const isReady = Boolean(tokenAddress && walletClient && viemChain);
 

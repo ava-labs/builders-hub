@@ -1,6 +1,6 @@
 import { Input, type Suggestion } from "./Input";
 import { useMemo, useState, useEffect } from "react";
-import { cb58ToHex, hexToCB58 } from "../console/utilities/format-converter/FormatConverter";
+import { cb58ToHex, hexToCB58 } from "@/components/tools/common/utils/cb58";
 import { L1ValidatorDetailsFull } from "@avalabs/avacloud-sdk/models/components";
 import { formatAvaxBalance } from "../coreViem/utils/format";
 import { useAvalancheSDKChainkit } from "../stores/useAvalancheSDKChainkit";
