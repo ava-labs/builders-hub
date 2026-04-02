@@ -59,7 +59,8 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
 
     const [stakeAmount, setStakeAmount] = useState<string>('');
     const [delegationFeeBips, setDelegationFeeBips] = useState<string>('100'); // 1% default
-    const [minStakeDuration, setMinStakeDuration] = useState<string>('86400'); // 1 day default
+    const [minStakeDuration, setMinStakeDuration] = useState<string>(''); // Will be set from contract settings
+    const [minStakeDurationInitialized, setMinStakeDurationInitialized] = useState(false);
 
     const [isProcessing, setIsProcessing] = useState(false);
     const [isApproving, setIsApproving] = useState(false);
@@ -111,6 +112,14 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
 
         fetchSettings();
     }, [chainPublicClient, stakingManagerAddress, contractAbi]);
+
+    // Default minStakeDuration to the contract's minimum when loaded
+    useEffect(() => {
+        if (contractSettings?.minimumStakeDuration && !minStakeDurationInitialized) {
+            setMinStakeDuration(contractSettings.minimumStakeDuration);
+            setMinStakeDurationInitialized(true);
+        }
+    }, [contractSettings, minStakeDurationInitialized]);
 
     const handleApproveERC20 = async () => {
         if (!erc20TokenAddress || !walletClient || !chainPublicClient || !viemChain) {

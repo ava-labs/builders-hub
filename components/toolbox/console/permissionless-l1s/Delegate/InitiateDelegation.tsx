@@ -289,6 +289,7 @@ const InitiateDelegation: React.FC<InitiateDelegationProps> = ({
                         { name: 'validatorWeight', type: 'uint64', indexed: false },
                         { name: 'delegatorWeight', type: 'uint64', indexed: false },
                         { name: 'setWeightMessageID', type: 'bytes32', indexed: false },
+                        { name: 'rewardRecipient', type: 'address', indexed: false },
                     ],
                 };
                 

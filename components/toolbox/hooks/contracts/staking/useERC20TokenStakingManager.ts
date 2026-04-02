@@ -386,7 +386,7 @@ export function useERC20TokenStakingManager(
     return await writePromise;
   };
 
-  const forceInitiateDelegatorRemoval = async (delegationID: string, includeUptime: boolean): Promise<string> => {
+  const forceInitiateDelegatorRemoval = async (delegationID: string, includeUptime: boolean, messageIndex: number): Promise<string> => {
     if (!walletClient || !contractAddress || !walletEVMAddress || !viemChain) {
       throw new Error('Wallet not connected or contract not ready');
     }
@@ -395,7 +395,7 @@ export function useERC20TokenStakingManager(
       address: contractAddress as `0x${string}`,
       abi: contractAbi,
       functionName: 'forceInitiateDelegatorRemoval',
-      args: [delegationID, includeUptime],
+      args: [delegationID, includeUptime, messageIndex],
       chain: viemChain,
       account: walletEVMAddress as `0x${string}`,
       gas: BigInt(1_000_000),
