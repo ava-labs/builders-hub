@@ -76,9 +76,9 @@ flowchart TB
 make primary-infra CLOUD=aws
 ```
 
-This uses a **separate Terraform state** from the L1 deployment (`terraform/aws-primary-network/`), creating i4i.xlarge instances with 937GB NVMe drives.
+This uses a **separate Terraform state** from the L1 deployment (`terraform/primary-network/aws/`), creating i4i.xlarge instances with 937GB NVMe drives.
 
-Edit `terraform/aws-primary-network/terraform.tfvars` before running:
+Edit `terraform/primary-network/aws/terraform.tfvars` before running:
 
 ```hcl
 primary_validator_count    = 2
@@ -96,7 +96,7 @@ ssh_private_key_file       = "~/.ssh/avalanche-deploy"
 make primary-deploy CLOUD=aws NETWORK=fuji    # or mainnet
 ```
 
-This runs playbook `10-deploy-primary-network.yml`, which:
+This runs playbook `primary-network/deploy.yml`, which:
 1. Installs AvalancheGo with Primary Network configuration
 2. Enables state-sync for fast initial bootstrap
 3. Waits for P/X/C chain bootstrap to complete (polls for up to 90 minutes)
@@ -151,7 +151,7 @@ make backup-keys CLOUD=aws
 make restore-keys CLOUD=aws SOURCE=primary-validator-1 TARGET_IP=10.0.1.50
 
 # List existing backups
-aws s3 ls s3://$(terraform -chdir=terraform/aws-primary-network output -raw staking_keys_bucket)/
+aws s3 ls s3://$(terraform -chdir=terraform/primary-network/aws output -raw staking_keys_bucket)/
 ```
 
 <Callout type="warn">
@@ -220,7 +220,7 @@ make prepare-migration CLOUD=aws NODE=migration-target SNAPSHOT=true
 make prepare-migration CLOUD=aws NODE=migration-target
 
 # 2. Wait for the new node to fully sync
-./scripts/check-primary-sync.sh <new-node-ip>
+./scripts/primary-network/check-sync.sh <new-node-ip>
 
 # 3. Execute migration (~30s downtime)
 make migrate-validator CLOUD=aws SOURCE=primary-validator-1 TARGET=migration-target
@@ -237,7 +237,7 @@ make migrate-validator CLOUD=aws SOURCE=primary-validator-1 TARGET=migration-tar
 
 ## Terraform Configuration Reference
 
-Edit `terraform/aws-primary-network/terraform.tfvars`:
+Edit `terraform/primary-network/aws/terraform.tfvars`:
 
 | Variable | Default | Description |
 |----------|---------|-------------|

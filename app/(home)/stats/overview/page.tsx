@@ -358,6 +358,12 @@ export default function AvalancheMetrics() {
     return chain?.slug || null;
   };
 
+  const getValidatorSlugForSubnetId = (subnetId: string): string | null => {
+    const chain = (l1ChainsData as any[]).find((c) => c.subnetId === subnetId);
+    if (chain?.isTestnet) return null;
+    return chain?.slug || null;
+  };
+
   // Helper function to get category for a subnet ID
   const getCategoryForSubnetId = (subnetId: string, subnetName: string): string => {
     const chain = (l1ChainsData as any[]).find(
@@ -451,6 +457,16 @@ export default function AvalancheMetrics() {
         c.chainId === chainId ||
         c.chainName.toLowerCase() === chainName.toLowerCase()
     );
+    return chain?.slug || null;
+  };
+
+  const getValidatorChainSlug = (chainId: string, chainName: string): string | null => {
+    const chain = l1ChainsData.find(
+      (c) =>
+        c.chainId === chainId ||
+        c.chainName.toLowerCase() === chainName.toLowerCase()
+    );
+    if (chain?.isTestnet) return null;
     return chain?.slug || null;
   };
 
@@ -1440,6 +1456,10 @@ export default function AvalancheMetrics() {
                           chain.chainId,
                           chain.chainName
                         );
+                        const validatorChainSlug = getValidatorChainSlug(
+                          chain.chainId,
+                          chain.chainName
+                        );
                         const hasRpcUrl = !!getChainRpcUrl(
                           chain.chainId,
                           chain.chainName
@@ -1531,10 +1551,10 @@ export default function AvalancheMetrics() {
                                   <TooltipTrigger asChild>
                                     <button
                                       onClick={() =>
-                                        chainSlug &&
-                                        router.push(`/stats/validators/${chainSlug}`)
+                                        validatorChainSlug &&
+                                        router.push(`/stats/validators/${validatorChainSlug}`)
                                       }
-                                      disabled={!chainSlug}
+                                      disabled={!validatorChainSlug}
                                       className="p-2 rounded-lg text-zinc-500 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-zinc-500"
                                     >
                                       <Users className="h-4 w-4" />
@@ -1645,16 +1665,17 @@ export default function AvalancheMetrics() {
                       visibleValidatorData.map((subnet) => {
                         const stats = calculateValidatorStats(subnet);
                         const slug = getSlugForSubnetId(subnet.id);
+                        const validatorSlug = getValidatorSlugForSubnetId(subnet.id);
                         const isPrimaryNetwork = subnet.id === "11111111111111111111111111111111LpoYY";
-                        const canNavigate = isPrimaryNetwork || (subnet.isL1 && slug);
+                        const canNavigate = isPrimaryNetwork || (subnet.isL1 && validatorSlug);
                         return (
                           <tr
                             key={subnet.id}
                             onClick={() => {
                               if (isPrimaryNetwork) {
                                 router.push("/stats/validators/c-chain");
-                              } else if (slug && subnet.isL1) {
-                                router.push(`/stats/validators/${slug}`);
+                              } else if (validatorSlug && subnet.isL1) {
+                                router.push(`/stats/validators/${validatorSlug}`);
                               }
                             }}
                             className={`group transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900/50 ${canNavigate ? "cursor-pointer" : ""}`}
@@ -1763,8 +1784,8 @@ export default function AvalancheMetrics() {
                                       onClick={() => {
                                         if (isPrimaryNetwork) {
                                           router.push("/stats/validators/c-chain");
-                                        } else if (slug && subnet.isL1) {
-                                          router.push(`/stats/validators/${slug}`);
+                                        } else if (validatorSlug && subnet.isL1) {
+                                          router.push(`/stats/validators/${validatorSlug}`);
                                         }
                                       }}
                                       disabled={!canNavigate}

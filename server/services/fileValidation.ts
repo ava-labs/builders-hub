@@ -1,4 +1,46 @@
 import { prisma } from "@/prisma/prisma";
+import { ALLOWED_FILE_TYPES } from "@/constants/upload";
+
+/**
+ * Maps MIME types to their expected file extensions
+ */
+const MIME_TO_EXTENSIONS: Record<string, string[]> = {
+  'image/jpeg': ['.jpg', '.jpeg'],
+  'image/png': ['.png'],
+  'image/svg+xml': ['.svg'],
+};
+
+/**
+ * Validates that a file's MIME type is in the allowlist
+ */
+export function isValidFileType(file: File): boolean {
+  return ALLOWED_FILE_TYPES.includes(file.type);
+}
+
+/**
+ * Validates that a file's extension matches its declared MIME type.
+ * Returns false if the extension contradicts the MIME type (e.g. .exe with image/png).
+ * Files with no extension are allowed if the MIME type is valid (e.g. base64-converted uploads).
+ */
+export function doesExtensionMatchMimeType(file: File): boolean {
+  const name = file.name.toLowerCase();
+  const dotIndex = name.lastIndexOf('.');
+
+  // No extension — trust the MIME type (common for programmatic uploads like base64 conversions)
+  if (dotIndex === -1 || dotIndex === name.length - 1) {
+    return true;
+  }
+
+  const ext = name.slice(dotIndex);
+  const allowedExtensions = MIME_TO_EXTENSIONS[file.type];
+
+  // If MIME type isn't in our map, it shouldn't have passed isValidFileType
+  if (!allowedExtensions) {
+    return false;
+  }
+
+  return allowedExtensions.includes(ext);
+}
 
 /**
  * Validates if a user has permissions to delete a file

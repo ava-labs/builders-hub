@@ -7,10 +7,6 @@ This guide covers deploying an Avalanche L1 on Kubernetes as an alternative to t
 
 **Requirements**: `kubectl`, `helm` v3+, Docker (for kind). **Time to deploy**: ~15 minutes locally, ~30 minutes on a remote cluster (plus sync time).
 
-<Callout type="info">
-The Kubernetes path covers deployment, sync, and L1 creation. Advanced operational workflows (staking key backup, database snapshots, validator migration) are only available in the [Terraform + Ansible path](/docs/tooling/avalanche-deploy/deploy-l1).
-</Callout>
-
 ## Prerequisites
 
 - `kubectl` connected to your cluster
@@ -26,6 +22,12 @@ The Kubernetes path covers deployment, sync, and L1 creation. Advanced operation
 | `avalanche-rpc` | `helm/avalanche-rpc` | L1 RPC nodes |
 | `monitoring` | `helm/monitoring` | Prometheus + Grafana |
 | `icm-relayer` | `helm/icm-relayer` | Cross-chain messaging |
+| `erpc` | `helm/erpc` | RPC load balancer with caching and failover |
+| `faucet` | `helm/faucet` | Token faucet for developers |
+| `blockscout` | `helm/blockscout` | Block explorer |
+| `graph-node` | `helm/graph-node` | The Graph Node for subgraph indexing |
+| `safe` | `helm/safe` | Safe multisig infrastructure |
+| `staking-key-backup` | `helm/staking-key-backup` | Automated staking key backup CronJob |
 
 ## Quick Start with Local Kind Cluster
 
@@ -130,28 +132,114 @@ curl -X POST http://localhost:9650/ext/bc/<CHAIN_ID>/rpc \
 
 ## Add-Ons on Kubernetes
 
+All add-on services are available as Helm charts. After your L1 is running:
+
 ### Monitoring
 
 ```bash
-helm install monitoring ./helm/monitoring
+make k8s-monitoring
 
 # Access Grafana
 kubectl port-forward svc/monitoring-grafana 3000:3000
 # http://localhost:3000 (admin/admin)
 ```
 
+### eRPC Load Balancer
+
+```bash
+source l1.env
+make k8s-erpc CHAIN_ID=$CHAIN_ID EVM_CHAIN_ID=99999
+```
+
+Auto-discovers RPC upstreams from the `l1-rpc` service. Provides caching, circuit breaking, hedged requests, and failover.
+
+### Faucet
+
+```bash
+source l1.env
+make k8s-faucet CHAIN_ID=$CHAIN_ID EVM_CHAIN_ID=99999 FAUCET_KEY=0x...
+```
+
+### Blockscout Block Explorer
+
+```bash
+source l1.env
+make k8s-blockscout CHAIN_ID=$CHAIN_ID EVM_CHAIN_ID=99999
+
+# Access frontend
+kubectl port-forward svc/blockscout-frontend 3000:3000
+```
+
+Deploys the full Blockscout stack: backend indexer, frontend, PostgreSQL, Redis, and optional smart contract verifier.
+
+### The Graph Node
+
+```bash
+source l1.env
+make k8s-graph-node CHAIN_ID=$CHAIN_ID NETWORK_NAME=my-l1
+
+# Access GraphQL
+kubectl port-forward svc/graph-node 8000:8000
+```
+
 ### ICM Relayer
 
 ```bash
 source l1.env
-helm upgrade --install icm-relayer ./helm/icm-relayer \
-  --set "l1.subnetId=$SUBNET_ID" \
-  --set "l1.blockchainId=$CHAIN_ID" \
-  --set "relayerPrivateKey=0x..." \
-  --set "network=fuji"
+make k8s-icm-relayer SUBNET_ID=$SUBNET_ID CHAIN_ID=$CHAIN_ID RELAYER_KEY=0x...
 ```
 
 The relayer connects to the `l1-rpc` service by default. Override with `--set avalanchego.serviceName=<svc>`.
+
+### Safe Multisig
+
+```bash
+make k8s-safe EVM_CHAIN_ID=99999 CHAIN_ID=$CHAIN_ID
+```
+
+Deploys Config Service, Transaction Service, Client Gateway, PostgreSQL (x2), Redis, and RabbitMQ. An init job handles DB migrations, contract registration, and indexer task setup.
+
+<Callout type="info">
+Safe UI requires a custom Docker image with `NEXT_PUBLIC_*` variables baked in at build time. Set `ui.image.repository` and `ui.image.tag` in your Helm values to deploy a pre-built image.
+</Callout>
+
+## Operations on Kubernetes
+
+### Health Checks
+
+```bash
+make k8s-health-checks                     # All nodes
+make k8s-health-checks CHAIN_ID=$CHAIN_ID  # Include L1 chain status
+```
+
+Checks pod status, `/ext/health`, P/X/C chain bootstrap, L1 sync, and node version consistency.
+
+### Staking Key Backup
+
+```bash
+# Deploy a daily backup CronJob to S3
+make k8s-backup-keys BACKUP_BUCKET=my-bucket BACKUP_PROVIDER=s3
+```
+
+Supports S3 and GCS. Use IRSA or Workload Identity for credential-free access on managed Kubernetes.
+
+### L1 Reset
+
+```bash
+make k8s-reset-l1
+```
+
+Scales down pods, cleans chain data (preserves staking keys), removes L1 tracking config, and scales back up.
+
+### ValidatorManager Initialization
+
+```bash
+make k8s-init-validator-manager \
+  SUBNET_ID=$SUBNET_ID CHAIN_ID=$CHAIN_ID \
+  CONVERSION_TX=<tx-hash> PROXY_ADDRESS=0x... EVM_CHAIN_ID=99999
+```
+
+Port-forwards to an RPC pod and runs the Go initialization tool.
 
 ## Make Wrappers
 
@@ -167,6 +255,15 @@ From the repo root, you can also use `make` targets:
 | `make k8s-l1-status` | Check L1 status |
 | `make k8s-monitoring` | Deploy monitoring stack |
 | `make k8s-icm-relayer` | Deploy ICM Relayer |
+| `make k8s-erpc` | Deploy eRPC load balancer |
+| `make k8s-faucet` | Deploy token faucet |
+| `make k8s-blockscout` | Deploy Blockscout block explorer |
+| `make k8s-graph-node` | Deploy The Graph Node |
+| `make k8s-safe` | Deploy Safe multisig infrastructure |
+| `make k8s-backup-keys` | Deploy staking key backup CronJob |
+| `make k8s-health-checks` | Run comprehensive health checks |
+| `make k8s-reset-l1` | Reset L1 for redeployment |
+| `make k8s-init-validator-manager` | Initialize ValidatorManager contract |
 | `make k8s-cleanup` | Remove releases and optional PVC/kind cleanup |
 
 ## Troubleshooting

@@ -28,16 +28,17 @@ export const EVMFaucetButton = ({
   } = useWalletStore();
   const l1List = useL1List();
   const { claimEVMTokens, isClaimingEVM } = useTestnetFaucet();
-  const { 
-    canClaim, 
-    isLoading: isCheckingRateLimit, 
+  const {
+    canClaim,
+    isLoading: isCheckingRateLimit,
     getRateLimitMessage,
     allowed,
     timeUntilReset,
-    checkRateLimit
-  } = useFaucetRateLimit({ 
-    faucetType: 'evm', 
-    chainId: chainId.toString() 
+    checkRateLimit,
+    markRateLimited,
+  } = useFaucetRateLimit({
+    faucetType: 'evm',
+    chainId: chainId.toString()
   });
 
   const chainConfig = l1List.find(
@@ -60,7 +61,11 @@ export const EVMFaucetButton = ({
       // Refresh rate limit status after successful claim
       setTimeout(() => checkRateLimit(), 1000);
     } catch (error) {
-      // error handled via notifications from useTestnetFaucet
+      // Immediately disable button if rate limited
+      const msg = error instanceof Error ? error.message : '';
+      if (msg.toLowerCase().includes('rate limit') || msg.toLowerCase().includes('daily limit')) {
+        markRateLimited();
+      }
     }
   };
 
