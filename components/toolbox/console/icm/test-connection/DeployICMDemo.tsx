@@ -1,16 +1,15 @@
 "use client";
 
-import { useToolboxStore, useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
+import { useToolboxStore } from "@/components/toolbox/stores/toolboxStore";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 import { useState, useEffect } from "react";
 import ICMDemoABI from "@/contracts/example-contracts/compiled/ICMDemo.json";
 import TeleporterMessengerAddress from '@/contracts/icm-contracts-releases/v1.0.0/TeleporterMessenger_Contract_Address_v1.0.0.txt.json';
 import { useSelectedL1 } from "@/components/toolbox/stores/l1ListStore";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
-import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
-import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
+import { useContractDeployer } from "@/components/toolbox/hooks/contracts";
 import { StepCodeViewer, StepConfig } from "@/components/console/step-code-viewer";
 import { Check, Rocket, AlertCircle, ExternalLink, ArrowRight, Radio } from "lucide-react";
 
@@ -176,14 +175,11 @@ console.log("Last message:", lastMessage.toString());`,
 
 function DeployICMDemo({ onSuccess }: BaseConsoleToolProps) {
   const { setIcmReceiverAddress, icmReceiverAddress } = useToolboxStore();
-  const { publicClient, walletEVMAddress } = useWalletStore();
-  const { walletClient } = useConnectedWallet();
-  const viemChain = useViemChainStore();
-  const [isDeploying, setIsDeploying] = useState(false);
+  const { publicClient } = useWalletStore();
+  const { deploy, isDeploying } = useContractDeployer();
   const [isTeleporterDeployed, setIsTeleporterDeployed] = useState(false);
   const [criticalError, setCriticalError] = useState<Error | null>(null);
   const selectedL1 = useSelectedL1()();
-  const { notify } = useConsoleNotifications();
   const [activeStep, setActiveStep] = useState(0);
 
   if (criticalError) {
@@ -207,35 +203,18 @@ function DeployICMDemo({ onSuccess }: BaseConsoleToolProps) {
   }, [selectedL1?.evmChainId]);
 
   async function handleDeploy() {
-    setIsDeploying(true);
     setIcmReceiverAddress("");
     try {
-      const deployPromise = walletClient.deployContract({
-        abi: ICMDemoABI.abi as any,
-        bytecode: ICMDemoABI.bytecode.object as `0x${string}`,
+      const result = await deploy({
+        abi: ICMDemoABI.abi,
+        bytecode: ICMDemoABI.bytecode.object,
         args: [],
-        account: walletEVMAddress as `0x${string}`,
-        chain: viemChain
+        name: "ICMDemo",
       });
-
-      notify({
-        type: 'deploy',
-        name: 'ICMDemo'
-      }, deployPromise, viemChain ?? undefined);
-
-      const hash = await deployPromise;
-      const receipt = await publicClient.waitForTransactionReceipt({ hash });
-
-      if (!receipt.contractAddress) {
-        throw new Error('No contract address in receipt');
-      }
-
-      setIcmReceiverAddress(receipt.contractAddress);
+      setIcmReceiverAddress(result.contractAddress);
       onSuccess?.();
     } catch (error) {
       setCriticalError(error instanceof Error ? error : new Error(String(error)));
-    } finally {
-      setIsDeploying(false);
     }
   }
 

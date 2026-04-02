@@ -1,21 +1,15 @@
 "use client";
 
-import { useToolboxStore, useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
-import { useWalletStore } from "@/components/toolbox/stores/walletStore";
-import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
-import { useState } from "react";
+import { useToolboxStore } from "@/components/toolbox/stores/toolboxStore";
 import { Button } from "@/components/toolbox/components/Button";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from '../../../components/WithConsoleToolMetadata';
-import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
 import versions from "@/scripts/versions.json";
-import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
-import { getLinkedBytecode } from "@/components/toolbox/utils/contract-deployment";
 import { ContractDeployViewer, type ContractSource } from "@/components/console/contract-deploy-viewer";
-import { retryWithBackoff } from "@/lib/retry";
 import NativeTokenStakingManager from "@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json";
 import ValidatorMessagesABI from "@/contracts/icm-contracts/compiled/ValidatorMessages.json";
+import { useContractDeployer } from "@/components/toolbox/hooks/contracts";
 import { Check, BookOpen, GraduationCap } from "lucide-react";
 import Link from "next/link";
 
@@ -51,77 +45,32 @@ function DeployNativeStakingManager({ onSuccess }: BaseConsoleToolProps) {
     nativeStakingManagerAddress,
     setNativeStakingManagerAddress,
   } = useToolboxStore();
-  const { walletEVMAddress } = useWalletStore();
-  const chainPublicClient = useChainPublicClient();
-  const { walletClient } = useConnectedWallet();
-  const [isDeployingMessages, setIsDeployingMessages] = useState(false);
-  const [isDeployingManager, setIsDeployingManager] = useState(false);
-  const viemChain = useViemChainStore();
-  const { notify } = useConsoleNotifications();
+  const { deploy, isDeploying } = useContractDeployer();
 
-  const getLinkedStakingManagerBytecode = () => {
-    if (!validatorMessagesLibAddress) {
-      throw new Error("ValidatorMessages library must be deployed first");
-    }
-    return getLinkedBytecode(NativeTokenStakingManager.bytecode, validatorMessagesLibAddress);
-  };
+  const isDeployingMessages = isDeploying;
+  const isDeployingManager = isDeploying;
 
   async function deployValidatorMessages() {
-    setIsDeployingMessages(true);
     setValidatorMessagesLibAddress("");
-
-    if (!viemChain) throw new Error("Viem chain not found");
-    await walletClient.addChain({ chain: viemChain });
-    await walletClient.switchChain({ id: viemChain.id });
-
-    const deployPromise = retryWithBackoff(() =>
-      walletClient.deployContract({
-        abi: ValidatorMessagesABI.abi as any,
-        bytecode: ValidatorMessagesABI.bytecode.object as `0x${string}`,
-        args: [],
-        chain: viemChain,
-        account: walletEVMAddress as `0x${string}`,
-      })
-    );
-
-    notify({ type: "deploy", name: "ValidatorMessages Library" }, deployPromise, viemChain ?? undefined);
-
-    const hash = await deployPromise;
-    const receipt = await chainPublicClient!.waitForTransactionReceipt({ hash });
-    if (!receipt.contractAddress) {
-      throw new Error("No contract address in receipt");
-    }
-    setValidatorMessagesLibAddress(receipt.contractAddress as string);
-    setIsDeployingMessages(false);
+    const result = await deploy({
+      abi: ValidatorMessagesABI.abi,
+      bytecode: ValidatorMessagesABI.bytecode.object,
+      args: [],
+      name: "ValidatorMessages Library",
+    });
+    setValidatorMessagesLibAddress(result.contractAddress);
   }
 
   async function deployNativeStakingManager() {
-    setIsDeployingManager(true);
     setNativeStakingManagerAddress("");
-
-    if (!viemChain) throw new Error("Viem chain not found");
-    await walletClient.addChain({ chain: viemChain });
-    await walletClient.switchChain({ id: viemChain.id });
-
-    const deployPromise = retryWithBackoff(() =>
-      walletClient.deployContract({
-        abi: NativeTokenStakingManager.abi as any,
-        bytecode: getLinkedStakingManagerBytecode(),
-        args: [0], // ICMInitializable.Allowed
-        chain: viemChain,
-        account: walletEVMAddress as `0x${string}`,
-      })
-    );
-
-    notify({ type: "deploy", name: "NativeTokenStakingManager" }, deployPromise, viemChain ?? undefined);
-
-    const hash = await deployPromise;
-    const receipt = await chainPublicClient!.waitForTransactionReceipt({ hash });
-    if (!receipt.contractAddress) {
-      throw new Error("No contract address in receipt");
-    }
-    setNativeStakingManagerAddress(receipt.contractAddress as string);
-    setIsDeployingManager(false);
+    const result = await deploy({
+      abi: NativeTokenStakingManager.abi,
+      bytecode: NativeTokenStakingManager.bytecode,
+      args: [0], // ICMInitializable.Allowed
+      name: "NativeTokenStakingManager",
+      libraryAddress: validatorMessagesLibAddress,
+    });
+    setNativeStakingManagerAddress(result.contractAddress);
     onSuccess?.();
   }
 

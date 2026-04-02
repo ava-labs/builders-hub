@@ -4,12 +4,16 @@ import { useWalletStore } from '../../../stores/walletStore';
 import { useViemChainStore } from '../../../stores/toolboxStore';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { useConnectedWallet } from '@/components/toolbox/contexts/ConnectedWalletContext';
+import { getLinkedBytecode } from '@/components/toolbox/utils/contract-deployment';
 
 export interface DeployParams {
   abi: any;
-  bytecode: string;
+  /** Bytecode as a hex string, or as a compiled bytecode object with linkReferences for library linking */
+  bytecode: string | { object: string; linkReferences: Record<string, Record<string, any[]>> };
   args: any[];
   name: string; // For notification
+  /** Address of the linked library (required when bytecode has linkReferences) */
+  libraryAddress?: string;
 }
 
 export interface DeployResult {
@@ -41,9 +45,20 @@ export function useContractDeployer(): ContractDeployerHook {
 
     setIsDeploying(true);
     try {
+      // Resolve bytecode — link libraries if bytecode has linkReferences
+      let resolvedBytecode: string;
+      if (typeof params.bytecode === 'object' && params.bytecode.linkReferences) {
+        if (!params.libraryAddress) {
+          throw new Error('libraryAddress is required when bytecode has linkReferences');
+        }
+        resolvedBytecode = getLinkedBytecode(params.bytecode, params.libraryAddress);
+      } else {
+        resolvedBytecode = typeof params.bytecode === 'string' ? params.bytecode : params.bytecode.object;
+      }
+
       const deployPromise = walletClient.deployContract({
         abi: params.abi,
-        bytecode: params.bytecode as `0x${string}`,
+        bytecode: resolvedBytecode as `0x${string}`,
         args: params.args,
         account: walletEVMAddress as `0x${string}`,
         chain: viemChain

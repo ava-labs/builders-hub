@@ -1,18 +1,16 @@
 "use client";
 
 import { useSelectedL1 } from "@/components/toolbox/stores/l1ListStore";
-import { useToolboxStore, useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
-import { useWalletStore } from "@/components/toolbox/stores/walletStore";
+import { useToolboxStore } from "@/components/toolbox/stores/toolboxStore";
 import { useState } from "react";
 import TeleporterRegistryBytecode from '@/contracts/icm-contracts-releases/v1.0.0/TeleporterRegistry_Bytecode_v1.0.0.txt.json';
 import TeleporterMessengerAddress from '@/contracts/icm-contracts-releases/v1.0.0/TeleporterMessenger_Contract_Address_v1.0.0.txt.json';
 import TeleporterRegistryManualyCompiled from '@/contracts/icm-contracts/compiled/TeleporterRegistry.json';
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
-import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
 import versions from '@/scripts/versions.json';
-import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
+import { useContractDeployer } from "@/components/toolbox/hooks/contracts";
 import { ContractDeployViewer, ContractSource } from "@/components/console/contract-deploy-viewer";
 import { Check, Rocket, ExternalLink, Copy, Info, FileCode } from "lucide-react";
 
@@ -45,12 +43,8 @@ const metadata: ConsoleToolMetadata = {
 function TeleporterRegistry({ onSuccess }: BaseConsoleToolProps) {
   const [criticalError, setCriticalError] = useState<Error | null>(null);
   const { setTeleporterRegistryAddress, teleporterRegistryAddress } = useToolboxStore();
-  const { publicClient, walletEVMAddress } = useWalletStore();
-  const { walletClient } = useConnectedWallet();
-  const [isDeploying, setIsDeploying] = useState(false);
-  const viemChain = useViemChainStore();
+  const { deploy, isDeploying } = useContractDeployer();
   const selectedL1 = useSelectedL1()();
-  const { notify } = useConsoleNotifications();
   const [copied, setCopied] = useState(false);
 
   if (criticalError) {
@@ -60,36 +54,20 @@ function TeleporterRegistry({ onSuccess }: BaseConsoleToolProps) {
   const messengerAddress = TeleporterMessengerAddress.content.trim();
 
   async function handleDeploy() {
-    setIsDeploying(true);
     setTeleporterRegistryAddress("");
     try {
-      const deployPromise = walletClient.deployContract({
-        bytecode: TeleporterRegistryBytecode.content.trim() as `0x${string}`,
-        abi: TeleporterRegistryManualyCompiled.abi as any,
+      const result = await deploy({
+        abi: TeleporterRegistryManualyCompiled.abi,
+        bytecode: TeleporterRegistryBytecode.content.trim(),
         args: [
           [{ version: 1n, protocolAddress: messengerAddress }]
         ],
-        account: walletEVMAddress as `0x${string}`,
-        chain: viemChain,
+        name: "TeleporterRegistry",
       });
-      notify({
-        type: 'deploy',
-        name: 'TeleporterRegistry'
-      }, deployPromise, viemChain ?? undefined);
-
-      const hash = await deployPromise;
-      const receipt = await publicClient.waitForTransactionReceipt({ hash });
-
-      if (!receipt.contractAddress) {
-        throw new Error('No contract address in receipt');
-      }
-
-      setTeleporterRegistryAddress(receipt.contractAddress);
+      setTeleporterRegistryAddress(result.contractAddress);
       onSuccess?.();
     } catch (error) {
       setCriticalError(error instanceof Error ? error : new Error(String(error)));
-    } finally {
-      setIsDeploying(false);
     }
   }
 

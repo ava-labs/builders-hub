@@ -1,19 +1,16 @@
 "use client";
 
-import { useToolboxStore, useViemChainStore } from "@/components/toolbox/stores/toolboxStore";
-import { useWalletStore } from "@/components/toolbox/stores/walletStore";
-import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
+import { useToolboxStore } from "@/components/toolbox/stores/toolboxStore";
 import { useState } from "react";
 import { Button } from "@/components/toolbox/components/Button";
 import { Input } from "@/components/toolbox/components/Input";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from '../../../components/WithConsoleToolMetadata';
-import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
 import versions from "@/scripts/versions.json";
-import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
 import { ContractDeployViewer, type ContractSource } from "@/components/console/contract-deploy-viewer";
 import ExampleRewardCalculator from "@/contracts/icm-contracts/compiled/ExampleRewardCalculator.json";
+import { useContractDeployer } from "@/components/toolbox/hooks/contracts";
 import { Check, BookOpen, Calculator } from "lucide-react";
 import Link from "next/link";
 
@@ -44,39 +41,18 @@ const metadata: ConsoleToolMetadata = {
 
 function DeployExampleRewardCalculator({ onSuccess }: BaseConsoleToolProps) {
   const { rewardCalculatorAddress, setRewardCalculatorAddress } = useToolboxStore();
-  const { walletEVMAddress } = useWalletStore();
-  const chainPublicClient = useChainPublicClient();
-  const { walletClient } = useConnectedWallet();
-  const [isDeploying, setIsDeploying] = useState(false);
   const [rewardBasisPoints, setRewardBasisPoints] = useState<string>("500"); // Default 5% APR
-  const viemChain = useViemChainStore();
-  const { notify } = useConsoleNotifications();
+  const { deploy, isDeploying } = useContractDeployer();
 
   async function deployRewardCalculator() {
-    setIsDeploying(true);
     setRewardCalculatorAddress("");
-
-    if (!viemChain) throw new Error("Viem chain not found");
-    await walletClient.addChain({ chain: viemChain });
-    await walletClient.switchChain({ id: viemChain.id });
-
-    const deployPromise = walletClient.deployContract({
-      abi: ExampleRewardCalculator.abi as any,
-      bytecode: ExampleRewardCalculator.bytecode.object as `0x${string}`,
+    const result = await deploy({
+      abi: ExampleRewardCalculator.abi,
+      bytecode: ExampleRewardCalculator.bytecode.object,
       args: [BigInt(rewardBasisPoints)], // Constructor takes uint64 rewardBasisPoints
-      chain: viemChain,
-      account: walletEVMAddress as `0x${string}`,
+      name: "ExampleRewardCalculator",
     });
-
-    notify({ type: "deploy", name: "ExampleRewardCalculator" }, deployPromise, viemChain ?? undefined);
-
-    const hash = await deployPromise;
-    const receipt = await chainPublicClient!.waitForTransactionReceipt({ hash });
-    if (!receipt.contractAddress) {
-      throw new Error("No contract address in receipt");
-    }
-    setRewardCalculatorAddress(receipt.contractAddress as string);
-    setIsDeploying(false);
+    setRewardCalculatorAddress(result.contractAddress);
     onSuccess?.();
   }
 

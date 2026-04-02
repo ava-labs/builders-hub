@@ -9,12 +9,12 @@ import { Button } from "@/components/toolbox/components/Button";
 import ProxyAdminABI from "@/contracts/openzeppelin-4.9/compiled/ProxyAdmin.json";
 import TransparentUpgradeableProxyABI from "@/contracts/openzeppelin-4.9/compiled/TransparentUpgradeableProxy.json";
 import { getSubnetInfo } from "@/components/toolbox/coreViem/utils/glacier";
-import { EVMAddressInput } from "@/components/toolbox/components/EVMAddressInput";
 import { WalletRequirementsConfigKey } from "@/components/toolbox/hooks/useWalletRequirements";
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../../components/WithConsoleToolMetadata";
 import { useWalletClient } from "wagmi";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-url";
+import { useContractDeployer } from "@/components/toolbox/hooks/contracts";
 import { ContractDeployViewer, type ContractSource } from "@/components/console/contract-deploy-viewer";
 import { Check, ChevronDown, ChevronRight, AlertTriangle, RefreshCw } from "lucide-react";
 import Link from "next/link";
@@ -55,6 +55,7 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
   const { walletChainId, walletEVMAddress } = useWalletStore();
   const { data: walletClient } = useWalletClient();
   const viemChain = useViemChainStore();
+  const { deploy, isDeploying: isHookDeploying } = useContractDeployer();
   const { notify } = useConsoleNotifications();
 
   const chainPublicClient = useChainPublicClient();
@@ -70,8 +71,8 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
 
   // Deploy state (optional advanced flow)
   const [showDeploySection, setShowDeploySection] = useState(false);
-  const [isDeployingProxyAdmin, setIsDeployingProxyAdmin] = useState(false);
-  const [isDeployingProxy, setIsDeployingProxy] = useState(false);
+  const isDeployingProxyAdmin = isHookDeploying;
+  const isDeployingProxy = isHookDeploying;
   const [newProxyAdminAddress, setNewProxyAdminAddress] = useState<string>("");
   const [newProxyAddress, setNewProxyAddress] = useState<string>("");
   const [deployImplementationAddress, setDeployImplementationAddress] = useState<string>("");
@@ -186,62 +187,30 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
   }
 
   async function deployProxyAdmin() {
-    if (!chainPublicClient) throw new Error("Chain not configured");
-
-    setIsDeployingProxyAdmin(true);
     setNewProxyAdminAddress("");
-
-    try {
-      if (!walletClient) throw new Error("Wallet not connected");
-      const deployPromise = walletClient.deployContract({
-        abi: ProxyAdminABI.abi as any,
-        bytecode: ProxyAdminABI.bytecode.object as `0x${string}`,
-        args: [],
-        chain: viemChain ?? undefined,
-        account: walletEVMAddress as `0x${string}`,
-      });
-
-      notify({ type: "deploy", name: "ProxyAdmin" }, deployPromise, viemChain ?? undefined);
-
-      const hash = await deployPromise;
-      const receipt = await chainPublicClient.waitForTransactionReceipt({ hash });
-      if (receipt.contractAddress) {
-        setNewProxyAdminAddress(receipt.contractAddress);
-      }
-    } finally {
-      setIsDeployingProxyAdmin(false);
-    }
+    const result = await deploy({
+      abi: ProxyAdminABI.abi,
+      bytecode: ProxyAdminABI.bytecode.object,
+      args: [],
+      name: "ProxyAdmin",
+    });
+    setNewProxyAdminAddress(result.contractAddress);
   }
 
   async function deployTransparentProxy() {
-    if (!deployImplementationAddress || !newProxyAdminAddress || !chainPublicClient) return;
+    if (!deployImplementationAddress || !newProxyAdminAddress) return;
 
-    setIsDeployingProxy(true);
     setNewProxyAddress("");
-
-    try {
-      if (!walletClient) throw new Error("Wallet not connected");
-      const deployPromise = walletClient.deployContract({
-        abi: TransparentUpgradeableProxyABI.abi as any,
-        bytecode: TransparentUpgradeableProxyABI.bytecode.object as `0x${string}`,
-        args: [deployImplementationAddress, newProxyAdminAddress, "0x"],
-        chain: viemChain ?? undefined,
-        account: walletEVMAddress as `0x${string}`,
-      });
-
-      notify({ type: "deploy", name: "TransparentUpgradeableProxy" }, deployPromise, viemChain ?? undefined);
-
-      const hash = await deployPromise;
-      const receipt = await chainPublicClient.waitForTransactionReceipt({ hash });
-      if (receipt.contractAddress) {
-        setNewProxyAddress(receipt.contractAddress);
-        // Auto-fill the upgrade section with the new proxy
-        setProxyAddress(receipt.contractAddress);
-        setShowDeploySection(false);
-      }
-    } finally {
-      setIsDeployingProxy(false);
-    }
+    const result = await deploy({
+      abi: TransparentUpgradeableProxyABI.abi,
+      bytecode: TransparentUpgradeableProxyABI.bytecode.object,
+      args: [deployImplementationAddress, newProxyAdminAddress, "0x"],
+      name: "TransparentUpgradeableProxy",
+    });
+    setNewProxyAddress(result.contractAddress);
+    // Auto-fill the upgrade section with the new proxy
+    setProxyAddress(result.contractAddress);
+    setShowDeploySection(false);
   }
 
   const isUpgradeNeeded =
