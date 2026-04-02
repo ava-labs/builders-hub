@@ -82,9 +82,17 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    if (!destinationAddress.startsWith('P-')) {
+    try {
+      const [chainAlias] = utils.parse(destinationAddress);
+      if (chainAlias !== 'P') {
+        return NextResponse.json(
+          { success: false, message: 'Invalid P-Chain address format. Expected P-fuji1... or P-avax1...' },
+          { status: 400 }
+        );
+      }
+    } catch {
       return NextResponse.json(
-        { success: false, message: 'Invalid P-Chain address format' },
+        { success: false, message: 'Invalid P-Chain address format. Expected P-fuji1... or P-avax1...' },
         { status: 400 }
       );
     }
