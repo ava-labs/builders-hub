@@ -9,8 +9,7 @@ import { useStepFlowNavStore } from "./stores/stepFlowNavStore";
 import { useFeatureFlag } from "@/hooks/useFeatureFlag";
 
 export function StepFlowNav() {
-  const flagV2 = useFeatureFlag("console-step-flow-v2", false);
-  const useV2 = process.env.NODE_ENV === "development" || flagV2;
+  const useV2 = useFeatureFlag("console-step-flow-v2", false);
   const data = useStepFlowNavStore((s) => s.data);
 
   const show = useV2 && data !== null;
@@ -24,7 +23,7 @@ export function StepFlowNav() {
           animate={{ height: "auto", opacity: 1 }}
           exit={{ height: 0, opacity: 0 }}
           transition={{ duration: 0.2, ease: "easeInOut" }}
-          className="overflow-hidden border-b border-border"
+          className="hidden md:block overflow-hidden border-b border-border"
         >
           <ol className="flex items-center justify-center gap-2 px-4 py-2 text-sm lg:gap-3 lg:px-6 overflow-x-auto scrollbar-hide md:flex-wrap md:overflow-visible">
             {data.steps.map((s, stepIdx) => {

@@ -358,6 +358,13 @@ export default function StepFlowV2({
       )}
 
       <motion.div className={cn(isInlineMode ? "border-t border-border" : "", compact ? "py-4" : "py-8")} variants={flowItemVariants}>
+        {/* Mobile step indicator — visible only on small screens when nav is in the header */}
+        {!isInlineMode && (
+          <div className="md:hidden flex items-center justify-between mb-4 text-sm text-muted-foreground">
+            <span className="font-medium">Step {currentIndex + 1} of {totalSteps}</span>
+            <span>{currentStep.title}</span>
+          </div>
+        )}
         <div className={compact ? "min-h-[150px]" : "min-h-[200px]"}>
           <CurrentComponent />
         </div>
