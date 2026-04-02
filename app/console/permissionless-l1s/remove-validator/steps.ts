@@ -1,4 +1,4 @@
-import { type StepDefinition } from "@/components/console/step-flow";
+import { type StepDefinition } from "@/components/console/step-flow-switcher";
 import RemoveValidatorNative from "@/components/toolbox/console/permissionless-l1s/Withdraw/RemoveValidatorNative";
 import RemoveValidatorERC20 from "@/components/toolbox/console/permissionless-l1s/Withdraw/RemoveValidatorERC20";
 

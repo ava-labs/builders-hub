@@ -1,4 +1,4 @@
-import { type StepDefinition } from "@/components/console/step-flow";
+import { type StepDefinition } from "@/components/console/step-flow-switcher";
 
 /**
  * Represents a suggested next step after completing a flow
@@ -190,20 +190,96 @@ export const consoleFlows: Record<string, FlowMetadata> = {
     ],
   },
 
-  "permissionless-l1s/native-staking-manager-setup": {
-    title: "Native Staking Manager Setup",
-    completionSummary: "You've successfully deployed your Native Staking Manager!",
+  "permissionless-l1s/staking-manager-setup": {
+    title: "Staking Manager Setup",
+    completionSummary: "You've successfully deployed your Staking Manager!",
     nextSteps: [
       {
-        path: "/console/permissioned-l1s/add-validator",
-        title: "Add Validators",
-        description: "Register validators for your permissionless L1",
+        path: "/console/permissionless-l1s/stake",
+        title: "Stake Tokens",
+        description: "Stake tokens to register as a validator on your L1",
         priority: "recommended",
       },
       {
         path: "/console/icm/setup",
         title: "Setup Cross-Chain Messaging",
         description: "Enable interchain communication for your L1",
+        priority: "optional",
+      },
+    ],
+  },
+
+  "permissionless-l1s/stake": {
+    title: "Stake",
+    completionSummary: "You've successfully staked tokens on your L1!",
+    nextSteps: [
+      {
+        path: "/console/permissionless-l1s/delegate",
+        title: "Delegate Stake",
+        description: "Delegate your stake to an existing validator",
+        priority: "optional",
+      },
+      {
+        path: "/console",
+        title: "Return to Console",
+        description: "Explore other tools and features",
+        priority: "optional",
+      },
+    ],
+  },
+
+  "permissionless-l1s/remove-validator": {
+    title: "Remove Validator",
+    completionSummary: "You've successfully removed a validator from your L1!",
+    nextSteps: [
+      {
+        path: "/console/permissionless-l1s/staking-manager-setup",
+        title: "Staking Manager Setup",
+        description: "Reconfigure your staking manager",
+        priority: "optional",
+      },
+      {
+        path: "/console",
+        title: "Return to Console",
+        description: "Explore other tools and features",
+        priority: "optional",
+      },
+    ],
+  },
+
+  "permissionless-l1s/remove-delegation": {
+    title: "Remove Delegation",
+    completionSummary: "You've successfully removed your delegation!",
+    nextSteps: [
+      {
+        path: "/console/permissionless-l1s/delegate",
+        title: "Delegate Again",
+        description: "Delegate your stake to a different validator",
+        priority: "optional",
+      },
+      {
+        path: "/console",
+        title: "Return to Console",
+        description: "Explore other tools and features",
+        priority: "optional",
+      },
+    ],
+  },
+
+  "permissionless-l1s/delegate": {
+    title: "Delegate",
+    completionSummary: "You've successfully delegated your stake!",
+    nextSteps: [
+      {
+        path: "/console/permissionless-l1s/remove-delegation",
+        title: "Remove Delegation",
+        description: "Remove your delegation from a validator",
+        priority: "optional",
+      },
+      {
+        path: "/console",
+        title: "Return to Console",
+        description: "Explore other tools and features",
         priority: "optional",
       },
     ],

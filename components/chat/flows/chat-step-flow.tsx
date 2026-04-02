@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { Check } from "lucide-react";
-import StepFlow, { type StepDefinition } from "@/components/console/step-flow";
+import StepFlow, { type StepDefinition } from "@/components/console/step-flow-switcher";
 import { cn } from "@/lib/utils";
 
 interface ChatStepFlowProps {

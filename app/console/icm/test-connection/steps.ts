@@ -1,4 +1,4 @@
-import { type StepDefinition } from "@/components/console/step-flow";
+import { type StepDefinition } from "@/components/console/step-flow-switcher";
 import DeployICMDemo from "@/components/toolbox/console/icm/test-connection/DeployICMDemo";
 import SendICMMessage from "@/components/toolbox/console/icm/test-connection/SendICMMessage";
 

@@ -1,4 +1,4 @@
-import { type StepDefinition } from "@/components/console/step-flow";
+import { type StepDefinition } from "@/components/console/step-flow-switcher";
 import DeployValidatorManager from "@/components/toolbox/console/permissioned-l1s/validator-manager-setup/DeployValidatorManager";
 import ProxySetup from "@/components/toolbox/console/permissioned-l1s/validator-manager-setup/ProxySetup";
 import Initialize from "@/components/toolbox/console/permissioned-l1s/validator-manager-setup/Initialize";

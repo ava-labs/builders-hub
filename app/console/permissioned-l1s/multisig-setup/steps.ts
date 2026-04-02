@@ -1,4 +1,4 @@
-import { type StepDefinition } from "@/components/console/step-flow";
+import { type StepDefinition } from "@/components/console/step-flow-switcher";
 import DeployPoAManager from "@/components/toolbox/console/permissioned-l1s/multisig-setup/DeployPoAManager";
 import TransferOwnership from "@/components/toolbox/console/permissioned-l1s/multisig-setup/TransferOwnership";
 import ReadContract from "@/components/toolbox/console/permissioned-l1s/validator-manager-setup/ReadContract";

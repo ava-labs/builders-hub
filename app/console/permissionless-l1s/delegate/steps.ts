@@ -1,4 +1,4 @@
-import { type StepDefinition } from "@/components/console/step-flow";
+import { type StepDefinition } from "@/components/console/step-flow-switcher";
 import DelegateNative from "@/components/toolbox/console/permissionless-l1s/Delegate/DelegateNative";
 import DelegateERC20 from "@/components/toolbox/console/permissionless-l1s/Delegate/DelegateERC20";
 

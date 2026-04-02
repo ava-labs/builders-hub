@@ -1,4 +1,4 @@
-import { type StepDefinition } from "@/components/console/step-flow";
+import { type StepDefinition } from "@/components/console/step-flow-switcher";
 import ReadContract from "@/components/toolbox/console/permissioned-l1s/validator-manager-setup/ReadContract";
 import DeployNativeStakingManager from "@/components/toolbox/console/permissionless-l1s/staking-manager-setup/DeployNativeStakingManager";
 import DeployERC20StakingManager from "@/components/toolbox/console/permissionless-l1s/staking-manager-setup/DeployERC20StakingManager";

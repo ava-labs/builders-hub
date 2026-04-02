@@ -1,4 +1,4 @@
-import { type StepDefinition } from "@/components/console/step-flow";
+import { type StepDefinition } from "@/components/console/step-flow-switcher";
 import AddCollateral from "@/components/toolbox/console/ictt/setup/AddCollateral";
 import TestSend from "@/components/toolbox/console/ictt/token-transfer/TestSend";
 

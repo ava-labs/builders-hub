@@ -1,6 +1,6 @@
 "use client";
 
-import StepFlow from "@/components/console/step-flow";
+import StepFlow from "@/components/console/step-flow-switcher";
 import { steps } from "../steps";
 
 export default function CreateL1ClientPage({ currentStepKey }: { currentStepKey: string }) {

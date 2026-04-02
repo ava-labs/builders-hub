@@ -1,4 +1,4 @@
-import { type StepDefinition } from "@/components/console/step-flow";
+import { type StepDefinition } from "@/components/console/step-flow-switcher";
 import StakeNative from "@/components/toolbox/console/permissionless-l1s/Stake/StakeNative";
 import StakeERC20 from "@/components/toolbox/console/permissionless-l1s/Stake/StakeERC20";
 

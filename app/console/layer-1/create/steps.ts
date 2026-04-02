@@ -1,4 +1,4 @@
-import { type StepDefinition } from "@/components/console/step-flow";
+import { type StepDefinition } from "@/components/console/step-flow-switcher";
 import CreateSubnet from "@/components/toolbox/console/layer-1/create/CreateSubnet";
 import CreateChain from "@/components/toolbox/console/layer-1/create/CreateChain";
 import AvalancheGoDockerL1 from "@/components/toolbox/console/layer-1/AvalancheGoDockerL1";

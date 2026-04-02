@@ -1,4 +1,4 @@
-import { type StepDefinition } from "@/components/console/step-flow";
+import { type StepDefinition } from "@/components/console/step-flow-switcher";
 import TeleporterMessenger from "@/components/toolbox/console/icm/setup/TeleporterMessenger";
 import TeleporterRegistry from "@/components/toolbox/console/icm/setup/TeleporterRegistry";
 import ICMRelayer from "@/components/toolbox/console/icm/setup/ICMRelayer";

@@ -1,4 +1,4 @@
-import { type StepDefinition } from "@/components/console/step-flow";
+import { type StepDefinition } from "@/components/console/step-flow-switcher";
 import DeployExampleERC20 from "@/components/toolbox/console/ictt/setup/DeployExampleERC20";
 import DeployTokenHome from "@/components/toolbox/console/ictt/setup/DeployTokenHome";
 import DeployERC20TokenRemote from "@/components/toolbox/console/ictt/setup/DeployERC20TokenRemote";

@@ -1,4 +1,4 @@
-import { type StepDefinition } from "@/components/console/step-flow";
+import { type StepDefinition } from "@/components/console/step-flow-switcher";
 import RemoveDelegationNative from "@/components/toolbox/console/permissionless-l1s/Withdraw/RemoveDelegationNative";
 import RemoveDelegationERC20 from "@/components/toolbox/console/permissionless-l1s/Withdraw/RemoveDelegationERC20";
 
