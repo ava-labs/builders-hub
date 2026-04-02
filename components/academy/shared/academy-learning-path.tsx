@@ -119,6 +119,12 @@ export function AcademyLearningPath({ pathType }: AcademyLearningPathProps) {
                 { text: ' Learning Tree\n', isHighlight: true },
                 { text: 'Master Solidity and deploy smart contracts' },
             ];
+        } else if (pathType === 'team1') {
+            return [
+                { text: 'Team1', isHighlight: true },
+                { text: ' Learning Tree\n', isHighlight: true },
+                { text: 'Start with fundamentals and then choose your path to contribute in your own unique way to the Team1 community.' },
+            ];
         } else {
             return [
                 { text: 'Entrepreneur', isHighlight: true },

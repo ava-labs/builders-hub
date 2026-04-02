@@ -3,8 +3,11 @@ import { prisma } from '@/prisma/prisma';
 import {
   fetchValidators,
   fetchLatestRelease,
+  fetchL1Validators,
   checkSingleAlert,
+  checkL1Alert,
 } from '@/server/services/validator-alert-check';
+import type { L1ValidatorData } from '@/types/validator-alerts';
 
 export async function POST(req: NextRequest) {
   // Authenticate: accept Vercel CRON_SECRET or custom API key
@@ -65,22 +68,59 @@ export async function POST(req: NextRequest) {
       where: { active: true },
     });
 
+    // Partition alerts into primary vs L1
+    const primaryAlerts = activeAlerts.filter((a) => a.subnet_id === 'primary');
+    const l1AlertsBySubnet = new Map<string, typeof activeAlerts>();
+    for (const alert of activeAlerts) {
+      if (alert.subnet_id !== 'primary') {
+        const group = l1AlertsBySubnet.get(alert.subnet_id) ?? [];
+        group.push(alert);
+        l1AlertsBySubnet.set(alert.subnet_id, group);
+      }
+    }
+
     let sent = 0;
     let checked = 0;
     let skipped = 0;
     const errors: string[] = [];
 
-    for (const alert of activeAlerts) {
+    // --- Process Primary Network alerts ---
+    for (const alert of primaryAlerts) {
       checked++;
       const validator = validatorMap.get(alert.node_id);
       if (!validator) {
         skipped++;
         continue;
       }
-
       const result = await checkSingleAlert(alert, validator, latestRelease);
       sent += result.sent;
       errors.push(...result.errors);
+    }
+
+    // --- Process L1 alerts (grouped by subnet) ---
+    for (const [subnetId, alerts] of l1AlertsBySubnet) {
+      let l1Validators: L1ValidatorData[] = [];
+      try {
+        l1Validators = await fetchL1Validators(subnetId);
+      } catch (err) {
+        errors.push(`Failed to fetch L1 validators for ${subnetId}: ${err}`);
+        skipped += alerts.length;
+        continue;
+      }
+
+      const l1Map = new Map(l1Validators.map((v) => [v.nodeId, v]));
+
+      for (const alert of alerts) {
+        checked++;
+        const validator = l1Map.get(alert.node_id);
+        if (!validator) {
+          skipped++;
+          continue;
+        }
+        const result = await checkL1Alert(alert, validator, latestRelease);
+        sent += result.sent;
+        errors.push(...result.errors);
+      }
     }
 
     return NextResponse.json({

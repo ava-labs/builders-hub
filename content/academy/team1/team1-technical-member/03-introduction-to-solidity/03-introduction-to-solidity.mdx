@@ -1,0 +1,46 @@
+---
+title: "Section 3 – Introduction to Solidity"
+description: "Core Solidity and smart contract concepts for Avalanche L1s."
+updated: 2026-03-05
+authors: [team1]
+icon: Code
+---
+
+## Section 3 – Introduction to Solidity
+
+Solidity is the primary language used to write smart contracts for the Avalanche C‑Chain and many custom Avalanche L1s that use the EVM. Builder Hub’s **Intro to Solidity** and related courses help cover these fundamentals.[`https://build.avax.network/academy/blockchain`](https://build.avax.network/academy/blockchain)
+
+**By the end of this section you should be able to:**
+
+- Explain:
+  - **What a virtual machine is** and why the EVM matters.
+  - **What a smart contract is** and why it is important in Avalanche and Ethereum ecosystems.
+- Know:
+  - IDEs commonly used for Solidity (e.g., Remix, VS Code with plugins, Foundry/Hardhat toolchains).
+  - What license identifiers (e.g., MIT, GPL) in Solidity source files represent.
+  - How **pragma solidity** works and how it constrains compiler versions.
+  - How the Solidity **compiler** produces **bytecode** and **ABIs**, and the difference between them.
+- Understand:
+  - What happens during **deployment** of a smart contract (transaction, constructor, contract address creation).
+  - Types of addresses (EOA vs. contract addresses).
+  - The process to **create, compile, and deploy a Solidity project to an Avalanche L1** using typical tooling.
+- Use Solidity basics:
+  - Visibility (public, private, internal, external).
+  - Types like `string`, `uint`, `int`, and the meaning of different `uint` sizes (8, 16, 32, 64, 128, 256).
+  - `address` type and when to use `address payable`.
+  - `bytes` and its fixed‑size variants.
+  - `keccak256` and how it differs from SHA‑256.
+  - Encode/decode utilities (e.g., `abi.encode`, `abi.decode`) and when to use them.
+- Manage state and logic:
+  - Difference between **state**, **local**, and **global** variables.
+  - Functions, parameters, and return values.
+  - Difference between **state‑changing** and **read‑only** functions.
+  - What modifiers are and common ones like `view` and `pure`.
+  - Difference between `calldata`, `memory`, and `storage`.
+  - Data structures like `mapping`, arrays, and enums.
+
+**Suggested learning path**
+
+- Follow Builder Hub’s Solidity and smart contract lessons in the Blockchain track.[`https://build.avax.network/academy/blockchain`](https://build.avax.network/academy/blockchain)
+- Replicate and extend exercises from the Latam Bootcamp (e.g., deploying your own contracts on Avalanche testnets).[`https://team1-latam-bootcamp.gitbook.io/team1-docs`](https://team1-latam-bootcamp.gitbook.io/team1-docs)
+

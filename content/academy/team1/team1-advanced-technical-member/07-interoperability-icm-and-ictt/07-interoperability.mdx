@@ -1,0 +1,46 @@
+---
+title: "Section 7 – Interoperability (ICM & ICTT)"
+description: "Interchain messaging and token transfer between Avalanche L1s."
+updated: 2026-03-05
+authors: [team1]
+icon: Zap
+---
+
+## Section 7 – Interoperability (ICM & ICTT)
+
+Avalanche supports rich interoperability between L1s via Interchain Messaging (ICM) and Interchain Token Transfer (ICTT). These capabilities are covered in detail in the Avalanche Academy tracks for **Interchain Messaging**, **ERC20 Bridge**, and **Native Token Bridge**.[`https://build.avax.network/academy/avalanche-l1/interchain-messaging`](https://build.avax.network/academy/avalanche-l1/interchain-messaging) [`https://build.avax.network/academy/avalanche-l1/erc20-bridge`](https://build.avax.network/academy/avalanche-l1/erc20-bridge) [`https://build.avax.network/academy/avalanche-l1/native-token-bridge`](https://build.avax.network/academy/avalanche-l1/native-token-bridge)
+
+### 7.1 Learning Objectives
+
+By the end of this section, you should be able to:
+
+- Explain **how interoperability is achieved on Avalanche**, including the role of Avalanche Warp Messaging (AWM) and ICM‑compatible precompiles.[`https://build.avax.network/academy/avalanche-l1/interchain-messaging`](https://build.avax.network/academy/avalanche-l1/interchain-messaging)
+- Describe **how the ICM standard works** at a high level: how messages are constructed, routed, and delivered between L1s.
+- Identify **which precompiles are used by ICM** to ensure message transfer and verification on Avalanche L1s.
+- Explain **what signature aggregation is**, why it is used in cross‑chain messaging, and how it contributes to security and efficiency.
+- Discuss **who is responsible for trust in the message relay** (e.g., relayers, validators, or protocol‑level guarantees).
+- Identify **which contracts are required to send messages between L1s** using ICM and how they are deployed.
+- Explain **why messages can only be sent between Avalanche L1s**, and which blockchain (Avalanche’s P‑Chain and L1 architecture) enables this behavior.
+- Define **ICTT (Interchain Token Transfer)** and its relationship to ICM and token bridging.
+- Describe **which attributes must be used and sent in ICM and ICTT contracts** (e.g., destination chain identifiers, payload encoding, fee parameters).
+- Explain **relayer incentives** in ICM and ICTT: how relayers get paid and why the system remains economically secure.
+- Distinguish between **destinationChainID** in ICM/ICTT and **chainId** values in Chainlist, and why both are needed.
+- Encode data into bytes before sending cross‑chain messages, using standard encoding utilities in Solidity or client libraries.
+- Define **what a bridge is** and how it works at a conceptual level (lock‑and‑mint, burn‑and‑release, messaging‑based transfers).
+
+### 7.2 Study Path & Practice
+
+**Recommended Builder Hub courses:**
+
+- **Interchain Messaging** – protocol overview, AWM, and ICM contracts.[`https://build.avax.network/academy/avalanche-l1/interchain-messaging`](https://build.avax.network/academy/avalanche-l1/interchain-messaging)
+- **ERC20 Bridge** – using ICTT to move ERC‑20 tokens between Avalanche L1s.[`https://build.avax.network/academy/avalanche-l1/erc20-bridge`](https://build.avax.network/academy/avalanche-l1/erc20-bridge)
+- **Native Token Bridge** – bridging native tokens using ICTT and related tooling.[`https://build.avax.network/academy/avalanche-l1/native-token-bridge`](https://build.avax.network/academy/avalanche-l1/native-token-bridge)
+
+**Suggested practice:**
+
+- Implement a simple demo where:
+  - One Avalanche L1 sends a message to another using ICM.
+  - The destination chain decodes the payload and emits an event or updates state.
+- Extend the demo to use **ICTT** for a minimal ERC‑20 transfer between two L1s.
+- Document your setup and use it in a Team1 workshop or blog post, helping builders understand how to use ICM/ICTT in their own projects.
+

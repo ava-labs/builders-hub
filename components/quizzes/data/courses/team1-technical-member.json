@@ -1,0 +1,71 @@
+{
+  "title": "Technical Team1 Member",
+  "quizzes": {
+    "4011": {
+      "question": "Why does the Technical Team1 course require *all* members (technical or not) to understand blockchain fundamentals?",
+      "options": [
+        "Because everyone in Team1 is expected to write production smart contracts",
+        "Because without a shared mental model of what blockchains are and why they exist, it’s hard to explain Avalanche accurately or support builders effectively",
+        "Because Avalanche requires a formal exam on consensus algorithms before joining Team1",
+        "Because fundamentals are only relevant for validators, not for community members"
+      ],
+      "correctAnswers": [1],
+      "hint": "Think about how the course ties Sections 1–2 to *all* contribution types.",
+      "explanation": "Sections 1–2 of the Technical Team1 course are foundational: members need a clear, shared understanding of what blockchains are, why they were created, and how Avalanche works to speak accurately about the ecosystem and support technical work, even if they’re not writing contracts full-time.",
+      "chapter": "Section 1–2: Foundations"
+    },
+    "4012": {
+      "question": "What is one key reason Avalanche’s architecture section asks you to distinguish between the network and the C‑Chain?",
+      "options": [
+        "Because the C‑Chain is the only chain that will exist after future upgrades",
+        "Because the Avalanche network can host many L1s, and the C‑Chain is just one EVM chain within that multi‑chain architecture",
+        "Because the P‑Chain and X‑Chain are deprecated and no longer relevant",
+        "Because only the C‑Chain supports staking and validator management"
+      ],
+      "correctAnswers": [1],
+      "hint": "Recall how the course describes L1s and the role of each chain.",
+      "explanation": "The course explains that Avalanche is a multi‑chain platform: the C‑Chain is an EVM chain on the primary network, but many other L1s can exist. Understanding this distinction helps Technical Team1 members reason about custom L1s, interoperability, and where particular contracts live.",
+      "chapter": "Section 2: Avalanche & Its Ecosystem"
+    },
+    "4013": {
+      "question": "Which of the following combinations best reflects *core* Solidity skills expected from a Technical Team1 member?",
+      "options": [
+        "Understanding `mapping`, function visibility, storage locations, deployment flow, and how the compiler produces bytecode + ABI",
+        "Being able to build complex zero‑knowledge circuits from scratch without libraries",
+        "Only knowing how to copy‑paste contracts from GitHub without understanding their structure",
+        "Focusing exclusively on frontend React hooks without touching Solidity"
+      ],
+      "correctAnswers": [0],
+      "hint": "Look at the list of concepts in Section 3 – Introduction to Solidity.",
+      "explanation": "Section 3 lists concrete expectations: understanding the EVM, state vs local vs global variables, visibility, storage locations, deployment, bytecode vs ABI, and basic types and data structures. These are the baseline Solidity skills Technical Team1 members should have for Avalanche L1s.",
+      "chapter": "Section 3: Introduction to Solidity"
+    },
+    "4014": {
+      "question": "Why does the course place ERC20, ERC721, and ERC1155 in their own section instead of treating them as an afterthought?",
+      "options": [
+        "Because token and NFT standards are central to many Avalanche use cases, and Technical Team1 members are often asked about them in events, workshops, and builder support",
+        "Because ERC standards are only relevant for Ethereum, not Avalanche",
+        "Because understanding these standards is optional and only for content creators",
+        "Because they replace the need to understand Solidity basics"
+      ],
+      "correctAnswers": [0],
+      "hint": "Think about how often real projects rely on these standards.",
+      "explanation": "The course emphasizes that ERC20/721/1155 are core building blocks for DeFi, NFTs, gaming, and more. Technical Team1 members frequently encounter them when helping builders, speaking at events, or reviewing projects, so they’re treated as a dedicated competency.",
+      "chapter": "Section 4: ERC Standards"
+    },
+    "4015": {
+      "question": "In the Frontend Integration section, why is it important for Technical Team1 members to understand ABIs and RPC configuration, even if they are not pure frontend engineers?",
+      "options": [
+        "Because the course expects everyone to design custom React component libraries",
+        "Because connecting contracts to UIs requires knowing how addresses, ABIs, and network/RPC settings work together in tools like wagmi and WalletConnect",
+        "Because smart contracts cannot be tested without a Next.js app",
+        "Because ABIs are only used for documentation and have no impact on code"
+      ],
+      "correctAnswers": [1],
+      "hint": "Look at the list of prerequisites for interacting with contracts from a dApp.",
+      "explanation": "The course highlights that, to help builders ship real dApps, Technical Team1 members must understand the pieces involved in contract interaction—addresses, ABIs, RPCs, wallets, and libraries like wagmi/WalletConnect—even if they don’t specialize in frontend work.",
+      "chapter": "Section 5: Frontend Integration"
+    }
+  }
+}
+

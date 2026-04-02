@@ -1,0 +1,71 @@
+{
+  "title": "Advanced Technical Team1 Member",
+  "quizzes": {
+    "4021": {
+      "question": "What is the relationship between Interchain Messaging (ICM) and Interchain Token Transfer (ICTT) on Avalanche?",
+      "options": [
+        "ICM is a generic messaging standard, while ICTT is a token-transfer standard built on top of the messaging layer",
+        "ICTT is a replacement for ICM; only one can be active on a given L1",
+        "ICM handles only token movements, while ICTT handles arbitrary messages",
+        "They are unrelated: ICM is for Layer 2s and ICTT is only for the Primary Network"
+      ],
+      "correctAnswers": [0],
+      "hint": "Think of ICTT as a specialized use case built on a more general primitive.",
+      "explanation": "The course explains that ICM provides the generic cross‑chain messaging capability between Avalanche L1s, and ICTT builds on that foundation to define a standard way to transfer tokens between chains.",
+      "chapter": "Section 7: Interoperability (ICM & ICTT)"
+    },
+    "4022": {
+      "question": "Why can ICM/ICTT messages only be sent between Avalanche L1s rather than arbitrary external chains?",
+      "options": [
+        "Because Avalanche governance forbids communication with any external networks",
+        "Because the protocol and precompiles rely on the shared security and messaging guarantees of Avalanche’s P‑Chain and L1 architecture",
+        "Because only Avalanche uses EVM-compatible bytecode",
+        "Because ICTT requires Bitcoin-style UTXO semantics"
+      ],
+      "correctAnswers": [1],
+      "hint": "Recall what underlying chain and architecture the course says make these guarantees possible.",
+      "explanation": "ICM and ICTT depend on Avalanche’s own consensus, validator set, and P‑Chain/L1 architecture to verify and relay messages and token transfers. Those guarantees are not automatically available on arbitrary external chains, so the standard is defined for Avalanche L1s.",
+      "chapter": "Section 7: Interoperability (ICM & ICTT)"
+    },
+    "4023": {
+      "question": "At a high level, what makes an eERC token different from a standard ERC‑20 on Avalanche?",
+      "options": [
+        "eERC tokens remove the need for smart contracts entirely",
+        "eERC tokens use cryptography (including ZK proofs and specialized curves) so that balances and transfers can be private while remaining verifiable",
+        "eERC tokens are only compatible with non‑EVM chains",
+        "eERC tokens require users to share their private keys with the contract"
+      ],
+      "correctAnswers": [1],
+      "hint": "Think about how the course describes balances and transfers being both private and provably correct.",
+      "explanation": "The eERC course explains that encrypted tokens use primitives like BabyJubJub, ZK proofs, and partially homomorphic encryption so amounts and balances are confidential but the system can still verify conservation of value and valid transfers.",
+      "chapter": "Section 8: Encrypted ERC (eERC)"
+    },
+    "4024": {
+      "question": "In the eERC model, why is it important to distinguish between Mint/Deposit and Burn/Withdraw?",
+      "options": [
+        "Because the terminology is purely cosmetic and has no effect on how value moves",
+        "Because Mint/Deposit and Burn/Withdraw describe how value enters and exits the encrypted domain, which is critical for reasoning about privacy and total supply",
+        "Because only Mint operations are allowed on Avalanche L1s",
+        "Because eERC contracts do not maintain any notion of total supply"
+      ],
+      "correctAnswers": [1],
+      "hint": "Think about how value crosses the boundary between plain ERC balances and encrypted balances.",
+      "explanation": "The course emphasizes that Mint/Deposit and Burn/Withdraw mark the points where assets move between regular ERC representations and encrypted balances. Understanding these flows is essential for reasoning about supply, privacy guarantees, and integrations with other protocols.",
+      "chapter": "Section 8: Encrypted ERC (eERC)"
+    },
+    "4025": {
+      "question": "Why is Avalanche highlighted as a strong fit for x402 payment infrastructure use cases?",
+      "options": [
+        "Because Avalanche charges very high protocol fees, which maximizes facilitator revenue",
+        "Because Avalanche offers low fees, fast finality, and no protocol‑level x402 fee, which are all important for HTTP‑native micropayments and AI-agent payments",
+        "Because x402 requires Proof of Work, which Avalanche uses by default",
+        "Because Avalanche is the only blockchain that can return HTTP status codes"
+      ],
+      "correctAnswers": [1],
+      "hint": "Look at the reasons the course gives for matching protocol properties to high‑frequency payment patterns.",
+      "explanation": "The x402 course calls out that Avalanche’s low transaction costs, sub‑second/second‑level finality, and absence of protocol‑level x402 fees make it well‑suited for use cases like AI agents, per‑request API monetization, and other micropayment scenarios.",
+      "chapter": "Section 9: x402 Payment Infrastructure"
+    }
+  }
+}
+
