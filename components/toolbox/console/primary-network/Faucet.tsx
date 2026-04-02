@@ -126,8 +126,6 @@ function EVMFaucetCard({ chain }: { chain: L1ListItem }) {
   );
 }
 
-const BECH32_CHARSET = "qpzry9x8gf2tvdw0s3jn54khce6mua7l";
-
 function validatePChainAddress(raw: string): { valid: true; normalized: string } | { valid: false; error: string } {
   const trimmed = raw.trim().toLowerCase();
 
@@ -135,41 +133,20 @@ function validatePChainAddress(raw: string): { valid: true; normalized: string }
     return { valid: false, error: "Address is required." };
   }
 
-  // Reject hex addresses
   if (trimmed.startsWith("0x")) {
     return { valid: false, error: "This looks like a C-Chain address. P-Chain addresses start with P-fuji1 or P-avax1." };
   }
 
-  // Strip optional "P-" prefix
-  const withoutP = trimmed.startsWith("p-") ? trimmed.slice(2) : trimmed;
+  // Ensure P- prefix, then let avalanchejs handle all bech32 validation
+  const normalized = trimmed.startsWith("p-") ? `P-${trimmed.slice(2)}` : `P-${trimmed}`;
 
-  // Must have fuji1 or avax1 prefix
-  const isFuji = withoutP.startsWith("fuji1");
-  const isAvax = withoutP.startsWith("avax1");
-  if (!isFuji && !isAvax) {
-    return { valid: false, error: "P-Chain addresses must start with P-fuji1 (testnet) or P-avax1 (mainnet)." };
-  }
-
-  // Detect double-prefixed addresses (e.g. fuji1fuji1...)
-  const hrp = isFuji ? "fuji" : "avax";
-  const dataAfterSep = withoutP.slice(hrp.length + 1); // after "fuji1" or "avax1"
-  if (dataAfterSep.startsWith(`${hrp}1`)) {
-    return { valid: false, error: `Address appears double-prefixed. Remove the extra "${hrp}1".` };
-  }
-
-  // Validate bech32 character set in the data part
-  for (const ch of dataAfterSep) {
-    if (!BECH32_CHARSET.includes(ch)) {
-      return { valid: false, error: `Invalid character "${ch}" in address. Bech32 addresses use only: ${BECH32_CHARSET}` };
-    }
-  }
-
-  // Validate checksum via avalanchejs
-  const normalized = `P-${withoutP}`;
   try {
-    utils.bech32ToBytes(normalized);
+    const [chainAlias] = utils.parse(normalized);
+    if (chainAlias !== "P") {
+      return { valid: false, error: "P-Chain addresses must start with P-fuji1 (testnet) or P-avax1 (mainnet)." };
+    }
   } catch {
-    return { valid: false, error: "Invalid address checksum. Please check for typos." };
+    return { valid: false, error: "Invalid P-Chain address. Expected format: P-fuji1... or P-avax1..." };
   }
 
   return { valid: true, normalized };
