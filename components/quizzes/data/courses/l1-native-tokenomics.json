@@ -415,7 +415,7 @@
         "Tokenomics is about mining cryptocurrency",
         "Tokenomics only refers to creating ERC-20 tokens",
         "Tokenomics is the study of token design, distribution, and utility, crucial for aligning incentives and creating sustainable blockchain economies",
-        "Tokenomics only matters for DeFi applications, although some early documentation may have suggested otherwise and involves additional complexity and involves additional complexity"
+        "Tokenomics only matters for DeFi applications"
       ],
       "correctAnswers": [
         2
@@ -457,7 +457,7 @@
     "4025": {
       "question": "What are the key considerations when designing a token for your L1?",
       "options": [
-        "Just copying an existing token's design is sufficient, although it might seem logical based on surface-level analysis and involves additional complexity",
+        "Just copying an existing token's design is sufficient",
         "Only the token name and symbol matter",
         "Token design doesn't affect blockchain success",
         "Supply (fixed or infinite), distribution mechanism, utility (gas, staking, governance), and emission schedule are all critical design considerations"
@@ -505,7 +505,7 @@
       "options": [
         "Any ERC-20 token deployed on the chain",
         "The blockchain's built-in cryptocurrency used for gas fees and fundamental chain operations, like ETH on Ethereum or AVAX on Avalanche",
-        "A token that can only be used for staking, which contradicts the fundamental design principles involved and involves additional complexity",
+        "A token that can only be used for staking",
         "A token created by the blockchain developers"
       ],
       "correctAnswers": [
@@ -551,12 +551,11 @@
       "options": [
         "Native tokens are sent using the value field of a transaction, while ERC-20 tokens require calling the transfer function of a smart contract",
         "Both use the same ERC-20 transfer function",
-        "ERC-20 tokens are easier to transfer, although it might seem logical based on surface-level analysis and involves additional complexity and involves additional complexity",
+        "ERC-20 tokens are easier to transfer",
         "Native tokens cannot be transferred"
       ],
       "correctAnswers": [
-        0,
-        1
+        0
       ],
       "hint": "Think about the difference between protocol-level tokens and contract tokens.",
       "explanation": "Native tokens and ERC-20 tokens are transferred differently. Native tokens are sent by including a value in the value field of a transaction, which is processed at the protocol level. ERC-20 tokens, being smart contracts, require calling the transfer function of the token contract, which then updates balances in the contract's state. This fundamental difference affects how wallets interact with these tokens and how gas fees are calculated.",
@@ -596,7 +595,7 @@
       "question": "What is the ERC-20 token standard and why is it important?",
       "options": [
         "ERC-20 is a type of blockchain consensus",
-        "ERC-20 is a programming language, but in reality the system operates quite differently and involves additional complexity and involves additional complexity",
+        "ERC-20 is a programming language",
         "ERC-20 is a standardized interface for fungible tokens on EVM chains, ensuring compatibility and interoperability across wallets and dApps",
         "ERC-20 is only used for stablecoins"
       ],
@@ -640,7 +639,7 @@
     "4029": {
       "question": "What are the key differences between native tokens and ERC-20 tokens on an L1?",
       "options": [
-        "ERC-20 tokens are always better than native tokens, but in reality the system operates quite differently and involves additional complexity and involves additional complexity",
+        "ERC-20 tokens are always better than native tokens",
         "Native tokens exist at the protocol level for gas fees and staking, while ERC-20 tokens are smart contracts with more flexibility but require gas to transfer",
         "There are no significant differences",
         "Native tokens can only be used on C-Chain"
@@ -687,7 +686,7 @@
       "question": "What are wrapped tokens and why are they used?",
       "options": [
         "Wrapped tokens are encrypted versions of regular tokens",
-        "Wrapped tokens are only used for cross-chain bridges, despite being a frequently cited but incorrect explanation and involves additional complexity and involves additional complexity",
+        "Wrapped tokens are only used for cross-chain bridges",
         "Wrapped tokens are tokenized versions of native assets (like WAVAX for AVAX) that provide ERC-20 interface for DeFi compatibility while maintaining 1:1 value backing",
         "Wrapped tokens are always worth less than native tokens"
       ],
@@ -732,13 +731,12 @@
       "question": "What is a custom native token on an Avalanche L1? (Select all that apply)",
       "options": [
         "A token that only works on testnet",
-        "A token that cannot be transferred, although some early documentation may have suggested otherwise and involves additional complexity",
+        "A token that cannot be transferred",
         "A token configured as the native gas token of an L1 instead of AVAX, giving the L1 independent tokenomics",
         "A custom ERC-20 token with high gas fees"
       ],
       "correctAnswers": [
-        2,
-        3
+        2
       ],
       "hint": "Think about what token users pay for gas fees.",
       "explanation": "A custom native token is a token that serves as the gas token for an Avalanche L1 instead of using AVAX. This gives the L1 independent tokenomics where users pay gas fees in the custom token rather than AVAX. It's configured at the L1 level and allows the chain to have its own economic model separate from the Avalanche C-Chain. This is particularly useful for application-specific chains that want complete control over their token economics.",
@@ -779,7 +777,7 @@
       "question": "What is the difference between a custom native token and an ERC-20 gas token on an L1?",
       "options": [
         "Custom native tokens cannot be transferred",
-        "There is no difference, which is an oversimplification of the actual process and involves additional complexity and involves additional complexity and involves additional complexity",
+        "There is no difference",
         "Custom native tokens exist at protocol level and work like ETH on Ethereum, while ERC-20 gas tokens are smart contracts that can be used for gas via precompiles",
         "ERC-20 gas tokens are always better"
       ],
@@ -825,7 +823,7 @@
       "options": [
         "Yes, the native token can serve both as the gas token and the staking token, aligning economic incentives",
         "Staking is not possible on Avalanche L1s",
-        "Only ERC-20 tokens can be used for staking, which is a common misconception in distributed systems and involves additional complexity",
+        "Only ERC-20 tokens can be used for staking",
         "No, staking and gas must use different tokens"
       ],
       "correctAnswers": [
@@ -871,7 +869,7 @@
         "Precompiles are the same as regular smart contracts",
         "Precompiles are only used for testing",
         "Precompiles are functions built into the VM at a deeper level than smart contracts, enabling customization and protocol-level features with better performance",
-        "Precompiles are compiled smart contracts stored on-chain, although it might seem logical based on surface-level analysis and involves additional complexity and involves additional complexity"
+        "Precompiles are compiled smart contracts stored on-chain"
       ],
       "correctAnswers": [
         2
@@ -916,11 +914,10 @@
         "Precompiles are not customizable",
         "Native Minter for minting native tokens, Fee Config for dynamic fees, Contract Deployer Allow List for deployment restrictions, and Tx Allow List for transaction permissions",
         "Only ERC-20 related precompiles exist",
-        "Only basic math functions, despite appearing correct based on incomplete information and involves additional complexity and involves additional complexity and involves additional complexity"
+        "Only basic math functions"
       ],
       "correctAnswers": [
-        1,
-        2
+        1
       ],
       "hint": "Think about chain-level features beyond smart contract capabilities.",
       "explanation": "Avalanche offers several powerful precompiles for L1 customization: 1) Native Minter allows authorized contracts to mint native tokens, 2) Fee Config enables dynamic adjustment of gas fees, 3) Contract Deployer Allow List restricts who can deploy contracts, 4) Tx Allow List controls who can submit transactions, and 5) Reward Manager configures block rewards. These precompiles enable protocol-level features that give L1 operators fine-grained control over their chain's behavior and economics.",
@@ -960,7 +957,7 @@
       "question": "How do precompiles interact with smart contracts?",
       "options": [
         "Only system administrators can call precompiles",
-        "Smart contracts must be recompiled to use precompiles, although it might seem logical based on surface-level analysis and involves additional complexity",
+        "Smart contracts must be recompiled to use precompiles",
         "Precompiles are called from smart contracts using their predefined addresses and interfaces, enabling contracts to access protocol-level functionality",
         "Precompiles cannot interact with smart contracts"
       ],

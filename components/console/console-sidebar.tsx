@@ -38,6 +38,7 @@ import {
   Sparkles,
   Search,
   X,
+  Bell,
   type LucideIcon,
 } from "lucide-react";
 
@@ -189,6 +190,11 @@ const data = {
           icon: Search,
         },
         {
+          title: "Validator Alerts",
+          url: "/console/primary-network/validator-alerts",
+          icon: Bell,
+        },
+        {
           title: "Unit Converter",
           url: "/console/primary-network/unit-converter",
           icon: Calculator,
@@ -303,6 +309,16 @@ const data = {
               title: "Delegate",
               url: "/console/permissionless-l1s/delegate",
               icon: ArrowUpDown,
+            },
+            {
+              title: "Remove Validator",
+              url: "/console/permissionless-l1s/remove-validator",
+              icon: SquareMinus,
+            },
+            {
+              title: "Remove Delegation",
+              url: "/console/permissionless-l1s/remove-delegation",
+              icon: SquareMinus,
             },
           ],
         },

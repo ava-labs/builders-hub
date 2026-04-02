@@ -5,7 +5,8 @@ import { useParams } from "next/navigation";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis, ComposedChart, Line, LineChart } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { type ChartConfig, ChartContainer, ChartTooltip } from "@/components/ui/chart";
-import { ArrowLeft, ArrowUpRight, Copy, Check, Activity, Shield, Clock, AlertTriangle, Blocks, TrendingUp } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, Copy, Check, Activity, Shield, Clock, AlertTriangle, Bell, Blocks, TrendingUp, Info } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { StatsBreadcrumb } from "@/components/navigation/StatsBreadcrumb";
 import { ChartSkeletonLoader } from "@/components/ui/chart-skeleton";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
@@ -270,6 +271,12 @@ export default function ValidatorNodeDetailPage() {
               <Copy className="h-4 w-4 text-zinc-400" />
             )}
           </button>
+          <Link
+            href="/validator-alerts"
+            className="text-sm text-blue-500 hover:underline flex items-center gap-1"
+          >
+            <Bell className="h-3.5 w-3.5" /> Enable Alerts
+          </Link>
         </div>
 
         <div className="flex items-center gap-3 flex-wrap text-sm">
@@ -325,6 +332,14 @@ export default function ValidatorNodeDetailPage() {
           <div className="flex items-center gap-2 mb-2">
             <Blocks className="h-4 w-4 text-zinc-400" />
             <span className="text-xs text-zinc-500 dark:text-zinc-400">Miss Rate (14d)</span>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="h-3.5 w-3.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-xs text-xs">
+                Each validator is selected to propose blocks in proportion to its stake (weight / totalWeight). A validator with 2x the stake appears roughly 2x as often on the proposer list. The miss rate is the percentage of assigned proposal slots where this validator failed to produce a block.
+              </TooltipContent>
+            </Tooltip>
           </div>
           <p className={`text-xl font-semibold ${missRateColor}`}>
             {missRate.toFixed(1)}%

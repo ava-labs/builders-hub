@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { Avalanche } from "@avalanche-sdk/chainkit";
-import { MAINNET_VALIDATOR_DISCOVERY_URL } from "@/constants/validator-discovery";
+import {
+  FUJI_VALIDATOR_DISCOVERY_URL,
+  MAINNET_VALIDATOR_DISCOVERY_URL,
+} from "@/constants/validator-discovery";
 
 const PAGE_SIZE = 100;
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
@@ -38,9 +41,9 @@ interface ValidatorVersion {
 const cacheStore = new Map<string, {data: ValidatorData[]; timestamp: number; versionBreakdown?: any}>();
 const versionCacheStore = new Map<string, {data: Map<string, string>; timestamp: number}>();
 
-async function fetchValidatorVersions(): Promise<Map<string, string>> {
+async function fetchValidatorVersions(network: "mainnet" | "fuji" = "mainnet"): Promise<Map<string, string>> {
   const now = Date.now();
-  const cached = versionCacheStore.get('mainnet');
+  const cached = versionCacheStore.get(network);
   
   if (cached && (now - cached.timestamp) < CACHE_DURATION) {
     return cached.data;
@@ -49,8 +52,10 @@ async function fetchValidatorVersions(): Promise<Map<string, string>> {
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), VERSION_FETCH_TIMEOUT);
+    const discoveryUrl =
+      network === "fuji" ? FUJI_VALIDATOR_DISCOVERY_URL : MAINNET_VALIDATOR_DISCOVERY_URL;
 
-    const response = await fetch(MAINNET_VALIDATOR_DISCOVERY_URL, {
+    const response = await fetch(discoveryUrl, {
       signal: controller.signal,
       headers: { 'Accept': 'application/json' },
     });
@@ -68,7 +73,7 @@ async function fetchValidatorVersions(): Promise<Map<string, string>> {
       versionMap.set(validator.nodeId, validator.version?.replace("avalanchego/", "") || "Unknown");
     }
 
-    versionCacheStore.set('mainnet', { data: versionMap, timestamp: now });
+    versionCacheStore.set(network, { data: versionMap, timestamp: now });
     return versionMap;
   } catch (error) {
     console.error('Error fetching validator versions:', error);
@@ -76,13 +81,13 @@ async function fetchValidatorVersions(): Promise<Map<string, string>> {
   }
 }
 
-async function fetchAllValidators(subnetId: string, versionMap: Map<string, string>): Promise<ValidatorData[]> {
-  const avalanche = new Avalanche({ network: "mainnet" });
+async function fetchAllValidators(subnetId: string, versionMap: Map<string, string>, network: "mainnet" | "fuji" = "mainnet"): Promise<ValidatorData[]> {
+  const avalanche = new Avalanche({ network });
   const validators: ValidatorData[] = [];
-  
+
   try {
     const isPrimaryNetwork = subnetId === "11111111111111111111111111111111LpoYY";
-    
+
     let result;
     if (isPrimaryNetwork) {
       // Use listValidators for Primary Network
@@ -90,14 +95,14 @@ async function fetchAllValidators(subnetId: string, versionMap: Map<string, stri
         pageSize: PAGE_SIZE,
         validationStatus: "active",
         subnetId: subnetId,
-        network: "mainnet",
+        network,
       });
     } else {
       // Use listL1Validators for L1 subnets
       result = await avalanche.data.primaryNetwork.listL1Validators({
         pageSize: PAGE_SIZE,
         subnetId: subnetId,
-        network: "mainnet",
+        network,
         includeInactiveL1Validators: false,
       });
     }
@@ -112,9 +117,9 @@ async function fetchAllValidators(subnetId: string, versionMap: Map<string, stri
       // Both Primary Network and L1 validators use page.result.validators
       let pageData: any[] = page.result?.validators || [];
       
-      // For L1 validators, filter by remainingBalance > 0
+      // For L1 validators, keep zero balances so critical alerts can fire.
       if (!isPrimaryNetwork) {
-        pageData = pageData.filter((v: any) => v.remainingBalance > 0);
+        pageData = pageData.filter((v: any) => Number.isFinite(v.remainingBalance) && v.remainingBalance >= 0);
       }
       
       if (!Array.isArray(pageData)) { 
@@ -208,7 +213,9 @@ export async function GET(
 ) {
   try {
     const { subnetId } = await params;
-    
+    const url = new URL(_request.url);
+    const network: "mainnet" | "fuji" = url.searchParams.get('network') === 'testnet' || url.searchParams.get('network') === 'fuji' ? 'fuji' : 'mainnet';
+
     if (!subnetId) {
       return NextResponse.json(
         { error: "Subnet ID is required" },
@@ -216,8 +223,9 @@ export async function GET(
       );
     }
 
+    const cacheKey = `${network}:${subnetId}`;
     const now = Date.now();
-    const cachedData = cacheStore.get(subnetId);
+    const cachedData = cacheStore.get(cacheKey);
 
     if (cachedData && (now - cachedData.timestamp) < CACHE_DURATION) {
       return NextResponse.json(
@@ -236,18 +244,18 @@ export async function GET(
       );
     }
 
-    const versionMap = await fetchValidatorVersions();
-    
+    const versionMap = await fetchValidatorVersions(network);
+
     const validators = await Promise.race([
-      fetchAllValidators(subnetId, versionMap),
-      new Promise<ValidatorData[]>((_, reject) => 
+      fetchAllValidators(subnetId, versionMap, network),
+      new Promise<ValidatorData[]>((_, reject) =>
         setTimeout(() => reject(new Error('Request timeout')), FETCH_TIMEOUT)
       )
     ]);
     
     const versionBreakdown = calculateVersionBreakdown(validators);
     
-    cacheStore.set(subnetId, {
+    cacheStore.set(cacheKey, {
       data: validators,
       timestamp: now,
       versionBreakdown,
@@ -275,4 +283,3 @@ export async function GET(
     );
   }
 }
-

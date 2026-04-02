@@ -74,8 +74,8 @@ export default function AvaxTokenPage() {
 
       const [supplyRes, cChainRes, icmRes] = await Promise.all([
         fetch("/api/avax-supply"),
-        fetch("/api/chain-stats/43114?timeRange=all"),
-        fetch("/api/icm-contract-fees?timeRange=all"),
+        fetch("/api/chain-stats/43114?timeRange=1y"),
+        fetch("/api/icm-contract-fees?timeRange=1y"),
       ]);
 
       if (!supplyRes.ok || !cChainRes.ok) {

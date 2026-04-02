@@ -13,6 +13,7 @@ import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/github-
 import { AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { CoreWalletTransactionButton } from "@/components/toolbox/components/CoreWalletTransactionButton";
+import { Success } from "@/components/toolbox/components/Success";
 import { ensureCoreNetworkMode, restoreCoreChain } from "@/components/toolbox/coreViem";
 
 // Import Genesis Wizard components
@@ -35,6 +36,7 @@ interface CreateChainProps extends BaseConsoleToolProps {
 function CreateChain({ onSuccess, embedded = false }: CreateChainProps) {
     const store = useCreateChainStore();
     const subnetId = store(state => state.subnetId);
+    const chainID = store(state => state.chainID);
     const setChainID = store(state => state.setChainID);
     const genesisData = store(state => state.genesisData);
     const setGenesisData = store(state => state.setGenesisData);
@@ -252,6 +254,10 @@ function CreateChain({ onSuccess, embedded = false }: CreateChainProps) {
                     )}
                 </Step>
             </Steps>
+
+            {chainID && (
+                <Success label="Chain Created" value={chainID} />
+            )}
         </div>
     );
 }
