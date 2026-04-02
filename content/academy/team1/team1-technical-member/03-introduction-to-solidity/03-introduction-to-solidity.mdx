@@ -8,6 +8,8 @@ icon: BookOpen
 
 Solidity is the primary language used to write smart contracts on the Avalanche C-Chain and on any custom Avalanche L1 that runs the Ethereum Virtual Machine. Before writing a single line of code it is worth understanding the execution environment it runs inside, why it matters, and how a plain text file becomes a live contract on a blockchain.
 
+For guided modules, quizzes, and hands-on exercises that follow this material end-to-end, work through Avalanche Academy’s **[Intro to Solidity](https://build.avax.network/academy/blockchain/solidity-foundry)** course (Solidity, Foundry, and deployment workflows).
+
 ## The Ethereum Virtual Machine
 
 A **virtual machine (VM)** is a software-based computer that runs inside another computer. It provides an isolated, deterministic execution environment: given the same instructions and the same starting state, a VM always produces the same result, regardless of the hardware or operating system underneath it.
@@ -20,7 +22,7 @@ The EVM operates on a stack-based architecture and understands a low-level langu
 
 A **smart contract** is a program deployed on a blockchain that executes automatically when its conditions are met. Because it lives inside the EVM, it is:
 
-- **Immutable**: once deployed, the code cannot be altered by any party, including the original developer.
+- **Immutable by default**: once deployed, the code at that address cannot be altered. (Upgradeable proxy patterns are an explicit architecture choice, not the default behavior.)
 - **Deterministic**: every node reaches the same result when running the same contract logic.
 - **Trustless**: users interact with the code itself, not with a company or server that could change behavior or go offline.
 - **Transparent**: the code and its full execution history are publicly verifiable by anyone.
@@ -35,9 +37,11 @@ Before writing Solidity you need a place to edit, compile, and test code. The mo
 
 **Visual Studio Code** with the [Solidity extension](https://marketplace.visualstudio.com/items?itemName=NomicFoundation.hardhat-solidity) provides syntax highlighting, inline error detection, and integration with build tools. Most professional Solidity projects are written here.
 
-**Foundry** is a fast, command-line-native development toolkit written in Rust. It includes `forge` for compiling and testing, `cast` for interacting with live contracts, and `anvil` for running a local EVM node. Foundry has become the industry standard for professional contract development on Avalanche.
+**Foundry** is a fast, command-line-native development toolkit written in Rust. It includes `forge` for compiling and testing, `cast` for interacting with live contracts, and `anvil` for running a local EVM node. It is widely used for professional contract development on Avalanche.
 
 **Hardhat** is a JavaScript/TypeScript-based framework that offers a similar feature set to Foundry and integrates well with Node.js tooling. Many existing projects and tutorials use Hardhat.
+
+The Academy course walks through **Remix**, **Foundry**, and writing your first contracts in structured lessons: use it alongside this page when you want step-by-step checkpoints: [Intro to Solidity](https://build.avax.network/academy/blockchain/solidity-foundry) → [Smart contracts](https://build.avax.network/academy/blockchain/solidity-foundry/03-smart-contracts/01-building-programs-on-blockchain).
 
 ## Licenses and the SPDX Identifier
 
@@ -77,7 +81,9 @@ Pinning a version (or a narrow range) prevents unexpected behavior when the proj
 
 ## The Compiler: From Solidity to Bytecode and ABI
 
-When you ask the Solidity compiler (`solc`) to compile a `.sol` file, it produces two outputs:
+When you run the Solidity compiler (`solc`) on a `.sol` file, it **parses** the source into a syntax tree, performs **semantic checks** (types, visibility, mutability), applies **optimization** passes, and then **emits** EVM bytecode plus contract metadata. Compile-time errors stop you from deploying code that violates Solidity or EVM rules.
+
+When compilation succeeds, the main artifacts you use day to day are:
 
 **Bytecode** is a sequence of low-level opcodes expressed as hexadecimal digits. This is what the EVM actually runs. It is the "machine code" of the smart contract world. You never read bytecode directly, but you do need to deploy it onto the blockchain.
 
@@ -93,7 +99,7 @@ Deploying a smart contract is a special kind of transaction. Here is what happen
 2. **Create transaction**: a deployment transaction is constructed. Instead of a recipient address it has a blank `to` field, and the `data` field contains the contract bytecode (plus any constructor arguments, ABI-encoded).
 3. **Sign and broadcast**: your wallet signs the transaction with your private key and broadcasts it to the network.
 4. **Execution by the EVM**: every validator node receives the transaction, executes the bytecode as the constructor runs, and sets up the contract's initial state in the EVM's state trie.
-5. **Address assignment**: the new contract's address is deterministically derived from the deployer's address and their current transaction nonce: `address = keccak256(deployer, nonce)[12:]`. No one chooses this address — it is computed.
+5. **Address assignment**: for the usual `CREATE` deployment path, the new contract's address is deterministically derived from the deployer's address and their current **nonce**: the EVM hashes the **RLP-encoded** pair `[sender, nonce]` with Keccak-256 and takes the last 20 bytes. No one chooses this address — it is computed. (The `CREATE2` opcode uses a different formula based on deployer, salt, and init code hash.)
 6. **Immutability**: from this point on, the code at that address cannot be changed. Users interact with the contract by sending transactions to its address.
 
 ### Types of Addresses
@@ -129,9 +135,13 @@ forge create src/MyContract.sol:MyContract \
 
 Replace the `--rpc-url` with the RPC endpoint of your custom L1 to deploy there instead. The ABI and bytecode are written to the `out/` directory after `forge build`, so you can copy the ABI into your frontend.
 
+To practice this flow with Academy-hosted exercises and solutions, use the **[Intro to Solidity](https://build.avax.network/academy/blockchain/solidity-foundry)** course (Foundry quickstart and Hello World parts).
+
 ---
 
 ## Core Language Features
+
+The summaries below are a compact reference. For progressive drills on types, control flow, and patterns, continue in the same **[Intro to Solidity](https://build.avax.network/academy/blockchain/solidity-foundry)** course.
 
 ### Visibility
 
@@ -168,7 +178,7 @@ uint16 mediumValue;     // 0–65,535
 uint256 largeBalance;   // 0–(2^256 - 1), most common
 ```
 
-**Signed integers (`int`)** can be negative or positive. `int8` ranges from −128 to 127, `int256` from −2¹²⁵ to 2¹²⁵ − 1. Use signed integers only when negative values are semantically meaningful.
+**Signed integers (`int`)** can be negative or positive. `int8` ranges from −128 to 127, `int256` from −2²⁵⁵ to 2²⁵⁵ − 1. Use signed integers only when negative values are semantically meaningful.
 
 **`string`** is a dynamically-sized UTF-8 encoded byte sequence. Strings are stored in memory or storage and cannot be indexed or compared directly with `==` (you must hash them first). They are expensive if long.
 
@@ -188,7 +198,7 @@ bytes4 selector = bytes4(keccak256("transfer(address,uint256)"));
 
 ### keccak256 vs SHA-256
 
-**`keccak256`** is the EVM's native hash function. It is a variant of SHA-3 that Ethereum adopted before the SHA-3 standard was finalized. It is used everywhere on-chain: computing contract addresses, creating storage slot keys for mappings, signing data, generating identifiers, and more. Call it as:
+**`keccak256`** is the EVM's native hash function. It uses the Keccak family that won the NIST SHA-3 competition, but Ethereum’s version keeps the **original Keccak padding**—so outputs differ from the **NIST-standard SHA-3** variant with the same name in some libraries. It is used everywhere on-chain: computing contract addresses, creating storage slot keys for mappings, signing data, generating identifiers, and more. Call it as:
 
 ```solidity
 bytes32 hash = keccak256(abi.encodePacked(msg.sender, block.timestamp));
@@ -305,14 +315,14 @@ function withdraw(uint256 amount) public onlyOwner validAmount(amount) {
 }
 ```
 
-`view` and `pure` are special built-in modifiers that tell the compiler — and callers — about the function's side effects. They are enforced at compile time: if you try to write to a state variable inside a `view` function, the compiler will reject it.
+`view` and `pure` are function state-mutability specifiers. They are enforced at compile time: if you try to write to a state variable inside a `view` function, the compiler will reject it.
 
 ### calldata, memory, and storage
 
 Reference types (`bytes`, `string`, arrays, structs) require a location specifier when used as function parameters or local variables:
 
 - **`storage`**: a reference to a slot in the contract's permanent state. Modifications through a `storage` pointer persist after the function returns. Using `storage` for a local variable is only possible for state variables.
-- **`memory`**: a temporary copy allocated for the duration of the function call. Modifications do not affect the original state variable. This is the default for most function parameters.
+- **`memory`**: a temporary copy allocated for the duration of the function call. Modifications do not affect the original state variable.
 - **`calldata`**: a read-only, non-modifiable area containing the raw input data of the external call. Using `calldata` instead of `memory` for `external` function parameters saves gas because no copy is made.
 
 ```solidity

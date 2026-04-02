@@ -8,6 +8,15 @@ icon: BookOpen
 
 One of Avalanche's most distinctive features is the ability for anyone to launch their own sovereign blockchain — called an **L1** — with custom virtual machines, tokenomics, access control, and fees. This section explains what that means, how it works under the hood, and the specific tools Avalanche provides to configure these chains.
 
+For hands-on work, Avalanche Academy’s **[Avalanche L1](https://build.avax.network/academy/avalanche-l1/avalanche-fundamentals)** track walks the full lifecycle: fundamentals, deploying permissioned and permissionless networks, tokenomics, interoperability, EVM customization, and access control. Follow the courses below in order (the same sequence as on Builder Hub):
+
+1. **[Avalanche Fundamentals](https://build.avax.network/academy/avalanche-l1/avalanche-fundamentals)** — consensus, multi-chain architecture, and VMs; includes **[Creating an L1](https://build.avax.network/academy/avalanche-l1/avalanche-fundamentals/04-creating-an-l1/01-creating-an-l1)** (nodes, chain creation, testing).
+2. **[Permissioned L1s](https://build.avax.network/academy/avalanche-l1/permissioned-l1s)** — Proof-of-Authority style networks and validator management patterns.
+3. **[L1 Native Tokenomics](https://build.avax.network/academy/avalanche-l1/l1-native-tokenomics)** — designing and operating native-token economics on an L1.
+4. **[Permissionless L1s](https://build.avax.network/academy/avalanche-l1/permissionless-l1s)** — moving from permissioned PoA toward permissionless PoS and staking-manager workflows.
+
+This page is a conceptual map; the Academy courses are where you run validators, edit genesis, wire bridges, and use the toolbox end to end.
+
 ## L1s vs L2s
 
 The terms L1 and L2 describe **where execution and settlement happen** in a blockchain stack.
@@ -38,15 +47,15 @@ For an Avalanche custom L1, the validators are the specific nodes that have been
 
 ### Minimum Nodes to Run a Blockchain
 
-Avalanche's consensus protocol requires a minimum of **5 validators** to operate a custom L1 in a way that provides safety and liveness. With fewer nodes, the network becomes fragile: if any one node goes offline, the chain can stall. Five validators provide sufficient redundancy for a functional, though not highly decentralized, chain.
+For production mainnet deployments, Avalanche guidance is to run at least **5 validators** for security and liveness. A chain can run with fewer in development/testing environments, but with too few validators the network becomes fragile: if one node goes offline, the chain can stall.
 
 In practice, production deployments use significantly more validators to ensure decentralization and fault tolerance. Many live L1s run with 10–20 validators, and larger networks run with many more.
 
 ### Minimum Uptime for Node Rewards
 
-On the Avalanche primary network, validators must maintain a minimum uptime of **80%** over their staking period to be eligible for staking rewards. An ongoing governance proposal (ACP-267) proposes raising this threshold to **90%** to incentivize better infrastructure. Always check the current [Avalanche documentation](https://build.avax.network/academy/avalanche-l1/permissionless-l1s) for the latest requirement, as this parameter is subject to governance changes.
+For **Primary Network** validators, published mainnet parameters currently document an **uptime requirement of 80%** over the staking period to remain eligible for staking rewards (see the [rewards formula](https://build.avax.network/docs/primary-network/validate/rewards-formula) docs). **[ACP-267](https://docs.avax.network/docs/acps/267-uptime-requirement-increase)** proposes raising that threshold to **90%**; requirements can change with network upgrades, so always confirm the live value in current Avalanche documentation before advising operators.
 
-Validators that fall below the uptime threshold receive no rewards for that period — they are not slashed (their stake is not taken), but they forfeit income.
+Validators that fall below the applicable uptime threshold receive no rewards for that period. They are not slashed (their stake is not taken), but they forfeit income.
 
 ## Roles: Admin, Manager, and Enabled
 
@@ -66,7 +75,7 @@ This role hierarchy follows the principle of least privilege: you grant the mini
 
 This is fundamentally different from "wrapped bridge" approaches where a centralized entity or a multisig controls the funds crossing the bridge. With AWM, the security is grounded in the consensus layer itself — the same validators that produce blocks also vouch for cross-chain messages.
 
-AWM is the foundation for **Teleporter** (the ICTT framework), which provides a higher-level API for cross-chain token transfers and contract calls. A technical Team1 member should understand AWM as the primitive and Teleporter as the developer-facing abstraction on top of it.
+AWM is the foundation for **Teleporter**, which provides a higher-level API for cross-chain messaging. **ICTT** (Interchain Token Transfer) is then built on top of that messaging stack for token bridging flows. A technical Team1 member should understand AWM as the primitive, Teleporter as the messaging layer abstraction, and ICTT as a token-transfer application layer.
 
 ## Precompiles
 
@@ -167,28 +176,52 @@ The `quorumNumerator` defines the percentage of stake that must co-sign a warp m
 
 ## Examples of Custom L1s
 
-The Avalanche ecosystem includes dozens of live custom L1s, each illustrating a different use case for sovereign blockchain infrastructure:
+The Avalanche ecosystem includes many live custom L1s. The snapshots below are deliberately detailed: they show how sovereignty shows up in practice. Avalanche is not just “a chain for one app.”
 
-**DFK Chain (DeFi Kingdoms)**: an app-specific gaming chain built for the DeFi Kingdoms RPG. By running on its own L1, the game's transactions do not compete for block space with other applications, enabling low fees and consistent performance during peak gameplay hours.
+### Beam (gaming, and the move to sovereign L1 validation)
 
-**Dexalot**: a CLOB (central limit order book) DEX running on its own L1. Moving order-matching off the C-Chain allows sub-second order placement and cancellation at negligible cost — something impossible on a shared general-purpose chain.
+[Beam](https://docs.onbeam.com/chain/builder/network-overview) is a gaming-focused network on Avalanche (EVM-compatible) used by studios and players for on-chain game economies, marketplaces, and adjacent tooling. For builders tracing IDs in explorers and RPC configs, Beam still publishes **Subnet ID**, **VM ID**, and **Blockchain ID** for mainnet and testnet—the same logical chain can be discussed as an Avalanche L1 under the post-Etna vocabulary.
 
-**Lamina1**: a metaverse-focused L1 designed for creators, with custom tokenomics to reward content creation and a permissioning model tailored to intellectual property management.
+What might matter for Team1 conversations is **why Beam talks about a migration**: Avalanche’s **Etna** upgrade and related changes (including **[ACP-77](https://docs.avax.network/docs/acps/77-reinventing-subnets)**) rework how dedicated networks run: L1s can have their **own validator set and fee model** without tying every validator to the same primary-network staking rules that applied to classic subnets. That shift is exactly the kind of “sovereignty upgrade” chains want when they need predictable costs, custom parameters, and a path toward **broader participation in securing the network**.
 
-**PLYR Chain**: a gaming infrastructure chain built by GG Chain with its own native token, designed to host multiple games under a single chain with shared liquidity.
+Beam’s public roadmap messaging adds another layer: the **Horizon** upgrade is described as introducing a **permissionless proof-of-stake** path where community members can run or delegate to **Beam Nodes**, with incentives aligned to the **BEAM** token and activity across Beam-native products (for example DEX, bridge, and marketplace surfaces in their ecosystem). Whether you are advising a game studio or operating nodes, the lesson is the same: **custom L1s are not frozen at launch**, they evolve with Avalanche protocol upgrades and the project’s own governance.
 
-**Gunzilla Off The Grid**: a gaming L1 with a custom gas token (GUN), deployed to support a AAA battle royale game, demonstrating how major game studios are using Avalanche L1s to bring on-chain economies to mainstream gaming.
+### Gunzilla, GUNZ, and *Off The Grid*
 
-Each of these chains benefits from the same qualities: full control over gas token, fee structure, transaction permissioning, and block production — while still being connected to the broader Avalanche ecosystem through AWM and Teleporter.
+[GUNZ](https://gunbygunz.com/) is Gunzilla Games’ **gaming economy chain** on Avalanche, announced as a customized subnet designed so gameplay can rely on **low-latency execution** and a **gas token aligned with the game economy** (rather than a shared public mempool priced for unrelated DeFi traffic). Gunzilla’s own launch materials describe GUNZ as built to feel natural to both Web3 and traditional players: **optional** on-chain ownership (for example **Play-to-Own** and NFT-based items) without forcing every player through wallet friction on day one.
+
+The flagship integration is ***Off The Grid*** (*OTG*), a AAA-style battle royale where narrative and progression intersect with digital ownership—Gunzilla positions GUNZ as the settlement layer for that economy first, with **SDK-style building blocks** (companion app, marketplace, minting, and related infrastructure) so other studios can ship on the same stack. For Avalanche operators, GUNZ is a textbook example of **app-specific fee assets**, **permissioning tuned for publishing** (studios care deeply about who can deploy what), and **performance requirements** that are hard to meet on a general-purpose shared chain.
+
+### FIFA Blockchain and the FIFA Collect migration
+
+In 2025 FIFA announced the **FIFA Blockchain**, a **custom Avalanche L1** aimed at global-scale digital products—starting with **[FIFA Collect](https://collect.fifa.com/)**, the federation’s official collectibles platform. Avalanche’s announcement emphasizes why an institution chooses an L1: **sub-second finality**, **low fees**, and **room to grow** without a single shared chain becoming the bottleneck during high-traffic moments (think tournament drops and major campaigns). The chain is **EVM-compatible**, which matters for **wallet support** (for example MetaMask and WalletConnect flows) and for reusing standard tooling.
+
+The **migration** itself is instructive for anyone advising enterprises. FIFA Collect’s [migration FAQ](https://collect.fifa.com/pages/migration-faq) spells out user-visible constraints that always surface in real deployments: a planned **maintenance window** (on the order of **~12 hours**), **no fee to move existing collectibles**, a shift from **non-EVM wallets** (for example prior Algorand-based wallets) to **EVM wallets** after cutover, and policy details around **balances** and **listings** that must be handled deliberately. **[Modex](https://modex.tech/)** is named as the long-running FIFA Collect partner leading marketplace and infrastructure work—another reminder that **sovereign L1s still ship with operator partners** responsible for product, compliance, and continuity.
+
+### Dexalot (central limit order book on a dedicated chain)
+
+[Dexalot](https://avax.network/about/blog/dexalot-launches-first-central-limit-order-book-subnet-on-avalanche-with-1m-in-incentives) is a decentralized exchange that runs a **central limit order book (CLOB)** on its **own Avalanche deployment** rather than competing for block space with unrelated contracts on the C-Chain. The architecture is deliberately **split**: users typically **deposit and withdraw** assets on the **C-Chain** (where liquidity and bridge endpoints already exist), while **matching, cancels, and trading loops** execute on Dexalot’s dedicated chain with its own **native gas token (ALOT)** and chain parameters tuned for **high-frequency order flow**.
+
+Why this matters technically: CLOB matching wants **deterministic ordering**, **tight latency**, and **predictable cost per cancel/replace**—workloads that degrade quickly when a single chain is also processing NFT mints, long-tail DeFi, and arbitrary contracts. Dexalot’s write-ups highlight **price–time priority** and **low per-action fees** as first-class goals—exactly the sort of outcome custom L1s exist to provide.
+
+### SK Planet and UPTN (enterprise loyalty at national scale)
+
+[SK Planet](https://www.skplanet.com/eng/business/blockchain), a major South Korean digital commerce and platform company, worked with **[AvaCloud](https://www.avacloud.io/)** to launch **UPTN**, a **dedicated Avalanche L1** backing Web3 features for SK’s consumer products. Avalanche’s [case study](https://avax.network/case-studies/how-sk-planet-revolutionized-customer-loyalty-on-chain) on the program is unusually concrete: SK started with **OK Cashbag**, a loyalty program with **tens of millions** of users and **tens of thousands** of retail partners, and reported **over 100,000** new sign-ups in the first **48 hours** after Web3-enabled rewards went live—evidence that **infrastructure must survive flash crowds**.
+
+Two enterprise patterns show up clearly. First, a **Web2.5** rollout: upgrade an existing product so most users keep their familiar flows while new benefits (for example **NFT-based rewards** and stronger ownership semantics) appear gradually. Second, **operational UX**: AvaCloud’s write-up calls out a **gasless relayer**-style capability so end users are not stuck paying gas in a loyalty context—something platform teams almost always ask for. SK’s roadmap also ties the same L1 directionally to **NFT ticketing** (including work with **Dreamus**) where on-chain authenticity and secondary-market rules matter as much as raw TPS.
+
+
+Each of these networks benefits from the same underlying idea: **full control over gas token, fee policy, permissioning, and block production**, while remaining able to interoperate with the wider Avalanche ecosystem through **AWM**, **Teleporter**, and **ICTT** where builders enable them.
 
 ---
 
 ## Key Takeaways
 
 - Avalanche L1s are sovereign blockchains with their own validator sets and consensus. They differ from L2s, which depend on a parent chain for security and finality.
-- A node is a computer running AvalancheGo; a validator node participates in consensus and requires a minimum uptime (~80–90%) to earn rewards.
-- At least 5 validators are needed to run a functional custom L1.
+- A node is a computer running AvalancheGo; a Primary Network validator must satisfy the network’s published uptime requirement (see current docs; **80%** in listed mainnet parameters, with **ACP-267** proposing **90%**) to earn rewards.
+- For production deployments, at least 5 validators are strongly recommended to run a resilient custom L1.
 - The admin/manager/enabled role hierarchy separates governance authority from operational authority, following the principle of least privilege.
 - AWM is the native cross-chain messaging primitive; it uses BLS aggregate signatures from validators to verify messages without a centralized bridge.
 - Precompiles are native contracts (implemented in Go) enabled at genesis that extend the EVM with capabilities like contract deployment control, native token minting, transaction allow-lists, dynamic fees, configurable rewards, and cross-chain messaging.
-- Live examples like DFK Chain, Dexalot, and Gunzilla demonstrate why app-specific sovereignty is valuable: dedicated block space, custom tokenomics, and tailored permissioning.
+- Live examples—Beam’s L1 validation roadmap, Gunzilla’s GUNZ for *Off The Grid*, FIFA’s dedicated chain and Collect migration, Dexalot’s CLOB L1, and SK Planet’s UPTN loyalty deployment—show why app-specific sovereignty matters: dedicated block space, migrations you can plan for, custom tokenomics, and permissioning that matches the product.
+- The Avalanche Academy **Avalanche L1** track (Fundamentals through Access Restriction) is the structured path to practice everything in this lesson on a real toolchain.

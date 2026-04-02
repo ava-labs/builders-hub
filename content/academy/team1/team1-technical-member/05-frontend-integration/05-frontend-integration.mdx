@@ -8,11 +8,13 @@ icon: BookOpen
 
 A smart contract sitting on-chain is powerful, but most users will never open a terminal or interact with the blockchain directly. A frontend bridges the gap: it reads contract state, lets users sign transactions with their wallets, and reacts to on-chain events in real time. This section walks through the tooling and patterns that make that possible.
 
+For an intensive, mentor-led path that combines product context with hands-on building (including smart contracts and privacy-focused exercises), see the **[Team1 Avalanche Bootcamp (LatAm) — product docs](https://team1-latam-bootcamp.gitbook.io/team1-docs/copy-of-product-docs)** on GitBook.
+
 ## Frontend Frameworks
 
 A **frontend framework** is a structured set of tools and conventions for building interactive web UIs. Rather than writing raw HTML, CSS, and JavaScript and managing DOM updates by hand, a framework provides reusable components, a state model, and a build pipeline.
 
-**React** is the most widely used framework in Web3. It represents the UI as a tree of components that re-render automatically when their data changes. **Next.js** extends React with file-based routing, server-side rendering, static site generation, and API routes — making it the default choice for production dApps that need both a frontend and a lightweight backend.
+**React** is the most widely used UI library in Web3. It represents the UI as a tree of components that re-render automatically when their data changes. **Next.js** extends React with file-based routing, server-side rendering, static site generation, and API routes, making it the default choice for production dApps that need both a frontend and a lightweight backend.
 
 Why does this matter for blockchain development? Smart contract frontends need to respond to asynchronous events (transaction confirmations, emitted events) and manage state that bridges off-chain user input and on-chain data. React's component and hook model is a natural fit for this.
 
@@ -138,6 +140,8 @@ export const config = createConfig({
 
 wagmi is built on top of **viem**, a lightweight TypeScript library for low-level EVM interactions, and is the standard choice for Next.js-based dApps targeting Avalanche.
 
+The **[Team1 LatAm bootcamp docs](https://team1-latam-bootcamp.gitbook.io/team1-docs/copy-of-product-docs)** are a useful complement when you want a structured week-long program that stresses real deployments and ecosystem support alongside frontend integration.
+
 ### Reading a Contract
 
 ```tsx
@@ -252,13 +256,13 @@ const { isLoading, isSuccess, data: receipt } = useWaitForTransactionReceipt({
 
 **WalletConnect** is an open protocol that creates an encrypted connection between a dApp and a mobile or hardware wallet. Instead of each dApp integrating with every wallet individually, wallets implement the WalletConnect protocol, and dApps connect to all of them through a single bridge.
 
-The main providers that build on top of WalletConnect are:
+Common tools and providers used with WalletConnect include:
 
-- **Reown (formerly WalletConnect)**: the canonical provider with the largest wallet support, session management, and a cloud relay for signaling.
-- **RainbowKit**: a React UI library that bundles WalletConnect + MetaMask + Coinbase Wallet + others behind a polished "connect wallet" modal. Pairs well with wagmi.
-- **ConnectKit**: another polished modal UI for wagmi, with customizable themes.
-- **Dynamic**: an auth platform that adds email/social login on top of wallet connections, aimed at consumer applications.
-- **Privy**: similar to Dynamic, focused on progressive wallet creation for non-crypto-native users.
+- **Reown (formerly WalletConnect)**: the canonical WalletConnect infrastructure provider (relay network, SDKs, and ecosystem tooling).
+- **RainbowKit**: a React wallet-connection UI kit that integrates WalletConnect, MetaMask, Coinbase Wallet, and others.
+- **ConnectKit**: another wallet-connection UI kit for wagmi-based apps.
+- **Dynamic**: an embedded-wallet and auth provider that can integrate WalletConnect alongside email/social login.
+- **Privy**: an embedded-wallet and auth provider, similarly focused on progressive onboarding for non-crypto-native users.
 
 A minimal setup with wagmi and RainbowKit:
 
