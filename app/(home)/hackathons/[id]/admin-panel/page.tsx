@@ -1,12 +1,19 @@
 import HackathonForm from "@/components/hackathons/admin-panel/HackathonForm";
 import { getHackathon } from "@/server/services/hackathons";
 import { redirect } from "next/navigation";
+import { getAuthSession } from "@/lib/auth/authSession";
 
 export default async function HackathonAdminPanel({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const session = await getAuthSession();
+  const customAttributes: string[] = (session?.user as any)?.custom_attributes ?? [];
+  if (!session || !customAttributes.includes("devrel")) {
+    redirect("/");
+  }
+
   const { id } = await params;
   const hackathon = await getHackathon(id);
 
