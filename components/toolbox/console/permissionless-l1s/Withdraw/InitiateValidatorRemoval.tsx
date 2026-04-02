@@ -116,6 +116,8 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
                                 { name: 'status', type: 'uint8' },
                                 { name: 'nodeID', type: 'bytes' },
                                 { name: 'startingWeight', type: 'uint64' },
+                                { name: 'sentNonce', type: 'uint64' },
+                                { name: 'receivedNonce', type: 'uint64' },
                                 { name: 'weight', type: 'uint64' },
                                 { name: 'startTime', type: 'uint64' },
                                 { name: 'endedAt', type: 'uint64' }
@@ -130,18 +132,18 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
                     abi: ValidatorManagerAbi,
                     functionName: 'getValidator',
                     args: [validationID as `0x${string}`]
-                }) as { status: number; startingWeight: bigint; weight: bigint; startTime: bigint };
+                }) as { status: number; startingWeight: bigint; sentNonce: bigint; receivedNonce: bigint; weight: bigint; startTime: bigint; endedAt: bigint };
 
                 const statusNames: Record<number, string> = {
                     0: 'Unknown', 1: 'Pending', 2: 'Active', 3: 'Removing', 4: 'Completed'
                 };
-                
+
                 if (Number(validatorInfo.status) !== 2) {
                     throw new Error(`Validator is not active. Current status: ${statusNames[validatorInfo.status] || validatorInfo.status}. Only active validators can be removed.`);
                 }
 
                 // Note: We no longer block on weight > startingWeight check here.
-                // This check was causing false positives due to state sync issues between 
+                // This check was causing false positives due to state sync issues between
                 // delegation completion and validator weight updates.
                 // The contract itself will enforce proper delegation removal.
 
@@ -149,11 +151,14 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
                 if (!isGenesisValidator && stakingValidatorInfo.minStakeDuration > 0n) {
                     const currentTime = BigInt(Math.floor(Date.now() / 1000));
                     const endTime = validatorInfo.startTime + stakingValidatorInfo.minStakeDuration;
-                    
+
                     if (currentTime < endTime) {
                         const remaining = endTime - currentTime;
-                        const hours = Number(remaining) / 3600;
-                        throw new Error(`Minimum stake duration has not passed. Time remaining: ${hours.toFixed(1)} hours.`);
+                        const totalSeconds = Number(remaining);
+                        const hours = Math.floor(totalSeconds / 3600);
+                        const minutes = Math.floor((totalSeconds % 3600) / 60);
+                        const unlockDate = new Date(Number(endTime) * 1000).toUTCString();
+                        throw new Error(`Minimum stake duration has not passed. Time remaining: ${hours}h ${minutes}m. Earliest removal: ${unlockDate}`);
                     }
                 }
             } catch (preCheckErr) {
