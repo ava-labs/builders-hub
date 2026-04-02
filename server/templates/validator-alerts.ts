@@ -287,3 +287,231 @@ export function expiryCriticalTemplate(params: {
   );
   return { subject, html, text };
 }
+
+// ---------------------------------------------------------------------------
+// L1 Validator Balance Alert (tiered: notice / urgent)
+// ---------------------------------------------------------------------------
+
+function formatAvax(nAvax: number): string {
+  return (nAvax / 1_000_000_000).toFixed(2);
+}
+
+function formatDays(days: number): string {
+  if (!Number.isFinite(days)) return 'unknown';
+  if (days < 1) return '<1 day';
+  if (days < 10) return `${days.toFixed(1)} days`;
+  return `${Math.round(days)} days`;
+}
+
+// ---------------------------------------------------------------------------
+// Welcome Email
+// ---------------------------------------------------------------------------
+
+export function welcomeAlertTemplate(params: {
+  alertId: string;
+  nodeId: string;
+  label: string | null;
+  subnetId: string;
+  chainName: string;
+  uptime?: number | null;
+  currentVersion?: string | null;
+  latestVersion?: string | null;
+  expiryDate?: string | null;
+  daysLeft?: number | null;
+  remainingBalance?: number | null;
+  balanceDaysRemaining?: number | null;
+  securityEnabled: boolean;
+}): { subject: string; html: string; text: string } {
+  const name = params.label ? `${params.label} (${params.nodeId})` : params.nodeId;
+  const isL1 = params.subnetId !== 'primary';
+  const latestVersion = params.latestVersion ?? null;
+  const currentVersion = params.currentVersion ?? 'Unknown';
+  const versionStatus = latestVersion
+    ? (latestVersion === currentVersion ? 'Up to date' : `Update available (${latestVersion})`)
+    : 'Latest version unavailable';
+
+  const rows = [
+    dataRow('Validator', name, 'white'),
+    dataRow('Network', isL1 ? params.chainName : 'Primary Network', '#89B4FA'),
+    dataRow('Current Version', currentVersion, '#D1D5DB'),
+    dataRow('Version Status', versionStatus, latestVersion && latestVersion !== currentVersion ? '#F59E0B' : '#34D399'),
+  ];
+
+  if (!isL1 && params.uptime !== null && params.uptime !== undefined) {
+    rows.push(dataRow('Current Uptime', `${params.uptime.toFixed(1)}%`, '#D1D5DB'));
+  }
+  if (!isL1 && params.expiryDate) {
+    const expiryLabel = params.daysLeft !== null && params.daysLeft !== undefined
+      ? `${params.daysLeft} day(s) left`
+      : params.expiryDate;
+    rows.push(dataRow('Stake Expiry', expiryLabel, '#D1D5DB'));
+  }
+  if (isL1 && params.remainingBalance !== null && params.remainingBalance !== undefined) {
+    rows.push(dataRow('Remaining Balance', `${formatAvax(params.remainingBalance)} AVAX`, '#D1D5DB'));
+  }
+  if (isL1 && params.balanceDaysRemaining !== null && params.balanceDaysRemaining !== undefined) {
+    rows.push(dataRow('Projected Runway', formatDays(params.balanceDaysRemaining), '#D1D5DB'));
+  }
+
+  const subject = `Welcome: Validator alerts enabled for ${params.nodeId}`;
+  const text = `Your validator alert subscription is now active for ${name}. Current version: ${currentVersion}. Status: ${versionStatus}.`;
+
+  const html = wrapTemplate(
+    'Welcome to Validator Alerts',
+    section(
+      '#3B82F6',
+      'Your subscription is active — here is your current validator status snapshot',
+      dataTable(rows.join('')) +
+      `<p style="font-size: 13px; margin: 12px 0 0 0;">Security checks: ${params.securityEnabled ? 'Enabled' : 'Disabled'} | Explorer: ${explorerLink(params.nodeId)}</p>`,
+      'You will receive alerts based on your configured thresholds and preferences.'
+    ),
+    '#3B82F6',
+    params.alertId
+  );
+
+  return { subject, html, text };
+}
+
+export function balanceLowAlertTemplate(params: {
+  alertId: string;
+  nodeId: string;
+  label: string | null;
+  chainName: string;
+  remainingBalance: number;
+  thresholdDays: number;
+  daysRemaining: number;
+  urgency: 'notice' | 'urgent';
+}): { subject: string; html: string; text: string } {
+  const name = params.label ? `${params.label} (${params.nodeId})` : params.nodeId;
+  const balanceAvax = formatAvax(params.remainingBalance);
+  const daysRemainingLabel = formatDays(params.daysRemaining);
+  const prefix = params.urgency === 'urgent' ? '⚠️ ' : '';
+  const subject = `${prefix}Low Balance: ${params.chainName} validator — ${daysRemainingLabel} runway left`;
+  const text = `${prefix}Your L1 validator ${name} on ${params.chainName} has approximately ${daysRemainingLabel} of fee runway remaining (threshold: ${params.thresholdDays} days).`;
+
+  const borderColor = params.urgency === 'urgent' ? '#EF4444' : '#F59E0B';
+  const heading = params.urgency === 'urgent'
+    ? 'Your L1 validator balance is critically low'
+    : 'Your L1 validator balance is running low';
+  const cooldown = params.urgency === 'urgent' ? '12 hours' : '24 hours';
+
+  const html = wrapTemplate(
+    `${prefix}L1 Validator Balance Alert`,
+    section(
+      borderColor,
+      heading,
+      dataTable(
+        dataRow('Validator', name, 'white') +
+        dataRow('L1 Chain', params.chainName, '#89B4FA') +
+        dataRow('Remaining Balance', `${balanceAvax} AVAX`, borderColor) +
+        dataRow('Projected Runway', daysRemainingLabel, borderColor) +
+        dataRow('Alert Threshold', `${params.thresholdDays} days`, '#D1D5DB')
+      ) +
+      `<p style="font-size: 13px; margin: 12px 0 0 0;">View on explorer: ${explorerLink(params.nodeId)}</p>`,
+      `We'll alert you again in ${cooldown} if balance is not topped up.`
+    ),
+    borderColor,
+    params.alertId
+  );
+  return { subject, html, text };
+}
+
+// ---------------------------------------------------------------------------
+// L1 Validator Balance — Critical (< 5% of threshold)
+// ---------------------------------------------------------------------------
+
+export function balanceCriticalTemplate(params: {
+  alertId: string;
+  nodeId: string;
+  label: string | null;
+  chainName: string;
+  remainingBalance: number;
+  daysRemaining: number;
+}): { subject: string; html: string; text: string } {
+  const name = params.label ? `${params.label} (${params.nodeId})` : params.nodeId;
+  const balanceAvax = formatAvax(params.remainingBalance);
+  const subject = `🚨 Validator Nearly Empty: ${params.chainName} — ${formatDays(params.daysRemaining)} runway left`;
+  const text = `CRITICAL: Your L1 validator ${name} on ${params.chainName} has approximately ${formatDays(params.daysRemaining)} of fee runway remaining (${balanceAvax} AVAX). Immediate top-up required.`;
+  const html = wrapTemplate(
+    '🚨 L1 Validator Balance Critical',
+    section(
+      '#EF4444',
+      'Immediate action required — your validator is nearly out of balance',
+      dataTable(
+        dataRow('Validator', name, 'white') +
+        dataRow('L1 Chain', params.chainName, '#89B4FA') +
+        dataRow('Remaining Balance', `${balanceAvax} AVAX`, '#EF4444') +
+        dataRow('Projected Runway', formatDays(params.daysRemaining), '#EF4444')
+      ) +
+      `<p style="font-size: 13px; color: #EF4444; margin: 12px 0 0 0; font-weight: bold;">Your validator will be deactivated when balance reaches zero.</p>` +
+      `<p style="font-size: 13px; margin: 8px 0 0 0;">View on explorer: ${explorerLink(params.nodeId)}</p>`,
+      'This is a final reminder — no further balance alerts will be sent for this validator.'
+    ),
+    '#EF4444',
+    params.alertId
+  );
+  return { subject, html, text };
+}
+
+// ---------------------------------------------------------------------------
+// Security Alerts
+// ---------------------------------------------------------------------------
+
+export function securityPortExposedTemplate(params: {
+  alertId: string;
+  nodeId: string;
+  label: string | null;
+  ip: string;
+  port: number;
+}): { subject: string; html: string; text: string } {
+  const name = params.label ? `${params.label} (${params.nodeId})` : params.nodeId;
+  const endpoint = `${params.ip}:${params.port}`;
+  const subject = `⚠️ Security Alert: API port ${params.port} appears publicly reachable`;
+  const text = `Your validator ${name} appears to have port ${params.port} exposed at ${endpoint}. This endpoint should generally not be publicly accessible on validator nodes.`;
+  const html = wrapTemplate(
+    '⚠️ Validator Security Alert',
+    section(
+      '#EF4444',
+      'Public API port exposure detected',
+      dataTable(
+        dataRow('Validator', name, 'white') +
+        dataRow('Endpoint', endpoint, '#EF4444') +
+        dataRow('Risk', 'Public access to validator API port', '#EF4444')
+      ) +
+      '<p style="font-size: 13px; margin: 12px 0 0 0;">Recommended remediation: restrict port 9650 to localhost or trusted internal networks, and confirm firewall rules.</p>',
+      'This alert repeats weekly while exposure remains detectable.'
+    ),
+    '#EF4444',
+    params.alertId
+  );
+  return { subject, html, text };
+}
+
+export function securityIpChangedTemplate(params: {
+  alertId: string;
+  nodeId: string;
+  label: string | null;
+  previousIp: string;
+  currentIp: string;
+}): { subject: string; html: string; text: string } {
+  const name = params.label ? `${params.label} (${params.nodeId})` : params.nodeId;
+  const subject = `Security Notice: Validator IP changed (${params.previousIp} → ${params.currentIp})`;
+  const text = `Your validator ${name} public IP changed from ${params.previousIp} to ${params.currentIp}. Confirm this change was intentional.`;
+  const html = wrapTemplate(
+    'Validator IP Change Detected',
+    section(
+      '#F59E0B',
+      'A validator network identity change was detected',
+      dataTable(
+        dataRow('Validator', name, 'white') +
+        dataRow('Previous IP', params.previousIp, '#D1D5DB') +
+        dataRow('Current IP', params.currentIp, '#F59E0B')
+      ) +
+      '<p style="font-size: 13px; margin: 12px 0 0 0;">If this change was not expected, review your infrastructure and key management immediately.</p>',
+      'This notification is informational and helps detect unexpected migrations or compromise.'
+    ),
+    '#F59E0B',
+    params.alertId
+  );
+  return { subject, html, text };
+}
