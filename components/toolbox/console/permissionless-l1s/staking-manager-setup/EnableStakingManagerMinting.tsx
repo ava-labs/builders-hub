@@ -53,6 +53,7 @@ function EnableStakingManagerMinting({ initialTokenType }: EnableStakingManagerM
 
   // ERC20-specific state
   const [stakingTokenAddress, setStakingTokenAddress] = useState<string>("");
+  const [manualStakingManagerAddress, setManualStakingManagerAddress] = useState<string>("");
   const [isChecking, setIsChecking] = useState(false);
   const [accessControlType, setAccessControlType] = useState<AccessControlType>('unknown');
   const [isGranting, setIsGranting] = useState(false);
@@ -61,7 +62,9 @@ function EnableStakingManagerMinting({ initialTokenType }: EnableStakingManagerM
   const [tokenSymbol, setTokenSymbol] = useState<string>("");
 
   const isNative = tokenType === 'native';
-  const stakingManagerAddress = isNative ? nativeStakingManagerAddress : erc20StakingManagerAddress;
+  const stakingManagerAddress = isNative
+    ? nativeStakingManagerAddress
+    : (erc20StakingManagerAddress || manualStakingManagerAddress);
 
   // Initialize ExampleERC20 hook for grantRole
   const exampleERC20 = useExampleERC20(stakingTokenAddress || null);
@@ -154,11 +157,11 @@ function EnableStakingManagerMinting({ initialTokenType }: EnableStakingManagerM
   }, [stakingTokenAddress, isNative]);
 
   async function handleGrantMinterRole() {
-    if (!stakingTokenAddress || !erc20StakingManagerAddress) return;
+    if (!stakingTokenAddress || !stakingManagerAddress) return;
 
     setIsGranting(true);
     try {
-      const hash = await exampleERC20.grantRole(MINTER_ROLE, erc20StakingManagerAddress);
+      const hash = await exampleERC20.grantRole(MINTER_ROLE, stakingManagerAddress);
       await chainPublicClient!.waitForTransactionReceipt({ hash: hash as `0x${string}` });
       setGrantTxHash(hash);
     } catch (error) {
@@ -258,14 +261,13 @@ function EnableStakingManagerMinting({ initialTokenType }: EnableStakingManagerM
         </div>
 
         {!erc20StakingManagerAddress && (
-          <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800">
-            <div className="flex items-start gap-3">
-              <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
-              <p className="text-xs text-amber-700 dark:text-amber-300 leading-relaxed">
-                No ERC20 staking manager address found. Please deploy and initialize an ERC20 Token Staking Manager first.
-              </p>
-            </div>
-          </div>
+          <EVMAddressInput
+            label="ERC20 Staking Manager Address"
+            value={manualStakingManagerAddress}
+            onChange={setManualStakingManagerAddress}
+            disabled={isGranting}
+            helperText="Enter your ERC20 Staking Manager proxy address from the deploy step"
+          />
         )}
 
         <EVMAddressInput
@@ -312,7 +314,7 @@ function EnableStakingManagerMinting({ initialTokenType }: EnableStakingManagerM
                   variant="primary"
                   onClick={handleGrantMinterRole}
                   loading={isGranting}
-                  disabled={!erc20StakingManagerAddress || isGranting || !!grantTxHash}
+                  disabled={!stakingManagerAddress || isGranting || !!grantTxHash}
                 >
                   Grant MINTER_ROLE to Staking Manager
                 </Button>

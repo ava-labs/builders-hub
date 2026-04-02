@@ -109,9 +109,22 @@ export function useExampleERC20(tokenAddress: string | null): ExampleERC20Hook {
       throw new Error('Wallet not connected or contract not ready');
     }
 
+    // Use inline ABI for grantRole — the compiled ExampleERC20 ABI may not
+    // include inherited AccessControl functions
+    const grantRoleAbi = [{
+      type: 'function' as const,
+      name: 'grantRole',
+      inputs: [
+        { name: 'role', type: 'bytes32' },
+        { name: 'account', type: 'address' }
+      ],
+      outputs: [],
+      stateMutability: 'nonpayable' as const,
+    }];
+
     const writePromise = walletClient!.writeContract({
       address: tokenAddress as `0x${string}`,
-      abi: ExampleERC20Abi.abi,
+      abi: grantRoleAbi,
       functionName: 'grantRole',
       args: [role as `0x${string}`, account as `0x${string}`],
       chain: viemChain,
