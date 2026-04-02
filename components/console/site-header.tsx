@@ -44,7 +44,7 @@ export function SiteHeader() {
   };
 
   return (
-    <div className="sticky top-0 z-30 rounded-t-2xl">
+    <div className="sticky top-0 z-30 rounded-t-2xl bg-white dark:bg-zinc-900">
     <header className="flex h-(--header-height) shrink-0 items-center gap-2 border-b backdrop-blur transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height) overflow-x-hidden min-w-0">
       <div className="flex w-full items-center gap-1 px-4 lg:gap-2 lg:px-6 min-w-0">
         <SidebarTrigger className="-ml-1" />
