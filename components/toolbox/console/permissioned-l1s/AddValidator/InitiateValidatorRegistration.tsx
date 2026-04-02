@@ -10,6 +10,7 @@ import { getValidationIdHex } from '@/components/toolbox/coreViem/hooks/getValid
 import { Alert } from '@/components/toolbox/components/Alert';
 import { useValidatorManager } from '@/components/toolbox/hooks/contracts';
 import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
+import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 
 interface InitiateValidatorRegistrationProps {
   subnetId: string;
@@ -43,11 +44,13 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
   refetchOwnership,
   ownershipError,
 }) => {
+  const useV2 = useFeatureFlag("console-step-flow-v2", false);
   const { walletEVMAddress: connectedAddress } = useWalletStore();
   const chainPublicClient = useChainPublicClient();
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setErrorState] = useState<string | null>(null);
   const [txSuccess, setTxSuccess] = useState<string | null>(null);
+  const [revertedHash, setRevertedHash] = useState<string | null>(null);
 
   // Initialize validator manager hook
   const validatorManager = useValidatorManager(validatorManagerAddress || null);
@@ -91,6 +94,7 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
   const handleInitiateValidatorRegistration = async () => {
     setErrorState(null);
     setTxSuccess(null);
+    setRevertedHash(null);
 
     if (!connectedAddress) {
       setErrorState("Wallet not connected");
@@ -147,8 +151,9 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
         receipt = await chainPublicClient!.waitForTransactionReceipt({ hash: hash as `0x${string}` });
 
         if (receipt.status === 'reverted') {
-          setErrorState(`Transaction reverted. Hash: ${hash}`);
-          onError(`Transaction reverted. Hash: ${hash}`);
+          setRevertedHash(hash as string);
+          setErrorState(`Transaction failed with status: reverted`);
+          onError(`Transaction failed with status: reverted`);
           return;
         }
 
@@ -189,8 +194,9 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
           const fallbackReceipt = await chainPublicClient!.waitForTransactionReceipt({ hash: fallbackHash as `0x${string}` });
 
           if (fallbackReceipt.status === 'reverted') {
-            setErrorState(`Fallback transaction reverted. Hash: ${fallbackHash}`);
-            onError(`Fallback transaction reverted. Hash: ${fallbackHash}`);
+            setRevertedHash(fallbackHash as string);
+            setErrorState(`Fallback transaction failed with status: reverted`);
+            onError(`Fallback transaction failed with status: reverted`);
             return;
           }
 
@@ -366,6 +372,14 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
 
       {error && (
         <Alert variant="error">{error}</Alert>
+      )}
+
+      {useV2 && revertedHash && (
+        <Success
+          label="Reverted Transaction"
+          value={revertedHash}
+          variant="error"
+        />
       )}
 
       {txSuccess && (

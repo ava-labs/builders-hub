@@ -19,17 +19,19 @@ import { useEffect, useState, useMemo } from "react";
 export function useFeatureFlag(flagName: string, defaultValue: boolean = false): boolean {
   const posthog = usePostHog();
   
-  // Helper function to get the value from environment variable
-  // This function does NOT depend on PostHog, it always works
+  // Static env var map — Next.js only inlines literal process.env.NEXT_PUBLIC_* references,
+  // so dynamic bracket access (process.env[computed]) always returns undefined.
+  // Add new flags here when needed.
   const getEnvFlagValue = useMemo((): boolean | null => {
     if (typeof window === 'undefined') return null;
-    
-    const envFlagName = `NEXT_PUBLIC_FEATURE_FLAG_${flagName.toUpperCase().replace(/-/g, '_')}`;
-    const envValue = process.env[envFlagName];
-    
+
+    const envVars: Record<string, string | undefined> = {
+      'console-step-flow-v2': process.env.NEXT_PUBLIC_FEATURE_FLAG_CONSOLE_STEP_FLOW_V2,
+    };
+
+    const envValue = envVars[flagName];
     if (envValue !== undefined && envValue !== null) {
-      const boolValue = envValue === 'true' || envValue === '1';
-      return boolValue;
+      return envValue === 'true' || envValue === '1';
     }
     return null;
   }, [flagName]);

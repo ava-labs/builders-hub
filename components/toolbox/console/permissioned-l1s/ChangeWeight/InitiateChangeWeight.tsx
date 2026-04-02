@@ -10,6 +10,7 @@ import { Alert } from '@/components/toolbox/components/Alert';
 import { MultisigOption } from '@/components/toolbox/components/MultisigOption';
 import { useValidatorManager } from '@/components/toolbox/hooks/contracts';
 import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
+import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 
 interface InitiateChangeWeightProps {
   subnetId: string;
@@ -45,6 +46,7 @@ const InitiateChangeWeight: React.FC<InitiateChangeWeightProps> = ({
   refetchOwnership,
   ownershipError,
 }) => {
+  const useV2 = useFeatureFlag("console-step-flow-v2", false);
   const { walletEVMAddress: connectedAddress } = useWalletStore();
   const chainPublicClient = useChainPublicClient();
   const [validation, setValidation] = useState<ValidationSelection>({
@@ -59,6 +61,7 @@ const InitiateChangeWeight: React.FC<InitiateChangeWeightProps> = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setErrorState] = useState<string | null>(null);
   const [txSuccess, setTxSuccess] = useState<string | null>(null);
+  const [revertedHash, setRevertedHash] = useState<string | null>(null);
 
   useEffect(() => {
     if (resetForm) {
@@ -74,6 +77,7 @@ const InitiateChangeWeight: React.FC<InitiateChangeWeightProps> = ({
   const handleInitiateChangeWeight = async () => {
     setErrorState(null);
     setTxSuccess(null);
+    setRevertedHash(null);
 
     if (!connectedAddress) {
       setErrorState("Wallet not connected");
@@ -144,8 +148,9 @@ const InitiateChangeWeight: React.FC<InitiateChangeWeightProps> = ({
       });
 
       if (receipt.status === 'reverted') {
-        setErrorState(`Transaction reverted. Hash: ${hash}`);
-        onError(`Transaction reverted. Hash: ${hash}`);
+        setRevertedHash(hash as string);
+        setErrorState(`Transaction failed with status: reverted`);
+        onError(`Transaction failed with status: reverted`);
         return;
       }
 
@@ -281,6 +286,14 @@ const InitiateChangeWeight: React.FC<InitiateChangeWeightProps> = ({
 
       {error && (
         <Alert variant="error">{error}</Alert>
+      )}
+
+      {useV2 && revertedHash && (
+        <Success
+          label="Reverted Transaction"
+          value={revertedHash}
+          variant="error"
+        />
       )}
 
       {txSuccess && (
