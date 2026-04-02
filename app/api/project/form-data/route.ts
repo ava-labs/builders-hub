@@ -17,19 +17,11 @@ export const POST = withAuth(async (request: Request, _context, session) => {
 
     const hackathonId: string = body.hackathonId?.trim()
     const incomingProjectId: string = body.projectId?.trim() ?? ''
-    const stageIndex: number = Number(body.stageIndex)
     const values: StageSubmitValues = body.values ?? {}
 
     if (!hackathonId) {
       return NextResponse.json(
         { error: 'hackathonId is required' },
-        { status: 400 }
-      )
-    }
-
-    if (!Number.isInteger(stageIndex) || stageIndex < 0) {
-      return NextResponse.json(
-        { error: 'stageIndex must be a valid non-negative integer' },
         { status: 400 }
       )
     }
@@ -131,8 +123,14 @@ export const POST = withAuth(async (request: Request, _context, session) => {
         },
         select: {
           id: true,
+          form_data: true,
         },
       })
+
+      const mergedFormData: StageSubmitValues = {
+        ...((existingFormData?.form_data as StageSubmitValues | null) ?? {}),
+        ...values,
+      }
 
       const savedFormData = existingFormData
         ? await tx.formData.update({
@@ -140,7 +138,7 @@ export const POST = withAuth(async (request: Request, _context, session) => {
               id: existingFormData.id,
             },
             data: {
-              form_data: values,
+              form_data: mergedFormData,
               timestamp: new Date(),
               origin: 'stage-submit',
             },
@@ -181,6 +179,78 @@ export const POST = withAuth(async (request: Request, _context, session) => {
       error instanceof Error ? error.message : 'Unknown error'
 
     console.error('Error POST /api/project/stage-submit:', error)
+
+    return NextResponse.json(
+      { error: message },
+      { status: 500 }
+    )
+  }
+})
+
+export const GET = withAuth(async (request: Request, _context, session) => {
+  try {
+    const { searchParams } = new URL(request.url)
+
+    const projectId: string = searchParams.get('projectId')?.trim() ?? ''
+
+    if (!projectId) {
+      return NextResponse.json(
+        { error: 'projectId is required' },
+        { status: 400 }
+      )
+    }
+
+    const sessionUserId: string = session.user.id
+
+    const project = await prisma.project.findFirst({
+      where: {
+        id: projectId,
+        members: {
+          some: {
+            user_id: sessionUserId,
+          },
+        },
+      },
+      select: {
+        id: true,
+      },
+    })
+
+    if (!project) {
+      return NextResponse.json(
+        { error: 'Project not found or access denied' },
+        { status: 404 }
+      )
+    }
+
+    const formData = await prisma.formData.findFirst({
+      where: {
+        project_id: projectId,
+      },
+      orderBy: {
+        timestamp: 'desc',
+      },
+      select: {
+        id: true,
+        form_data: true,
+        timestamp: true,
+        origin: true,
+        project_id: true,
+      },
+    })
+
+    return NextResponse.json(
+      {
+        success: true,
+        formData: formData ?? null,
+      },
+      { status: 200 }
+    )
+  } catch (error: unknown) {
+    const message: string =
+      error instanceof Error ? error.message : 'Unknown error'
+
+    console.error('Error GET /api/project/form-data:', error)
 
     return NextResponse.json(
       { error: message },

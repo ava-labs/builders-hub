@@ -21,6 +21,7 @@ import { X } from 'lucide-react'
 import TeamMembersWrapper from './team-members-wrapper'
 import { getAuthSession } from '@/lib/auth/authSession'
 import { useProjectByHackaUser } from '@/hooks/use-get-project-hacka-user'
+import { useProjectFormData } from '../../hooks/useGetFormDataFromProject'
 
 type StageSubmitValues = Record<string, string | string[]>
 
@@ -71,6 +72,9 @@ export default function StageSubmitPageContent({
     userId: user?.id ?? '',
   })
   const [resolvedProjectId, setResolvedProjectId] = React.useState<string>(projectId ?? '')
+  const { formData, loading: loadingFormData } = useProjectFormData({
+    projectId: projectId || '',
+  })
 
   const form = useForm<StageSubmitValues>({
     defaultValues: buildDefaultValues(stage),
@@ -78,9 +82,22 @@ export default function StageSubmitPageContent({
   })
 
   React.useEffect((): void => {
-    form.reset(buildDefaultValues(stage))
     setLinkDrafts({})
-  }, [stage, form])
+
+    if (!projectId) {
+      form.reset(buildDefaultValues(stage))
+      return
+    }
+
+    if (loading) {
+      return
+    }
+
+    form.reset({
+      ...buildDefaultValues(stage),
+      ...(formData ?? {}),
+    })
+  }, [projectId, formData, loading, stage, form])
 
   React.useEffect((): void => {
     setResolvedProjectId(projectId ?? '')
