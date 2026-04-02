@@ -117,9 +117,9 @@ async function fetchAllValidators(subnetId: string, versionMap: Map<string, stri
       // Both Primary Network and L1 validators use page.result.validators
       let pageData: any[] = page.result?.validators || [];
       
-      // For L1 validators, filter by remainingBalance > 0
+      // For L1 validators, keep zero balances so critical alerts can fire.
       if (!isPrimaryNetwork) {
-        pageData = pageData.filter((v: any) => v.remainingBalance > 0);
+        pageData = pageData.filter((v: any) => Number.isFinite(v.remainingBalance) && v.remainingBalance >= 0);
       }
       
       if (!Array.isArray(pageData)) { 

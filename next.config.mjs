@@ -62,6 +62,173 @@ const config = {
   },
   async redirects() {
     return [
+      // ── Folder-index 500 fixes (no index.mdx → redirect to first child) ──
+      {
+        source: '/docs/api-reference/webhook-api/tutorials',
+        destination: '/docs/api-reference/webhook-api/tutorials/erc20transfer',
+        permanent: false,
+      },
+      {
+        source: '/docs/avalanche-l1s/add-utility',
+        destination: '/docs/avalanche-l1s/add-utility/deploy-smart-contract',
+        permanent: false,
+      },
+      {
+        source: '/docs/avalanche-l1s/deploy-a-avalanche-l1',
+        destination: '/docs/avalanche-l1s/deploy-a-avalanche-l1/cli_structure',
+        permanent: false,
+      },
+      {
+        source: '/docs/avalanche-l1s/golang-vms',
+        destination: '/docs/avalanche-l1s/golang-vms/simple-golang-vm',
+        permanent: false,
+      },
+      {
+        source: '/docs/avalanche-l1s/precompiles',
+        destination: '/docs/avalanche-l1s/precompiles/allowlist-interface',
+        permanent: false,
+      },
+      {
+        source: '/docs/avalanche-l1s/rust-vms',
+        destination: '/docs/avalanche-l1s/rust-vms/intro-avalanche-rs',
+        permanent: false,
+      },
+      {
+        source: '/docs/avalanche-l1s/timestamp-vm',
+        destination: '/docs/avalanche-l1s/timestamp-vm/introduction',
+        permanent: false,
+      },
+      {
+        source: '/docs/avalanche-l1s/upgrade',
+        destination: '/docs/avalanche-l1s/upgrade/considerations',
+        permanent: false,
+      },
+      {
+        source: '/docs/cross-chain/avalanche-warp-messaging',
+        destination: '/docs/cross-chain/avalanche-warp-messaging/overview',
+        permanent: false,
+      },
+      {
+        source: '/docs/cross-chain/icm-contracts',
+        destination: '/docs/cross-chain/icm-contracts/getting-started',
+        permanent: false,
+      },
+      {
+        source: '/docs/nodes/chain-configs/avalanche-l1s',
+        destination: '/docs/nodes/chain-configs/avalanche-l1s/subnet-evm',
+        permanent: false,
+      },
+      {
+        source: '/docs/nodes/maintain',
+        destination: '/docs/nodes/maintain/backup-restore',
+        permanent: false,
+      },
+      {
+        source: '/docs/nodes/node-storage',
+        destination: '/docs/nodes/node-storage/chain-state-management',
+        permanent: false,
+      },
+      {
+        source: '/docs/nodes/run-a-node/on-third-party-services',
+        destination: '/docs/nodes/run-a-node/on-third-party-services/amazon-web-services',
+        permanent: false,
+      },
+      {
+        source: '/docs/nodes/run-a-node/using-install-script',
+        destination: '/docs/nodes/run-a-node/using-install-script/preparing-environment',
+        permanent: false,
+      },
+      {
+        source: '/docs/primary-network/validate',
+        destination: '/docs/primary-network/validate/what-is-staking',
+        permanent: false,
+      },
+      {
+        source: '/docs/primary-network/verify-contract',
+        destination: '/docs/primary-network/verify-contract/explorer',
+        permanent: false,
+      },
+      {
+        source: '/docs/rpcs/other/guides',
+        destination: '/docs/rpcs/other/guides/issuing-api-calls',
+        permanent: false,
+      },
+      {
+        source: '/docs/rpcs/other/standards',
+        destination: '/docs/rpcs/other/standards/avalanche-network-protocol',
+        permanent: false,
+      },
+      {
+        source: '/docs/tooling/avalanche-cli/create-avalanche-nodes',
+        destination: '/docs/tooling/avalanche-cli/create-avalanche-nodes/deploy-custom-vm',
+        permanent: false,
+      },
+      {
+        source: '/docs/tooling/avalanche-cli/create-deploy-avalanche-l1s',
+        destination: '/docs/tooling/avalanche-cli/create-deploy-avalanche-l1s/deploy-locally',
+        permanent: false,
+      },
+      {
+        source: '/docs/tooling/avalanche-cli/cross-chain',
+        destination: '/docs/tooling/avalanche-cli/cross-chain/teleporter-devnet',
+        permanent: false,
+      },
+      {
+        source: '/docs/tooling/avalanche-cli/guides',
+        destination: '/docs/tooling/avalanche-cli/guides/import-avalanche-l1',
+        permanent: false,
+      },
+      {
+        source: '/docs/tooling/avalanche-cli/maintain',
+        destination: '/docs/tooling/avalanche-cli/maintain/add-validator-l1',
+        permanent: false,
+      },
+      {
+        source: '/docs/tooling/avalanche-cli/transactions',
+        destination: '/docs/tooling/avalanche-cli/transactions/native-send',
+        permanent: false,
+      },
+      {
+        source: '/docs/tooling/avalanche-cli/upgrade',
+        destination: '/docs/tooling/avalanche-cli/upgrade/avalanche-l1-precompile-config',
+        permanent: false,
+      },
+      {
+        source: '/docs/tooling/avalanche-sdk/chainkit',
+        destination: '/docs/tooling/avalanche-sdk/chainkit/getting-started',
+        permanent: false,
+      },
+      {
+        source: '/docs/tooling/avalanche-sdk/client',
+        destination: '/docs/tooling/avalanche-sdk/client/getting-started',
+        permanent: false,
+      },
+      {
+        source: '/docs/tooling/avalanche-sdk/client/methods',
+        destination: '/docs/tooling/avalanche-sdk/client/methods/public-methods/public',
+        permanent: false,
+      },
+      {
+        source: '/docs/tooling/avalanche-sdk/client/methods/public-methods',
+        destination: '/docs/tooling/avalanche-sdk/client/methods/public-methods/public',
+        permanent: false,
+      },
+      {
+        source: '/docs/tooling/avalanche-sdk/client/methods/wallet-methods',
+        destination: '/docs/tooling/avalanche-sdk/client/methods/wallet-methods/wallet',
+        permanent: false,
+      },
+      {
+        source: '/docs/tooling/tmpnet/guides',
+        destination: '/docs/tooling/tmpnet/guides/getting-started',
+        permanent: false,
+      },
+      {
+        source: '/docs/tooling/tmpnet/reference',
+        destination: '/docs/tooling/tmpnet/reference/configuration',
+        permanent: false,
+      },
+      // ── End folder-index 500 fixes ──
       {
         source: '/docs/dapps/smart-contract-dev/get-test-funds',
         destination: '/console/primary-network/faucet',
