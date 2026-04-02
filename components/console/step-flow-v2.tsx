@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState, useCallback } from "react";
+import React, { useMemo, useState, useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
@@ -8,6 +8,7 @@ import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FlowCompletionModal, type FlowCompletionAction } from "./flow-completion-modal";
 import { getFlowMetadata, type FlowMetadata } from "@/config/console-flows";
+import { useStepFlowNavStore } from "./stores/stepFlowNavStore";
 
 const flowContainerVariants = {
   hidden: {},
@@ -164,6 +165,24 @@ export default function StepFlowV2({
     return { currentIndex: -1, currentStep: undefined, selectedBranchOption: undefined };
   }, [currentStepKey, steps]);
 
+  // Register nav data with the layout-level store (URL-based navigation only)
+  const isInlineMode = !!onNavigate;
+  const tokenRef = useRef<number>(0);
+  const register = useStepFlowNavStore((s) => s.register);
+  const unregister = useStepFlowNavStore((s) => s.unregister);
+
+  useEffect(() => {
+    if (isInlineMode || currentIndex < 0) return;
+    tokenRef.current = register({
+      steps,
+      currentStepKey,
+      currentIndex,
+      basePath,
+      selectedBranchOptionKey: selectedBranchOption?.key,
+    });
+    return () => unregister(tokenRef.current);
+  }, [isInlineMode, steps, currentStepKey, currentIndex, basePath, selectedBranchOption?.key, register, unregister]);
+
   if (currentIndex < 0 || !currentStep) {
     return <div>Step &quot;{currentStepKey}&quot; not found.</div>;
   }
@@ -232,109 +251,113 @@ export default function StepFlowV2({
       initial="hidden"
       animate="visible"
     >
-      <motion.nav
-        className={cn(
-          "sticky top-4 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 pb-4 border-b border-border",
-          compact ? "mb-3" : "mb-6"
-        )}
-        variants={flowItemVariants}
-      >
-        <ol className="flex flex-wrap items-center justify-center gap-3 text-sm">
-          {steps.map((s, stepIdx) => {
-            const isDoneStep = stepIdx < currentIndex;
-            const isActiveStep = stepIdx === currentIndex;
+      {/* Inline nav — only rendered in chat/embedded mode (onNavigate).
+          URL-based flows render nav in the SiteHeader via stepFlowNavStore. */}
+      {isInlineMode && (
+        <motion.nav
+          className={cn(
+            "pb-4 border-b border-border",
+            compact ? "mb-3" : "mb-6"
+          )}
+          variants={flowItemVariants}
+        >
+          <ol className="flex flex-wrap items-center justify-center gap-3 text-sm">
+            {steps.map((s, stepIdx) => {
+              const isDoneStep = stepIdx < currentIndex;
+              const isActiveStep = stepIdx === currentIndex;
 
-            if (s.type === "single") {
-              return (
-                <li key={s.key} className="flex items-center gap-3">
-                  <NavEl
-                    stepKey={s.key}
-                    className={cn(
-                      "inline-flex items-center gap-2 rounded-lg px-3 py-1.5 border transition-colors",
-                      isActiveStep
-                        ? "border-primary text-primary"
-                        : isDoneStep
-                          ? "border-green-300 dark:border-green-700 text-green-600 dark:text-green-400"
-                          : "border-border text-muted-foreground",
-                      s.optional ? "border-dashed" : "",
-                    )}
-                  >
-                    <span
+              if (s.type === "single") {
+                return (
+                  <li key={s.key} className="flex items-center gap-3">
+                    <NavEl
+                      stepKey={s.key}
                       className={cn(
-                        "flex h-6 w-6 items-center justify-center rounded-full text-xs",
+                        "inline-flex items-center gap-2 rounded-lg px-3 py-1.5 border transition-colors",
                         isActiveStep
-                          ? "bg-primary text-primary-foreground"
+                          ? "border-primary text-primary"
                           : isDoneStep
-                            ? "bg-green-500 text-white"
-                            : "bg-muted text-muted-foreground",
+                            ? "border-green-300 dark:border-green-700 text-green-600 dark:text-green-400"
+                            : "border-border text-muted-foreground",
+                        s.optional ? "border-dashed" : "",
                       )}
                     >
-                      {isDoneStep ? <Check className="h-3.5 w-3.5" /> : stepIdx + 1}
-                    </span>
-                    <span>{s.title}</span>
-                  </NavEl>
-                  {stepIdx < steps.length - 1 && (
-                    <span className="text-muted-foreground/50 ml-3">→</span>
-                  )}
-                </li>
-              );
-            } else {
-              // Branch step
-              return (
-                <li key={s.key} className="flex items-center gap-3">
-                  <div className="flex flex-col items-center gap-2">
-                    {s.options.map((opt, optIdx) => {
-                      const isOptionActive = isActiveStep && selectedBranchOption?.key === opt.key;
-                      return (
-                        <React.Fragment key={opt.key}>
-                          <NavEl
-                            stepKey={opt.key}
-                            className={cn(
-                              "inline-flex items-center gap-2 rounded-lg px-3 py-1.5 border transition-colors",
-                              isOptionActive
-                                ? "border-primary text-primary"
-                                : isDoneStep
-                                ? "border-green-300 dark:border-green-700 text-green-600 dark:text-green-400"
-                                : "border-border text-muted-foreground",
-                              s.optional
-                                ? "border-dashed"
-                                : "",
-                            )}
-                          >
-                            <span
+                      <span
+                        className={cn(
+                          "flex h-6 w-6 items-center justify-center rounded-full text-xs",
+                          isActiveStep
+                            ? "bg-primary text-primary-foreground"
+                            : isDoneStep
+                              ? "bg-green-500 text-white"
+                              : "bg-muted text-muted-foreground",
+                        )}
+                      >
+                        {isDoneStep ? <Check className="h-3.5 w-3.5" /> : stepIdx + 1}
+                      </span>
+                      <span>{s.title}</span>
+                    </NavEl>
+                    {stepIdx < steps.length - 1 && (
+                      <span className="text-muted-foreground/50 ml-3">→</span>
+                    )}
+                  </li>
+                );
+              } else {
+                // Branch step
+                return (
+                  <li key={s.key} className="flex items-center gap-3">
+                    <div className="flex flex-col items-center gap-2">
+                      {s.options.map((opt, optIdx) => {
+                        const isOptionActive = isActiveStep && selectedBranchOption?.key === opt.key;
+                        return (
+                          <React.Fragment key={opt.key}>
+                            <NavEl
+                              stepKey={opt.key}
                               className={cn(
-                                "flex h-6 w-6 items-center justify-center rounded-full text-xs",
+                                "inline-flex items-center gap-2 rounded-lg px-3 py-1.5 border transition-colors",
                                 isOptionActive
-                                  ? "bg-primary text-primary-foreground"
+                                  ? "border-primary text-primary"
                                   : isDoneStep
-                                  ? "bg-green-500 text-white"
-                                  : "bg-muted text-muted-foreground",
+                                  ? "border-green-300 dark:border-green-700 text-green-600 dark:text-green-400"
+                                  : "border-border text-muted-foreground",
+                                s.optional
+                                  ? "border-dashed"
+                                  : "",
                               )}
                             >
-                              {isDoneStep ? <Check className="h-3.5 w-3.5" /> : stepIdx + 1}
-                            </span>
-                            <span>{opt.label}</span>
-                          </NavEl>
-                          {optIdx < s.options.length - 1 && (
-                            <span className="text-xs uppercase tracking-wide text-muted-foreground">
-                              or
-                            </span>
-                          )}
-                        </React.Fragment>
-                      );
-                    })}
-                  </div>
-                  {stepIdx < steps.length - 1 && (
-                    <span className="text-muted-foreground/50 ml-3">→</span>
-                  )}
-                </li>
-              );
-            }
-          })}
-        </ol>
-      </motion.nav>
+                              <span
+                                className={cn(
+                                  "flex h-6 w-6 items-center justify-center rounded-full text-xs",
+                                  isOptionActive
+                                    ? "bg-primary text-primary-foreground"
+                                    : isDoneStep
+                                    ? "bg-green-500 text-white"
+                                    : "bg-muted text-muted-foreground",
+                                )}
+                              >
+                                {isDoneStep ? <Check className="h-3.5 w-3.5" /> : stepIdx + 1}
+                              </span>
+                              <span>{opt.label}</span>
+                            </NavEl>
+                            {optIdx < s.options.length - 1 && (
+                              <span className="text-xs uppercase tracking-wide text-muted-foreground">
+                                or
+                              </span>
+                            )}
+                          </React.Fragment>
+                        );
+                      })}
+                    </div>
+                    {stepIdx < steps.length - 1 && (
+                      <span className="text-muted-foreground/50 ml-3">→</span>
+                    )}
+                  </li>
+                );
+              }
+            })}
+          </ol>
+        </motion.nav>
+      )}
 
-      <motion.div className={cn("border-t border-border", compact ? "py-4" : "py-8")} variants={flowItemVariants}>
+      <motion.div className={cn(isInlineMode ? "border-t border-border" : "", compact ? "py-4" : "py-8")} variants={flowItemVariants}>
         <div className={compact ? "min-h-[150px]" : "min-h-[200px]"}>
           <CurrentComponent />
         </div>

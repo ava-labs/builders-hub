@@ -25,6 +25,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useOnboardingTour } from "@/hooks/useOnboardingTour";
+import { StepFlowNav } from "./step-flow-nav";
 
 const TestnetMainnetSwitch = dynamic(() => import("@/components/toolbox/components/console-header/testnet-mainnet-switch").then(m => m.TestnetMainnetSwitch), { ssr: false });
 const WalletPChain = dynamic(() => import("@/components/toolbox/components/console-header/pchain-wallet").then(m => m.WalletPChain), { ssr: false });
@@ -43,7 +44,8 @@ export function SiteHeader() {
   };
 
   return (
-    <header className="sticky top-0 z-30 flex h-(--header-height) shrink-0 items-center gap-2 border-b backdrop-blur  transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height) rounded-t-2xl overflow-x-hidden min-w-0">
+    <div className="sticky top-0 z-30 rounded-t-2xl">
+    <header className="flex h-(--header-height) shrink-0 items-center gap-2 border-b backdrop-blur transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height) overflow-x-hidden min-w-0">
       <div className="flex w-full items-center gap-1 px-4 lg:gap-2 lg:px-6 min-w-0">
         <SidebarTrigger className="-ml-1" />
         <Separator
@@ -121,5 +123,7 @@ export function SiteHeader() {
         </div>
       </div>
     </header>
+    <StepFlowNav />
+    </div>
   )
 }
