@@ -31,7 +31,6 @@ type SingleStep = {
   key: string;
   title: string;
   optional?: boolean;
-  isStepComplete?: () => boolean;
   component: React.ComponentType;
 };
 
@@ -46,7 +45,6 @@ type BranchStep = {
   key: string;
   title: string;
   optional?: boolean;
-  isStepComplete?: () => boolean;
   options: BranchOption[];
 };
 
@@ -190,9 +188,6 @@ export default function StepFlowV2({
   const totalSteps = steps.length;
   const atFirst = currentIndex <= 0;
   const atLast = currentIndex >= totalSteps - 1;
-
-  // Check if current step has a completion gate
-  const isCurrentStepComplete = currentStep.isStepComplete ? currentStep.isStepComplete() : true;
 
   const CurrentComponent = useMemo(() => {
     if (currentStep.type === "single") return currentStep.component;
@@ -432,16 +427,7 @@ export default function StepFlowV2({
               </button>
             ) : (
               nextLink && (
-                !isCurrentStepComplete ? (
-                  <button
-                    type="button"
-                    disabled
-                    className="rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm font-medium opacity-50 cursor-not-allowed"
-                    title="Complete this step before proceeding"
-                  >
-                    Next
-                  </button>
-                ) : onNavigate ? (
+                onNavigate ? (
                   <button
                     type="button"
                     onClick={() => {
