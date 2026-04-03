@@ -61,11 +61,11 @@ function ConsoleContent({ children }: { children: ReactNode }) {
         >
           <ConsoleSidebar variant="inset" />
           <SidebarInset
-            className="bg-white dark:bg-zinc-900 overflow-hidden m-2 flex flex-col"
+            className="bg-white dark:bg-zinc-900 overflow-y-auto m-2 flex flex-col"
             style={{ height: `calc(${viewportHeight} - 1rem)` }}
           >
             <SiteHeader />
-            <div className="flex flex-1 flex-col gap-4 p-8 overflow-y-auto min-h-0">
+            <div className="flex flex-1 flex-col gap-4 p-8">
               <ConsolePageTransition>{children}</ConsolePageTransition>
             </div>
           </SidebarInset>
