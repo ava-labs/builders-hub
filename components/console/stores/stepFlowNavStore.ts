@@ -13,14 +13,18 @@ interface StepFlowNavState {
   data: StepFlowNavData | null;
   /** Token for the current registration — prevents stale unmount from clearing fresh mount */
   token: number;
+  /** Whether the header+nav should remain sticky at top */
+  isPinned: boolean;
 
   register: (data: StepFlowNavData) => number;
   unregister: (token: number) => void;
+  togglePin: () => void;
 }
 
 export const useStepFlowNavStore = create<StepFlowNavState>((set, get) => ({
   data: null,
   token: 0,
+  isPinned: true,
 
   register: (data) => {
     const next = get().token + 1;
@@ -34,4 +38,6 @@ export const useStepFlowNavStore = create<StepFlowNavState>((set, get) => ({
       set({ data: null });
     }
   },
+
+  togglePin: () => set({ isPinned: !get().isPinned }),
 }));

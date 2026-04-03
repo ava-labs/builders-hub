@@ -26,6 +26,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useOnboardingTour } from "@/hooks/useOnboardingTour";
 import { StepFlowNav } from "./step-flow-nav";
+import { useStepFlowNavStore } from "./stores/stepFlowNavStore";
+import { cn } from "@/lib/utils";
 
 const TestnetMainnetSwitch = dynamic(() => import("@/components/toolbox/components/console-header/testnet-mainnet-switch").then(m => m.TestnetMainnetSwitch), { ssr: false });
 const WalletPChain = dynamic(() => import("@/components/toolbox/components/console-header/pchain-wallet").then(m => m.WalletPChain), { ssr: false });
@@ -34,6 +36,7 @@ const EvmNetworkWallet = dynamic(() => import("@/components/toolbox/components/c
 export function SiteHeader() {
   const breadcrumbs = useBreadcrumbs(pathToBreadcrumb);
   const { startTour, resetTour } = useOnboardingTour();
+  const isPinned = useStepFlowNavStore((s) => s.isPinned);
 
   const handleRestartTour = () => {
     resetTour();
@@ -44,7 +47,10 @@ export function SiteHeader() {
   };
 
   return (
-    <div className="sticky top-0 z-30 rounded-t-2xl bg-white dark:bg-zinc-900 border-b border-border">
+    <div className={cn(
+      "top-0 z-30 rounded-t-2xl bg-white dark:bg-zinc-900 border-b border-border",
+      isPinned ? "sticky" : "",
+    )}>
     <header className="flex h-(--header-height) shrink-0 items-center gap-2 backdrop-blur transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height) overflow-x-hidden min-w-0">
       <div className="flex w-full items-center gap-1 px-4 lg:gap-2 lg:px-6 min-w-0">
         <SidebarTrigger className="-ml-1" />

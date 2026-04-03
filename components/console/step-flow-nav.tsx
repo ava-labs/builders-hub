@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check } from "lucide-react";
+import { Check, Pin, PinOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useStepFlowNavStore } from "./stores/stepFlowNavStore";
 import { useFeatureFlag } from "@/hooks/useFeatureFlag";
@@ -11,6 +11,8 @@ import { useFeatureFlag } from "@/hooks/useFeatureFlag";
 export function StepFlowNav() {
   const useV2 = useFeatureFlag("console-step-flow-v2", false);
   const data = useStepFlowNavStore((s) => s.data);
+  const isPinned = useStepFlowNavStore((s) => s.isPinned);
+  const togglePin = useStepFlowNavStore((s) => s.togglePin);
 
   const show = useV2 && data !== null;
 
@@ -25,7 +27,8 @@ export function StepFlowNav() {
           transition={{ duration: 0.2, ease: "easeInOut" }}
           className="hidden md:block overflow-hidden"
         >
-          <ol className="flex items-center justify-center gap-2 px-4 py-2 text-sm lg:gap-3 lg:px-6 overflow-x-auto scrollbar-hide md:flex-wrap md:overflow-visible">
+          <div className="relative flex items-center px-4 py-2 lg:px-6">
+          <ol className="flex items-center justify-center gap-2 text-sm lg:gap-3 overflow-x-auto scrollbar-hide md:flex-wrap md:overflow-visible flex-1">
             {data.steps.map((s, stepIdx) => {
               const isDone = stepIdx < data.currentIndex;
               const isActive = stepIdx === data.currentIndex;
@@ -116,6 +119,19 @@ export function StepFlowNav() {
               );
             })}
           </ol>
+          <button
+            onClick={togglePin}
+            title={isPinned ? "Unpin navigation" : "Pin navigation"}
+            className={cn(
+              "ml-2 flex-shrink-0 rounded-md p-1 transition-colors",
+              isPinned
+                ? "text-primary hover:text-primary/80"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {isPinned ? <Pin className="h-3.5 w-3.5" /> : <PinOff className="h-3.5 w-3.5" />}
+          </button>
+          </div>
         </motion.nav>
       )}
     </AnimatePresence>
