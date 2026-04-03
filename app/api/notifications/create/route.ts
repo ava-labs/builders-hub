@@ -19,7 +19,7 @@ export async function POST(req: any): Promise<Response> {
     if (
       !(
         sessionCustomAttributes.includes("devrel") ||
-        sessionCustomAttributes.includes("moderator")
+        sessionCustomAttributes.includes("notify_event")
       )
     ) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
