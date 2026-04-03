@@ -11,7 +11,6 @@ import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { packWarpIntoAccessList } from '@/components/toolbox/console/permissioned-l1s/ValidatorManager/packWarp';
 import { useNativeTokenStakingManager, useERC20TokenStakingManager } from '@/components/toolbox/hooks/contracts';
 import { packL1ValidatorWeightMessage } from '@/components/toolbox/coreViem/utils/convertWarp';
-import { GetRegistrationJustification } from '@/components/toolbox/console/permissioned-l1s/ValidatorManager/justification';
 import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
 import { useWalletClient } from 'wagmi';
 
@@ -137,14 +136,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
                 "11111111111111111111111111111111LpoYY"
             );
 
-            // Step 3: Get justification for the validation ID
-            const justification = await GetRegistrationJustification(
-                weightMessageData.validationID,
-                subnetIdL1,
-                chainPublicClient!
-            );
-
-            // Step 4: Aggregate P-Chain signature with retry
+            // Step 3: Aggregate P-Chain signature with retry
             const effectiveSigningSubnetId = signingSubnetId || subnetIdL1;
             let signature;
             let lastError;
@@ -156,7 +148,6 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
                 try {
                     const aggregateSignaturePromise = aggregateSignature({
                         message: bytesToHex(l1ValidatorWeightMessage),
-                        ...(justification && { justification: bytesToHex(justification) }),
                         signingSubnetId: effectiveSigningSubnetId,
                         quorumPercentage: quorum,
                     });
