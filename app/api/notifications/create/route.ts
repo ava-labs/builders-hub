@@ -15,19 +15,35 @@ export async function POST(req: any): Promise<Response> {
       req,
       secret: process.env.NEXTAUTH_SECRET ?? "",
     });
+    const sessionCustomAttributes = token?.custom_attributes || [""];
+    if (
+      !(
+        sessionCustomAttributes.includes("devrel") ||
+        sessionCustomAttributes.includes("moderator")
+      )
+    ) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     if (!token) return new Response("Unauthorized", { status: 401 });
-    const encodedToken = await encode({ token: token, secret: process.env.NEXTAUTH_SECRET ?? '' })
-    if (!encodedToken) return new Response("Error at get notifications", { status: 500 });
+    const encodedToken = await encode({
+      token: token,
+      secret: process.env.NEXTAUTH_SECRET ?? "",
+    });
+    if (!encodedToken)
+      return new Response("Error at get notifications", { status: 500 });
 
-
-    const baseUrl: string | undefined = process.env.NEXT_PUBLIC_AVALANCHE_WORKERS_URL;
+    const baseUrl: string | undefined =
+      process.env.NEXT_PUBLIC_AVALANCHE_WORKERS_URL;
 
     const body: any = await req.json();
 
     if (Array.isArray(body.notifications)) {
       body.notifications = body.notifications.map((n: any) => ({
         ...n,
-        content: typeof n.content === "string" ? stripMdxExpressions(n.content) : n.content,
+        content:
+          typeof n.content === "string"
+            ? stripMdxExpressions(n.content)
+            : n.content,
       }));
     }
 
@@ -44,9 +60,11 @@ export async function POST(req: any): Promise<Response> {
         "Content-Type": "application/json",
         "x-api-key": avalancheWorkersApiKey,
       },
-      body: JSON.stringify({notifications: body.notifications, authUser: token.id}),
+      body: JSON.stringify({
+        notifications: body.notifications,
+        authUser: token.id,
+      }),
     });
-    console.log('UPS: ', upstream)
 
     if (!upstream.ok) {
       const text: string = await upstream.text();

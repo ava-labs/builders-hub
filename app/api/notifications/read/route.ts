@@ -25,7 +25,6 @@ export async function POST(req: any): Promise<Response> {
       return NextResponse.json({ error: "Failed" }, { status: 500 });
     }
 
-    console.log('BODY: ', body)
     const upstream: Response = await fetch(`${baseUrl}/notifications/read`, {
       method: "POST",
       headers: {
