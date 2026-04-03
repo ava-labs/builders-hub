@@ -6,7 +6,7 @@ import { useWalletStore } from "./walletStore";
 interface SignatureAggregationParams {
     message: string;
     justification?: string;
-    signingSubnetId: string;
+    signingSubnetId?: string;
     quorumPercentage?: number;
 }
 
@@ -52,31 +52,43 @@ export const useAvalancheSDKChainkit = (customNetwork?: "mainnet" | "fuji") => {
     const aggregateSignature = useCallback(async ({
         message,
         justification,
-        signingSubnetId,
         quorumPercentage = 67,
     }: SignatureAggregationParams): Promise<SignatureAggregationResult> => {
         try {
-            // Use the SDK's built-in signature aggregation method
-            const signatureAggregatorRequest: any = {
+            // Call Glacier API directly for signature aggregation.
+            const network = isTestnet ? 'fuji' : 'mainnet';
+            const body: Record<string, unknown> = {
                 message,
-                signingSubnetId,
                 quorumPercentage,
             };
-
-            // Add justification if provided
+            if (signingSubnetId) {
+                body.signingSubnetId = signingSubnetId;
+            }
             if (justification) {
-                signatureAggregatorRequest.justification = justification;
+                body.justification = justification;
             }
 
-            const result = await sdk.data.signatureAggregator.aggregate({
-                signatureAggregatorRequest
-            });
+            const response = await fetch(
+                `https://glacier-api.avax.network/v1/signatureAggregator/${network}/aggregateSignatures`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body),
+                }
+            );
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || `Signature aggregation failed (${response.status})`);
+            }
+
+            const result = await response.json();
             return { signedMessage: result.signedMessage };
         } catch (error) {
             console.error('Signature aggregation error:', error);
             throw error;
         }
-    }, [sdk]);
+    }, [isTestnet]);
 
     // Primary Network - Subnet operations
     const getSubnetById = useCallback(async ({ subnetId }: GetSubnetByIdParams) => {
