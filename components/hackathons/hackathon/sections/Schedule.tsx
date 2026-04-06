@@ -18,6 +18,7 @@ import { Separator } from '@/components/ui/separator';
 import DeadLine from '../DeadLine';
 import { Button } from '@/components/ui/button';
 import { useSchedule, ScheduleSource, GoogleCalendarConfig } from '@/hooks/useSchedule';
+import { normalizeEventsLang, t } from '@/lib/events/i18n';
 
 export type ScheduleProps = {
   hackathon: HackathonHeader;
@@ -28,6 +29,8 @@ export type ScheduleProps = {
 };
 
 function Schedule({ hackathon, scheduleSource = 'database', googleCalendarConfig }: ScheduleProps) {
+  const lang = normalizeEventsLang(hackathon.content?.language);
+  const locale = lang === 'es' ? 'es-ES' : 'en-US';
   const [search, setSearch] = useState<string>('');
   const [timeZone, setTimeZone] = useState<string>('');
   const [selectedDay, setSelectedDay] = useState<string>('');
@@ -74,13 +77,17 @@ function Schedule({ hackathon, scheduleSource = 'database', googleCalendarConfig
 
   function getFormattedDay(date: Date) {
     const day = date.getDate();
-    const suffix = getOrdinalSuffix(day);
-    return `${day}${suffix} ${date.toLocaleString(
-      'en-US',
+    const weekday = date.toLocaleString(
+      locale,
       defineTimeZone({
         weekday: 'long',
       })
-    )}`.toLocaleUpperCase();
+    );
+    if (lang === 'es') {
+      return `${day} ${weekday}`.toLocaleUpperCase();
+    }
+    const suffix = getOrdinalSuffix(day);
+    return `${day}${suffix} ${weekday}`.toLocaleUpperCase();
   }
 
   function groupActivitiesByDay(
@@ -114,12 +121,12 @@ function Schedule({ hackathon, scheduleSource = 'database', googleCalendarConfig
   }
 
   function getDateRange(activities: ScheduleActivity[]): string {
-    if (!activities.length) return 'No dates available';
+    if (!activities.length) return t(lang, 'schedule.noDatesAvailable');
 
     const validDates = activities
       .map((activity) => new Date(activity.date))
       .filter((date) => !isNaN(date.getTime()));
-    if (!validDates.length) return 'No valid dates available';
+    if (!validDates.length) return t(lang, 'schedule.noValidDatesAvailable');
 
     const earliestDate = new Date(
       Math.min(...validDates.map((date) => date.getTime()))
@@ -128,11 +135,11 @@ function Schedule({ hackathon, scheduleSource = 'database', googleCalendarConfig
       Math.max(...validDates.map((date) => date.getTime()))
     );
     if (isNaN(earliestDate.getTime()) || isNaN(latestDate.getTime())) {
-      return 'Invalid date range';
+      return t(lang, 'schedule.invalidDateRange');
     }
 
     const formatter = new Intl.DateTimeFormat(
-      'en-US',
+      locale,
       defineTimeZone({
         month: 'long',
         day: 'numeric',
@@ -154,7 +161,7 @@ function Schedule({ hackathon, scheduleSource = 'database', googleCalendarConfig
         className='text-4xl font-bold mb-2 md:text-4xl sm:text-3xl'
         id='schedule'
       >
-        Schedule
+        {t(lang, 'section.schedule.title')}
       </h2>
       <Separator className='my-2 sm:my-8 bg-zinc-300 dark:bg-zinc-800' />
       
@@ -194,7 +201,7 @@ function Schedule({ hackathon, scheduleSource = 'database', googleCalendarConfig
                   return null;
                 }
                 const month = date
-                  .toLocaleString('en-US', { month: 'long' })
+                  .toLocaleString(locale, { month: 'long' })
                   .toUpperCase();
                 const day = date.getDate();
                 return (
@@ -296,7 +303,7 @@ function Schedule({ hackathon, scheduleSource = 'database', googleCalendarConfig
                             <div className='absolute top-0'>
                               {activityIsOcurring && dateIsCurrentDate && (
                                 <div className='border border-red-500 rounded-full text-xs font-medium text-center w-1/3 sm:w-auto sm:px-2'>
-                                  Live now
+                                  {t(lang, 'schedule.liveNow')}
                                 </div>
                               )}
                               {!activityIsOcurring && dateIsCurrentDate && (
@@ -305,7 +312,7 @@ function Schedule({ hackathon, scheduleSource = 'database', googleCalendarConfig
                                     size={16}
                                     className='!text-zinc-900 dark:!text-zinc-50'
                                   />
-                                  Zoom
+                                  {t(lang, 'schedule.zoom')}
                                 </div>
                               )}
                             </div>
@@ -354,7 +361,7 @@ function Schedule({ hackathon, scheduleSource = 'database', googleCalendarConfig
                             <div>
                               <div className='flex justify-between items-center'>
                                 <CardTitle className='text-red-500 text-lg sm:text-base'>
-                                  {activity.name || 'Untitled Activity'}
+                                  {activity.name || t(lang, 'schedule.untitledActivity')}
                                 </CardTitle>
                                 {activity.category && (
                                   <Badge className='bg-zinc-600 text-zinc-50 dark:bg-zinc-50 dark:text-zinc-900 py-0.5 px-2.5 text-xs rounded-xl'>
@@ -414,7 +421,7 @@ function Schedule({ hackathon, scheduleSource = 'database', googleCalendarConfig
                                       target='_blank'
                                       className='dark:text-zinc-50 text-zinc-900 sm:text-sm font-normal hover:text-red-500 dark:hover:text-red-400 transition-colors'
                                     >
-                                      Join video call
+                                      {t(lang, 'schedule.joinVideoCall')}
                                     </Link>
                                   </div>
                                 )}
@@ -431,7 +438,7 @@ function Schedule({ hackathon, scheduleSource = 'database', googleCalendarConfig
                                     </Link>
                                   ) : (
                                     <span className='dark:text-zinc-50 text-zinc-900 sm:text-sm font-normal'>
-                                      {activity.location || 'TBD'}
+                                      {activity.location || t(lang, 'schedule.tbd')}
                                     </span>
                                   )}
                                 </div>
