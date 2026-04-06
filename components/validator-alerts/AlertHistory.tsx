@@ -13,6 +13,13 @@ const TYPE_CONFIG: Record<string, { label: string; className: string }> = {
   expiry_urgent: { label: 'Expiry Urgent', className: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' },
   expiry_critical: { label: 'Expiry Critical', className: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' },
   check_failed: { label: 'Check Failed', className: 'bg-zinc-100 text-zinc-800 dark:bg-zinc-900/30 dark:text-zinc-400' },
+  balance_low: { label: 'Low Balance', className: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400' },
+  balance_low_urgent: { label: 'Balance Urgent', className: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' },
+  balance_critical: { label: 'Balance Critical', className: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' },
+  balance_low_critical: { label: 'Balance Critical', className: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' },
+  security_port_exposed: { label: 'Security: Port Exposed', className: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' },
+  security_ip_changed: { label: 'Security: IP Changed', className: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400' },
+  welcome: { label: 'Welcome', className: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400' },
 };
 
 function formatDate(dateStr: string): string {

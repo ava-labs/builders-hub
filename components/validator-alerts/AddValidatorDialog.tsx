@@ -31,6 +31,7 @@ export function AddValidatorDialog({ userEmail, onAdd }: AddValidatorDialogProps
   const [versionAlert, setVersionAlert] = useState(true);
   const [expiryAlert, setExpiryAlert] = useState(true);
   const [expiryDays, setExpiryDays] = useState(7);
+  const [securityAlert, setSecurityAlert] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,6 +44,7 @@ export function AddValidatorDialog({ userEmail, onAdd }: AddValidatorDialogProps
     setVersionAlert(true);
     setExpiryAlert(true);
     setExpiryDays(7);
+    setSecurityAlert(false);
     setError(null);
   }
 
@@ -67,6 +69,7 @@ export function AddValidatorDialog({ userEmail, onAdd }: AddValidatorDialogProps
         version_alert: versionAlert,
         expiry_alert: expiryAlert,
         expiry_days: expiryDays,
+        security_alert: securityAlert,
       });
       if (result.error) {
         setError(result.error);
@@ -182,6 +185,16 @@ export function AddValidatorDialog({ userEmail, onAdd }: AddValidatorDialogProps
                   />
                 </div>
               )}
+            </div>
+
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm">Security Checks</Label>
+                <Switch checked={securityAlert} onCheckedChange={setSecurityAlert} />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                For Primary validators: checks for public 9650 port exposure and IP address changes.
+              </p>
             </div>
           </div>
 

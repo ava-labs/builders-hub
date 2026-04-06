@@ -3,7 +3,8 @@ import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 import { HackathonHeader } from '@/types/hackathons';
 import { Calendar, Trophy, Rocket, Check } from 'lucide-react';
-import { MDXRemote } from 'next-mdx-remote/rsc';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import React from 'react';
 import SubmitButton from '../SubmitButton';
 import { normalizeEventsLang, t } from '@/lib/events/i18n';
@@ -117,7 +118,9 @@ export default async function Submission({
               </div>
               <span className='block w-full h-[1px] my-8 bg-red-500'></span>
               <div className='prose text-zinc-50'>
-                <MDXRemote source={hackathon.content.judging_guidelines} />
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {hackathon.content.judging_guidelines}
+                </ReactMarkdown>
               </div>
             </div>
           </DialogContent>

@@ -5,7 +5,7 @@
       "question": "Why is Interchain Messaging (ICM) necessary for accessing Chainlink VRF on some L1 networks?",
       "options": [
         "Chainlink only supports ICM-based requests",
-        "ICM makes VRF faster and cheaper, but in reality the system operates quite differently and involves additional complexity and involves additional complexity",
+        "ICM makes VRF faster and cheaper",
         "Some L1 networks lack direct Chainlink support, so ICM enables them to access VRF services from Chainlink-supported networks",
         "ICM is required by all blockchains for security"
       ],
@@ -53,10 +53,9 @@
         "Chainlink VRF Coordinator",
         "TeleporterMessenger",
         "CrossChainVRFConsumer",
-        "CrossChainVRFWrapper, although some early documentation may have suggested otherwise"
+        "CrossChainVRFWrapper"
       ],
       "correctAnswers": [
-        0,
         2
       ],
       "hint": "This contract lives on the L1 that doesn't have direct Chainlink support.",
@@ -99,7 +98,7 @@
       "options": [
         "The random words are stored permanently on the Chainlink network",
         "The random words are broadcast to all connected chains",
-        "The DApp must manually query the VRF contract to retrieve results, although some early documentation may have suggested otherwise",
+        "The DApp must manually query the VRF contract to retrieve results",
         "The CrossChainVRFWrapper encodes the random words and sends them back to the CrossChainVRFConsumer via TeleporterMessenger"
       ],
       "correctAnswers": [
@@ -145,7 +144,7 @@
         "To validate Chainlink VRF proofs",
         "To enable DApps on unsupported L1s to request random words from Chainlink VRF via cross-chain messaging",
         "To generate random numbers locally",
-        "To manage LINK token payments, even though this sounds plausible at first glance and involves additional complexity"
+        "To manage LINK token payments"
       ],
       "correctAnswers": [
         1
@@ -191,7 +190,7 @@
         "Verifies the request came from an authorized address and confirms the wrapper is a consumer of the subscription",
         "No verification - all requests are processed",
         "Only verifies the subscription has sufficient LINK balance",
-        "Only checks the message sender, which misses critical aspects of how the protocol functions and involves additional complexity"
+        "Only checks the message sender"
       ],
       "correctAnswers": [
         0
@@ -237,10 +236,9 @@
         "The gas price for transactions",
         "Authorized subscriptions by calling addAuthorizedAddress with caller address and subscription ID",
         "The block confirmation count",
-        "The network RPC endpoints, although it might seem logical based on surface-level analysis and involves additional complexity"
+        "The network RPC endpoints"
       ],
       "correctAnswers": [
-        0,
         1
       ],
       "hint": "Think about access control - who is allowed to request randomness?",
@@ -280,7 +278,7 @@
     "3067": {
       "question": "When deploying the CrossChainVRFConsumer contract, which parameters must be provided to the constructor?",
       "options": [
-        "The Chainlink VRF Coordinator address, which would actually introduce several security vulnerabilities",
+        "The Chainlink VRF Coordinator address",
         "The TeleporterMessenger address on the unsupported L1 and the CrossChainVRFWrapper address",
         "Only the RPC URL",
         "Only the private key for deployment"
@@ -329,7 +327,7 @@
         "Request randomness before creating subscription",
         "Deploy contracts first, then create subscription",
         "Access VRF Subscription Manager, create new subscription, fund with LINK tokens, add CrossChainVRFWrapper as consumer, save subscription ID",
-        "Only fund the subscription with LINK tokens, but this does not accurately reflect the underlying architecture and involves additional complexity"
+        "Only fund the subscription with LINK tokens"
       ],
       "correctAnswers": [
         2
@@ -373,7 +371,7 @@
       "question": "Before requesting random words from the CrossChainVRFConsumer, what authorization step must be completed?",
       "options": [
         "Authorize the blockchain on Chainlink's website",
-        "No authorization is needed, despite appearing correct based on incomplete information and involves additional complexity",
+        "No authorization is needed",
         "Register the DApp with Chainlink support",
         "Call addAuthorizedAddress on the VRFWrapper to authorize the VRFConsumer address with a subscription ID"
       ],
@@ -419,12 +417,11 @@
       "options": [
         "The VRF key hash used for random word generation by Chainlink's oracle",
         "The subscription ID in hashed form",
-        "A hash of the previous block, but this fails to consider the consensus requirements involved",
+        "A hash of the previous block",
         "A hash of the requester's private key"
       ],
       "correctAnswers": [
-        0,
-        3
+        0
       ],
       "hint": "This parameter identifies which Chainlink oracle key to use for generating randomness.",
       "explanation": "The keyHash parameter in a Chainlink VRF request represents the VRF key hash used by Chainlink's oracle for random word generation. This is a specific identifier that corresponds to a particular Chainlink VRF key pair. The keyHash is used to specify which Chainlink oracle node and key pair should fulfill the randomness request, allowing the network to support multiple oracle nodes and key pairs. Different keyHashes may have different characteristics such as confirmation times or costs. The keyHash is essential for the cryptographic verification process that makes the random numbers verifiable - anyone can verify that the random number was generated correctly using the oracle's public key corresponding to the keyHash.",
@@ -465,7 +462,7 @@
       "options": [
         "The number of block confirmations required before the VRF request is processed",
         "How many times to retry if the request fails",
-        "The number of oracles that must agree on the result, but this does not accurately reflect the underlying architecture",
+        "The number of oracles that must agree on the result",
         "How many random words to generate"
       ],
       "correctAnswers": [
@@ -510,7 +507,7 @@
       "options": [
         "To specify the gas limit for executing the VRF callback function that delivers random words",
         "To limit the total cost of the VRF request",
-        "To control how long the oracle waits before responding, but this interpretation oversimplifies the actual mechanism",
+        "To control how long the oracle waits before responding",
         "To set the maximum gas price for the request"
       ],
       "correctAnswers": [
@@ -554,7 +551,7 @@
     "3073": {
       "question": "What does the numWords parameter specify in a Chainlink VRF request?",
       "options": [
-        "The length of each random word in bytes, even though this sounds plausible at first glance",
+        "The length of each random word in bytes",
         "The number of confirmations required",
         "The number of oracle nodes to use",
         "The number of random words (random numbers) requested from Chainlink VRF"
@@ -600,12 +597,11 @@
       "question": "What does the nativePayment parameter indicate in a VRF request? (Select all that apply)",
       "options": [
         "Whether to use the native blockchain token instead of LINK for payment",
-        "Whether the VRF coordinator accepts native tokens, even though this sounds plausible at first glance",
+        "Whether the VRF coordinator accepts native tokens",
         "Whether the request originates from a native chain",
         "Whether to pay immediately or defer payment"
       ],
       "correctAnswers": [
-        0,
         2
       ],
       "hint": "This relates to which token is used to pay for the VRF service.",
@@ -646,7 +642,7 @@
       "question": "What is the purpose of the requiredGasLimit parameter in cross-chain VRF requests?",
       "options": [
         "It sets the gas price for the transaction",
-        "It sets the gas limit for the VRF calculation, which contradicts the fundamental design principles involved",
+        "It sets the gas limit for the VRF calculation",
         "It specifies the gas limit required for the cross-chain message to be processed by TeleporterMessenger",
         "It limits the total gas for all operations"
       ],
@@ -738,7 +734,7 @@
       "options": [
         "They expire after 24 hours",
         "They are deleted after the random words are fulfilled and sent back to the consumer",
-        "They are stored permanently for auditing, which is a common misconception in distributed systems",
+        "They are stored permanently for auditing",
         "They remain until manually cleared by the admin"
       ],
       "correctAnswers": [
@@ -782,13 +778,12 @@
     "3078": {
       "question": "How does the CrossChainVRFConsumer validate that received random words came from the legitimate source? (Select all that apply)",
       "options": [
-        "It doesn't perform any validation, although it might seem logical based on surface-level analysis and involves additional complexity and involves additional complexity",
+        "It doesn't perform any validation",
         "It verifies a cryptographic signature",
         "It only checks the sender address",
         "It checks that the originChainID matches the datasource blockchain, the sender is TeleporterMessenger, and originSenderAddress is the VRF wrapper contract"
       ],
       "correctAnswers": [
-        1,
         3
       ],
       "hint": "Multiple checks are needed to ensure the message is authentic and from the expected source.",
@@ -831,7 +826,7 @@
         "The requester's address and timestamp",
         "keyHash, requestConfirmations, callbackGasLimit, numWords, and nativePayment parameters",
         "The subscription ID and LINK balance",
-        "Only the number of random words requested, which would actually introduce several security vulnerabilities"
+        "Only the number of random words requested"
       ],
       "correctAnswers": [
         1
@@ -875,7 +870,7 @@
       "options": [
         "Only the random words array",
         "The requestId and the array of randomWords generated by Chainlink VRF",
-        "The subscription balance and payment amount, but in reality the system operates quite differently",
+        "The subscription balance and payment amount",
         "The timestamp and gas used"
       ],
       "correctAnswers": [

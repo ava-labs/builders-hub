@@ -1223,7 +1223,6 @@ const HackathonsEdit = () => {
     };
   }, [leftPanelRef.current]);
 
-
   const handleScheduleDone = (idx: number) => {
     setCollapsedSchedules((prev) => prev.map((v, i) => (i === idx ? true : v)));
   };
@@ -1519,7 +1518,6 @@ const HackathonsEdit = () => {
           },
           body: JSON.stringify(dataToSend),
         });
-
         if (response.ok) {
           toast({
             title: 'Event created',

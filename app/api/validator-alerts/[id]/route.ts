@@ -3,6 +3,8 @@ import { getAuthSession } from '@/lib/auth/authSession';
 import { prisma } from '@/prisma/prisma';
 import type { UpdateAlertRequest } from '@/types/validator-alerts';
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 async function getOwnedAlert(alertId: string, userId: string) {
   return prisma.validatorAlert.findFirst({
     where: { id: alertId, user_id: userId },
@@ -66,6 +68,26 @@ export async function PUT(
       updateData.uptime_threshold = body.uptime_threshold;
     }
     if (body.version_alert !== undefined) updateData.version_alert = body.version_alert;
+
+    const isL1 = existing.subnet_id !== 'primary';
+
+    // L1 validators don't have uptime or expiry — reject attempts to enable
+    if (isL1 && body.uptime_alert === true) {
+      return NextResponse.json({ error: 'Uptime alerts are not available for L1 validators.' }, { status: 400 });
+    }
+    if (isL1 && body.expiry_alert === true) {
+      return NextResponse.json({ error: 'Stake expiry alerts are not available for L1 validators.' }, { status: 400 });
+    }
+    if (!isL1 && body.balance_alert === true) {
+      return NextResponse.json({ error: 'Balance alerts are only available for L1 validators.' }, { status: 400 });
+    }
+    if (!isL1 && (body.balance_threshold !== undefined || body.balance_threshold_days !== undefined)) {
+      return NextResponse.json({ error: 'Balance threshold settings are only available for L1 validators.' }, { status: 400 });
+    }
+    if (isL1 && body.security_alert === true) {
+      return NextResponse.json({ error: 'Security checks are currently available for Primary Network validators only.' }, { status: 400 });
+    }
+
     if (body.expiry_alert !== undefined) updateData.expiry_alert = body.expiry_alert;
     if (body.expiry_days !== undefined) {
       if (body.expiry_days < 1 || body.expiry_days > 365) {
@@ -73,7 +95,26 @@ export async function PUT(
       }
       updateData.expiry_days = body.expiry_days;
     }
-    if (body.email !== undefined) updateData.email = body.email;
+    if (body.balance_alert !== undefined) updateData.balance_alert = body.balance_alert;
+    if (body.balance_threshold !== undefined) {
+      if (!Number.isFinite(body.balance_threshold) || body.balance_threshold <= 0) {
+        return NextResponse.json({ error: 'Balance threshold must be greater than 0.' }, { status: 400 });
+      }
+      updateData.balance_threshold = body.balance_threshold;
+    }
+    if (body.balance_threshold_days !== undefined) {
+      if (!Number.isInteger(body.balance_threshold_days) || body.balance_threshold_days < 1 || body.balance_threshold_days > 365) {
+        return NextResponse.json({ error: 'Balance threshold days must be between 1 and 365.' }, { status: 400 });
+      }
+      updateData.balance_threshold_days = body.balance_threshold_days;
+    }
+    if (body.security_alert !== undefined) updateData.security_alert = body.security_alert;
+    if (body.email !== undefined) {
+      if (!EMAIL_REGEX.test(body.email)) {
+        return NextResponse.json({ error: 'Invalid email address.' }, { status: 400 });
+      }
+      updateData.email = body.email;
+    }
     if (body.active !== undefined) updateData.active = body.active;
 
     const alert = await prisma.validatorAlert.update({
