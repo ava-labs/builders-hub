@@ -236,7 +236,7 @@ export default function ValidatorNodeDetailPage() {
   const missRate = p2pData?.miss_rate_14d ?? 0;
   const missRateColor = missRate === 0 ? "text-emerald-600 dark:text-emerald-400" : missRate < 5 ? "text-yellow-600 dark:text-yellow-400" : "text-red-600 dark:text-red-400";
   const uptimeValue = p2pData?.current_p50_uptime ?? sdkData?.uptimePerformance ?? 0;
-  const uptimeColor = uptimeValue >= 99 ? "text-emerald-600 dark:text-emerald-400" : uptimeValue >= 80 ? "text-yellow-600 dark:text-yellow-400" : "text-red-600 dark:text-red-400";
+  const uptimeColor = uptimeValue >= 99 ? "text-emerald-600 dark:text-emerald-400" : uptimeValue >= 90 ? "text-yellow-600 dark:text-yellow-400" : "text-red-600 dark:text-red-400";
 
   return (
     <div className="w-full max-w-[1200px] mx-auto px-4 py-8 space-y-6">
@@ -410,7 +410,7 @@ export default function ValidatorNodeDetailPage() {
                   <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-1">{stat.label}</p>
                   <p className={`text-lg font-semibold ${
                     stat.value >= 99 ? "text-emerald-600 dark:text-emerald-400" :
-                    stat.value >= 80 ? "text-yellow-600 dark:text-yellow-400" :
+                    stat.value >= 90 ? "text-yellow-600 dark:text-yellow-400" :
                     "text-red-600 dark:text-red-400"
                   }`}>
                     {stat.value.toFixed(4)}%
