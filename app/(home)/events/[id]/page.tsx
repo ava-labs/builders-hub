@@ -6,10 +6,11 @@ import {
 } from "@/server/services/hackathons";
 import { getRegisterForm } from "@/server/services/registerForms";
 import { getAuthSession } from "@/lib/auth/authSession";
-import HackathonEventLayout from "@/components/hackathons/event-layouts/HackathonEventLayout";
-import WorkshopBootcampEventLayout from "@/components/hackathons/event-layouts/WorkshopBootcampEventLayout";
+import LegacyEventLayout from "@/components/hackathons/event-layouts/LegacyEventLayout";
+import ModernEventLayout from "@/components/hackathons/event-layouts/ModernEventLayout";
 import { createMetadata } from "@/utils/metadata";
 import type { Metadata } from "next";
+import { normalizeEventsLang, t } from "@/lib/events/i18n";
 
 export const revalidate = 60;
 export const dynamicParams = true;
@@ -32,14 +33,13 @@ export async function generateMetadata({
     const hackathon = await getHackathon(id);
     
     if (!hackathon) {
+      const lang = normalizeEventsLang(undefined);
       return createMetadata({
-        title: 'Event Not Found',
-        description: 'The requested event could not be found',
+        title: t(lang, "meta.notFound.title"),
+        description: t(lang, "meta.notFound.description"),
       });
     }
-
-    const eventType = hackathon.event || 'hackathon';
-    const eventTypeLabel = eventType === 'hackathon' ? 'Hackathon' : eventType === 'workshop' ? 'Workshop' : eventType === 'bootcamp' ? 'Bootcamp' : 'Event';
+    const lang = normalizeEventsLang(hackathon.content?.language);
 
     return createMetadata({
       title: hackathon.title,
@@ -52,9 +52,10 @@ export async function generateMetadata({
       },
     });
   } catch (error) {
+    const lang = normalizeEventsLang(undefined);
     return createMetadata({
-      title: 'Events',
-      description: 'Join exciting blockchain events, hackathons, workshops and bootcamps on Avalanche',
+      title: t(lang, "meta.events.title"),
+      description: t(lang, "meta.events.description"),
     });
   }
 }
@@ -83,16 +84,12 @@ export default async function HackathonPage({
 
   if (!hackathon) redirect("/hackathons");
 
-  // Determine event type - default to "hackathon" for backwards compatibility
-  const eventType = hackathon.event || "hackathon";
-  const isHackathon = eventType === "hackathon";
-  const isWorkshopOrBootcamp =
-    eventType === "workshop" || eventType === "bootcamp";
+  // Layout depends only on new_layout; when null/undefined, use legacy
+  const useModernLayout = hackathon.new_layout === true;
 
-  // Render appropriate layout based on event type
-  if (isWorkshopOrBootcamp) {
+  if (useModernLayout) {
     return (
-      <WorkshopBootcampEventLayout
+      <ModernEventLayout
         hackathon={hackathon}
         id={id}
         isRegistered={isRegistered}
@@ -101,9 +98,8 @@ export default async function HackathonPage({
     );
   }
 
-  // Default to hackathon layout (for hackathon type or any other/unknown types)
   return (
-    <HackathonEventLayout
+    <LegacyEventLayout
       hackathon={hackathon}
       id={id}
       isRegistered={isRegistered}

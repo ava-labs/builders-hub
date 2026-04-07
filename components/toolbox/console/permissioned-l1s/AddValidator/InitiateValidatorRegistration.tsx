@@ -25,9 +25,11 @@ interface InitiateValidatorRegistrationProps {
     blsProofOfPossession: string;
   }) => void;
   onError: (message: string) => void;
-  ownershipState: 'contract' | 'currentWallet' | 'differentEOA' | 'loading';
+  ownershipState: 'contract' | 'currentWallet' | 'differentEOA' | 'loading' | 'error';
   contractTotalWeight: bigint;
   l1WeightError: string | null;
+  refetchOwnership?: () => void;
+  ownershipError?: string | null;
 }
 
 const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps> = ({
@@ -38,6 +40,8 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
   onError,
   ownershipState,
   contractTotalWeight,
+  refetchOwnership,
+  ownershipError,
 }) => {
   const { walletEVMAddress: connectedAddress } = useWalletStore();
   const chainPublicClient = useChainPublicClient();
@@ -331,19 +335,32 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
         </Button>
       )}
 
-      {(ownershipState === 'differentEOA' || ownershipState === 'loading') && (
+      {ownershipState === 'differentEOA' && (
         <Button
           onClick={handleInitiateValidatorRegistration}
           disabled={true}
-          error={
-            ownershipState === 'differentEOA'
-              ? "You are not the owner of this contract. Only the contract owner can add validators."
-              : ownershipState === 'loading'
-                ? "Verifying ownership..."
-                : (!validatorManagerAddress && subnetId ? "Could not find Validator Manager for this L1." : undefined)
-          }
+          error="You are not the owner of this contract. Only the contract owner can add validators."
         >
-          {ownershipState === 'loading' ? 'Verifying...' : 'Initiate Validator Registration'}
+          Initiate Validator Registration
+        </Button>
+      )}
+
+      {ownershipState === 'loading' && (
+        <Button
+          onClick={handleInitiateValidatorRegistration}
+          disabled={true}
+          error="Verifying ownership..."
+        >
+          Verifying...
+        </Button>
+      )}
+
+      {ownershipState === 'error' && (
+        <Button
+          onClick={() => refetchOwnership?.()}
+          error={ownershipError || "Failed to verify contract ownership. Click to retry."}
+        >
+          Retry Ownership Check
         </Button>
       )}
 

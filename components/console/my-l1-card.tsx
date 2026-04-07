@@ -19,6 +19,11 @@ function HealthStatusBadge({ status }: { status: L1HealthStatus }) {
       className: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
       dot: "bg-yellow-500",
     },
+    stale: {
+      label: "Stale",
+      className: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
+      dot: "bg-orange-500",
+    },
     offline: {
       label: "Offline",
       className: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",

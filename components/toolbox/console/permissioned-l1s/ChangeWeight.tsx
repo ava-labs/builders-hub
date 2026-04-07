@@ -1,5 +1,5 @@
 "use client"
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/toolbox/components/Button';
 import { Alert } from '@/components/toolbox/components/Alert';
 import SelectSubnetId from '@/components/toolbox/components/SelectSubnetId';
@@ -7,7 +7,6 @@ import { ValidatorManagerDetails } from '@/components/toolbox/components/Validat
 import { useValidatorManagerDetails } from '@/components/toolbox/hooks/useValidatorManagerDetails';
 import { Step, Steps } from "fumadocs-ui/components/steps";
 import { Success } from '@/components/toolbox/components/Success';
-import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 
 import InitiateChangeWeight from '@/components/toolbox/console/permissioned-l1s/ChangeWeight/InitiateChangeWeight';
 import SubmitPChainTxWeightUpdate from '@/components/toolbox/console/shared/SubmitPChainTxWeightUpdate';
@@ -102,7 +101,6 @@ const ChangeWeightStateless: React.FC<BaseConsoleToolProps> = ({ onSuccess }) =>
   const [pChainTxId, setPChainTxId] = useState<string>('');
 
   // Form state
-  const { walletEVMAddress } = useWalletStore();
   const { walletClient } = useConnectedWallet();
   const createChainStoreSubnetId = useCreateChainStore()(state => state.subnetId);
   const [subnetIdL1, setSubnetIdL1] = useState<string>(createChainStoreSubnetId || "");
@@ -126,32 +124,17 @@ const ChangeWeightStateless: React.FC<BaseConsoleToolProps> = ({ onSuccess }) =>
     isLoadingL1Weight,
     ownershipError,
     ownerType,
-    isDetectingOwnerType
+    isDetectingOwnerType,
+    ownershipStatus,
+    refetchOwnership
   } = useValidatorManagerDetails({ subnetId: subnetIdL1 });
 
-  // Simple ownership check - direct computation
-  const isContractOwner = useMemo(() => {
-    return contractOwner && walletEVMAddress
-      ? walletEVMAddress.toLowerCase() === contractOwner.toLowerCase()
+  // Derive isContractOwner for CompletePChainWeightUpdate from centralized ownershipStatus
+  const isContractOwner = ownershipStatus === 'currentWallet'
+    ? true
+    : ownershipStatus === 'differentEOA'
+      ? false
       : null;
-  }, [contractOwner, walletEVMAddress]);
-
-  // Determine UI state based on ownership:
-  // Case 1: Contract is owned by another contract → show MultisigOption
-  // Case 2: Contract is owned by current wallet → show regular button
-  // Case 3: Contract is owned by different EOA → show error
-  const ownershipState = useMemo(() => {
-    if (isOwnerContract) {
-      return 'contract'; // Case 1: Show MultisigOption
-    }
-    if (isContractOwner === true) {
-      return 'currentWallet'; // Case 2: Show regular button
-    }
-    if (isContractOwner === false) {
-      return 'differentEOA'; // Case 3: Show error
-    }
-    return 'loading'; // Still determining ownership
-  }, [isOwnerContract, isContractOwner]);
 
   const handleReset = () => {
     setGlobalError(null);
@@ -226,7 +209,9 @@ const ChangeWeightStateless: React.FC<BaseConsoleToolProps> = ({ onSuccess }) =>
                   initialNodeId={nodeId}
                   initialValidationId={validationId}
                   initialWeight={newWeight}
-                  ownershipState={ownershipState}
+                  ownershipState={ownershipStatus}
+                  refetchOwnership={refetchOwnership}
+                  ownershipError={ownershipError}
                   contractTotalWeight={contractTotalWeight}
                   onSuccess={(data) => {
                     setNodeId(data.nodeId);

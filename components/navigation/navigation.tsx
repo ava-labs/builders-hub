@@ -16,7 +16,6 @@ import {
   Pyramid,
   HandCoins,
   Server,
-  Code,
   TrendingUp,
   ScanFace,
   Telescope,
@@ -174,13 +173,6 @@ export function GrantsDropdown() {
         "Infrastructure projects that enhance user and developer experience",
       icon: <Server className="w-5 h-5" />,
       url: "https://www.avax.network/infrabuidl-program",
-    },
-    {
-      title: "Codebase",
-      description:
-        "Transforming ambitious builders into extraordinary founders",
-      icon: <Code className="w-5 h-5" />,
-      url: "https://codebase.avax.network/",
     },
     {
       title: "Blizzard Fund",

@@ -10,6 +10,7 @@ export const statsBubbleConfig: BubbleNavigationConfig = {
     { id: "chain-list", label: "Chain List", href: "/stats/chain-list", icon: List },
     { id: "dapps", label: "DApps", href: "/stats/dapps", icon: AppWindow },
     { id: "treemap", label: "Treemap", href: "/stats/dapps/treemap", icon: LayoutGrid },
+    { id: "treemap", label: "Gas Stats", href: "/stats/dapps/treemap", icon: LayoutGrid },
     { id: "stats", label: "Stats", href: "/stats/network-metrics", icon: ChartArea },
     { id: "playground", label: "Playground", href: "/stats/playground", icon: Command },
     { id: "icm", label: "ICM", href: "/stats/interchain-messaging", icon: MessageCircleMore },

@@ -276,51 +276,6 @@
         }
       ]
     },
-    "307": {
-      "question": "Why are `abi.encode()` functions called twice when encoding a function call with multiple parameters in a cross-chain message?",
-      "options": [
-        "To increase the security of the message.",
-        "To pack the function name and its parameters into a single bytes array.",
-        "To separate the message into two distinct byte arrays.",
-        "To comply with the Teleporter contract requirements."
-      ],
-      "correctAnswers": [
-        1
-      ],
-      "hint": "Encoding the function name alongside its parameters ensures proper identification and handling on the receiving end.",
-      "explanation": "Calling `abi.encode()` twice allows you to first encode the function parameters and then encode the function name along with the encoded parameters. This ensures that the receiving contract can decode the function name to determine which internal function to execute with the provided parameters.",
-      "chapter": "Encoding the Function Name and Parameters",
-      "alternates": [
-        {
-          "question": "On the receiving end of a cross-chain message, how does the contract determine which internal function to execute?",
-          "options": [
-            "The contract checks the msg.sender address to determine the appropriate function",
-            "The contract first decodes the outer encoding to extract the function identifier, then routes to the correct handler and decodes the parameters",
-            "The Interchain Messaging contract automatically routes the message to the correct function",
-            "The abi.encode() function is called twice to pack the function name and parameters together"
-          ],
-          "correctAnswers": [
-            1
-          ],
-          "hint": "Think about the two-layer decoding process that mirrors the two-layer encoding.",
-          "explanation": "On the receiving end, the contract first decodes the outer abi.encode layer to extract the function identifier (name or enum). Based on this identifier, it routes the message to the appropriate internal handler function, which then decodes the inner layer to extract the actual parameters."
-        },
-        {
-          "question": "What problem does double encoding with `abi.encode()` solve when a cross-chain contract supports multiple actions?",
-          "options": [
-            "It allows the receiving contract to identify which action to perform and extract the corresponding parameters from a single bytes payload",
-            "It increases message security by encrypting the function parameters in a second encoding layer",
-            "It packs the function name and parameters into a single bytes array for transmission",
-            "It reduces the total gas cost of encoding by splitting the work into two smaller operations"
-          ],
-          "correctAnswers": [
-            0
-          ],
-          "hint": "Consider a contract that handles multiple types of cross-chain messages — how does it know what to do with each one?",
-          "explanation": "When a cross-chain contract supports multiple actions (e.g., deposit, withdraw, swap), double encoding solves the routing problem. The outer encoding contains the action identifier, and the inner encoding contains the action-specific parameters. This allows the receiver to first identify what action to perform, then extract the right parameters for that action."
-        }
-      ]
-    },
     "308": {
       "question": "How does the TeleporterRegistry contract track different versions of the TeleporterMessenger contracts?",
       "options": [
@@ -363,98 +318,6 @@
           ],
           "hint": "Think about how a key-value lookup would work to retrieve a specific version's address.",
           "explanation": "A dApp can retrieve a specific version of TeleporterMessenger by calling getTeleporterFromVersion() with the desired version number. The registry looks up the version number in its internal mapping and returns the corresponding contract address, allowing dApps to pin to specific versions if needed."
-        }
-      ]
-    },
-    "309": {
-      "question": "What is the purpose of the `Recover` algorithm in some signature schemes?",
-      "options": [
-        "To generate a key pair.",
-        "To sign a message using the private key.",
-        "To recover the public key from a message and its signature.",
-        "To verify the integrity of a message."
-      ],
-      "correctAnswers": [
-        2
-      ],
-      "hint": "The `Recover` algorithm helps to retrieve the public key used to create a signature.",
-      "explanation": "The `Recover` algorithm is used to retrieve the public key that corresponds to the private key used to create the signature for a given message. This allows for verification of the signature by matching the recovered public key with the sender's public key, ensuring the authenticity and integrity of the message.",
-      "chapter": "Signature Schemes",
-      "alternates": [
-        {
-          "question": "In a digital signature scheme, what are the three fundamental algorithms? (Select all that apply)",
-          "options": [
-            "KeyGen — generates a public/private key pair",
-            "Recover — recovers the public key from a message and its signature",
-            "Sign — creates a signature using the private key and a message",
-            "Verify — checks whether a signature is valid for a given message and public key"
-          ],
-          "correctAnswers": [
-            0,
-            2,
-            3
-          ],
-          "hint": "Think about the basic operations needed for any signature scheme to function: creating keys, signing, and checking signatures.",
-          "explanation": "The three fundamental algorithms in a digital signature scheme are: KeyGen (generates a key pair), Sign (creates a signature using the private key), and Verify (checks a signature against a message and public key). The Recover algorithm exists in some schemes like ECDSA but is not a universal fundamental algorithm."
-        },
-        {
-          "question": "How is the Recover algorithm used in blockchain transaction validation on Avalanche?",
-          "options": [
-            "It recovers lost private keys from the blockchain's transaction history",
-            "It reconstructs corrupted messages using the original signature as a checksum",
-            "It recovers the public key from a message and its signature for verification purposes",
-            "It derives the signer's public key (and thus their address) from a transaction's signature, allowing nodes to verify the sender's identity"
-          ],
-          "correctAnswers": [
-            3
-          ],
-          "hint": "Think about how a blockchain node knows which account sent a transaction when only the signature is included.",
-          "explanation": "In blockchain transaction validation, the Recover algorithm derives the signer's public key from the transaction data and its signature. Since Avalanche (and Ethereum) addresses are derived from public keys, this allows nodes to determine the sender's address from the signature alone, without requiring the public key to be transmitted separately."
-        }
-      ]
-    },
-    "310": {
-      "question": "What is a key advantage of the BLS multi-signature scheme in blockchain applications?",
-      "options": [
-        "It requires only one private key for all participants.",
-        "It eliminates the need for public keys.",
-        "It uses symmetric cryptography for enhanced security.",
-        "It supports signature and public key aggregation, resulting in compact signatures."
-      ],
-      "correctAnswers": [
-        3
-      ],
-      "hint": "The BLS scheme is known for its ability to aggregate multiple signatures into one.",
-      "explanation": "The BLS (Boneh-Lynn-Shacham) multi-signature scheme is highly efficient for blockchain applications due to its support for both signature and public key aggregation. This means multiple signatures can be compressed into a single short signature, and multiple public keys can be aggregated into one, reducing the storage and transmission overhead while maintaining security and integrity.",
-      "chapter": "Signature Schemes",
-      "alternates": [
-        {
-          "question": "How does BLS signature aggregation benefit Avalanche's interchain messaging system?",
-          "options": [
-            "It allows a single validator to sign messages on behalf of the entire validator set",
-            "It compresses multiple validator signatures into one compact signature, reducing the data that must be verified on the destination chain",
-            "It supports signature and public key aggregation, producing compact signatures for efficiency",
-            "It eliminates the need for validators to have individual key pairs"
-          ],
-          "correctAnswers": [
-            1
-          ],
-          "hint": "Think about the data overhead when hundreds of validators need to attest to a cross-chain message.",
-          "explanation": "BLS signature aggregation allows multiple validator signatures to be combined into a single compact signature. For Avalanche's interchain messaging, this dramatically reduces the amount of signature data that needs to be transmitted and verified on the destination chain, making cross-chain communication more efficient."
-        },
-        {
-          "question": "What property of BLS signatures makes them particularly suitable for threshold signing in blockchain consensus?",
-          "options": [
-            "BLS signatures are larger than ECDSA signatures, providing more security bits",
-            "BLS signatures can be verified without knowing the signer's public key",
-            "BLS signatures support non-interactive aggregation, meaning signatures can be combined without signers coordinating with each other",
-            "BLS supports both signature and public key aggregation to produce compact results"
-          ],
-          "correctAnswers": [
-            2
-          ],
-          "hint": "Think about the practical challenge of getting many validators to produce a combined signature.",
-          "explanation": "BLS signatures support non-interactive aggregation, meaning individual validator signatures can be combined into an aggregate signature without the validators needing to coordinate or communicate with each other during the signing process. This is ideal for blockchain consensus where validators sign independently and their signatures are later combined."
         }
       ]
     },
@@ -738,7 +601,7 @@
       "options": [
         "Interoperability is equally difficult in all cases",
         "Avalanche L1s all share the same state",
-        "All Avalanche L1s use the same consensus mechanism and virtual machine, but practical implementations reveal this is not the case and involves additional complexity",
+        "All Avalanche L1s use the same consensus mechanism and virtual machine",
         "Avalanche provides standardized cryptographic algorithms in AvalancheGo that enable cross-L1 communication out of the box, even when execution layers differ"
       ],
       "correctAnswers": [
@@ -784,11 +647,10 @@
       "options": [
         "It makes transactions faster on all chains",
         "It eliminates the need for validators",
-        "It reduces gas fees across chains, which would actually introduce several security vulnerabilities and involves additional complexity and involves additional complexity",
+        "It reduces gas fees across chains",
         "It ensures source chain transactions are confirmed and immutable, allowing destination chain actions to execute securely without risk of source chain reverting"
       ],
       "correctAnswers": [
-        0,
         3
       ],
       "hint": "Think about what happens if the source chain could revert after the destination acts.",
@@ -830,7 +692,7 @@
       "options": [
         "A trustless, correct CCC protocol is impossible, as the problem reduces to the Fair Exchange problem which has been proven unsolvable",
         "Trustless CCC protocols are easy to implement",
-        "Trustless CCC protocols only work on Proof of Work chains, which is an oversimplification of the actual process and involves additional complexity",
+        "Trustless CCC protocols only work on Proof of Work chains",
         "Trustless CCC protocols require special hardware"
       ],
       "correctAnswers": [
@@ -877,7 +739,7 @@
       "options": [
         "Trust in a centralized bridge operator",
         "Trust in the validators of the source L1 signing the message, which is the same trust users already place when using that L1",
-        "Trust in a separate set of bridge validators unrelated to the L1, although this is not how the protocol actually works in practice",
+        "Trust in a separate set of bridge validators unrelated to the L1",
         "Trust in the destination L1 validators to verify the source"
       ],
       "correctAnswers": [
@@ -922,7 +784,7 @@
       "options": [
         "To observe source chains for ICM messages and deliver them to destination chains, serving as the message delivery infrastructure",
         "To mine cryptocurrency",
-        "To validate transactions and create new blocks, but in reality the system operates quite differently and involves additional complexity",
+        "To validate transactions and create new blocks",
         "To store blockchain data permanently"
       ],
       "correctAnswers": [
@@ -966,14 +828,13 @@
     "4023": {
       "question": "Why might you want to restrict which relayers can deliver messages to your cross-chain application? (Select all that apply)",
       "options": [
-        "To eliminate all relayers, but practical implementations reveal this is not the case and involves additional complexity and involves additional complexity",
+        "To eliminate all relayers",
         "To ensure message delivery quality, prevent spam, guarantee SLAs, or maintain control over the delivery infrastructure for security and reliability",
         "To increase gas costs",
         "To make the system more centralized for no reason"
       ],
       "correctAnswers": [
-        1,
-        3
+        1
       ],
       "hint": "Think about quality of service and security considerations.",
       "explanation": "Restricting relayers allows you to ensure message delivery quality and maintain specific service level agreements (SLAs). You might want to guarantee that only relayers you trust or have contracted with can deliver messages to your application. This can help prevent spam, ensure reliable delivery times, maintain security standards, and give you control over the message delivery infrastructure. While AWM is permissionless by default, applications can implement their own restrictions based on their specific reliability and security requirements.",

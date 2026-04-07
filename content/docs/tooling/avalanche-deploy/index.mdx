@@ -1,0 +1,48 @@
+---
+title: Avalanche Deploy
+description: Deploy production-ready Avalanche infrastructure on AWS, GCP, Azure, or Kubernetes using Infrastructure as Code with Terraform, Ansible, and Helm.
+index: true
+---
+
+[`avalanche-deploy`](https://github.com/ava-labs/avalanche-deploy) is an Infrastructure as Code toolkit that automates provisioning, deployment, and operations for Avalanche nodes. It supports both **L1 blockchains** and **Primary Network validators** across AWS, GCP, Azure, and Kubernetes.
+
+## L1 Deployment
+
+Launch your own EVM blockchain with validators, RPC nodes, monitoring, and optional add-ons.
+
+<Cards>
+<Card title="Terraform + Ansible" description="Deploy on AWS, GCP, or Azure with archive/pruned RPC split, eRPC load balancer, and full operational tooling." href="/docs/tooling/avalanche-deploy/deploy-l1" />
+<Card title="Kubernetes" description="Deploy on any cluster or locally with kind. Portable, container-native, Helm-based." href="/docs/tooling/avalanche-deploy/deploy-l1-kubernetes" />
+</Cards>
+
+## Primary Network Validators
+
+Operate production validators for the P-Chain, X-Chain, and C-Chain. Earn staking rewards.
+
+<Cards>
+<Card title="Terraform + Ansible" description="AWS-only. Staking key backup, database snapshots, and zero-downtime validator migration." href="/docs/tooling/avalanche-deploy/deploy-primary-network" />
+<Card title="Kubernetes" description="Deploy validators and RPC nodes on any Kubernetes cluster with Helm." href="/docs/tooling/avalanche-deploy/deploy-primary-network-kubernetes" />
+</Cards>
+
+## Which Method Should I Use?
+
+| | Terraform + Ansible | Kubernetes |
+|---|---|---|
+| **Best for** | Production with full ops tooling | Existing clusters or local dev |
+| **Cloud support** | AWS, GCP, Azure | Any cluster |
+| **Staking key backup** | S3 + KMS | Manual |
+| **DB snapshots and migration** | Built-in | Manual |
+| **Local development** | No | Yes (kind) |
+| **Add-ons** (Blockscout, faucet, etc.) | Yes | Yes |
+
+<Callout type="info">
+**Not sure?** Start with **Terraform + Ansible on AWS** for the most complete experience. Use **Kubernetes** if you already have a cluster or want to test locally with kind.
+</Callout>
+
+## Operations and Troubleshooting
+
+<Cards>
+<Card title="Add-Ons" description="Blockscout, faucet, The Graph, ICM Relayer, Safe multisig, and eRPC." href="/docs/tooling/avalanche-deploy/add-ons" />
+<Card title="Operations" description="Upgrades, monitoring, health checks, backups, and migrations." href="/docs/tooling/avalanche-deploy/operations" />
+<Card title="Troubleshooting" description="Common issues and solutions." href="/docs/tooling/avalanche-deploy/troubleshooting" />
+</Cards>

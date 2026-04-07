@@ -1,0 +1,254 @@
+---
+title: Deploy Primary Network with Terraform and Ansible
+description: Operate production Avalanche Primary Network validators on AWS with staking key management, database snapshots, and zero-downtime migration.
+---
+
+This guide covers deploying and operating Avalanche Primary Network validators — the nodes that validate the P-Chain, X-Chain, and C-Chain. These validators participate in Avalanche consensus and earn staking rewards.
+
+**AWS only**. **Staking minimum**: 2,000 AVAX (mainnet), 1 AVAX (Fuji). **Bootstrap time**: 2–4 hours via state-sync. **Cost**: ~$326/month per validator.
+
+<Callout type="warn">
+Primary Network workflows are currently supported on **AWS only**. The instances require high-performance NVMe storage for the full chain database.
+</Callout>
+
+## Architecture
+
+<Mermaid chart={`
+flowchart TB
+    subgraph Internet
+        PrimaryNetwork([Avalanche Primary Network P/X/C Chains])
+        Operator([Operator])
+    end
+
+    subgraph AWS["AWS Cloud"]
+        subgraph VPC["VPC"]
+            subgraph Validators["Primary Validators"]
+                PV1[Validator 1 i4i.xlarge 937GB NVMe]
+                PV2[Validator 2 i4i.xlarge 937GB NVMe]
+            end
+
+            subgraph Monitoring["Monitoring"]
+                Prometheus[Prometheus]
+                Grafana[Grafana]
+            end
+        end
+
+        subgraph Storage["S3 + KMS"]
+            S3[(Staking Keys KMS Encrypted)]
+            Snapshots[(Database Snapshots lz4 Compressed)]
+        end
+    end
+
+    PrimaryNetwork <-->|P2P :9651| PV1
+    PrimaryNetwork <-->|P2P :9651| PV2
+
+    Operator -->|SSH / API| PV1
+    Operator -->|Dashboard :3000| Grafana
+
+    PV1 -.->|backup| S3
+    PV2 -.->|backup| S3
+    PV1 -.->|snapshot| Snapshots
+
+    PV1 -.->|metrics| Prometheus
+    PV2 -.->|metrics| Prometheus
+    Prometheus -.-> Grafana
+`} />
+
+## Key Differences from L1 Deployment
+
+| Aspect | L1 Deployment | Primary Network |
+|--------|---------------|-----------------|
+| Chain sync | Partial P-Chain headers only | Full P/X/C chain data |
+| Instance type | c6a.xlarge (general compute) | i4i.xlarge (NVMe-optimized) |
+| Storage | EBS gp3 volumes | 937GB local NVMe |
+| Bootstrap time | Minutes (partial sync) | 2–4 hours (state-sync) |
+| Cloud support | AWS, GCP, Azure | AWS only |
+| Staking key backup | Optional | Strongly recommended |
+
+## Quick Start
+
+<Steps>
+<Step>
+
+### Provision Infrastructure
+
+```bash
+make primary-infra CLOUD=aws
+```
+
+This uses a **separate Terraform state** from the L1 deployment (`terraform/primary-network/aws/`), creating i4i.xlarge instances with 937GB NVMe drives.
+
+Edit `terraform/primary-network/aws/terraform.tfvars` before running:
+
+```hcl
+primary_validator_count    = 2
+enable_staking_key_backup  = true
+ssh_public_key             = "ssh-rsa AAAA..."
+ssh_private_key_file       = "~/.ssh/avalanche-deploy"
+```
+
+</Step>
+<Step>
+
+### Deploy Validators
+
+```bash
+make primary-deploy CLOUD=aws NETWORK=fuji    # or mainnet
+```
+
+This runs playbook `primary-network/deploy.yml`, which:
+1. Installs AvalancheGo with Primary Network configuration
+2. Enables state-sync for fast initial bootstrap
+3. Waits for P/X/C chain bootstrap to complete (polls for up to 90 minutes)
+4. Backs up staking keys to S3 with KMS encryption
+5. Creates an initial database snapshot and uploads it to S3
+
+</Step>
+<Step>
+
+### Monitor Sync Progress
+
+```bash
+make primary-status CLOUD=aws
+```
+
+Bootstrap typically takes 2–4 hours via state-sync. All three chains (P, X, C) must report `isBootstrapped: true` before proceeding.
+
+</Step>
+<Step>
+
+### Register Your Validator on the P-Chain
+
+Validator registration requires staking AVAX on the P-Chain:
+- **Fuji testnet**: 1 AVAX minimum
+- **Mainnet**: 2,000 AVAX minimum
+
+Register using [Core Wallet](https://core.app/) or the Avalanche CLI. You will need your validator's NodeID, which is displayed by `make primary-status`.
+
+</Step>
+<Step>
+
+### Back Up Staking Keys
+
+```bash
+make backup-keys CLOUD=aws
+```
+
+Staking keys are uploaded to S3 with KMS encryption. The validator instances have an IAM role that grants access to the backup bucket — no manual credential configuration required.
+
+</Step>
+</Steps>
+
+## Staking Key Management
+
+Staking keys are the cryptographic identity of your validator. Losing them means losing your NodeID and any associated staking position.
+
+```bash
+# Backup all validator keys to S3
+make backup-keys CLOUD=aws
+
+# Restore keys to a specific node
+make restore-keys CLOUD=aws SOURCE=primary-validator-1 TARGET_IP=10.0.1.50
+
+# List existing backups
+aws s3 ls s3://$(terraform -chdir=terraform/primary-network/aws output -raw staking_keys_bucket)/
+```
+
+<Callout type="warn">
+Always back up staking keys immediately after deployment and after any key rotation. Keys are encrypted with KMS — they cannot be read even if the S3 bucket is compromised without KMS access.
+</Callout>
+
+## Database Snapshots
+
+Create lz4-compressed snapshots of synced nodes for faster bootstrapping of new nodes. A pruned mainnet snapshot is approximately 400GB and restores in minutes compared to hours for state-sync.
+
+```bash
+# Create a snapshot from a synced validator
+make create-snapshot CLOUD=aws NODE=primary-validator-1
+
+# Create with a custom name
+make create-snapshot CLOUD=aws NODE=primary-validator-1 NAME=mainnet-2025-02
+
+# List available snapshots
+make list-snapshots CLOUD=aws
+
+# Restore a snapshot to a node
+make restore-snapshot CLOUD=aws TARGET=migration-target
+make restore-snapshot CLOUD=aws TARGET=migration-target SNAPSHOT=mainnet-2025-02
+```
+
+Snapshots are stored in S3 with KMS encryption and SHA256 checksums for integrity verification.
+
+## Validator Migration
+
+Migrate a validator to a new instance with approximately 30 seconds of downtime. This is useful for hardware upgrades, instance type changes, or region moves.
+
+<Mermaid chart={`
+sequenceDiagram
+    participant Old as Old Validator
+    participant S3 as S3 Keys and Snapshots
+    participant New as New Validator
+    participant Network as Primary Network
+
+    Note over Old,Network: Normal operation
+    Old->>Network: Validating (active)
+
+    Note over New: Phase 1 Sync new node
+    New->>Network: State-sync or restore from snapshot
+
+    Note over Old,S3: Phase 2 Backup keys
+    Old->>S3: Upload staking keys KMS encrypted
+
+    Note over New,S3: Phase 3 Prepare migration
+    New->>S3: Download staking keys
+    New-->>New: Stop AvalancheGo
+
+    Note over Old,New: Phase 4 Execute about 30s downtime
+    Old-->>Old: Stop AvalancheGo
+    New-->>New: Start with staking keys
+    New->>Network: Validating same NodeID
+`} />
+
+### Migration Steps
+
+```bash
+# 1. Prepare the new node (choose one):
+# Option A: From snapshot (faster — minutes)
+make prepare-migration CLOUD=aws NODE=migration-target SNAPSHOT=true
+
+# Option B: From state-sync (slower — hours)
+make prepare-migration CLOUD=aws NODE=migration-target
+
+# 2. Wait for the new node to fully sync
+./scripts/primary-network/check-sync.sh <new-node-ip>
+
+# 3. Execute migration (~30s downtime)
+make migrate-validator CLOUD=aws SOURCE=primary-validator-1 TARGET=migration-target
+```
+
+## Cost Estimate (AWS us-east-1)
+
+| Component | Instance | Storage | Monthly Estimate |
+|-----------|----------|---------|-----------------|
+| Primary Validator | i4i.xlarge | 937GB NVMe (included) | ~$310 |
+| S3 + KMS (keys + snapshots) | — | ~1GB | ~$1 |
+| Monitoring | t3.small | 50GB EBS | ~$15 |
+| **Per validator total** | | | **~$326/mo** |
+
+## Terraform Configuration Reference
+
+Edit `terraform/primary-network/aws/terraform.tfvars`:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `primary_validator_count` | 1 | Number of Primary Network validators |
+| `enable_staking_key_backup` | true | Enable S3 backup with KMS encryption |
+| `ssh_public_key` | — | SSH public key for node access |
+| `ssh_private_key_file` | — | Path to SSH private key |
+
+Node runtime configuration is at `configs/primary-network/node/primary-validator-node-config.json`, which includes `state-sync-enabled: true` and `state-sync-min-blocks: 100000` for faster initial bootstrap.
+
+## Next Steps
+
+- [Operations guide](/docs/tooling/avalanche-deploy/operations) — Rolling upgrades, monitoring, health checks
+- [Troubleshooting](/docs/tooling/avalanche-deploy/troubleshooting) — Common issues and solutions

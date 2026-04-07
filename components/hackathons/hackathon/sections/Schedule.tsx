@@ -3,7 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Divider } from '@/components/ui/divider';
 import { SearchEventInput } from '@/components/ui/search-event-input';
-import { TimeZoneSelect } from '@/components/ui/timezone-select';
+import { TimeZoneSelect, resolveTimezone } from '@/components/ui/timezone-select';
 import { HackathonHeader, ScheduleActivity } from '@/types/hackathons';
 import {
   Link as LinkIcon,
@@ -17,21 +17,44 @@ import Image from 'next/image';
 import { Separator } from '@/components/ui/separator';
 import DeadLine from '../DeadLine';
 import { Button } from '@/components/ui/button';
+import { useSchedule, ScheduleSource, GoogleCalendarConfig } from '@/hooks/useSchedule';
+import { normalizeEventsLang, t } from '@/lib/events/i18n';
 
-function Schedule({ hackathon }: { hackathon: HackathonHeader }) {
+export type ScheduleProps = {
+  hackathon: HackathonHeader;
+  /** Data source for schedule: 'database' (default) or 'google-calendar' */
+  scheduleSource?: ScheduleSource;
+  /** Google Calendar configuration (required when scheduleSource is 'google-calendar') */
+  googleCalendarConfig?: GoogleCalendarConfig;
+};
+
+function Schedule({ hackathon, scheduleSource = 'database', googleCalendarConfig }: ScheduleProps) {
+  const lang = normalizeEventsLang(hackathon.content?.language);
+  const locale = lang === 'es' ? 'es-ES' : 'en-US';
   const [search, setSearch] = useState<string>('');
   const [timeZone, setTimeZone] = useState<string>('');
   const [selectedDay, setSelectedDay] = useState<string>('');
 
+  // Use the schedule strategy hook - source is determined programmatically via scheduleSource prop
+  const { schedule: scheduleData, calendarTimeZone } = useSchedule({
+    source: scheduleSource,
+    hackathonId: hackathon.id,
+    existingSchedule: hackathon.content.schedule,
+    googleCalendarConfig,
+  });
+
   useEffect(() => {
-    if (hackathon.timezone) {
-      setTimeZone(hackathon.timezone);
+    // Use hackathon timezone, or calendar timezone from Google Calendar as fallback
+    // resolveTimezone finds a matching timezone in our selector if exact match not found
+    const rawTimeZone = hackathon.timezone || calendarTimeZone || '';
+    if (rawTimeZone) {
+      setTimeZone(resolveTimezone(rawTimeZone));
     }
     // Set initial selected day to the first day in schedule
-    const groupedActivities = groupActivitiesByDay(hackathon.content.schedule);
+    const groupedActivities = groupActivitiesByDay(scheduleData);
     const firstDay = Object.keys(groupedActivities)[0];
     setSelectedDay(firstDay);
-  }, [hackathon]);
+  }, [hackathon, scheduleData, calendarTimeZone]);
 
   const defineTimeZone = (formatDateParams: any) => {
     if (timeZone) return { ...formatDateParams, timeZone: timeZone };
@@ -54,13 +77,17 @@ function Schedule({ hackathon }: { hackathon: HackathonHeader }) {
 
   function getFormattedDay(date: Date) {
     const day = date.getDate();
-    const suffix = getOrdinalSuffix(day);
-    return `${day}${suffix} ${date.toLocaleString(
-      'en-US',
+    const weekday = date.toLocaleString(
+      locale,
       defineTimeZone({
         weekday: 'long',
       })
-    )}`.toLocaleUpperCase();
+    );
+    if (lang === 'es') {
+      return `${day} ${weekday}`.toLocaleUpperCase();
+    }
+    const suffix = getOrdinalSuffix(day);
+    return `${day}${suffix} ${weekday}`.toLocaleUpperCase();
   }
 
   function groupActivitiesByDay(
@@ -94,12 +121,12 @@ function Schedule({ hackathon }: { hackathon: HackathonHeader }) {
   }
 
   function getDateRange(activities: ScheduleActivity[]): string {
-    if (!activities.length) return 'No dates available';
+    if (!activities.length) return t(lang, 'schedule.noDatesAvailable');
 
     const validDates = activities
       .map((activity) => new Date(activity.date))
       .filter((date) => !isNaN(date.getTime()));
-    if (!validDates.length) return 'No valid dates available';
+    if (!validDates.length) return t(lang, 'schedule.noValidDatesAvailable');
 
     const earliestDate = new Date(
       Math.min(...validDates.map((date) => date.getTime()))
@@ -108,11 +135,11 @@ function Schedule({ hackathon }: { hackathon: HackathonHeader }) {
       Math.max(...validDates.map((date) => date.getTime()))
     );
     if (isNaN(earliestDate.getTime()) || isNaN(latestDate.getTime())) {
-      return 'Invalid date range';
+      return t(lang, 'schedule.invalidDateRange');
     }
 
     const formatter = new Intl.DateTimeFormat(
-      'en-US',
+      locale,
       defineTimeZone({
         month: 'long',
         day: 'numeric',
@@ -134,11 +161,12 @@ function Schedule({ hackathon }: { hackathon: HackathonHeader }) {
         className='text-4xl font-bold mb-2 md:text-4xl sm:text-3xl'
         id='schedule'
       >
-        Schedule
+        {t(lang, 'section.schedule.title')}
       </h2>
       <Separator className='my-2 sm:my-8 bg-zinc-300 dark:bg-zinc-800' />
+      
       <span className='dark:text-zinc-50 text-zinc-900 text-lg font-medium sm:text-base'>
-        {getDateRange(hackathon.content.schedule)}
+        {getDateRange(scheduleData)}
       </span>
       <div className='flex flex-col lg:flex-row justify-between gap-4 md:gap-10 mt-4 min-w-full'>
         <div className='flex flex-col md:flex-row items-start md:items-center justify-start lg:justify-center gap-4 md:gap-10 w-full md:w-auto'>
@@ -151,7 +179,7 @@ function Schedule({ hackathon }: { hackathon: HackathonHeader }) {
       <div className='bg-zinc-200 dark:bg-zinc-800 backdrop-blur-sm rounded-lg py-1 sm:w-fit w-full sm:max-w-none flex items-center gap-2'>
         <button
           onClick={() => {
-            const days = Object.keys(groupActivitiesByDay(hackathon.content.schedule));
+            const days = Object.keys(groupActivitiesByDay(scheduleData));
             const currentIndex = days.findIndex(day => day === selectedDay);
             if (currentIndex > 0) {
               setSelectedDay(days[currentIndex - 1]);
@@ -163,7 +191,7 @@ function Schedule({ hackathon }: { hackathon: HackathonHeader }) {
         </button>
         <div className='flex items-center overflow-x-auto no-scrollbar w-full sm:w-auto'>
           <div className='flex w-full sm:w-auto divide-x divide-zinc-300 dark:divide-zinc-700'>
-            {Object.entries(groupActivitiesByDay(hackathon.content.schedule)).map(
+            {Object.entries(groupActivitiesByDay(scheduleData)).map(
               ([formattedDate, activities], index) => {
                 if (!activities || activities.length === 0 || !activities[0]?.date) {
                   return null;
@@ -173,7 +201,7 @@ function Schedule({ hackathon }: { hackathon: HackathonHeader }) {
                   return null;
                 }
                 const month = date
-                  .toLocaleString('en-US', { month: 'long' })
+                  .toLocaleString(locale, { month: 'long' })
                   .toUpperCase();
                 const day = date.getDate();
                 return (
@@ -198,7 +226,7 @@ function Schedule({ hackathon }: { hackathon: HackathonHeader }) {
         </div>
         <button
           onClick={() => {
-            const days = Object.keys(groupActivitiesByDay(hackathon.content.schedule));
+            const days = Object.keys(groupActivitiesByDay(scheduleData));
             const currentIndex = days.findIndex(day => day === selectedDay);
             if (currentIndex < days.length - 1) {
               setSelectedDay(days[currentIndex + 1]);
@@ -210,7 +238,7 @@ function Schedule({ hackathon }: { hackathon: HackathonHeader }) {
         </button>
       </div>
       <div className='grid grid-cols-1 xl:grid-cols-2 gap-5'>
-        {Object.entries(groupActivitiesByDay(hackathon.content.schedule))
+        {Object.entries(groupActivitiesByDay(scheduleData))
           .filter(([date], index, array) => {
             const selectedIndex = array.findIndex(([d]) => d === selectedDay);
             return index === selectedIndex || index === selectedIndex + 1;
@@ -275,7 +303,7 @@ function Schedule({ hackathon }: { hackathon: HackathonHeader }) {
                             <div className='absolute top-0'>
                               {activityIsOcurring && dateIsCurrentDate && (
                                 <div className='border border-red-500 rounded-full text-xs font-medium text-center w-1/3 sm:w-auto sm:px-2'>
-                                  Live now
+                                  {t(lang, 'schedule.liveNow')}
                                 </div>
                               )}
                               {!activityIsOcurring && dateIsCurrentDate && (
@@ -284,7 +312,7 @@ function Schedule({ hackathon }: { hackathon: HackathonHeader }) {
                                     size={16}
                                     className='!text-zinc-900 dark:!text-zinc-50'
                                   />
-                                  Zoom
+                                  {t(lang, 'schedule.zoom')}
                                 </div>
                               )}
                             </div>
@@ -333,7 +361,7 @@ function Schedule({ hackathon }: { hackathon: HackathonHeader }) {
                             <div>
                               <div className='flex justify-between items-center'>
                                 <CardTitle className='text-red-500 text-lg sm:text-base'>
-                                  {activity.name || 'Untitled Activity'}
+                                  {activity.name || t(lang, 'schedule.untitledActivity')}
                                 </CardTitle>
                                 {activity.category && (
                                   <Badge className='bg-zinc-600 text-zinc-50 dark:bg-zinc-50 dark:text-zinc-900 py-0.5 px-2.5 text-xs rounded-xl'>
@@ -377,17 +405,43 @@ function Schedule({ hackathon }: { hackathon: HackathonHeader }) {
                               </div>
                             )}
                             <div
-                              className={`flex flex-row sm:gap-4 ${
+                              className={`flex flex-col sm:flex-row sm:gap-4 ${
                                 voidHost
-                                  ? 'flex-1 items-center'
+                                  ? 'flex-1 items-start sm:items-center'
                                   : 'justify-between'
                               }`}
                             >
-                              <div className='flex flex-row items-center gap-2'>
-                                <MapPin color='#8F8F99' className='w-5 h-5' />
-                                <span className='dark:text-zinc-50 zinc-900 sm:text-sm font-normal'>
-                                  {activity.location}
-                                </span>
+                              <div className='flex flex-col gap-1'>
+                                {/* Video call link */}
+                                {activity.video_call_url && (
+                                  <div className='flex flex-row items-center gap-2'>
+                                    <LinkIcon color='#8F8F99' className='w-5 h-5' />
+                                    <Link
+                                      href={activity.video_call_url}
+                                      target='_blank'
+                                      className='dark:text-zinc-50 text-zinc-900 sm:text-sm font-normal hover:text-red-500 dark:hover:text-red-400 transition-colors'
+                                    >
+                                      {t(lang, 'schedule.joinVideoCall')}
+                                    </Link>
+                                  </div>
+                                )}
+                                {/* Physical location */}
+                                <div className='flex flex-row items-center gap-2'>
+                                  <MapPin color='#8F8F99' className='w-5 h-5' />
+                                  {activity.location && activity.location !== 'TBD' ? (
+                                    <Link
+                                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(activity.location)}`}
+                                      target='_blank'
+                                      className='dark:text-zinc-50 text-zinc-900 sm:text-sm font-normal hover:text-red-500 dark:hover:text-red-400 transition-colors'
+                                    >
+                                      {activity.location.split(',').slice(0, 2).join(',')}
+                                    </Link>
+                                  ) : (
+                                    <span className='dark:text-zinc-50 text-zinc-900 sm:text-sm font-normal'>
+                                      {activity.location || t(lang, 'schedule.tbd')}
+                                    </span>
+                                  )}
+                                </div>
                               </div>
                               {/* <Button
                                   variant="secondary"

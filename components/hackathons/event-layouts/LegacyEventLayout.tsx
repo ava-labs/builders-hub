@@ -13,30 +13,65 @@ import OverviewBanner from "@/components/hackathons/hackathon/sections/OverviewB
 import JoinButton from "@/components/hackathons/hackathon/JoinButton";
 import JoinBannerLink from "@/components/hackathons/hackathon/JoinBannerLink";
 import type { HackathonHeader } from "@/types/hackathons";
+import { normalizeEventsLang, t } from "@/lib/events/i18n";
 
-interface HackathonEventLayoutProps {
+interface LegacyEventLayoutProps {
   hackathon: HackathonHeader;
   id: string;
   isRegistered: boolean;
   utm: string;
 }
 
-const menuItems = [
-  { name: "About", ref: "about" },
-  { name: "Prizes & Tracks", ref: "tracks" },
-  { name: "Resources", ref: "resources" },
-  { name: "Schedule", ref: "schedule" },
-  { name: "Submission", ref: "submission" },
-  { name: "Mentors & Judges", ref: "speakers" },
-  { name: "Partners", ref: "sponsors" },
-];
-
-export default function HackathonEventLayout({
+export default function LegacyEventLayout({
   hackathon,
   id,
   isRegistered,
   utm,
-}: HackathonEventLayoutProps) {
+}: LegacyEventLayoutProps) {
+  const lang = normalizeEventsLang(hackathon.content?.language);
+
+  const hasAbout = Boolean(hackathon.content.tracks_text);
+  const hasTracks =
+    Array.isArray(hackathon.content.tracks) &&
+    hackathon.content.tracks.length > 0;
+  const hasResources =
+    Array.isArray(hackathon.content.resources) &&
+    hackathon.content.resources.length > 0;
+  const hasSchedule =
+    (Array.isArray(hackathon.content.schedule) &&
+      hackathon.content.schedule.length > 0) ||
+    Boolean(hackathon.google_calendar_id);
+  const hasSpeakers =
+    Array.isArray(hackathon.content.speakers) &&
+    hackathon.content.speakers.length > 0;
+  const hasPartners =
+    Array.isArray(hackathon.content.partners) &&
+    hackathon.content.partners.length > 0;
+
+  const isHackathon = (hackathon.event || "hackathon") === "hackathon";
+
+  const menuItems = [
+    ...(hasAbout ? [{ name: t(lang, "menu.about"), ref: "about" }] : []),
+    ...(isHackathon && hasTracks
+      ? [{ name: t(lang, "menu.tracks"), ref: "tracks" }]
+      : []),
+    ...(hasResources
+      ? [{ name: t(lang, "menu.resources"), ref: "resources" }]
+      : []),
+    ...(hasSchedule
+      ? [{ name: t(lang, "menu.schedule"), ref: "schedule" }]
+      : []),
+    ...(isHackathon
+      ? [{ name: t(lang, "menu.submission"), ref: "submission" }]
+      : []),
+    ...(hasSpeakers
+      ? [{ name: t(lang, "menu.mentorsJudges"), ref: "speakers" }]
+      : []),
+    ...(hasPartners
+      ? [{ name: t(lang, "menu.partners"), ref: "sponsors" }]
+      : []),
+  ];
+
   return (
     <main className="container sm:px-2 py-4 lg:py-16">
       <div className="pl-4 flex gap-4 items-center">
@@ -60,6 +95,7 @@ export default function HackathonEventLayout({
           variant="red"
           showChatWhenRegistered={true}
           utm={utm}
+          lang={lang}
         />
       </div>
       <div className="p-4 flex flex-col gap-24">
@@ -89,19 +125,26 @@ export default function HackathonEventLayout({
             />
           </div>
           <div className="py-8 sm:p-8 flex flex-col gap-20">
-            {hackathon.content.tracks_text && <About hackathon={hackathon} />}
-            {hackathon.content.tracks && <Tracks hackathon={hackathon} />}
-            <Resources hackathon={hackathon} />
-            {hackathon.content.schedule && <Schedule hackathon={hackathon} />}
-            <Submission hackathon={hackathon} />
-            {hackathon.content.speakers &&
-              hackathon.content.speakers.length > 0 && (
-                <MentorsJudges hackathon={hackathon} />
-              )}
-            <Community hackathon={hackathon} />
-            {hackathon.content.partners?.length > 0 && (
-              <Sponsors hackathon={hackathon} />
+            {hasAbout && <About hackathon={hackathon} />}
+            {isHackathon && hasTracks && <Tracks hackathon={hackathon} />}
+            {hasResources && <Resources hackathon={hackathon} />}
+            {hasSchedule && (
+              <Schedule
+                hackathon={hackathon}
+                scheduleSource={
+                  hackathon.google_calendar_id ? "google-calendar" : "database"
+                }
+                googleCalendarConfig={
+                  hackathon.google_calendar_id
+                    ? { calendarId: hackathon.google_calendar_id }
+                    : undefined
+                }
+              />
             )}
+            {isHackathon && <Submission hackathon={hackathon} />}
+            {hasSpeakers && <MentorsJudges hackathon={hackathon} />}
+            <Community hackathon={hackathon} />
+            {hasPartners && <Sponsors hackathon={hackathon} />}
           </div>
         </div>
       </div>

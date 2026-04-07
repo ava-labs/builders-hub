@@ -713,12 +713,10 @@ function SmallViewContent({ onExpand }: { onExpand: () => void }) {
                     <p className="text-xs font-medium text-muted-foreground">AI Assistant</p>
                   </div>
                   <div className="bg-slate-100 dark:bg-zinc-900 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <div className="flex gap-1">
-                        <span className="size-2 rounded-full bg-muted-foreground/50 animate-bounce [animation-delay:-0.3s]"></span>
-                        <span className="size-2 rounded-full bg-muted-foreground/50 animate-bounce [animation-delay:-0.15s]"></span>
-                        <span className="size-2 rounded-full bg-muted-foreground/50 animate-bounce"></span>
-                      </div>
+                    <div className="flex items-center gap-1.5">
+                      <img src="/common-images/Avalanche_Logomark_Black.svg" alt="" className="size-3.5 dark:hidden" style={{ animation: 'bounce-gentle 1.4s ease-in-out infinite' }} />
+                      <img src="/common-images/Avalanche_Logomark_Red.svg" alt="" className="size-3.5 hidden dark:block" style={{ animation: 'bounce-gentle 1.4s ease-in-out infinite' }} />
+                      <span className="text-xs text-muted-foreground/60">Thinking...</span>
                     </div>
                   </div>
                 </div>
@@ -892,12 +890,10 @@ function Content({ onRefSelect, onLinksDetected, onCollapse }: {
                     <p className="text-xs font-medium text-muted-foreground">AI Assistant</p>
                   </div>
                   <div className="bg-slate-100 dark:bg-zinc-900 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <div className="flex gap-1">
-                        <span className="size-2 rounded-full bg-muted-foreground/50 animate-bounce [animation-delay:-0.3s]"></span>
-                        <span className="size-2 rounded-full bg-muted-foreground/50 animate-bounce [animation-delay:-0.15s]"></span>
-                        <span className="size-2 rounded-full bg-muted-foreground/50 animate-bounce"></span>
-                      </div>
+                    <div className="flex items-center gap-1.5">
+                      <img src="/common-images/Avalanche_Logomark_Black.svg" alt="" className="size-3.5 dark:hidden" style={{ animation: 'bounce-gentle 1.4s ease-in-out infinite' }} />
+                      <img src="/common-images/Avalanche_Logomark_Red.svg" alt="" className="size-3.5 hidden dark:block" style={{ animation: 'bounce-gentle 1.4s ease-in-out infinite' }} />
+                      <span className="text-xs text-muted-foreground/60">Thinking...</span>
                     </div>
                   </div>
                 </div>

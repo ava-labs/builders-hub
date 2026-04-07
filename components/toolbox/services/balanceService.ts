@@ -1,5 +1,6 @@
 import { getPChainBalance, getNativeTokenBalance, getChains } from '../coreViem/utils/glacier';
 import { avalancheFuji, avalanche } from 'viem/chains';
+import { createPublicClient, http } from 'viem';
 
 // Local debounce function
 function debounce<T extends (...args: any[]) => any>(
@@ -51,9 +52,27 @@ interface BalanceUpdateCallbacks {
 // Service class for managing balance operations
 class BalanceService {
   private callbacks: BalanceUpdateCallbacks | null = null;
-
+  private rpcUrls = new Map<string, string>();
+  private chainClients = new Map<string, ReturnType<typeof createPublicClient>>();
 
   constructor(private debounceTime: number = 500) { }
+
+  registerRpcUrls(l1List: Array<{ evmChainId: number; rpcUrl?: string }>) {
+    for (const l1 of l1List) {
+      if (l1.rpcUrl) {
+        this.rpcUrls.set(l1.evmChainId.toString(), l1.rpcUrl);
+      }
+    }
+  }
+
+  private getOrCreateClient(chainId: string): ReturnType<typeof createPublicClient> | null {
+    if (this.chainClients.has(chainId)) return this.chainClients.get(chainId)!;
+    const rpcUrl = this.rpcUrls.get(chainId);
+    if (!rpcUrl) return null;
+    const client = createPublicClient({ transport: http(rpcUrl) });
+    this.chainClients.set(chainId, client);
+    return client;
+  }
 
   setCallbacks(callbacks: BalanceUpdateCallbacks) {
     this.callbacks = callbacks;
@@ -161,7 +180,10 @@ class BalanceService {
         const balance = await getNativeTokenBalance(walletChainId, walletEVMAddress);
         return Number(balance.balance) / (10 ** balance.decimals);
       } else {
-        const balance = await publicClient.getBalance({
+        // Use a chain-specific client (via registered rpcUrl) so we query
+        // the correct RPC, not the currently-connected chain's transport.
+        const chainClient = this.getOrCreateClient(walletChainId.toString()) || publicClient;
+        const balance = await chainClient.getBalance({
           address: walletEVMAddress as `0x${string}`,
         });
         return Number(balance) / 1e18;
@@ -203,8 +225,9 @@ class BalanceService {
   };
 
   // Update all balances including all L1s
-  updateAllBalancesWithAllL1s = async (l1List?: Array<{ evmChainId: number }>) => {
+  updateAllBalancesWithAllL1s = async (l1List?: Array<{ evmChainId: number; rpcUrl?: string }>) => {
     if (l1List && l1List.length > 0) {
+      this.registerRpcUrls(l1List);
       // Update balances for all L1s in the list
       const updatePromises = l1List.map(l1 =>
         this.updateL1Balance(l1.evmChainId.toString())

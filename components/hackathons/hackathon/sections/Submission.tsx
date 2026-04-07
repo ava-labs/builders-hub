@@ -3,23 +3,27 @@ import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 import { HackathonHeader } from '@/types/hackathons';
 import { Calendar, Trophy, Rocket, Check } from 'lucide-react';
-import { MDXRemote } from 'next-mdx-remote/rsc';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import React from 'react';
 import SubmitButton from '../SubmitButton';
+import { normalizeEventsLang, t } from '@/lib/events/i18n';
 
 export default async function Submission({
   hackathon,
 }: {
   hackathon: HackathonHeader;
 }) {
+  const lang = normalizeEventsLang(hackathon.content?.language);
+  const locale = lang === 'es' ? 'es-ES' : 'en-US';
   return (
     <section className='py-16 text-black dark:text-white'>
       <h2 className='text-4xl font-bold' id='submission'>
-        Submit Your Project
+        {t(lang, 'section.submission.title')}
       </h2>
       <Separator className='my-8 bg-zinc-300 dark:bg-zinc-800' />
       <p className='text-lg mb-8'>
-        Follow the guidelines to submit your hackathon project successfully
+        {t(lang, 'section.submission.subtitle')}
       </p>
 
       <div className='grid grid-cols-1 lg:grid-cols-4'>
@@ -28,11 +32,13 @@ export default async function Submission({
             className={`mb-4 !text-zinc-600 dark:!text-zinc-400`}
             size={24}
           />
-          <h3 className='text-xl font-semibold mb-2'>Deadline</h3>
+          <h3 className='text-xl font-semibold mb-2'>
+            {t(lang, 'section.submission.deadline')}
+          </h3>
           <p className='text-sm'>
-            Submissions close on{' '}
+            {t(lang, 'section.submission.submissionsCloseOn')}{' '}
             <b>
-              {new Intl.DateTimeFormat('en-US', {
+              {new Intl.DateTimeFormat(locale, {
                 month: 'long',
                 day: 'numeric',
                 year: 'numeric',
@@ -41,7 +47,7 @@ export default async function Submission({
             </b>
             , at{' '}
             <b>
-              {new Intl.DateTimeFormat('en-US', {
+              {new Intl.DateTimeFormat(locale, {
                 hour: '2-digit',
                 minute: '2-digit',
                 hour12: true,
@@ -59,10 +65,10 @@ export default async function Submission({
             className={`mb-4 !text-zinc-200 dark:!text-zinc-400`}
           />
           <h3 className='text-xl font-semibold mb-2 text-zinc-50'>
-            Requirements
+            {t(lang, 'section.submission.requirements')}
           </h3>
           <p className='text-sm text-zinc-50'>
-            Your project must include a GitHub repo, slides for your pitch, and any additional content.
+            {t(lang, 'section.submission.requirementsText')}
           </p>
         </div>
 
@@ -71,10 +77,11 @@ export default async function Submission({
             size={24}
             className={`mb-4 !text-zinc-600 dark:!text-zinc-400`}
           />
-          <h3 className='text-xl font-semibold mb-2'>Evaluation Criteria</h3>
+          <h3 className='text-xl font-semibold mb-2'>
+            {t(lang, 'section.submission.evaluationCriteria')}
+          </h3>
           <p className='text-sm'>
-            Projects will be judged on value proposition, technical complexity
-            and usage of Avalanche technologies
+            {t(lang, 'section.submission.evaluationCriteriaText')}
           </p>
         </div>
 
@@ -84,11 +91,10 @@ export default async function Submission({
             className={`mb-4 !text-zinc-200 dark:!text-zinc-400`}
           />
           <h3 className='text-xl font-semibold mb-2 text-zinc-50'>
-            Submission Process
+            {t(lang, 'section.submission.submissionProcess')}
           </h3>
           <p className='text-sm text-zinc-50'>
-            Submit your project through the Avalanche Builder Hub, add your
-            team members, and upload your GitHub repo, presentation slides along with any other file that support your submission.
+            {t(lang, 'section.submission.submissionProcessText')}
           </p>
         </div>
       </div>
@@ -97,7 +103,7 @@ export default async function Submission({
         <Dialog>
           <DialogTrigger asChild>
             <Button  variant='red' className='w-2/5 md:w-1/3 lg:w-1/4 cursor-pointer'>
-              View full guidelines
+              {t(lang, 'section.submission.viewFullGuidelines')}
             </Button>
           </DialogTrigger>
           <DialogContent className='dark:bg-zinc-900 bg-zinc-50'>
@@ -106,11 +112,15 @@ export default async function Submission({
                 <div className='p-2 bg-red-500 rounded-full'>
                   <Trophy size={24} color='#F5F5F9' />
                 </div>
-                <h1 className='text-3xl font-semibold'>Guidelines</h1>
+                <h1 className='text-3xl font-semibold'>
+                  {t(lang, 'section.submission.guidelinesTitle')}
+                </h1>
               </div>
               <span className='block w-full h-[1px] my-8 bg-red-500'></span>
               <div className='prose text-zinc-50'>
-                <MDXRemote source={hackathon.content.judging_guidelines} />
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {hackathon.content.judging_guidelines}
+                </ReactMarkdown>
               </div>
             </div>
           </DialogContent>

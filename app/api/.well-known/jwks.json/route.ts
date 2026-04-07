@@ -2,42 +2,35 @@ import { NextResponse } from 'next/server';
 import { importPKCS8, exportJWK, calculateJwkThumbprint } from 'jose';
 
 
+async function loadKey(base64Key: string) {
+    const pem = Buffer.from(base64Key, 'base64').toString('utf8');
+    const privateKey = await importPKCS8(pem, 'ES256');
+    const publicJWK = await exportJWK(privateKey);
+    const kid = await calculateJwkThumbprint(publicJWK);
+    const { d, ...publicKeyOnly } = publicJWK;
+    return { ...publicKeyOnly, kty: 'EC' as const, use: 'sig' as const, alg: 'ES256' as const, kid };
+}
+
+// Generate keys with: openssl ecparam -genkey -name prime256v1 -noout | openssl pkcs8 -topk8 -nocrypt | base64 -w0
 export async function GET() {
     try {
-        if (!process.env.GLACIER_JWT_PRIVATE_KEY) {
-            throw new Error('GLACIER_JWT_PRIVATE_KEY is not set');
+        const keys = [];
+
+        if (process.env.GLACIER_JWT_PRIVATE_KEY) {
+            keys.push(await loadKey(process.env.GLACIER_JWT_PRIVATE_KEY));
         }
 
-        // Decode the base64 private key
-        const privateKeyPem = Buffer.from(process.env.GLACIER_JWT_PRIVATE_KEY, 'base64').toString('utf8');
+        if (process.env.OAUTH_JWT_PRIVATE_KEY) {
+            keys.push(await loadKey(process.env.OAUTH_JWT_PRIVATE_KEY));
+        }
 
-        // Import the private key
-        // Generate with: openssl ecparam -genkey -name prime256v1 -noout | openssl pkcs8 -topk8 -nocrypt | base64 -w0
-        const privateKey = await importPKCS8(privateKeyPem, 'ES256');
+        if (keys.length === 0) {
+            throw new Error('No JWT signing keys configured');
+        }
 
-        // Extract public key and convert to JWK
-        const publicJWK = await exportJWK(privateKey);
-        const kid = await calculateJwkThumbprint(publicJWK);
-
-        // Remove private key component ("d") - CRITICAL for security
-        const { d, ...publicKeyOnly } = publicJWK;
-
-        // Build JWKS response
-        const jwks = {
-            keys: [
-                {
-                    ...publicKeyOnly,
-                    kty: 'EC',
-                    use: 'sig',
-                    alg: 'ES256',
-                    kid
-                }
-            ]
-        };
-
-        return NextResponse.json(jwks, {
+        return NextResponse.json({ keys }, {
             headers: {
-                'Cache-Control': 'public, max-age=3600, s-maxage=3600', // Cache for 1 hour
+                'Cache-Control': 'public, max-age=3600, s-maxage=3600',
                 'Content-Type': 'application/json'
             }
         });

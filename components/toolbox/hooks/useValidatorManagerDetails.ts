@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { networkIDs } from "@avalabs/avalanchejs";
 import { getSubnetInfoForNetwork, getBlockchainInfoForNetwork } from "../coreViem/utils/glacier";
 import { useWalletStore } from "../stores/walletStore";
@@ -22,6 +22,8 @@ interface ValidatorManagerDetails {
     isOwnerContract: boolean;
     ownerType: 'PoAManager' | 'StakingManager' | 'EOA' | null;
     isDetectingOwnerType: boolean;
+    ownershipStatus: 'loading' | 'currentWallet' | 'differentEOA' | 'contract' | 'error';
+    refetchOwnership: () => void;
 }
 
 interface UseValidatorManagerDetailsProps {
@@ -29,7 +31,7 @@ interface UseValidatorManagerDetailsProps {
 }
 
 export function useValidatorManagerDetails({ subnetId }: UseValidatorManagerDetailsProps): ValidatorManagerDetails {
-    const { avalancheNetworkID } = useWalletStore();
+    const { avalancheNetworkID, walletEVMAddress } = useWalletStore();
     const viemChain = useViemChainStore();
     const chainPublicClient = useChainPublicClient();
 
@@ -57,6 +59,7 @@ export function useValidatorManagerDetails({ subnetId }: UseValidatorManagerDeta
     // Owner contract type detection states
     const [ownerType, setOwnerType] = useState<'PoAManager' | 'StakingManager' | 'EOA' | null>(null);
     const [isDetectingOwnerType, setIsDetectingOwnerType] = useState(false);
+    const [refetchCounter, setRefetchCounter] = useState(0);
 
     // Cache to store fetched details for each subnetId to avoid redundant API calls
     const subnetCache = useRef<Record<string, {
@@ -129,19 +132,19 @@ export function useValidatorManagerDetails({ subnetId }: UseValidatorManagerDeta
                     return;
                 }
 
-                // Successfully fetched VMC address and blockchain ID, now get signing subnet ID
-                const blockchainInfoForSigning = await getBlockchainInfoForNetwork(network, vmcBlockchainId);
-                const fetchedSigningSubnetId = blockchainInfoForSigning.subnetId;
-
+                // The signing subnet is always the L1's own subnet, because the L1
+                // validators sign warp messages for their validator set. The VMC may
+                // be deployed on a different chain (e.g. C-Chain), but signatures
+                // still come from the L1 validators, not the VMC chain's validators.
                 setValidatorManagerAddress(vmcAddress);
                 setBlockchainId(vmcBlockchainId);
-                setSigningSubnetId(fetchedSigningSubnetId || subnetId); // Fallback to initial subnetId if specific signing one isn\'t found
+                setSigningSubnetId(subnetId);
 
                 // Cache the fetched details
                 subnetCache.current[cacheKey] = {
                     validatorManagerAddress: vmcAddress,
                     blockchainId: vmcBlockchainId,
-                    signingSubnetId: fetchedSigningSubnetId || subnetId,
+                    signingSubnetId: subnetId,
                 };
                 setError(null);
 
@@ -179,7 +182,7 @@ export function useValidatorManagerDetails({ subnetId }: UseValidatorManagerDeta
             setL1WeightError(null); // Clear previous errors before fetching
 
             try {
-                if (!validatorManager.isReady) {
+                if (!validatorManager.isReadReady) {
                     throw new Error('Validator manager not ready');
                 }
 
@@ -210,7 +213,7 @@ export function useValidatorManagerDetails({ subnetId }: UseValidatorManagerDeta
         };
 
         fetchL1TotalWeight();
-    }, [validatorManagerAddress, chainPublicClient]);
+    }, [validatorManagerAddress, chainPublicClient, validatorManager.isReadReady]);
 
     // Fetch contract owner (no ownership verification, just fetch the owner address)
     useEffect(() => {
@@ -244,7 +247,7 @@ export function useValidatorManagerDetails({ subnetId }: UseValidatorManagerDeta
             }, 15000);
 
             try {
-                if (!validatorManager.isReady) {
+                if (!validatorManager.isReadReady) {
                     throw new Error('Validator manager not ready');
                 }
 
@@ -293,7 +296,7 @@ export function useValidatorManagerDetails({ subnetId }: UseValidatorManagerDeta
 
         fetchContractOwner();
         return () => { cancelled = true; };
-    }, [validatorManagerAddress, chainPublicClient]);
+    }, [validatorManagerAddress, chainPublicClient, validatorManager.isReadReady, refetchCounter]);
 
     // Detect owner contract type when owner is a contract
     useEffect(() => {
@@ -319,29 +322,52 @@ export function useValidatorManagerDetails({ subnetId }: UseValidatorManagerDeta
             }, 10000);
 
             try {
-                if (!poaManager.isReady) {
-                    // If PoA Manager hook is not ready, can't detect
+                // Try getStakingManagerSettings() first — this is unique to StakingManager
+                // and does NOT exist on PoAManager, making it a reliable discriminator.
+                // (Both contracts inherit owner() from OwnableUpgradeable, so that can't distinguish them.)
+                await chainPublicClient.readContract({
+                    address: contractOwner as `0x${string}`,
+                    abi: [{
+                        name: 'getStakingManagerSettings',
+                        type: 'function',
+                        inputs: [],
+                        outputs: [{ name: '', type: 'tuple', components: [
+                            { name: 'manager', type: 'address' },
+                            { name: 'minimumStakeAmount', type: 'uint256' },
+                            { name: 'maximumStakeAmount', type: 'uint256' },
+                            { name: 'minimumStakeDuration', type: 'uint64' },
+                            { name: 'minimumDelegationFeeBips', type: 'uint16' },
+                            { name: 'maximumStakeMultiplier', type: 'uint8' },
+                            { name: 'weightToValueFactor', type: 'uint256' },
+                            { name: 'rewardCalculator', type: 'address' },
+                            { name: 'uptimeBlockchainID', type: 'bytes32' },
+                        ]}],
+                        stateMutability: 'view',
+                    }],
+                    functionName: 'getStakingManagerSettings',
+                });
+                clearTimeout(timeoutId);
+
+                if (!cancelled) {
+                    setOwnerType('StakingManager');
+                }
+            } catch {
+                // getStakingManagerSettings() failed — not a StakingManager.
+                // Try owner() via PoAManager hook to confirm it's a PoAManager.
+                try {
+                    if (poaManager.isReadReady) {
+                        const ownerAddress = await poaManager.owner();
+                        clearTimeout(timeoutId);
+                        if (!cancelled) {
+                            setOwnerType(ownerAddress ? 'PoAManager' : 'StakingManager');
+                        }
+                    } else if (!cancelled) {
+                        setOwnerType('StakingManager');
+                    }
+                } catch {
                     if (!cancelled) {
                         setOwnerType('StakingManager');
                     }
-                    return;
-                }
-
-                // Try to call owner() function using PoAManager hook to detect if it's a PoAManager
-                const ownerAddress = await poaManager.owner();
-                clearTimeout(timeoutId);
-
-                // If we can successfully call owner() with PoAManager ABI, it's a PoAManager
-                if (!cancelled) {
-                    if (ownerAddress) {
-                        setOwnerType('PoAManager');
-                    } else {
-                        setOwnerType('StakingManager');
-                    }
-                }
-            } catch (error) {
-                if (!cancelled) {
-                    setOwnerType('StakingManager');
                 }
             } finally {
                 clearTimeout(timeoutId);
@@ -353,7 +379,23 @@ export function useValidatorManagerDetails({ subnetId }: UseValidatorManagerDeta
 
         detectOwnerType();
         return () => { cancelled = true; };
-    }, [isOwnerContract, contractOwner, chainPublicClient]);
+    }, [isOwnerContract, contractOwner, chainPublicClient, poaManager.isReadReady]);
+
+    const refetchOwnership = useCallback(() => {
+        setRefetchCounter(c => c + 1);
+    }, []);
+
+    const ownershipStatus = useMemo(() => {
+        if (isLoadingOwnership) return 'loading' as const;
+        if (ownershipError) return 'error' as const;
+        if (isOwnerContract) return 'contract' as const;
+        if (contractOwner && walletEVMAddress) {
+            return walletEVMAddress.toLowerCase() === contractOwner.toLowerCase()
+                ? 'currentWallet' as const : 'differentEOA' as const;
+        }
+        if (!isLoadingOwnership && validatorManagerAddress && !contractOwner) return 'error' as const;
+        return 'loading' as const;
+    }, [isLoadingOwnership, ownershipError, isOwnerContract, contractOwner, walletEVMAddress, validatorManagerAddress]);
 
     return {
         validatorManagerAddress,
@@ -369,6 +411,8 @@ export function useValidatorManagerDetails({ subnetId }: UseValidatorManagerDeta
         isLoadingOwnership,
         isOwnerContract,
         ownerType,
-        isDetectingOwnerType
+        isDetectingOwnerType,
+        ownershipStatus,
+        refetchOwnership
     };
 } 

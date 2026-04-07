@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import BubbleNavigation from '@/components/navigation/BubbleNavigation';
 import type { BubbleNavigationConfig } from '@/components/navigation/bubble-navigation.types';
+import l1ChainsData from '@/constants/l1-chains.json';
 import { ChartArea, Compass, Users, Coins } from 'lucide-react';
 
 export interface L1BubbleNavProps {
@@ -41,13 +42,18 @@ export function L1BubbleNav({
   }
 
   const isCChain = chainSlug === "c-chain";
+  const currentChain = l1ChainsData.find((chain) => chain.slug === chainSlug);
+  const showValidators = currentChain?.isTestnet !== true;
 
   const l1BubbleConfig: BubbleNavigationConfig = useMemo(() => {
     const items = [
       { id: "stats", label: "Stats", href: `/stats/l1/${chainSlug}`, icon: ChartArea },
       { id: "explorer", label: "Explorer", href: `/explorer/${chainSlug}`, icon: Compass },
-      { id: "validators", label: "Validators", href: `/stats/validators/${chainSlug}`, icon: Users },
     ];
+
+    if (showValidators) {
+      items.push({ id: "validators", label: "Validators", href: `/stats/validators/${chainSlug}`, icon: Users });
+    }
 
     // Add Token page link only for C-Chain
     if (isCChain) {
@@ -63,8 +69,7 @@ export function L1BubbleNav({
       pulseColor: "bg-zinc-200/40",
       darkPulseColor: "dark:bg-zinc-400/40",
     };
-  }, [chainSlug, isCChain]);
+  }, [chainSlug, isCChain, showValidators]);
 
   return <BubbleNavigation config={l1BubbleConfig} getActiveItem={getActiveItem} />;
 }
-

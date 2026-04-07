@@ -313,6 +313,12 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
                 message = `Insufficient ${tokenLabel.toLowerCase()} balance for staking`;
             } else if (message.includes('ERC20: insufficient allowance')) {
                 message = 'Insufficient ERC20 allowance. Please approve tokens first.';
+            } else if (message.includes('0xdfae8801') || message.includes('MaxChurnRateExceeded')) {
+                message = `Stake amount too high — exceeds the maximum churn rate. The network limits how much weight can change at once (typically 20% of total weight). Try staking a smaller amount and increase it incrementally.`;
+            } else if (message.includes('0x4c8eb65e') || message.includes('InvalidBLSKeyLength')) {
+                message = 'Invalid BLS public key length. Expected 48 bytes. Please check the validator credentials.';
+            } else if (message.includes('reverted')) {
+                message = `Transaction reverted. This may be due to: churn rate exceeded (stake too high), invalid node credentials, or the node already being registered. Try a smaller stake amount.`;
             }
 
             setErrorState(`Failed to initiate validator registration: ${message}`);
