@@ -7,6 +7,7 @@ export const dynamic = 'force-dynamic';
 const REQUEST_TIMEOUT_MS = 8000;
 const CACHE_CONTROL_HEADER = 'public, max-age=14400, s-maxage=14400, stale-while-revalidate=86400';
 const EVM_METRICS_URL = process.env.EVM_METRICS_URL || 'https://stats-api-production-8a73.up.railway.app';
+const EVM_METRICS_API_KEY = process.env.EVM_METRICS_API_KEY || '';
 
 interface ChainMetrics {
   activeAddresses: {
@@ -86,7 +87,9 @@ async function fetchEvmMetric(
     url.searchParams.set('pageSize', String(pageSize));
     if (pageToken) url.searchParams.set('pageToken', pageToken);
 
-    const res = await fetchWithTimeout(url.toString());
+    const headers: Record<string, string> = {};
+    if (EVM_METRICS_API_KEY) headers['X-API-Key'] = EVM_METRICS_API_KEY;
+    const res = await fetchWithTimeout(url.toString(), { headers });
     if (!res.ok) throw new Error(`evm-metrics ${res.status}: ${res.statusText}`);
     const data = await res.json();
 

@@ -10,6 +10,7 @@ const CACHE_CONTROL_HEADER = 'public, max-age=14400, s-maxage=14400, stale-while
 const REQUEST_TIMEOUT_MS = 8000;
 const MAX_CONCURRENT_CHAINS = 10;
 const EVM_METRICS_URL = process.env.EVM_METRICS_URL || 'https://stats-api-production-8a73.up.railway.app';
+const EVM_METRICS_API_KEY = process.env.EVM_METRICS_API_KEY || '';
 
 const TIME_RANGE_CONFIG = {
   day: { days: 3, secondsInRange: SECONDS_PER_DAY },
@@ -120,7 +121,9 @@ async function getTxCountData(chainId: string, timeRange: TimeRangeKey): Promise
     url.searchParams.set('endTimestamp', String(endTimestamp));
     url.searchParams.set('pageSize', String(config.days + 1));
 
-    const res = await fetchWithTimeout(url.toString());
+    const headers: Record<string, string> = {};
+    if (EVM_METRICS_API_KEY) headers['X-API-Key'] = EVM_METRICS_API_KEY;
+    const res = await fetchWithTimeout(url.toString(), { headers });
     if (!res.ok) throw new Error(`evm-metrics ${res.status}`);
     const data = await res.json();
 
@@ -147,7 +150,9 @@ async function getActiveAddressesData(chainId: string, timeRange: TimeRangeKey):
     url.searchParams.set('endTimestamp', String(endTimestamp));
     url.searchParams.set('pageSize', '2');
 
-    const res = await fetchWithTimeout(url.toString());
+    const headers2: Record<string, string> = {};
+    if (EVM_METRICS_API_KEY) headers2['X-API-Key'] = EVM_METRICS_API_KEY;
+    const res = await fetchWithTimeout(url.toString(), { headers: headers2 });
     if (!res.ok) throw new Error(`evm-metrics ${res.status}`);
     const data = await res.json();
 
