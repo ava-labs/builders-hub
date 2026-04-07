@@ -3,7 +3,6 @@
 import React, { useState, useEffect, memo, useCallback, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Plus, Trash, ChevronDown, ChevronRight, ExternalLink } from 'lucide-react';
@@ -12,11 +11,11 @@ import { useSession, SessionProvider } from "next-auth/react";
 import axios from 'axios';
 import { initialData, IDataMain, IDataContent, IDataLatest, ITrack, ISchedule, ISpeaker, IResource, IPartner } from './initials';
 import { LanguageButton } from './language-button';
-import HackathonPreview from '@/components/hackathons/HackathonPreview';
 import { EmailListInput } from '@/components/common/EmailListInput';
 import { useToast } from '@/hooks/use-toast';
 import { Toaster } from '@/components/ui/toaster';
-import HackathonsEditStages from '@/components/hackathons/edit/Stages';
+import HackathonsEditStages from '@/components/hackathons/edit/stages/Stages';
+import HackathonPreviewTabs from '@/components/hackathons/edit/preview/Preview';
 
 function toLocalDatetimeString(isoString: string) {
   if (!isoString) return '';
@@ -870,6 +869,11 @@ const HackathonsEdit = () => {
   });
   const [formDataLatest, setFormDataLatest] = useState<IDataLatest>(initialData.latest);
   const [cohostsEmails, setCohostsEmails] = useState<string[]>([]);
+  const [activePreviewTab, setActivePreviewTab] = React.useState<
+    'hackathon-preview' | 'stages-submit-form'
+  >('hackathon-preview')
+
+  const [selectedStageForm, setSelectedStageForm] = React.useState<string>('0')
   const { toast } = useToast();
 
   const getSpeakers = async (): Promise<void> => {
@@ -1933,6 +1937,60 @@ const HackathonsEdit = () => {
     return null; // Will redirect via useEffect
   }
 
+
+  const renderHackathonPreviewTabs = (): React.JSX.Element => {
+    return (
+        <HackathonPreviewTabs
+          tabsProps={{
+            hackathonData: {
+              id: selectedHackathon?.id,
+              title: formDataMain.title,
+              description: formDataMain.description,
+              location: formDataMain.location,
+              total_prizes: formDataMain.total_prizes,
+              tags: formDataMain.tags,
+              participants: formDataMain.participants,
+              organizers: formDataMain.organizers,
+              banner: formDataLatest.banner,
+              content: {
+                language: formDataContent.language,
+                tracks_text: formDataContent.tracks_text,
+                tracks: formDataContent.tracks,
+                schedule: formDataContent.schedule,
+                speakers: formDataContent.speakers,
+                speakers_text: formDataContent.speakers_text,
+                resources: formDataContent.resources,
+                partners: formDataContent.partners
+                  .map((p) => (typeof p === 'string' ? p : p.name))
+                  .filter(Boolean),
+                join_custom_link:
+                  formDataContent.join_custom_link || undefined,
+                join_custom_text:
+                  formDataContent.join_custom_text || undefined,
+                submission_custom_link:
+                  formDataContent.submission_custom_link || undefined,
+                judging_guidelines: formDataContent.judging_guidelines,
+                submission_deadline:
+                  formDataContent.submission_deadline,
+                registration_deadline:
+                  formDataContent.registration_deadline,
+                stages: formDataContent.stages,
+              },
+              start_date: formDataLatest.start_date,
+              end_date: formDataLatest.end_date,
+              status: 'UPCOMING',
+            },
+            isRegistered: false,
+            scrollTarget,
+          }}
+          hackathon={selectedHackathon}
+          activeTab={activePreviewTab}
+          onActiveTabChange={setActivePreviewTab}
+          selectedStageForm={selectedStageForm}
+        />
+    )
+  }
+
   return (
     <div className="h-screen flex flex-col">
       <Toaster />
@@ -1966,7 +2024,7 @@ const HackathonsEdit = () => {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex">
         {/* Left Panel - Edit Form */}
         <div
           ref={leftPanelRef}
@@ -2299,6 +2357,8 @@ const HackathonsEdit = () => {
                           <HackathonsEditStages
                             formDataContent={formDataContent}
                             setFormDataContent={setFormDataContent}
+                            setSelectedStageForm={setSelectedStageForm}
+                            setActivePreviewTab={setActivePreviewTab as any}
                             language={language}
                           />
                           <div className="flex justify-end mt-4">
@@ -3488,43 +3548,9 @@ const HackathonsEdit = () => {
             )}
           </div>
         </div>
-        <div className="w-1/2 border-l border-zinc-700 bg-white dark:bg-zinc-900">
+        <div className={`w-1/2 max-h-[calc(100vh-80px)] ${ activePreviewTab === 'stages-submit-form' ? 'overflow-y-auto' : '' } border-zinc-700 bg-white dark:bg-zinc-900`}>
           <div className="h-full">
-            <HackathonPreview
-              hackathonData={{
-                id: selectedHackathon?.id,
-                title: formDataMain.title,
-                description: formDataMain.description,
-                location: formDataMain.location,
-                total_prizes: formDataMain.total_prizes,
-                tags: formDataMain.tags,
-                participants: formDataMain.participants,
-                organizers: formDataMain.organizers,
-                banner: formDataLatest.banner,
-                content: {
-                  language: formDataContent.language,
-                  tracks_text: formDataContent.tracks_text,
-                  tracks: formDataContent.tracks,
-                  schedule: formDataContent.schedule,
-                  speakers: formDataContent.speakers,
-                  speakers_text: formDataContent.speakers_text,
-                  resources: formDataContent.resources,
-                  partners: formDataContent.partners.map(p => typeof p === 'string' ? p : p.name).filter(Boolean),
-                  join_custom_link: formDataContent.join_custom_link || undefined,
-                  join_custom_text: formDataContent.join_custom_text || undefined,
-                  submission_custom_link: formDataContent.submission_custom_link ? formDataContent.submission_custom_link : undefined,
-                  judging_guidelines: formDataContent.judging_guidelines,
-                  submission_deadline: formDataContent.submission_deadline,
-                  registration_deadline: formDataContent.registration_deadline,
-                  stages: formDataContent.stages
-                },
-                start_date: formDataLatest.start_date,
-                end_date: formDataLatest.end_date,
-                status: 'UPCOMING',
-              }}
-              isRegistered={false}
-              scrollTarget={scrollTarget}
-            />
+            {renderHackathonPreviewTabs()}
           </div>
         </div>
       </div>

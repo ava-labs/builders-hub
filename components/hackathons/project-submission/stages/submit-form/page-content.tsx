@@ -436,7 +436,7 @@ export default function StageSubmitPageContent({
           >
             {stage.submitForm.fields.map(renderField)}
 
-            <div className="flex justify-center pt-4">
+            {/* <div className="flex justify-center pt-4">
               <Button
                 type="submit"
                 disabled={isSubmitting}
@@ -444,7 +444,7 @@ export default function StageSubmitPageContent({
               >
                 {isSubmitting ? 'Saving...' : `Save ${stage.label}`}
               </Button>
-            </div>
+            </div> */}
           </form>
         </Form>
       </div>

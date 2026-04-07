@@ -32,6 +32,8 @@ type StageSubmitFormProps = {
   ) => void
   onRemoveField: (stageIndex: number, fieldIndex: number) => void
   onRemoveSubmitForm: (stageIndex: number) => void
+  setSelectedStageForm: (index: string) => void
+  setActivePreviewTab: (tab: string) => void
 }
 
 function createTextStagesSubmitFormField(
@@ -98,21 +100,34 @@ export default function StageSubmitForm({
   onUpdateField,
   onRemoveField,
   onRemoveSubmitForm,
+  setSelectedStageForm,
+  setActivePreviewTab
 }: StageSubmitFormProps): React.JSX.Element {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold">Submit form</h2>
-
-        {!!submitForm?.fields.length && (
+        <div className='flex gap-2'>
           <Button
             type="button"
-            variant="destructive"
-            onClick={() => onRemoveSubmitForm(stageIndex)}
+            onClick={() => {
+              setActivePreviewTab('stages-submit-form')
+              setSelectedStageForm(String(stageIndex))
+            }}
           >
-            Remove submit form
+            Show preview
           </Button>
-        )}
+
+          {!!submitForm?.fields.length && (
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={() => onRemoveSubmitForm(stageIndex)}
+            >
+              Remove submit form
+            </Button>
+          )}
+        </div>
       </div>
 
       <Button

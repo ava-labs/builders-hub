@@ -13,9 +13,9 @@ import { Label } from '@/components/ui/label'
 import { Divider } from '@/components/ui/divider'
 import { t } from '@/app/hackathons/edit/translations'
 import { IDataContent } from '@/app/hackathons/edit/initials'
-import StageCardsForm from './stages-components/Card'
-import StageTagsForm from './stages-components/Tags'
-import StageSubmitForm from './stages-components/submit-form/Form'
+import StageCardsForm from './Card'
+import StageTagsForm from './Tags'
+import StageSubmitForm from './submit-form/Form'
 import {
   ChipsStagesSubmitFormField,
   HackathonStage,
@@ -35,6 +35,8 @@ export enum StageComponentType {
 type HackathonsEditStagesProps = {
   formDataContent: IDataContent
   setFormDataContent: (data: IDataContent) => void
+  setSelectedStageForm: (index: string) => void
+  setActivePreviewTab: (tab: string) => void
   language: 'en' | 'es'
 }
 
@@ -69,6 +71,8 @@ type StageFormProps = {
     fieldIndex: number
   ) => void
   onRemove: (index: number) => void
+  setSelectedStageForm: (index: string) => void
+  setActivePreviewTab: (tab: string) => void
 }
 
 const createDefaultComponentByType = (
@@ -146,6 +150,8 @@ const createDefaultSubmitFormField = (
 export default function HackathonsEditStages({
   formDataContent,
   setFormDataContent,
+  setSelectedStageForm,
+  setActivePreviewTab,
   language,
 }: HackathonsEditStagesProps): React.JSX.Element {
   const [stages, setStages] = useState<HackathonStage[]>(() => {
@@ -396,6 +402,8 @@ export default function HackathonsEditStages({
                 onUpdateSubmitFormField={updateSubmitFormField}
                 onRemoveSubmitFormField={removeSubmitFormField}
                 onRemove={removeStage}
+                setSelectedStageForm={setSelectedStageForm}
+                setActivePreviewTab={setActivePreviewTab}
               />
             </AccordionContent>
           </AccordionItem>
@@ -415,6 +423,8 @@ function StageForm({
   onAddSubmitFormField,
   onUpdateSubmitFormField,
   onRemoveSubmitFormField,
+  setSelectedStageForm,
+  setActivePreviewTab,
   onRemove,
 }: StageFormProps): React.JSX.Element {
   return (
@@ -503,6 +513,8 @@ function StageForm({
         onUpdateField={onUpdateSubmitFormField}
         onRemoveField={onRemoveSubmitFormField}
         onRemoveSubmitForm={onRemoveSubmitForm}
+        setSelectedStageForm={setSelectedStageForm}
+        setActivePreviewTab={setActivePreviewTab}
       />
 
       <div className="flex justify-end">

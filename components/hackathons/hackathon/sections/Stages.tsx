@@ -221,9 +221,6 @@ export default function Stages({ isParticipant, stages, hackathon, renderInPrevi
                         stage={selectedStage}
                         stageIndex={selectedPhaseIndex}
                         renderInPreview={renderInPreview}
-                        onSubmit={async (payload) => {
-                          console.log(payload)
-                        }}
                       />
                     </DialogContent>
                   </Dialog>

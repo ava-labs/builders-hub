@@ -82,7 +82,7 @@ const SubmissionPreview = ({ hackathon }: { hackathon: any }) => {
   );
 };
 
-interface HackathonPreviewProps {
+export interface HackathonPreviewProps {
   hackathonData: {
     id?: string;
     title: string;
