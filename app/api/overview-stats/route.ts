@@ -9,7 +9,7 @@ const SECONDS_PER_DAY = 24 * 60 * 60;
 const CACHE_CONTROL_HEADER = 'public, max-age=14400, s-maxage=14400, stale-while-revalidate=86400';
 const REQUEST_TIMEOUT_MS = 8000;
 const MAX_CONCURRENT_CHAINS = 10;
-const EVM_METRICS_URL = process.env.EVM_METRICS_URL || 'https://44.221.18.159.sslip.io';
+const EVM_METRICS_URL = process.env.EVM_METRICS_URL || 'https://stats-api-production-8a73.up.railway.app';
 
 const TIME_RANGE_CONFIG = {
   day: { days: 3, secondsInRange: SECONDS_PER_DAY },
