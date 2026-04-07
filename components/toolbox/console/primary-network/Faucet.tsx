@@ -134,7 +134,7 @@ function validatePChainAddress(raw: string): { valid: true; normalized: string }
   }
 
   if (trimmed.startsWith("0x")) {
-    return { valid: false, error: "This looks like a C-Chain address. P-Chain addresses start with P-fuji1 or P-avax1." };
+    return { valid: false, error: "This looks like a C-Chain address. P-Chain addresses start with P-fuji1..." };
   }
 
   // Ensure P- prefix, then let avalanchejs handle all bech32 validation
@@ -143,10 +143,10 @@ function validatePChainAddress(raw: string): { valid: true; normalized: string }
   try {
     const [chainAlias] = utils.parse(normalized);
     if (chainAlias !== "P") {
-      return { valid: false, error: "P-Chain addresses must start with P-fuji1 (testnet) or P-avax1 (mainnet)." };
+      return { valid: false, error: "P-Chain addresses must start with P-fuji1..." };
     }
   } catch {
-    return { valid: false, error: "Invalid P-Chain address. Expected format: P-fuji1... or P-avax1..." };
+    return { valid: false, error: "Invalid P-Chain address. Expected format: P-fuji1..." };
   }
 
   return { valid: true, normalized };
@@ -220,11 +220,13 @@ function ManualPChainFaucetInput() {
   return (
     <div className="mt-3 pt-3 border-t border-zinc-200/80 dark:border-zinc-800">
       <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-2">
-        Paste your P-Chain address (e.g.{" "}
+        Using platform-cli? Get your address with{" "}
         <code className="bg-zinc-100 dark:bg-zinc-800 px-1 py-0.5 rounded text-[10px] font-mono">
-          P-fuji1...
+          platform wallet address --network fuji
         </code>
-        ). Case is auto-corrected.
+        {" "}&mdash; paste the full{" "}
+        <code className="bg-zinc-100 dark:bg-zinc-800 px-1 py-0.5 rounded text-[10px] font-mono">P-fuji1...</code>
+        {" "}address below. Case is auto-corrected.
       </p>
       <div className="flex gap-2">
         <input

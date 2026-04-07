@@ -86,13 +86,13 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       const [chainAlias] = utils.parse(destinationAddress);
       if (chainAlias !== 'P') {
         return NextResponse.json(
-          { success: false, message: 'Invalid P-Chain address format. Expected P-fuji1... or P-avax1...' },
+          { success: false, message: 'Invalid P-Chain address format. Expected P-fuji1...' },
           { status: 400 }
         );
       }
     } catch {
       return NextResponse.json(
-        { success: false, message: 'Invalid P-Chain address format. Expected P-fuji1... or P-avax1...' },
+        { success: false, message: 'Invalid P-Chain address format. Expected P-fuji1...' },
         { status: 400 }
       );
     }
