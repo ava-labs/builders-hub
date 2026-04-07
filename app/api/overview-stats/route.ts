@@ -61,8 +61,6 @@ const chainDataCache = new Map<string, { data: ChainOverviewMetrics; timestamp: 
 const revalidatingKeys = new Set<string>();
 const pendingRequests = new Map<string, Promise<OverviewMetrics | null>>();
 
-const getRlToken = () => process.env.METRICS_BYPASS_TOKEN || '';
-
 async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutMs = REQUEST_TIMEOUT_MS): Promise<Response> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
@@ -176,15 +174,14 @@ async function getICMData(chainId: string, timeRange: TimeRangeKey): Promise<num
   }
 }
 
+// TODO: migrate to metrics-api when it supports validatorCount (currently a stub)
 async function getValidatorCount(subnetId: string): Promise<number | string> {
   if (!subnetId || subnetId === "N/A") return "N/A";
 
   try {
-    const rlToken = getRlToken();
     const url = new URL('https://metrics.avax.network/v2/networks/mainnet/metrics/validatorCount');
     url.searchParams.set('pageSize', '1');
     url.searchParams.set('subnetId', subnetId);
-    if (rlToken) url.searchParams.set('rltoken', rlToken);
     
     const response = await fetchWithTimeout(url.toString(), { headers: { 'Accept': 'application/json' } });
     if (!response.ok) return "N/A";

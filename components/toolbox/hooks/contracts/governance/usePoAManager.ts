@@ -31,6 +31,7 @@ export interface PoAManagerHook {
   // Metadata
   contractAddress: string | null;
   isReady: boolean;
+  isReadReady: boolean;
 }
 
 /**
@@ -50,6 +51,7 @@ export function usePoAManager(
 
   const contractAbi = abi ?? PoAManagerAbi.abi;
   const isReady = Boolean(contractAddress && walletClient && viemChain);
+  const isReadReady = Boolean(contractAddress && chainPublicClient);
 
   // Read functions
   const owner = async (): Promise<string> => {
@@ -302,6 +304,7 @@ export function usePoAManager(
 
     // Metadata
     contractAddress,
-    isReady
+    isReady,
+    isReadReady
   };
 }

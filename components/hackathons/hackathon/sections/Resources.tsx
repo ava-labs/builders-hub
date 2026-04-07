@@ -1,25 +1,30 @@
 import React from 'react';
 import { HackathonHeader } from '@/types/hackathons';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Separator } from '@radix-ui/react-dropdown-menu';
+import { Separator } from '@/components/ui/separator';
 import { DynamicIcon } from 'lucide-react/dynamic';
-import { Link } from 'lucide-react';
+import { normalizeEventsLang, t } from '@/lib/events/i18n';
 
 function Resources({ hackathon }: { hackathon: HackathonHeader }) {
+  const lang = normalizeEventsLang(hackathon.content?.language);
+  const resources = hackathon.content?.resources || [];
+
+  if (!resources || resources.length === 0) {
+    return null;
+  }
+
   return (
     <section className='text-black dark:text-white dark:bg-black py-12'>
       <h2 className='text-4xl font-bold mb-6' id='resources'>
-        Resources
+        {t(lang, 'section.resources.title')}
       </h2>
       <Separator className='my-8 h-[1px] bg-zinc-300 dark:bg-zinc-800' />
       <p className='text-lg text-gray-600 dark:text-gray-300 mb-6'>
-        Find key resources and support for your journey in{' '}
-        {hackathon.title}
+        {t(lang, 'section.resources.subtitle', { title: hackathon.title })}
       </p>
 
       <div className='grid gap-3'>
-        {hackathon.content.resources.map((resource, index) => (
+        {resources.map((resource, index) => (
           <Card key={index} className='hover:border-gray-500 dark:hover:border-gray-600 transition cursor-pointer'>
             <CardContent className='flex flex-row gap-4 items-center'>
               <div>
@@ -30,7 +35,7 @@ function Resources({ hackathon }: { hackathon: HackathonHeader }) {
                 />
               </div>
               <div>
-                <a href={resource.link} target='_blank'>
+                <a href={resource.link} target='_blank' rel="noreferrer">
                   <h3 className='text-[#FF394A] text-base font-semibold'>
                     {resource.title}
                   </h3>

@@ -81,6 +81,7 @@ export interface ValidatorManagerHook {
   // Metadata
   contractAddress: string | null;
   isReady: boolean;
+  isReadReady: boolean;
 }
 
 /**
@@ -100,6 +101,7 @@ export function useValidatorManager(
 
   const contractAbi = abi ?? ValidatorManagerAbi.abi;
   const isReady = Boolean(contractAddress && walletClient && viemChain);
+  const isReadReady = Boolean(contractAddress && chainPublicClient);
 
   // Read functions
   const getValidator = async (validationID: string): Promise<ValidatorData> => {
@@ -502,6 +504,7 @@ export function useValidatorManager(
 
     // Metadata
     contractAddress,
-    isReady
+    isReady,
+    isReadReady
   };
 }

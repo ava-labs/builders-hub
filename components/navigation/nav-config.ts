@@ -77,7 +77,6 @@ export const menuSections: NavSection[] = [
     title: 'Grants',
     href: '/grants',
     items: [
-      { text: 'Codebase', href: '/codebase' },
       { text: 'InfraBUIDL', href: '/grants/infrabuidl' },
       { text: 'InfraBUIDL (AI)', href: '/grants/infrabuidlai' },
       { text: 'Retro9000', href: 'https://retro9000.avax.network', external: true },
@@ -100,6 +99,7 @@ export const menuSections: NavSection[] = [
       { text: 'Avalanche L1s', href: '/stats/overview' },
       { text: 'C-Chain', href: '/stats/l1/c-chain' },
       { text: 'Validators', href: '/stats/validators' },
+      { text: 'Validator Alerts', href: '/validator-alerts' },
     ],
   },
   {

@@ -17,7 +17,7 @@ export const GET = withAuth(async (request: NextRequest, _context, session) => {
     if (!project_id) {
       return NextResponse.json(
         { error: "project_id is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -32,7 +32,7 @@ export const GET = withAuth(async (request: NextRequest, _context, session) => {
     if (!project) {
       return NextResponse.json(
         { error: "Project not found or unauthorized" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -70,14 +70,14 @@ export const POST = withAuth(
       if (!project_id) {
         return NextResponse.json(
           { error: "project_id is required" },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
       if (!form_data?.build_games) {
         return NextResponse.json(
           { error: "form_data.build_games is required" },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
@@ -92,7 +92,7 @@ export const POST = withAuth(
       if (!project) {
         return NextResponse.json(
           { error: "Project not found or unauthorized" },
-          { status: 403 }
+          { status: 403 },
         );
       }
 
@@ -108,7 +108,15 @@ export const POST = withAuth(
           const mergedData: Prisma.InputJsonValue = {
             build_games: {
               ...(existingBuildGames as Record<string, Prisma.InputJsonValue>),
-              ...(form_data.build_games as Record<string, Prisma.InputJsonValue>),
+              ...(form_data.build_games as Record<
+                string,
+                Prisma.InputJsonValue
+              >),
+              stages:
+                existingBuildGames &&
+                (existingBuildGames as Record<string, Prisma.InputJsonValue>).stages
+                  ? (existingBuildGames as Record<string, Prisma.InputJsonValue>).stages
+                  : undefined,
             },
           };
 
@@ -122,7 +130,10 @@ export const POST = withAuth(
           data: {
             project_id,
             origin: "build_games",
-            form_data: form_data as Prisma.InputJsonValue,
+            form_data: {
+              build_games: form_data.build_games as Prisma.InputJsonValue,
+              stages: undefined,
+            },
             timestamp: new Date(),
           },
         });
@@ -133,5 +144,5 @@ export const POST = withAuth(
       console.error("Error POST /api/build-games/stage-data:", error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
-  }
+  },
 );

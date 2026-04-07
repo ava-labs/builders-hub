@@ -50,7 +50,7 @@
       "question": "What approach has been effective for bridging traditional and Web3 technologies?",
       "options": [
         "Token-first strategy",
-        "Web2.5 approach using blockchain as infrastructure",
+        "Positioning blockchain as trusted infrastructure rather than speculative technology",
         "Avoiding blockchain mentions entirely",
         "Focusing exclusively on crypto-native clients"
       ],
@@ -58,14 +58,14 @@
         1
       ],
       "hint": "Think about reducing barriers while maintaining blockchain benefits.",
-      "explanation": "The Web2.5 approach uses blockchain as infrastructure without being token-based, reducing barriers to entry while maintaining the benefits of blockchain technology.",
+      "explanation": "Positioning blockchain as trusted infrastructure rather than speculative technology reduces barriers to entry while maintaining the benefits of blockchain technology. This approach avoids token-first strategies that can alienate traditional users.",
       "chapter": "Go-To-Market Strategies",
       "alternates": [
         {
           "question": "In the identity solutions GTM case study, what strategy proved effective for expanding into new markets?",
           "options": [
             "Consolidate early projects to maximize success stories, then replicate the model into additional regions",
-            "Use the Web2.5 approach of blockchain as infrastructure without token-first strategies",
+            "Position blockchain as trusted infrastructure rather than speculative technology",
             "Launch simultaneously in all available markets to maximize coverage",
             "Focus exclusively on developer communities without engaging end users or enterprises"
           ],
@@ -73,13 +73,13 @@
             0
           ],
           "hint": "Think about how the identity solutions case study describes a geographic expansion methodology built on proven results.",
-          "explanation": "The identity solutions GTM case study showed that the effective approach was to consolidate early projects with high-impact clients, build compelling success stories, and then replicate the model into additional regions. The Web2.5 approach option is the correct answer from the base question, which describes a different GTM strategy for bridging traditional and Web3 technologies."
+          "explanation": "The identity solutions GTM case study showed that the effective approach was to consolidate early projects with high-impact clients, build compelling success stories, and then replicate the model into additional regions. The blockchain-as-infrastructure option is the correct answer from the base question, which describes a different GTM strategy for bridging traditional and Web3 technologies."
         },
         {
           "question": "What GTM metric transition does the course describe for AI-focused blockchain projects as their business model evolves? (Select all that apply)",
           "options": [
             "Shifting from revenue-focused metrics to ecosystem growth metrics",
-            "Using the Web2.5 approach of blockchain as hidden infrastructure",
+            "Positioning blockchain as trusted infrastructure rather than speculative technology",
             "Beginning with enterprise-focused B2B SaaS offerings before expanding",
             "Abandoning all metrics in favor of community sentiment analysis"
           ],
@@ -88,7 +88,7 @@
             2
           ],
           "hint": "The AI Layer 1 case study describes both a starting point and an evolution in how success is measured.",
-          "explanation": "The AI Layer 1 case study describes starting with enterprise-focused B2B SaaS offerings and then transitioning metrics from revenue to ecosystem growth as the business model evolves. This reflects how Web3 business models mature over time. The Web2.5 approach is from the base question and describes a different GTM strategy entirely."
+          "explanation": "The AI Layer 1 case study describes starting with enterprise-focused B2B SaaS offerings and then transitioning metrics from revenue to ecosystem growth as the business model evolves. This reflects how Web3 business models mature over time. The blockchain-as-infrastructure option is from the base question and describes a different GTM strategy entirely."
         }
       ]
     },
@@ -331,7 +331,7 @@
         2
       ],
       "hint": "The best salespeople are great listeners.",
-      "explanation": "Allow prospects to talk more while actively listening - aim for a 70/30 listening/talking ratio to truly understand their needs.",
+      "explanation": "Allow prospects to speak more than you do while actively listening. People enjoy talking about their challenges, and their responses often reveal unexpected insights that can reshape your approach.",
       "chapter": "Sales Mastery"
     },
     "931": {

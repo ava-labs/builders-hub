@@ -60,19 +60,19 @@ const configs: Record<PChainAction, PChainNotificationConfig> = {
     },
     exportCross: {
         loadingMessage: 'Signing cross-chain export with Core...',
-        successMessage: 'Export transaction confirmed',
+        successMessage: 'Export confirmed — importing to destination',
         errorMessagePrefix: 'Export failed: ',
         eventType: 'cross_chain_export',
     },
     importCross: {
         loadingMessage: 'Signing cross-chain import with Core...',
-        successMessage: 'Import transaction confirmed',
+        successMessage: 'Transfer complete!',
         errorMessagePrefix: 'Import failed: ',
         eventType: 'cross_chain_import',
     },
 };
 
-const waitForTransaction = async (client: PChainClient, txID: string, maxAttempts = 10, interval = 300) => {
+const waitForTransaction = async (client: PChainClient, txID: string, maxAttempts = 30, interval = 2000) => {
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
         const receipt = await client.getTxStatus({ txID });
         if (receipt.status === 'Committed') {
@@ -116,15 +116,20 @@ const usePChainNotifications = () => {
         // Create a contextual action path based on the flow and action
         const actionPath = `${flowPath}/${config.eventType}`;
 
+        // Cross-chain actions (exportCross/importCross) already include tx confirmation
+        // in the promise via coreWalletClient.waitForTxn(), so skip redundant polling
+        const skipConfirmationWait = action === 'exportCross' || action === 'importCross';
+
         promise
             .then(async (txID) => {
-                toast.loading('Waiting for transaction confirmation...', { id: toastId });
-
                 try {
                     if (typeof txID !== 'string' && txID && 'txHash' in txID) {
                         txID = (txID as { txHash: string }).txHash;
                     }
-                    await waitForTransaction(client, txID as string);
+                    if (!skipConfirmationWait) {
+                        toast.loading('Waiting for transaction confirmation...', { id: toastId });
+                        await waitForTransaction(client, txID as string);
+                    }
                     toast.success(`${config.successMessage}`, {
                         id: toastId,
                         action: {

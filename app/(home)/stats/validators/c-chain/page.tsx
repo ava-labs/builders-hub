@@ -1,12 +1,12 @@
 "use client";
 import React, { useState, useEffect, useMemo, useTransition, useRef } from "react";
-import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis, Pie, PieChart, Line, LineChart, Brush, ResponsiveContainer, Tooltip, ComposedChart } from "recharts";
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis, Pie, PieChart, Line, LineChart, Brush, ResponsiveContainer, Tooltip, ComposedChart, Cell } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { type ChartConfig, ChartLegendContent, ChartStyle, ChartContainer, ChartTooltip, ChartLegend } from "@/components/ui/chart";
-import { Landmark, Shield, TrendingUp, Monitor, HandCoins, Users, Percent, ArrowUpRight, Twitter, Linkedin, Coins, Download, Camera, ChevronDown, Copy, Check } from "lucide-react";
-import { ValidatorWorldMap } from "@/components/stats/ValidatorWorldMap";
+import { Landmark, Shield, TrendingUp, Monitor, HandCoins, Users, Percent, ArrowUpRight, Twitter, Linkedin, Coins, Download, Camera } from "lucide-react";
+import Link from "next/link";
 import { L1BubbleNav } from "@/components/stats/l1-bubble.config";
 import { ExplorerDropdown } from "@/components/stats/ExplorerDropdown";
 import { StickyNavBar } from "@/components/stats/StickyNavBar";
@@ -16,7 +16,6 @@ import { SearchInputWithClear } from "@/components/stats/SearchInputWithClear";
 import { SortIcon } from "@/components/stats/SortIcon";
 import { useSectionNavigation } from "@/hooks/use-section-navigation";
 import { LinkableHeading } from "@/components/stats/LinkableHeading";
-import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { ChartSkeletonLoader } from "@/components/ui/chart-skeleton";
 import { TimeSeriesDataPoint, ChartDataPoint, PrimaryNetworkMetrics, VersionCount, L1Chain } from "@/types/stats";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
@@ -41,44 +40,30 @@ interface ValidatorData {
   version?: string;
 }
 
-interface ValidatorDetails {
-  txHash: string;
-  nodeId: string;
-  subnetId: string;
-  amountStaked: string;
-  delegationFee: string;
-  startTimestamp: number;
-  endTimestamp: number;
-  blsCredentials?: {
-    publicKey: string;
-    proofOfPossession: string;
-  };
-  stakePercentage: number;
-  validatorHealth?: {
-    reachabilityPercent: number;
-    benchedPChainRequestsPercent: number;
-    benchedXChainRequestsPercent: number;
-    benchedCChainRequestsPercent: number;
-  };
-  delegatorCount: number;
-  amountDelegated: string;
-  potentialRewards?: {
-    validationRewardAmount: string;
-    delegationRewardAmount: string;
-    rewardAddresses: string[];
-  };
-  uptimePerformance: number;
-  avalancheGoVersion?: string;
-  delegationCapacity: string;
-  validationStatus: string;
-  geolocation?: {
-    city: string;
-    country: string;
-    countryCode: string;
-    latitude: number;
-    longitude: number;
-  };
+interface P2PValidatorData {
+  node_id: string;
+  p50_uptime: number;
+  weight: number;
+  delegator_count: number;
+  delegator_weight: number;
+  delegation_fee: number;
+  potential_reward: number;
+  bench_observers: number;
+  end_time: string;
+  version: string;
+  tracked_subnets: string;
+  public_ip: string;
+  total_stake: number;
+  days_left: number;
+  miss_rate_14d: number;
+  miss_count_14d: number;
+  block_count_14d: number;
 }
+
+interface MergedValidator extends ValidatorData {
+  p2p?: P2PValidatorData;
+}
+
 
 export default function CChainValidatorMetrics() {
   const [metrics, setMetrics] = useState<PrimaryNetworkMetrics | null>(null);
@@ -88,19 +73,15 @@ export default function CChainValidatorMetrics() {
     []
   );
   const [validators, setValidators] = useState<ValidatorData[]>([]);
+  const [p2pValidators, setP2pValidators] = useState<Map<string, P2PValidatorData>>(new Map());
   const [versionBreakdown, setVersionBreakdown] =
     useState<VersionBreakdownData | null>(null);
   const [availableVersions, setAvailableVersions] = useState<string[]>([]);
   const [minVersion, setMinVersion] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState("");
   const [displayCount, setDisplayCount] = useState(50);
-  const { copiedId, copyToClipboard } = useCopyToClipboard();
-  const [sortColumn, setSortColumn] = useState<string>("amountStaked");
+  const [sortColumn, setSortColumn] = useState<string>("totalStake");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
-  const [expandedValidators, setExpandedValidators] = useState<Set<string>>(new Set());
-  const [validatorDetails, setValidatorDetails] = useState<Record<string, ValidatorDetails | null>>({});
-  const [loadingDetails, setLoadingDetails] = useState<Set<string>>(new Set());
-  const [detailsCopiedId, setDetailsCopiedId] = useState<string | null>(null);
   const [stakingAPYData, setStakingAPYData] = useState<{
     data: { date: string; timestamp: number; supply: number; maxAPY: number; minAPY: number }[];
     current: { supply: number; totalBurned: number; maxAPY: number; minAPY: number };
@@ -115,12 +96,13 @@ export default function CChainValidatorMetrics() {
 
       // Fetch all APIs in parallel
       // Use validator-stats API for version breakdown (same as landing page)
-      const [statsResponse, validatorsResponse, validatorStatsResponse, stakingAPYResponse] =
+      const [statsResponse, validatorsResponse, validatorStatsResponse, stakingAPYResponse, p2pResponse] =
         await Promise.all([
           fetch(`/api/primary-network-stats?timeRange=all`),
           fetch("/api/primary-network-validators"),
           fetch("/api/validator-stats?network=mainnet"),
           fetch('/api/staking-apy'),
+          fetch('/api/validators'),
         ]);
 
       if (!statsResponse.ok) {
@@ -212,6 +194,18 @@ export default function CChainValidatorMetrics() {
           setStakingAPYData(stakingData);
         } catch (err) {
           console.error('Error parsing staking APY data:', err);
+        }
+      }
+
+      // Process P2P validators data
+      if (p2pResponse.ok) {
+        try {
+          const p2pData: P2PValidatorData[] = await p2pResponse.json();
+          const p2pMap = new Map<string, P2PValidatorData>();
+          p2pData.forEach((v) => p2pMap.set(v.node_id, v));
+          setP2pValidators(p2pMap);
+        } catch (err) {
+          console.error('Error parsing P2P validators data:', err);
         }
       }
     } catch (err) {
@@ -380,6 +374,62 @@ export default function CChainValidatorMetrics() {
     });
     return actualData.sort((a, b) => a.fee - b.fee);
   }, [validators]);
+
+  // Network Health aggregates from P2P data
+  const missRateDistribution = useMemo(() => {
+    if (!p2pValidators.size) return [];
+    const buckets = [
+      { label: "0%", min: 0, max: 0 },
+      { label: "0-1%", min: 0.001, max: 1 },
+      { label: "1-5%", min: 1, max: 5 },
+      { label: "5-10%", min: 5, max: 10 },
+      { label: "10-25%", min: 10, max: 25 },
+      { label: "25-50%", min: 25, max: 50 },
+      { label: "50-100%", min: 50, max: 100 },
+    ];
+    const counts = buckets.map((b) => ({ ...b, count: 0 }));
+    p2pValidators.forEach((v) => {
+      const rate = v.miss_rate_14d;
+      if (rate === 0) { counts[0].count++; return; }
+      for (let i = 1; i < counts.length; i++) {
+        if (rate > counts[i].min && rate <= counts[i].max) { counts[i].count++; break; }
+      }
+    });
+    return counts;
+  }, [p2pValidators]);
+
+  const daysLeftDistribution = useMemo(() => {
+    if (!p2pValidators.size) return [];
+    const buckets = [
+      { label: "< 7d", min: 0, max: 7 },
+      { label: "7-30d", min: 7, max: 30 },
+      { label: "30-90d", min: 30, max: 90 },
+      { label: "90-180d", min: 90, max: 180 },
+      { label: "180-365d", min: 180, max: 365 },
+      { label: "> 365d", min: 365, max: Infinity },
+    ];
+    const counts = buckets.map((b) => ({ ...b, count: 0 }));
+    p2pValidators.forEach((v) => {
+      for (const bucket of counts) {
+        if (v.days_left >= bucket.min && v.days_left < bucket.max) { bucket.count++; break; }
+      }
+    });
+    return counts;
+  }, [p2pValidators]);
+
+  const topBlockProducers = useMemo(() => {
+    if (!p2pValidators.size) return [];
+    return Array.from(p2pValidators.values())
+      .filter((v) => v.block_count_14d > 0)
+      .sort((a, b) => b.block_count_14d - a.block_count_14d)
+      .slice(0, 20)
+      .map((v) => ({
+        nodeId: `${v.node_id.slice(7, 13)}...${v.node_id.slice(-4)}`,
+        fullNodeId: v.node_id,
+        blocks: v.block_count_14d,
+        missRate: v.miss_rate_14d,
+      }));
+  }, [p2pValidators]);
 
   const getChartData = (
     metricKey: keyof Pick<
@@ -578,10 +628,10 @@ export default function CChainValidatorMetrics() {
   // Navigation categories
   const navCategories = [
     { id: "trends", label: "Historical Trends" },
+    { id: "health", label: "Network Health" },
     { id: "rewards", label: "Rewards Distribution" },
     { id: "distribution", label: "Stake Distribution" },
     { id: "versions", label: "Software Versions" },
-    { id: "map", label: "Global Map" },
     { id: "validators", label: "Validator List" },
   ];
 
@@ -613,44 +663,54 @@ export default function CChainValidatorMetrics() {
     }
   };
 
+  // Merge SDK validators with P2P data
+  const mergedValidators: MergedValidator[] = useMemo(() => {
+    return validators.map((v) => ({
+      ...v,
+      p2p: p2pValidators.get(v.nodeId),
+    }));
+  }, [validators, p2pValidators]);
+
   // Filter validators based on search term
-  const filteredValidators = validators.filter((validator) => {
+  const filteredValidators = mergedValidators.filter((validator) => {
     if (!searchTerm) return true;
     const searchLower = searchTerm.toLowerCase();
     return (
       validator.nodeId.toLowerCase().includes(searchLower) ||
       (validator.version &&
-        validator.version.toLowerCase().includes(searchLower))
+        validator.version.toLowerCase().includes(searchLower)) ||
+      (validator.p2p?.version &&
+        validator.p2p.version.toLowerCase().includes(searchLower))
     );
   });
 
   // Sort validators
   const sortedValidators = [...filteredValidators].sort((a, b) => {
-    
+
     let aValue: number = 0;
     let bValue: number = 0;
-    
+
     switch (sortColumn) {
-      case "amountStaked":
-        aValue = parseFloat(a.amountStaked) || 0;
-        bValue = parseFloat(b.amountStaked) || 0;
+      case "totalStake":
+        aValue = a.p2p?.total_stake ?? ((parseFloat(a.amountStaked) + parseFloat(a.amountDelegated)) || 0);
+        bValue = b.p2p?.total_stake ?? ((parseFloat(b.amountStaked) + parseFloat(b.amountDelegated)) || 0);
         break;
-      case "delegationFee":
-        aValue = parseFloat(a.delegationFee) || 0;
-        bValue = parseFloat(b.delegationFee) || 0;
+      case "uptime":
+        aValue = a.p2p?.p50_uptime ?? 0;
+        bValue = b.p2p?.p50_uptime ?? 0;
         break;
-      case "delegatorCount":
-        aValue = a.delegatorCount || 0;
-        bValue = b.delegatorCount || 0;
+      case "daysLeft":
+        aValue = a.p2p?.days_left ?? 9999;
+        bValue = b.p2p?.days_left ?? 9999;
         break;
-      case "amountDelegated":
-        aValue = parseFloat(a.amountDelegated) || 0;
-        bValue = parseFloat(b.amountDelegated) || 0;
+      case "missRate":
+        aValue = a.p2p?.miss_rate_14d ?? 0;
+        bValue = b.p2p?.miss_rate_14d ?? 0;
         break;
       default:
         return 0;
     }
-    
+
     if (sortDirection === "asc") {
       return aValue - bValue;
     }
@@ -672,67 +732,6 @@ export default function CChainValidatorMetrics() {
   }, [searchTerm]);
 
   // Toggle validator expansion and fetch details
-  const toggleValidatorExpansion = async (nodeId: string) => {
-    const newExpanded = new Set(expandedValidators);
-    
-    if (newExpanded.has(nodeId)) {
-      newExpanded.delete(nodeId);
-      setExpandedValidators(newExpanded);
-      return;
-    }
-    
-    newExpanded.add(nodeId);
-    setExpandedValidators(newExpanded);
-
-    if (!validatorDetails[nodeId] && !loadingDetails.has(nodeId)) {
-      setLoadingDetails(prev => new Set(prev).add(nodeId));
-      
-      try {
-        const response = await fetch(`/api/validator-details/${encodeURIComponent(nodeId)}`);
-        if (response.ok) {
-          const data = await response.json();
-          setValidatorDetails(prev => ({...prev, [nodeId]: data.validatorDetails}));
-        } else {
-          setValidatorDetails(prev => ({...prev, [nodeId]: null}));
-        }
-      } catch (error) {
-        console.error(`Failed to fetch details for ${nodeId}:`, error);
-        setValidatorDetails(prev => ({...prev, [nodeId]: null}));
-      } finally {
-        setLoadingDetails(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(nodeId);
-          return newSet;
-        });
-      }
-    }
-  };
-
-  const copyDetailsToClipboard = (text: string, id: string) => {
-    navigator.clipboard.writeText(text);
-    setDetailsCopiedId(id);
-    setTimeout(() => setDetailsCopiedId(null), 2000);
-  };
-
-  // Format timestamp
-  const formatTimestamp = (timestamp: number): string => {
-    if (!timestamp) return "N/A";
-    return new Date(timestamp * 1000).toLocaleDateString("en-US", {year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit"});
-  };
-
-  // Format nAVAX to AVAX
-  const formatNavaxToAvax = (navax: string): string => {
-    const value = parseFloat(navax) / 1e9;
-    if (value >= 1e6) return `${(value / 1e6).toFixed(2)}M AVAX`;
-    if (value >= 1e3) return `${(value / 1e3).toFixed(2)}K AVAX`;
-    return `${value.toFixed(2)} AVAX`;
-  };
-
-  const truncateString = (str: string, startLen: number = 10, endLen: number = 8): string => {
-    if (str.length <= startLen + endLen + 3) return str;
-    return `${str.slice(0, startLen)}...${str.slice(-endLen)}`;
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
@@ -1134,6 +1133,158 @@ export default function CChainValidatorMetrics() {
               );
             })}
           </div>
+        </section>
+
+        {/* Network Health Section */}
+        <section className="space-y-4 sm:space-y-6">
+          <div className="space-y-2">
+            <LinkableHeading as="h2" id="health" className="text-lg sm:text-2xl font-medium text-left">
+              Network Health
+            </LinkableHeading>
+            <p className="text-zinc-500 dark:text-zinc-400 text-sm sm:text-base text-left">
+              Block production reliability and validator lifecycle across the Primary Network (14d)
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+            {/* Miss Rate Distribution */}
+            {loading || !missRateDistribution.length ? (
+              <ChartSkeletonLoader />
+            ) : (
+              <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700">
+                <CardContent className="p-0">
+                  <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <div className="rounded-full p-2 sm:p-3 flex items-center justify-center" style={{ backgroundColor: `${chainConfig.color}20` }}>
+                        <Shield className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: chainConfig.color }} />
+                      </div>
+                      <div>
+                        <h3 className="text-base sm:text-lg font-normal">Block Miss Rate Distribution</h3>
+                        <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
+                          How validators are distributed by their 14-day miss rate
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <ChartWatermark className="px-4 sm:px-5 py-4 sm:py-5">
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={missRateDistribution} margin={{ top: 10, right: 10, left: 10, bottom: 20 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                        <XAxis dataKey="label" tick={{ fontSize: 11 }} label={{ value: "Miss Rate Bucket", position: "insideBottom", offset: -10 }} />
+                        <YAxis tick={{ fontSize: 11 }} label={{ value: "Validators", angle: -90, position: "insideLeft", offset: 5 }} />
+                        <Tooltip
+                          content={({ active, payload }) => {
+                            if (!active || !payload?.length) return null;
+                            const d = payload[0].payload;
+                            return (
+                              <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 shadow-lg text-xs">
+                                <p className="font-medium mb-1">Miss Rate: {d.label}</p>
+                                <p>{d.count} validator{d.count !== 1 ? "s" : ""}</p>
+                              </div>
+                            );
+                          }}
+                        />
+                        <Bar dataKey="count" fill={chainConfig.color} radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </ChartWatermark>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Validators by Days Left */}
+            {loading || !daysLeftDistribution.length ? (
+              <ChartSkeletonLoader />
+            ) : (
+              <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700">
+                <CardContent className="p-0">
+                  <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <div className="rounded-full p-2 sm:p-3 flex items-center justify-center" style={{ backgroundColor: `${chainConfig.color}20` }}>
+                        <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: chainConfig.color }} />
+                      </div>
+                      <div>
+                        <h3 className="text-base sm:text-lg font-normal">Validators by Remaining Time</h3>
+                        <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
+                          Distribution of validators by days left until validation ends
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <ChartWatermark className="px-4 sm:px-5 py-4 sm:py-5">
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={daysLeftDistribution} margin={{ top: 10, right: 10, left: 10, bottom: 20 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                        <XAxis dataKey="label" tick={{ fontSize: 11 }} label={{ value: "Time Remaining", position: "insideBottom", offset: -10 }} />
+                        <YAxis tick={{ fontSize: 11 }} label={{ value: "Validators", angle: -90, position: "insideLeft", offset: 5 }} />
+                        <Tooltip
+                          content={({ active, payload }) => {
+                            if (!active || !payload?.length) return null;
+                            const d = payload[0].payload;
+                            return (
+                              <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 shadow-lg text-xs">
+                                <p className="font-medium mb-1">{d.label}</p>
+                                <p>{d.count} validator{d.count !== 1 ? "s" : ""}</p>
+                              </div>
+                            );
+                          }}
+                        />
+                        <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                          {daysLeftDistribution.map((entry, index) => (
+                            <Cell key={index} fill={entry.max <= 7 ? "#ef4444" : entry.max <= 30 ? "#eab308" : chainConfig.color} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </ChartWatermark>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          {/* Top Block Producers */}
+          {!loading && topBlockProducers.length > 0 && (
+            <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700">
+              <CardContent className="p-0">
+                <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="rounded-full p-2 sm:p-3 flex items-center justify-center" style={{ backgroundColor: `${chainConfig.color}20` }}>
+                      <Monitor className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: chainConfig.color }} />
+                    </div>
+                    <div>
+                      <h3 className="text-base sm:text-lg font-normal">Top Block Producers (14d)</h3>
+                      <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
+                        Top 20 validators by blocks produced in the last 14 days
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <ChartWatermark className="px-4 sm:px-5 py-4 sm:py-5">
+                  <ResponsiveContainer width="100%" height={400}>
+                    <BarChart data={topBlockProducers} layout="vertical" margin={{ top: 10, right: 20, left: 10, bottom: 10 }}>
+                      <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                      <XAxis type="number" tick={{ fontSize: 11 }} />
+                      <YAxis type="category" dataKey="nodeId" tick={{ fontSize: 10, fontFamily: "monospace" }} width={90} />
+                      <Tooltip
+                        content={({ active, payload }) => {
+                          if (!active || !payload?.length) return null;
+                          const d = payload[0].payload;
+                          return (
+                            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 shadow-lg text-xs">
+                              <p className="font-mono font-medium mb-1">{d.fullNodeId}</p>
+                              <p>Blocks: {d.blocks.toLocaleString()}</p>
+                              <p>Miss Rate: {d.missRate.toFixed(2)}%</p>
+                            </div>
+                          );
+                        }}
+                      />
+                      <Bar dataKey="blocks" fill={chainConfig.color} radius={[0, 4, 4, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartWatermark>
+              </CardContent>
+            </Card>
+          )}
         </section>
 
         {/* Rewards Distribution Section */}
@@ -1897,14 +2048,6 @@ export default function CChainValidatorMetrics() {
           )}
         </section>
 
-        {/* Global Validator Distribution Map */}
-        <section className="space-y-4 sm:space-y-6">
-          <LinkableHeading as="h2" id="map" className="text-lg sm:text-2xl font-medium text-left sr-only">
-            Validator Map
-          </LinkableHeading>
-          <ValidatorWorldMap />
-        </section>
-
         {/* All Validators Table */}
         <section className="space-y-4 sm:space-y-6">
           <div className="space-y-2">
@@ -1936,65 +2079,25 @@ export default function CChainValidatorMetrics() {
                 <table className="w-full border-collapse">
                   <thead className="bg-[#fcfcfd] dark:bg-neutral-900">
                     <tr>
-                      <th className="px-4 py-4 text-left">
-                        <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
-                          #
-                        </span>
-                      </th>
-                      <th className="px-4 py-4 text-left">
-                        <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
-                          Node ID
-                        </span>
-                      </th>
-                      <th className="px-4 py-4 text-right">
-                        <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
-                          Amount Staked
-                        </span>
-                      </th>
-                      <th className="px-4 py-4 text-right">
-                        <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
-                          Delegation Fee
-                        </span>
-                      </th>
-                      <th className="px-4 py-4 text-right">
-                        <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
-                          Delegators
-                        </span>
-                      </th>
-                      <th className="px-4 py-4 text-right">
-                        <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
-                          Amount Delegated
-                        </span>
-                      </th>
+                      <th className="px-4 py-4 text-left"><span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">#</span></th>
+                      <th className="px-4 py-4 text-left"><span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">Node ID</span></th>
+                      <th className="px-4 py-4 text-left"><span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">Version</span></th>
+                      <th className="px-4 py-4 text-right"><span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">Total Staked</span></th>
+                      <th className="px-4 py-4 text-right"><span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">Uptime</span></th>
+                      <th className="px-4 py-4 text-right"><span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">Days Left</span></th>
+                      <th className="px-4 py-4 text-right"><span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">Miss Rate</span></th>
                     </tr>
                   </thead>
                   <tbody className="bg-white dark:bg-neutral-950">
                     {[...Array(10)].map((_, rowIndex) => (
-                      <tr
-                        key={rowIndex}
-                        className="border-b border-slate-100 dark:border-neutral-800 animate-pulse"
-                      >
-                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-3">
-                          <div className="flex items-center gap-1.5">
-                            <div className="h-4 w-4 bg-zinc-200 dark:bg-zinc-800 rounded" />
-                            <div className="h-4 w-4 bg-zinc-200 dark:bg-zinc-800 rounded" />
-                          </div>
-                        </td>
-                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-3">
-                          <div className="h-4 w-40 bg-zinc-200 dark:bg-zinc-800 rounded" />
-                        </td>
-                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-3">
-                          <div className="h-4 w-24 bg-zinc-200 dark:bg-zinc-800 rounded ml-auto" />
-                        </td>
-                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-3">
-                          <div className="h-4 w-16 bg-zinc-200 dark:bg-zinc-800 rounded ml-auto" />
-                        </td>
-                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-3">
-                          <div className="h-4 w-12 bg-zinc-200 dark:bg-zinc-800 rounded ml-auto" />
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="h-4 w-24 bg-zinc-200 dark:bg-zinc-800 rounded ml-auto" />
-                        </td>
+                      <tr key={rowIndex} className="border-b border-slate-100 dark:border-neutral-800 animate-pulse">
+                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-3"><div className="h-4 w-6 bg-zinc-200 dark:bg-zinc-800 rounded" /></td>
+                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-3"><div className="h-4 w-40 bg-zinc-200 dark:bg-zinc-800 rounded" /></td>
+                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-3"><div className="h-4 w-24 bg-zinc-200 dark:bg-zinc-800 rounded" /></td>
+                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-3"><div className="h-4 w-20 bg-zinc-200 dark:bg-zinc-800 rounded ml-auto" /></td>
+                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-3"><div className="h-4 w-16 bg-zinc-200 dark:bg-zinc-800 rounded ml-auto" /></td>
+                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-3"><div className="h-4 w-12 bg-zinc-200 dark:bg-zinc-800 rounded ml-auto" /></td>
+                        <td className="px-4 py-3"><div className="h-4 w-16 bg-zinc-200 dark:bg-zinc-800 rounded ml-auto" /></td>
                       </tr>
                     ))}
                   </tbody>
@@ -2009,49 +2112,36 @@ export default function CChainValidatorMetrics() {
                     <thead className="bg-[#fcfcfd] dark:bg-neutral-900">
                       <tr>
                         <th className="px-4 py-4 text-left">
-                          <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
-                            #
-                          </span>
+                          <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">#</span>
                         </th>
                         <th className="px-4 py-4 text-left">
-                          <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
-                            Node ID
+                          <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">Node ID</span>
+                        </th>
+                        <th className="px-4 py-4 text-left">
+                          <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">Version</span>
+                        </th>
+                        <th className="px-4 py-4 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors" onClick={() => handleSort("totalStake")}>
+                          <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300 inline-flex items-center justify-end">
+                            Total Staked
+                            <SortIcon column="totalStake" sortColumn={sortColumn} sortDirection={sortDirection} />
                           </span>
                         </th>
-                        <th
-                          className="px-4 py-4 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-                          onClick={() => handleSort("amountStaked")}
-                        >
+                        <th className="px-4 py-4 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors" onClick={() => handleSort("uptime")}>
                           <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300 inline-flex items-center justify-end">
-                            Amount Staked
-                            <SortIcon column="amountStaked" sortColumn={sortColumn} sortDirection={sortDirection} />
+                            Uptime
+                            <SortIcon column="uptime" sortColumn={sortColumn} sortDirection={sortDirection} />
                           </span>
                         </th>
-                        <th
-                          className="px-4 py-4 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-                          onClick={() => handleSort("delegationFee")}
-                        >
+                        <th className="px-4 py-4 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors" onClick={() => handleSort("daysLeft")}>
                           <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300 inline-flex items-center justify-end">
-                            Delegation Fee
-                            <SortIcon column="delegationFee" sortColumn={sortColumn} sortDirection={sortDirection} />
+                            Days Left
+                            <SortIcon column="daysLeft" sortColumn={sortColumn} sortDirection={sortDirection} />
                           </span>
                         </th>
-                        <th
-                          className="px-4 py-4 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-                          onClick={() => handleSort("delegatorCount")}
-                        >
+                        <th className="px-4 py-4 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors" onClick={() => handleSort("missRate")}>
                           <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300 inline-flex items-center justify-end">
-                            Delegators
-                            <SortIcon column="delegatorCount" sortColumn={sortColumn} sortDirection={sortDirection} />
-                          </span>
-                        </th>
-                        <th
-                          className="px-4 py-4 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-                          onClick={() => handleSort("amountDelegated")}
-                        >
-                          <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300 inline-flex items-center justify-end">
-                            Amount Delegated
-                            <SortIcon column="amountDelegated" sortColumn={sortColumn} sortDirection={sortDirection} />
+                            Miss Rate (14d)
+                            <SortIcon column="missRate" sortColumn={sortColumn} sortDirection={sortDirection} />
                           </span>
                         </th>
                       </tr>
@@ -2060,7 +2150,7 @@ export default function CChainValidatorMetrics() {
                       {displayedValidators.length === 0 ? (
                         <tr>
                           <td
-                            colSpan={6}
+                            colSpan={7}
                             className="text-center py-8 text-neutral-600 dark:text-neutral-400"
                           >
                             {searchTerm
@@ -2070,331 +2160,67 @@ export default function CChainValidatorMetrics() {
                         </tr>
                       ) : (
                         displayedValidators.map((validator, index) => {
-                          const isExpanded = expandedValidators.has(validator.nodeId);
-                          const details = validatorDetails[validator.nodeId];
-                          const isLoadingDetails = loadingDetails.has(validator.nodeId);
-                          
                           return (
-                            <React.Fragment key={validator.nodeId}>
-                              <tr
-                                onClick={() => toggleValidatorExpansion(validator.nodeId)}
-                                className={`border-b border-slate-100 dark:border-neutral-800 transition-colors hover:bg-blue-50/50 dark:hover:bg-neutral-800/50 cursor-pointer ${isExpanded ? 'bg-blue-50/30 dark:bg-neutral-800/30' : ''}`}
-                          >
-                            <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-4">
-                                  <div className="flex items-center gap-1.5">
-                                    <ChevronDown
-                                      className={`h-4 w-4 text-zinc-400 transition-transform duration-200 ${
-                                        isExpanded ? "rotate-180" : ""
-                                      }`}
-                                    />
-                              <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                                {index + 1}
-                              </span>
-                                  </div>
-                            </td>
-                            <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-4 font-mono text-xs">
-                              <span
-                                title={
-                                  copiedId === `node-${validator.nodeId}`
-                                    ? "Copied!"
-                                    : `Click to copy: ${validator.nodeId}`
-                                }
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                  copyToClipboard(
-                                    validator.nodeId,
-                                    `node-${validator.nodeId}`
-                                      );
-                                    }}
-                                className={`cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors ${
-                                  copiedId === `node-${validator.nodeId}`
-                                    ? "text-green-600 dark:text-green-400"
-                                    : ""
-                                }`}
-                              >
-                                {copiedId === `node-${validator.nodeId}`
-                                  ? "Copied!"
-                                  : `${validator.nodeId.slice(
-                                      0,
-                                      12
-                                    )}...${validator.nodeId.slice(-8)}`}
-                              </span>
-                            </td>
-                            <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-4 text-right font-mono text-sm">
-                              {formatValidatorStake(validator.amountStaked)}{" "}
-                              AVAX
-                            </td>
-                            <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-4 text-right text-sm">
-                              {parseFloat(validator.delegationFee).toFixed(1)}%
-                            </td>
-                            <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-4 text-right text-sm">
-                              {validator.delegatorCount}
-                            </td>
-                            <td className="px-4 py-4 text-right font-mono text-sm">
-                              {formatValidatorStake(validator.amountDelegated)}{" "}
-                              AVAX
-                            </td>
-                          </tr>
-                              
-                              {/* Expanded Details Section */}
-                              {isExpanded && (
-                                <tr className="bg-zinc-50/50 dark:bg-neutral-900/30">
-                                  <td colSpan={6} className="px-6 py-5">
-                                    {isLoadingDetails ? (
-                                      <div className="animate-in fade-in duration-300">
-                                        {/* Status & Version Skeleton */}
-                                        <div className="flex items-center justify-between mb-5">
-                                          <div className="flex items-center gap-3">
-                                            <div className="h-6 w-16 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
-                                            <div className="h-4 w-20 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
-                                          </div>
-                                          <div className="h-8 w-28 bg-zinc-200 dark:bg-zinc-800 rounded-md animate-pulse" />
-                                        </div>
-
-                                        {/* First Grid Row Skeleton */}
-                                        <div className="grid md:grid-cols-3 gap-3 mb-3">
-                                          {[1, 2, 3].map((i) => (
-                                            <div key={i} className="p-3 border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-neutral-900">
-                                              <div className="h-3 w-24 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse mb-3" />
-                                              <div className="space-y-2">
-                                                <div className="h-3 w-36 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
-                                                <div className="h-3 w-32 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
-                                                <div className="h-3 w-28 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
-                                              </div>
-                                            </div>
-                                          ))}
-                                        </div>
-
-                                        {/* Second Grid Row Skeleton */}
-                                        <div className="grid md:grid-cols-3 gap-3 mb-4">
-                                          {[1, 2, 3].map((i) => (
-                                            <div key={i} className="p-3 border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-neutral-900">
-                                              <div className="h-3 w-20 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse mb-3" />
-                                              <div className="space-y-2">
-                                                <div className="h-3 w-32 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
-                                                <div className="h-3 w-28 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
-                                              </div>
-                                            </div>
-                                          ))}
-                                        </div>
-
-                                        {/* Technical Details Skeleton */}
-                                        <div className="border-t border-zinc-200 dark:border-zinc-700 pt-4">
-                                          <div className="h-3 w-28 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse mb-3" />
-                                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                            {[1, 2].map((i) => (
-                                              <div key={i} className="flex items-center justify-between p-2.5 bg-white dark:bg-neutral-900 border border-zinc-200 dark:border-zinc-700 rounded-lg">
-                                                <div className="flex items-center gap-2">
-                                                  <div className="h-3 w-16 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
-                                                  <div className="h-3 w-32 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
-                                                </div>
-                                                <div className="h-6 w-6 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
-                                              </div>
-                                            ))}
-                                          </div>
-                                        </div>
-                                      </div>
-                                    ) : details ? (
-                                      <>
-                                        {/* Status & Version */}
-                                        <div className="flex items-center justify-between mb-5">
-                                          <div className="flex items-center gap-3">
-                                            <span className={`px-2.5 py-1 text-xs font-medium rounded flex items-center gap-1.5 ${
-                                              details.validationStatus === 'active'
-                                                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
-                                                : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
-                                            }`}>
-                                              <span className={`w-1.5 h-1.5 rounded-full ${details.validationStatus === 'active' ? 'bg-emerald-500' : 'bg-yellow-500'}`} />
-                                              {details.validationStatus.charAt(0).toUpperCase() + details.validationStatus.slice(1)}
-                                            </span>
-                                            {details.avalancheGoVersion && (
-                                              <span className="text-sm text-zinc-500 dark:text-zinc-400">{details.avalancheGoVersion}</span>
-                                            )}
-                                          </div>
-                                          <a
-                                            href={`https://subnets.avax.network/validators/${validator.nodeId}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            onClick={(e) => e.stopPropagation()}
-                                            className="inline-flex items-center h-8 px-3 text-xs font-medium gap-2 border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:border-zinc-400 dark:hover:border-zinc-500 rounded-md transition-all bg-transparent"
-                                          >
-                                            View on Explorer
-                                            <ArrowUpRight className="h-3.5 w-3.5" />
-                                          </a>
-                                        </div>
-
-                                        <div className="grid md:grid-cols-3 gap-3 mb-3">
-                                          <div className="p-3 border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-neutral-900">
-                                            <h4 className="text-xs font-medium text-zinc-900 dark:text-zinc-100 mb-2">Validation Period</h4>
-                                            <div className="text-xs text-zinc-500 dark:text-zinc-400 space-y-0.5">
-                                              <p>Start: {formatTimestamp(details.startTimestamp)}</p>
-                                              <p>End: {formatTimestamp(details.endTimestamp)}</p>
-                                            </div>
-                                          </div>
-                                          <div className="p-3 border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-neutral-900">
-                                            <h4 className="text-xs font-medium text-zinc-900 dark:text-zinc-100 mb-2">Staking Details</h4>
-                                            <div className="text-xs text-zinc-500 dark:text-zinc-400 space-y-0.5">
-                                              <p>Staked: {formatNavaxToAvax(details.amountStaked)}</p>
-                                              <p>Delegated: {formatNavaxToAvax(details.amountDelegated)}</p>
-                                              <p>Stake Percentage: {details.stakePercentage.toFixed(4)}%</p>
-                                            </div>
-                                          </div>
-                                          <div className="p-3 border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-neutral-900">
-                                            <h4 className="text-xs font-medium text-zinc-900 dark:text-zinc-100 mb-2">Delegation</h4>
-                                            <div className="text-xs text-zinc-500 dark:text-zinc-400 space-y-0.5">
-                                              <p>Fee: {parseFloat(details.delegationFee).toFixed(2)}%</p>
-                                              <p>Capacity: {formatNavaxToAvax(details.delegationCapacity)}</p>
-                                              <p>Delegators: {details.delegatorCount}</p>
-                                            </div>
-                                          </div>
-                                        </div>
-
-                                        <div className="grid md:grid-cols-3 gap-3 mb-4">
-                                          <div className="p-3 border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-neutral-900">
-                                            <h4 className="text-xs font-medium text-zinc-900 dark:text-zinc-100 mb-2">Performance</h4>
-                                            <div className="text-xs space-y-0.5">
-                                              <p className="text-zinc-500 dark:text-zinc-400">
-                                                Uptime: <span className={`font-medium ${details.uptimePerformance >= 80 ? 'text-emerald-600 dark:text-emerald-400' : details.uptimePerformance >= 50 ? 'text-yellow-600 dark:text-yellow-400' : 'text-red-600 dark:text-red-400'}`}>{details.uptimePerformance.toFixed(2)}%</span>
-                                              </p>
-                                              {details.validatorHealth && (
-                                                <p className="text-zinc-500 dark:text-zinc-400">
-                                                  Reachability: <span className={`font-medium ${details.validatorHealth.reachabilityPercent >= 80 ? 'text-emerald-600 dark:text-emerald-400' : 'text-yellow-600 dark:text-yellow-400'}`}>{details.validatorHealth.reachabilityPercent}%</span>
-                                                </p>
-                                              )}
-                                            </div>
-                                          </div>
-                                          {details.potentialRewards && (
-                                            <div className="p-3 border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-neutral-900">
-                                              <h4 className="text-xs font-medium text-zinc-900 dark:text-zinc-100 mb-2">Potential Rewards</h4>
-                                              <div className="text-xs space-y-0.5">
-                                                <p className="text-zinc-500 dark:text-zinc-400">
-                                                  Validation: <span className="text-emerald-600 dark:text-emerald-400 font-medium">{formatNavaxToAvax(details.potentialRewards.validationRewardAmount)}</span>
-                                                </p>
-                                                <p className="text-zinc-500 dark:text-zinc-400">
-                                                  Delegation: <span className="text-emerald-600 dark:text-emerald-400 font-medium">{formatNavaxToAvax(details.potentialRewards.delegationRewardAmount)}</span>
-                                                </p>
-                                              </div>
-                                            </div>
-                                          )}
-                                          {details.geolocation && (
-                                            <div className="p-3 border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-neutral-900">
-                                              <h4 className="text-xs font-medium text-zinc-900 dark:text-zinc-100 mb-2">Location</h4>
-                                              <div className="text-xs text-zinc-500 dark:text-zinc-400">
-                                                <p>{details.geolocation.city}, {details.geolocation.country}</p>
-                                              </div>
-                                            </div>
-                                          )}
-                                        </div>
-
-                                        <div className="border-t border-zinc-200 dark:border-zinc-700 pt-4">
-                                          <h4 className="text-xs font-medium text-zinc-900 dark:text-zinc-100 mb-3">Technical Details</h4>
-                                          <div className="space-y-2">
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                              <div className="flex items-center justify-between p-2.5 bg-white dark:bg-neutral-900 border border-zinc-200 dark:border-zinc-700 rounded-lg">
-                                                <div className="flex items-center gap-2 min-w-0">
-                                                  <span className="text-xs text-zinc-500 dark:text-zinc-400 shrink-0">TX Hash:</span>
-                                                  <a 
-                                                    href={`https://subnets.avax.network/p-chain/tx/${details.txHash}`}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    onClick={(e) => e.stopPropagation()}
-                                                    className="inline-flex items-center gap-1 font-mono text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors truncate"
-                                                  >
-                                                    {truncateString(details.txHash, 12, 8)}
-                                                    <ArrowUpRight className="h-3 w-3 shrink-0" />
-                                                  </a>
-                                                </div>
-                                                <button 
-                                                  onClick={(e) => { e.stopPropagation(); copyDetailsToClipboard(details.txHash, `tx-${validator.nodeId}`); }}
-                                                  className="h-6 w-6 p-0 flex items-center justify-center hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded transition-colors shrink-0"
-                                                >
-                                                  {detailsCopiedId === `tx-${validator.nodeId}` ? (
-                                                    <Check className="h-3 w-3 text-emerald-500" />
-                                                  ) : (
-                                                    <Copy className="h-3 w-3 text-zinc-400" />
-                                                  )}
-                                                </button>
-                                              </div>
-                                              {details.potentialRewards?.rewardAddresses?.[0] && (
-                                                <div className="flex items-center justify-between p-2.5 bg-white dark:bg-neutral-900 border border-zinc-200 dark:border-zinc-700 rounded-lg">
-                                                  <div className="flex items-center gap-2 min-w-0">
-                                                    <span className="text-xs text-zinc-500 dark:text-zinc-400 shrink-0">Payout Address:</span>
-                                                    <a 
-                                                      href={`https://subnets.avax.network/p-chain/address/${details.potentialRewards.rewardAddresses[0]}`}
-                                                      target="_blank"
-                                                      rel="noopener noreferrer"
-                                                      onClick={(e) => e.stopPropagation()}
-                                                      className="inline-flex items-center gap-1 font-mono text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors truncate"
-                                                    >
-                                                      {truncateString(details.potentialRewards.rewardAddresses[0], 10, 8)}
-                                                      <ArrowUpRight className="h-3 w-3 shrink-0" />
-                                                    </a>
-                                                  </div>
-                                                  <button 
-                                                    onClick={(e) => { e.stopPropagation(); copyDetailsToClipboard(details.potentialRewards!.rewardAddresses[0], `payout-${validator.nodeId}`); }}
-                                                    className="h-6 w-6 p-0 flex items-center justify-center hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded transition-colors shrink-0"
-                                                  >
-                                                    {detailsCopiedId === `payout-${validator.nodeId}` ? (
-                                                      <Check className="h-3 w-3 text-emerald-500" />
-                                                    ) : (
-                                                      <Copy className="h-3 w-3 text-zinc-400" />
-                                                    )}
-                                                  </button>
-                                                </div>
-                                              )}
-                                            </div>
-                                            {(details.blsCredentials?.publicKey || details.blsCredentials?.proofOfPossession) && (
-                                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                                {details.blsCredentials?.publicKey && (
-                                                  <div className="flex items-center justify-between p-2.5 bg-white dark:bg-neutral-900 border border-zinc-200 dark:border-zinc-700 rounded-lg">
-                                                    <div className="flex items-center gap-2 min-w-0">
-                                                      <span className="text-xs text-zinc-500 dark:text-zinc-400 shrink-0">BLS Key:</span>
-                                                      <span className="font-mono text-xs text-zinc-700 dark:text-zinc-300 truncate">{truncateString(details.blsCredentials.publicKey, 12, 8)}</span>
-                                                    </div>
-                                                    <button 
-                                                      onClick={(e) => { e.stopPropagation(); copyDetailsToClipboard(details.blsCredentials!.publicKey, `bls-${validator.nodeId}`); }}
-                                                      className="h-6 w-6 p-0 flex items-center justify-center hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded transition-colors shrink-0"
-                                                    >
-                                                      {detailsCopiedId === `bls-${validator.nodeId}` ? (
-                                                        <Check className="h-3 w-3 text-emerald-500" />
-                                                      ) : (
-                                                        <Copy className="h-3 w-3 text-zinc-400" />
-                                                      )}
-                                                    </button>
-                                                  </div>
-                                                )}
-                                                {details.blsCredentials?.proofOfPossession && (
-                                                  <div className="flex items-center justify-between p-2.5 bg-white dark:bg-neutral-900 border border-zinc-200 dark:border-zinc-700 rounded-lg">
-                                                    <div className="flex items-center gap-2 min-w-0">
-                                                      <span className="text-xs text-zinc-500 dark:text-zinc-400 shrink-0">BLS Signature:</span>
-                                                      <span className="font-mono text-xs text-zinc-700 dark:text-zinc-300 truncate">{truncateString(details.blsCredentials.proofOfPossession, 12, 8)}</span>
-                                                    </div>
-                                                    <button 
-                                                      onClick={(e) => { e.stopPropagation(); copyDetailsToClipboard(details.blsCredentials!.proofOfPossession, `blssig-${validator.nodeId}`); }}
-                                                      className="h-6 w-6 p-0 flex items-center justify-center hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded transition-colors shrink-0"
-                                                    >
-                                                      {detailsCopiedId === `blssig-${validator.nodeId}` ? (
-                                                        <Check className="h-3 w-3 text-emerald-500" />
-                                                      ) : (
-                                                        <Copy className="h-3 w-3 text-zinc-400" />
-                                                      )}
-                                                    </button>
-                                                  </div>
-                                                )}
-                                              </div>
-                                            )}
-                                          </div>
-                                        </div>
-                                      </>
-                                    ) : (
-                                      <div className="flex items-center justify-center py-8">
-                                        <span className="text-sm text-zinc-500">Unable to load validator details</span>
-                                      </div>
-                                    )}
-                                  </td>
-                                </tr>
-                              )}
-                            </React.Fragment>
+                            <tr
+                              key={validator.nodeId}
+                              className="border-b border-slate-100 dark:border-neutral-800 transition-colors hover:bg-blue-50/50 dark:hover:bg-neutral-800/50"
+                            >
+                              <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-4">
+                                <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                                  {index + 1}
+                                </span>
+                              </td>
+                              <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-4 font-mono text-xs">
+                                <Link
+                                  href={`/stats/validators/node/${encodeURIComponent(validator.nodeId)}`}
+                                  className="text-blue-600 dark:text-blue-400 hover:underline"
+                                >
+                                  {`${validator.nodeId.slice(0, 12)}...${validator.nodeId.slice(-8)}`}
+                                </Link>
+                              </td>
+                              <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-4 text-xs text-zinc-600 dark:text-zinc-400">
+                                {validator.p2p?.version?.replace("avalanchego/", "") ?? validator.version ?? "—"}
+                              </td>
+                              <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-4 text-right font-mono text-sm">
+                                {validator.p2p
+                                  ? formatValidatorStake(String(validator.p2p.total_stake))
+                                  : formatValidatorStake(validator.amountStaked)}{" "}
+                                AVAX
+                              </td>
+                              <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-4 text-right text-sm">
+                                {validator.p2p ? (
+                                  <span className={
+                                    validator.p2p.p50_uptime >= 99 ? "text-emerald-600 dark:text-emerald-400" :
+                                    validator.p2p.p50_uptime >= 90 ? "text-yellow-600 dark:text-yellow-400" :
+                                    "text-red-600 dark:text-red-400"
+                                  }>
+                                    {validator.p2p.p50_uptime.toFixed(2)}%
+                                  </span>
+                                ) : "—"}
+                              </td>
+                              <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-4 text-right text-sm">
+                                {validator.p2p ? (
+                                  <span className={
+                                    validator.p2p.days_left < 7 ? "text-red-600 dark:text-red-400 font-medium" :
+                                    validator.p2p.days_left < 30 ? "text-yellow-600 dark:text-yellow-400" :
+                                    "text-zinc-700 dark:text-zinc-300"
+                                  }>
+                                    {validator.p2p.days_left}
+                                  </span>
+                                ) : "—"}
+                              </td>
+                              <td className="px-4 py-4 text-right text-sm">
+                                {validator.p2p ? (
+                                  <span className={
+                                    validator.p2p.miss_rate_14d === 0 ? "text-emerald-600 dark:text-emerald-400" :
+                                    validator.p2p.miss_rate_14d < 5 ? "text-yellow-600 dark:text-yellow-400" :
+                                    "text-red-600 dark:text-red-400"
+                                  }>
+                                    {validator.p2p.miss_rate_14d.toFixed(1)}%
+                                  </span>
+                                ) : "—"}
+                              </td>
+                            </tr>
                           );
                         })
                       )}

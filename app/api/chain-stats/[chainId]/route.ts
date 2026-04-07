@@ -105,16 +105,19 @@ async function fetchEvmMetric(
 
 async function getTimeSeriesData(
   metricType: string,
+  metricType: string,
   chainId: string,
   timeRange: string,
   startTimestamp?: number,
   endTimestamp?: number,
+  pageSize: number = 365,
   pageSize: number = 365,
   fetchAllPages: boolean = false
 ): Promise<TimeSeriesDataPoint[]> {
   try {
     let finalStartTimestamp: number;
     let finalEndTimestamp: number;
+
 
     if (startTimestamp !== undefined && endTimestamp !== undefined) {
       finalStartTimestamp = startTimestamp;
@@ -148,14 +151,19 @@ async function getActiveAddressesData(
   chainId: string,
   timeRange: string,
   interval: 'day' | 'week' | 'month',
+  chainId: string,
+  timeRange: string,
+  interval: 'day' | 'week' | 'month',
   startTimestampParam?: number,
   endTimestampParam?: number,
+  pageSize: number = 365,
   pageSize: number = 365,
   fetchAllPages: boolean = false
 ): Promise<TimeSeriesDataPoint[]> {
   try {
     let startTimestamp: number;
     let endTimestamp: number;
+
 
     if (startTimestampParam !== undefined && endTimestampParam !== undefined) {
       startTimestamp = startTimestampParam;
