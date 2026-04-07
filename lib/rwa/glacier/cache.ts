@@ -75,4 +75,7 @@ export const CacheKeys = {
   historical: (metric: string, interval: string) =>
     `rwa:historical:${metric}:${interval}`,
   balance: (address: string) => `rwa:balance:${address.toLowerCase()}`,
+  fenceMetrics: (slug: string) => `rwa:fence:metrics:${slug}`,
+  fenceHistorical: (slug: string, startDate?: string, endDate?: string) =>
+    `rwa:fence:historical:${slug}:${startDate ?? 'all'}:${endDate ?? 'all'}`,
 }

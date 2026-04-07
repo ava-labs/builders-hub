@@ -15,5 +15,7 @@ export const RWA_COLORS = {
     netCapitalPosition: '#312e81', // indigo-900
     lenderValinor: '#6366f1',      // indigo-500
     lenderAvalanche: '#818cf8',    // indigo-400
+    paidCollections: '#059669',    // emerald-600
+    expectedCollections: '#d97706', // amber-600
   },
 } as const

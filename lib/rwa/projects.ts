@@ -18,6 +18,9 @@ export interface RWAProject {
   }
   usdcTokens: string[]
   partners: RWAPartner[]
+  features?: {
+    fence?: boolean
+  }
 }
 
 const SHARED_ADDRESSES = {
@@ -51,6 +54,7 @@ export const RWA_PROJECTS: Record<string, RWAProject> = {
     addresses: SHARED_ADDRESSES,
     usdcTokens: SHARED_USDC_TOKENS,
     partners: SHARED_PARTNERS,
+    features: { fence: true },
   },
   'oatfi': {
     slug: 'oatfi',
@@ -61,6 +65,7 @@ export const RWA_PROJECTS: Record<string, RWAProject> = {
     addresses: SHARED_ADDRESSES,
     usdcTokens: SHARED_USDC_TOKENS,
     partners: SHARED_PARTNERS,
+    features: { fence: true },
   },
   'fence': {
     slug: 'fence',
@@ -71,6 +76,7 @@ export const RWA_PROJECTS: Record<string, RWAProject> = {
     addresses: SHARED_ADDRESSES,
     usdcTokens: SHARED_USDC_TOKENS,
     partners: SHARED_PARTNERS,
+    features: { fence: true },
   },
 }
 

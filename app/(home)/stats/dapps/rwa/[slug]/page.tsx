@@ -15,11 +15,11 @@ export default function RWAProjectPage() {
   }
 
   return (
-    <div className="min-h-screen">
-      <div className="container mx-auto px-4 py-8 space-y-8 max-w-full min-w-0">
+    <>
+      <div className="container mx-auto px-4 pt-14 pb-8 space-y-8 max-w-full min-w-0">
         <RWADashboard slug={slug} />
       </div>
       <StatsBubbleNav />
-    </div>
+    </>
   )
 }

@@ -18,9 +18,13 @@ import { useSectionNavigation } from '@/hooks/use-section-navigation'
 import { StickyNavBar } from '@/components/stats/StickyNavBar'
 import { useMetrics } from '@/lib/rwa/hooks/useMetrics'
 import { useHistorical } from '@/lib/rwa/hooks/useHistorical'
+import { useFenceMetrics } from '@/lib/rwa/hooks/useFenceMetrics'
+import { useFenceHistorical } from '@/lib/rwa/hooks/useFenceHistorical'
+import { getRWAProject } from '@/lib/rwa/projects'
 import dynamic from 'next/dynamic'
 import { GeneralMetricsSection } from './GeneralMetricsSection'
 import { OatFiSection } from './OatFiSection'
+import { FenceSection } from './FenceSection'
 import { DateRangeSelector } from './DateRangeSelector'
 import { ExportMenu } from './ExportMenu'
 import { PalettePicker } from './PalettePicker'
@@ -51,6 +55,7 @@ const DASHBOARD_ELEMENT_ID = 'rwa-dashboard-content'
 const SECTIONS = [
   { id: 'rwa-metrics', label: 'Metrics' },
   { id: 'rwa-oatfi', label: 'OatFi' },
+  { id: 'rwa-fence', label: 'Facility' },
   { id: 'rwa-capital-flow', label: 'Capital Flow' },
   { id: 'rwa-historical', label: 'Historical' },
   { id: 'rwa-transactions', label: 'Transactions' },
@@ -93,6 +98,12 @@ export function RWADashboard({ slug }: RWADashboardProps) {
     updateHash: false,
   })
 
+  const project = getRWAProject(slug)
+  const hasFence = project?.features?.fence ?? false
+
+  const [fenceInterval, setFenceInterval] = useState<TimeInterval>('daily')
+  const [fenceDateRange, setFenceDateRange] = useState<DateRange | null>(null)
+
   const { metrics, isLoading: metricsLoading, error: metricsError, refresh: refreshMetrics } = useMetrics({ slug })
   const {
     historical,
@@ -100,9 +111,27 @@ export function RWADashboard({ slug }: RWADashboardProps) {
     error: historicalError,
     refresh: refreshHistorical,
   } = useHistorical({ slug, interval, dateRange })
+
+  const {
+    fenceMetrics,
+    isLoading: fenceLoading,
+    error: fenceError,
+    refresh: refreshFence,
+  } = useFenceMetrics({ slug, enabled: hasFence })
+  const {
+    fenceHistorical,
+    isLoading: fenceHistLoading,
+    error: fenceHistError,
+    refresh: refreshFenceHist,
+  } = useFenceHistorical({ slug, enabled: hasFence })
+
   const handleRefresh = useCallback(async () => {
-    await Promise.all([refreshMetrics(), refreshHistorical()])
-  }, [refreshMetrics, refreshHistorical])
+    await Promise.allSettled([
+      refreshMetrics(),
+      refreshHistorical(),
+      ...(hasFence ? [refreshFence(), refreshFenceHist()] : []),
+    ])
+  }, [refreshMetrics, refreshHistorical, hasFence, refreshFence, refreshFenceHist])
 
   const error = metricsError || historicalError
 
@@ -233,6 +262,26 @@ export function RWADashboard({ slug }: RWADashboardProps) {
             />
           </MobileCollapsible>
         </section>
+
+        {hasFence && (
+          <>
+            <Separator />
+            <section id="rwa-fence">
+              <MobileCollapsible title="Facility Performance" defaultOpen>
+                <FenceSection
+                  metrics={fenceMetrics}
+                  historical={fenceHistorical}
+                  isLoading={fenceLoading || fenceHistLoading}
+                  error={fenceError?.message ?? fenceHistError?.message}
+                  interval={fenceInterval}
+                  onIntervalChange={setFenceInterval}
+                  dateRange={fenceDateRange}
+                  onDateRangeChange={setFenceDateRange}
+                />
+              </MobileCollapsible>
+            </section>
+          </>
+        )}
 
         <Separator />
 

@@ -73,3 +73,30 @@ export interface TransactionRecord {
   amount: bigint
   direction: 'inbound' | 'outbound' | 'internal'
 }
+
+// Fence Finance API types
+
+export interface FenceCollectionValue {
+  value: number
+  asOfDate: string
+}
+
+export interface FenceCL01Value {
+  value: number
+  asOfDate: string
+  withinLimit: boolean
+  threshold: number
+}
+
+export interface FenceMetrics {
+  paidTotalCollections: FenceCollectionValue | null
+  expectedTotalCollections: FenceCollectionValue | null
+  cl01Concentration: FenceCL01Value | null
+  repaymentRatio: number | null
+  lastUpdated: string
+}
+
+export interface FenceHistoricalData {
+  paidCollections: TimeSeriesDataPoint[]
+  expectedCollections: TimeSeriesDataPoint[]
+}

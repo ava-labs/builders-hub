@@ -19,6 +19,8 @@ function buildChartColors(palette: RWAPalette) {
     netCapitalPosition: palette.shades[800],
     lenderValinor: palette.shades[700],
     lenderAvalanche: palette.shades[400],
+    paidCollections: palette.shades[600],
+    expectedCollections: palette.shades[400],
   }
 }
 
