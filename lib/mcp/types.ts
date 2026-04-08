@@ -64,14 +64,28 @@ export interface ResourceDomain {
 // JSON-RPC 2.0 types
 // ---------------------------------------------------------------------------
 
-export const jsonRpcRequestSchema = z.object({
+const jsonRpcIdSchema = z.union([z.string(), z.number(), z.null()]);
+
+const jsonRpcBaseMessageSchema = z.object({
   jsonrpc: z.literal('2.0'),
-  id: z.union([z.string(), z.number(), z.null()]),
   method: z.string(),
   params: z.record(z.string(), z.unknown()).optional(),
 });
 
+export const jsonRpcRequestSchema = jsonRpcBaseMessageSchema.extend({
+  id: jsonRpcIdSchema,
+});
+
+export const jsonRpcNotificationSchema = jsonRpcBaseMessageSchema;
+
+export const jsonRpcMessageSchema = z.union([
+  jsonRpcRequestSchema,
+  jsonRpcNotificationSchema,
+]);
+
 export type JsonRpcRequest = z.infer<typeof jsonRpcRequestSchema>;
+export type JsonRpcNotification = z.infer<typeof jsonRpcNotificationSchema>;
+export type JsonRpcMessage = z.infer<typeof jsonRpcMessageSchema>;
 
 export interface JsonRpcResponse {
   jsonrpc: '2.0';

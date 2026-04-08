@@ -8,8 +8,10 @@
  *   const response = await server.handlePost(body);
  */
 
-import { jsonRpcRequestSchema } from './types';
+import { jsonRpcMessageSchema } from './types';
 import type {
+  JsonRpcMessage,
+  JsonRpcNotification,
   JsonRpcRequest,
   JsonRpcResponse,
   MCPTool,
@@ -73,6 +75,21 @@ export class MCPServer {
   // -------------------------------------------------------------------------
   // Request processing
   // -------------------------------------------------------------------------
+
+  private async processNotification(notification: JsonRpcNotification): Promise<void> {
+    switch (notification.method) {
+      case 'notifications/initialized':
+        captureMCPEvent('mcp_initialized', {
+          protocol_version: this.config.protocolVersion,
+        });
+        return;
+
+      default:
+        // Ignore unsupported notifications. Streamable HTTP clients do not
+        // expect JSON-RPC responses for notifications.
+        return;
+    }
+  }
 
   async processRequest(request: JsonRpcRequest): Promise<JsonRpcResponse> {
     const { method, params, id } = request;
@@ -196,27 +213,39 @@ export class MCPServer {
     }
   }
 
+  private async processMessage(message: JsonRpcMessage): Promise<JsonRpcResponse | null> {
+    if ('id' in message) {
+      return this.processRequest(message);
+    }
+
+    await this.processNotification(message);
+    return null;
+  }
+
   /**
    * Entry point for POST handler — accepts either a single request or a batch.
    */
-  async handlePost(body: unknown): Promise<JsonRpcResponse | JsonRpcResponse[]> {
+  async handlePost(body: unknown): Promise<JsonRpcResponse | JsonRpcResponse[] | null> {
     if (Array.isArray(body)) {
-      return Promise.all(
-        body.map(async (req) => {
-          const parsed = jsonRpcRequestSchema.safeParse(req);
+      const responses = await Promise.all(
+        body.map(async (message) => {
+          const parsed = jsonRpcMessageSchema.safeParse(message);
           if (!parsed.success) {
             return {
               jsonrpc: '2.0' as const,
-              id: (req as { id?: string | number | null })?.id ?? null,
+              id: (message as { id?: string | number | null })?.id ?? null,
               error: { code: -32600, message: 'Invalid request' },
             };
           }
-          return this.processRequest(parsed.data);
+          return this.processMessage(parsed.data);
         })
       );
+
+      const filteredResponses = responses.filter((response): response is JsonRpcResponse => response !== null);
+      return filteredResponses.length > 0 ? filteredResponses : null;
     }
 
-    const parsed = jsonRpcRequestSchema.safeParse(body);
+    const parsed = jsonRpcMessageSchema.safeParse(body);
     if (!parsed.success) {
       return {
         jsonrpc: '2.0',
@@ -224,7 +253,7 @@ export class MCPServer {
         error: { code: -32600, message: 'Invalid request' },
       };
     }
-    return this.processRequest(parsed.data);
+    return this.processMessage(parsed.data);
   }
 
   // -------------------------------------------------------------------------
