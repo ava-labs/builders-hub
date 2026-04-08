@@ -164,7 +164,7 @@ function ConvertToL1({ onSuccess }: BaseConsoleToolProps) {
                         defaultAddress={pChainAddress}
                         label=""
                         description=""
-                        userPChainBalanceNavax={BigInt(pChainBalance * 1e9)}
+                        userPChainBalanceNavax={BigInt(Math.round(pChainBalance * 1e9))}
                         selectedSubnetId={selection.subnetId}
                         isTestnet={isTestnet}
                     />

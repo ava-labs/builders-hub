@@ -2,7 +2,6 @@ interface AggregateSignaturesParams {
   message: string;
   justification?: string;
   quorumPercentage?: number;
-  signingSubnetId?: string;
 }
 
 interface AggregateSignaturesResponse {
@@ -13,15 +12,13 @@ export async function aggregateSignatures({
   message,
   justification,
   quorumPercentage,
-  signingSubnetId,
 }: AggregateSignaturesParams): Promise<string> {
   const endpoint = 'https://glacier-api-dev.avax.network/v1/signatureAggregator/aggregateSignatures'; // notice the dev endpoint
-  
+
   const requestBody: AggregateSignaturesParams = {
     message,
     ...(justification && { justification }),
-    ...(quorumPercentage && { quorumPercentage }), 
-    ...(signingSubnetId && { signingSubnetId }),
+    ...(quorumPercentage && { quorumPercentage }),
   };
 
   const response = await fetch(endpoint, {

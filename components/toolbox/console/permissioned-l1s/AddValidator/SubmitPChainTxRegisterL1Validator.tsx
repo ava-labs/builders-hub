@@ -17,7 +17,6 @@ interface SubmitPChainTxRegisterL1ValidatorProps {
   userPChainBalanceNavax?: bigint | null;
   blsProofOfPossession?: string;
   evmTxHash?: string;
-  signingSubnetId: string;
   onSuccess: (pChainTxId: string) => void;
   onError: (message: string) => void;
 }
@@ -28,7 +27,6 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
   userPChainBalanceNavax,
   blsProofOfPossession,
   evmTxHash,
-  signingSubnetId,
   onSuccess,
   onError,
 }) => {
@@ -188,8 +186,6 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
     try {
       const aggregateSignaturePromise = aggregateSignature({
         message: unsignedWarpMessage,
-        signingSubnetId: signingSubnetId || subnetIdL1,
-        quorumPercentage: 67,
       });
       notify({
         type: 'local',
@@ -298,7 +294,7 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
               <span className="text-sm font-mono text-zinc-800 dark:text-zinc-200">{validatorBalance} AVAX</span>
             </div>
           )}
-          {userPChainBalanceNavax && validatorBalance && BigInt(Number(validatorBalance) * 1e9) > userPChainBalanceNavax && (
+          {userPChainBalanceNavax && validatorBalance && BigInt(Math.round(Number(validatorBalance) * 1e9)) > userPChainBalanceNavax && (
             <p className="text-xs text-red-600 dark:text-red-400">
               Exceeds P-Chain balance ({(Number(userPChainBalanceNavax) / 1e9).toFixed(2)} AVAX)
             </p>

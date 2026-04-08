@@ -375,8 +375,6 @@ function RemoveExpiredValidatorRegistration() {
       const signaturePromise = aggregateSignature({
         message: bytesToHex(removeValidatorMessage),
         justification: bytesToHex(justification),
-        signingSubnetId: signingSubnetId || subnetId,
-        quorumPercentage: 67,
       });
       notify(
         {

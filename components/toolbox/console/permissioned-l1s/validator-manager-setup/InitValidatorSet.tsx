@@ -76,8 +76,6 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
       const { signedMessage } = await aggregateSignature({
         message: data.message,
         justification: data.justification,
-        signingSubnetId: data.signingSubnetId,
-        quorumPercentage: 67,
       });
       setL1ConversionSignature(signedMessage);
       return signedMessage;

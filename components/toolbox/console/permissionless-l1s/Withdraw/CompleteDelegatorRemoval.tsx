@@ -163,8 +163,6 @@ const CompleteDelegatorRemoval: React.FC<CompleteDelegatorRemovalProps> = ({
             // Step 3: Aggregate P-Chain signature
             const aggregateSignaturePromise = aggregateSignature({
                 message: bytesToHex(l1ValidatorWeightMessage),
-                signingSubnetId: signingSubnetId || subnetIdL1,
-                quorumPercentage: 67,
             });
             
             notify({

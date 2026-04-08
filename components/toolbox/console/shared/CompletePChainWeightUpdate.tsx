@@ -222,8 +222,6 @@ const CompletePChainWeightUpdate: React.FC<CompletePChainWeightUpdateProps> = ({
             const aggregateSignaturePromise = aggregateSignature({
                 message: bytesToHex(l1ValidatorWeightMessage),
                 ...(justification && { justification: bytesToHex(justification) }),
-                signingSubnetId: signingSubnetId || subnetIdL1,
-                quorumPercentage: 67,
             });
             
             notify({

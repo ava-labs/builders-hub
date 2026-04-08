@@ -6,7 +6,6 @@ import { useWalletStore } from "./walletStore";
 interface SignatureAggregationParams {
     message: string;
     justification?: string;
-    signingSubnetId: string;
     quorumPercentage?: number;
 }
 
@@ -52,14 +51,12 @@ export const useAvalancheSDKChainkit = (customNetwork?: "mainnet" | "fuji") => {
     const aggregateSignature = useCallback(async ({
         message,
         justification,
-        signingSubnetId,
         quorumPercentage = 67,
     }: SignatureAggregationParams): Promise<SignatureAggregationResult> => {
         try {
             // Use the SDK's built-in signature aggregation method
             const signatureAggregatorRequest: any = {
                 message,
-                signingSubnetId,
                 quorumPercentage,
             };
 

@@ -136,52 +136,17 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
                 "11111111111111111111111111111111LpoYY"
             );
 
-            // Step 3: Aggregate P-Chain signature with retry
-            const effectiveSigningSubnetId = signingSubnetId || subnetIdL1;
-            let signature;
-            let lastError;
+            // Step 3: Aggregate P-Chain signature
+            const aggregateSignaturePromise = aggregateSignature({
+                message: bytesToHex(l1ValidatorWeightMessage),
+            });
 
-            // Try different quorum percentages with delay between retries
-            const quorumPercentages = [67, 80, 100];
-            for (let i = 0; i < quorumPercentages.length; i++) {
-                const quorum = quorumPercentages[i];
-                try {
-                    const aggregateSignaturePromise = aggregateSignature({
-                        message: bytesToHex(l1ValidatorWeightMessage),
-                        signingSubnetId: effectiveSigningSubnetId,
-                        quorumPercentage: quorum,
-                    });
+            notify({
+                type: 'local',
+                name: 'Aggregate P-Chain Signatures'
+            }, aggregateSignaturePromise);
 
-                    notify({
-                        type: 'local',
-                        name: `Aggregate P-Chain Signatures (${quorum}% quorum)`
-                    }, aggregateSignaturePromise);
-
-                    signature = await aggregateSignaturePromise;
-                    break; // Success, exit loop
-                } catch (err) {
-                    lastError = err;
-                    // Wait before retrying with a higher quorum
-                    if (i < quorumPercentages.length - 1) {
-                        await new Promise(resolve => setTimeout(resolve, 3000));
-                    }
-                }
-            }
-
-            if (!signature) {
-                const errMsg = lastError instanceof Error ? lastError.message : String(lastError);
-                const isServerError = errMsg.includes('500') || errMsg.includes('InternalServerError') || errMsg.includes('Failed to process');
-
-                if (isServerError) {
-                    throw new Error(
-                        `Signature aggregation service returned a server error. This is usually a transient issue. ` +
-                        `Please wait a few minutes and try again. If the problem persists, verify that your L1 validator nodes ` +
-                        `are online and reachable. Signing subnet: ${effectiveSigningSubnetId}`
-                    );
-                }
-
-                throw new Error(`Failed to aggregate signatures. Signing subnet: ${effectiveSigningSubnetId}. Error: ${errMsg}`);
-            }
+            const signature = await aggregateSignaturePromise;
             
             setPChainSignature(signature.signedMessage);
 

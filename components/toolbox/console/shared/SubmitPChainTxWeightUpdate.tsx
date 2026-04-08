@@ -245,8 +245,6 @@ const SubmitPChainTxWeightUpdate: React.FC<SubmitPChainTxWeightUpdateProps> = ({
             // Step 1: Sign the warp message
             const aggregateSignaturePromise = aggregateSignature({
                 message: unsignedWarpMessage,
-                signingSubnetId: signingSubnetId || subnetIdL1,
-                quorumPercentage: 67,
             });
             
             notify({

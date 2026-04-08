@@ -235,8 +235,6 @@ const CompletePChainRegistration: React.FC<CompletePChainRegistrationProps> = ({
             const aggregateSignaturePromise = aggregateSignature({
                 message: bytesToHex(l1ValidatorRegistrationMessage),
                 justification: bytesToHex(justification),
-                signingSubnetId: signingSubnetId || subnetIdL1,
-                quorumPercentage: 67,
             });
             
             notify({

@@ -37,7 +37,6 @@ export default function PChainRegistrationStep() {
           validatorBalance={store.validatorBalance}
           blsProofOfPossession={store.blsProofOfPossession}
           evmTxHash={store.evmTxHash}
-          signingSubnetId={vmcCtx.signingSubnetId}
           onSuccess={(pChainTxId) => {
             store.setPChainTxId(pChainTxId);
             store.setGlobalError(null);

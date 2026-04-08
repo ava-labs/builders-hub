@@ -125,7 +125,7 @@ export function ValidatorItem({
                 step="0.000001"
                 min="0"
                 value={Number(validator.validatorBalance) / 1000000000}
-                onChange={(e) => onUpdate(index, { validatorBalance: BigInt(parseFloat(e.target.value || "0") * 1000000000) })}
+                onChange={(e) => onUpdate(index, { validatorBalance: BigInt(Math.round(parseFloat(e.target.value || "0") * 1000000000)) })}
                 className={cn(
                   "w-full rounded p-2",
                   "bg-zinc-50 dark:bg-zinc-900",

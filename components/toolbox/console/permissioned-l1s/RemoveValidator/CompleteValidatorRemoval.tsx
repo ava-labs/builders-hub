@@ -153,8 +153,6 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
       const aggregateSignaturePromise = aggregateSignature({
         message: bytesToHex(removeValidatorMessage),
         justification: bytesToHex(justification),
-        signingSubnetId: signingSubnetId || subnetIdL1,
-        quorumPercentage: 67,
       });
       notify({
         type: 'local',

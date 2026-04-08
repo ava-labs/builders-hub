@@ -142,7 +142,6 @@ export default function StakeValidator({ tokenType, onSuccess }: StakeValidatorP
                         userPChainBalanceNavax={userPChainBalanceNavax}
                         blsProofOfPossession={blsProofOfPossession}
                         evmTxHash={initiateRegistrationTxHash}
-                        signingSubnetId={l1State.validatorManagerDetails.signingSubnetId || l1State.subnetIdL1}
                         onSuccess={(txId) => {
                             setPChainTxId(txId);
                             setGlobalError(null);
