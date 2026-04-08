@@ -97,18 +97,18 @@ export default function Stages({ isParticipant, stages, hackathon, renderInPrevi
   }
 
   return (
-    <div className="border border-[#d66666]/20 relative rounded-[16px] shrink-0 w-full">
+    <div className="border border-[#d66666]/20 relative rounded-[16px] shrink-0 w-full overflow-hidden">
       <img
         alt=""
-        className="absolute inset-0 max-w-none object-50%-50% object-cover opacity-30 pointer-events-none rounded-[16px] size-full"
+        className="absolute inset-0 max-w-none object-cover opacity-30 pointer-events-none rounded-[16px] size-full"
         src="/build-games/frame-23.png"
       />
 
-      <div className="content-stretch flex flex-col items-start overflow-clip pb-[48px] pt-[48px] px-[48px] relative rounded-[inherit] w-full">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 mb-12 w-full">
-          <div className="content-stretch flex flex-col gap-[10px] items-start overflow-clip p-[10px] relative shrink-0">
-            <div className="flex flex-col justify-center leading-[0] not-italic relative shrink-0 text-[48px] text-white">
-              <p className="text-md sm:text-xl md:text-3xl lg:text-4xl xl:text-5xl text-zinc-50 font-bold sm:mb-2">
+      <div className="relative flex flex-col items-start w-full rounded-[inherit] overflow-hidden px-4 py-6 sm:px-6 sm:py-8 md:px-8 md:py-10 lg:px-12 lg:py-12">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 sm:gap-6 mb-8 sm:mb-10 md:mb-12 w-full">
+          <div className="flex flex-col gap-2 items-start p-0 sm:p-2 shrink-0">
+            <div className="leading-none text-white">
+              <p className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl text-zinc-50 font-bold">
                 Program
                 <br aria-hidden="true" />
                 Timeline
@@ -116,22 +116,22 @@ export default function Stages({ isParticipant, stages, hackathon, renderInPrevi
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-3 w-full lg:w-auto">
             <a
               href="https://calendar.google.com/calendar"
               target="_blank"
               rel="noopener noreferrer"
-              className="group relative inline-flex shrink-0"
+              className="group relative inline-flex w-full sm:w-auto"
             >
               <div className="absolute -inset-1 bg-gradient-to-r from-[#d66666] via-[#f83838] to-[#d66666] rounded-lg blur-sm opacity-30 group-hover:opacity-50 transition duration-300" />
-              <div className="relative flex items-center gap-2 px-4 py-3 bg-[#d66666] rounded-lg font-medium text-[#152d44] group-hover:bg-[#e57f7f] transition-all duration-200 shadow-lg shadow-amber-500/20 group-hover:shadow-amber-500/40">
-                <span className="text-[15px]">Add to Calendar</span>
+              <div className="relative flex items-center justify-center gap-2 w-full sm:w-auto px-4 py-3 bg-[#d66666] rounded-lg font-medium text-[#152d44] group-hover:bg-[#e57f7f] transition-all duration-200 shadow-lg shadow-amber-500/20 group-hover:shadow-amber-500/40">
+                <span className="text-sm sm:text-[15px]">Add to Calendar</span>
               </div>
             </a>
           </div>
         </div>
 
-        <div className="mb-12 rounded-2xl bg-[rgba(255,255,255,0.03)] border border-[#d66666]/20 overflow-hidden backdrop-blur-sm w-full shadow-lg shadow-black/20 relative">
+        <div className="mb-8 sm:mb-10 md:mb-12 rounded-2xl bg-[rgba(255,255,255,0.03)] border border-[#d66666]/20 overflow-hidden backdrop-blur-sm w-full shadow-lg shadow-black/20 relative">
           <DesktopTimeline
             phases={normalizedStages}
             onPhaseClick={setSelectedPhaseIndex}
@@ -139,21 +139,32 @@ export default function Stages({ isParticipant, stages, hackathon, renderInPrevi
             todayDate={todayDate}
           />
 
-          <div className="flex items-center justify-between px-8 pb-6 gap-4">
+          <MobileTimeline
+            phases={normalizedStages}
+            onPhaseClick={setSelectedPhaseIndex}
+            selectedIndex={selectedPhaseIndex}
+            todayDate={todayDate}
+          />
+
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between px-4 pb-4 pt-2 sm:px-6 sm:pb-5 gap-3 sm:gap-4"></div>
+
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between px-4 pb-4 pt-2 sm:px-6 sm:pb-5 gap-3 sm:gap-4">
             {highlightedStage && (
-              <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-[rgba(214,102,102,0.1)] to-[rgba(214,102,102,0.05)] border border-[#66acd6]/20">
-                <div className="relative flex items-center justify-center w-6 h-6 shrink-0">
+              <div className="flex w-full md:w-auto items-start sm:items-center gap-2 px-3 py-3 sm:px-4 sm:py-2 rounded-lg bg-gradient-to-r from-[rgba(214,102,102,0.1)] to-[rgba(214,102,102,0.05)] border border-[#66acd6]/20">
+                <div className="relative flex items-center justify-center w-6 h-6 shrink-0 mt-0.5 sm:mt-0">
                   <div className="absolute w-2 h-2 rounded-full bg-[#d66666] animate-pulse" />
                   <div className="absolute w-2 h-2 rounded-full bg-[#d66666] animate-ping opacity-75" />
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                   {getStageStatus(highlightedStage, todayDate) === "current" ? (
                     <>
                       <span className="text-white/50 text-[10px] uppercase tracking-wider">
                         Current Stage:
                       </span>
-                      <span className="text-[#d66666] text-[13px]">{highlightedStage.label}</span>
+                      <span className="text-[#d66666] text-xs sm:text-[13px]">
+                        {highlightedStage.label}
+                      </span>
                       <span className="text-white/50 text-[11px]">
                         · deadline in {daysUntilRelevantDate ?? 0}{" "}
                         {(daysUntilRelevantDate ?? 0) === 1 ? "day" : "days"}
@@ -164,7 +175,9 @@ export default function Stages({ isParticipant, stages, hackathon, renderInPrevi
                       <span className="text-white/50 text-[10px] uppercase tracking-wider">
                         Next Stage:
                       </span>
-                      <span className="text-[#d66666] text-[13px]">{highlightedStage.label}</span>
+                      <span className="text-[#d66666] text-xs sm:text-[13px]">
+                        {highlightedStage.label}
+                      </span>
                       <span className="text-white/50 text-[11px]">
                         · starts in {daysUntilRelevantDate ?? 0}{" "}
                         {(daysUntilRelevantDate ?? 0) === 1 ? "day" : "days"}
@@ -175,7 +188,7 @@ export default function Stages({ isParticipant, stages, hackathon, renderInPrevi
               </div>
             )}
 
-            <p className="text-[13px] text-[#d66666]">
+            <p className="text-xs sm:text-[13px] text-[#d66666] md:text-right">
               Click on each stage to view details
             </p>
           </div>
@@ -183,62 +196,65 @@ export default function Stages({ isParticipant, stages, hackathon, renderInPrevi
 
         {selectedStage && (
           <div className="flex flex-col items-center gap-4 w-full">
-            <div className="mb-12 !w-full">
-              <div className="flex items-center gap-4 mb-8">
+            <div className="mb-8 sm:mb-10 md:mb-12 w-full">
+              <div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
                 <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[#d66666]/30 to-transparent" />
-                <h3 className="text-[32px] font-medium text-white">
+                <h3 className="text-xl sm:text-2xl md:text-3xl font-medium text-white text-center break-words">
                   {selectedStage.label}
                 </h3>
                 <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[#d66666]/30 to-transparent" />
               </div>
 
               {renderStageComponent(selectedStage)}
-
             </div>
-            {
-              selectedStage.submitForm && (
-                renderInPreview ? (
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <button
-                        type="button"
-                        className="group relative inline-flex cursor-pointer"
-                      >
-                        <div className="absolute -inset-1 rounded-xl bg-gradient-to-r from-[#d66666] via-[#f83838] to-[#d66666] blur-sm opacity-40 transition duration-500 group-hover:opacity-70" />
-                        <div className="relative flex items-center gap-3 rounded-xl bg-[#d66666] px-10 py-5 font-['Aeonik:Medium',sans-serif] font-medium text-[#152d44] shadow-xl shadow-[#d66666]/30 transition-all duration-200 group-hover:scale-105 group-hover:bg-[#e57f7f] group-hover:shadow-[#d66666]/50">
-                          <Upload className="h-5 w-5 text-zinc-900" />
-                          <span className="text-[17px] font-semibold text-zinc-900">
-                            Submit
-                          </span>
-                        </div>
-                      </button>
-                    </DialogTrigger>
 
-                    <DialogContent>
-                      <StageSubmitPageContent
-                        hackathon={hackathon}
-                        hackathonCreator={''}
-                        stage={selectedStage}
-                        stageIndex={selectedPhaseIndex}
-                        renderInPreview={renderInPreview}
-                      />
-                    </DialogContent>
-                  </Dialog>
-                ) : (
-                  <Link href={`/hackathons/${hackathon.id}/stage-form?stage=${selectedPhaseIndex}`}>
-                    <button type="button" className="group relative inline-flex cursor-pointer">
+            {selectedStage.submitForm &&
+              (renderInPreview ? (
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <button
+                      type="button"
+                      className="group relative inline-flex cursor-pointer w-full sm:w-auto"
+                    >
                       <div className="absolute -inset-1 rounded-xl bg-gradient-to-r from-[#d66666] via-[#f83838] to-[#d66666] blur-sm opacity-40 transition duration-500 group-hover:opacity-70" />
-                      <div className="relative flex items-center gap-3 rounded-xl bg-[#d66666] px-10 py-5 font-['Aeonik:Medium',sans-serif] font-medium text-[#152d44] shadow-xl shadow-[#d66666]/30 transition-all duration-200 group-hover:scale-105 group-hover:bg-[#e57f7f] group-hover:shadow-[#d66666]/50">
-                        <Upload className="h-5 w-5 text-zinc-900" />
-                        <span className="text-[17px] font-semibold text-zinc-900">
+                      <div className="relative flex items-center justify-center gap-3 w-full sm:w-auto rounded-xl bg-[#d66666] px-5 py-3 sm:px-8 sm:py-4 md:px-10 md:py-5 font-['Aeonik:Medium',sans-serif] font-medium text-[#152d44] shadow-xl shadow-[#d66666]/30 transition-all duration-200 group-hover:scale-105 group-hover:bg-[#e57f7f] group-hover:shadow-[#d66666]/50">
+                        <Upload className="h-4 w-4 sm:h-5 sm:w-5 text-zinc-900" />
+                        <span className="text-sm sm:text-base md:text-[17px] font-semibold text-zinc-900">
                           Submit
                         </span>
                       </div>
                     </button>
-                  </Link>
-                )
-              )
-            }
+                  </DialogTrigger>
+
+                  <DialogContent className="w-[95vw] max-w-3xl">
+                    <StageSubmitPageContent
+                      hackathon={hackathon}
+                      hackathonCreator={''}
+                      stage={selectedStage}
+                      stageIndex={selectedPhaseIndex}
+                      renderInPreview={renderInPreview}
+                    />
+                  </DialogContent>
+                </Dialog>
+              ) : (
+                <Link
+                  href={`/hackathons/${hackathon.id}/stage-form?stage=${selectedPhaseIndex}`}
+                  className="w-full sm:w-auto"
+                >
+                  <button
+                    type="button"
+                    className="group relative inline-flex cursor-pointer w-full sm:w-auto"
+                  >
+                    <div className="absolute -inset-1 rounded-xl bg-gradient-to-r from-[#d66666] via-[#f83838] to-[#d66666] blur-sm opacity-40 transition duration-500 group-hover:opacity-70" />
+                    <div className="relative flex items-center justify-center gap-3 w-full sm:w-auto rounded-xl bg-[#d66666] px-5 py-3 sm:px-8 sm:py-4 md:px-10 md:py-5 font-['Aeonik:Medium',sans-serif] font-medium text-[#152d44] shadow-xl shadow-[#d66666]/30 transition-all duration-200 group-hover:scale-105 group-hover:bg-[#e57f7f] group-hover:shadow-[#d66666]/50">
+                      <Upload className="h-4 w-4 sm:h-5 sm:w-5 text-zinc-900" />
+                      <span className="text-sm sm:text-base md:text-[17px] font-semibold text-zinc-900">
+                        Submit
+                      </span>
+                    </div>
+                  </button>
+                </Link>
+              ))}
           </div>
         )}
       </div>
@@ -299,6 +315,76 @@ function DesktopTimeline({
                   }`}
               />
             )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function MobileTimeline({
+  phases,
+  onPhaseClick,
+  selectedIndex,
+  todayDate,
+}: {
+  phases: HackathonStage[];
+  onPhaseClick: (index: number) => void;
+  selectedIndex: number;
+  todayDate: Date;
+}): JSX.Element {
+  return (
+    <div className="flex md:hidden flex-col items-start w-full gap-4 px-4 py-6 sm:px-5 sm:py-8">
+      {phases.map((phase: HackathonStage, index: number): JSX.Element => {
+        const status: StageStatus = getStageStatus(phase, todayDate);
+        const nextPhaseStatus: StageStatus | null =
+          index < phases.length - 1 ? getStageStatus(phases[index + 1], todayDate) : null;
+
+        return (
+          <div key={phase.label} className="flex items-start gap-3 w-full">
+            <div className="flex flex-col items-center shrink-0">
+              <button
+                type="button"
+                onClick={(): void => onPhaseClick(index)}
+                className={`rounded-full p-1 transition-all duration-300 active:scale-95 ${
+                  index === selectedIndex
+                    ? "bg-[#d66666]/20 px-3 py-2 shadow-lg shadow-[#d66666]/20"
+                    : ""
+                }`}
+              >
+                <PhaseIcon status={status} />
+              </button>
+
+              {index < phases.length - 1 && (
+                <div
+                  className={`mt-2 w-[2px] h-10 ${
+                    nextPhaseStatus === "completed" || nextPhaseStatus === "current"
+                      ? "bg-[#d66666]"
+                      : "bg-[rgba(214,102,102,0.3)]"
+                  }`}
+                />
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={(): void => onPhaseClick(index)}
+              className="flex flex-col pt-1 text-left min-w-0"
+            >
+              <span
+                className={`text-sm leading-tight ${
+                  status === "completed" || status === "current"
+                    ? "text-white"
+                    : "text-[rgba(255,255,255,0.5)]"
+                }`}
+              >
+                {phase.label}
+              </span>
+
+              <span className="text-xs text-[rgba(255,255,255,0.5)] mt-1">
+                {formatStageDate(phase.date)}
+              </span>
+            </button>
           </div>
         );
       })}
