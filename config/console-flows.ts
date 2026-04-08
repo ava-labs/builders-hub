@@ -208,6 +208,66 @@ export const consoleFlows: Record<string, FlowMetadata> = {
       },
     ],
   },
+
+  "permissioned-l1s/add-validator": {
+    title: "Add Validator",
+    completionSummary:
+      "You've successfully added a new validator to your L1!",
+    nextSteps: [
+      {
+        path: "/console/permissioned-l1s/change-validator-weight",
+        title: "Change Validator Weight",
+        description: "Adjust voting power of your validators",
+        priority: "optional",
+      },
+      {
+        path: "/console/permissioned-l1s/remove-validator",
+        title: "Remove Validator",
+        description: "Remove a validator from your L1",
+        priority: "optional",
+      },
+    ],
+  },
+
+  "permissioned-l1s/remove-validator": {
+    title: "Remove Validator",
+    completionSummary:
+      "You've successfully removed a validator from your L1!",
+    nextSteps: [
+      {
+        path: "/console/permissioned-l1s/add-validator",
+        title: "Add Validator",
+        description: "Register a new validator for your L1",
+        priority: "optional",
+      },
+      {
+        path: "/console",
+        title: "Return to Console",
+        description: "Explore other tools and features",
+        priority: "optional",
+      },
+    ],
+  },
+
+  "permissioned-l1s/change-validator-weight": {
+    title: "Change Validator Weight",
+    completionSummary:
+      "You've successfully changed the validator's consensus weight!",
+    nextSteps: [
+      {
+        path: "/console/permissioned-l1s/add-validator",
+        title: "Add Validator",
+        description: "Register a new validator for your L1",
+        priority: "optional",
+      },
+      {
+        path: "/console/permissioned-l1s/remove-validator",
+        title: "Remove Validator",
+        description: "Remove a validator from your L1",
+        priority: "optional",
+      },
+    ],
+  },
 };
 
 /**
