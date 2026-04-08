@@ -42,9 +42,8 @@ To propose new docs or large edits to our existing pages, follow the steps accor
 
 ### Structure and Syntax
 
-- Docs are located in the [docs](content/docs) directory.
-- Our style guide can be found [here](style-guide.md).
-- All image files should be included under [public images folder](public/images).
+- Docs are located in the [content/docs](content/docs) directory.
+- All image files should be included under [public/images](public/images).
 
 ### Pull Request (PR)
 
