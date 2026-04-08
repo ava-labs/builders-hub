@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import {decode} from "next-auth/jwt"
 import jwt, { JwtPayload } from "jsonwebtoken";
+import { NEXT_AUTH_SECRET } from "@/constants/env_variables";
 
-const JWT_SECRET: string | undefined = process.env.NEXTAUTH_SECRET;
+const JWT_SECRET: string | undefined = NEXT_AUTH_SECRET;
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {

@@ -65,7 +65,6 @@ export default function GeneralSecureComponent({
   
   // Load project by ID if projectIdParam exists and project is not already loaded
   useEffect(() => {
-    console.log('Project', project);
     const loadProjectById = async () => {
       if (projectIdParam && !project && isEditing && projectState.status === 'editing') {
         try {

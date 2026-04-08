@@ -102,7 +102,6 @@ export default async function HackathonPage({
 
   if (!hackathon) redirect("/hackathons");
   const hacakthonCreator = await getUserById(hackathon.created_by);
-  console.log("Hackathon creator data:", hacakthonCreator);
 
   return (
     <main className="container sm:px-2 py-4 lg:py-16">

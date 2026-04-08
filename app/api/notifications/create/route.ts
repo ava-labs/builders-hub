@@ -1,3 +1,4 @@
+import { NEXT_AUTH_SECRET } from "@/constants/env_variables";
 import { getToken, encode } from "next-auth/jwt";
 import { NextResponse } from "next/server";
 
@@ -13,7 +14,7 @@ export async function POST(req: any): Promise<Response> {
   try {
     const token = await getToken({
       req,
-      secret: process.env.NEXTAUTH_SECRET ?? "",
+      secret: NEXT_AUTH_SECRET ?? "",
     });
     const sessionCustomAttributes = token?.custom_attributes || [""];
     if (
@@ -27,7 +28,7 @@ export async function POST(req: any): Promise<Response> {
     if (!token) return new Response("Unauthorized", { status: 401 });
     const encodedToken = await encode({
       token: token,
-      secret: process.env.NEXTAUTH_SECRET ?? "",
+      secret: NEXT_AUTH_SECRET ?? "",
     });
     if (!encodedToken)
       return new Response("Error at get notifications", { status: 500 });

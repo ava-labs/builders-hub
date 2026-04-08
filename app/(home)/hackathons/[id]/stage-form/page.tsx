@@ -16,15 +16,15 @@ export default async function HackathonSubmitPage({
   params,
   searchParams,
 }: SubmitPageProps): Promise<React.JSX.Element> {
+  function parseStage(value: unknown): number {
+    if (typeof value !== 'string') return 0
+    if (!/^(0|[1-9]\d*)$/.test(value)) return 0
+    return parseInt(value, 10)
+  }
   const { id } = await params
   const resolvedSearchParams = await searchParams
 
-  const stageParam: string =
-    typeof resolvedSearchParams.stage === 'string'
-      ? resolvedSearchParams.stage
-      : '0'
-
-  const stageIndex: number = Number(stageParam)
+  const stageIndex = parseStage(resolvedSearchParams.stage)
 
   const hackathon = await getHackathon(id)
 
