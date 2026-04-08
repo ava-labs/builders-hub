@@ -70,7 +70,11 @@ body[data-layout="docs"] .nd-layout-notebook {
   }
   /* If the toc overview exists, add its height as well so content clears it */
   body[data-layout="docs"] .nd-layout-notebook:has(#nd-tocnav) {
-    padding-top: calc(var(--fd-banner-height, 0px) + 9.5rem) !important; /* Banner + navbar (3.5rem) + subnavbar (3rem) + tocnav (~3rem) */
+    padding-top: calc(var(--fd-banner-height, 0px) + 9rem) !important; /* Banner + navbar (3.5rem) + subnavbar (3rem) + tocnav (2.5rem/40px) */
+  }
+  /* Remove fumadocs-native #nd-page TOC padding on mobile — .nd-layout-notebook padding already accounts for it */
+  body[data-layout="docs"] #nd-page {
+    padding-top: 0 !important;
   }
 }
 
