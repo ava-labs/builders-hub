@@ -26,7 +26,12 @@ export async function proxy(req: NextRequest) {
   const acceptHeader = req.headers.get('accept') || '';
   const wantsMarkdown = acceptHeader.includes('text/markdown');
 
-  if (wantsMarkdown && isContentPath) {
+  // Protected academy sub-paths must NOT skip auth
+  const protectedAcademySuffixes = ['/get-certificate', '/certificate'];
+  const isProtectedAcademyPath = pathname.startsWith('/academy/') &&
+    protectedAcademySuffixes.some(suffix => pathname.endsWith(suffix));
+
+  if (wantsMarkdown && isContentPath && !isProtectedAcademyPath) {
     const apiUrl = new URL(`/api/raw${pathname}`, req.url);
     const rewriteResponse = NextResponse.rewrite(apiUrl);
     rewriteResponse.headers.set('Vary', 'Accept');
@@ -34,7 +39,7 @@ export async function proxy(req: NextRequest) {
   }
 
   // For content paths without markdown request, add Vary header and pass through
-  if (isContentPath) {
+  if (isContentPath && !isProtectedAcademyPath) {
     const contentResponse = NextResponse.next();
     contentResponse.headers.set('Vary', 'Accept');
     return contentResponse;
