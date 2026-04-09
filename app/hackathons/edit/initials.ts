@@ -48,6 +48,8 @@ export interface IDataMain {
   }
   
   export interface IDataContent {
+    /** Event content language used by /events UI (default 'en'). */
+    language?: "en" | "es";
     tracks: ITrack[];
     address: string;
     partners: IPartner[];
@@ -80,7 +82,11 @@ export interface IDataMain {
     google_calendar_id: string | null;
   }
   
-  export const initialData = {
+  export const initialData: {
+    main: IDataMain;
+    content: IDataContent;
+    latest: IDataLatest;
+  } = {
       main: {
           title: '',
           description: '',
@@ -92,6 +98,7 @@ export interface IDataMain {
           is_public: false,
       },
       content: {
+          language: "en",
           tracks: [
             {
               icon: '',
@@ -128,7 +135,7 @@ export interface IDataMain {
           speakers_text: '',
           speakers_banner: '',
           join_custom_link: '',
-          join_custom_text: "Join now",
+          join_custom_text: null,
           become_sponsor_link: '',
           submission_custom_link: null,
           judging_guidelines: '',

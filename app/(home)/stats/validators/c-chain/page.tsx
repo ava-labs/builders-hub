@@ -2191,7 +2191,7 @@ export default function CChainValidatorMetrics() {
                                 {validator.p2p ? (
                                   <span className={
                                     validator.p2p.p50_uptime >= 99 ? "text-emerald-600 dark:text-emerald-400" :
-                                    validator.p2p.p50_uptime >= 80 ? "text-yellow-600 dark:text-yellow-400" :
+                                    validator.p2p.p50_uptime >= 90 ? "text-yellow-600 dark:text-yellow-400" :
                                     "text-red-600 dark:text-red-400"
                                   }>
                                     {validator.p2p.p50_uptime.toFixed(2)}%

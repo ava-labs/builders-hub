@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { SearchInputWithClear } from "@/components/stats/SearchInputWithClear";
 import { SortIcon } from "@/components/stats/SortIcon";
 import {
@@ -14,6 +14,8 @@ import {
 
 type SortColumn = "avaxBurned" | "gasShare" | "txCount" | "uniqueSenders" | "delta";
 
+const MOBILE_PAGE_SIZE = 20;
+
 interface GasTreemapTableProps {
   protocols: ProtocolBreakdown[];
 }
@@ -23,6 +25,20 @@ export function GasTreemapTable({ protocols }: GasTreemapTableProps) {
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(MOBILE_PAGE_SIZE);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 640);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
+  // Reset visible count when filters/sort change
+  useEffect(() => {
+    setVisibleCount(MOBILE_PAGE_SIZE);
+  }, [searchQuery, categoryFilter, sortColumn, sortDirection]);
 
   const categories = useMemo(() => {
     const set = new Set(protocols.map((p) => p.category));
@@ -139,15 +155,15 @@ export function GasTreemapTable({ protocols }: GasTreemapTableProps) {
             </tr>
           </thead>
           <tbody>
-            {sorted.map((p, idx) => (
+            {(isMobile ? sorted.slice(0, visibleCount) : sorted).map((p, idx) => (
               <tr
                 key={p.protocol}
                 className={`border-t border-zinc-100 dark:border-zinc-800 transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800/50 ${
                   idx % 2 === 0 ? "bg-white dark:bg-zinc-900/30" : "bg-zinc-50/50 dark:bg-zinc-900/60"
                 }`}
               >
-                <td className="px-3 py-2 text-xs text-zinc-400 dark:text-zinc-500 font-mono">{idx + 1}</td>
-                <td className="px-3 py-2 font-medium text-zinc-900 dark:text-zinc-100 max-w-[120px] sm:max-w-[200px] truncate">
+                <td className="px-2 sm:px-3 py-2 text-xs text-zinc-400 dark:text-zinc-500 font-mono">{idx + 1}</td>
+                <td className="px-2 sm:px-3 py-2 font-medium text-zinc-900 dark:text-zinc-100 max-w-[140px] sm:max-w-[200px] text-xs sm:text-sm truncate" title={p.protocol}>
                   {p.protocol}
                 </td>
                 <td className="px-3 py-2 hidden sm:table-cell">
@@ -158,10 +174,10 @@ export function GasTreemapTable({ protocols }: GasTreemapTableProps) {
                     )}
                   </span>
                 </td>
-                <td className="px-3 py-2 text-right font-mono text-zinc-900 dark:text-zinc-100">
+                <td className="px-2 sm:px-3 py-2 text-right font-mono text-zinc-900 dark:text-zinc-100 text-xs sm:text-sm">
                   {p.avaxBurned.toFixed(2)}
                   {p.avaxBurnedUsd > 0 && (
-                    <span className="text-zinc-400 dark:text-zinc-500 text-xs ml-1">
+                    <span className="text-zinc-400 dark:text-zinc-500 text-[10px] sm:text-xs ml-1 hidden sm:inline">
                       ({formatUsd(p.avaxBurnedUsd)})
                     </span>
                   )}
@@ -175,8 +191,8 @@ export function GasTreemapTable({ protocols }: GasTreemapTableProps) {
                 <td className="px-3 py-2 text-right font-mono text-zinc-900 dark:text-zinc-100 hidden sm:table-cell">
                   {formatNumber(p.uniqueSenders)}
                 </td>
-                <td className="px-3 py-2 text-right">
-                  <span className={`inline-block text-xs font-semibold px-2 py-0.5 rounded ${getDeltaBgClass(p.delta)}`}>
+                <td className="px-2 sm:px-3 py-2 text-right">
+                  <span className={`inline-block text-[10px] sm:text-xs font-semibold px-1.5 sm:px-2 py-0.5 rounded ${getDeltaBgClass(p.delta)}`}>
                     {p.delta >= 0 ? "+" : ""}{p.delta.toFixed(1)}%
                   </span>
                 </td>
@@ -192,6 +208,16 @@ export function GasTreemapTable({ protocols }: GasTreemapTableProps) {
           </tbody>
         </table>
       </div>
+
+      {/* Load more button on mobile */}
+      {isMobile && visibleCount < sorted.length && (
+        <button
+          onClick={() => setVisibleCount((prev) => prev + MOBILE_PAGE_SIZE)}
+          className="w-full mt-3 py-2.5 text-xs font-medium text-zinc-600 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg border border-zinc-200 dark:border-zinc-700 transition-colors"
+        >
+          Show more ({Math.min(MOBILE_PAGE_SIZE, sorted.length - visibleCount)} of {sorted.length - visibleCount} remaining)
+        </button>
+      )}
     </div>
   );
 }
