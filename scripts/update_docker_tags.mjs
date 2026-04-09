@@ -7,6 +7,33 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const versionsPath = path.join(__dirname, 'versions.json');
 
+function getGitHubHeaders() {
+    const headers = {
+        'User-Agent': 'builders-hub-updater',
+        'Accept': 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28'
+    };
+
+    if (process.env.GITHUB_TOKEN) {
+        headers['Authorization'] = `Bearer ${process.env.GITHUB_TOKEN}`;
+    }
+
+    return headers;
+}
+
+function parseGitHubReleasesResponse(data, owner, repo, statusCode) {
+    const parsed = JSON.parse(data);
+
+    if (!Array.isArray(parsed)) {
+        const message = parsed && typeof parsed === 'object' && 'message' in parsed
+            ? parsed.message
+            : 'Unexpected GitHub API response';
+        throw new Error(`GitHub releases request for ${owner}/${repo} failed${statusCode ? ` (${statusCode})` : ''}: ${message}`);
+    }
+
+    return parsed;
+}
+
 function readVersionsFile() {
     const content = fs.readFileSync(versionsPath, 'utf8');
     return JSON.parse(content);
@@ -95,10 +122,7 @@ function fetchGithubLatestReleaseTag(owner, repo, isFuji = false) {
         const options = {
             hostname: 'api.github.com',
             path: `/repos/${owner}/${repo}/releases?per_page=100`,
-            headers: {
-                'User-Agent': 'builders-hub-updater',
-                'Accept': 'application/vnd.github+json'
-            }
+            headers: getGitHubHeaders()
         };
 
         const request = https.get(options, (res) => {
@@ -110,7 +134,7 @@ function fetchGithubLatestReleaseTag(owner, repo, isFuji = false) {
 
             res.on('end', () => {
                 try {
-                    const releases = JSON.parse(data);
+                    const releases = parseGitHubReleasesResponse(data, owner, repo, res.statusCode);
 
                     // Find the latest stable release (non-draft, non-prerelease)
                     const stableReleases = releases.filter(r => {
@@ -149,10 +173,7 @@ function fetchGithubLatestTagMatching(owner, repo, filter, isFuji = false) {
         const options = {
             hostname: 'api.github.com',
             path: `/repos/${owner}/${repo}/releases?per_page=100`,
-            headers: {
-                'User-Agent': 'builders-hub-updater',
-                'Accept': 'application/vnd.github+json'
-            }
+            headers: getGitHubHeaders()
         };
 
         const request = https.get(options, (res) => {
@@ -164,7 +185,7 @@ function fetchGithubLatestTagMatching(owner, repo, filter, isFuji = false) {
 
             res.on('end', () => {
                 try {
-                    const releases = JSON.parse(data);
+                    const releases = parseGitHubReleasesResponse(data, owner, repo, res.statusCode);
 
                     // Find the latest release matching the filter
                     const matchingReleases = releases.filter(r => {

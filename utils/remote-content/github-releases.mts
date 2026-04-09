@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { formatGitHubApiError, getGitHubApiHeaders } from './github-api.mts';
 
 /**
  * Shared types and utilities for fetching GitHub releases
@@ -47,10 +48,7 @@ export async function fetchGitHubReleases(
     const response = await axios.get<GitHubRelease[]>(
       `https://api.github.com/repos/${owner}/${repo}/releases`,
       {
-        headers: {
-          'Accept': 'application/vnd.github.v3+json',
-          'User-Agent': 'Avalanche-Docs-Bot'
-        },
+        headers: getGitHubApiHeaders(),
         params: {
           per_page: perPage
         }
@@ -59,7 +57,7 @@ export async function fetchGitHubReleases(
 
     return response.data.filter(release => !release.draft);
   } catch (error) {
-    console.error(`Failed to fetch releases from ${owner}/${repo}:`, error);
+    console.error(formatGitHubApiError(`Failed to fetch releases from ${owner}/${repo}`, error));
     throw new Error(`Unable to fetch releases from GitHub repository ${owner}/${repo}`);
   }
 }

@@ -19,13 +19,14 @@ export type SectionParser = (content: string, meta: {
   editUrl?: string;
 }) => string;
 
-export async function fetchFileContent(url: string): Promise<string | null> {
+export async function fetchFileContent(url: string): Promise<string> {
   try {
     const response = await axios.get<string>(url);
     return response.data;
   } catch (error) {
     console.error(`Failed to fetch ${url}:`, error);
-    return null;
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to fetch ${url}: ${message}`);
   }
 }
 
@@ -180,30 +181,28 @@ export async function updateGitignore(fileConfigs: FileConfig[]): Promise<void> 
 
 export async function processFile(fileConfig: FileConfig, parser?: SectionParser): Promise<void> {
   // Use provided content or fetch from sourceUrl
-  const content = fileConfig.content || await fetchFileContent(fileConfig.sourceUrl);
-  if (content) {
-    let transformedContent: string;
-    
-    // Skip parser if content is directly provided (e.g., generated index files)
-    if (fileConfig.content) {
-      transformedContent = content;
-    } else if (parser && fileConfig.contentUrl) {
-      const contentBaseUrl = new URL('.', fileConfig.contentUrl).href;
-      const editUrl = fileConfig.sourceUrl ? deriveEditUrlFromSourceUrl(fileConfig.sourceUrl) : undefined;
-      transformedContent = parser(content, { 
-        title: fileConfig.title, 
-        description: fileConfig.description, 
-        sourceBaseUrl: contentBaseUrl, 
-        editUrl 
-      });
-    } else {
-      transformedContent = content;
-    }
-    
-    const outputDir = path.dirname(fileConfig.outputPath);
-    fs.mkdirSync(outputDir, { recursive: true });
+  const content = fileConfig.content ?? await fetchFileContent(fileConfig.sourceUrl);
+  let transformedContent: string;
 
-    fs.writeFileSync(fileConfig.outputPath, transformedContent);
-    console.log(`Processed and saved: ${fileConfig.outputPath}`);
+  // Skip parser if content is directly provided (e.g., generated index files)
+  if (fileConfig.content !== undefined) {
+    transformedContent = content;
+  } else if (parser && fileConfig.contentUrl) {
+    const contentBaseUrl = new URL('.', fileConfig.contentUrl).href;
+    const editUrl = fileConfig.sourceUrl ? deriveEditUrlFromSourceUrl(fileConfig.sourceUrl) : undefined;
+    transformedContent = parser(content, {
+      title: fileConfig.title,
+      description: fileConfig.description,
+      sourceBaseUrl: contentBaseUrl,
+      editUrl
+    });
+  } else {
+    transformedContent = content;
   }
-} 
+
+  const outputDir = path.dirname(fileConfig.outputPath);
+  fs.mkdirSync(outputDir, { recursive: true });
+
+  fs.writeFileSync(fileConfig.outputPath, transformedContent);
+  console.log(`Processed and saved: ${fileConfig.outputPath}`);
+}

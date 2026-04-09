@@ -26,19 +26,34 @@ async function processSection(sectionName: string, configs: FileConfig[]): Promi
 
 async function main(): Promise<void> {
   console.log('🚀 Starting remote content processing...\n');
-  
-  // Collect all file configurations organized by section
-  const allSections = [
-    { name: 'Cross-Chain', configs: getCrossChainConfigs() },
-    { name: 'APIs', configs: getApisConfigs() },
-    { name: 'Primary Network', configs: getPrimaryNetworkConfigs() },
-    { name: 'Avalanche L1s', configs: getAvalancheL1sConfigs() },
-    { name: 'Tooling', configs: getToolingConfigs() },
-    { name: 'ACPs', configs: await getAcpsConfigs() },
-    { name: 'Releases', configs: await getReleasesConfigs() },
-    { name: 'ICM Releases', configs: await getIcmReleasesConfigs() },
-    // { name: 'SDKS', configs: getSDKSConfigs() },
+
+  const sectionLoaders = [
+    { name: 'Cross-Chain', loadConfigs: async () => getCrossChainConfigs() },
+    { name: 'APIs', loadConfigs: async () => getApisConfigs() },
+    { name: 'Primary Network', loadConfigs: async () => getPrimaryNetworkConfigs() },
+    { name: 'Avalanche L1s', loadConfigs: async () => getAvalancheL1sConfigs() },
+    { name: 'Tooling', loadConfigs: async () => getToolingConfigs() },
+    { name: 'ACPs', loadConfigs: async () => getAcpsConfigs() },
+    { name: 'Releases', loadConfigs: async () => getReleasesConfigs() },
+    { name: 'ICM Releases', loadConfigs: async () => getIcmReleasesConfigs() },
+    // { name: 'SDKS', loadConfigs: async () => getSDKSConfigs() },
   ];
+  const allSections: { name: string; configs: FileConfig[] }[] = [];
+  const failedSections = new Set<string>();
+
+  for (const section of sectionLoaders) {
+    try {
+      const configs = await section.loadConfigs();
+      allSections.push({ name: section.name, configs });
+    } catch (error) {
+      failedSections.add(section.name);
+      console.error(`❌ Failed to prepare ${section.name} section:`, error);
+    }
+  }
+
+  if (allSections.length === 0) {
+    throw new Error('Remote content generation failed for every section.');
+  }
 
   // Flatten all configs for gitignore update
   const allConfigs = allSections.flatMap(section => section.configs);
@@ -48,10 +63,24 @@ async function main(): Promise<void> {
 
   // Process each section
   for (const section of allSections) {
-    await processSection(section.name, section.configs);
+    try {
+      await processSection(section.name, section.configs);
+    } catch (error) {
+      failedSections.add(section.name);
+      console.error(`❌ Failed to process ${section.name} section:`, error);
+    }
+  }
+
+  if (failedSections.size > 0) {
+    throw new Error(
+      `Remote content generation failed for section${failedSections.size === 1 ? '' : 's'}: ${[...failedSections].join(', ')}`
+    );
   }
 
   console.log(`\n🎉 All sections completed! Processed ${allConfigs.length} files total.`);
 }
 
-main().catch(console.error);
+main().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});

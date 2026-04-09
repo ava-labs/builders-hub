@@ -2,6 +2,7 @@ import { FileConfig } from './shared.mts';
 import axios from 'axios';
 import * as fs from 'fs';
 import * as path from 'path';
+import { formatGitHubApiError, getGitHubApiHeaders } from './github-api.mts';
 
 interface GitHubTreeItem {
   path: string;
@@ -29,10 +30,7 @@ async function fetchAllAcps(): Promise<GitHubTreeItem[]> {
     const response = await axios.get<GitHubTreeResponse>(
       'https://api.github.com/repos/avalanche-foundation/ACPs/git/trees/main:ACPs',
       {
-        headers: {
-          'Accept': 'application/vnd.github.v3+json',
-          'User-Agent': 'Avalanche-Docs-Bot'
-        }
+        headers: getGitHubApiHeaders(),
       }
     );
     
@@ -41,7 +39,7 @@ async function fetchAllAcps(): Promise<GitHubTreeItem[]> {
       item.path.match(/^\d+/) // Only directories starting with numbers (ACP directories)
     );
   } catch (error) {
-    console.error('Failed to fetch ACPs from GitHub:', error);
+    console.error(formatGitHubApiError('Failed to fetch ACPs from GitHub', error));
     throw new Error('Unable to fetch ACPs from GitHub repository');
   }
 }
@@ -235,4 +233,4 @@ async function generateAcpConfigs(): Promise<FileConfig[]> {
 
 export async function getAcpsConfigs(): Promise<FileConfig[]> {
   return await generateAcpConfigs();
-} 
+}
