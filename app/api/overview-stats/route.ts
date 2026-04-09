@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { Avalanche } from "@avalanche-sdk/chainkit";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { STATS_CONFIG } from "@/types/stats";
-import { getChainICMCount } from "@/lib/icm-clickhouse";
+import { getChainICMData } from "@/lib/icm-clickhouse";
 
 export const dynamic = 'force-dynamic';
 
@@ -182,7 +182,28 @@ async function getActiveAddressesData(chainId: string, timeRange: TimeRangeKey):
 async function getICMData(chainId: string, timeRange: TimeRangeKey): Promise<number> {
   try {
     const daysToSum = timeRange === 'day' ? 1 : timeRange === 'week' ? 7 : 30;
-    return await getChainICMCount(chainId, daysToSum);
+    const dataPoints = await getChainICMData(chainId, daysToSum + 2);
+    const sorted = [...dataPoints].sort((a, b) => b.timestamp - a.timestamp);
+
+    if (sorted.length === 0) return 0;
+
+    // Prefer full previous periods (exclude potentially partial current day),
+    // but fall back to current-day data when previous periods are absent/zero.
+    if (timeRange === 'day') {
+      const previousDayCount = sorted[1]?.messageCount || 0;
+      if (previousDayCount > 0) return previousDayCount;
+      return sorted[0]?.messageCount || 0;
+    }
+
+    const previousPeriodSum = sorted
+      .slice(1, daysToSum + 1)
+      .reduce((sum, point) => sum + (point.messageCount || 0), 0);
+
+    if (previousPeriodSum > 0) return previousPeriodSum;
+
+    return sorted
+      .slice(0, daysToSum)
+      .reduce((sum, point) => sum + (point.messageCount || 0), 0);
   } catch (error) {
     console.error(`[getICMData] Failed for chain ${chainId}:`, error);
     return 0;
