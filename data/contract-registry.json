@@ -1075,11 +1075,10 @@
     },
     {
       "address": "0x10922755586c35180cdec7a1a38e2b60c800d3c8",
-      "name": "MEV Bot (failed ops)",
-      "protocol": "MEV Bot (failed ops)",
-      "category": "mev",
-      "type": "other",
-      "subcategory": "heavy-arb"
+      "name": "Spam Defense (INVALID opcode)",
+      "protocol": "Avalanche Spam Defense",
+      "category": "infrastructure",
+      "type": "other"
     },
     {
       "address": "0x99b69659f70470bbd32ae59ddf952f157a598a44",
@@ -1748,11 +1747,10 @@
     },
     {
       "address": "0x17768456b8e8b26d06bf5e99a77c4c0c9d2bfb2a",
-      "name": "MEV Bot (multi-hop arb, 5.9M avg gas)",
-      "protocol": "MEV Bot (multi-hop arb, 5.9M avg gas)",
-      "category": "mev",
-      "type": "other",
-      "subcategory": "heavy-arb"
+      "name": "Spam Defense (INVALID opcode)",
+      "protocol": "Avalanche Spam Defense",
+      "category": "infrastructure",
+      "type": "other"
     },
     {
       "address": "0xac3b57bd239b1ff49d07be4f7cf48f64b7462811",
@@ -1764,11 +1762,10 @@
     },
     {
       "address": "0x350b239e26690202e2a2d46f55a844e4396f0485",
-      "name": "MEV Bot (heavy arb, 4.1M avg gas)",
-      "protocol": "MEV Bot (heavy arb, 4.1M avg gas)",
-      "category": "mev",
-      "type": "other",
-      "subcategory": "heavy-arb"
+      "name": "Spam Defense (INVALID opcode)",
+      "protocol": "Avalanche Spam Defense",
+      "category": "infrastructure",
+      "type": "other"
     },
     {
       "address": "0x181870d61c0e5a6985c873485de8297426f4aed4",
