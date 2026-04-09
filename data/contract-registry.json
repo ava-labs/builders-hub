@@ -1098,11 +1098,10 @@
     },
     {
       "address": "0x07d25044cbe0524c0617267d6bfaf2fa6a0a0efe",
-      "name": "MEV Bot (Gnosis Safe backed)",
-      "protocol": "MEV Bot (Gnosis Safe backed)",
+      "name": "Selini Capital MEV Bot V6 (active)",
+      "protocol": "Selini Capital",
       "category": "mev",
-      "type": "other",
-      "subcategory": "arbitrage"
+      "type": "bot"
     },
     {
       "address": "0x25090cd3c1f3dd6377348f58408d2ddc96acf201",
@@ -1613,11 +1612,10 @@
     },
     {
       "address": "0x62f9016c97ef9255c8ba16dda7f531656015daea",
-      "name": "MEV Bot (factory/router)",
-      "protocol": "MEV Bot (factory/router)",
+      "name": "Selini Capital MEV Bot V5 (retired)",
+      "protocol": "Selini Capital",
       "category": "mev",
-      "type": "other",
-      "subcategory": "arbitrage"
+      "type": "bot"
     },
     {
       "address": "0xef114c8710330751ae2cd84066cfd85412b6d30d",
@@ -1692,11 +1690,10 @@
     },
     {
       "address": "0x99ca040580837a2158bfd0c8d84fcd4b85b6393b",
-      "name": "MEV Bot (multi-pool arb)",
-      "protocol": "MEV Bot (multi-pool arb)",
+      "name": "Selini Capital MEV Bot V4 (retired)",
+      "protocol": "Selini Capital",
       "category": "mev",
-      "type": "other",
-      "subcategory": "arbitrage"
+      "type": "bot"
     },
     {
       "address": "0xd1448508f221b53ea26c74d384f123e085f9ab2d",
@@ -2752,11 +2749,10 @@
     },
     {
       "address": "0x80318c852ee7fbde52ce439dec3ae022ba39a536",
-      "name": "MEV Bot (Pool Arbitrage)",
-      "protocol": "MEV Bot (Pool Arbitrage)",
+      "name": "Selini Capital MEV Bot V7 (active)",
+      "protocol": "Selini Capital",
       "category": "mev",
-      "type": "other",
-      "subcategory": "arbitrage"
+      "type": "bot"
     },
     {
       "address": "0x6da6cb5fdb93812e7df84148a409904c41e3e737",
@@ -3416,6 +3412,34 @@
       "protocol": "Yield Yak",
       "category": "yield",
       "type": "other"
+    },
+    {
+      "address": "0x631fca4a73aee699638634479132452ef354b9b8",
+      "name": "Selini Capital MEV Safe (Operator)",
+      "protocol": "Selini Capital",
+      "category": "mev",
+      "type": "safe"
+    },
+    {
+      "address": "0x6135b562c5d46595b044519e787fe396830c5c83",
+      "name": "Selini Capital MEV Bot V3 (retired)",
+      "protocol": "Selini Capital",
+      "category": "mev",
+      "type": "bot"
+    },
+    {
+      "address": "0x586b7992a8467290c5a1857fce7ec8af72be9445",
+      "name": "Selini Capital MEV Bot V2 (retired)",
+      "protocol": "Selini Capital",
+      "category": "mev",
+      "type": "bot"
+    },
+    {
+      "address": "0xec55c19f6b0e08fbad7decd54bf8c892230fd353",
+      "name": "Selini Capital MEV Bot V1 (retired)",
+      "protocol": "Selini Capital",
+      "category": "mev",
+      "type": "bot"
     }
   ],
   "protocolSlugs": {
