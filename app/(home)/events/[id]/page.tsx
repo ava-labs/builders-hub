@@ -45,10 +45,10 @@ export async function generateMetadata({
       title: hackathon.title,
       description: hackathon.description,
       openGraph: {
-        images: `/api/og/hackathons/${id}`,
+        images: `/api/og/events/${id}`,
       },
       twitter: {
-        images: `/api/og/hackathons/${id}`,
+        images: `/api/og/events/${id}`,
       },
     });
   } catch (error) {
@@ -82,7 +82,7 @@ export default async function HackathonPage({
     isRegistered = !!registration;
   }
 
-  if (!hackathon) redirect("/hackathons");
+  if (!hackathon) redirect("/events");
 
   // Layout depends only on new_layout; when null/undefined, use legacy
   const useModernLayout = hackathon.new_layout === true;

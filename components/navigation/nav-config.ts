@@ -65,9 +65,9 @@ export const menuSections: NavSection[] = [
   },
   {
     title: 'Events',
-    href: '/hackathons',
+    href: '/events',
     items: [
-      { text: 'Hackathons', href: '/hackathons' },
+      { text: 'Hackathons', href: '/events' },
       { text: 'BuildGames', href: '/build-games' },
       { text: 'Community Driven Events', href: 'https://lu.ma/Team1?utm_source=builder_hub', external: true },
       { text: 'Campus Connect', href: '/university' },
