@@ -8,7 +8,7 @@ import remarkGfm from 'remark-gfm';
 import React from 'react';
 import SubmitButton from '../SubmitButton';
 import JoinButton from '../JoinButton';
-import { HackathonReferralButton } from '../HackathonReferralModal';
+import { EventReferralButton } from '../EventReferralModal';
 import { normalizeEventsLang, t } from '@/lib/events/i18n';
 
 export default async function Submission({
@@ -126,7 +126,7 @@ export default async function Submission({
       </div>
 
       <div className='flex flex-wrap justify-center mt-8 gap-4'>
-        <HackathonReferralButton
+        <EventReferralButton
           hackathonId={hackathon.id}
           hackathonTitle={hackathon.title}
           lang={lang}

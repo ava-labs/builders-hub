@@ -169,7 +169,7 @@ async function sendInvitationEmail(
   const inviteLink =
     hackathonId === BUILD_GAMES_HACKATHON_ID
       ? `${baseUrl}/build-games/submit?stage=${stage ?? 1}&invitation=${member.id}`
-      : `${baseUrl}/hackathons/project-submission?hackathon=${hackathonId}&invitation=${member.id}#team`;
+      : `${baseUrl}/events/project-submission?event=${hackathonId}&invitation=${member.id}#team`;
   let result = { success: true, inviteLink: inviteLink };
   try {
     await sendInvitation(email, project.project_name, inviterName, inviteLink);
