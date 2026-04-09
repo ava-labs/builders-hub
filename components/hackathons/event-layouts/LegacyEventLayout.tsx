@@ -61,7 +61,7 @@ export default function LegacyEventLayout({
     ...(hasSchedule
       ? [{ name: t(lang, "menu.schedule"), ref: "schedule" }]
       : []),
-    ...(isHackathon
+    ...(isHackathon && isRegistered
       ? [{ name: t(lang, "menu.submission"), ref: "submission" }]
       : []),
     ...(hasSpeakers
@@ -141,7 +141,7 @@ export default function LegacyEventLayout({
                 }
               />
             )}
-            {isHackathon && <Submission hackathon={hackathon} />}
+            {isHackathon && <Submission hackathon={hackathon} isRegistered={isRegistered} utm={utm} />}
             {hasSpeakers && <MentorsJudges hackathon={hackathon} />}
             <Community hackathon={hackathon} />
             {hasPartners && <Sponsors hackathon={hackathon} />}

@@ -37,6 +37,7 @@ import { MemberStatus } from "@/types/project";
 import { useToast } from "@/hooks/use-toast";
 import { Toaster } from "@/components/ui/toaster";
 import { InvitationLinksMember } from "./InvitationLinksMember";
+import { t } from "@/lib/events/i18n";
 export default function MembersComponent({
   project_id,
   hackaton_id,
@@ -51,6 +52,7 @@ export default function MembersComponent({
   openCurrentProject,
   setOpenCurrentProject,
   invite_stage,
+  lang = "en",
 }: projectProps) {
   const [members, setMembers] = useState<any[]>([]);
   const [openModal, setOpenModal] = useState(false); // State for modal
@@ -62,12 +64,12 @@ export default function MembersComponent({
   const [isValidingEmail, setIsValidingEmail] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const [invitationResult, setInvitationResult] = useState<any>(null);
-  const roles: string[] = [
-    "Member",
-    "Developer",
-    "PM",
-    "Researcher",
-    "Designer",
+  const roles: { value: string; label: string }[] = [
+    { value: "Member", label: t(lang, "submission.members.role.member") },
+    { value: "Developer", label: t(lang, "submission.members.role.developer") },
+    { value: "PM", label: t(lang, "submission.members.role.pm") },
+    { value: "Researcher", label: t(lang, "submission.members.role.researcher") },
+    { value: "Designer", label: t(lang, "submission.members.role.designer") },
   ];
 
   const router = useRouter();
@@ -196,7 +198,7 @@ export default function MembersComponent({
     params.delete("invitation");
     if (!accepted) {
       await updateMemberStatus(MemberStatus.REJECTED, false);
-      router.push(`/hackathons/project-submission?${params.toString()}`);
+      router.push(`/events/project-submission?${params.toString()}`);
 
       return;
     }
@@ -261,7 +263,7 @@ export default function MembersComponent({
         <Dialog open={openModal} onOpenChange={handleCloseModal} >
           <DialogTrigger asChild>
             <Button variant="outline" type="button">
-              Invite Team Member
+              {t(lang, "submission.members.inviteButton")}
             </Button>
           </DialogTrigger>
 
@@ -283,12 +285,10 @@ export default function MembersComponent({
               </DialogClose>
               <DialogHeader>
                 <DialogTitle className="text-lg font-semibold">
-                  Invite Member
+                  {t(lang, "submission.members.modal.title")}
                 </DialogTitle>
                 <DialogDescription className="text-sm text-zinc-400 mt-0 pt-0">
-                  Enter the email addresses of the persons you want to invite to
-                  your team and then press <strong>Enter</strong>. When you've
-                  added all emails, click on <strong>Send Invitation</strong>.
+                  {t(lang, "submission.members.modal.description")}
                 </DialogDescription>
               </DialogHeader>
               <Card className="border border-red-500 dark:bg-zinc-800 rounded-md">
@@ -335,25 +335,25 @@ export default function MembersComponent({
                           await handleAddEmail();
                         }
                       }}
-                      placeholder={emails.length === 0 ? "Add email..." : ""}
+                      placeholder={emails.length === 0 ? t(lang, "submission.members.modal.emailPlaceholder") : ""}
                       className="  text-sm outline-none flex-1 min-w-[120px] py-1 px-3"
                     />
                   </div>
                   {invalidEmails.length > 0 && (
                     <p className="text-red-500 mb-2">
-                      Some emails are not registered on the platform.
+                      {t(lang, "submission.members.modal.invalidEmails")}
                     </p>
                   )}
                   <div className="flex justify-center mt-2">
                     <LoadingButton
                       isLoading={sendingInvitation}
-                      loadingText="Sending..."
+                      loadingText={t(lang, "submission.members.modal.sending")}
                       onClick={handleSendInvitations}
                       type="button"
                       disabled={emails.length === 0 || invalidEmails.length > 0}
                       className="dark:bg-white"
                     >
-                      Send Invitation
+                      {t(lang, "submission.members.modal.sendButton")}
                     </LoadingButton>
                   </div>
                 </div>
@@ -376,7 +376,7 @@ export default function MembersComponent({
                 </Button>
               </DialogClose>
               <DialogTitle className="text-lg font-semibold">
-                Invitation Sent!
+                {t(lang, "submission.members.modal.successTitle")}
               </DialogTitle>
               <Card className="border border-red-500 dark:bg-zinc-800 rounded-md mt-4">
                 <div className="flex flex-col  px-4 py-2 gap-4">
@@ -384,12 +384,7 @@ export default function MembersComponent({
                     <BadgeCheck width={35} height={35} color="#FF394A" />
                   </div>
                   <p className=" text-md ">
-                    Invitation sent successfully to{" "}
-                    <span className="font-semibold gap-2 text-md">
-                      {emails.join("; ")}
-                    </span>
-                    . They will receive an email to join your team. You can also
-                    copy the links and send them manually.
+                    {t(lang, "submission.members.modal.successDesc", { emails: emails.join("; ") })}
                   </p>
                   {invitationResult &&
                     invitationResult?.InviteLinks &&
@@ -406,7 +401,7 @@ export default function MembersComponent({
                         }}
                         className="dark:bg-white border rounder-md max-w-16 "
                       >
-                        Done
+                        {t(lang, "submission.members.modal.done")}
                       </Button>
                     </DialogClose>
                   </div>
@@ -415,7 +410,7 @@ export default function MembersComponent({
             </DialogContent>
           ) : (
             <DialogContent
-              className="dark:bg-zinc-900 
+              className="dark:bg-zinc-900
               dark:text-white rounded-lg p-6 w-full
                max-w-md border border-zinc-400  px-4"
               hideCloseButton={true}
@@ -430,7 +425,7 @@ export default function MembersComponent({
                 </Button>
               </DialogClose>
               <DialogTitle className="text-lg font-semibold">
-                Invitation Failed!
+                {t(lang, "submission.members.modal.failTitle")}
               </DialogTitle>
               <Card className="border border-red-500 dark:bg-zinc-800 rounded-md mt-4">
                 <div className="flex flex-col  px-4 py-2 gap-4">
@@ -438,8 +433,7 @@ export default function MembersComponent({
                     <BadgeCheck width={35} height={35} color="#FF394A" />
                   </div>
                   <p className=" text-md ">
-                    We've got some errors sending the invitations, but here are
-                    the links for you to send them manually:{" "}
+                    {t(lang, "submission.members.modal.failDesc")}
                   </p>
                   <InvitationLinksMember invitationResult={invitationResult} />
                   <div className="items-center justify-center text-center">
@@ -450,7 +444,7 @@ export default function MembersComponent({
                         }}
                         className="dark:bg-white border rounder-md max-w-16 "
                       >
-                        Done
+                        {t(lang, "submission.members.modal.done")}
                       </Button>
                     </DialogClose>
                   </div>
@@ -465,10 +459,10 @@ export default function MembersComponent({
         <Table className="border border-zinc-200 dark:border-zinc-800 w-full min-w-[500px]">
           <TableHeader>
             <TableRow className=" border-b-zinc-200 dark:border-b-zinc-800">
-              <TableHead className="px-4 py-4">Name</TableHead>
-              <TableHead className="px-4 py-4">Email</TableHead>
-              <TableHead className="px-4 py-4">Role</TableHead>
-              <TableHead className="px-4 py-4">Status</TableHead>
+              <TableHead className="px-4 py-4">{t(lang, "submission.members.table.name")}</TableHead>
+              <TableHead className="px-4 py-4">{t(lang, "submission.members.table.email")}</TableHead>
+              <TableHead className="px-4 py-4">{t(lang, "submission.members.table.role")}</TableHead>
+              <TableHead className="px-4 py-4">{t(lang, "submission.members.table.status")}</TableHead>
               <TableHead className="px-4 py-4"></TableHead>
             </TableRow>
           </TableHeader>
@@ -485,7 +479,7 @@ export default function MembersComponent({
                         size="sm"
                         className="flex items-center gap-1 p-0 hover:bg-transparent"
                       >
-                        {member.role}
+                        {roles.find(r => r.value === member.role)?.label ?? member.role}
                         <ChevronDown size={16} color="#71717a" />
                       </Button>
                     </DropdownMenuTrigger>
@@ -495,17 +489,21 @@ export default function MembersComponent({
                     >
                       {roles.map((role) => (
                         <DropdownMenuItem
-                          key={role}
+                          key={role.value}
                           className="cursor-pointer p-2 dark:hover:bg-zinc-700"
-                          onSelect={() => handleRoleChange(member, role)}
+                          onSelect={() => handleRoleChange(member, role.value)}
                         >
-                          {role}
+                          {role.label}
                         </DropdownMenuItem>
                       ))}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>
-                <TableCell>{member.status}</TableCell>
+                <TableCell>
+                  {member.status === "Confirmed"
+                    ? t(lang, "submission.members.table.status.confirmed")
+                    : t(lang, "submission.members.table.status.pending")}
+                </TableCell>
                 <TableCell>
                   {user_id !== member.user_id && (
                     <DropdownMenu>
@@ -522,7 +520,7 @@ export default function MembersComponent({
                           className="p-2 hover:bg-zinc-700 cursor-pointer rounded"
                           onSelect={() => handleResendInvitation(member.email)}
                         >
-                          Resend Invitation
+                          {t(lang, "submission.members.table.resend")}
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           className="p-2 hover:bg-zinc-700 cursor-pointer rounded text-red-400"
@@ -530,7 +528,7 @@ export default function MembersComponent({
                             handleRemoveMember(member.email, member.user_id)
                           }
                         >
-                          Remove Member
+                          {t(lang, "submission.members.table.remove")}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>

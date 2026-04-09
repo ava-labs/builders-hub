@@ -22,6 +22,7 @@ import { JoinTeamDialog } from "./JoinTeamDialog";
 import { ProjectMemberWarningDialog } from "./ProjectMemberWarningDialog";
 import InvalidInvitationComponent from "./InvalidInvitationDialog";
 import Modal from "@/components/ui/Modal";
+import { normalizeEventsLang, t } from "@/lib/events/i18n";
 
 export default function GeneralSecureComponent({
   searchParams,
@@ -35,13 +36,22 @@ export default function GeneralSecureComponent({
 
   const { data: session } = useSession();
   const currentUser = session?.user;
-  const hackathonId = searchParams?.hackathon ?? "";
+  const hackathonId = (searchParams?.event ?? searchParams?.hackathon ?? "") as string;
   const invitationLink = searchParams?.invitation;
   const projectIdParam = searchParams?.project as string | undefined;
   const { toast } = useToast();
   const router = useRouter();
 
   const { state: projectState, dispatch } = useProjectSubmission();
+  const teamName = projectState.teamName;
+  const openJoinTeam = projectState.openJoinTeam;
+  const openCurrentProject = projectState.openCurrentProject;
+  const openInvalidInvitation = projectState.openInvalidInvitation;
+  const { hackathon, project, timeLeft, getProject } = useHackathonProject(
+    hackathonId as string,
+    invitationLink as string
+  );
+  const lang = normalizeEventsLang(hackathon?.content?.language);
   const {
     form,
     projectId,
@@ -53,15 +63,7 @@ export default function GeneralSecureComponent({
     handleSave,
     handleSaveWithoutRoute,
     setFormData,
-  } = useSubmissionFormSecure();
-  const teamName = projectState.teamName;
-  const openJoinTeam = projectState.openJoinTeam;
-  const openCurrentProject = projectState.openCurrentProject;
-  const openInvalidInvitation = projectState.openInvalidInvitation;
-  const { hackathon, project, timeLeft, getProject } = useHackathonProject(
-    hackathonId as string,
-    invitationLink as string
-  );
+  } = useSubmissionFormSecure(lang);
   
   // Load project by ID if projectIdParam exists and project is not already loaded
   useEffect(() => {
@@ -87,7 +89,7 @@ export default function GeneralSecureComponent({
     loadProjectById();
   }, [projectIdParam, project, isEditing, projectState.status, setFormData, dispatch]);
   const getAllFields = () => {
-    const hackathonId = searchParams?.hackathon ?? "";
+    const hackathonId = (searchParams?.event ?? searchParams?.hackathon ?? "") as string;
     const baseFields = [
       "project_name",
       "short_description",
@@ -115,7 +117,7 @@ export default function GeneralSecureComponent({
   
   const calculateProgress = () => {
     const formValues = form.getValues();
-    const hackathonId = searchParams?.hackathon ?? "";
+    const hackathonId = (searchParams?.event ?? searchParams?.hackathon ?? "") as string;
     const allFields = getAllFields();
     let totalFields = allFields.length;
     let completedFields = 0;
@@ -220,9 +222,8 @@ export default function GeneralSecureComponent({
 
       if (result.success) {
         toast({
-          title: "Project submitted",
-          description:
-            "Your project has been successfully submitted. Redirecting to your profile...",
+          title: t(lang, "submission.form.toast.submitted"),
+          description: t(lang, "submission.form.toast.submittedDesc"),
         });
         router.push('/profile#projects');
       } else {
@@ -231,11 +232,11 @@ export default function GeneralSecureComponent({
     } catch (error) {
       console.error("❌ Error submitting project:", error);
       toast({
-        title: "Error",
+        title: t(lang, "submission.form.toast.error"),
         description:
           error instanceof Error
             ? error.message
-            : "An error occurred while submitting the project.",
+            : t(lang, "submission.form.toast.errorDesc"),
         variant: "destructive",
       });
     }
@@ -254,8 +255,7 @@ export default function GeneralSecureComponent({
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            {error ||
-              "An error occurred while initializing the project. Please try again."}
+            {error || t(lang, "submission.form.error.init")}
           </AlertDescription>
         </Alert>
       </div>
@@ -269,17 +269,18 @@ export default function GeneralSecureComponent({
       {/* Header */}
       <div className="mb-4">
         <h2 className="text-lg sm:text-xl font-semibold break-words">
-          {hackathon?.title ? `Submit Your Project - ${hackathon.title}` : "Create New Project"}
+          {hackathon?.title
+            ? `${t(lang, "submission.form.title.withHackathon")} - ${hackathon.title}`
+            : t(lang, "submission.form.title.standalone")}
         </h2>
         <p className="text-xs sm:text-sm text-gray-400">
-          {hackathon?.title 
-            ? "Finalize and submit your project for review before the deadline. Complete all sections to ensure eligibility."
-            : "Fill in all the details to create your project. Complete all sections to save your project."
-          }
+          {hackathon?.title
+            ? t(lang, "submission.form.subtitle.withHackathon")
+            : t(lang, "submission.form.subtitle.standalone")}
         </p>
       </div>
 
-      <ProgressBar progress={debouncedProgress} />
+      <ProgressBar progress={debouncedProgress} lang={lang} />
 
       <div className="flex flex-col sm:flex-row mt-6 gap-4 sm:gap-4 sm:space-x-12">
         {/* Sidebar para móvil */}
@@ -391,10 +392,11 @@ export default function GeneralSecureComponent({
                     currentEmail={currentUser?.email}
                     currentUserName={currentUser?.name || undefined}
                     teamName={teamName}
+                    lang={lang}
                   />
                 )}
-                {step === 2 && <SubmitStep2 />}
-                {step === 3 && <SubmitStep3 />}
+                {step === 2 && <SubmitStep2 lang={lang} />}
+                {step === 3 && <SubmitStep3 lang={lang} />}
 
                 <Separator />
 
@@ -404,6 +406,7 @@ export default function GeneralSecureComponent({
                   onSave={handleSave}
                   isLastStep={step === 3}
                   onNextStep={onNextStep}
+                  lang={lang}
                 />
               </form>
             </Form>

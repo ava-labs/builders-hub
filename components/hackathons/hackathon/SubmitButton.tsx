@@ -11,6 +11,7 @@ interface SubmitButtonProps {
   customSubmissionLink?: string | null;
   className?: string;
   variant?: "red" | "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
+  label?: string;
 }
 
 export default function SubmitButton({
@@ -18,6 +19,7 @@ export default function SubmitButton({
   customSubmissionLink,
   className = "w-2/5 md:w-1/3 lg:w-1/4",
   variant = "red",
+  label = "Submit project",
 }: SubmitButtonProps) {
   const { status } = useSession();
   const router = useRouter();
@@ -38,7 +40,7 @@ export default function SubmitButton({
     if (customSubmissionLink) {
       return customSubmissionLink;
     }
-    return `/hackathons/project-submission?hackathon=${hackathonId}`;
+    return `/events/project-submission?event=${hackathonId}`;
   };
 
   const getTarget = () => {
@@ -54,7 +56,7 @@ export default function SubmitButton({
         onClick={handleClick}
         className="text-s sm:text-base"
       >
-        Submit project
+        {label}
       </Link>
     </Button>
   );
