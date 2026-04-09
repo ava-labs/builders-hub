@@ -25,7 +25,7 @@ export default function InvalidInvitationComponent({open, hackathonId, onOpenCha
 
     const handleAccept = () => {
         wasActionTaken.current = true; // Mark that an action was taken
-        router.push(`/hackathons/${hackathonId}`);
+        router.push(`/events/${hackathonId}`);
         onOpenChange(false);
     };
 
@@ -40,7 +40,7 @@ export default function InvalidInvitationComponent({open, hackathonId, onOpenCha
             
             // Small delay to show the toast before redirecting
             setTimeout(() => {
-                router.push(`/hackathons/${hackathonId}`);
+                router.push(`/events/${hackathonId}`);
             }, 1000);
         }
         

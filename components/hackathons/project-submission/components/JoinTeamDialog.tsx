@@ -79,7 +79,7 @@ export const JoinTeamDialog = ({
       
       // Small delay to show the toast before redirecting
       setTimeout(() => {
-        router.push(`/hackathons/${hackathonId}`);
+        router.push(`/events/${hackathonId}`);
       }, 1000);
     }
     
