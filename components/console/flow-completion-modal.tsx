@@ -7,7 +7,7 @@ import {
   DialogContent,
 } from "@/components/ui/dialog";
 import { Check, ArrowRight, Copy, ExternalLink } from "lucide-react";
-import type { FlowMetadata, FlowNextStep } from "@/config/console-flows";
+import type { FlowMetadata, FlowNextStep } from "@/components/console/console-flows";
 
 /**
  * Custom action button configuration for the completion modal
