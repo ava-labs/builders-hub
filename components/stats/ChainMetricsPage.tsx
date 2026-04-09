@@ -849,6 +849,7 @@ export default function ChainMetricsPage({
       color: themeColor,
       chartType: "bar" as const,
       isCurrency: true,
+      showMovingAverage: true,
     },
     {
       title: "Avg Gas Price",
@@ -1991,7 +1992,7 @@ export default function ChainMetricsPage({
                       }
                       formatYAxisValue={formatNumber}
                       allowedPeriods={allowedPeriods}
-                      showMovingAverage={config.showMovingAverage || config.metricKey === "feesPaid"}
+                      showMovingAverage={config.showMovingAverage}
                       chainId={chainId}
                       chainName={chainName}
                       allChartConfigs={chartConfigs.map((c) => ({
@@ -2405,10 +2406,33 @@ function ChartCard({
     return result;
   }, [displayData, aggregatedCumulativeData, aggregatedSecondaryData]);
 
+  // Compute 30DMA current value for feesPaid-like charts with moving average
+  const maCurrentValue = useMemo(() => {
+    if (!showMovingAverage || !aggregatedData || aggregatedData.length === 0) return null;
+    const last = aggregatedData[aggregatedData.length - 1];
+    return (last as any).ma !== undefined ? (last as any).ma : null;
+  }, [showMovingAverage, aggregatedData]);
+
   // Calculate percentage change based on brush selection
+  // For charts with moving average, compare MA values instead of raw values
   const dynamicChange = useMemo(() => {
     if (!displayData || displayData.length < 2) {
       return { change: 0, isPositive: true };
+    }
+
+    if (showMovingAverage) {
+      // Compare current MA to MA from one window-period ago
+      const lastMA = (displayData[displayData.length - 1] as any).ma;
+      // Find the point ~window periods back
+      const compareIdx = Math.max(0, displayData.length - 1 - maConfig.window);
+      const compareMA = (displayData[compareIdx] as any).ma;
+      if (lastMA !== undefined && compareMA !== undefined && compareMA > 0) {
+        const changePercentage = ((lastMA - compareMA) / compareMA) * 100;
+        return {
+          change: Math.abs(changePercentage),
+          isPositive: changePercentage >= 0,
+        };
+      }
     }
 
     const firstValue = displayData[0].value;
@@ -2424,7 +2448,7 @@ function ChartCard({
       change: Math.abs(changePercentage),
       isPositive: changePercentage >= 0,
     };
-  }, [displayData]);
+  }, [displayData, showMovingAverage, maConfig.window]);
 
   const formatXAxis = (value: string) => formatXAxisLabel(value, brushRangeDays);
 
@@ -2684,6 +2708,11 @@ function ChartCard({
                         ? parseFloat(secondaryCurrentValue)
                         : secondaryCurrentValue
                     )}
+                  </div>
+                ) : showMovingAverage && maCurrentValue !== null ? (
+                  <div className="text-md sm:text-base font-mono break-all">
+                    <span>{formatTooltipValue(maCurrentValue)}</span>
+                    <span className="text-xs text-muted-foreground ml-1.5">{maConfig.label}</span>
                   </div>
                 ) : (
                   <div className="text-md sm:text-base font-mono break-all">
