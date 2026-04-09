@@ -214,7 +214,7 @@ export class MCPServer {
   }
 
   private async processMessage(message: JsonRpcMessage): Promise<JsonRpcResponse | null> {
-    if ('id' in message) {
+    if ('id' in message && message.id !== undefined) {
       return this.processRequest(message);
     }
 
@@ -233,7 +233,7 @@ export class MCPServer {
           if (!parsed.success) {
             return {
               jsonrpc: '2.0' as const,
-              id: (message as { id?: string | number | null })?.id ?? null,
+              id: this.getResponseId(message),
               error: { code: -32600, message: 'Invalid request' },
             };
           }
@@ -249,7 +249,7 @@ export class MCPServer {
     if (!parsed.success) {
       return {
         jsonrpc: '2.0',
-        id: (body as { id?: string | number | null })?.id ?? null,
+        id: this.getResponseId(body),
         error: { code: -32600, message: 'Invalid request' },
       };
     }
@@ -265,6 +265,19 @@ export class MCPServer {
       if (domain.handlers[name]) return domain.handlers[name];
     }
     return undefined;
+  }
+
+  private getResponseId(message: unknown): string | number | null {
+    if (!message || typeof message !== 'object' || !('id' in message)) {
+      return null;
+    }
+
+    const id = (message as { id?: unknown }).id;
+    if (typeof id === 'string' || typeof id === 'number' || id === null) {
+      return id;
+    }
+
+    return null;
   }
 
   private findResourceHandler(uri: string) {

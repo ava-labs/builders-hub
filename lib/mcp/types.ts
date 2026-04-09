@@ -76,7 +76,9 @@ export const jsonRpcRequestSchema = jsonRpcBaseMessageSchema.extend({
   id: jsonRpcIdSchema,
 });
 
-export const jsonRpcNotificationSchema = jsonRpcBaseMessageSchema;
+export const jsonRpcNotificationSchema = jsonRpcBaseMessageSchema.extend({
+  id: z.never().optional(),
+});
 
 export const jsonRpcMessageSchema = z.union([
   jsonRpcRequestSchema,
