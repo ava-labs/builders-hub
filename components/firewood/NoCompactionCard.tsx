@@ -1,7 +1,7 @@
 "use client"
 import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Colors, FIREWOOD_COLORS } from "./types"
+import { Colors, FIREWOOD_COLORS, lt } from "./types"
 import { InfoTooltip } from "./shared"
 
 interface Block {
@@ -201,8 +201,12 @@ export function NoCompactionCard({ colors }: { colors: Colors }) {
           <motion.div
             className="h-9 flex items-center gap-0.5 px-2 overflow-hidden"
             animate={{
-              backgroundColor: isCompacting ? `${FIREWOOD_COLORS.compaction}12` : `${FIREWOOD_COLORS.leveldb}08`,
-              borderColor: isCompacting ? `${FIREWOOD_COLORS.compaction}40` : `${FIREWOOD_COLORS.leveldb}20`,
+              backgroundColor: isCompacting
+                ? lt(colors.stroke, FIREWOOD_COLORS.compaction, "bg", "12")
+                : lt(colors.stroke, FIREWOOD_COLORS.leveldb, "bg", "08"),
+              borderColor: isCompacting
+                ? lt(colors.stroke, FIREWOOD_COLORS.compaction, "border", "40")
+                : lt(colors.stroke, FIREWOOD_COLORS.leveldb, "border", "20"),
             }}
             transition={{ duration: 0.2 }}
             style={{ border: "1px solid" }}
@@ -223,11 +227,11 @@ export function NoCompactionCard({ colors }: { colors: Colors }) {
                   className="w-6 h-6 flex-shrink-0 flex items-center justify-center"
                   style={{
                     backgroundColor: block.status === "active"
-                      ? `${FIREWOOD_COLORS.leveldb}25`
-                      : `${FIREWOOD_COLORS.leveldb}10`,
+                      ? lt(colors.stroke, FIREWOOD_COLORS.leveldb, "bgStrong", "25")
+                      : lt(colors.stroke, FIREWOOD_COLORS.leveldb, "bg", "10"),
                     border: block.status === "active"
-                      ? `1.5px solid ${FIREWOOD_COLORS.leveldb}50`
-                      : `1px solid ${FIREWOOD_COLORS.leveldb}20`,
+                      ? `1.5px solid ${lt(colors.stroke, FIREWOOD_COLORS.leveldb, "borderStrong", "50")}`
+                      : `1px solid ${lt(colors.stroke, FIREWOOD_COLORS.leveldb, "border", "20")}`,
                   }}
                 >
                   {block.status === "done" ? (
@@ -272,8 +276,8 @@ export function NoCompactionCard({ colors }: { colors: Colors }) {
           <motion.div
             className="h-9 flex items-center gap-0.5 px-2 overflow-hidden"
             style={{
-              backgroundColor: `${FIREWOOD_COLORS.rust}08`,
-              border: `1px solid ${FIREWOOD_COLORS.rust}20`,
+              backgroundColor: lt(colors.stroke, FIREWOOD_COLORS.rust, "bg", "08"),
+              border: `1px solid ${lt(colors.stroke, FIREWOOD_COLORS.rust, "border", "20")}`,
             }}
           >
             <AnimatePresence mode="popLayout">
@@ -292,11 +296,11 @@ export function NoCompactionCard({ colors }: { colors: Colors }) {
                   className="w-6 h-6 flex-shrink-0 flex items-center justify-center relative"
                   style={{
                     backgroundColor: block.status === "active"
-                      ? `${FIREWOOD_COLORS.rust}25`
-                      : `${FIREWOOD_COLORS.rust}10`,
+                      ? lt(colors.stroke, FIREWOOD_COLORS.rust, "bgStrong", "25")
+                      : lt(colors.stroke, FIREWOOD_COLORS.rust, "bg", "10"),
                     border: block.status === "active"
-                      ? `1.5px solid ${FIREWOOD_COLORS.rust}50`
-                      : `1px solid ${FIREWOOD_COLORS.rust}20`,
+                      ? `1.5px solid ${lt(colors.stroke, FIREWOOD_COLORS.rust, "borderStrong", "50")}`
+                      : `1px solid ${lt(colors.stroke, FIREWOOD_COLORS.rust, "border", "20")}`,
                   }}
                 >
                   {block.status === "done" ? (

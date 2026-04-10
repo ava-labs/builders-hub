@@ -1,7 +1,7 @@
 "use client"
 import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Colors, FIREWOOD_COLORS } from "./types"
+import { Colors, FIREWOOD_COLORS, lt } from "./types"
 import { InfoTooltip } from "./shared"
 
 interface CommitBlock {
@@ -134,8 +134,8 @@ export function DeferredPersistenceCard({ colors }: { colors: Colors }) {
           <motion.div
             className="h-9 flex items-center gap-0.5 px-2 overflow-hidden"
             style={{
-              backgroundColor: `${FIREWOOD_COLORS.disk}08`,
-              border: `1px solid ${FIREWOOD_COLORS.disk}20`,
+              backgroundColor: lt(colors.stroke, FIREWOOD_COLORS.disk, "bg", "08"),
+              border: `1px solid ${lt(colors.stroke, FIREWOOD_COLORS.disk, "border", "20")}`,
             }}
           >
             <AnimatePresence mode="popLayout">
@@ -152,11 +152,11 @@ export function DeferredPersistenceCard({ colors }: { colors: Colors }) {
                     className="w-6 h-6 flex-shrink-0 flex items-center justify-center"
                     style={{
                       backgroundColor: isLatest
-                        ? `${FIREWOOD_COLORS.disk}25`
-                        : `${FIREWOOD_COLORS.disk}10`,
+                        ? lt(colors.stroke, FIREWOOD_COLORS.disk, "bgStrong", "25")
+                        : lt(colors.stroke, FIREWOOD_COLORS.disk, "bg", "10"),
                       border: isLatest
                         ? `1.5px solid ${FIREWOOD_COLORS.disk}60`
-                        : `1px solid ${FIREWOOD_COLORS.disk}20`,
+                        : `1px solid ${lt(colors.stroke, FIREWOOD_COLORS.disk, "border", "20")}`,
                     }}
                   >
                     <motion.svg
@@ -226,8 +226,8 @@ export function DeferredPersistenceCard({ colors }: { colors: Colors }) {
           <motion.div
             className="h-9 flex items-center gap-0.5 px-2 overflow-hidden"
             style={{
-              backgroundColor: `${FIREWOOD_COLORS.trie}08`,
-              border: `1px solid ${FIREWOOD_COLORS.trie}20`,
+              backgroundColor: lt(colors.stroke, FIREWOOD_COLORS.trie, "bg", "08"),
+              border: `1px solid ${lt(colors.stroke, FIREWOOD_COLORS.trie, "border", "20")}`,
             }}
           >
             <AnimatePresence mode="popLayout">
@@ -245,11 +245,11 @@ export function DeferredPersistenceCard({ colors }: { colors: Colors }) {
                     className="w-6 h-6 flex-shrink-0 relative overflow-hidden"
                     style={{
                       backgroundColor: isWriting
-                        ? `${FIREWOOD_COLORS.trie}15`
-                        : `${FIREWOOD_COLORS.trie}10`,
+                        ? lt(colors.stroke, FIREWOOD_COLORS.trie, "bgStrong", "15")
+                        : lt(colors.stroke, FIREWOOD_COLORS.trie, "bg", "10"),
                       border: isWriting
                         ? `1.5px solid ${FIREWOOD_COLORS.trie}60`
-                        : `1px solid ${FIREWOOD_COLORS.trie}30`,
+                        : `1px solid ${lt(colors.stroke, FIREWOOD_COLORS.trie, "border", "30")}`,
                     }}
                   >
                     {isWriting && isLatest ? (
