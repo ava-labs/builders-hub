@@ -219,9 +219,11 @@ export function LoginModalWrapper() {
       setStoredCallbackUrl(null);
       closeLoginModal();
 
-      // Sign out the session (this clears the JWT even for pending users)
-      // Stay on the current page - user can click Apply again to restart the flow
-      signOut({ redirect: false });
+      // Sign out only if user is not fully authenticated (clears pending/incomplete sessions).
+      // Never sign out a user who was already authenticated before opening the modal.
+      if (status !== "authenticated") {
+        signOut({ redirect: false });
+      }
     }
   };
 

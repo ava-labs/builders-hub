@@ -2,6 +2,8 @@ import { prisma } from "@/prisma/prisma";
 import { sendInvitation } from "./SendInvitationProjectMember";
 import { getUserByEmail } from "./getUser";
 import { Prisma } from "@prisma/client";
+import { baseUrl } from "@/utils/metadata";
+import { type EventsLang } from "@/lib/events/i18n";
 
 interface InvitationResult {
   Success: boolean;
@@ -21,7 +23,8 @@ export async function generateInvitation(
   inviterName: string,
   emails: string[],
   projectId?: string,
-  stage?: number
+  stage?: number,
+  lang: EventsLang = "en"
 ): Promise<InvitationResult> {
   if (!hackathonId) {
     throw new Error("Hackathon ID is required");
@@ -50,7 +53,8 @@ export async function generateInvitation(
       project,
       hackathonId,
       inviterName,
-      stage
+      stage,
+      lang
     );
     if (invitationLink) {
       invitationLinks.push(invitationLink);
@@ -69,7 +73,8 @@ async function handleEmailInvitation(
   project: any,
   hackathonId: string,
   inviterName: string,
-  stage?: number
+  stage?: number,
+  lang: EventsLang = "en"
 ) {
   const invitedUser = await getUserByEmail(email);
 
@@ -95,7 +100,8 @@ async function handleEmailInvitation(
     project,
     hackathonId,
     inviterName,
-    stage
+    stage,
+    lang
   );
   
   if (inviteLink) {
@@ -163,16 +169,16 @@ async function sendInvitationEmail(
   project: any,
   hackathonId: string,
   inviterName: string,
-  stage?: number
+  stage?: number,
+  lang: EventsLang = "en"
 ): Promise<{ success: boolean; inviteLink: string }> {
-  const baseUrl = process.env.NEXTAUTH_URL as string;
   const inviteLink =
     hackathonId === BUILD_GAMES_HACKATHON_ID
-      ? `${baseUrl}/build-games/submit?stage=${stage ?? 1}&invitation=${member.id}`
-      : `${baseUrl}/events/project-submission?event=${hackathonId}&invitation=${member.id}#team`;
+      ? `${baseUrl.origin}/build-games/submit?stage=${stage ?? 1}&invitation=${member.id}`
+      : `${baseUrl.origin}/events/project-submission?event=${hackathonId}&invitation=${member.id}#team`;
   let result = { success: true, inviteLink: inviteLink };
   try {
-    await sendInvitation(email, project.project_name, inviterName, inviteLink);
+    await sendInvitation(email, project.project_name, inviterName, inviteLink, lang);
   } catch (error) {
     result.success = false;
   }

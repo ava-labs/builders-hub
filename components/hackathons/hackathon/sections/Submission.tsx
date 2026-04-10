@@ -14,33 +14,16 @@ import { normalizeEventsLang, t } from '@/lib/events/i18n';
 export default async function Submission({
   hackathon,
   isRegistered = false,
+  isAuthenticated = false,
   utm = '',
 }: {
   hackathon: HackathonHeader;
   isRegistered?: boolean;
+  isAuthenticated?: boolean;
   utm?: string;
 }) {
   const lang = normalizeEventsLang(hackathon.content?.language);
   const locale = lang === 'es' ? 'es-ES' : 'en-US';
-
-  if (!isRegistered) {
-    return (
-      <section className='py-16 text-black dark:text-white' id='submission'>
-        <div className='flex justify-center'>
-          <JoinButton
-            isRegistered={false}
-            hackathonId={hackathon.id}
-            customLink={hackathon.content.join_custom_link}
-            customText={hackathon.content.join_custom_text}
-            className='w-2/5 md:w-1/3 lg:w-1/4 cursor-pointer'
-            variant='red'
-            utm={utm}
-            lang={lang}
-          />
-        </div>
-      </section>
-    );
-  }
 
   return (
     <section className='py-16 text-black dark:text-white'>
@@ -160,6 +143,7 @@ export default async function Submission({
           hackathonId={hackathon.id}
           customSubmissionLink={hackathon.content.submission_custom_link}
           label={t(lang, "section.submission.submitProject")}
+          isAuthenticated={isAuthenticated}
         />
       </div>
     </section>

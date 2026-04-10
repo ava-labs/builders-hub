@@ -3,6 +3,8 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
+import { useLoginModalTrigger } from "@/hooks/useLoginModal";
 import { EventsLang, normalizeEventsLang, t } from "@/lib/events/i18n";
 
 interface JoinButtonProps {
@@ -12,9 +14,10 @@ interface JoinButtonProps {
   customText?: string;
   className?: string;
   variant?: "red" | "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
-  showChatWhenRegistered?: boolean; // New prop to control behavior
-  allowNavigationWhenRegistered?: boolean; // New prop to allow navigation when registered
-  utm?: string; // UTM parameter to track campaign source
+  showChatWhenRegistered?: boolean;
+  allowNavigationWhenRegistered?: boolean;
+  utm?: string;
+  isAuthenticated?: boolean;
   /** UI language for predefined labels (defaults to 'en'). */
   lang?: EventsLang;
 }
@@ -29,9 +32,12 @@ export default function JoinButton({
   showChatWhenRegistered = false,
   allowNavigationWhenRegistered = false,
   utm = "",
+  isAuthenticated = false,
   lang: langProp,
 }: JoinButtonProps) {
   const lang = langProp ?? normalizeEventsLang(undefined);
+  const { status } = useSession();
+  const { openLoginModal } = useLoginModalTrigger();
   
   const getButtonText = () => {
     if (isRegistered) {
@@ -84,6 +90,11 @@ export default function JoinButton({
   };
 
   const handleClick = (e: React.MouseEvent) => {
+    if (!isAuthenticated && status !== "authenticated" && !isRegistered) {
+      e.preventDefault();
+      openLoginModal(getButtonHref());
+      return;
+    }
     if (isRegistered && !showChatWhenRegistered && !allowNavigationWhenRegistered) {
       e.preventDefault();
     }

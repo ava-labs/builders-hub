@@ -114,6 +114,7 @@ export default function MembersComponent({
         hackathon_id: hackaton_id,
         project_id: project_id,
         user_id: user_id,
+        lang,
         ...(invite_stage !== undefined ? { stage: invite_stage } : {}),
       });
       setInvitationResult(invitationResult.data?.result);
@@ -142,6 +143,7 @@ export default function MembersComponent({
         hackathon_id: hackaton_id,
         project_id: project_id,
         user_id: user_id,
+        lang,
       });
     } catch (error) {
       console.error("Error resending invitation:", error);
@@ -548,6 +550,7 @@ export default function MembersComponent({
         projectId={project_id as string}
         hackathonId={hackaton_id as string}
         currentUserId={user_id as string}
+        lang={lang}
       />
       <ProjectMemberWarningDialog
         open={openCurrentProject || false}
@@ -555,6 +558,7 @@ export default function MembersComponent({
         projectName={teamName as string}
         hackathonId={hackaton_id as string}
         setLoadData={handleAcceptJoinTeamWithPreviousProject}
+        lang={lang}
       />
 
       {/* ✅ TOASTER: Required for toast notifications */}

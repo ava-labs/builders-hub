@@ -75,8 +75,9 @@ export default async function HackathonPage({
 
   // Check if user is authenticated and registered
   const session = await getAuthSession();
+  const isAuthenticated = !!session?.user;
   let isRegistered = false;
-  
+
   if (session?.user?.email) {
     const registration = await getRegisterForm(session.user.email, id);
     isRegistered = !!registration;
@@ -93,6 +94,7 @@ export default async function HackathonPage({
         hackathon={hackathon}
         id={id}
         isRegistered={isRegistered}
+        isAuthenticated={isAuthenticated}
         utm={utm as string}
       />
     );
@@ -103,6 +105,7 @@ export default async function HackathonPage({
       hackathon={hackathon}
       id={id}
       isRegistered={isRegistered}
+      isAuthenticated={isAuthenticated}
       utm={utm as string}
     />
   );

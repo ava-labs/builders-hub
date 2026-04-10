@@ -365,6 +365,33 @@ const dict: Record<EventsLang, Dict> = {
     "referral.modal.shareOn": "Share on",
     "referral.share.xText": "Join me at {title} — a hackathon on Avalanche! Register here: {link}",
     "referral.share.linkedinText": "Join me at {title} — a hackathon on Avalanche! Register here: {link}",
+
+    // Invitation email
+    "invitation.email.subject": "You're invited to collaborate on \"{projectName}\"",
+    "invitation.email.title": "You're Invited to Collaborate",
+    "invitation.email.body": "{inviterName} has invited you to join the project:",
+    "invitation.email.cta": "Accept Invitation",
+    "invitation.email.ignore": "If you did not expect this invitation, you can safely ignore this email.",
+    "invitation.email.footer": "Avalanche Builder's Hub © 2025",
+
+    // Invalid invitation dialog
+    "invitation.invalid.message": "Invitation link is not valid. Verify you're logged in the correct account and try again.",
+    "invitation.invalid.accept": "Accept",
+    "invitation.invalid.redirecting": "Redirecting...",
+    "invitation.invalid.redirectDesc": "You will be redirected to the event",
+
+    // Join team dialog
+    "invitation.join.title": "Join Your Team",
+    "invitation.join.body": "You've been invited to join {teamName}.",
+    "invitation.join.cta": "Accept & Join Team",
+    "invitation.join.redirectDesc": "You will be redirected to the event",
+
+    // Project member warning dialog
+    "invitation.warning.title": "Project Membership Warning",
+    "invitation.warning.body": "You are currently a member of {projectName}.",
+    "invitation.warning.detail": "If you accept this invitation, you will be removed from your current project and will lose all access to its information. If you are the only member of your current project, accepting this invitation will result in the permanent deletion of that project.",
+    "invitation.warning.accept": "Accept invite",
+    "invitation.warning.reject": "Reject invite",
   },
   es: {
     // Navigation / sections
@@ -729,6 +756,33 @@ const dict: Record<EventsLang, Dict> = {
     "referral.modal.shareOn": "Compartir en",
     "referral.share.xText": "Únete a {title} — un hackathon en Avalanche. Regístrate aquí: {link}",
     "referral.share.linkedinText": "Únete a {title} — un hackathon en Avalanche. Regístrate aquí: {link}",
+
+    // Invitation email
+    "invitation.email.subject": "Te invitaron a colaborar en \"{projectName}\"",
+    "invitation.email.title": "Tienes una invitación para colaborar",
+    "invitation.email.body": "{inviterName} te ha invitado a unirte al proyecto:",
+    "invitation.email.cta": "Aceptar invitación",
+    "invitation.email.ignore": "Si no esperabas esta invitación, puedes ignorar este correo.",
+    "invitation.email.footer": "Avalanche Builder's Hub © 2025",
+
+    // Invalid invitation dialog
+    "invitation.invalid.message": "El enlace de invitación no es válido. Verifica que estás en la cuenta correcta e intenta de nuevo.",
+    "invitation.invalid.accept": "Aceptar",
+    "invitation.invalid.redirecting": "Redirigiendo...",
+    "invitation.invalid.redirectDesc": "Serás redirigido al evento",
+
+    // Join team dialog
+    "invitation.join.title": "Únete a tu equipo",
+    "invitation.join.body": "Has sido invitado a unirte a {teamName}.",
+    "invitation.join.cta": "Aceptar e unirse al equipo",
+    "invitation.join.redirectDesc": "Serás redirigido al evento",
+
+    // Project member warning dialog
+    "invitation.warning.title": "Advertencia de membresía",
+    "invitation.warning.body": "Actualmente eres miembro de {projectName}.",
+    "invitation.warning.detail": "Si aceptas esta invitación, serás eliminado de tu proyecto actual y perderás todo el acceso a su información. Si eres el único miembro de tu proyecto actual, aceptar esta invitación resultará en la eliminación permanente de ese proyecto.",
+    "invitation.warning.accept": "Aceptar invitación",
+    "invitation.warning.reject": "Rechazar invitación",
   },
 };
 

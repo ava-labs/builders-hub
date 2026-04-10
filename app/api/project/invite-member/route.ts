@@ -2,6 +2,7 @@ import { withAuth } from "@/lib/protectedRoute";
 import { generateInvitation } from "@/server/services/inviteProjectMember";
 import { isUserProjectMember } from "@/server/services/fileValidation";
 import { NextResponse } from "next/server";
+import { normalizeEventsLang } from "@/lib/events/i18n";
 
 export const POST = withAuth(async (request, context, session) => {
   try {
@@ -26,13 +27,15 @@ export const POST = withAuth(async (request, context, session) => {
       }
     }
 
+    const lang = normalizeEventsLang(body.lang);
     const result = await generateInvitation(
       body.hackathon_id,
-      session.user.id, // Use session user ID
+      session.user.id,
       session.user.name,
       body.emails,
-      body.project_id, // Pass project_id if it exists
-      body.stage       // Optional stage for Build Games invite links
+      body.project_id,
+      body.stage,
+      lang
     );
     return NextResponse.json(
       { message: "invitation sent", result },

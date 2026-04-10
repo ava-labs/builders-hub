@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
-import axios from "axios";
+import { EventsLang, t } from "@/lib/events/i18n";
 
 interface ProjectMemberWarningDialogProps {
   open: boolean;
@@ -20,16 +20,21 @@ interface ProjectMemberWarningDialogProps {
   projectName: string;
   hackathonId: string;
   setLoadData: (accepted: boolean) => void;
+  lang?: EventsLang;
 }
 
-export const ProjectMemberWarningDialog: React.FC<
-  ProjectMemberWarningDialogProps
-> = ({ open, onOpenChange, projectName, hackathonId, setLoadData }) => {
+export const ProjectMemberWarningDialog: React.FC<ProjectMemberWarningDialogProps> = ({
+  open,
+  onOpenChange,
+  projectName,
+  hackathonId,
+  setLoadData,
+  lang = "en",
+}) => {
   const router = useRouter();
   const { toast } = useToast();
   const wasActionTaken = useRef(false);
 
-  // Reset the flag when modal opens
   useEffect(() => {
     if (open) {
       wasActionTaken.current = false;
@@ -37,32 +42,28 @@ export const ProjectMemberWarningDialog: React.FC<
   }, [open]);
 
   const handleAcceptInvite = () => {
-    wasActionTaken.current = true; // Mark that an action was taken
+    wasActionTaken.current = true;
     setLoadData(true);
     onOpenChange(false);
   };
 
   const handleRejectInvite = () => {
-    wasActionTaken.current = true; // Mark that an action was taken
+    wasActionTaken.current = true;
     setLoadData(false);
     onOpenChange(false);
   };
 
   const handleClose = (open: boolean) => {
-    // If modal is closing and no action was taken, show toast and redirect
     if (!open && !wasActionTaken.current) {
       toast({
-        title: "Redirecting...",
-        description: "You will be redirected to hackathon",
+        title: t(lang, "invitation.invalid.redirecting"),
+        description: t(lang, "invitation.join.redirectDesc"),
         duration: 3000,
       });
-      
-      // Small delay to show the toast before redirecting
       setTimeout(() => {
         router.push(`/events/${hackathonId}`);
       }, 1000);
     }
-    
     onOpenChange(open);
   };
 
@@ -77,48 +78,39 @@ export const ProjectMemberWarningDialog: React.FC<
             variant="ghost"
             size="icon"
             className="absolute top-6 right-4 dark:text-white hover:text-red-400 p-0 h-6 w-6"
-            onClick={() => {
-              // This will trigger handleClose with open=false
-              onOpenChange(false);
-            }}
+            onClick={() => onOpenChange(false)}
           >
             ✕
           </Button>
         </DialogClose>
         <DialogHeader>
           <DialogTitle className="text-lg font-semibold">
-            Project Membership Warning
+            {t(lang, "invitation.warning.title")}
           </DialogTitle>
         </DialogHeader>
         <Card className="border border-red-500 dark:bg-zinc-800 rounded-md">
           <div className="flex flex-col px-4">
-            <p className="text-md  text-red-500">
-              You are currently a member of <b>{projectName.toUpperCase()}</b>.
+            <p className="text-md text-red-500">
+              {t(lang, "invitation.warning.body", { projectName: projectName.toUpperCase() })}
             </p>
-            <p className="text-md  text-red-500">
-              If you accept this invitation, you will be removed from your
-              current project and will lose all access to its information.
-              <br />
-              If you are the only member of your current project, accepting this
-              invitation will result in the permanent deletion of that project.
+            <p className="text-md text-red-500">
+              {t(lang, "invitation.warning.detail")}
             </p>
           </div>
           <div className="flex flex-row items-center justify-center gap-4 py-4">
-
             <Button
               onClick={handleAcceptInvite}
               type="button"
               className="dark:bg-white dark:text-black"
             >
-              Accept invite
+              {t(lang, "invitation.warning.accept")}
             </Button>
-
             <Button
               onClick={handleRejectInvite}
               type="button"
               className="dark:bg-white dark:text-black"
             >
-              Reject invite
+              {t(lang, "invitation.warning.reject")}
             </Button>
           </div>
         </Card>

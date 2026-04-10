@@ -421,6 +421,7 @@ export default function GeneralSecureComponent({
         onOpenChange={(open) =>
           dispatch({ type: "SET_OPEN_INVALID_INVITATION", payload: open })
         }
+        lang={lang}
       />
       {error && (
         <div className="mt-4">
