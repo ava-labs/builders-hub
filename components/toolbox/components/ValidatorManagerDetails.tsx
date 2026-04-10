@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { Copy, Check } from 'lucide-react';
 import { getBlockchainInfo } from '../coreViem/utils/glacier';
 
 interface ValidatorManagerDetailsProps {
@@ -74,10 +75,6 @@ export function ValidatorManagerDetails({
     return null;
   }
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-  };
-
   const ownerTypeLabel = isDetectingOwnerType
     ? 'detecting...'
     : ownerType || null;
@@ -102,7 +99,7 @@ export function ValidatorManagerDetails({
             label="Contract Address"
             value={validatorManagerAddress}
             mono
-            onCopy={() => copyToClipboard(validatorManagerAddress)}
+            copyable
           />
 
           <Row
@@ -112,7 +109,7 @@ export function ValidatorManagerDetails({
             mono={!ownershipError && !!contractOwner}
             error={!!ownershipError}
             loading={isLoadingOwnership}
-            onCopy={contractOwner ? () => copyToClipboard(contractOwner) : undefined}
+            copyable={!!contractOwner && !ownershipError}
           />
 
           {blockchainId && (
@@ -125,7 +122,7 @@ export function ValidatorManagerDetails({
               }
               value={blockchainId}
               mono
-              onCopy={() => copyToClipboard(blockchainId)}
+              copyable
             />
           )}
 
@@ -134,7 +131,7 @@ export function ValidatorManagerDetails({
               label="Signing Subnet ID"
               value={signingSubnetId}
               mono
-              onCopy={() => copyToClipboard(signingSubnetId)}
+              copyable
             />
           )}
 
@@ -157,7 +154,7 @@ function Row({
   mono,
   error,
   loading,
-  onCopy,
+  copyable,
 }: {
   label: string;
   value: string;
@@ -165,39 +162,50 @@ function Row({
   mono?: boolean;
   error?: boolean;
   loading?: boolean;
-  onCopy?: () => void;
+  copyable?: boolean;
 }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = useCallback(() => {
+    if (!value || !copyable) return;
+    navigator.clipboard.writeText(value);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }, [value, copyable]);
+
   return (
     <div className="space-y-1">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
-            {label}
+      <div className="flex items-center gap-2">
+        <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+          {label}
+        </span>
+        {badge && (
+          <span className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded">
+            {badge}
           </span>
-          {badge && (
-            <span className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded">
-              {badge}
-            </span>
-          )}
-        </div>
-        {onCopy && (
-          <button
-            onClick={onCopy}
-            className="text-[10px] text-zinc-400 hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300 transition-colors"
-          >
-            copy
-          </button>
         )}
       </div>
-      <div
-        className={`text-xs px-3 py-2 rounded border break-all ${
+      <button
+        type="button"
+        onClick={handleCopy}
+        disabled={!copyable}
+        className={`group/copy w-full flex items-center justify-between gap-2 text-xs px-3 py-2 rounded border break-all text-left ${
           error
             ? 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-800/50'
             : 'text-zinc-800 dark:text-zinc-200 bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700/50'
-        } ${mono ? 'font-mono' : ''} ${loading ? 'animate-pulse' : ''}`}
+        } ${mono ? 'font-mono' : ''} ${loading ? 'animate-pulse' : ''} ${
+          copyable ? 'cursor-pointer hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors' : 'cursor-default'
+        }`}
       >
-        {value}
-      </div>
+        <span>{value}</span>
+        {copyable && (
+          copied ? (
+            <Check className="h-3.5 w-3.5 text-green-500 flex-shrink-0" />
+          ) : (
+            <Copy className="h-3.5 w-3.5 text-zinc-400 opacity-0 group-hover/copy:opacity-100 flex-shrink-0 transition-opacity" />
+          )
+        )}
+      </button>
     </div>
   );
 }
