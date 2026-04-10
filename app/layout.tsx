@@ -23,6 +23,13 @@ export const metadata = createMetadata({
   description:
     "Build your Fast & Interoperable Layer 1 Blockchain with Avalanche.",
   metadataBase: baseUrl,
+  alternates: {
+    types: {
+      'text/plain': [
+        { url: '/llms.txt', title: 'LLMs.txt' },
+      ],
+    },
+  },
 });
 
 export const viewport: Viewport = {

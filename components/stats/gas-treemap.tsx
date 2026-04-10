@@ -552,21 +552,21 @@ export default function GasTreemap() {
     : null;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header bar */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <h2 className="text-lg font-semibold text-zinc-900 dark:text-white">
+        <div className="flex items-center flex-wrap gap-2 sm:gap-3">
+          <h2 className="text-base sm:text-lg font-semibold text-zinc-900 dark:text-white">
             AVAX Burners
           </h2>
           {data && (
             <>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400">
+              <span className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400">
                 {data.coverage?.totalChainBurned
                   ? ((data.totalAvaxBurned / data.coverage.totalChainBurned) * 100).toFixed(1)
                   : data.coverage?.taggedGasPercent.toFixed(1)}% classified
               </span>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-red-500/10 text-red-400 border border-red-500/20">
+              <span className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-full bg-red-500/10 text-red-400 border border-red-500/20">
                 {formatAvax(data.coverage?.totalChainBurned ?? data.totalAvaxBurned)}
               </span>
               <div className="relative group">
@@ -584,12 +584,12 @@ export default function GasTreemap() {
         </div>
 
         {/* View toggle + Time range pills */}
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
           {/* View mode toggle */}
           <div className="flex items-center bg-zinc-100 dark:bg-zinc-900 rounded-md overflow-hidden border border-zinc-300 dark:border-zinc-700">
             <button
               onClick={() => setViewMode("treemap")}
-              className={`px-2.5 py-1.5 text-xs font-medium transition-colors flex items-center gap-1.5 ${
+              className={`px-2 sm:px-2.5 py-1.5 text-xs font-medium transition-colors flex items-center gap-1.5 ${
                 viewMode === "treemap"
                   ? "bg-zinc-300 dark:bg-zinc-700 text-zinc-900 dark:text-white"
                   : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-800"
@@ -1200,8 +1200,8 @@ export default function GasTreemap() {
 
       {/* Market Insights — 2 Rows */}
       {insightRows.length > 0 && !loading && (
-        <div className="bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4">
-          <div className="flex items-center gap-2 mb-4">
+        <div className="bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl p-3 sm:p-4">
+          <div className="flex items-center gap-2 mb-3 sm:mb-4">
             <BarChart3 className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
             <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Market Insights</h3>
             <span className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-200 dark:bg-zinc-800 text-zinc-500">
@@ -1222,7 +1222,7 @@ export default function GasTreemap() {
                   <span className="text-[10px] text-zinc-400 dark:text-zinc-500">{row.subtitle}</span>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-3">
                   {row.cards.map((card, colIdx) => {
                     const isExpanded =
                       (hoveredInsight?.row === rowIdx && hoveredInsight?.col === colIdx) ||

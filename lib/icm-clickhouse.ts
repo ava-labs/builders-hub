@@ -552,6 +552,8 @@ export async function getICMStatsData(days: number): Promise<{
       totalOutgoing += counts.outgoing;
     }
 
+    if (totalMessageCount === 0) continue;
+
     aggregatedData.push({ timestamp, date: day, totalMessageCount, chainBreakdown });
     icmDataPoints.push({
       timestamp,
@@ -670,6 +672,8 @@ export async function getChainICMData(
 
   const result: ICMDataPoint[] = [];
   for (const [day, counts] of dayMap.entries()) {
+    if (counts.incoming === 0) continue;
+
     result.push({
       timestamp: dayToTimestamp(day),
       date: day,
@@ -684,15 +688,32 @@ export async function getChainICMData(
   return result;
 }
 
+/**
+ * Sum ICM message counts for the most recent N complete days.
+ * Skips today's partial data if present; when data is stale
+ * (latest entry is a past day) it treats that as the first complete day.
+ */
+function sumLatestCompleteDays(
+  dataPoints: ICMDataPoint[],
+  daysToSum: number
+): number {
+  const sorted = [...dataPoints].sort((a, b) => b.timestamp - a.timestamp);
+  if (sorted.length === 0) return 0;
+
+  const todayStr = new Date().toISOString().split("T")[0];
+  const startIndex = sorted[0]?.date === todayStr ? 1 : 0;
+
+  let sum = 0;
+  for (let i = startIndex; i < Math.min(startIndex + daysToSum, sorted.length); i++) {
+    sum += sorted[i]?.messageCount || 0;
+  }
+  return sum;
+}
+
 export async function getChainICMCount(
   chainId: string,
   daysToSum: number
 ): Promise<number> {
   const dataPoints = await getChainICMData(chainId, daysToSum + 2);
-  const sorted = dataPoints.sort((a, b) => b.timestamp - a.timestamp);
-  let sum = 0;
-  for (let i = 1; i <= Math.min(daysToSum, sorted.length - 1); i++) {
-    sum += sorted[i]?.messageCount || 0;
-  }
-  return sum;
+  return sumLatestCompleteDays(dataPoints, daysToSum);
 }

@@ -219,6 +219,15 @@ export default function ConfigurableChart({
 }: ConfigurableChartProps) {
   const { resolvedTheme } = useTheme();
   const [isMounted, setIsMounted] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 640);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
   const [dataSeries, setDataSeries] = useState<DataSeries[]>(() => {
     if (initialDataSeries.length > 0) {
       return initialDataSeries.map((ds, idx) => ({
@@ -911,10 +920,10 @@ export default function ConfigurableChart({
     const hasRightAxis = visibleSeries.some((s) => s.yAxis === "right" || s.yAxis === "y4");
 
     return (
-      <ResponsiveContainer width="100%" height={400}>
+      <ResponsiveContainer width="100%" height={isMobile ? 260 : 400}>
         <ComposedChart
           data={displayData}
-          margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+          margin={isMobile ? { top: 5, right: 10, left: 0, bottom: 0 } : { top: 10, right: 30, left: 0, bottom: 0 }}
         >
           <CartesianGrid
             strokeDasharray="3 3"
@@ -925,8 +934,8 @@ export default function ConfigurableChart({
             dataKey="date"
             tickFormatter={formatXAxis}
             className="text-xs text-gray-600 dark:text-gray-400"
-            tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
-            ticks={xAxisTicks}
+            tick={{ className: "fill-gray-600 dark:fill-gray-400", fontSize: isMobile ? 10 : 12 }}
+            ticks={isMobile && xAxisTicks && xAxisTicks.length > 3 ? xAxisTicks.filter((_: string, i: number) => i % Math.ceil(xAxisTicks.length / 3) === 0) : xAxisTicks}
             interval={0}
           />
           {hasLeftAxis && (
@@ -1811,8 +1820,8 @@ export default function ConfigurableChart({
         <ChartWatermark className="p-6">
             {renderChart()}
 
-            {/* Brush Slider */}
-            {filteredData.length > 0 && visibleSeries.length > 0 && (
+            {/* Brush Slider — hidden on mobile */}
+            {!isMobile && filteredData.length > 0 && visibleSeries.length > 0 && (
               <div 
                 className="mt-4 bg-white dark:bg-black pl-[60px] brush-slider-container cursor-default"
                 onMouseDown={(e) => e.stopPropagation()}
