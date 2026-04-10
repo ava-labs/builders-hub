@@ -255,7 +255,6 @@ const SubmitPChainTxWeightUpdate: React.FC<SubmitPChainTxWeightUpdateProps> = ({
             
             const { signedMessage } = await aggregateSignaturePromise;
             setSignedWarpMessage(signedMessage);
-            console.log(signedMessage)
 
             if (!isCoreWallet) {
                 // Generic wallet: aggregation done, CLI command shown in render

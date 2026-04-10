@@ -64,7 +64,7 @@ export default function InitiateRegistrationStep() {
         />
       </div>
       <StepCodeViewer
-        activeStep={3}
+        activeStep={2}
         steps={STEP_CONFIG}
         className="lg:sticky lg:top-4 lg:self-start"
       />

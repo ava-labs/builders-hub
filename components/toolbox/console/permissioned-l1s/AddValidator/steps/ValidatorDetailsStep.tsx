@@ -73,7 +73,7 @@ export default function ValidatorDetailsStep() {
         />
       </div>
       <StepCodeViewer
-        activeStep={2}
+        activeStep={1}
         steps={STEP_CONFIG}
         className="lg:sticky lg:top-4 lg:self-start"
       />

@@ -63,7 +63,7 @@ export default function SelectSubnetStep() {
         </div>
       </div>
       <StepCodeViewer
-        activeStep={1}
+        activeStep={0}
         steps={STEP_CONFIG}
         className="lg:sticky lg:top-4 lg:self-start"
       />

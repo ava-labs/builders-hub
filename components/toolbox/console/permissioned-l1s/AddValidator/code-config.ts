@@ -31,7 +31,6 @@ const txHash = await walletClient.registerL1Validator({
 });`;
 
 export const STEP_CONFIG: StepConfig[] = [
-  { id: "ensure-node", title: "L1 Node", description: "Ensure your L1 node is running" },
   { id: "select-subnet", title: "Select L1", description: "Choose your L1 subnet" },
   { id: "validator-details", title: "Validator Details", description: "Add node credentials and configuration" },
   {

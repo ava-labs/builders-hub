@@ -45,7 +45,7 @@ export default function PChainRegistrationStep() {
         />
       </div>
       <StepCodeViewer
-        activeStep={4}
+        activeStep={3}
         steps={STEP_CONFIG}
         className="lg:sticky lg:top-4 lg:self-start"
       />
