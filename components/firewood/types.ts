@@ -47,10 +47,11 @@ export const FIREWOOD_COLORS = {
 // Light-mode solid tints for each accent color.
 // In dark mode, hex alpha on bright colors works fine.
 // In light mode, hex alpha on muted colors is invisible — use pre-computed solid tints instead.
+const RUST_TINT = { bg: "#f5e6d8", bgStrong: "#ebd0b8", border: "#d4a574", borderStrong: "#c08050" }
+
 export const LIGHT_TINTS: Record<string, { bg: string; bgStrong: string; border: string; borderStrong: string }> = {
   [FIREWOOD_COLORS.leveldb]:    { bg: "#e8ecf0", bgStrong: "#d4dbe3", border: "#b0bec5", borderStrong: "#90a4ae" },
-  [FIREWOOD_COLORS.rust]:       { bg: "#f5e6d8", bgStrong: "#ebd0b8", border: "#d4a574", borderStrong: "#c08050" },
-  [FIREWOOD_COLORS.firewood]:   { bg: "#f5e6d8", bgStrong: "#ebd0b8", border: "#d4a574", borderStrong: "#c08050" },
+  [FIREWOOD_COLORS.rust]:       RUST_TINT,
   [FIREWOOD_COLORS.disk]:       { bg: "#dcf5e4", bgStrong: "#b8ebc8", border: "#6dd490", borderStrong: "#3cc060" },
   [FIREWOOD_COLORS.trie]:       { bg: "#dbeafe", bgStrong: "#bfdbfe", border: "#7cb3f4", borderStrong: "#5094e8" },
   [FIREWOOD_COLORS.compaction]: { bg: "#fee2e2", bgStrong: "#fecaca", border: "#f08080", borderStrong: "#e05050" },
