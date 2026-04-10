@@ -16,6 +16,7 @@ import { AccountRequirementsConfigKey } from "../../hooks/useAccountRequirements
 import { useFaucetRateLimit } from "@/hooks/useFaucetRateLimit";
 import { useFaucetBalance } from "@/hooks/useFaucetBalance";
 import { Check, Droplets, ExternalLink, Clock, Wallet, RefreshCw, Loader2, AlertTriangle } from "lucide-react";
+import { utils } from "@avalabs/avalanchejs";
 import { useWalletStore } from "../../stores/walletStore";
 import { useWallet } from "../../hooks/useWallet";
 import Link from "next/link";
@@ -125,6 +126,32 @@ function EVMFaucetCard({ chain }: { chain: L1ListItem }) {
   );
 }
 
+function validatePChainAddress(raw: string): { valid: true; normalized: string } | { valid: false; error: string } {
+  const trimmed = raw.trim().toLowerCase();
+
+  if (!trimmed) {
+    return { valid: false, error: "Address is required." };
+  }
+
+  if (trimmed.startsWith("0x")) {
+    return { valid: false, error: "This looks like a C-Chain address. P-Chain addresses start with P-fuji1..." };
+  }
+
+  // Ensure P- prefix, then let avalanchejs handle all bech32 validation
+  const normalized = trimmed.startsWith("p-") ? `P-${trimmed.slice(2)}` : `P-${trimmed}`;
+
+  try {
+    const [chainAlias] = utils.parse(normalized);
+    if (chainAlias !== "P") {
+      return { valid: false, error: "P-Chain addresses must start with P-fuji1..." };
+    }
+  } catch {
+    return { valid: false, error: "Invalid P-Chain address. Expected format: P-fuji1..." };
+  }
+
+  return { valid: true, normalized };
+}
+
 function ManualPChainFaucetInput() {
   const [address, setAddress] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -132,15 +159,21 @@ function ManualPChainFaucetInput() {
   const [success, setSuccess] = useState(false);
   const { notify } = useConsoleNotifications();
 
+  const handleAddressChange = useCallback((value: string) => {
+    // Auto-convert mixed case to lowercase
+    setAddress(value.toLowerCase());
+    setError(null);
+    setSuccess(false);
+  }, []);
+
   const handleClaim = useCallback(async () => {
-    const trimmed = address.trim();
-    if (!trimmed) return;
+    const result = validatePChainAddress(address);
+    if (!result.valid) {
+      setError(result.error);
+      return;
+    }
 
-    // Auto-prepend P-chain prefix if user pasted bare address from CLI
-    const normalizedAddress = trimmed.startsWith("P-")
-      ? trimmed
-      : `P-fuji1${trimmed}`;
-
+    const normalizedAddress = result.normalized;
     setError(null);
     setIsClaiming(true);
     setSuccess(false);
@@ -187,21 +220,19 @@ function ManualPChainFaucetInput() {
   return (
     <div className="mt-3 pt-3 border-t border-zinc-200/80 dark:border-zinc-800">
       <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-2">
-        Using platform-cli? Paste your address from{" "}
+        Using platform-cli? Get your address with{" "}
         <code className="bg-zinc-100 dark:bg-zinc-800 px-1 py-0.5 rounded text-[10px] font-mono">
-          platform wallet balance
+          platform wallet address --network fuji
         </code>
-        {" "}&mdash; the <code className="bg-zinc-100 dark:bg-zinc-800 px-1 py-0.5 rounded text-[10px] font-mono">P-fuji1</code> prefix is added automatically.
+        {" "}&mdash; paste the full{" "}
+        <code className="bg-zinc-100 dark:bg-zinc-800 px-1 py-0.5 rounded text-[10px] font-mono">P-fuji1...</code>
+        {" "}address below. Case is auto-corrected.
       </p>
       <div className="flex gap-2">
         <input
           type="text"
           value={address}
-          onChange={(e) => {
-            setAddress(e.target.value);
-            setError(null);
-            setSuccess(false);
-          }}
+          onChange={(e) => handleAddressChange(e.target.value)}
           placeholder="P-fuji1..."
           className="flex-1 px-3 py-2 text-xs font-mono rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-500/20"
         />
