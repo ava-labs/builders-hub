@@ -1075,11 +1075,10 @@
     },
     {
       "address": "0x10922755586c35180cdec7a1a38e2b60c800d3c8",
-      "name": "MEV Bot (failed ops)",
-      "protocol": "MEV Bot (failed ops)",
-      "category": "mev",
-      "type": "other",
-      "subcategory": "heavy-arb"
+      "name": "Spam Defense (INVALID opcode)",
+      "protocol": "Avalanche Spam Defense",
+      "category": "infrastructure",
+      "type": "other"
     },
     {
       "address": "0x99b69659f70470bbd32ae59ddf952f157a598a44",
@@ -1099,11 +1098,10 @@
     },
     {
       "address": "0x07d25044cbe0524c0617267d6bfaf2fa6a0a0efe",
-      "name": "MEV Bot (Gnosis Safe backed)",
-      "protocol": "MEV Bot (Gnosis Safe backed)",
+      "name": "Selini Capital MEV Bot V6 (active)",
+      "protocol": "Selini Capital",
       "category": "mev",
-      "type": "other",
-      "subcategory": "arbitrage"
+      "type": "bot"
     },
     {
       "address": "0x25090cd3c1f3dd6377348f58408d2ddc96acf201",
@@ -1614,11 +1612,10 @@
     },
     {
       "address": "0x62f9016c97ef9255c8ba16dda7f531656015daea",
-      "name": "MEV Bot (factory/router)",
-      "protocol": "MEV Bot (factory/router)",
+      "name": "Selini Capital MEV Bot V5 (retired)",
+      "protocol": "Selini Capital",
       "category": "mev",
-      "type": "other",
-      "subcategory": "arbitrage"
+      "type": "bot"
     },
     {
       "address": "0xef114c8710330751ae2cd84066cfd85412b6d30d",
@@ -1693,11 +1690,10 @@
     },
     {
       "address": "0x99ca040580837a2158bfd0c8d84fcd4b85b6393b",
-      "name": "MEV Bot (multi-pool arb)",
-      "protocol": "MEV Bot (multi-pool arb)",
+      "name": "Selini Capital MEV Bot V4 (retired)",
+      "protocol": "Selini Capital",
       "category": "mev",
-      "type": "other",
-      "subcategory": "arbitrage"
+      "type": "bot"
     },
     {
       "address": "0xd1448508f221b53ea26c74d384f123e085f9ab2d",
@@ -1748,11 +1744,10 @@
     },
     {
       "address": "0x17768456b8e8b26d06bf5e99a77c4c0c9d2bfb2a",
-      "name": "MEV Bot (multi-hop arb, 5.9M avg gas)",
-      "protocol": "MEV Bot (multi-hop arb, 5.9M avg gas)",
-      "category": "mev",
-      "type": "other",
-      "subcategory": "heavy-arb"
+      "name": "Spam Defense (INVALID opcode)",
+      "protocol": "Avalanche Spam Defense",
+      "category": "infrastructure",
+      "type": "other"
     },
     {
       "address": "0xac3b57bd239b1ff49d07be4f7cf48f64b7462811",
@@ -1764,11 +1759,10 @@
     },
     {
       "address": "0x350b239e26690202e2a2d46f55a844e4396f0485",
-      "name": "MEV Bot (heavy arb, 4.1M avg gas)",
-      "protocol": "MEV Bot (heavy arb, 4.1M avg gas)",
-      "category": "mev",
-      "type": "other",
-      "subcategory": "heavy-arb"
+      "name": "Spam Defense (INVALID opcode)",
+      "protocol": "Avalanche Spam Defense",
+      "category": "infrastructure",
+      "type": "other"
     },
     {
       "address": "0x181870d61c0e5a6985c873485de8297426f4aed4",
@@ -2755,11 +2749,10 @@
     },
     {
       "address": "0x80318c852ee7fbde52ce439dec3ae022ba39a536",
-      "name": "MEV Bot (Pool Arbitrage)",
-      "protocol": "MEV Bot (Pool Arbitrage)",
+      "name": "Selini Capital MEV Bot V7 (active)",
+      "protocol": "Selini Capital",
       "category": "mev",
-      "type": "other",
-      "subcategory": "arbitrage"
+      "type": "bot"
     },
     {
       "address": "0x6da6cb5fdb93812e7df84148a409904c41e3e737",
@@ -2838,6 +2831,615 @@
       "protocol": "Uniswap",
       "category": "dex",
       "type": "controller"
+    },
+    {
+      "address": "0x191c10aa4af7c30e871e70c95db0e4eb77237530",
+      "name": "Aave V2 & V3",
+      "protocol": "Aave V2 & V3",
+      "category": "lending",
+      "type": "other"
+    },
+    {
+      "address": "0x211cc4dd073734da055fbf44a2b4667d5e5fe5d2",
+      "name": "Aave V2 & V3",
+      "protocol": "Aave V2 & V3",
+      "category": "lending",
+      "type": "other"
+    },
+    {
+      "address": "0x40b4baecc69b882e8804f9286b12228c27f8c9bf",
+      "name": "Aave V2 & V3",
+      "protocol": "Aave V2 & V3",
+      "category": "lending",
+      "type": "other"
+    },
+    {
+      "address": "0x46a51127c3ce23fb7ab1de06226147f446e4a857",
+      "name": "Aave V2 & V3",
+      "protocol": "Aave V2 & V3",
+      "category": "lending",
+      "type": "other"
+    },
+    {
+      "address": "0x47afa96cdc9fab46904a55a6ad4bf6660b53c38a",
+      "name": "Aave V2 & V3",
+      "protocol": "Aave V2 & V3",
+      "category": "lending",
+      "type": "other"
+    },
+    {
+      "address": "0x513c7e3a9c69ca3e22550ef58ac1c0088e918fff",
+      "name": "Aave V2 & V3",
+      "protocol": "Aave V2 & V3",
+      "category": "lending",
+      "type": "other"
+    },
+    {
+      "address": "0x532e6537fea298397212f09a61e03311686f548e",
+      "name": "Aave V2 & V3",
+      "protocol": "Aave V2 & V3",
+      "category": "lending",
+      "type": "other"
+    },
+    {
+      "address": "0x53f7c5869a859f0aec3d334ee8b4cf01e3492f21",
+      "name": "Aave V2 & V3",
+      "protocol": "Aave V2 & V3",
+      "category": "lending",
+      "type": "other"
+    },
+    {
+      "address": "0x625e7708f30ca75bfd92586e17077590c60eb4cd",
+      "name": "Aave V2 & V3",
+      "protocol": "Aave V2 & V3",
+      "category": "lending",
+      "type": "other"
+    },
+    {
+      "address": "0x6533afac2e7bccb20dca161449a13a32d391fb00",
+      "name": "Aave V2 & V3",
+      "protocol": "Aave V2 & V3",
+      "category": "lending",
+      "type": "other"
+    },
+    {
+      "address": "0x686bef2417b6dc32c50a3cbfbcc3bb60e1e9a15d",
+      "name": "Aave V2 & V3",
+      "protocol": "Aave V2 & V3",
+      "category": "lending",
+      "type": "other"
+    },
+    {
+      "address": "0x6ab707aca953edaefbc4fd23ba73294241490620",
+      "name": "Aave V2 & V3",
+      "protocol": "Aave V2 & V3",
+      "category": "lending",
+      "type": "other"
+    },
+    {
+      "address": "0x6d80113e533a2c0fe82eabd35f1875dcea89ea97",
+      "name": "Aave V2 & V3",
+      "protocol": "Aave V2 & V3",
+      "category": "lending",
+      "type": "other"
+    },
+    {
+      "address": "0x724dc807b04555b71ed48a6896b6f41593b8c637",
+      "name": "Aave V2 & V3",
+      "protocol": "Aave V2 & V3",
+      "category": "lending",
+      "type": "other"
+    },
+    {
+      "address": "0x82e64f49ed5ec1bc6e43dad4fc8af9bb3a2312ee",
+      "name": "Aave V2 & V3",
+      "protocol": "Aave V2 & V3",
+      "category": "lending",
+      "type": "other"
+    },
+    {
+      "address": "0x8a9fde6925a839f6b1932d16b36ac026f8d3fbdb",
+      "name": "Aave V2 & V3",
+      "protocol": "Aave V2 & V3",
+      "category": "lending",
+      "type": "other"
+    },
+    {
+      "address": "0x8ffdf2de812095b1d19cb146e4c004587c0a0692",
+      "name": "Aave V2 & V3",
+      "protocol": "Aave V2 & V3",
+      "category": "lending",
+      "type": "other"
+    },
+    {
+      "address": "0xc45a479877e1e9dfe9fcd4056c699575a1045daa",
+      "name": "Aave V2 & V3",
+      "protocol": "Aave V2 & V3",
+      "category": "lending",
+      "type": "other"
+    },
+    {
+      "address": "0xd45b7c061016102f9fa220502908f2c0f1add1d7",
+      "name": "Aave V2 & V3",
+      "protocol": "Aave V2 & V3",
+      "category": "lending",
+      "type": "other"
+    },
+    {
+      "address": "0xdfe521292ece2a4f44242efbcd66bc594ca9714b",
+      "name": "Aave V2 & V3",
+      "protocol": "Aave V2 & V3",
+      "category": "lending",
+      "type": "other"
+    },
+    {
+      "address": "0xe50fa9b3c56ffb159cb0fca61f5c9d750e8128c8",
+      "name": "Aave V2 & V3",
+      "protocol": "Aave V2 & V3",
+      "category": "lending",
+      "type": "other"
+    },
+    {
+      "address": "0xf329e36c7bf6e5e86ce2150875a84ce77f477375",
+      "name": "Aave V2 & V3",
+      "protocol": "Aave V2 & V3",
+      "category": "lending",
+      "type": "other"
+    },
+    {
+      "address": "0xf611aeb5013fd2c0511c9cd55c7dc5c1140741a6",
+      "name": "Aave V2 & V3",
+      "protocol": "Aave V2 & V3",
+      "category": "lending",
+      "type": "other"
+    },
+    {
+      "address": "0x276d6c0e524f96f0751bfa27ba571fb8b2e95a55",
+      "name": "AVAX Gpu Mining Game",
+      "protocol": "AVAX Gpu Mining Game",
+      "category": "gaming",
+      "type": "other"
+    },
+    {
+      "address": "0xd61b3bba7890e662d205d51ba75ecf1ef5eb1280",
+      "name": "AVAX Gpu Mining Game",
+      "protocol": "AVAX Gpu Mining Game",
+      "category": "gaming",
+      "type": "other"
+    },
+    {
+      "address": "0xaae6a0cf787ffe4b6e5f3e7e9d3a932001d1649b",
+      "name": "Bearly Awesome",
+      "protocol": "Bearly Awesome",
+      "category": "gaming",
+      "type": "other"
+    },
+    {
+      "address": "0x0ebfebd41e1ea83be5e911cdcd2730a0ccee344d",
+      "name": "BENQI",
+      "protocol": "BENQI",
+      "category": "lending",
+      "type": "other"
+    },
+    {
+      "address": "0x4e9f683a27a6bdad3fc2764003c6078f6e14de86",
+      "name": "BENQI",
+      "protocol": "BENQI",
+      "category": "lending",
+      "type": "other"
+    },
+    {
+      "address": "0x5c0401e5d07ce045515268fd1bae16e6144e7fdb",
+      "name": "BENQI",
+      "protocol": "BENQI",
+      "category": "lending",
+      "type": "other"
+    },
+    {
+      "address": "0x7c76b6440b9100fd40c75e28e7f1e5a0a4740428",
+      "name": "BENQI",
+      "protocol": "BENQI",
+      "category": "lending",
+      "type": "other"
+    },
+    {
+      "address": "0x7d1232b90d3f809a54eeaeebc639c62df8a18571",
+      "name": "BENQI",
+      "protocol": "BENQI",
+      "category": "lending",
+      "type": "other"
+    },
+    {
+      "address": "0xc22f01ddc8010ee05574028b91d9029b04c73772",
+      "name": "BENQI",
+      "protocol": "BENQI",
+      "category": "lending",
+      "type": "other"
+    },
+    {
+      "address": "0xe73009fd3c50e24d2c3e20a976ed1abe1b99c3b4",
+      "name": "Blackhole",
+      "protocol": "Blackhole",
+      "category": "yield",
+      "type": "other"
+    },
+    {
+      "address": "0x0ba8b15e3e2fbc10b5b1cc8ff7ea811f1b9669b4",
+      "name": "ByteSwap",
+      "protocol": "ByteSwap",
+      "category": "dex",
+      "type": "other"
+    },
+    {
+      "address": "0x95f0dfaee5a4d2c2b2e8e84b29c7df00dbf5d168",
+      "name": "ByteSwap",
+      "protocol": "ByteSwap",
+      "category": "dex",
+      "type": "other"
+    },
+    {
+      "address": "0xb8d0bb1ae2a82cfab5f2e3e16e3d90b5fc82c44e",
+      "name": "ByteSwap",
+      "protocol": "ByteSwap",
+      "category": "dex",
+      "type": "other"
+    },
+    {
+      "address": "0xb94ff82f8d181ceaa1c805c82db2804c2f2b27fc",
+      "name": "Castle Rush",
+      "protocol": "Castle Rush",
+      "category": "gaming",
+      "type": "other"
+    },
+    {
+      "address": "0x6bbd8ff4e53dbe18e4e33b19cff1f5d50be200e3",
+      "name": "CHAIN REACT",
+      "protocol": "CHAIN REACT",
+      "category": "gaming",
+      "type": "other"
+    },
+    {
+      "address": "0xb37ef5cf74e2c88cf60e64e42d1ea2e09ab5b1f0",
+      "name": "CoqFight.meme",
+      "protocol": "CoqFight.meme",
+      "category": "gaming",
+      "type": "other"
+    },
+    {
+      "address": "0xd95ce987ff0b2a2ffc979dc1ac5b8d31dbfa49d5",
+      "name": "Creatures of Havoc",
+      "protocol": "Creatures of Havoc",
+      "category": "gaming",
+      "type": "other"
+    },
+    {
+      "address": "0xccfaa3cc11b08a64d03e1df5b6a41e8f8b2a9ea6",
+      "name": "Cubik Game",
+      "protocol": "Cubik Game",
+      "category": "gaming",
+      "type": "other"
+    },
+    {
+      "address": "0x70e543c856a40ffc26df3d571f96efdf1bdc1b07",
+      "name": "Curvance",
+      "protocol": "Curvance",
+      "category": "other",
+      "type": "other"
+    },
+    {
+      "address": "0xf5ec42e2660c68f620c6edfa17a8ed42e8e0e114",
+      "name": "Curvance",
+      "protocol": "Curvance",
+      "category": "other",
+      "type": "other"
+    },
+    {
+      "address": "0x0b20c6464f6b23e3c3c31f87d3f1c56dd3d37d53",
+      "name": "Defrag Finance",
+      "protocol": "Defrag Finance",
+      "category": "other",
+      "type": "other"
+    },
+    {
+      "address": "0xb9aad38b14a21f7fa4c8c9d31e0b24ce7ff3db43",
+      "name": "DokdoKey",
+      "protocol": "DokdoKey",
+      "category": "other",
+      "type": "other"
+    },
+    {
+      "address": "0xc0adbc96e7989a4c54bf8d2c4e4cfb36fe3e7e4a",
+      "name": "EFI Network",
+      "protocol": "EFI Network",
+      "category": "other",
+      "type": "other"
+    },
+    {
+      "address": "0xaa31abd38e1fbe1b0f85abc8fa5a51b39c8a0c0d",
+      "name": "Ekubo",
+      "protocol": "Ekubo",
+      "category": "other",
+      "type": "other"
+    },
+    {
+      "address": "0x27b35aa150e10e655dfc31f8fbbca23e0ee45e14",
+      "name": "FarmFun",
+      "protocol": "FarmFun",
+      "category": "gaming",
+      "type": "other"
+    },
+    {
+      "address": "0x82dec6ce7cfa7a22ed0dbe1b7b7c8c1d26bace7a",
+      "name": "Fazz",
+      "protocol": "Fazz",
+      "category": "other",
+      "type": "other"
+    },
+    {
+      "address": "0x3f36e26d7e5bf50bfce60ac3caf5a22ce2acb0a2",
+      "name": "GoldRush",
+      "protocol": "GoldRush",
+      "category": "gaming",
+      "type": "other"
+    },
+    {
+      "address": "0x44a56ac34aee5c5e4d70eb7abd8b3ce590a6a84a",
+      "name": "Hats Finance",
+      "protocol": "Hats Finance",
+      "category": "other",
+      "type": "other"
+    },
+    {
+      "address": "0x30f7b06e55a5ed16a6ba4a67780c78c80ff0e48a",
+      "name": "Kokomo Finance",
+      "protocol": "Kokomo Finance",
+      "category": "other",
+      "type": "other"
+    },
+    {
+      "address": "0x18556da13313f3532c54ccdc3a97bab0c3a3f166",
+      "name": "LFJ (fka Trader Joe)",
+      "protocol": "LFJ (fka Trader Joe)",
+      "category": "dex",
+      "type": "other"
+    },
+    {
+      "address": "0x271e6e59a644b8a0e9fd4d0a5d80df1d60087e36",
+      "name": "LFJ (fka Trader Joe)",
+      "protocol": "LFJ (fka Trader Joe)",
+      "category": "dex",
+      "type": "other"
+    },
+    {
+      "address": "0x28e395a54a64284dba39652921cd99924f4e3797",
+      "name": "LFJ (fka Trader Joe)",
+      "protocol": "LFJ (fka Trader Joe)",
+      "category": "dex",
+      "type": "other"
+    },
+    {
+      "address": "0x1d73a90b68c91bdacdd26f0e0b42e29faf4a7d20",
+      "name": "moats.app",
+      "protocol": "moats.app",
+      "category": "dex",
+      "type": "other"
+    },
+    {
+      "address": "0x20dcc5e2b29d2ea78fbc4fbc7f65c1d32e6ed6a0",
+      "name": "moats.app",
+      "protocol": "moats.app",
+      "category": "dex",
+      "type": "other"
+    },
+    {
+      "address": "0x48a7a29d613b1a1e15efc06c9ba6c9701e77987a",
+      "name": "moats.app",
+      "protocol": "moats.app",
+      "category": "dex",
+      "type": "other"
+    },
+    {
+      "address": "0x7e4e1bc98c480f9405e88e7a93ebc34b83f1ff83",
+      "name": "moats.app",
+      "protocol": "moats.app",
+      "category": "dex",
+      "type": "other"
+    },
+    {
+      "address": "0xf7eb4b67d1083de2f8f12129dc56e44e3d7b3db4",
+      "name": "moats.app",
+      "protocol": "moats.app",
+      "category": "dex",
+      "type": "other"
+    },
+    {
+      "address": "0x44771c71250d303d32e638c1c7ca7d00135cd65f",
+      "name": "Pangolin Exchange",
+      "protocol": "Pangolin Exchange",
+      "category": "dex",
+      "type": "other"
+    },
+    {
+      "address": "0x0a748364b9aebfc434cb7b039bc13cac57c2b68a",
+      "name": "Pharaoh Exchange",
+      "protocol": "Pharaoh Exchange",
+      "category": "dex",
+      "type": "other"
+    },
+    {
+      "address": "0x4b03afc91295ed778320c2824bad5eb5a6e8b422",
+      "name": "Pharaoh Exchange",
+      "protocol": "Pharaoh Exchange",
+      "category": "dex",
+      "type": "other"
+    },
+    {
+      "address": "0x8909dc15e40173ff4699343b6eb8132c65e18ec6",
+      "name": "Pharaoh Exchange",
+      "protocol": "Pharaoh Exchange",
+      "category": "dex",
+      "type": "other"
+    },
+    {
+      "address": "0xaaac4a5fa15dc7d3865e7e2e3d73d6b4a1c5c29b",
+      "name": "Pharaoh Exchange",
+      "protocol": "Pharaoh Exchange",
+      "category": "dex",
+      "type": "other"
+    },
+    {
+      "address": "0xc3ab3ed1e20404e9d9f0ff03f3016fecf0181301",
+      "name": "Pharaoh Exchange",
+      "protocol": "Pharaoh Exchange",
+      "category": "dex",
+      "type": "other"
+    },
+    {
+      "address": "0x45e7a07fb7cc1ba42d4e9f3f96e0b7c6e8e33c0e",
+      "name": "PumpSpace",
+      "protocol": "PumpSpace",
+      "category": "dex",
+      "type": "other"
+    },
+    {
+      "address": "0x3a5a72408a81a05a84b4ab23a8e7d05efe59da84",
+      "name": "Salvor",
+      "protocol": "Salvor",
+      "category": "lending",
+      "type": "other"
+    },
+    {
+      "address": "0x82d7f9c1b5c89b8f4b8ecbab53ec00a77a0e52d5",
+      "name": "Salvor",
+      "protocol": "Salvor",
+      "category": "lending",
+      "type": "other"
+    },
+    {
+      "address": "0xc7575019c79a2b03cb5a6f3bd3e62f73dee7af43",
+      "name": "Salvor",
+      "protocol": "Salvor",
+      "category": "lending",
+      "type": "other"
+    },
+    {
+      "address": "0x7b7c3b47f5a89c97aec95634b00bbfb4bc49e2cf",
+      "name": "SteakHut Liquidity",
+      "protocol": "SteakHut Liquidity",
+      "category": "other",
+      "type": "other"
+    },
+    {
+      "address": "0x2d70fba0e4e3d88b37e1aad6fe13cc99feab0c28",
+      "name": "Sumer Exchange",
+      "protocol": "Sumer Exchange",
+      "category": "dex",
+      "type": "other"
+    },
+    {
+      "address": "0x3a79d2e63e2b1afc3dd90d6a1d4a9c95d24a2543",
+      "name": "Sumer Exchange",
+      "protocol": "Sumer Exchange",
+      "category": "dex",
+      "type": "other"
+    },
+    {
+      "address": "0xfb97f9e8dafee0e33fcabb33e82b070b8e330d8c",
+      "name": "TradeSta",
+      "protocol": "TradeSta",
+      "category": "dex",
+      "type": "other"
+    },
+    {
+      "address": "0x9d8ca1b48b73fa8e70e4a89a5b0e0e2e2c08c456",
+      "name": "Tundra",
+      "protocol": "Tundra",
+      "category": "rwa",
+      "type": "other"
+    },
+    {
+      "address": "0xe6d45c4c5d7c37d2ae16f714a1c02aa53bd78dba",
+      "name": "vMoney",
+      "protocol": "vMoney",
+      "category": "other",
+      "type": "other"
+    },
+    {
+      "address": "0x8b2c28e3b24c9ce73edd11bd2aef7c7eb98de0f5",
+      "name": "VRG Lab",
+      "protocol": "VRG Lab",
+      "category": "other",
+      "type": "other"
+    },
+    {
+      "address": "0x0029381eff48e9ea963f8095ea204098e1d9d8b7",
+      "name": "Yield Yak",
+      "protocol": "Yield Yak",
+      "category": "yield",
+      "type": "other"
+    },
+    {
+      "address": "0x09c800c6e67693aa3b39e4981a3de773c4945e78",
+      "name": "Yield Yak",
+      "protocol": "Yield Yak",
+      "category": "yield",
+      "type": "other"
+    },
+    {
+      "address": "0x4b946c91c2b1a7d7c40fb3c130cdfbaf8389094d",
+      "name": "Yield Yak",
+      "protocol": "Yield Yak",
+      "category": "yield",
+      "type": "other"
+    },
+    {
+      "address": "0x5917b2eda0badef1c44ed7e55fa41b27b3da0fb4",
+      "name": "Yield Yak",
+      "protocol": "Yield Yak",
+      "category": "yield",
+      "type": "other"
+    },
+    {
+      "address": "0xc7388d98fa86b6639d71a0a3d196f09eae2c7718",
+      "name": "Yield Yak",
+      "protocol": "Yield Yak",
+      "category": "yield",
+      "type": "other"
+    },
+    {
+      "address": "0xe5440c2c3eb04e67ac0cde7e3d2e731c3e474cb4",
+      "name": "Yield Yak",
+      "protocol": "Yield Yak",
+      "category": "yield",
+      "type": "other"
+    },
+    {
+      "address": "0x631fca4a73aee699638634479132452ef354b9b8",
+      "name": "Selini Capital MEV Safe (Operator)",
+      "protocol": "Selini Capital",
+      "category": "mev",
+      "type": "safe"
+    },
+    {
+      "address": "0x6135b562c5d46595b044519e787fe396830c5c83",
+      "name": "Selini Capital MEV Bot V3 (retired)",
+      "protocol": "Selini Capital",
+      "category": "mev",
+      "type": "bot"
+    },
+    {
+      "address": "0x586b7992a8467290c5a1857fce7ec8af72be9445",
+      "name": "Selini Capital MEV Bot V2 (retired)",
+      "protocol": "Selini Capital",
+      "category": "mev",
+      "type": "bot"
+    },
+    {
+      "address": "0xec55c19f6b0e08fbad7decd54bf8c892230fd353",
+      "name": "Selini Capital MEV Bot V1 (retired)",
+      "protocol": "Selini Capital",
+      "category": "mev",
+      "type": "bot"
     }
   ],
   "protocolSlugs": {
