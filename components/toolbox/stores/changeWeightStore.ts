@@ -82,6 +82,10 @@ const createStore = (isTestnet: boolean) =>
       {
         name: `${STORE_VERSION}-change-weight-store-${isTestnet ? "testnet" : "mainnet"}`,
         storage: createJSONStorage(localStorageComp),
+        partialize: (state) => {
+          const { globalError, globalSuccess, ...rest } = state;
+          return rest;
+        },
       }
     )
   );
