@@ -6,8 +6,6 @@ import { ValidatorManagerDetails } from '@/components/toolbox/components/Validat
 import { useAddValidatorStore } from '@/components/toolbox/stores/addValidatorStore';
 import { useValidatorManagerContext } from '@/components/toolbox/console/permissioned-l1s/shared/ValidatorManagerContext';
 import { useCreateChainStore } from '@/components/toolbox/stores/createChainStore';
-import { StepCodeViewer } from '@/components/console/step-code-viewer';
-import { STEP_CONFIG } from '../codeConfig';
 
 export default function SelectSubnetStep() {
   const store = useAddValidatorStore();
@@ -16,7 +14,6 @@ export default function SelectSubnetStep() {
 
   const [isValidatorManagerDetailsExpanded, setIsValidatorManagerDetailsExpanded] = useState<boolean>(false);
 
-  // Initialize subnetIdL1 from createChainStore if store is empty
   useEffect(() => {
     if (!store.subnetIdL1 && createChainStoreSubnetId) {
       store.setSubnetIdL1(createChainStoreSubnetId);
@@ -28,13 +25,15 @@ export default function SelectSubnetStep() {
       <div className="space-y-4">
         <h2 className="text-lg font-semibold">Select L1 Subnet</h2>
         <p className="text-sm text-gray-500 mb-4">Choose the L1 subnet where you want to add the validator.</p>
-        <div className="space-y-2">
-          <SelectSubnetId
-            value={store.subnetIdL1}
-            onChange={store.setSubnetIdL1}
-            error={vmcCtx.error}
-            hidePrimaryNetwork={true}
-          />
+        <SelectSubnetId
+          value={store.subnetIdL1}
+          onChange={store.setSubnetIdL1}
+          error={vmcCtx.error}
+          hidePrimaryNetwork={true}
+        />
+      </div>
+      {store.subnetIdL1 && (
+        <div className="lg:sticky lg:top-4 lg:self-start">
           <ValidatorManagerDetails
             validatorManagerAddress={vmcCtx.validatorManagerAddress}
             blockchainId={vmcCtx.blockchainId}
@@ -54,8 +53,7 @@ export default function SelectSubnetStep() {
             onToggleExpanded={() => setIsValidatorManagerDetailsExpanded((prev) => !prev)}
           />
         </div>
-      </div>
-      <StepCodeViewer activeStep={0} steps={STEP_CONFIG} className="lg:sticky lg:top-4 lg:self-start" />
+      )}
     </div>
   );
 }

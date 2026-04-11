@@ -6,8 +6,6 @@ import { ValidatorManagerDetails } from '@/components/toolbox/components/Validat
 import { useChangeWeightStore } from '@/components/toolbox/stores/changeWeightStore';
 import { useValidatorManagerContext } from '@/components/toolbox/console/permissioned-l1s/shared/ValidatorManagerContext';
 import { useCreateChainStore } from '@/components/toolbox/stores/createChainStore';
-import { StepCodeViewer } from '@/components/console/step-code-viewer';
-import { STEP_CONFIG } from '../codeConfig';
 
 export default function SelectSubnetStep() {
   const store = useChangeWeightStore();
@@ -34,26 +32,29 @@ export default function SelectSubnetStep() {
           error={vmcCtx.error}
           hidePrimaryNetwork={true}
         />
-        <ValidatorManagerDetails
-          validatorManagerAddress={vmcCtx.validatorManagerAddress}
-          blockchainId={vmcCtx.blockchainId}
-          subnetId={store.subnetIdL1}
-          isLoading={vmcCtx.isLoading}
-          signingSubnetId={vmcCtx.signingSubnetId}
-          contractTotalWeight={vmcCtx.contractTotalWeight}
-          l1WeightError={vmcCtx.l1WeightError}
-          isLoadingL1Weight={vmcCtx.isLoadingL1Weight}
-          contractOwner={vmcCtx.contractOwner}
-          ownershipError={vmcCtx.ownershipError}
-          isLoadingOwnership={vmcCtx.isLoadingOwnership}
-          isOwnerContract={vmcCtx.isOwnerContract}
-          ownerType={vmcCtx.ownerType}
-          isDetectingOwnerType={vmcCtx.isDetectingOwnerType}
-          isExpanded={isValidatorManagerDetailsExpanded}
-          onToggleExpanded={() => setIsValidatorManagerDetailsExpanded((prev) => !prev)}
-        />
       </div>
-      <StepCodeViewer activeStep={0} steps={STEP_CONFIG} className="lg:sticky lg:top-4 lg:self-start" />
+      {store.subnetIdL1 && (
+        <div className="lg:sticky lg:top-4 lg:self-start">
+          <ValidatorManagerDetails
+            validatorManagerAddress={vmcCtx.validatorManagerAddress}
+            blockchainId={vmcCtx.blockchainId}
+            subnetId={store.subnetIdL1}
+            isLoading={vmcCtx.isLoading}
+            signingSubnetId={vmcCtx.signingSubnetId}
+            contractTotalWeight={vmcCtx.contractTotalWeight}
+            l1WeightError={vmcCtx.l1WeightError}
+            isLoadingL1Weight={vmcCtx.isLoadingL1Weight}
+            contractOwner={vmcCtx.contractOwner}
+            ownershipError={vmcCtx.ownershipError}
+            isLoadingOwnership={vmcCtx.isLoadingOwnership}
+            isOwnerContract={vmcCtx.isOwnerContract}
+            ownerType={vmcCtx.ownerType}
+            isDetectingOwnerType={vmcCtx.isDetectingOwnerType}
+            isExpanded={isValidatorManagerDetailsExpanded}
+            onToggleExpanded={() => setIsValidatorManagerDetailsExpanded((prev) => !prev)}
+          />
+        </div>
+      )}
     </div>
   );
 }

@@ -6,8 +6,6 @@ import { ValidatorManagerDetails } from '@/components/toolbox/components/Validat
 import { useRemoveValidatorStore } from '@/components/toolbox/stores/removeValidatorStore';
 import { useValidatorManagerContext } from '@/components/toolbox/console/permissioned-l1s/shared/ValidatorManagerContext';
 import { useCreateChainStore } from '@/components/toolbox/stores/createChainStore';
-import { StepCodeViewer } from '@/components/console/step-code-viewer';
-import { STEP_CONFIG } from '../codeConfig';
 
 export default function SelectSubnetStep() {
   const store = useRemoveValidatorStore();
@@ -26,13 +24,15 @@ export default function SelectSubnetStep() {
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
       <div className="space-y-4">
         <p className="text-sm text-gray-500 mb-4">Choose the L1 subnet where you want to remove the validator.</p>
-        <div className="space-y-2">
-          <SelectSubnetId
-            value={store.subnetIdL1}
-            onChange={store.setSubnetIdL1}
-            error={vmcCtx.error}
-            hidePrimaryNetwork={true}
-          />
+        <SelectSubnetId
+          value={store.subnetIdL1}
+          onChange={store.setSubnetIdL1}
+          error={vmcCtx.error}
+          hidePrimaryNetwork={true}
+        />
+      </div>
+      {store.subnetIdL1 && (
+        <div className="lg:sticky lg:top-4 lg:self-start">
           <ValidatorManagerDetails
             validatorManagerAddress={vmcCtx.validatorManagerAddress}
             blockchainId={vmcCtx.blockchainId}
@@ -52,8 +52,7 @@ export default function SelectSubnetStep() {
             onToggleExpanded={() => setIsValidatorManagerDetailsExpanded((prev) => !prev)}
           />
         </div>
-      </div>
-      <StepCodeViewer activeStep={0} steps={STEP_CONFIG} className="lg:sticky lg:top-4 lg:self-start" />
+      )}
     </div>
   );
 }
