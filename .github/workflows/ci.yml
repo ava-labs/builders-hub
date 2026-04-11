@@ -1,0 +1,98 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - master
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    name: CI
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      # ── Core checks ──────────────────────────────────────
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Build
+        run: yarn build
+        env:
+          SKIP_ENV_VALIDATION: true
+
+      # ── Console conventions ──────────────────────────────
+
+      - name: ESLint (toolbox)
+        run: npx eslint components/toolbox/ --max-warnings 50
+
+      - name: Folder naming (kebab-case)
+        run: |
+          errors=0
+          for dir in $(find components/toolbox/console -mindepth 1 -type d \
+            -not -path '*/node_modules/*' \
+            -not -name 'shared' -not -name 'steps' \
+            -not -name 'components' -not -name 'hooks' \
+            -not -name 'sections'); do
+            dirname=$(basename "$dir")
+            if [[ "$dirname" =~ [A-Z] ]]; then
+              echo "::error file=$dir::Folder '$dirname' must be kebab-case"
+              errors=$((errors + 1))
+            fi
+          done
+          [ $errors -eq 0 ] && echo "✓ All console folders follow kebab-case" || exit 1
+
+      - name: No direct wagmi useWalletClient in consumer code
+        run: |
+          violations=$(grep -rn "useWalletClient.*from.*['\"]wagmi['\"]" \
+            components/toolbox/console/ \
+            components/toolbox/components/ \
+            components/toolbox/stores/ \
+            --include="*.ts" --include="*.tsx" 2>/dev/null || true)
+          if [ -n "$violations" ]; then
+            echo "::error::Use useResolvedWalletClient instead of wagmi useWalletClient"
+            echo "$violations"; exit 1
+          fi
+          echo "✓ No direct wagmi useWalletClient in consumer code"
+
+      - name: Contract hooks use useContractActions
+        run: |
+          violations=$(grep -rn "from 'viem/actions'" \
+            components/toolbox/hooks/contracts/core/ \
+            components/toolbox/hooks/contracts/governance/ \
+            components/toolbox/hooks/contracts/staking/ \
+            components/toolbox/hooks/contracts/bridge/ \
+            components/toolbox/hooks/contracts/utilities/ \
+            components/toolbox/hooks/contracts/precompiles/ \
+            --include="*.ts" 2>/dev/null || true)
+          if [ -n "$violations" ]; then
+            echo "::error::Contract hooks must use useContractActions, not direct viem/actions"
+            echo "$violations"; exit 1
+          fi
+          echo "✓ All contract hooks use useContractActions"
+
+      - name: MDX imports use kebab-case paths
+        run: |
+          violations=$(grep -rn "toolbox/console/.*[A-Z].*/" \
+            content/ --include="*.mdx" 2>/dev/null | \
+            grep "import" || true)
+          if [ -n "$violations" ]; then
+            echo "::error::MDX imports must use kebab-case folder paths"
+            echo "$violations"; exit 1
+          fi
+          echo "✓ All MDX imports use kebab-case paths"
