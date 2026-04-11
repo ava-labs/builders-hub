@@ -16,7 +16,6 @@ import { useBreadcrumbs } from "@/hooks/use-breadcrumbs";
 import { pathToBreadcrumb } from "./breadcrumbs-mapping";
 import { HelpCircle, Gamepad2, Book, MessageCircle } from "lucide-react";
 import Link from "next/link";
-import { NotificationCenter } from "./notification-center";
 import { ConsoleNotificationPanel } from "./notification-panel";
 import {
   DropdownMenu,
@@ -86,9 +85,6 @@ export function SiteHeader() {
             className="h-4!"
           />
           <ConsoleNotificationPanel />
-          <div data-tour="notifications">
-            <NotificationCenter />
-          </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" title="Help & Resources">
