@@ -138,6 +138,7 @@ export default function StakeValidator({ tokenType, onSuccess }: StakeValidatorP
 
                     <SubmitPChainTxRegisterL1Validator
                         subnetIdL1={l1State.subnetIdL1}
+                        signingSubnetId={l1State.validatorManagerDetails.signingSubnetId || l1State.subnetIdL1}
                         validatorBalance={validatorBalance}
                         userPChainBalanceNavax={userPChainBalanceNavax}
                         blsProofOfPossession={blsProofOfPossession}

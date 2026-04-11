@@ -24,6 +24,7 @@ export default function PChainRegistrationStep() {
           <div className="p-4 space-y-3">
             <SubmitPChainTxRegisterL1Validator
               subnetIdL1={store.subnetIdL1}
+              signingSubnetId={vmcCtx.signingSubnetId}
               validatorBalance={store.validatorBalance}
               blsProofOfPossession={store.blsProofOfPossession}
               evmTxHash={store.evmTxHash}

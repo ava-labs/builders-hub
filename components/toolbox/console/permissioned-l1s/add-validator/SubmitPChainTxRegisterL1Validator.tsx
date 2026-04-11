@@ -17,6 +17,7 @@ import { parsePChainError } from '@/components/toolbox/hooks/contracts';
 
 interface SubmitPChainTxRegisterL1ValidatorProps {
   subnetIdL1: string;
+  signingSubnetId: string;
   validatorBalance?: string;
   userPChainBalanceNavax?: bigint | null;
   blsProofOfPossession?: string;
@@ -27,6 +28,7 @@ interface SubmitPChainTxRegisterL1ValidatorProps {
 
 const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1ValidatorProps> = ({
   subnetIdL1,
+  signingSubnetId,
   validatorBalance,
   userPChainBalanceNavax,
   blsProofOfPossession,
@@ -128,7 +130,7 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
     try {
       const aggregateSignaturePromise = aggregateSignature({
         message: unsignedWarpMessage,
-        signingSubnetId: subnetIdL1,
+        signingSubnetId,
       });
       notify({
         type: 'local',
