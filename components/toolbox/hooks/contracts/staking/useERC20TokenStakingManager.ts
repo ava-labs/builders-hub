@@ -42,7 +42,11 @@ export interface ERC20TokenStakingManagerHook {
   completeDelegatorRegistration: (messageIndex: number, delegationID: string, accessList?: any[]) => Promise<string>;
   initiateDelegatorRemoval: (delegationID: string) => Promise<string>;
   completeDelegatorRemoval: (delegationID: string, messageIndex: number, accessList?: any[]) => Promise<string>;
-  forceInitiateDelegatorRemoval: (delegationID: string, includeUptime: boolean) => Promise<string>;
+  forceInitiateDelegatorRemoval: (
+    delegationID: string,
+    includeUptime: boolean,
+    messageIndex: number,
+  ) => Promise<string>;
   resendUpdateDelegator: (delegationID: string) => Promise<string>;
 
   // Write functions - Reward operations
@@ -159,10 +163,10 @@ export function useERC20TokenStakingManager(contractAddress: string | null, abi?
       { accessList },
     );
 
-  const forceInitiateDelegatorRemoval = (delegationID: string, includeUptime: boolean) =>
+  const forceInitiateDelegatorRemoval = (delegationID: string, includeUptime: boolean, messageIndex: number) =>
     contract.write(
       'forceInitiateDelegatorRemoval',
-      [delegationID, includeUptime],
+      [delegationID, includeUptime, messageIndex],
       'Force Initiate Delegator Removal (ERC20 Staking)',
     );
 

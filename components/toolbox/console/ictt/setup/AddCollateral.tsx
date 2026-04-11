@@ -72,6 +72,13 @@ function AddCollateral() {
   const [isAutoFilled, setIsAutoFilled] = useState(false);
   const [isFetchingTokenHome, setIsFetchingTokenHome] = useState(false);
 
+  // Auto-fill remote contract address from store
+  useEffect(() => {
+    if (nativeTokenRemoteAddress && !remoteContractAddress) {
+      setRemoteContractAddress(nativeTokenRemoteAddress as Address);
+    }
+  }, [nativeTokenRemoteAddress]);
+
   // Throw critical errors during render
   if (criticalError) {
     throw criticalError;

@@ -13,6 +13,7 @@ import { parseEther, formatEther, decodeEventLog } from 'viem';
 import { useNativeTokenStakingManager, useERC20TokenStakingManager } from '@/components/toolbox/hooks/contracts';
 import { useERC20Token } from '@/components/toolbox/hooks/useERC20Token';
 import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedWalletClient';
+import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 
 type TokenType = 'native' | 'erc20';
 
@@ -42,6 +43,7 @@ const InitiateDelegation: React.FC<InitiateDelegationProps> = ({
   const chainPublicClient = useChainPublicClient();
   const walletClient = useResolvedWalletClient();
   const viemChain = useViemChainStore();
+  const { notify } = useConsoleNotifications();
 
   // Initialize hooks
   const nativeStakingManager = useNativeTokenStakingManager(stakingManagerAddress || null);
@@ -110,7 +112,9 @@ const InitiateDelegation: React.FC<InitiateDelegationProps> = ({
     try {
       const amountWei = parseEther(delegationAmount);
 
-      const hash = await erc20Token.approve(stakingManagerAddress as `0x${string}`, amountWei.toString());
+      const approvePromise = erc20Token.approve(stakingManagerAddress as `0x${string}`, amountWei.toString());
+      notify({ type: 'call', name: 'Approve ERC20 for Delegation' }, approvePromise, viemChain ?? undefined);
+      const hash = await approvePromise;
       await chainPublicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
 
       setErrorState(null);
@@ -250,22 +254,25 @@ const InitiateDelegation: React.FC<InitiateDelegationProps> = ({
       }
 
       // Call the appropriate hook based on token type
-      // NativeTokenStakingManager: (bytes32 validationID, address rewardRecipient) payable
-      // ERC20TokenStakingManager: (bytes32 validationID, uint256 delegationAmount, address rewardRecipient)
-      let hash: string;
-      if (isNative) {
-        hash = await nativeStakingManager.initiateDelegatorRegistration(
-          validationID as `0x${string}`,
-          recipient as `0x${string}`,
-          amountWei,
-        );
-      } else {
-        hash = await erc20StakingManager.initiateDelegatorRegistration(
-          validationID as `0x${string}`,
-          amountWei,
-          recipient as `0x${string}`,
-        );
-      }
+      const delegatePromise = isNative
+        ? nativeStakingManager.initiateDelegatorRegistration(
+            validationID as `0x${string}`,
+            recipient as `0x${string}`,
+            amountWei,
+          )
+        : erc20StakingManager.initiateDelegatorRegistration(
+            validationID as `0x${string}`,
+            amountWei,
+            recipient as `0x${string}`,
+          );
+
+      notify(
+        { type: 'call', name: `Initiate ${isNative ? 'Native' : 'ERC20'} Delegation` },
+        delegatePromise,
+        viemChain ?? undefined,
+      );
+
+      const hash = await delegatePromise;
       setTxHash(hash);
 
       // Wait for confirmation

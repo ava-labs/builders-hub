@@ -46,6 +46,16 @@ function RegisterWithHome() {
   const [isRegistered, setIsRegistered] = useState(false);
   const [isCheckingRegistration, setIsCheckingRegistration] = useState(false);
 
+  // Auto-fill remote address from store when exactly one is available
+  useEffect(() => {
+    if (remoteAddress) return;
+    if (erc20TokenRemoteAddress && !nativeTokenRemoteAddress) {
+      setRemoteAddress(erc20TokenRemoteAddress);
+    } else if (nativeTokenRemoteAddress && !erc20TokenRemoteAddress) {
+      setRemoteAddress(nativeTokenRemoteAddress);
+    }
+  }, [erc20TokenRemoteAddress, nativeTokenRemoteAddress]);
+
   // Throw critical errors during render
   if (criticalError) {
     throw criticalError;

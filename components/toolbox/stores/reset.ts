@@ -41,5 +41,9 @@ export function resetAllStores() {
   // Disconnect wagmi so the page reloads with a clean wallet state
   disconnect(wagmiConfig).catch(() => {});
 
-  window?.location.reload();
+  // Navigate to console homepage — this also triggers a full page reload
+  // which clears any stale in-memory state from Zustand store caches.
+  if (typeof window !== 'undefined') {
+    window.location.href = '/console';
+  }
 }

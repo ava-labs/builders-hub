@@ -114,6 +114,18 @@ function DeployNativeTokenRemote() {
     return suggestions;
   }, [sourceToolboxStore.erc20TokenHomeAddress, sourceToolboxStore.nativeTokenHomeAddress]);
 
+  // Auto-fill tokenHomeAddress from source chain store when exactly one home exists
+  useEffect(() => {
+    if (tokenHomeAddress || !sourceChainId) return;
+    const hasErc20 = !!sourceToolboxStore.erc20TokenHomeAddress;
+    const hasNative = !!sourceToolboxStore.nativeTokenHomeAddress;
+    if (hasErc20 && !hasNative) {
+      setTokenHomeAddress(sourceToolboxStore.erc20TokenHomeAddress);
+    } else if (hasNative && !hasErc20) {
+      setTokenHomeAddress(sourceToolboxStore.nativeTokenHomeAddress);
+    }
+  }, [sourceChainId, sourceToolboxStore.erc20TokenHomeAddress, sourceToolboxStore.nativeTokenHomeAddress]);
+
   // Updates token details
   useEffect(() => {
     const fetchTokenDetails = async () => {

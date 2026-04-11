@@ -11,6 +11,7 @@ import { cb58ToHex } from '@/components/toolbox/console/utilities/format-convert
 import { useViemChainStore, useToolboxStore } from '@/components/toolbox/stores/toolboxStore';
 import { useSelectedL1 } from '@/components/toolbox/stores/l1ListStore';
 import { useCreateChainStore } from '@/components/toolbox/stores/createChainStore';
+import { useVMCAddress } from '@/components/toolbox/hooks/useVMCAddress';
 import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
 import {
   BaseConsoleToolProps,
@@ -56,13 +57,18 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
 
   const { validatorManagerAddress: toolboxStoreValidatorManagerAddress } = useToolboxStore();
   const { notify } = useConsoleNotifications();
+  const vmcData = useVMCAddress(subnetId);
 
-  // Sync from toolboxStore if it has a non-empty value and createChainStore still has the default
+  // Glacier is authoritative for the on-chain registered address (always the proxy).
+  // toolboxStore is next (ProxySetup writes the proxy address here after upgrade).
+  // createChainStore is the baseline (set by DeployValidatorManager, may be the implementation).
   useEffect(() => {
-    if (toolboxStoreValidatorManagerAddress && managerAddress === '0xfacade0000000000000000000000000000000000') {
+    if (vmcData.validatorManagerAddress) {
+      setManagerAddress(vmcData.validatorManagerAddress);
+    } else if (toolboxStoreValidatorManagerAddress) {
       setManagerAddress(toolboxStoreValidatorManagerAddress);
     }
-  }, [toolboxStoreValidatorManagerAddress]);
+  }, [vmcData.validatorManagerAddress, toolboxStoreValidatorManagerAddress]);
 
   useEffect(() => {
     if (walletEVMAddress && !adminAddress) {

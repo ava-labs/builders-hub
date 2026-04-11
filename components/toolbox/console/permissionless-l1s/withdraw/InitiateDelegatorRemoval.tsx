@@ -8,6 +8,7 @@ import NativeTokenStakingManager from '@/contracts/icm-contracts/compiled/Native
 import ERC20TokenStakingManager from '@/contracts/icm-contracts/compiled/ERC20TokenStakingManager.json';
 import { useNativeTokenStakingManager, useERC20TokenStakingManager } from '@/components/toolbox/hooks/contracts';
 import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedWalletClient';
+import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 
 type TokenType = 'native' | 'erc20';
 
@@ -31,6 +32,7 @@ const InitiateDelegatorRemoval: React.FC<InitiateDelegatorRemovalProps> = ({
   const chainPublicClient = useChainPublicClient();
   const walletClient = useResolvedWalletClient();
   const viemChain = useViemChainStore();
+  const { notify } = useConsoleNotifications();
 
   const nativeStakingManager = useNativeTokenStakingManager(tokenType === 'native' ? stakingManagerAddress : null);
   const erc20StakingManager = useERC20TokenStakingManager(tokenType === 'erc20' ? stakingManagerAddress : null);
@@ -183,17 +185,21 @@ const InitiateDelegatorRemoval: React.FC<InitiateDelegatorRemovalProps> = ({
       }
 
       // Use hook to initiate delegator removal (bypasses uptime proof requirement)
-      const hash =
+      const removePromise =
         tokenType === 'native'
-          ? await nativeStakingManager.forceInitiateDelegatorRemoval(
+          ? nativeStakingManager.forceInitiateDelegatorRemoval(
               delegationID as `0x${string}`,
               false, // includeUptimeProof
               msgIndex,
             )
-          : await erc20StakingManager.forceInitiateDelegatorRemoval(
+          : erc20StakingManager.forceInitiateDelegatorRemoval(
               delegationID as `0x${string}`,
               false, // includeUptimeProof
+              msgIndex,
             );
+
+      notify({ type: 'call', name: 'Initiate Delegator Removal' }, removePromise, viemChain ?? undefined);
+      const hash = await removePromise;
 
       setTxHash(hash);
 

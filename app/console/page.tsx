@@ -6,7 +6,7 @@ import { useEffect, useState, useCallback, Suspense } from "react";
 import {
   ChevronRight,
   Layers,
-  BookKey,
+  Bell,
   LayoutDashboard,
   ArrowLeftRight,
   Network,
@@ -294,7 +294,7 @@ function ConsoleDashboard() {
             <BentoCard href="/console/primary-network/faucet" pulseDelay={3.8}>
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center shrink-0 transition-colors group-hover:bg-zinc-200/80 dark:group-hover:bg-zinc-700/80">
-                  <svg viewBox="0 0 254 254" className="w-6 h-6 text-yellow-500"><path fill="currentColor" d="M95.2 163.4h-43c-4.5 0-6.7 0-8-1a5.7 5.7 0 0 1-2.2-4.6c.1-1.6 1.3-3.5 3.5-7.3l62.7-110c2.3-3.9 3.4-5.8 4.8-6.5a5.7 5.7 0 0 1 5 0c1.4.7 2.6 2.6 4.9 6.5l12.9 22.5.1.1c2.5 4.3 3.7 6.5 4.3 8.8a19 19 0 0 1 0 9.3c-.6 2.3-1.8 4.5-4.3 9l-33 57.8-.1.2c-2.4 4.3-3.7 6.5-5.4 8.2a19 19 0 0 1-8 4.8c-2.2.8-4.7.8-9.7.8Zm62.4 0h31.2c4.5 0 6.7 0 8-1a5.7 5.7 0 0 0 2.2-4.6c-.1-1.6-1.2-3.5-3.5-7.2l-15.7-27.2c-2.2-3.8-3.4-5.7-4.8-6.4a5.7 5.7 0 0 0-5 0c-1.3.7-2.5 2.6-4.8 6.4L149.6 151l-.1.2c-2.3 3.8-3.4 5.7-3.4 7.3a5.7 5.7 0 0 0 2.2 4.5c1.3 1 3.6 1 8 1Z"/></svg>
+                  <svg viewBox="38 28 158 142" className="w-5 h-5 text-yellow-500"><path fill="currentColor" d="M95.2 163.4h-43c-4.5 0-6.7 0-8-1a5.7 5.7 0 0 1-2.2-4.6c.1-1.6 1.3-3.5 3.5-7.3l62.7-110c2.3-3.9 3.4-5.8 4.8-6.5a5.7 5.7 0 0 1 5 0c1.4.7 2.6 2.6 4.9 6.5l12.9 22.5.1.1c2.5 4.3 3.7 6.5 4.3 8.8a19 19 0 0 1 0 9.3c-.6 2.3-1.8 4.5-4.3 9l-33 57.8-.1.2c-2.4 4.3-3.7 6.5-5.4 8.2a19 19 0 0 1-8 4.8c-2.2.8-4.7.8-9.7.8Zm62.4 0h31.2c4.5 0 6.7 0 8-1a5.7 5.7 0 0 0 2.2-4.6c-.1-1.6-1.2-3.5-3.5-7.2l-15.7-27.2c-2.2-3.8-3.4-5.7-4.8-6.4a5.7 5.7 0 0 0-5 0c-1.3.7-2.5 2.6-4.8 6.4L149.6 151l-.1.2c-2.3 3.8-3.4 5.7-3.4 7.3a5.7 5.7 0 0 0 2.2 4.5c1.3 1 3.6 1 8 1Z"/></svg>
                 </div>
                 <div>
                   <h3 className="font-medium text-zinc-900 dark:text-zinc-100 text-sm">Testnet Faucet</h3>
@@ -302,14 +302,14 @@ function ConsoleDashboard() {
                 </div>
               </div>
             </BentoCard>
-            <BentoCard href="/console/utilities/data-api-keys" pulseDelay={4.7}>
+            <BentoCard href="/console/primary-network/validator-alerts" pulseDelay={4.7}>
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center shrink-0 transition-colors group-hover:bg-zinc-200/80 dark:group-hover:bg-zinc-700/80">
-                  <BookKey className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
+                  <Bell className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
                 </div>
                 <div>
-                  <h3 className="font-medium text-zinc-900 dark:text-zinc-100 text-sm">Data API Keys</h3>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400">Manage API access</p>
+                  <h3 className="font-medium text-zinc-900 dark:text-zinc-100 text-sm">Validator Alerts</h3>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">Monitor uptime</p>
                 </div>
               </div>
             </BentoCard>
@@ -346,12 +346,12 @@ function ConsoleDashboard() {
 
           {/* Row 3: Platform CLI (4) + Cross-Chain (2) */}
           <motion.div variants={itemVariants} className="md:col-span-4">
-            <div className="h-full rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 flex flex-col justify-center">
-              <div className="flex items-center gap-2 mb-1">
-                <div className="w-7 h-7 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
-                  <Terminal className="w-3.5 h-3.5 text-zinc-500 dark:text-zinc-400" />
+            <div className="h-full rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 flex flex-col justify-center">
+              <div className="flex items-center gap-2.5 mb-2.5">
+                <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+                  <Terminal className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
                 </div>
-                <h3 className="font-medium text-zinc-900 dark:text-zinc-100 text-sm">Platform CLI</h3>
+                <h3 className="font-medium text-zinc-900 dark:text-zinc-100">Platform CLI</h3>
                 <a
                   href="https://github.com/ava-labs/platform-cli"
                   target="_blank"
@@ -361,12 +361,12 @@ function ConsoleDashboard() {
                   GitHub <ExternalLink className="h-3 w-3" />
                 </a>
               </div>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-3">
+              <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
                 Manage L1s, validators, and P-Chain operations from the terminal
               </p>
-              <div className="rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 px-3 py-2.5 flex items-center gap-2 overflow-x-auto">
-                <span className="text-[11px] text-zinc-400 dark:text-zinc-500 select-none font-mono shrink-0">$</span>
-                <code className="text-[11px] font-mono whitespace-nowrap text-zinc-600 dark:text-zinc-300">
+              <div className="rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 px-4 py-3 flex items-center gap-2.5 overflow-x-auto">
+                <span className="text-xs text-zinc-400 dark:text-zinc-500 select-none font-mono shrink-0">$</span>
+                <code className="text-xs font-mono whitespace-nowrap text-zinc-600 dark:text-zinc-300">
                   curl -sSfL build.avax.network/install/platform-cli | sh
                 </code>
                 <CliCopyButton />
@@ -470,26 +470,47 @@ function ConsoleDashboard() {
                     <circle cx="68" cy="68" r="0.7" className="fill-zinc-400/15 dark:fill-zinc-500/15" />
                     <circle cx="84" cy="92" r="0.6" className="fill-zinc-400/12 dark:fill-zinc-500/12" />
 
-                    {/* Messages — colored packets */}
-                    <circle r="1.3" className="fill-red-500/65 dark:fill-red-400/55">
-                      <animateMotion dur="2.5s" repeatCount="indefinite" path="M5,95 L50.5,5" />
-                      <animate attributeName="opacity" values="0;0.9;0.9;0" dur="2.5s" repeatCount="indefinite" />
+                    {/* Edge — up the slash (pulsing radius = "important" message) */}
+                    <circle r="1.4" opacity="0" className="fill-red-500/70 dark:fill-red-400/60">
+                      <animateMotion dur="3s" repeatCount="indefinite" path="M5,95 L50.5,5" />
+                      <animate attributeName="opacity" values="0;0.9;0.9;0" keyTimes="0;0.06;0.88;1" dur="3s" repeatCount="indefinite" />
+                      <animate attributeName="r" values="1.4;1.8;1.4" dur="0.7s" repeatCount="indefinite" />
                     </circle>
-                    <circle r="1.2" className="fill-blue-500/65 dark:fill-blue-400/55">
-                      <animateMotion dur="2s" repeatCount="indefinite" path="M67.4,34.5 L38.7,95" begin="0.7s" />
-                      <animate attributeName="opacity" values="0;0.85;0.85;0" dur="2s" repeatCount="indefinite" begin="0.7s" />
+                    {/* Cross — TL to Peak (request) */}
+                    <circle r="1.2" opacity="0" className="fill-blue-500/70 dark:fill-blue-400/60">
+                      <animateMotion dur="2s" repeatCount="indefinite" path="M50.5,5 Q55,35 74.1,46.7" begin="0.6s" />
+                      <animate attributeName="opacity" values="0;0.9;0.9;0" keyTimes="0;0.1;0.88;1" dur="2s" repeatCount="indefinite" begin="0.6s" />
                     </circle>
-                    <circle r="1.1" className="fill-emerald-500/65 dark:fill-emerald-400/55">
-                      <animateMotion dur="1.5s" repeatCount="indefinite" path="M74.1,46.7 L53.2,95" begin="0.3s" />
-                      <animate attributeName="opacity" values="0;0.85;0.85;0" dur="1.5s" repeatCount="indefinite" begin="0.3s" />
+                    {/* Cross — Peak to TL (response, bidirectional pair with blue) */}
+                    <circle r="1.0" opacity="0" className="fill-indigo-500/60 dark:fill-indigo-400/50">
+                      <animateMotion dur="2.2s" repeatCount="indefinite" path="M74.1,46.7 Q68,18 50.5,5" begin="1.8s" />
+                      <animate attributeName="opacity" values="0;0.8;0.8;0" keyTimes="0;0.1;0.88;1" dur="2.2s" repeatCount="indefinite" begin="1.8s" />
                     </circle>
-                    <circle r="1.1" className="fill-violet-500/65 dark:fill-violet-400/55">
-                      <animateMotion dur="1.5s" repeatCount="indefinite" path="M74.1,46.7 L95,95" begin="1.4s" />
-                      <animate attributeName="opacity" values="0;0.85;0.85;0" dur="1.5s" repeatCount="indefinite" begin="1.4s" />
+                    {/* Cross — TR to TriBL (dramatic rightward sweep) */}
+                    <circle r="1.1" opacity="0" className="fill-amber-500/65 dark:fill-amber-400/55">
+                      <animateMotion dur="2.8s" repeatCount="indefinite" path="M67.4,34.5 Q82,68 53.2,95" begin="0.2s" />
+                      <animate attributeName="opacity" values="0;0.85;0.85;0" keyTimes="0;0.06;0.88;1" dur="2.8s" repeatCount="indefinite" begin="0.2s" />
                     </circle>
-                    <circle r="1" className="fill-amber-500/65 dark:fill-amber-400/55">
-                      <animateMotion dur="1s" repeatCount="indefinite" path="M38.7,95 L53.2,95" begin="2s" />
-                      <animate attributeName="opacity" values="0;0.8;0.8;0" dur="1s" repeatCount="indefinite" begin="2s" />
+                    {/* Cross — interior diagonal (slash mid to triangle mid) */}
+                    <circle r="1.1" opacity="0" className="fill-violet-500/65 dark:fill-violet-400/55">
+                      <animateMotion dur="2.4s" repeatCount="indefinite" path="M45,41 Q63,42 72,74" begin="1.4s" />
+                      <animate attributeName="opacity" values="0;0.85;0.85;0" keyTimes="0;0.1;0.88;1" dur="2.4s" repeatCount="indefinite" begin="1.4s" />
+                    </circle>
+                    {/* Cross — base to peak (long arc, pulsing = relay message) */}
+                    <circle r="1.2" opacity="0" className="fill-cyan-500/65 dark:fill-cyan-400/55">
+                      <animateMotion dur="3.2s" repeatCount="indefinite" path="M38.7,95 Q38,52 74.1,46.7" begin="2.6s" />
+                      <animate attributeName="opacity" values="0;0.85;0.85;0" keyTimes="0;0.06;0.88;1" dur="3.2s" repeatCount="indefinite" begin="2.6s" />
+                      <animate attributeName="r" values="1.2;1.5;1.2" dur="0.9s" repeatCount="indefinite" />
+                    </circle>
+                    {/* Edge — down the triangle right side */}
+                    <circle r="1.1" opacity="0" className="fill-emerald-500/65 dark:fill-emerald-400/55">
+                      <animateMotion dur="2s" repeatCount="indefinite" path="M74.1,46.7 L95,95" begin="3.4s" />
+                      <animate attributeName="opacity" values="0;0.85;0.85;0" keyTimes="0;0.1;0.88;1" dur="2s" repeatCount="indefinite" begin="3.4s" />
+                    </circle>
+                    {/* Cross — triangle interior back to slash (return path) */}
+                    <circle r="0.9" opacity="0" className="fill-rose-500/60 dark:fill-rose-400/50">
+                      <animateMotion dur="2.2s" repeatCount="indefinite" path="M80,80 Q62,82 38.7,95" begin="4.4s" />
+                      <animate attributeName="opacity" values="0;0.8;0.8;0" keyTimes="0;0.1;0.88;1" dur="2.2s" repeatCount="indefinite" begin="4.4s" />
                     </circle>
                   </svg>
                 </div>

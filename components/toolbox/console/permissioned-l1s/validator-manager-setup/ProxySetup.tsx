@@ -3,6 +3,7 @@
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useViemChainStore, useToolboxStore } from '@/components/toolbox/stores/toolboxStore';
 import { useSelectedL1 } from '@/components/toolbox/stores/l1ListStore';
+import { useCreateChainStore } from '@/components/toolbox/stores/createChainStore';
 import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/toolbox/components/Button';
@@ -55,6 +56,7 @@ const metadata: ConsoleToolMetadata = {
 
 function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
   const { validatorManagerAddress, setValidatorManagerAddress } = useToolboxStore();
+  const setCreateChainManagerAddress = useCreateChainStore()((state) => state.setManagerAddress);
   const selectedL1 = useSelectedL1();
   const { walletChainId, walletEVMAddress } = useWalletStore();
   const walletClient = useResolvedWalletClient();
@@ -177,9 +179,12 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
       const hash = await upgradePromise;
       await chainPublicClient.waitForTransactionReceipt({ hash });
       await readProxyInfo(proxyAddress);
-      // Update the store with the PROXY address (not the implementation)
+      // Update BOTH stores with the PROXY address (not the implementation)
       // so downstream steps (Initialize, TransferOwnership) use the correct address.
+      // toolboxStore: used by permissionless flows and as fallback
       setValidatorManagerAddress(proxyAddress);
+      // createChainStore: used directly by permissioned Initialize step
+      setCreateChainManagerAddress(proxyAddress);
       onSuccess?.();
     } finally {
       setIsUpgrading(false);

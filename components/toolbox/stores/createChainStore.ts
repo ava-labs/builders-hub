@@ -50,6 +50,11 @@ const { getStore: getCreateChainStore, useStoreApi: useCreateChainStore } = crea
     setBlueprint: (blueprint: string | null) => set({ blueprint }),
 
     reset: () => {
+      set({
+        ...createChainInitialState,
+        // Generate a fresh random EVM chain ID (the one in initialState is static per module load)
+        evmChainId: Math.floor(Math.random() * (999999 - 100000 + 1)) + 100000,
+      });
       window?.localStorage.removeItem(`${STORE_VERSION}-create-chain-store-${isTestnet ? 'testnet' : 'mainnet'}`);
     },
   }),

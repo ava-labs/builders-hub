@@ -9,6 +9,7 @@ import NativeTokenStakingManager from '@/contracts/icm-contracts/compiled/Native
 import ERC20TokenStakingManager from '@/contracts/icm-contracts/compiled/ERC20TokenStakingManager.json';
 import { useNativeTokenStakingManager, useERC20TokenStakingManager } from '@/components/toolbox/hooks/contracts';
 import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedWalletClient';
+import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 
 type TokenType = 'native' | 'erc20';
 
@@ -33,6 +34,7 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
   const chainPublicClient = useChainPublicClient();
   const walletClient = useResolvedWalletClient();
   const viemChain = useViemChainStore();
+  const { notify } = useConsoleNotifications();
 
   const nativeStakingManager = useNativeTokenStakingManager(tokenType === 'native' ? stakingManagerAddress : null);
   const erc20StakingManager = useERC20TokenStakingManager(tokenType === 'erc20' ? stakingManagerAddress : null);
@@ -176,19 +178,21 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
       }
 
       // Use hook to initiate validator removal (no uptime proof)
-      const hash =
+      const removePromise =
         tokenType === 'native'
-          ? await nativeStakingManager.forceInitiateValidatorRemoval(
+          ? nativeStakingManager.forceInitiateValidatorRemoval(
               validationID as `0x${string}`,
               false, // includeUptimeProof
               msgIndex,
             )
-          : await erc20StakingManager.forceInitiateValidatorRemoval(
+          : erc20StakingManager.forceInitiateValidatorRemoval(
               validationID as `0x${string}`,
               false, // includeUptimeProof
               msgIndex,
             );
 
+      notify({ type: 'call', name: 'Initiate Validator Removal' }, removePromise, viemChain ?? undefined);
+      const hash = await removePromise;
       setTxHash(hash);
 
       // Wait for confirmation

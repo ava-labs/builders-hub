@@ -41,6 +41,7 @@ export const getToolboxStore = (chainId: string) =>
         setPoaManagerAddress: (address: string) => set({ poaManagerAddress: address }),
 
         reset: () => {
+          set(toolboxInitialState);
           if (typeof window !== 'undefined') {
             window.localStorage.removeItem(`${STORE_VERSION}-toolbox-storage-${chainId}`);
           }

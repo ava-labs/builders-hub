@@ -36,9 +36,13 @@ export const consoleFlowComponents = {
     props: z.object({}),
     description: "Stake ERC20 tokens to register as a validator on a permissionless L1.",
   },
-  DelegateStake: {
+  DelegateNative: {
     props: z.object({}),
-    description: "Delegate stake to an existing validator on a permissionless L1.",
+    description: "Delegate native tokens to an existing validator on a permissionless L1.",
+  },
+  DelegateERC20: {
+    props: z.object({}),
+    description: "Delegate ERC20 tokens to an existing validator on a permissionless L1.",
   },
   RemoveDelegation: {
     props: z.object({}),

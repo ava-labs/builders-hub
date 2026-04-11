@@ -5,6 +5,7 @@ import { useAccount, useChainId } from 'wagmi';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { createCoreWalletClient } from '@/components/toolbox/coreViem';
 import { networkIDs } from '@avalabs/avalanchejs';
+import posthog from 'posthog-js';
 
 /**
  * Invisible component that bridges wagmi/RainbowKit state into the
@@ -71,6 +72,22 @@ export function WalletSync() {
 
     setBootstrapped(true);
     setWalletEVMAddress(hexAddress);
+
+    // Track wallet type on new connections
+    if (addressChanged && connector) {
+      const walletName = connector.name || connector.id || 'unknown';
+      posthog.capture('console_wallet_connected', {
+        wallet_id: connector.id,
+        wallet_name: walletName,
+        wallet_type: connector.type,
+        is_core: isCoreConnector,
+        chain_id: chainId,
+      });
+      posthog.setPersonProperties({
+        last_wallet: walletName,
+        last_wallet_id: connector.id,
+      });
+    }
 
     if (isCoreConnector) {
       // --- Core Wallet path ---
