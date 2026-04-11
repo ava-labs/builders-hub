@@ -39,8 +39,8 @@ export function ConsoleBadgeNotification() {
         title=""
         className="z-50 inline-block! w-auto! max-w-[75vw]!"
         content={
-          <div className="flex flex-col items-center justify-center">
-            <h3 className="text-lg font-bold text-center">
+          <div className="flex flex-col items-center justify-center pt-2">
+            <h3 className="text-lg font-bold text-center px-6">
               Console Badges have dropped!
             </h3>
             <p className="text-sm dark:text-zinc-400 text-gray-500 text-center mt-1 mb-2">
