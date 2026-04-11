@@ -204,7 +204,6 @@ export function AddChainModal() {
       // Send wallet_addEthereumChain directly instead of viem's addChain,
       // which only forwards standard EIP-3085 fields and drops Core wallet's
       // proprietary isTestnet flag.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await walletClient.request({
         method: 'wallet_addEthereumChain',
         params: [

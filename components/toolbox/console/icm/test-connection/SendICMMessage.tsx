@@ -270,7 +270,6 @@ function SendICMMessage({ onSuccess }: BaseConsoleToolProps) {
       );
 
       const hash = await writePromise;
-      console.log('Transaction hash:', hash);
       setLastTxId(hash);
       onSuccess?.();
     } catch (error) {

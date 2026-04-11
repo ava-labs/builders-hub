@@ -14,7 +14,7 @@ export function useWalletSwitch() {
         setIsTestnet(testnet);
         setAvalancheNetworkID(testnet ? networkIDs.FujiID : networkIDs.MainnetID);
       } catch (e) {
-        console.debug('switchChain (Core) failed:', e);
+        console.warn('switchChain (Core) failed:', e);
       }
       return;
     }
@@ -26,7 +26,7 @@ export function useWalletSwitch() {
       setIsTestnet(testnet);
       setAvalancheNetworkID(testnet ? networkIDs.FujiID : networkIDs.MainnetID);
     } catch (e) {
-      console.debug('switchChain (wagmi) failed:', e);
+      console.warn('switchChain (wagmi) failed:', e);
     }
   };
 

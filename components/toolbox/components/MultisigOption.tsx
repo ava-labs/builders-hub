@@ -200,7 +200,7 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
         // If initialization fails due to missing MultiSend addresses, retry with hardcoded deterministic addresses
         const errorMessage = (error as Error).message;
         if (errorMessage.includes('multiSend') || errorMessage.includes('MultiSend')) {
-          console.log('MultiSend addresses not found in Safe SDK, using hardcoded deterministic addresses...');
+          console.warn('MultiSend addresses not found in Safe SDK, using hardcoded deterministic addresses...');
 
           // Hardcoded deterministic Safe contract addresses for Avalanche L1s
           // These are deployed via CREATE2 and have the same addresses across all chains for 1.3 deployments (What Ash Wallet uses)

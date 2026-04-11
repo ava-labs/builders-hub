@@ -41,12 +41,12 @@ export function useNetworkActions() {
           await switchChainAsync({ chainId: network.evmChainId });
         } catch (switchError) {
           // wagmi failed (chain not in static config) — use raw EIP-1193 provider
-          console.debug('wagmi switchChain failed, trying raw provider:', switchError);
+          console.warn('wagmi switchChain failed, trying raw provider:', switchError);
           const provider = (await connector?.getProvider?.()) as
             | { request: (args: { method: string; params?: unknown[] }) => Promise<unknown> }
             | undefined;
           if (!provider?.request) {
-            console.debug('No EIP-1193 provider available for chain switch');
+            console.warn('No EIP-1193 provider available for chain switch');
             return;
           }
           const chainIdHex = `0x${network.evmChainId.toString(16)}`;
@@ -80,7 +80,7 @@ export function useNetworkActions() {
                 return;
               }
             } else {
-              console.debug('Failed to switch chain in wallet:', rawSwitchError);
+              console.warn('Failed to switch chain in wallet:', rawSwitchError);
               return;
             }
           }
