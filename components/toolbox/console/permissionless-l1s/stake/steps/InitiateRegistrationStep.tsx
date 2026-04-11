@@ -7,7 +7,7 @@ import {
   deserializeStakeValidators,
   serializeStakeValidators,
 } from '@/components/toolbox/stores/stakeValidatorStore';
-import { useValidatorManagerContext } from '@/components/toolbox/console/permissioned-l1s/shared/ValidatorManagerContext';
+import { useValidatorManagerContext } from '@/components/toolbox/contexts/ValidatorManagerContext';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { Alert } from '@/components/toolbox/components/Alert';
 import { ContractDeployViewer, type ContractSource } from '@/components/console/contract-deploy-viewer';
@@ -46,7 +46,9 @@ export default function InitiateRegistrationStep({ tokenType }: InitiateRegistra
 
   const isNative = tokenType === 'native';
   const contractSources = isNative ? NATIVE_CONTRACT_SOURCES : ERC20_CONTRACT_SOURCES;
-  // Use the token address resolved from the staking manager contract
+  // Use the staking manager address resolved from the context — handles both
+  // inheritance (VMC is the staking manager) and composition (owner is the staking manager)
+  const stakingManagerAddress = vmcCtx.staking.stakingManagerAddress || vmcCtx.validatorManagerAddress || '';
   const erc20TokenAddress = vmcCtx.staking.erc20TokenAddress;
 
   const userPChainBalanceNavax = pChainBalance ? BigInt(Math.floor(pChainBalance * 1e9)) : null;
@@ -81,13 +83,17 @@ export default function InitiateRegistrationStep({ tokenType }: InitiateRegistra
             hideConsensusWeight={true}
           />
 
+          {vmcCtx.staking.isLoading && validators.length > 0 && (
+            <p className="text-xs text-zinc-500 animate-pulse">Resolving staking manager address...</p>
+          )}
+
           {/* Contract interaction — flows below the validator form */}
-          {validators.length > 0 && (
+          {validators.length > 0 && !vmcCtx.staking.isLoading && stakingManagerAddress && (
             <div className="border-t border-zinc-200 dark:border-zinc-800 pt-4">
               <InitiateValidatorRegistration
                 nodeID={nodeID}
                 blsPublicKey={blsPublicKey}
-                stakingManagerAddress={vmcCtx.validatorManagerAddress || ''}
+                stakingManagerAddress={stakingManagerAddress}
                 tokenType={tokenType}
                 erc20TokenAddress={!isNative ? (erc20TokenAddress ?? undefined) : undefined}
                 remainingBalanceOwner={validator?.remainingBalanceOwner}

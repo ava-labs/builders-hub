@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { RawInput } from '../Input';
-import { Info, Zap, Building2, Settings2, HelpCircle, Gamepad2, TrendingUp } from 'lucide-react';
+import { Zap, Building2, Settings2, HelpCircle, Gamepad2, TrendingUp } from 'lucide-react';
 import { ValidationMessages } from './types';
 import { useGenesisHighlight } from './GenesisHighlightContext';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -254,7 +254,7 @@ const Field = ({
     </div>
     <div className="min-h-[16px]">
       {error && <div className="text-xs text-red-500">{error}</div>}
-      {!error && warning && <div className="text-xs text-amber-500">⚠️ {warning}</div>}
+      {!error && warning && <div className="text-xs text-zinc-500 dark:text-zinc-400">{warning}</div>}
     </div>
   </div>
 );
@@ -695,24 +695,15 @@ function FeeConfigBase({
           <div className="flex items-center justify-between flex-wrap gap-2">
             <h4 className="text-sm font-medium text-zinc-800 dark:text-zinc-200">Core Parameters</h4>
             <div className="flex items-center gap-2">
-              <div
-                className={`flex items-center gap-1.5 px-2 py-1 rounded-md ${
-                  isStaticPricing ? 'bg-green-50 dark:bg-green-950/30' : 'bg-amber-50 dark:bg-amber-950/30'
+              <span
+                className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${
+                  isStaticPricing
+                    ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
+                    : 'bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300'
                 }`}
               >
-                <div
-                  className={`h-1.5 w-1.5 rounded-full ${
-                    isStaticPricing ? 'bg-green-500' : 'bg-amber-500 animate-pulse'
-                  }`}
-                />
-                <span
-                  className={`text-[10px] uppercase tracking-wider font-medium ${
-                    isStaticPricing ? 'text-green-700 dark:text-green-400' : 'text-amber-700 dark:text-amber-400'
-                  }`}
-                >
-                  {isStaticPricing ? 'Static' : 'Dynamic'}
-                </span>
-              </div>
+                {isStaticPricing ? 'Static' : 'Dynamic'}
+              </span>
             </div>
           </div>
         </div>
@@ -779,7 +770,7 @@ function FeeConfigBase({
               <div className="text-xs text-red-500">{validationMessages.errors.gasLimit}</div>
             )}
             {!validationMessages.errors.gasLimit && validationMessages.warnings.gasLimit && (
-              <div className="text-xs text-amber-500">{validationMessages.warnings.gasLimit}</div>
+              <div className="text-xs text-zinc-500 dark:text-zinc-400">{validationMessages.warnings.gasLimit}</div>
             )}
           </div>
 
@@ -844,7 +835,7 @@ function FeeConfigBase({
               <div className="text-xs text-red-500">{validationMessages.errors.minBaseFee}</div>
             )}
             {!validationMessages.errors.minBaseFee && validationMessages.warnings.minBaseFee && (
-              <div className="text-xs text-amber-500">{validationMessages.warnings.minBaseFee}</div>
+              <div className="text-xs text-zinc-500 dark:text-zinc-400">{validationMessages.warnings.minBaseFee}</div>
             )}
           </div>
 
@@ -860,13 +851,13 @@ function FeeConfigBase({
                 <FieldTooltip field="targetGas" />
               </div>
               <span
-                className={`text-[10px] uppercase tracking-wider font-medium px-2 py-0.5 rounded-full ${
+                className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${
                   isStaticPricing
-                    ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
-                    : 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
+                    ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
+                    : 'bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300'
                 }`}
               >
-                {isStaticPricing ? 'Static pricing' : `Dynamic ${blockUtilizationTarget}%`}
+                {isStaticPricing ? 'Static' : `Dynamic ${blockUtilizationTarget}%`}
               </span>
             </div>
             <div className="flex items-center gap-3">
@@ -928,25 +919,16 @@ function FeeConfigBase({
               </div>
             </div>
             {/* Inline pricing explanation */}
-            <div
-              className={`flex gap-2 p-2.5 rounded-md text-xs ${
-                isStaticPricing
-                  ? 'bg-green-50 dark:bg-green-950/20 text-green-700 dark:text-green-400'
-                  : 'bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400'
-              }`}
-            >
-              <Info className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
-              <span>
-                {isStaticPricing
-                  ? 'Fees remain constant regardless of network activity. Ideal for testnets and predictable costs.'
-                  : `Fees adjust when block utilization exceeds ${blockUtilizationTarget}% of capacity. Threshold: ${formatNumber(staticGasThreshold)} gas.`}
-              </span>
-            </div>
+            <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+              {isStaticPricing
+                ? 'Fees remain constant regardless of network activity.'
+                : `Fees adjust when block utilization exceeds ${blockUtilizationTarget}% of capacity. Threshold: ${formatNumber(staticGasThreshold)} gas.`}
+            </p>
             {validationMessages.errors.targetGas && (
               <div className="text-xs text-red-500">{validationMessages.errors.targetGas}</div>
             )}
             {!validationMessages.errors.targetGas && validationMessages.warnings.targetGas && (
-              <div className="text-xs text-amber-500">{validationMessages.warnings.targetGas}</div>
+              <div className="text-xs text-zinc-500 dark:text-zinc-400">{validationMessages.warnings.targetGas}</div>
             )}
           </div>
         </div>

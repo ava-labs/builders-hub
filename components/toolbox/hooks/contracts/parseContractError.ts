@@ -29,13 +29,16 @@ const KNOWN_ERRORS: Record<string, string> = {
   DelegatorAlreadyRegistered: 'This delegation has already been completed.',
   ValidatorNotRemovable: 'This validator cannot be removed in its current state.',
 
+  // ERC20 — check BEFORE access control since the raw error message from viem
+  // can contain both the ERC20 error data AND decoded OwnableUnauthorizedAccount text
+  '0xfb8f41b2': 'Insufficient ERC20 token allowance. Click "Approve Tokens" first, then retry.',
+  ERC20InsufficientAllowance: 'Insufficient ERC20 token allowance. Click "Approve Tokens" first, then retry.',
+  '0xe450d38c': 'Insufficient ERC20 token balance.',
+  ERC20InsufficientBalance: 'Insufficient ERC20 token balance.',
+
   // Access control
   '0x118cdaa7': 'You are not the owner of this contract. Only the owner can perform this operation.',
   OwnableUnauthorizedAccount: 'You are not the owner of this contract. Only the owner can perform this operation.',
-
-  // ERC20
-  ERC20InsufficientAllowance: 'Insufficient ERC20 token allowance. Please approve tokens first.',
-  ERC20InsufficientBalance: 'Insufficient ERC20 token balance.',
 };
 
 /**

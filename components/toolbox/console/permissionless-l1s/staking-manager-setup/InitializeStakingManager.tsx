@@ -179,12 +179,16 @@ export function InitializeStakingManagerInner({ onSuccess, initialStakingType }:
     }
   }, [isErc20, storedExampleErc20Address, tokenAddress]);
 
-  // Auto-fill validator manager address from VMC lookup
+  // Auto-fill validator manager address — Glacier is authoritative (returns the proxy),
+  // store is fallback only (ProxySetup updates store to proxy address after upgrade).
+  // Glacier OVERRIDES any store value since it knows the on-chain registered address.
   useEffect(() => {
-    if (validatorManagerAddress && !validatorManagerAddressInput) {
+    if (validatorManagerAddress) {
       setValidatorManagerAddressInput(validatorManagerAddress);
+    } else if (toolboxStore.validatorManagerAddress && !validatorManagerAddressInput) {
+      setValidatorManagerAddressInput(toolboxStore.validatorManagerAddress);
     }
-  }, [validatorManagerAddress, validatorManagerAddressInput]);
+  }, [validatorManagerAddress, toolboxStore.validatorManagerAddress]);
 
   // Auto-fill uptime blockchain ID from the L1's own chain (not the VMC home chain)
   useEffect(() => {
@@ -192,13 +196,6 @@ export function InitializeStakingManagerInner({ onSuccess, initialStakingType }:
       setBlockchainIdInput(l1BlockchainId);
     }
   }, [l1BlockchainId, blockchainIdInput]);
-
-  // Also try from store's toolbox VMC address
-  useEffect(() => {
-    if (toolboxStore.validatorManagerAddress && !validatorManagerAddressInput) {
-      setValidatorManagerAddressInput(toolboxStore.validatorManagerAddress);
-    }
-  }, [toolboxStore.validatorManagerAddress, validatorManagerAddressInput]);
 
   // Auto-check initialization status when addresses are available
   useEffect(() => {
@@ -248,9 +245,9 @@ export function InitializeStakingManagerInner({ onSuccess, initialStakingType }:
     setIsInitializing(true);
     try {
       if (!walletClient) throw new Error('Wallet not connected');
-      if (!validatorManagerAddress) throw new Error('Validator Manager address required');
+      if (!validatorManagerAddressInput) throw new Error('Validator Manager address required');
       if (!rewardCalculatorAddress) throw new Error('Reward Calculator address required');
-      if (!blockchainId) throw new Error('Blockchain ID not found');
+      if (!blockchainIdInput) throw new Error('Blockchain ID not found');
       if (isErc20 && !tokenAddress) throw new Error('ERC20 token address required');
 
       let hexBlockchainId = cb58ToHex(blockchainIdInput);

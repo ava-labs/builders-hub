@@ -8,7 +8,7 @@ import { AbiEvent } from 'viem';
 import ValidatorManagerABI from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
 import SelectSubnetId from '@/components/toolbox/components/SelectSubnetId';
 import { cb58ToHex } from '@/components/toolbox/console/utilities/format-converter/FormatConverter';
-import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
+import { useViemChainStore, useToolboxStore } from '@/components/toolbox/stores/toolboxStore';
 import { useSelectedL1 } from '@/components/toolbox/stores/l1ListStore';
 import { useCreateChainStore } from '@/components/toolbox/stores/createChainStore';
 import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
@@ -54,7 +54,15 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
   const managerAddress = useCreateChainStore()((state) => state.managerAddress);
   const setManagerAddress = useCreateChainStore()((state) => state.setManagerAddress);
 
+  const { validatorManagerAddress: toolboxStoreValidatorManagerAddress } = useToolboxStore();
   const { notify } = useConsoleNotifications();
+
+  // Sync from toolboxStore if it has a non-empty value and createChainStore still has the default
+  useEffect(() => {
+    if (toolboxStoreValidatorManagerAddress && managerAddress === '0xfacade0000000000000000000000000000000000') {
+      setManagerAddress(toolboxStoreValidatorManagerAddress);
+    }
+  }, [toolboxStoreValidatorManagerAddress]);
 
   useEffect(() => {
     if (walletEVMAddress && !adminAddress) {

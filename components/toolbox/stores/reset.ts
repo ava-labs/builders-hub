@@ -5,6 +5,7 @@ import { getToolboxStore } from './toolboxStore';
 import type { L1ListItem } from './l1ListStore';
 import { disconnect } from '@wagmi/core';
 import { wagmiConfig } from '../providers/wagmi-config';
+import { useNotificationPanelStore } from '@/components/console/notification-panel';
 
 export function resetAllStores() {
   const { isTestnet } = useWalletStore.getState();
@@ -33,6 +34,9 @@ export function resetAllStores() {
   allChainIds.forEach((chainId) => {
     getToolboxStore(chainId).getState().reset();
   });
+
+  // Clear console notification panel
+  useNotificationPanelStore.getState().clearAll();
 
   // Disconnect wagmi so the page reloads with a clean wallet state
   disconnect(wagmiConfig).catch(() => {});

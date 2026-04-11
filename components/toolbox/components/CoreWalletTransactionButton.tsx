@@ -100,7 +100,7 @@ export function CoreWalletTransactionButton({
           <button
             onClick={onClick}
             disabled={disabled || loading}
-            className="w-full group relative flex flex-col items-center gap-2 px-6 py-5 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-750 hover:border-zinc-300 dark:hover:border-zinc-600 shadow-sm hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-sm"
+            className="w-full group relative flex flex-col items-center gap-2 px-6 py-5 rounded-2xl border border-blue-200 dark:border-blue-800/50 bg-blue-50/50 dark:bg-blue-950/20 hover:bg-blue-100/50 dark:hover:bg-blue-950/30 hover:border-blue-300 dark:hover:border-blue-700/50 shadow-sm hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-sm"
           >
             <img src="/images/core-wordmark.png" alt="Core" className="w-10 h-10 rounded-xl" />
             {loading ? (

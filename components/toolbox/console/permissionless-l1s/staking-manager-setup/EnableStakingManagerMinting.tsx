@@ -13,7 +13,7 @@ import {
   ConsoleToolMetadata,
   withConsoleToolMetadata,
 } from '../../../components/WithConsoleToolMetadata';
-import { ContractDeployViewer, type ContractSource } from '@/components/console/contract-deploy-viewer';
+import { SDKCodeViewer, type SDKCodeSource } from '@/components/console/sdk-code-viewer';
 import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
 import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
 import { Alert } from '@/components/toolbox/components/Alert';
@@ -31,12 +31,30 @@ const ICM_COMMIT = versions['ava-labs/icm-contracts'];
 const DEFAULT_NATIVE_MINTER_ADDRESS = '0x0200000000000000000000000000000000000001';
 const MINTER_ROLE = keccak256(toHex('MINTER_ROLE'));
 
-const ERC20_MINTING_SOURCES: ContractSource[] = [
+const getERC20MintingSources = (tokenAddress: string, stakingManagerAddress: string): SDKCodeSource[] => [
   {
-    name: 'ExampleERC20',
-    filename: 'ExampleERC20.sol',
-    url: `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/mocks/ExampleERC20.sol`,
-    description: 'ERC20 token with minting support. The MINTER_ROLE must be granted to the staking manager.',
+    name: 'Grant MINTER_ROLE',
+    filename: 'grant-minter-role.ts',
+    code: `import { keccak256, toHex } from "viem";
+
+// ExampleERC20Mintable uses OpenZeppelin AccessControl
+// The MINTER_ROLE must be granted to the staking manager
+// so it can mint reward tokens for validators
+
+const MINTER_ROLE = keccak256(toHex("MINTER_ROLE"));
+
+const hash = await walletClient.writeContract({
+  address: "${tokenAddress || '0x...'}" as \`0x\${string}\`,
+  abi: ExampleERC20MintableABI,
+  functionName: "grantRole",
+  args: [
+    MINTER_ROLE,
+    "${stakingManagerAddress || '0x...'}" // Staking Manager
+  ],
+});
+
+await publicClient.waitForTransactionReceipt({ hash });`,
+    description: 'Grants the staking manager permission to mint ERC20 reward tokens via AccessControl.',
   },
 ];
 
@@ -70,6 +88,19 @@ export function EnableStakingManagerMintingInner({ initialTokenType }: EnableSta
   // ERC20 state
   const [stakingTokenAddress, setStakingTokenAddress] = useState<string>(exampleErc20Address || '');
   const [isGranting, setIsGranting] = useState(false);
+
+  // Re-sync when store values become available after mount
+  useEffect(() => {
+    if (defaultStakingManager && !stakingManagerAddress) {
+      setStakingManagerAddress(defaultStakingManager);
+    }
+  }, [defaultStakingManager]);
+
+  useEffect(() => {
+    if (exampleErc20Address && !stakingTokenAddress) {
+      setStakingTokenAddress(exampleErc20Address);
+    }
+  }, [exampleErc20Address]);
   const [grantTxHash, setGrantTxHash] = useState<string | null>(null);
   const [tokenName, setTokenName] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
@@ -127,7 +158,6 @@ export function EnableStakingManagerMintingInner({ initialTokenType }: EnableSta
             step={1}
             title="Add to Native Minter Allowlist"
             description="Grant the staking manager permission to mint native tokens as validator rewards"
-            isComplete={false}
           >
             {nativeStakingManagerAddress && (
               <div className="mt-2 p-2 rounded-lg bg-zinc-50 dark:bg-zinc-800/50 text-xs">
@@ -165,7 +195,7 @@ export function EnableStakingManagerMintingInner({ initialTokenType }: EnableSta
 
   // ── ERC20 Token Path ──
   return (
-    <ContractDeployViewer contracts={ERC20_MINTING_SOURCES}>
+    <SDKCodeViewer sources={getERC20MintingSources(stakingTokenAddress, stakingManagerAddress)}>
       <div className="flex flex-col rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
         <div className="p-5 space-y-4">
           {error && <Alert variant="error">{error}</Alert>}
@@ -236,7 +266,7 @@ export function EnableStakingManagerMintingInner({ initialTokenType }: EnableSta
           </a>
         </div>
       </div>
-    </ContractDeployViewer>
+    </SDKCodeViewer>
   );
 }
 

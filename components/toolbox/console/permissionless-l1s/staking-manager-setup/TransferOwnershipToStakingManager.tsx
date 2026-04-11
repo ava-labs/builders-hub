@@ -31,11 +31,16 @@ const CONTRACT_SOURCES: ContractSource[] = [
   },
 ];
 
-function TransferOwnershipToStakingManager({ onSuccess }: BaseConsoleToolProps) {
+export function TransferOwnershipToStakingManagerInner({
+  onSuccess,
+  preferNative,
+}: BaseConsoleToolProps & { preferNative?: boolean }) {
   const { nativeStakingManagerAddress, erc20StakingManagerAddress } = useToolboxStore();
 
-  // Prefer ERC20 if both are present
-  const stakingManagerAddress = erc20StakingManagerAddress || nativeStakingManagerAddress;
+  // Prefer the token type matching the setup flow
+  const stakingManagerAddress = preferNative
+    ? nativeStakingManagerAddress || erc20StakingManagerAddress
+    : erc20StakingManagerAddress || nativeStakingManagerAddress;
 
   return (
     <ContractDeployViewer contracts={CONTRACT_SOURCES}>
@@ -65,4 +70,4 @@ function TransferOwnershipToStakingManager({ onSuccess }: BaseConsoleToolProps) 
   );
 }
 
-export default withConsoleToolMetadata(TransferOwnershipToStakingManager, metadata);
+export default withConsoleToolMetadata(TransferOwnershipToStakingManagerInner, metadata);

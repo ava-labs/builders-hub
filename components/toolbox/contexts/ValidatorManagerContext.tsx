@@ -15,6 +15,8 @@ export type StakingType = 'native' | 'erc20' | null;
 
 export interface StakingDetails {
   stakingType: StakingType;
+  /** The address of the staking manager contract — may be the VMC itself (inheritance) or its owner (composition) */
+  stakingManagerAddress: string | null;
   erc20TokenAddress: string | null;
   settings: StakingManagerSettings | null;
   isLoading: boolean;
@@ -49,6 +51,7 @@ export function ValidatorManagerProvider({ subnetId, children }: { subnetId: str
 
   // ── PoS staking details ──
   const [stakingType, setStakingType] = useState<StakingType>(null);
+  const [resolvedStakingManagerAddress, setResolvedStakingManagerAddress] = useState<string | null>(null);
   const [erc20TokenAddress, setErc20TokenAddress] = useState<string | null>(null);
   const [stakingSettings, setStakingSettings] = useState<StakingManagerSettings | null>(null);
   const [isLoadingStaking, setIsLoadingStaking] = useState(false);
@@ -59,7 +62,8 @@ export function ValidatorManagerProvider({ subnetId, children }: { subnetId: str
     const detectStaking = async () => {
       if (!chainPublicClient || !validatorManagerAddress || ownerType !== 'StakingManager') {
         if (!cancelled) {
-          setStakingType(ownerType === 'PoAManager' || ownerType === 'EOA' ? null : null);
+          setStakingType(null);
+          setResolvedStakingManagerAddress(null);
           setErc20TokenAddress(null);
           setStakingSettings(null);
           setIsLoadingStaking(false);
@@ -84,6 +88,7 @@ export function ValidatorManagerProvider({ subnetId, children }: { subnetId: str
           })) as StakingManagerSettings;
 
           if (cancelled) return;
+          setResolvedStakingManagerAddress(addr);
           setStakingSettings(settings);
 
           // Try to read erc20() — if it exists, it's an ERC20 staking manager
@@ -122,11 +127,12 @@ export function ValidatorManagerProvider({ subnetId, children }: { subnetId: str
   const staking = useMemo<StakingDetails>(
     () => ({
       stakingType,
+      stakingManagerAddress: resolvedStakingManagerAddress,
       erc20TokenAddress,
       settings: stakingSettings,
       isLoading: isLoadingStaking,
     }),
-    [stakingType, erc20TokenAddress, stakingSettings, isLoadingStaking],
+    [stakingType, resolvedStakingManagerAddress, erc20TokenAddress, stakingSettings, isLoadingStaking],
   );
 
   const value = useMemo<ValidatorManagerContextType>(() => {

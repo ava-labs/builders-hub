@@ -3,7 +3,7 @@
 import React from 'react';
 import SubmitPChainTxRegisterL1Validator from '@/components/toolbox/console/permissioned-l1s/add-validator/SubmitPChainTxRegisterL1Validator';
 import { useStakeValidatorStore, deserializeStakeValidators } from '@/components/toolbox/stores/stakeValidatorStore';
-import { useValidatorManagerContext } from '@/components/toolbox/console/permissioned-l1s/shared/ValidatorManagerContext';
+import { useValidatorManagerContext } from '@/components/toolbox/contexts/ValidatorManagerContext';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { Alert } from '@/components/toolbox/components/Alert';
 import { StepCodeViewer } from '@/components/console/step-code-viewer';

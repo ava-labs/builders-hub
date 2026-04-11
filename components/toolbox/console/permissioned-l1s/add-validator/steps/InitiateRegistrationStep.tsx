@@ -3,7 +3,7 @@
 import React from 'react';
 import InitiateValidatorRegistration from '../InitiateValidatorRegistration';
 import { useAddValidatorStore, deserializeValidators } from '@/components/toolbox/stores/addValidatorStore';
-import { useValidatorManagerContext } from '@/components/toolbox/console/permissioned-l1s/shared/ValidatorManagerContext';
+import { useValidatorManagerContext } from '@/components/toolbox/contexts/ValidatorManagerContext';
 import { Alert } from '@/components/toolbox/components/Alert';
 import { StepCodeViewer } from '@/components/console/step-code-viewer';
 import { STEP_CONFIG } from '../codeConfig';

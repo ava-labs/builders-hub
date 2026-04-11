@@ -116,6 +116,7 @@ interface SetRoleFormProps {
   abi?: any;
   onSuccess?: () => void;
   onFunctionChange?: (fn: string) => void;
+  defaultAddress?: string;
 }
 
 function SetRoleForm({
@@ -124,15 +125,22 @@ function SetRoleForm({
   abi = allowListAbi.abi,
   onSuccess,
   onFunctionChange,
+  defaultAddress,
 }: SetRoleFormProps) {
   const { publicClient, walletEVMAddress, walletChainId } = useWalletStore();
   const { walletClient } = useConnectedWallet();
   const viemChain = useViemChainStore();
   const [isProcessing, setIsProcessing] = useState(false);
-  const [address, setAddress] = useState<string>('');
+  const [address, setAddress] = useState<string>(defaultAddress || '');
   const [role, setRole] = useState<RoleKey>('enabled');
   const [txHash, setTxHash] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (defaultAddress && !address) {
+      setAddress(defaultAddress);
+    }
+  }, [defaultAddress]);
 
   const handleSetRole = async () => {
     setIsProcessing(true);
@@ -316,6 +324,7 @@ export interface AllowlistRoleManagerProps {
   abi?: any;
   onSuccess?: () => void;
   onFunctionChange?: (fn: string) => void;
+  defaultAddress?: string;
 }
 
 export function AllowlistRoleManager({
@@ -324,6 +333,7 @@ export function AllowlistRoleManager({
   abi = allowListAbi.abi,
   onSuccess,
   onFunctionChange,
+  defaultAddress,
 }: AllowlistRoleManagerProps) {
   return (
     <div className="space-y-6">
@@ -348,6 +358,7 @@ export function AllowlistRoleManager({
             abi={abi}
             onSuccess={onSuccess}
             onFunctionChange={onFunctionChange}
+            defaultAddress={defaultAddress}
           />
         </div>
 
@@ -367,7 +378,7 @@ export function AllowlistComponent({
   precompileType = 'precompiled contract',
   abi = allowListAbi.abi,
   onSuccess,
-  defaultEnabledAddress: _defaultEnabledAddress,
+  defaultEnabledAddress,
 }: {
   precompileAddress: string;
   precompileType?: string;
@@ -381,6 +392,7 @@ export function AllowlistComponent({
       precompileType={precompileType}
       abi={abi}
       onSuccess={onSuccess}
+      defaultAddress={defaultEnabledAddress}
     />
   );
 }

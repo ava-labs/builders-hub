@@ -5,6 +5,7 @@ import { Check, ArrowUpRight, RefreshCw, Copy, Wallet, AlertTriangle } from 'luc
 import { Steps, Step } from 'fumadocs-ui/components/steps';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { Button } from '../../components/Button';
+import { CoreWalletTransactionButton } from '@/components/toolbox/components/CoreWalletTransactionButton';
 import SelectValidationID, { ValidationSelection } from '../../components/SelectValidationID';
 import SelectSubnetId from '../../components/SelectSubnetId';
 import { WalletRequirementsConfigKey } from '../../hooks/useWalletRequirements';
@@ -17,7 +18,6 @@ import { useConnectedWallet } from '@/components/toolbox/contexts/ConnectedWalle
 import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { SDKCodeViewer, type SDKCodeSource } from '@/components/console/sdk-code-viewer';
-import { CliAlternative } from '@/components/console/cli-alternative';
 import { cn } from '@/lib/utils';
 import { parsePChainError } from '@/components/toolbox/hooks/contracts';
 import { useSubmitPChainTx } from '@/components/toolbox/hooks/useSubmitPChainTx';
@@ -332,19 +332,16 @@ function ValidatorBalanceIncrease({ onSuccess }: BaseConsoleToolProps) {
                   )}
 
                 {/* Submit Button */}
-                <Button
-                  variant="primary"
+                <CoreWalletTransactionButton
                   onClick={increaseValidatorBalance}
                   loading={loading}
+                  loadingText="Increasing Balance..."
                   disabled={isDisabled}
                   className="w-full"
+                  cliCommand={`platform l1 add-balance --validation-id ${validatorSelection.validationId || '<validation-id>'} --balance ${amount || '<amount>'} --network ${isTestnet ? 'fuji' : 'mainnet'} --key-name <your-key-name>`}
                 >
                   Increase Balance
-                </Button>
-
-                <CliAlternative
-                  command={`platform l1 add-balance --validation-id ${validatorSelection.validationId || '<validation-id>'} --balance ${amount || '<amount>'} --network ${isTestnet ? 'fuji' : 'mainnet'} --key-name <your-key-name>`}
-                />
+                </CoreWalletTransactionButton>
               </div>
             </Step>
           </Steps>

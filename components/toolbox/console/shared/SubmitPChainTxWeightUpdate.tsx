@@ -13,6 +13,7 @@ import { extractWarpMessageFromReceipt, validateAndCleanTxHash } from '@/compone
 import { PChainManualSubmit } from '@/components/toolbox/components/PChainManualSubmit';
 import { StepFlowCard } from '@/components/toolbox/components/StepCard';
 import { parsePChainError } from '@/components/toolbox/hooks/contracts';
+import { CoreWalletTransactionButton } from '@/components/toolbox/components/CoreWalletTransactionButton';
 
 export interface WeightUpdateEventData {
   validationID: `0x${string}`;
@@ -365,14 +366,26 @@ const SubmitPChainTxWeightUpdate: React.FC<SubmitPChainTxWeightUpdateProps> = ({
           </div>
         ) : step1Complete && !step3Complete ? (
           <div className="mt-2">
-            <Button
-              onClick={handleSubmitPChainTx}
-              disabled={isProcessing || !unsignedWarpMessage}
-              loading={isProcessing}
-              className="w-full"
-            >
-              {isProcessing ? 'Processing...' : isCoreWallet ? 'Sign & Submit to P-Chain' : 'Aggregate Signatures'}
-            </Button>
+            {isCoreWallet ? (
+              <CoreWalletTransactionButton
+                onClick={handleSubmitPChainTx}
+                loading={isProcessing}
+                loadingText="Processing..."
+                disabled={isProcessing || !unsignedWarpMessage}
+                className="w-full"
+              >
+                Sign & Submit to P-Chain
+              </CoreWalletTransactionButton>
+            ) : (
+              <Button
+                onClick={handleSubmitPChainTx}
+                disabled={isProcessing || !unsignedWarpMessage}
+                loading={isProcessing}
+                className="w-full"
+              >
+                {isProcessing ? 'Processing...' : 'Aggregate Signatures'}
+              </Button>
+            )}
           </div>
         ) : null}
       </StepFlowCard>

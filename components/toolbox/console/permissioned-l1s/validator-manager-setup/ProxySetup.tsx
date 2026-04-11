@@ -54,7 +54,7 @@ const metadata: ConsoleToolMetadata = {
 };
 
 function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
-  const { validatorManagerAddress } = useToolboxStore();
+  const { validatorManagerAddress, setValidatorManagerAddress } = useToolboxStore();
   const selectedL1 = useSelectedL1();
   const { walletChainId, walletEVMAddress } = useWalletStore();
   const walletClient = useResolvedWalletClient();
@@ -177,6 +177,9 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
       const hash = await upgradePromise;
       await chainPublicClient.waitForTransactionReceipt({ hash });
       await readProxyInfo(proxyAddress);
+      // Update the store with the PROXY address (not the implementation)
+      // so downstream steps (Initialize, TransferOwnership) use the correct address.
+      setValidatorManagerAddress(proxyAddress);
       onSuccess?.();
     } finally {
       setIsUpgrading(false);

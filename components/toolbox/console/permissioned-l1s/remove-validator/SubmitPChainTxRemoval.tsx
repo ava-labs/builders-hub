@@ -13,6 +13,7 @@ import { WARP_PRECOMPILE_ADDRESS, WARP_MESSAGE_TOPIC, validateAndCleanTxHash } f
 import { PChainManualSubmit } from '@/components/toolbox/components/PChainManualSubmit';
 import { StepFlowCard } from '@/components/toolbox/components/StepCard';
 import { parsePChainError } from '@/components/toolbox/hooks/contracts';
+import { CoreWalletTransactionButton } from '@/components/toolbox/components/CoreWalletTransactionButton';
 
 interface SubmitPChainTxRemovalProps {
   subnetIdL1: string;
@@ -425,14 +426,26 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
           </div>
         ) : step1Complete && !step3Complete ? (
           <div className="mt-2">
-            <Button
-              onClick={handleSubmitPChainTx}
-              disabled={isProcessing || !unsignedWarpMessage || !eventData || (!!signedWarpMessage && !isCoreWallet)}
-              loading={isProcessing}
-              className="w-full"
-            >
-              {isProcessing ? 'Processing...' : isCoreWallet ? 'Sign & Submit to P-Chain' : 'Aggregate Signatures'}
-            </Button>
+            {isCoreWallet ? (
+              <CoreWalletTransactionButton
+                onClick={handleSubmitPChainTx}
+                loading={isProcessing}
+                loadingText="Processing..."
+                disabled={isProcessing || !unsignedWarpMessage || !eventData}
+                className="w-full"
+              >
+                Sign & Submit to P-Chain
+              </CoreWalletTransactionButton>
+            ) : (
+              <Button
+                onClick={handleSubmitPChainTx}
+                disabled={isProcessing || !unsignedWarpMessage || !eventData || !!signedWarpMessage}
+                loading={isProcessing}
+                className="w-full"
+              >
+                {isProcessing ? 'Processing...' : 'Aggregate Signatures'}
+              </Button>
+            )}
           </div>
         ) : null}
       </StepFlowCard>

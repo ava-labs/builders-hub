@@ -8,7 +8,7 @@ export interface StepFlowCardProps {
   step: number;
   title: string;
   description?: string | React.ReactNode;
-  isComplete: boolean;
+  isComplete?: boolean;
   isActive?: boolean;
   children?: React.ReactNode;
 }
@@ -17,7 +17,7 @@ export const StepFlowCard: React.FC<StepFlowCardProps> = ({
   step,
   title,
   description,
-  isComplete,
+  isComplete = false,
   isActive = true,
   children,
 }) => {

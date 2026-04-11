@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Loader2, CheckCircle2, ArrowUpRight, Users, ShieldOff } from 'lucide-react';
+import { CheckCircle2, ArrowUpRight, Users, ShieldOff } from 'lucide-react';
 import { Button } from '../../../components/Button';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import SelectSubnetId from '../../../components/SelectSubnetId';
@@ -19,7 +19,7 @@ import { useDisableL1Validator } from './DisableL1ValidatorContext';
 import ValidatorSelector from './ValidatorSelector';
 import { formatAvaxBalance } from '@/components/toolbox/coreViem/utils/format';
 import { SDKCodeViewer, SDKCodeSource } from '@/components/console/sdk-code-viewer';
-import { CliAlternative } from '@/components/console/cli-alternative';
+import { CoreWalletTransactionButton } from '@/components/toolbox/components/CoreWalletTransactionButton';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { parsePChainError } from '@/components/toolbox/hooks/contracts';
 
@@ -357,28 +357,16 @@ function DisableValidator({ onSuccess }: BaseConsoleToolProps) {
         {error && <Alert variant="error">{error}</Alert>}
 
         {/* Submit Button */}
-        <Button
-          variant="primary"
+        <CoreWalletTransactionButton
           onClick={handleDisableValidator}
+          loading={isProcessing}
+          loadingText="Disabling Validator..."
           disabled={isProcessing || !selectedValidator || !isAuthorized || !coreWalletClient}
-          className="w-full py-2 px-4 text-sm font-medium"
+          className="w-full"
+          cliCommand={`avalanche validator disable --validation-id ${selectedValidator?.validationId || '<validation-id>'} --network ${isTestnet ? 'fuji' : 'mainnet'}`}
         >
-          {isProcessing ? (
-            <span className="flex items-center justify-center">
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Disabling Validator...
-            </span>
-          ) : (
-            <span className="flex items-center justify-center gap-2">
-              <ShieldOff className="w-4 h-4" />
-              Disable Validator
-            </span>
-          )}
-        </Button>
-
-        <CliAlternative
-          command={`avalanche validator disable --validation-id ${selectedValidator?.validationId || '<validation-id>'} --network ${isTestnet ? 'fuji' : 'mainnet'}`}
-        />
+          Disable Validator
+        </CoreWalletTransactionButton>
       </div>
     </SDKCodeViewer>
   );

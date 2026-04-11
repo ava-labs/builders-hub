@@ -35,7 +35,7 @@ import {
   Rocket,
   LayoutDashboard,
   Workflow,
-  Sparkles,
+
   Search,
   X,
   Bell,
@@ -135,12 +135,6 @@ const data = {
       title: "Get Started",
       icon: Rocket,
       items: [
-        {
-          title: "Blueprints",
-          url: "/console/blueprints",
-          icon: Sparkles,
-          comingSoon: true,
-        },
         {
           title: "Create L1",
           url: "/console/layer-1/create",
@@ -583,7 +577,7 @@ function CollapsibleSubGroupItem({
 const TOUR_DATA_ATTRS: Record<string, string> = {
   "/console/primary-network/faucet": "faucet-link",
   "/console/layer-1/create": "create-l1-link",
-  "/console/blueprints": "blueprints-link",
+
 };
 
 // Single Nav Menu Item

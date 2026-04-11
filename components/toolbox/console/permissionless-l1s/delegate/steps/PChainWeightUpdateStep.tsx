@@ -3,7 +3,7 @@
 import React from 'react';
 import SubmitPChainTxWeightUpdate from '@/components/toolbox/console/shared/SubmitPChainTxWeightUpdate';
 import { useDelegateStore } from '@/components/toolbox/stores/delegateStore';
-import { useValidatorManagerContext } from '@/components/toolbox/console/permissioned-l1s/shared/ValidatorManagerContext';
+import { useValidatorManagerContext } from '@/components/toolbox/contexts/ValidatorManagerContext';
 import { Alert } from '@/components/toolbox/components/Alert';
 
 export default function PChainWeightUpdateStep() {

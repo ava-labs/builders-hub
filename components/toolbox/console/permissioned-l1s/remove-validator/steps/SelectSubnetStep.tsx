@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import SelectSubnetId from '@/components/toolbox/components/SelectSubnetId';
 import { ValidatorManagerDetails } from '@/components/toolbox/components/ValidatorManagerDetails';
 import { useRemoveValidatorStore } from '@/components/toolbox/stores/removeValidatorStore';
-import { useValidatorManagerContext } from '@/components/toolbox/console/permissioned-l1s/shared/ValidatorManagerContext';
+import { useValidatorManagerContext } from '@/components/toolbox/contexts/ValidatorManagerContext';
 import { useCreateChainStore } from '@/components/toolbox/stores/createChainStore';
 
 export default function SelectSubnetStep() {

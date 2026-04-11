@@ -4,7 +4,7 @@ import { useState, useCallback } from 'react';
 import StepFlow from '@/components/console/step-flow';
 import { steps } from '@/app/console/permissioned-l1s/remove-validator/steps';
 import { useRemoveValidatorStore } from '@/components/toolbox/stores/removeValidatorStore';
-import PermissionedFlowLayout from './shared/PermissionedFlowLayout';
+import ValidatorManagerLayout from '@/components/toolbox/contexts/ValidatorManagerLayout';
 
 export default function RemoveValidator() {
   const { subnetIdL1, globalError } = useRemoveValidatorStore();
@@ -16,7 +16,7 @@ export default function RemoveValidator() {
   }, []);
 
   return (
-    <PermissionedFlowLayout subnetIdL1={subnetIdL1} globalError={globalError}>
+    <ValidatorManagerLayout subnetIdL1={subnetIdL1} globalError={globalError}>
       <StepFlow
         steps={steps}
         basePath=""
@@ -25,6 +25,6 @@ export default function RemoveValidator() {
         showCompletionModal={false}
         compact
       />
-    </PermissionedFlowLayout>
+    </ValidatorManagerLayout>
   );
 }

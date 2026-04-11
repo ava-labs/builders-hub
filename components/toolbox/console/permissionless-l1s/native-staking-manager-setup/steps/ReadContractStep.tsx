@@ -10,10 +10,7 @@ import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicC
 import NativeTokenStakingManager from '@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json';
 import ERC20TokenStakingManager from '@/contracts/icm-contracts/compiled/ERC20TokenStakingManager.json';
 import type { StakingManagerSettings } from '@/components/toolbox/hooks/contracts/types';
-import type {
-  StakingDetails,
-  StakingType,
-} from '@/components/toolbox/console/permissioned-l1s/shared/ValidatorManagerContext';
+import type { StakingDetails, StakingType } from '@/components/toolbox/contexts/ValidatorManagerContext';
 
 export default function ReadContractStep() {
   const [subnetIdInput, setSubnetIdInput] = useState('');
@@ -50,6 +47,7 @@ export default function ReadContractStep() {
 
   // Detect staking details (type, settings, token address)
   const [stakingType, setStakingType] = useState<StakingType>(null);
+  const [resolvedAddr, setResolvedAddr] = useState<string | null>(null);
   const [erc20TokenAddress, setErc20TokenAddress] = useState<string | null>(null);
   const [stakingSettings, setStakingSettings] = useState<StakingManagerSettings | null>(null);
   const [isLoadingStaking, setIsLoadingStaking] = useState(false);
@@ -81,6 +79,7 @@ export default function ReadContractStep() {
           })) as StakingManagerSettings;
 
           if (cancelled) return;
+          setResolvedAddr(addr);
           setStakingSettings(settings);
 
           // Try to read erc20() — if it exists, it is an ERC20 staking manager
@@ -118,11 +117,12 @@ export default function ReadContractStep() {
   const staking = useMemo<StakingDetails>(
     () => ({
       stakingType,
+      stakingManagerAddress: resolvedAddr,
       erc20TokenAddress,
       settings: stakingSettings,
       isLoading: isLoadingStaking,
     }),
-    [stakingType, erc20TokenAddress, stakingSettings, isLoadingStaking],
+    [stakingType, resolvedAddr, erc20TokenAddress, stakingSettings, isLoadingStaking],
   );
 
   return (

@@ -1,6 +1,7 @@
 'use client';
 
-import { History, Check, X, Loader2, ExternalLink, Trash2 } from 'lucide-react';
+import { useState, useCallback } from 'react';
+import { History, Check, X, Loader2, ExternalLink, Trash2, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useNotificationPanelStore, type ConsoleNotification } from './store';
@@ -15,6 +16,13 @@ function timeAgo(timestamp: number): string {
 
 function NotificationItem({ notification }: { notification: ConsoleNotification }) {
   const { removeNotification } = useNotificationPanelStore();
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyError = useCallback(() => {
+    navigator.clipboard.writeText(notification.message);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  }, [notification.message]);
 
   const statusIcon =
     notification.status === 'loading' ? (
@@ -51,6 +59,18 @@ function NotificationItem({ notification }: { notification: ConsoleNotification 
             >
               View in Explorer <ExternalLink className="h-2.5 w-2.5" />
             </a>
+          )}
+          {notification.status === 'error' && (
+            <button
+              onClick={handleCopyError}
+              className="inline-flex items-center gap-1 text-[10px] text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 mt-1 transition-colors"
+            >
+              {copied ? (
+                <>Copied <Check className="h-2.5 w-2.5" /></>
+              ) : (
+                <>Copy Error <Copy className="h-2.5 w-2.5" /></>
+              )}
+            </button>
           )}
         </div>
         <button

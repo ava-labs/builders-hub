@@ -3,7 +3,7 @@
 import React from 'react';
 import InitiateDelegation from '@/components/toolbox/console/permissionless-l1s/delegate/InitiateDelegation';
 import { useDelegateStore } from '@/components/toolbox/stores/delegateStore';
-import { useValidatorManagerContext } from '@/components/toolbox/console/permissioned-l1s/shared/ValidatorManagerContext';
+import { useValidatorManagerContext } from '@/components/toolbox/contexts/ValidatorManagerContext';
 import { useToolboxStore } from '@/components/toolbox/stores/toolboxStore';
 import { Alert } from '@/components/toolbox/components/Alert';
 
@@ -18,8 +18,8 @@ export default function InitiateDelegationStep() {
     <div className="space-y-4">
       {(!store.subnetIdL1 || !store.validationId) && (
         <Alert variant="warning">
-          No L1 subnet selected or no validator chosen. Go back to{' '}
-          <strong>Select L1 & Token Type</strong> to set these up.
+          No L1 subnet selected or no validator chosen. Go back to <strong>Select L1 & Token Type</strong> to set these
+          up.
         </Alert>
       )}
 

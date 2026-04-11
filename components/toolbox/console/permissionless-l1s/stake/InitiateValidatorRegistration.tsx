@@ -132,9 +132,8 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
     setIsApproving(true);
     setErrorState(null);
     try {
-      const amountWei = parseEther(stakeAmount);
-      // useERC20Token.approve() already calls notify() internally
-      const hash = await erc20Token.approve(stakingManagerAddress as `0x${string}`, amountWei.toString());
+      // useERC20Token.approve() calls parseEther internally — pass human-readable amount
+      const hash = await erc20Token.approve(stakingManagerAddress as `0x${string}`, stakeAmount);
       await chainPublicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
     } catch (err: any) {
       setErrorState(`Failed to approve tokens: ${err instanceof Error ? err.message : String(err)}`);

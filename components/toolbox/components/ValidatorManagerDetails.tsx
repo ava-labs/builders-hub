@@ -3,7 +3,7 @@ import { Copy, Check } from 'lucide-react';
 import { formatEther } from 'viem';
 import { getBlockchainInfo } from '../coreViem/utils/glacier';
 import { hexToCB58 } from '@/components/tools/common/utils/cb58';
-import type { StakingDetails } from '@/components/toolbox/console/permissioned-l1s/shared/ValidatorManagerContext';
+import type { StakingDetails } from '@/components/toolbox/contexts/ValidatorManagerContext';
 
 interface ValidatorManagerDetailsProps {
   validatorManagerAddress: string | null;
@@ -181,35 +181,21 @@ export function ValidatorManagerDetails({
                 />
               </div>
 
-              {staking.settings.uptimeBlockchainID &&
-                staking.settings.uptimeBlockchainID !== ZERO_BYTES32 &&
-                (() => {
-                  let uptimeCb58: string;
-                  try {
-                    uptimeCb58 = hexToCB58(staking.settings.uptimeBlockchainID);
-                  } catch {
-                    uptimeCb58 = staking.settings.uptimeBlockchainID;
-                  }
-                  const isMismatch = blockchainId && uptimeCb58 !== blockchainId;
-                  return (
-                    <>
-                      <Row
-                        label="Uptime Chain"
-                        badge={uptimeChainName || (isLoadingUptimeChainName ? 'loading...' : null)}
-                        value={uptimeCb58}
-                        mono
-                        copyable
-                        error={!!isMismatch}
-                      />
-                      {isMismatch && (
-                        <p className="text-[10px] text-amber-600 dark:text-amber-400 -mt-1">
-                          Uptime chain differs from home chain — this should typically be your L1&apos;s blockchain ID,
-                          not the primary network.
-                        </p>
-                      )}
-                    </>
-                  );
-                })()}
+              {staking.settings.uptimeBlockchainID && staking.settings.uptimeBlockchainID !== ZERO_BYTES32 && (
+                <Row
+                  label="Uptime Chain"
+                  badge={uptimeChainName || (isLoadingUptimeChainName ? 'loading...' : null)}
+                  value={(() => {
+                    try {
+                      return hexToCB58(staking.settings.uptimeBlockchainID);
+                    } catch {
+                      return staking.settings.uptimeBlockchainID;
+                    }
+                  })()}
+                  mono
+                  copyable
+                />
+              )}
 
               {staking.settings.rewardCalculator &&
                 staking.settings.rewardCalculator !== '0x0000000000000000000000000000000000000000' && (
