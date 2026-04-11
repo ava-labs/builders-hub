@@ -199,7 +199,7 @@ const CompletePChainRegistration: React.FC<CompletePChainRegistrationProps> = ({
           })) as any;
 
           validationIdQueryAddress = settings.manager;
-        } catch (err) {
+        } catch {
           // Failed to get ValidatorManager from settings, use manager address as fallback
         }
       }

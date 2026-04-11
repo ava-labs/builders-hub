@@ -16,7 +16,6 @@ import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import ValidatorManagerABI from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { Check } from 'lucide-react';
-import { StepFlowCard } from '@/components/toolbox/components/StepCard';
 import { generateCastSendCommand } from '@/components/toolbox/utils/castCommand';
 
 interface CompleteValidatorRemovalProps {

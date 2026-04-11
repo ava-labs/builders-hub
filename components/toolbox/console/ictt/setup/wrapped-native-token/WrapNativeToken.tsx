@@ -39,8 +39,6 @@ export default function WrapNativeToken({ wrappedNativeTokenAddress, onError }: 
   useEffect(() => {
     if (!viemChain || !walletEVMAddress || !wrappedNativeTokenAddress) return;
 
-    const chainIdStr = walletChainId.toString();
-
     // Cache native currency info if not already cached
     if (!cachedNativeCurrency && viemChain.nativeCurrency) {
       setNativeCurrencyInfo(walletChainId, viemChain.nativeCurrency);
@@ -60,7 +58,7 @@ export default function WrapNativeToken({ wrappedNativeTokenAddress, onError }: 
 
     setIsWrapping(true);
     try {
-      const hash = await wrappedNativeToken.deposit(wrapAmount);
+      await wrappedNativeToken.deposit(wrapAmount);
       // Transaction will be handled by the notify system in the hook
       setWrapAmount('');
     } catch (error) {

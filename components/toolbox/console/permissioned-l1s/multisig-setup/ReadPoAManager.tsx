@@ -40,7 +40,7 @@ const metadata: ConsoleToolMetadata = {
   githubUrl: generateConsoleToolGitHubUrl(import.meta.url),
 };
 
-function ReadPoAManager({ onSuccess }: BaseConsoleToolProps) {
+function ReadPoAManager({ onSuccess: _onSuccess }: BaseConsoleToolProps) {
   const [criticalError, setCriticalError] = useState<Error | null>(null);
   const { poaManagerAddress, setPoaManagerAddress } = useToolboxStore();
   const [viewData, setViewData] = useState<ViewData>({});

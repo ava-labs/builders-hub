@@ -412,7 +412,7 @@ function GenesisBuilderInner({
 
   // --- Handlers ---
 
-  const toggleSection = useCallback((sectionId: SectionId) => {
+  const _toggleSection = useCallback((sectionId: SectionId) => {
     setExpandedSections((prev) => {
       const newState = new Set(prev);
       if (newState.has(sectionId)) {
@@ -424,12 +424,12 @@ function GenesisBuilderInner({
     });
   }, []);
 
-  const isSectionExpanded = useCallback((sectionId: SectionId) => expandedSections.has(sectionId), [expandedSections]);
+  const _isSectionExpanded = useCallback((sectionId: SectionId) => expandedSections.has(sectionId), [expandedSections]);
 
   // Calculate genesis size in bytes and KiB
   const genesisSizeBytes = genesisData ? new Blob([genesisData]).size : 0;
-  const genesisSizeKiB = genesisSizeBytes / 1024;
-  const maxSizeKiB = 64; // P-Chain transaction limit
+  const _genesisSizeKiB = genesisSizeBytes / 1024;
+  const _maxSizeKiB = 64; // P-Chain transaction limit
 
   // Handler for token allocations
   const handleTokenAllocationsChange = useCallback(

@@ -36,7 +36,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
   onSuccess,
   onError,
 }) => {
-  const { walletEVMAddress, avalancheNetworkID } = useWalletStore();
+  const { avalancheNetworkID } = useWalletStore();
   const chainPublicClient = useChainPublicClient();
   const walletClient = useResolvedWalletClient();
   const { aggregateSignature } = useAvalancheSDKChainkit();

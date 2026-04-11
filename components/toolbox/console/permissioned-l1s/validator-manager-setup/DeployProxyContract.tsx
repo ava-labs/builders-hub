@@ -1,7 +1,6 @@
 'use client';
 
 import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
-import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useState } from 'react';
 import { Button } from '@/components/toolbox/components/Button';
 import ProxyAdminABI from '@/contracts/openzeppelin-4.9/compiled/ProxyAdmin.json';
@@ -14,7 +13,6 @@ import {
   ConsoleToolMetadata,
   withConsoleToolMetadata,
 } from '../../../components/WithConsoleToolMetadata';
-import { useConnectedWallet } from '@/components/toolbox/contexts/ConnectedWalletContext';
 import { AcknowledgementCallout } from '@/components/toolbox/components/AcknowledgementCallout';
 import { LockedContent } from '@/components/toolbox/components/LockedContent';
 import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
@@ -40,8 +38,6 @@ function DeployProxyContract({ onSuccess }: BaseConsoleToolProps) {
   const [acknowledged, setAcknowledged] = useState(false);
   const [warningDismissed, setWarningDismissed] = useState(false);
 
-  const { walletEVMAddress } = useWalletStore();
-  const { walletClient } = useConnectedWallet();
   const { deploy, isDeploying } = useContractDeployer();
 
   async function deployProxyAdmin() {

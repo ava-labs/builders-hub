@@ -1,6 +1,5 @@
 'use client';
 
-import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/toolbox/components/Button';
@@ -34,7 +33,7 @@ export interface TransferOwnershipProps extends BaseConsoleToolProps {
   defaultNewOwnerAddress?: string;
 }
 
-function TransferOwnership({ onSuccess, defaultNewOwnerAddress }: TransferOwnershipProps) {
+function TransferOwnership({ onSuccess: _onSuccess, defaultNewOwnerAddress }: TransferOwnershipProps) {
   const [criticalError, setCriticalError] = useState<Error | null>(null);
   const { walletEVMAddress } = useWalletStore();
   const chainPublicClient = useChainPublicClient();
@@ -49,7 +48,6 @@ function TransferOwnership({ onSuccess, defaultNewOwnerAddress }: TransferOwners
   const [newOwnerContractType, setNewOwnerContractType] = useState<'StakingManager' | 'PoAManager' | 'Unknown' | null>(
     null,
   );
-  const viemChain = useViemChainStore();
 
   // Update newOwnerAddress when defaultNewOwnerAddress prop changes
   useEffect(() => {

@@ -26,9 +26,6 @@ function getPChainAddressFromPublicKey(xpPubKey: string, networkID: number) {
   // Remove 0x prefix for processing
   const pubKeyHex = xpPubKey.slice(2);
 
-  // Convert hex string to Uint8Array
-  const pubKeyBytes = new Uint8Array(pubKeyHex.match(/.{1,2}/g)!.map((byte) => parseInt(byte, 16)));
-
   // Use noble/curves to compress the public key
   // The public key is already in uncompressed format (04 prefix)
   // We just need to get the compressed version

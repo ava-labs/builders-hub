@@ -15,7 +15,10 @@ interface DisplayWrappedBalanceProps {
   onError: (error: Error) => void;
 }
 
-export default function DisplayWrappedBalance({ wrappedNativeTokenAddress, onError }: DisplayWrappedBalanceProps) {
+export default function DisplayWrappedBalance({
+  wrappedNativeTokenAddress,
+  onError: _onError,
+}: DisplayWrappedBalanceProps) {
   const { walletEVMAddress, walletChainId } = useWalletStore();
   const setNativeCurrencyInfo = useSetNativeCurrencyInfo();
   const viemChain = useViemChainStore();
@@ -41,8 +44,6 @@ export default function DisplayWrappedBalance({ wrappedNativeTokenAddress, onErr
 
       setIsLoading(true);
       try {
-        const chainIdStr = walletChainId.toString();
-
         // Cache native currency info if not already cached
         if (!cachedNativeCurrency && viemChain?.nativeCurrency) {
           setNativeCurrencyInfo(walletChainId, viemChain.nativeCurrency);

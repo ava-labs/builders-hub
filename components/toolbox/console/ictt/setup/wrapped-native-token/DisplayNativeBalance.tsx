@@ -9,7 +9,7 @@ interface DisplayNativeBalanceProps {
   onError: (error: Error) => void;
 }
 
-export default function DisplayNativeBalance({ onError }: DisplayNativeBalanceProps) {
+export default function DisplayNativeBalance({ onError: _onError }: DisplayNativeBalanceProps) {
   const { walletChainId } = useWalletStore();
   const setNativeCurrencyInfo = useSetNativeCurrencyInfo();
   const viemChain = useViemChainStore();

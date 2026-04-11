@@ -32,7 +32,7 @@ const metadata: ConsoleToolMetadata = {
   githubUrl: generateConsoleToolGitHubUrl(import.meta.url),
 };
 
-function TokenManagementInner({ onSuccess }: BaseConsoleToolProps) {
+function TokenManagementInner({ onSuccess: _onSuccess }: BaseConsoleToolProps) {
   // JWT state
   const [jwtData, setJwtData] = useState<GlacierJwtResponse | null>(null);
   const [jwtLoading, setJwtLoading] = useState(true);

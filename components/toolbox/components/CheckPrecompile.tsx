@@ -26,16 +26,6 @@ const PRECOMPILE_DOCS: Record<PrecompileConfigKey, string> = {
   contractNativeMinterConfig: '/docs/avalanche-l1s/customize/native-minter',
 };
 
-// Friendly names for precompiles
-const PRECOMPILE_NAMES: Record<PrecompileConfigKey, string> = {
-  warpConfig: 'Avalanche Warp Messaging',
-  contractDeployerAllowListConfig: 'Contract Deployer Allowlist',
-  txAllowListConfig: 'Transaction Allowlist',
-  feeManagerConfig: 'Fee Manager',
-  rewardManagerConfig: 'Reward Manager',
-  contractNativeMinterConfig: 'Native Minter',
-};
-
 interface CheckPrecompileProps {
   children: React.ReactNode;
   configKey: PrecompileConfigKey;

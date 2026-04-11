@@ -73,7 +73,7 @@ export const MultisigOption: React.FC<MultisigOptionProps> = ({
   onSuccess,
   onError,
   disabled,
-  children,
+  children: _children,
 }) => {
   const [isInitializing, setIsInitializing] = useState(false);
   const [isProposing, setIsProposing] = useState(false);

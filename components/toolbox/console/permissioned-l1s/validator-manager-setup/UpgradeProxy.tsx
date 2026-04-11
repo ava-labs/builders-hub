@@ -19,7 +19,6 @@ import {
   ConsoleToolMetadata,
   withConsoleToolMetadata,
 } from '../../../components/WithConsoleToolMetadata';
-import { useConnectedWallet } from '@/components/toolbox/contexts/ConnectedWalletContext';
 import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
 
 // Storage slot with the admin of the proxy (following EIP1967)
@@ -37,9 +36,8 @@ function UpgradeProxy({ onSuccess }: BaseConsoleToolProps) {
   const { validatorManagerAddress } = useToolboxStore();
   const [proxyAdminAddress, setProxyAdminAddress] = useState<`0x${string}` | null>(null);
   const selectedL1 = useSelectedL1();
-  const { walletChainId, walletEVMAddress } = useWalletStore();
+  const { walletChainId } = useWalletStore();
   const chainPublicClient = useChainPublicClient();
-  const { walletClient } = useConnectedWallet();
   const [isUpgrading, setIsUpgrading] = useState(false);
   const [currentImplementation, setCurrentImplementation] = useState<string | null>(null);
   const [desiredImplementation, setDesiredImplementation] = useState<string | null>(null);

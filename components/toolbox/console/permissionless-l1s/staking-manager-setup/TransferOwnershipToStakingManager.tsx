@@ -11,7 +11,8 @@ import {
 import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
 import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
 import { StepCodeViewer, type StepConfig } from '@/components/console/step-code-viewer';
-import { Info, AlertTriangle } from 'lucide-react';
+import { StepFlowCard } from '@/components/toolbox/components/StepCard';
+import { AlertTriangle } from 'lucide-react';
 import versions from '@/scripts/versions.json';
 
 const ICM_COMMIT = versions['ava-labs/icm-contracts'];
@@ -123,7 +124,8 @@ if (owner.toLowerCase() === expectedOwner.toLowerCase()) {
 
 function TransferOwnershipToStakingManager({ onSuccess }: BaseConsoleToolProps) {
   const { nativeStakingManagerAddress, erc20StakingManagerAddress } = useToolboxStore();
-  const [activeStep, setActiveStep] = useState(0);
+  const [activeStep, _setActiveStep] = useState(0);
+  const [transferComplete, setTransferComplete] = useState(false);
 
   // Prefer ERC20 if both are present
   const stakingManagerAddress = erc20StakingManagerAddress || nativeStakingManagerAddress;
@@ -135,29 +137,33 @@ function TransferOwnershipToStakingManager({ onSuccess }: BaseConsoleToolProps) 
     stakingManagerAddress: stakingManagerAddress || '',
   });
 
+  function handleTransferSuccess() {
+    setTransferComplete(true);
+    onSuccess?.();
+  }
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
       {/* Left: Transfer Form */}
       <div className="flex flex-col rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
-        <div className="flex-1 overflow-auto p-5 space-y-4">
-          {stakingManagerAddress && (
-            <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800">
-              <div className="flex items-start gap-3">
-                <Info className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
-                <div>
-                  <h3 className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-1">
-                    {stakingManagerType} Staking Manager Detected
-                  </h3>
-                  <p className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
-                    Your {stakingManagerType} Staking Manager address has been automatically filled in below:
-                  </p>
-                  <code className="mt-1.5 inline-block px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-mono text-xs break-all">
-                    {stakingManagerAddress}
-                  </code>
-                </div>
+        <div className="p-5 space-y-4">
+          <StepFlowCard
+            step={1}
+            title="Transfer Ownership to Staking Manager"
+            description="The Staking Manager needs ownership of the Validator Manager to register validators and manage the validator set."
+            isComplete={transferComplete}
+          >
+            {stakingManagerAddress && (
+              <div className="mt-2">
+                <span className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
+                  {stakingManagerType} Staking Manager:{' '}
+                </span>
+                <code className="px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-mono text-xs break-all">
+                  {stakingManagerAddress}
+                </code>
               </div>
-            </div>
-          )}
+            )}
+          </StepFlowCard>
 
           {!stakingManagerAddress && (
             <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800">
@@ -176,21 +182,25 @@ function TransferOwnershipToStakingManager({ onSuccess }: BaseConsoleToolProps) 
             </div>
           )}
 
-          <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800">
-            <h3 className="text-sm font-medium text-amber-900 dark:text-amber-100 mb-2">Why Transfer Ownership?</h3>
-            <p className="text-xs text-amber-700 dark:text-amber-300 leading-relaxed">
-              The Staking Manager needs ownership of the Validator Manager to register validators and manage the
-              validator set. After transfer, only the Staking Manager contract can call protected functions like{' '}
-              <code className="text-amber-800 dark:text-amber-200">initializeValidatorRegistration</code>.
-            </p>
-          </div>
+          <TransferOwnership onSuccess={handleTransferSuccess} defaultNewOwnerAddress={stakingManagerAddress} />
+        </div>
 
-          <TransferOwnership onSuccess={onSuccess} defaultNewOwnerAddress={stakingManagerAddress} />
+        {/* Footer */}
+        <div className="shrink-0 px-5 py-3 border-t border-zinc-200/80 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 flex items-center justify-between mt-auto">
+          <span className="text-xs text-zinc-500">Calls transferOwnership(newOwner)</span>
+          <a
+            href={`https://github.com/ava-labs/icm-contracts/tree/${ICM_COMMIT}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[11px] text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 font-mono transition-colors"
+          >
+            @{ICM_COMMIT.slice(0, 7)}
+          </a>
         </div>
       </div>
 
       {/* Right: Code Viewer */}
-      <StepCodeViewer activeStep={activeStep} steps={codeSteps} className="h-[600px]" />
+      <StepCodeViewer activeStep={activeStep} steps={codeSteps} />
     </div>
   );
 }

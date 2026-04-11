@@ -73,7 +73,7 @@ export function QueryL1ValidatorSetInner({}: BaseConsoleToolProps) {
     // Fall back to Glacier API
     const network = avalancheNetworkID === networkIDs.MainnetID ? 'mainnet' : 'testnet';
     getBlockchainInfoForNetwork(network as 'mainnet' | 'testnet', vmcAddress.blockchainId)
-      .then((info) => {
+      .then((_info) => {
         // Construct RPC URL from blockchain info
         const baseUrl = isTestnet ? 'https://api.avax-test.network' : 'https://api.avax.network';
         setVmcChainRpcUrl(`${baseUrl}/ext/bc/${vmcAddress.blockchainId}/rpc`);

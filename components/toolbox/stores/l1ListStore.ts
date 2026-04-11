@@ -186,11 +186,6 @@ const l1ListInitialStateMainnet = {
   ] as L1ListItem[],
 };
 
-const defaultChainIds = [
-  ...l1ListInitialStateFuji.l1List.map((l1) => l1.id),
-  ...l1ListInitialStateMainnet.l1List.map((l1) => l1.id),
-];
-
 // Ensure singleton stores per network to keep state in sync across components
 let testnetStoreSingleton: any | null = null;
 let mainnetStoreSingleton: any | null = null;

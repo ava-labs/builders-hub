@@ -48,7 +48,7 @@ const metadata: ConsoleToolMetadata = {
   githubUrl: generateConsoleToolGitHubUrl(import.meta.url),
 };
 
-function DeployWrappedNative({ onSuccess }: BaseConsoleToolProps) {
+function DeployWrappedNative({ onSuccess: _onSuccess }: BaseConsoleToolProps) {
   const [criticalError, setCriticalError] = useState<Error | null>(null);
   const [isMounted, setIsMounted] = useState(false);
 
@@ -133,8 +133,6 @@ function DeployWrappedNative({ onSuccess }: BaseConsoleToolProps) {
 
       setIsCheckingToken(true);
       try {
-        const chainIdStr = walletChainId.toString();
-
         // Cache native currency info if not already cached
         if (!cachedNativeCurrency && viemChain.nativeCurrency) {
           setNativeCurrencyInfo(walletChainId, viemChain.nativeCurrency);

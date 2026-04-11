@@ -68,11 +68,11 @@ function RemoveExpiredValidatorRegistration() {
   const [fromBlock, setFromBlock] = useState<string>('');
   const [events, setEvents] = useState<ParsedInitiatedRegistration[]>([]);
   const [isDetailsExpanded, setIsDetailsExpanded] = useState<boolean>(false);
-  const [isLoadingValidators, setIsLoadingValidators] = useState<boolean>(false);
+  const [_isLoadingValidators, setIsLoadingValidators] = useState<boolean>(false);
   const [validatorIdHexSet, setValidatorIdHexSet] = useState<Set<string>>(new Set());
   const [validatorStatusById, setValidatorStatusById] = useState<Record<string, number>>({});
   const [fetchProgress, setFetchProgress] = useState<{ current: number; total: number } | null>(null);
-  const [selectedFunction, setSelectedFunction] = useState<string>('completeValidatorRemoval');
+  const [selectedFunction, _setSelectedFunction] = useState<string>('completeValidatorRemoval');
   const [actionState, setActionState] = useState<
     Record<
       string,

@@ -15,7 +15,7 @@ import { useConnectedWallet } from '@/components/toolbox/contexts/ConnectedWalle
 import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
 import { Alert } from '../../../components/Alert';
 import { useSubmitPChainTx } from '@/components/toolbox/hooks/useSubmitPChainTx';
-import { useDisableL1Validator, ValidatorData } from './DisableL1ValidatorContext';
+import { useDisableL1Validator } from './DisableL1ValidatorContext';
 import ValidatorSelector from './ValidatorSelector';
 import { formatAvaxBalance } from '@/components/toolbox/coreViem/utils/format';
 import { SDKCodeViewer, SDKCodeSource } from '@/components/console/sdk-code-viewer';

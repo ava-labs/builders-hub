@@ -59,7 +59,7 @@ function CopyButton({ text, label }: { text: string; label?: string }) {
   );
 }
 
-function DevnetFaucet({ onSuccess }: BaseConsoleToolProps) {
+function DevnetFaucet({ onSuccess: _onSuccess }: BaseConsoleToolProps) {
   const { data: session } = useSession();
   const { walletEVMAddress } = useWalletStore();
   const [isDripping, setIsDripping] = useState(false);
@@ -179,7 +179,7 @@ function DevnetFaucet({ onSuccess }: BaseConsoleToolProps) {
         fetchBalance();
         fetchUserBalance();
       }, 2000);
-    } catch (err) {
+    } catch {
       setResult({ success: false, message: 'Network error. Please try again.' });
     } finally {
       setIsDripping(false);

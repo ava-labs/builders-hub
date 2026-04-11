@@ -11,10 +11,10 @@ interface StepFlowFooterProps {
 }
 
 export default function StepFlowFooter({
-  globalSuccess,
+  globalSuccess: _globalSuccess,
   showReset,
   onReset,
-  successLabel = 'Process Complete',
+  successLabel: _successLabel = 'Process Complete',
 }: StepFlowFooterProps) {
   return (
     <>

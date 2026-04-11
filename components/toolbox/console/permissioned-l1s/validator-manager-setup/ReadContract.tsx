@@ -5,8 +5,7 @@ import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicC
 import type { AbiEvent } from 'viem';
 import { useEffect, useState } from 'react';
 import ValidatorManagerABI from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
-import { Button } from '@/components/toolbox/components/Button';
-import { ChevronDown, ChevronRight, RefreshCw, Check, Database, Activity } from 'lucide-react';
+import { ChevronDown, ChevronRight, RefreshCw, Database, Activity } from 'lucide-react';
 import { getSubnetInfo } from '@/components/toolbox/coreViem/utils/glacier';
 import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
 import {
@@ -44,7 +43,7 @@ const metadata: ConsoleToolMetadata = {
   githubUrl: generateConsoleToolGitHubUrl(import.meta.url),
 };
 
-function ReadContract({ onSuccess }: BaseConsoleToolProps) {
+function ReadContract({ onSuccess: _onSuccess }: BaseConsoleToolProps) {
   const [criticalError, setCriticalError] = useState<Error | null>(null);
   const [proxyAddress, setProxyAddress] = useState<string>('');
   const [viewData, setViewData] = useState<ViewData>({});

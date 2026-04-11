@@ -21,6 +21,7 @@ import NativeTokenStakingManager from '@/contracts/icm-contracts/compiled/Native
 import ValidatorMessagesABI from '@/contracts/icm-contracts/compiled/ValidatorMessages.json';
 import { Check, BookOpen, GraduationCap } from 'lucide-react';
 import Link from 'next/link';
+import { ManualAddressInput } from '@/components/toolbox/console/permissioned-l1s/validator-manager-setup/ManualAddressInput';
 
 const ICM_COMMIT = versions['ava-labs/icm-contracts'];
 
@@ -130,9 +131,9 @@ function DeployNativeStakingManager({ onSuccess }: BaseConsoleToolProps) {
 
   return (
     <ContractDeployViewer contracts={CONTRACT_SOURCES}>
-      <div className="flex flex-col h-[500px] rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
+      <div className="flex flex-col rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
         {/* Scrollable content area */}
-        <div className="flex-1 overflow-auto p-5 space-y-4">
+        <div className="p-5 space-y-4">
           {/* Step 1: Deploy Library */}
           <div
             className={`p-4 rounded-xl border transition-colors ${
@@ -161,21 +162,44 @@ function DeployNativeStakingManager({ onSuccess }: BaseConsoleToolProps) {
                 </p>
 
                 {step1Complete ? (
-                  <div className="mt-3 flex items-center gap-2">
-                    <code className="px-2 py-1 rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 font-mono text-xs">
-                      {validatorMessagesLibAddress.slice(0, 10)}...{validatorMessagesLibAddress.slice(-6)}
-                    </code>
+                  <div className="mt-3 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <code className="px-2 py-1 rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 font-mono text-xs">
+                        {validatorMessagesLibAddress.slice(0, 10)}...{validatorMessagesLibAddress.slice(-6)}
+                      </code>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setValidatorMessagesLibAddress('');
+                          setNativeStakingManagerAddress('');
+                        }}
+                        className="px-2 py-1 text-xs font-medium text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 border border-zinc-200 dark:border-zinc-700 rounded-md hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors"
+                      >
+                        Redeploy
+                      </button>
+                    </div>
+                    <ManualAddressInput
+                      value={validatorMessagesLibAddress}
+                      onChange={setValidatorMessagesLibAddress}
+                      label="Or enter existing address"
+                    />
                   </div>
                 ) : (
-                  <Button
-                    variant="primary"
-                    onClick={deployValidatorMessages}
-                    loading={isDeployingMessages}
-                    disabled={isDeployingMessages}
-                    className="mt-3"
-                  >
-                    Deploy Library
-                  </Button>
+                  <div className="mt-3 space-y-2">
+                    <Button
+                      variant="primary"
+                      onClick={deployValidatorMessages}
+                      loading={isDeployingMessages}
+                      disabled={isDeployingMessages}
+                    >
+                      Deploy Library
+                    </Button>
+                    <ManualAddressInput
+                      value={validatorMessagesLibAddress}
+                      onChange={setValidatorMessagesLibAddress}
+                      label="Or enter existing address"
+                    />
+                  </div>
                 )}
               </div>
             </div>
@@ -221,21 +245,43 @@ function DeployNativeStakingManager({ onSuccess }: BaseConsoleToolProps) {
                 </p>
 
                 {step2Complete ? (
-                  <div className="mt-3 flex items-center gap-2">
-                    <code className="px-2 py-1 rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 font-mono text-xs">
-                      {nativeStakingManagerAddress.slice(0, 10)}...{nativeStakingManagerAddress.slice(-6)}
-                    </code>
+                  <div className="mt-3 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <code className="px-2 py-1 rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 font-mono text-xs">
+                        {nativeStakingManagerAddress.slice(0, 10)}...{nativeStakingManagerAddress.slice(-6)}
+                      </code>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setNativeStakingManagerAddress('');
+                        }}
+                        className="px-2 py-1 text-xs font-medium text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 border border-zinc-200 dark:border-zinc-700 rounded-md hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors"
+                      >
+                        Redeploy
+                      </button>
+                    </div>
+                    <ManualAddressInput
+                      value={nativeStakingManagerAddress}
+                      onChange={setNativeStakingManagerAddress}
+                      label="Or enter existing address"
+                    />
                   </div>
                 ) : (
-                  <Button
-                    variant="primary"
-                    onClick={deployNativeStakingManager}
-                    loading={isDeployingManager}
-                    disabled={isDeployingManager || !step1Complete}
-                    className="mt-3"
-                  >
-                    Deploy Staking Manager
-                  </Button>
+                  <div className="mt-3 space-y-2">
+                    <Button
+                      variant="primary"
+                      onClick={deployNativeStakingManager}
+                      loading={isDeployingManager}
+                      disabled={isDeployingManager || !step1Complete}
+                    >
+                      Deploy Staking Manager
+                    </Button>
+                    <ManualAddressInput
+                      value={nativeStakingManagerAddress}
+                      onChange={setNativeStakingManagerAddress}
+                      label="Or enter existing address"
+                    />
+                  </div>
                 )}
               </div>
             </div>

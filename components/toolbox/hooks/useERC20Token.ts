@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 import { useWalletStore } from '../stores/walletStore';
 import { useViemChainStore } from '../stores/toolboxStore';
 import { parseEther, formatEther } from 'viem';

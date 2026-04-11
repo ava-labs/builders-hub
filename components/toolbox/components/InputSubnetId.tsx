@@ -46,7 +46,7 @@ export default function InputSubnetId({
       // Validate Base58Check format and checksum (last 4 bytes)
       utils.base58check.decode(subnetId);
       return true;
-    } catch (error) {
+    } catch {
       return false;
     }
   };
@@ -71,7 +71,7 @@ export default function InputSubnetId({
 
       // If we get here, the subnet exists
       setValidationError(null);
-    } catch (error) {
+    } catch {
       // Show validation error for invalid subnet IDs
       setValidationError('Subnet ID not found or invalid');
     }

@@ -19,9 +19,9 @@ type PredeploysSectionProps = {
 export const PredeploysSection = ({
   config,
   onConfigChange,
-  ownerAddress,
+  ownerAddress: _ownerAddress,
   tokenName,
-  tokenSymbol,
+  tokenSymbol: _tokenSymbol,
   compact,
 }: PredeploysSectionProps) => {
   const { setHighlightPath, clearHighlight } = useGenesisHighlight();

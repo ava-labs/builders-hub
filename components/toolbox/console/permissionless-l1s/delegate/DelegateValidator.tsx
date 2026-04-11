@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import { Steps, Step } from 'fumadocs-ui/components/steps';
-import { Success } from '@/components/toolbox/components/Success';
 import InitiateDelegation from '@/components/toolbox/console/permissionless-l1s/delegate/InitiateDelegation';
 import SubmitPChainTxWeightUpdate from '@/components/toolbox/console/shared/SubmitPChainTxWeightUpdate';
 import CompletePChainWeightUpdate from '@/components/toolbox/console/shared/CompletePChainWeightUpdate';

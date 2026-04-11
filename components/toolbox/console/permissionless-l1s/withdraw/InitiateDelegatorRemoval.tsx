@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
 import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { Button } from '@/components/toolbox/components/Button';
@@ -29,7 +28,6 @@ const InitiateDelegatorRemoval: React.FC<InitiateDelegatorRemovalProps> = ({
   onSuccess,
   onError,
 }) => {
-  const { walletEVMAddress } = useWalletStore();
   const chainPublicClient = useChainPublicClient();
   const walletClient = useResolvedWalletClient();
   const viemChain = useViemChainStore();
@@ -73,7 +71,7 @@ const InitiateDelegatorRemoval: React.FC<InitiateDelegatorRemovalProps> = ({
           weight: info.weight?.toString() || '0',
           status: Number(info.status),
         });
-      } catch (err) {
+      } catch {
         setDelegationInfo(null);
       }
     };

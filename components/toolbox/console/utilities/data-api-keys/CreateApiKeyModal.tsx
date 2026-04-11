@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { Button } from '@/components/toolbox/components/Button';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -44,7 +43,7 @@ export default function CreateApiKeyModal({
 
     try {
       await onSubmit(alias.trim());
-    } catch (err) {
+    } catch {
       // Error is already handled by parent component
     }
   };

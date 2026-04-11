@@ -25,7 +25,7 @@ const toolboxInitialState = {
 export const getToolboxStore = (chainId: string) =>
   create(
     persist(
-      combine(toolboxInitialState, (set, get) => ({
+      combine(toolboxInitialState, (set, _get) => ({
         setValidatorMessagesLibAddress: (validatorMessagesLibAddress: string) => set({ validatorMessagesLibAddress }),
         setValidatorManagerAddress: (validatorManagerAddress: string) => set({ validatorManagerAddress }),
         setRewardCalculatorAddress: (rewardCalculatorAddress: string) => set({ rewardCalculatorAddress }),

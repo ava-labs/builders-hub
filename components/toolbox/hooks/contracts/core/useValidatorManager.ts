@@ -1,7 +1,6 @@
 import ValidatorManagerAbi from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
 import { useContractActions } from '../useContractActions';
 import type {
-  PChainOwner,
   ValidatorRegistrationParams,
   ValidatorData,
   ValidatorSetParams,

@@ -76,7 +76,6 @@ function validateGenesisJson(json: string): JsonValidation {
 
     // Check for common required fields in Subnet-EVM genesis
     const requiredFields = ['config', 'alloc', 'gasLimit'];
-    const recommendedFields = ['chainId', 'timestamp'];
 
     for (const field of requiredFields) {
       if (!(field in parsed) && !('config' in parsed && field in parsed.config)) {
@@ -447,7 +446,7 @@ export function GenesisWizard({
   children,
   genesisData,
   onGenesisDataChange,
-  currentStep = 1,
+  currentStep: _currentStep = 1,
   footer,
   embedded = false,
 }: GenesisWizardProps) {

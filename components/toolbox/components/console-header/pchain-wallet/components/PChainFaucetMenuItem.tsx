@@ -52,7 +52,7 @@ export function PChainFaucetMenuItem() {
 
       try {
         data = JSON.parse(rawText);
-      } catch (parseError) {
+      } catch {
         throw new Error(`Invalid response: ${rawText.substring(0, 100)}...`);
       }
 

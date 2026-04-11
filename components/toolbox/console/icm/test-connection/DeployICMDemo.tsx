@@ -184,7 +184,7 @@ function DeployICMDemo({ onSuccess }: BaseConsoleToolProps) {
   const [criticalError, setCriticalError] = useState<Error | null>(null);
   const selectedL1 = useSelectedL1();
   const { notify } = useConsoleNotifications();
-  const [activeStep, setActiveStep] = useState(0);
+  const [activeStep, _setActiveStep] = useState(0);
 
   if (criticalError) {
     throw criticalError;
@@ -198,7 +198,7 @@ function DeployICMDemo({ onSuccess }: BaseConsoleToolProps) {
         });
 
         setIsTeleporterDeployed(!!code);
-      } catch (error) {
+      } catch {
         setIsTeleporterDeployed(false);
       }
     }

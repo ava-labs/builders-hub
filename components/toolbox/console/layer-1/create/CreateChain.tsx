@@ -54,10 +54,9 @@ interface CreateChainProps extends BaseConsoleToolProps {
   embedded?: boolean;
 }
 
-function CreateChain({ onSuccess, embedded = false }: CreateChainProps) {
+function CreateChain({ onSuccess: _onSuccess, embedded = false }: CreateChainProps) {
   const store = useCreateChainStore();
   const subnetId = store((state) => state.subnetId);
-  const chainID = store((state) => state.chainID);
   const setChainID = store((state) => state.setChainID);
   const genesisData = store((state) => state.genesisData);
   const setGenesisData = store((state) => state.setGenesisData);

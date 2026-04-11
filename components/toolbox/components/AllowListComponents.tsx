@@ -229,7 +229,7 @@ interface ReadRoleFormProps {
 
 function ReadRoleForm({
   precompileAddress,
-  precompileType = 'precompiled contract',
+  precompileType: _precompileType = 'precompiled contract',
   abi = allowListAbi.abi,
 }: ReadRoleFormProps) {
   const { publicClient } = useWalletStore();
@@ -367,7 +367,7 @@ export function AllowlistComponent({
   precompileType = 'precompiled contract',
   abi = allowListAbi.abi,
   onSuccess,
-  defaultEnabledAddress,
+  defaultEnabledAddress: _defaultEnabledAddress,
 }: {
   precompileAddress: string;
   precompileType?: string;

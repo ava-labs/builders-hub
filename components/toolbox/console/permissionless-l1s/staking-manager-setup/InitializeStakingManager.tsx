@@ -6,7 +6,6 @@ import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicC
 import { useToolboxStore, useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { Button } from '@/components/toolbox/components/Button';
 import { EVMAddressInput } from '@/components/toolbox/components/EVMAddressInput';
-import { Input } from '@/components/toolbox/components/Input';
 import SelectSubnetId from '@/components/toolbox/components/SelectSubnetId';
 import {
   ConsoleToolMetadata,

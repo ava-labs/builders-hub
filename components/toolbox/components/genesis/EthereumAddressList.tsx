@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { RawInput } from '../Input';
 import { Trash2, AlertCircle, Plus, Lock, Info } from 'lucide-react';
-import { AddressEntry, Role, AddressRoles } from './types';
+import { AddressEntry, Role } from './types';
 import { isAddress } from 'viem';
 import { AddConnectedWalletButtonSimple } from '@/components/toolbox/components/ConnectWallet/AddConnectedWalletButton';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';

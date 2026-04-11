@@ -36,7 +36,7 @@ const metadata: ConsoleToolMetadata = {
   githubUrl: generateConsoleToolGitHubUrl(import.meta.url),
 };
 
-function ICMRelayerInner({ onSuccess }: BaseConsoleToolProps) {
+function ICMRelayerInner({ onSuccess: _onSuccess }: BaseConsoleToolProps) {
   const selectedL1 = useSelectedL1();
   const [criticalError, setCriticalError] = useState<Error | null>(null);
   const { isTestnet, walletEVMAddress } = useWalletStore();

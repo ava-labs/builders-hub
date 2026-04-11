@@ -5,7 +5,7 @@ import { Button } from '@/components/toolbox/components/Button';
 import { useManagedTestnetNodes } from '@/hooks/useManagedTestnetNodes';
 import { NodeRegistration, RegisterSubnetResponse } from './types';
 import { useWallet } from '@/components/toolbox/hooks/useWallet';
-import { Wallet, X } from 'lucide-react';
+import { Wallet } from 'lucide-react';
 import { Steps, Step } from 'fumadocs-ui/components/steps';
 import Link from 'next/link';
 import { CodeBlock, Pre } from 'fumadocs-ui/components/codeblock';

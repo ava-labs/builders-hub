@@ -187,7 +187,7 @@ function SendICMMessage({ onSuccess }: BaseConsoleToolProps) {
   const [isQuerying, setIsQuerying] = useState(false);
   const [lastReceivedMessage, setLastReceivedMessage] = useState<number>();
   const { notify } = useConsoleNotifications();
-  const [activeStep, setActiveStep] = useState(0);
+  const [activeStep, _setActiveStep] = useState(0);
 
   if (criticalError) {
     throw criticalError;

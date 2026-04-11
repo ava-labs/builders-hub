@@ -88,48 +88,6 @@ export interface AllSafesInfoResponse {
   errors?: Record<string, string>;
 }
 
-interface ProposeTransactionResponse {
-  proposed: boolean;
-}
-
-interface PendingTransactionsResponse {
-  count: number;
-  next: string | null;
-  previous: string | null;
-  results: any[];
-}
-
-interface TransactionResponse {
-  safe: string;
-  to: string;
-  value: string;
-  data: string;
-  operation: number;
-  gasToken: string;
-  safeTxGas: number;
-  baseGas: number;
-  gasPrice: string;
-  refundReceiver: string;
-  nonce: number;
-  executionDate: string | null;
-  submissionDate: string;
-  modified: string;
-  blockNumber: number | null;
-  transactionHash: string | null;
-  safeTxHash: string;
-  executor: string | null;
-  isExecuted: boolean;
-  isSuccessful: boolean | null;
-  ethGasPrice: string | null;
-  gasUsed: number | null;
-  fee: string | null;
-  origin: string;
-  dataDecoded: any | null;
-  confirmationsRequired: number;
-  confirmations: any[];
-  signatures: string | null;
-}
-
 export interface AshWalletUrlResponse {
   url: string;
   shortName: string;

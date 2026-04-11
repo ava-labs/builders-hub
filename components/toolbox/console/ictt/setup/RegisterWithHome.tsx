@@ -39,7 +39,7 @@ function RegisterWithHome() {
   const selectedL1 = useSelectedL1();
   const [sourceChainId, setSourceChainId] = useState<string>('');
   const [isRegistering, setIsRegistering] = useState(false);
-  const [lastTxId, setLastTxId] = useState<string>();
+  const [_lastTxId, setLastTxId] = useState<string>();
   const [localError, setLocalError] = useState('');
   const [homeContractAddress, setHomeContractAddress] = useState<string | null>(null);
   const [homeContractClient, setHomeContractClient] = useState<PublicClient | null>(null);

@@ -1,5 +1,5 @@
 import type { AvalancheWalletClient } from '@avalanche-sdk/client';
-import { getTx, PChainTransactionType } from '@avalanche-sdk/client/methods/pChain';
+import { getTx } from '@avalanche-sdk/client/methods/pChain';
 import { packL1ConversionMessage, PackL1ConversionMessageArgs } from '../utils/convertWarp';
 import { isTestnet } from './isTestnet';
 import { networkIDs, utils } from '@avalabs/avalanchejs';
@@ -21,68 +21,6 @@ interface Validator {
   signer: ValidatorSigner;
   remainingBalanceOwner: AddressObject;
   deactivationOwner: AddressObject;
-}
-
-interface SubnetAuthorization {
-  signatureIndices: number[];
-}
-
-interface OutputObject {
-  addresses: string[];
-  amount: number;
-  locktime: number;
-  threshold: number;
-}
-
-interface Output {
-  assetID: string;
-  fxID: string;
-  output: OutputObject;
-}
-
-interface InputObject {
-  amount: number;
-  signatureIndices: number[];
-}
-
-interface Input {
-  txID: string;
-  outputIndex: number;
-  assetID: string;
-  fxID: string;
-  input: InputObject;
-}
-
-interface UnsignedTx {
-  networkID: number;
-  blockchainID: string;
-  outputs: Output[];
-  inputs: Input[];
-  memo: string;
-  subnetID: string;
-  chainID: string;
-  address: string;
-  validators: Validator[];
-  subnetAuthorization: SubnetAuthorization;
-}
-
-interface Credential {
-  signatures: string[];
-}
-
-interface Transaction {
-  unsignedTx: UnsignedTx;
-  credentials: Credential[];
-  id: string;
-}
-
-interface TransactionResult {
-  tx: Transaction;
-  encoding: string;
-}
-
-interface ConversionDataResponse {
-  result: TransactionResult;
 }
 
 export type ExtractWarpMessageFromTxParams = {

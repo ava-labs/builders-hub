@@ -65,7 +65,7 @@ export default function TokenBridge() {
   // UI states
   const [isProcessingApproval, setIsProcessingApproval] = useState(false);
   const [isProcessingSend, setIsProcessingSend] = useState(false);
-  const [lastApprovalTxId, setLastApprovalTxId] = useState<string>();
+  const [_lastApprovalTxId, setLastApprovalTxId] = useState<string>();
   const [lastSendTxId, setLastSendTxId] = useState<string>();
   const [messageID, setMessageID] = useState<string>();
   const [tryCount, setTryCount] = useState(0);

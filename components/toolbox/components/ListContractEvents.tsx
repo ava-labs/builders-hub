@@ -101,7 +101,7 @@ export function ListContractEvents({
           let decodedEvent;
           try {
             decodedEvent = decodeEvent(log);
-          } catch (e) {
+          } catch {
             decodedEvent = { name: 'Error Decoding', args: {} };
           }
 

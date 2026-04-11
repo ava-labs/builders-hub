@@ -17,7 +17,7 @@ import { useConnectedWallet } from '@/components/toolbox/contexts/ConnectedWalle
 import versions from '@/scripts/versions.json';
 import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
 import { ContractDeployViewer, ContractSource } from '@/components/console/contract-deploy-viewer';
-import { Check, Wallet, Rocket, AlertCircle, ExternalLink, Copy } from 'lucide-react';
+import { Check, Wallet, Rocket, ExternalLink, Copy } from 'lucide-react';
 
 const MINIMUM_BALANCE = parseEther('11');
 

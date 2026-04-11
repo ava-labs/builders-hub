@@ -1,7 +1,5 @@
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { networkIDs } from '@avalabs/avalanchejs';
-import { useChainTokenTracker } from '@/hooks/useChainTokenTracker';
-import { useL1List, type L1ListItem } from '@/components/toolbox/stores/l1ListStore';
 import { useAccount, useSwitchChain } from 'wagmi';
 
 export function useNetworkActions() {
@@ -15,11 +13,8 @@ export function useNetworkActions() {
     setWalletChainId,
     isTestnet,
     walletEVMAddress,
-    balances,
   } = useWalletStore();
 
-  const l1List = useL1List();
-  const { markChainAsNeeded } = useChainTokenTracker();
   const { switchChainAsync } = useSwitchChain();
   const { connector } = useAccount();
 

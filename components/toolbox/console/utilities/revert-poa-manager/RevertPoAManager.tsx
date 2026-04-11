@@ -42,7 +42,7 @@ function RevertPoAManager({ onSuccess }: BaseConsoleToolProps) {
   const [newOwnerAddress, setNewOwnerAddress] = useState<string>('');
   const [transferSuccess, setTransferSuccess] = useState(false);
 
-  const handleTransferSuccess = async (message: string) => {
+  const handleTransferSuccess = async (_message: string) => {
     setTransferSuccess(true);
     onSuccess?.();
   };

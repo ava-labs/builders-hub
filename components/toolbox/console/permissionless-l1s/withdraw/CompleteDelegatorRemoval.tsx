@@ -38,7 +38,7 @@ const CompleteDelegatorRemoval: React.FC<CompleteDelegatorRemovalProps> = ({
   onSuccess,
   onError,
 }) => {
-  const { walletEVMAddress, avalancheNetworkID } = useWalletStore();
+  const { avalancheNetworkID } = useWalletStore();
   const chainPublicClient = useChainPublicClient();
   const walletClient = useResolvedWalletClient();
   const { aggregateSignature } = useAvalancheSDKChainkit();

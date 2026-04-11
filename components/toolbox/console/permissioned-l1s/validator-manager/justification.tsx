@@ -29,7 +29,7 @@ function extractAddressedCall(messageBytes: Uint8Array): Uint8Array {
       return new Uint8Array();
     }
 
-    const codecVersion = (messageBytes[0] << 8) | messageBytes[1];
+    const _codecVersion = (messageBytes[0] << 8) | messageBytes[1];
 
     const messageLength =
       (messageBytes[38] << 24) | (messageBytes[39] << 16) | (messageBytes[40] << 8) | messageBytes[41];
@@ -372,7 +372,7 @@ export async function GetRegistrationJustification(
                 foundMatch = true;
                 break;
               }
-            } catch (parseOrHashError) {
+            } catch {
               // console.warn(`Error parsing/hashing RegisterL1ValidatorMessage payload from Tx ${log.transactionHash}:`, parseOrHashError);
             }
           } catch (logProcessingError) {

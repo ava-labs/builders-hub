@@ -97,7 +97,7 @@ function UnitConverterInner(_props: BaseConsoleToolProps) {
     <div className="space-y-2">
       {units.map((unit) => {
         const value = unit.id === selectedUnit ? amount : (results[unit.id] ?? '');
-        const isSource = unit.id === selectedUnit;
+        const _isSource = unit.id === selectedUnit;
 
         return (
           <div key={unit.id} className="group">

@@ -190,7 +190,7 @@ function parseVarBytes(input: Uint8Array, offset: number): { bytes: Uint8Array; 
  * Format: codecID (uint16), typeID (uint32), conversionID (bytes32)
  * Total Length: 2 + 4 + 32 = 38 bytes
  */
-function packSubnetToL1ConversionMessage(conversionID: Uint8Array): Uint8Array {
+function _packSubnetToL1ConversionMessage(conversionID: Uint8Array): Uint8Array {
   if (conversionID.length !== 32) {
     throw new Error('ConversionID must be exactly 32 bytes');
   }
@@ -205,7 +205,7 @@ function packSubnetToL1ConversionMessage(conversionID: Uint8Array): Uint8Array {
  * Unpacks a byte array as a SubnetToL1ConversionMessage message.
  * Format: codecID (uint16), typeID (uint32), conversionID (bytes32)
  */
-function unpackSubnetToL1ConversionMessage(input: Uint8Array): Uint8Array {
+function _unpackSubnetToL1ConversionMessage(input: Uint8Array): Uint8Array {
   const EXPECTED_LENGTH = 38;
   if (input.length !== EXPECTED_LENGTH) {
     throw new Error(`Invalid message length. Expected ${EXPECTED_LENGTH} bytes, got ${input.length}`);
@@ -276,7 +276,7 @@ function packConversionData(conversionData: SolidityConversionData): Uint8Array 
 }
 
 // Function to calculate the conversionID hash using the Solidity-like structure
-function calculateConversionID(conversionData: SolidityConversionData): Uint8Array {
+function _calculateConversionID(conversionData: SolidityConversionData): Uint8Array {
   const packedData = packConversionData(conversionData);
   return sha256(packedData);
 }
@@ -406,7 +406,7 @@ export function calculateValidationID(validationPeriod: SolidityValidationPeriod
  */
 // ... existing packRegisterL1ValidatorMessage function ...
 // Modify it to use CODEC_ID and ensure consistency
-function packRegisterL1ValidatorMessage(
+function _packRegisterL1ValidatorMessage(
   validationPeriod: ValidationPeriod, // Using existing TS interface
   networkID: number,
   sourceChainID: string,
@@ -559,7 +559,7 @@ export function unpackRegisterL1ValidatorPayload(input: Uint8Array): SolidityVal
 // Existing parseRegisterL1ValidatorMessage returns the TS ValidationPeriod interface.
 // Let's update it to use the new unpack function and convert the result.
 // ... existing parseRegisterL1ValidatorMessage ...
-function parseRegisterL1ValidatorMessage(input: Uint8Array): ValidationPeriod {
+function _parseRegisterL1ValidatorMessage(input: Uint8Array): ValidationPeriod {
   const parsedPayload = unpackRegisterL1ValidatorPayload(input);
 
   // Convert SolidityValidationPeriod back to ValidationPeriod (bytes to strings/hex)
@@ -648,7 +648,7 @@ function unpackL1ValidatorRegistrationPayload(payload: Uint8Array): L1ValidatorR
 
 // Existing parseL1ValidatorRegistration - Update to use the unpack function
 // ... existing parseL1ValidatorRegistration ...
-function parseL1ValidatorRegistration(bytes: Uint8Array): L1ValidatorRegistration {
+function _parseL1ValidatorRegistration(bytes: Uint8Array): L1ValidatorRegistration {
   // This function already expected the payload bytes based on its original implementation.
   return unpackL1ValidatorRegistrationPayload(bytes);
 }
@@ -762,7 +762,7 @@ export function packValidationUptimeMessage(
  * Unpacks the payload of a ValidationUptimeMessage.
  * Returns the ValidationUptime interface fields.
  */
-function unpackValidationUptimePayload(payload: Uint8Array): ValidationUptime {
+function _unpackValidationUptimePayload(payload: Uint8Array): ValidationUptime {
   const EXPECTED_LENGTH = 46; // 2 + 4 + 32 + 8
   if (payload.length !== EXPECTED_LENGTH) {
     throw new Error(

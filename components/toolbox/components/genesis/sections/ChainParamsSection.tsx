@@ -1,6 +1,5 @@
 import { Dispatch, SetStateAction } from 'react';
 import { Input } from '../../Input';
-import { Select } from '../../Select';
 import { useGenesisHighlight } from '../GenesisHighlightContext';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Info, ExternalLink } from 'lucide-react';
@@ -24,8 +23,8 @@ type ChainParamsSectionProps = {
 export const ChainParamsSection = ({
   evmChainId,
   setEvmChainId,
-  vmId,
-  setVmId,
+  vmId: _vmId,
+  setVmId: _setVmId,
   tokenName,
   setTokenName,
   tokenSymbol,

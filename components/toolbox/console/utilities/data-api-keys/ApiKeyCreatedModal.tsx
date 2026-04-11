@@ -30,7 +30,7 @@ export default function ApiKeyCreatedModal({ isOpen, onClose, createdKey }: ApiK
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
         toast.success('API key copied to clipboard');
-      } catch (err) {
+      } catch {
         // Fallback for older browsers
         try {
           const textArea = document.createElement('textarea');
@@ -42,7 +42,7 @@ export default function ApiKeyCreatedModal({ isOpen, onClose, createdKey }: ApiK
           setCopied(true);
           setTimeout(() => setCopied(false), 2000);
           toast.success('API key copied to clipboard');
-        } catch (fallbackErr) {
+        } catch {
           toast.error('Failed to copy to clipboard');
         }
       }

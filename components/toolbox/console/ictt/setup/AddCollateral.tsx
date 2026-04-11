@@ -16,7 +16,7 @@ import ERC20TokenRemoteABI from '@/contracts/icm-contracts/compiled/ERC20TokenRe
 import NativeTokenRemoteABI from '@/contracts/icm-contracts/compiled/NativeTokenRemote.json';
 import ERC20TokenHomeABI from '@/contracts/icm-contracts/compiled/ERC20TokenHome.json';
 import NativeTokenHomeABI from '@/contracts/icm-contracts/compiled/NativeTokenHome.json';
-import { getToolboxStore, useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
+import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { useToolboxStore } from '@/components/toolbox/stores/toolboxStore';
 import { useL1ByChainId, useSelectedL1, useL1List } from '@/components/toolbox/stores/l1ListStore';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
@@ -78,8 +78,6 @@ function AddCollateral() {
   }
 
   const sourceL1 = useL1ByChainId(sourceChainId || '');
-  const sourceToolboxStore = getToolboxStore(sourceChainId || '')();
-
   const sourceL1ViemChain: Chain | null = useMemo(() => {
     if (!sourceL1) return null;
 

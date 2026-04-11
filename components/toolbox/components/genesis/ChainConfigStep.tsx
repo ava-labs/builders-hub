@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { Input } from '@/components/toolbox/components/Input';
-import { RadioGroup } from '@/components/toolbox/components/RadioGroup';
 import { Select } from '@/components/toolbox/components/Select';
 import { SUBNET_EVM_VM_ID } from '@/constants/console';
 import generateName from 'boring-name-generator';

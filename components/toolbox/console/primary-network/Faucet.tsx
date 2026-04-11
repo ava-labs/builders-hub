@@ -223,10 +223,10 @@ const metadata: ConsoleToolMetadata = {
   githubUrl: generateConsoleToolGitHubUrl(import.meta.url),
 };
 
-function Faucet({ onSuccess }: BaseConsoleToolProps) {
+function Faucet({ onSuccess: _onSuccess }: BaseConsoleToolProps) {
   const isTestnet = useWalletStore((s) => s.isTestnet);
   const { switchChain } = useWallet();
-  const l1List = useL1List();
+  const _l1List = useL1List();
   const { getChainsWithFaucet } = useTestnetFaucet();
   const EVMChainsWithBuilderHubFaucet = getChainsWithFaucet();
   const { balances, isLoading: balancesLoading, error: balancesError, refetch } = useFaucetBalance();

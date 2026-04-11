@@ -3,20 +3,7 @@
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
 import { useState, useEffect, useMemo } from 'react';
-import {
-  Calendar,
-  Clock,
-  Users,
-  Coins,
-  Info,
-  Copy,
-  Check,
-  Search,
-  Timer,
-  Percent,
-  AlertCircle,
-  Shield,
-} from 'lucide-react';
+import { Clock, Users, Coins, Info, Copy, Check, Search, Timer, Percent, AlertCircle, Shield } from 'lucide-react';
 import { Container } from '@/components/toolbox/components/Container';
 import { Button } from '@/components/toolbox/components/Button';
 import { networkIDs } from '@avalabs/avalanchejs';
@@ -115,7 +102,7 @@ export default function QueryPoSValidatorSet() {
   const l1State = useL1SubnetState();
   const { subnetIdL1: subnetId, setSubnetIdL1: setSubnetId, validatorManagerDetails } = l1State;
 
-  const [validators, setValidators] = useState<ValidatorResponse[]>([]);
+  const [_validators, setValidators] = useState<ValidatorResponse[]>([]);
   const [enrichedValidators, setEnrichedValidators] = useState<EnrichedValidator[]>([]);
   const [filteredValidators, setFilteredValidators] = useState<EnrichedValidator[]>([]);
   const [delegations, setDelegations] = useState<DelegationInfo[]>([]);

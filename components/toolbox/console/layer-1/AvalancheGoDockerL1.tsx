@@ -17,7 +17,6 @@ import { GenesisHighlightProvider, useGenesisHighlight } from '../../components/
 import { SUBNET_EVM_VM_ID } from '@/constants/console';
 import { generateChainConfig, generateNodeConfig, generateDockerCommand } from './nodeConfig';
 import { useNodeConfigHighlighting } from './useNodeConfigHighlighting';
-import { DockerInstallation } from '../../components/DockerInstallation';
 import { AlertCircle } from 'lucide-react';
 import { useAddToWallet } from '@/hooks/useAddToWallet';
 import { nipify } from '../../components/HostInput';
@@ -89,7 +88,7 @@ function AvalanchegoDockerInner() {
 
   // Network selection
   const [selectedNetwork, setSelectedNetwork] = useState<'mainnet' | 'fuji'>('mainnet');
-  const [detectedIsTestnet, setDetectedIsTestnet] = useState<boolean | null>(null);
+  const [, setDetectedIsTestnet] = useState<boolean | null>(null);
 
   // Sync network selection with connected wallet
   const {
@@ -277,7 +276,7 @@ function AvalanchegoDockerInner() {
             }
           }
         }
-      } catch (error) {
+      } catch {
         if (!abortController.signal.aborted) {
           setSubnetIdError(`L1 not found on ${selectedNetwork}. Try switching networks.`);
         }

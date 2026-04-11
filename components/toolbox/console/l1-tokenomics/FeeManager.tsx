@@ -18,7 +18,7 @@ import {
 import { useConnectedWallet } from '@/components/toolbox/contexts/ConnectedWalletContext';
 import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
 import { PrecompileCodeViewer } from '@/components/console/precompile-code-viewer';
-import { Settings, ChevronDown, ChevronRight, RefreshCw, Clock } from 'lucide-react';
+import { Settings, ChevronDown, ChevronRight, RefreshCw } from 'lucide-react';
 import { cn } from '@/components/toolbox/lib/utils';
 
 // Default Fee Manager address

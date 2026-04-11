@@ -6,7 +6,6 @@ import { Alert } from '@/components/toolbox/components/Alert';
 import { packWarpIntoAccessList } from '@/components/toolbox/console/permissioned-l1s/validator-manager/packWarp';
 import { hexToBytes, bytesToHex, encodeFunctionData, Abi } from 'viem';
 import NativeTokenStakingManager from '@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json';
-import ERC20TokenStakingManager from '@/contracts/icm-contracts/compiled/ERC20TokenStakingManager.json';
 import ValidatorManagerABI from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
 import { GetRegistrationJustification } from '@/components/toolbox/console/permissioned-l1s/validator-manager/justification';
 import { packL1ValidatorWeightMessage } from '@/components/toolbox/coreViem/utils/convertWarp';
@@ -23,7 +22,6 @@ import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicC
 import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { Check } from 'lucide-react';
-import { StepFlowCard } from '@/components/toolbox/components/StepCard';
 import { generateCastSendCommand } from '@/components/toolbox/utils/castCommand';
 
 export type WeightUpdateType = 'ChangeWeight' | 'Delegation';
@@ -110,10 +108,6 @@ const CompletePChainWeightUpdate: React.FC<CompletePChainWeightUpdateProps> = ({
   const erc20StakingManager = useERC20TokenStakingManager(
     isDelegation && tokenType === 'erc20' ? managerAddress : null,
   );
-
-  const typeLabel = isDelegation
-    ? `Delegation (${tokenType === 'native' ? 'Native Token' : 'ERC20 Token'})`
-    : 'Weight Change';
 
   // Initialize state with prop values when they become available
   useEffect(() => {

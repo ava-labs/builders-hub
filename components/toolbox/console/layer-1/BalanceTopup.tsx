@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { Loader2, Check, ArrowUpRight, RefreshCw, Copy, Wallet, AlertTriangle } from 'lucide-react';
+import { Check, ArrowUpRight, RefreshCw, Copy, Wallet, AlertTriangle } from 'lucide-react';
 import { Steps, Step } from 'fumadocs-ui/components/steps';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { Button } from '../../components/Button';

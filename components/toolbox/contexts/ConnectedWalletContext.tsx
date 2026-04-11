@@ -20,7 +20,7 @@ export function ConnectedWalletProvider({ children }: { children: React.ReactNod
   const walletEVMAddress = useWalletStore((s) => s.walletEVMAddress);
   const { data: wagmiWalletClient, isLoading: isWalletClientLoading } = useWalletClient();
   const { data: connectorClient } = useConnectorClient();
-  const { isConnected, address } = useAccount();
+  const { address } = useAccount();
   const viemChain = useViemChainStore();
 
   // Fallback: create a wallet client manually when wagmi can't provide one.

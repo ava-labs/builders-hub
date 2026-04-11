@@ -21,19 +21,6 @@ export interface NodeRegistration {
   proof_of_possession?: string;
 }
 
-interface NodeStatusResponse {
-  jsonrpc: string;
-  result?: {
-    nodes: NodeRegistration[];
-    total: number;
-  };
-  error?: {
-    code: number;
-    message: string;
-  };
-  id: number;
-}
-
 export interface TimeRemaining {
   days: number;
   hours: number;

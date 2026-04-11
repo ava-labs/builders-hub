@@ -47,7 +47,7 @@ function ConvertToL1({ onSuccess }: BaseConsoleToolProps) {
     chainID: storeChainID,
     managerAddress: validatorManagerAddress,
     setManagerAddress: setValidatorManagerAddress,
-    convertToL1TxId,
+    convertToL1TxId: _convertToL1TxId,
     setConvertToL1TxId,
   } = useCreateChainStore()();
 

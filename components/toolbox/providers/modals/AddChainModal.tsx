@@ -151,7 +151,7 @@ export function AddChainModal() {
         try {
           const chainDetails = await getChainDetails(String(ethereumChainId));
           setValue('logoUrl', chainDetails.chainLogoUri || '');
-        } catch (e) {
+        } catch {
           setValue('logoUrl', ''); // fallback if not found
         }
 

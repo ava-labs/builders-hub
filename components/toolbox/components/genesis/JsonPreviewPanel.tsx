@@ -15,10 +15,10 @@ interface JsonPreviewPanelProps {
 
 export function JsonPreviewPanel({
   jsonData,
-  onJsonUpdate,
+  onJsonUpdate: _onJsonUpdate,
   title = 'Genesis Configuration',
   highlightPath,
-  onHighlightChange,
+  onHighlightChange: _onHighlightChange,
 }: JsonPreviewPanelProps) {
   const [copied, setCopied] = useState(false);
   const [highlightedLine, setHighlightedLine] = useState<number | null>(null);
@@ -291,14 +291,6 @@ export function JsonPreviewPanel({
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-  };
-
-  const formatBytes = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
   };
 
   const jsonSize = new Blob([jsonData]).size;

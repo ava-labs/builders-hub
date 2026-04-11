@@ -35,7 +35,7 @@ export const parsePChainAddress = (address: string): `0x${string}` => {
   try {
     const addressBytes = utils.bech32ToBytes(address);
     return fromBytes(addressBytes, 'hex') as `0x${string}`;
-  } catch (e) {
+  } catch {
     throw new Error(
       `Invalid P-Chain address format: ${address}. Expected bech32 format (e.g., P-avax1... or P-fuji1...)`,
     );

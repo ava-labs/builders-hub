@@ -91,7 +91,7 @@ export default function SelectValidationID({
             try {
               const hexId = '0x' + cb58ToHex(v.validationId);
               mapping[hexId] = v.nodeId;
-            } catch (error) {
+            } catch {
               // Skip if conversion fails
             }
           }
@@ -140,7 +140,7 @@ export default function SelectValidationID({
               value: hexId,
               description: `Weight: ${weightDisplay} | Balance: ${balanceDisplay}${isSelected ? ' (Selected)' : ''}`,
             });
-          } catch (error) {
+          } catch {
             // Skip if conversion fails
           }
         } else {
@@ -170,7 +170,7 @@ export default function SelectValidationID({
         // Convert hex to CB58
         formattedValue = hexToCB58(newValue.slice(2));
       }
-    } catch (error) {
+    } catch {
       // If conversion fails, use the original value
       formattedValue = newValue;
     }

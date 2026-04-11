@@ -73,7 +73,7 @@ const SubmitPChainTxWeightUpdate: React.FC<SubmitPChainTxWeightUpdateProps> = ({
   const [unsignedWarpMessage, setUnsignedWarpMessage] = useState<string | null>(null);
   const [signedWarpMessage, setSignedWarpMessage] = useState<string | null>(null);
   const [eventData, setEventData] = useState<WeightUpdateEventData | null>(null);
-  const [manualPChainTxId, setManualPChainTxId] = useState('');
+  const [_manualPChainTxId, setManualPChainTxId] = useState('');
 
   // Update evmTxHash when initialEvmTxHash prop changes
   useEffect(() => {

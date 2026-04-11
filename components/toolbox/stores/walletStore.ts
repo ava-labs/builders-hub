@@ -1,9 +1,8 @@
 import { create } from 'zustand';
 import { networkIDs } from '@avalabs/avalanchejs';
-import { createCoreWalletClient, CoreWalletClientType } from '../coreViem';
+import { CoreWalletClientType } from '../coreViem';
 import { createPublicClient, custom, http } from 'viem';
 import { avalancheFuji } from 'viem/chains';
-import { zeroAddress } from 'viem';
 import { balanceService } from '../services/balanceService';
 import { useMemo } from 'react';
 

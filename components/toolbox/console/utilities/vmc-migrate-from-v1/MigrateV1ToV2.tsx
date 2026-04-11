@@ -7,7 +7,6 @@ import { Button } from '@/components/toolbox/components/Button';
 import { Input } from '@/components/toolbox/components/Input';
 import { ResultField } from '@/components/toolbox/components/ResultField';
 import { ExternalLink } from 'lucide-react';
-import ValidatorManagerABI from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
 import { useValidatorManager } from '@/components/toolbox/hooks/contracts';
 import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
 import {
@@ -26,7 +25,7 @@ const metadata: ConsoleToolMetadata = {
 };
 
 function MigrateV1ToV2({ onSuccess }: BaseConsoleToolProps) {
-  const { publicClient, walletEVMAddress } = useWalletStore();
+  const { publicClient } = useWalletStore();
   const { walletClient } = useConnectedWallet();
   const viemChain = useViemChainStore();
   const { validatorManagerAddress, setValidatorManagerAddress } = useToolboxStore();

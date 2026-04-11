@@ -18,8 +18,9 @@ import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
 import { ContractDeployViewer, type ContractSource } from '@/components/console/contract-deploy-viewer';
 import ExampleRewardCalculator from '@/contracts/icm-contracts/compiled/ExampleRewardCalculator.json';
-import { Check, BookOpen, Calculator } from 'lucide-react';
+import { Check, BookOpen } from 'lucide-react';
 import Link from 'next/link';
+import { ManualAddressInput } from '@/components/toolbox/console/permissioned-l1s/validator-manager-setup/ManualAddressInput';
 
 const ICM_COMMIT = versions['ava-labs/icm-contracts'];
 
@@ -90,23 +91,8 @@ function DeployExampleRewardCalculator({ onSuccess }: BaseConsoleToolProps) {
 
   return (
     <ContractDeployViewer contracts={CONTRACT_SOURCES}>
-      <div className="flex flex-col h-[500px] rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
-        {/* Scrollable content area */}
-        <div className="flex-1 overflow-auto p-5 space-y-4">
-          {/* Info section */}
-          <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800">
-            <div className="flex items-start gap-3">
-              <Calculator className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
-              <div>
-                <h3 className="text-sm font-medium text-blue-900 dark:text-blue-100">About Reward Calculators</h3>
-                <p className="mt-1.5 text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
-                  Reward calculators determine how staking rewards are distributed. The example calculator implements a
-                  simple linear, non-compounding reward formula based on stake duration.
-                </p>
-              </div>
-            </div>
-          </div>
-
+      <div className="flex flex-col rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
+        <div className="p-5 space-y-4">
           {/* Configuration step */}
           <div
             className={`p-4 rounded-xl border transition-colors ${
@@ -168,21 +154,44 @@ function DeployExampleRewardCalculator({ onSuccess }: BaseConsoleToolProps) {
                 )}
 
                 {isComplete ? (
-                  <div className="flex items-center gap-2">
-                    <code className="px-2 py-1 rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 font-mono text-xs">
-                      {rewardCalculatorAddress.slice(0, 10)}...{rewardCalculatorAddress.slice(-6)}
-                    </code>
-                    <span className="text-xs text-green-600 dark:text-green-400">@ {aprPercentage}% APR</span>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <code className="px-2 py-1 rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 font-mono text-xs">
+                        {rewardCalculatorAddress.slice(0, 10)}...{rewardCalculatorAddress.slice(-6)}
+                      </code>
+                      <span className="text-xs text-green-600 dark:text-green-400">@ {aprPercentage}% APR</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setRewardCalculatorAddress('');
+                        }}
+                        className="px-2 py-1 text-xs font-medium text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 border border-zinc-200 dark:border-zinc-700 rounded-md hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors"
+                      >
+                        Redeploy
+                      </button>
+                    </div>
+                    <ManualAddressInput
+                      value={rewardCalculatorAddress}
+                      onChange={setRewardCalculatorAddress}
+                      label="Or enter existing address"
+                    />
                   </div>
                 ) : (
-                  <Button
-                    variant="primary"
-                    onClick={deployRewardCalculator}
-                    loading={isDeploying}
-                    disabled={isDeploying || !rewardBasisPoints || Number(rewardBasisPoints) <= 0}
-                  >
-                    Deploy Reward Calculator
-                  </Button>
+                  <div className="space-y-2">
+                    <Button
+                      variant="primary"
+                      onClick={deployRewardCalculator}
+                      loading={isDeploying}
+                      disabled={isDeploying || !rewardBasisPoints || Number(rewardBasisPoints) <= 0}
+                    >
+                      Deploy Reward Calculator
+                    </Button>
+                    <ManualAddressInput
+                      value={rewardCalculatorAddress}
+                      onChange={setRewardCalculatorAddress}
+                      label="Or enter existing address"
+                    />
+                  </div>
                 )}
               </div>
             </div>

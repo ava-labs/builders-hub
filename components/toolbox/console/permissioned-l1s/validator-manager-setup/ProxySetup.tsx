@@ -9,7 +9,6 @@ import { Button } from '@/components/toolbox/components/Button';
 import ProxyAdminABI from '@/contracts/openzeppelin-4.9/compiled/ProxyAdmin.json';
 import TransparentUpgradeableProxyABI from '@/contracts/openzeppelin-4.9/compiled/TransparentUpgradeableProxy.json';
 import { getSubnetInfo } from '@/components/toolbox/coreViem/utils/glacier';
-import { EVMAddressInput } from '@/components/toolbox/components/EVMAddressInput';
 import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
 import {
   BaseConsoleToolProps,
@@ -148,10 +147,10 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
           args: [address],
         });
         setCurrentImplementation(implementation as string);
-      } catch (implError) {
+      } catch {
         setProxyError('Failed to read current implementation. ProxyAdmin may not be compatible.');
       }
-    } catch (error) {
+    } catch {
       setProxyError("Failed to read proxy storage. Make sure you're connected to the correct network.");
     } finally {
       setIsLoadingProxyInfo(false);
