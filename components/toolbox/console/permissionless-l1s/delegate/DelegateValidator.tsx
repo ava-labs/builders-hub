@@ -64,7 +64,7 @@ export default function DelegateValidator({ tokenType, onSuccess }: DelegateVali
 
         <Step>
           <h2 className="text-lg font-semibold">Select Validator</h2>
-          <p className="text-sm text-gray-500 mb-4">
+          <p className="text-sm text-zinc-500 mb-4">
             Choose an active validator to delegate your {tokenLabel.toLowerCase()}s to.
           </p>
 
@@ -91,7 +91,7 @@ export default function DelegateValidator({ tokenType, onSuccess }: DelegateVali
 
         <Step>
           <h2 className="text-lg font-semibold">Initiate Delegation</h2>
-          <p className="text-sm text-gray-500 mb-4">
+          <p className="text-sm text-zinc-500 mb-4">
             Lock your {isNative ? 'native' : 'ERC20'} tokens to delegate to the selected validator.
             {!isNative && ' You will need to approve ERC20 tokens first.'}
           </p>
@@ -113,7 +113,7 @@ export default function DelegateValidator({ tokenType, onSuccess }: DelegateVali
 
         <Step>
           <h2 className="text-lg font-semibold">Submit P-Chain Transaction</h2>
-          <p className="text-sm text-gray-500 mb-4">
+          <p className="text-sm text-zinc-500 mb-4">
             Sign the warp message and submit the weight update to the P-Chain.
           </p>
 
@@ -144,7 +144,7 @@ export default function DelegateValidator({ tokenType, onSuccess }: DelegateVali
 
         <Step>
           <h2 className="text-lg font-semibold">Complete Delegation</h2>
-          <p className="text-sm text-gray-500 mb-4">
+          <p className="text-sm text-zinc-500 mb-4">
             After the P-Chain transaction is confirmed, complete the delegation to activate your delegation on the L1.
           </p>
 

@@ -123,13 +123,13 @@ function DeployProxyContract({ onSuccess }: BaseConsoleToolProps) {
         <Steps>
           <Step>
             <h2 className="text-lg font-semibold">Deploy Proxy Admin Contract</h2>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-zinc-500">
               This will deploy the <code>ProxyAdmin</code> contract to the EVM network <code>{viemChain?.id}</code>.{' '}
               <code>ProxyAdmin</code> is used to manage upgrades to the implementation for the proxy contract. For
               production L1s this should be a multisig wallet, since it can take full control over the L1 validator set
               by arbitrarily changing the implementation of the ValidatorManager contract.
             </p>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-zinc-500">
               Contract source:{' '}
               <a href={PROXYADMIN_SOURCE_URL} target="_blank" rel="noreferrer">
                 ProxyAdmin.sol
@@ -153,11 +153,11 @@ function DeployProxyContract({ onSuccess }: BaseConsoleToolProps) {
           </Step>
           <Step>
             <h2 className="text-lg font-semibold">Deploy Transparent Proxy Contract</h2>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-zinc-500">
               The proxy requires the <code>ProxyAdmin</code> contract at address:{' '}
               <code>{proxyAdminAddress || 'Not deployed'}</code>
             </p>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-zinc-500">
               Contract source:{' '}
               <a href={TRANSPARENT_PROXY_SOURCE_URL} target="_blank" rel="noreferrer">
                 TransparentUpgradeableProxy.sol

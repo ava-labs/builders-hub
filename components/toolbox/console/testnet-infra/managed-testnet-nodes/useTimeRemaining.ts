@@ -40,13 +40,13 @@ export function formatTimeRemaining(timeRemaining: TimeRemaining): string {
 export function getStatusData(timeRemaining: TimeRemaining): StatusData {
   if (timeRemaining.expired) {
     return {
-      color: 'bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700',
+      color: 'bg-zinc-100 text-zinc-700 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700',
       iconType: 'expired',
       label: 'Expired',
     };
   } else if (timeRemaining.days <= 1) {
     return {
-      color: 'bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700',
+      color: 'bg-zinc-100 text-zinc-700 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700',
       iconType: 'warning',
       label: 'Expiring Soon',
     };

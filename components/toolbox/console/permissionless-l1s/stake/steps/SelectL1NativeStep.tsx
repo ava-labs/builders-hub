@@ -50,7 +50,7 @@ export default function SelectL1NativeStep() {
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
       <div className="space-y-4">
         <h2 className="text-lg font-semibold">Select L1 & Validator (Native Token)</h2>
-        <p className="text-sm text-gray-500 mb-4">
+        <p className="text-sm text-zinc-500 mb-4">
           Choose the L1 subnet and add validator details for native token staking.
         </p>
         <SelectSubnetId

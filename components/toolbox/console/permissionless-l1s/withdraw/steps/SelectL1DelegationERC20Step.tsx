@@ -95,9 +95,7 @@ export default function SelectL1DelegationERC20Step() {
           }),
         );
 
-        setAllDelegations(
-          delegations.filter((d): d is NonNullable<typeof d> => d !== null),
-        );
+        setAllDelegations(delegations.filter((d): d is NonNullable<typeof d> => d !== null));
       } catch {
         setAllDelegations([]);
       } finally {
@@ -139,7 +137,7 @@ export default function SelectL1DelegationERC20Step() {
     <div className="space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
         <div className="space-y-4">
-          <p className="text-sm text-gray-500 mb-4">
+          <p className="text-sm text-zinc-500 mb-4">
             Choose the L1 subnet where you want to remove a delegation using ERC20 Token staking.
           </p>
           <SelectSubnetId
@@ -176,7 +174,7 @@ export default function SelectL1DelegationERC20Step() {
       {store.subnetIdL1 && (
         <div className="space-y-4">
           <h3 className="text-lg font-semibold">Select Delegation to Remove</h3>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-zinc-500">
             Select the delegation you want to remove from the dropdown or enter the delegation ID directly.
           </p>
 
@@ -232,7 +230,8 @@ export default function SelectL1DelegationERC20Step() {
                 {selectedDelegation.status === 'completed' && (
                   <Alert variant="info" className="mt-2">
                     <p className="text-xs">
-                      This delegation is already completed. You can use this ID for reference but cannot remove it again.
+                      This delegation is already completed. You can use this ID for reference but cannot remove it
+                      again.
                     </p>
                   </Alert>
                 )}

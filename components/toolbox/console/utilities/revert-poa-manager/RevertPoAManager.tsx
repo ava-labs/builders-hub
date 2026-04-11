@@ -63,7 +63,7 @@ function RevertPoAManager({ onSuccess }: BaseConsoleToolProps) {
       <Steps>
         <Step>
           <h2 className="text-lg font-semibold">Select L1</h2>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-zinc-500">
             Select the L1 whose ValidatorManager you want to revert from PoAManager control. This will transfer
             ownership to a new address via the PoAManager contract.
           </p>
@@ -76,7 +76,7 @@ function RevertPoAManager({ onSuccess }: BaseConsoleToolProps) {
             helperText="Choose the L1 with the PoAManager you want to revert"
           />
 
-          {isLoadingValidatorManager && <p className="text-sm text-gray-500">Loading ValidatorManager details...</p>}
+          {isLoadingValidatorManager && <p className="text-sm text-zinc-500">Loading ValidatorManager details...</p>}
 
           {validatorManagerAddress && (
             <>
@@ -88,7 +88,7 @@ function RevertPoAManager({ onSuccess }: BaseConsoleToolProps) {
               />
 
               {isLoadingOwnership || isDetectingOwnerType ? (
-                <p className="text-sm text-gray-500">Loading current owner...</p>
+                <p className="text-sm text-zinc-500">Loading current owner...</p>
               ) : (
                 <>
                   <Input
@@ -99,7 +99,7 @@ function RevertPoAManager({ onSuccess }: BaseConsoleToolProps) {
                     error={ownershipError || undefined}
                   />
                   {ownerType === 'PoAManager' && (
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-zinc-500 mt-1">
                       The PoAManager is the current owner of the ValidatorManager. We will call
                       transferValidatorManagerOwnership() on the PoAManager.
                     </p>
@@ -124,7 +124,7 @@ function RevertPoAManager({ onSuccess }: BaseConsoleToolProps) {
         {ownerType === 'PoAManager' && (
           <Step>
             <h2 className="text-lg font-semibold">Revert to New Owner</h2>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-zinc-500">
               Enter the new owner address for the ValidatorManager contract. This calls{' '}
               <code>transferValidatorManagerOwnership(newOwner)</code> on the PoAManager to revert control.
             </p>

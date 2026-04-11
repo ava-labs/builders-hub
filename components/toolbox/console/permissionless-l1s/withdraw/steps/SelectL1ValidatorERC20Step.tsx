@@ -28,7 +28,7 @@ export default function SelectL1ValidatorERC20Step() {
     <div className="space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
         <div className="space-y-4">
-          <p className="text-sm text-gray-500 mb-4">
+          <p className="text-sm text-zinc-500 mb-4">
             Choose the L1 subnet where you want to remove a validator using ERC20 Token staking.
           </p>
           <SelectSubnetId
@@ -65,7 +65,7 @@ export default function SelectL1ValidatorERC20Step() {
       {store.subnetIdL1 && (
         <div className="space-y-4">
           <h3 className="text-lg font-semibold">Select Validator to Remove</h3>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-zinc-500">
             Select the validator you want to remove. Only validators with weight are shown.
           </p>
 

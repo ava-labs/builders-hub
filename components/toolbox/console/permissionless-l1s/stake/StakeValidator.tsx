@@ -78,7 +78,7 @@ export default function StakeValidator({ tokenType, onSuccess }: StakeValidatorP
 
         <Step>
           <h2 className="text-lg font-semibold">Add Validator Details</h2>
-          <p className="text-sm text-gray-500 mb-4">
+          <p className="text-sm text-zinc-500 mb-4">
             Add the validator details including node credentials and configuration.
           </p>
 
@@ -104,7 +104,7 @@ export default function StakeValidator({ tokenType, onSuccess }: StakeValidatorP
 
         <Step>
           <h2 className="text-lg font-semibold">Initiate Validator Registration</h2>
-          <p className="text-sm text-gray-500 mb-4">
+          <p className="text-sm text-zinc-500 mb-4">
             Register your validator on the staking manager contract and lock your{' '}
             {isNative ? 'native token' : 'ERC20 token'} stake.
             {!isNative && ' You will need to approve ERC20 tokens first.'}
@@ -130,7 +130,7 @@ export default function StakeValidator({ tokenType, onSuccess }: StakeValidatorP
 
         <Step>
           <h2 className="text-lg font-semibold">Submit P-Chain Transaction</h2>
-          <p className="text-sm text-gray-500 mb-4">
+          <p className="text-sm text-zinc-500 mb-4">
             Sign the warp message and submit the validator registration to the P-Chain.
           </p>
 
@@ -151,7 +151,7 @@ export default function StakeValidator({ tokenType, onSuccess }: StakeValidatorP
 
         <Step>
           <h2 className="text-lg font-semibold">Complete Validator Registration</h2>
-          <p className="text-sm text-gray-500 mb-4">
+          <p className="text-sm text-zinc-500 mb-4">
             After the P-Chain transaction is confirmed, complete the registration to activate your validator on the L1.
           </p>
 

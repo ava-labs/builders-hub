@@ -31,8 +31,7 @@ const CONTRACT_SOURCES: ContractSource[] = [
     name: 'NativeTokenStakingManager',
     filename: 'NativeTokenStakingManager.sol',
     url: `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/validator-manager/NativeTokenStakingManager.sol`,
-    description:
-      'Enables permissionless staking using native tokens. Extends PoSValidatorManager for native token staking.',
+    description: 'Enables permissionless staking using native tokens. Extends StakingManager for native token staking.',
   },
   {
     name: 'ValidatorMessages',

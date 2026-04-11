@@ -231,7 +231,7 @@ export default function RelayerCard({
     if (!relayer.health) {
       return {
         label: 'Unreachable',
-        color: 'text-gray-500 bg-gray-50 border-gray-300 dark:bg-gray-800 dark:border-gray-600',
+        color: 'text-zinc-500 bg-zinc-50 border-zinc-300 dark:bg-zinc-800 dark:border-zinc-600',
       };
     }
     if (relayer.health.status === 'up') {
@@ -270,13 +270,13 @@ export default function RelayerCard({
   const healthStatus = getHealthStatus();
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors min-w-0">
+    <div className="bg-white dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors min-w-0">
       {/* Relayer Header */}
-      <div className="p-4 border-b border-gray-100 dark:border-gray-700">
+      <div className="p-4 border-b border-zinc-100 dark:border-zinc-700">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3 flex-1 min-w-0">
             <div className="min-w-0 flex-1">
-              <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-1">Relayer</h3>
+              <h3 className="font-medium text-zinc-900 dark:text-zinc-100 mb-1">Relayer</h3>
               <div className="flex items-center gap-2 flex-wrap">
                 <span
                   className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium border ${healthStatus.color}`}
@@ -290,7 +290,7 @@ export default function RelayerCard({
                   {getStatusIcon(statusData.iconType)}
                   {statusData.label}
                 </span>
-                <span className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-1">
+                <span className="text-sm text-zinc-600 dark:text-zinc-400 flex items-center gap-1">
                   <Clock className="w-3 h-3" />
                   {formatTimeRemaining(timeRemaining)} remaining
                 </span>
@@ -299,7 +299,7 @@ export default function RelayerCard({
           </div>
 
           <div className="flex items-start gap-3">
-            <div className="text-right text-xs text-gray-500 dark:text-gray-400 space-y-1">
+            <div className="text-right text-xs text-zinc-500 dark:text-zinc-400 space-y-1">
               <div>Created: {formatDateSafely(relayer.createdAt)}</div>
               <div>Expires: {formatDateSafely(relayer.expiresAt)}</div>
             </div>
@@ -314,18 +314,18 @@ export default function RelayerCard({
         {/* Relayer Balances */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <div className="text-sm font-semibold text-gray-700 dark:text-gray-300">Relayer Balances</div>
+            <div className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Relayer Balances</div>
             <button
               onClick={fetchBalances}
               disabled={isLoadingBalances}
-              className="p-1 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 disabled:opacity-50"
+              className="p-1 text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 disabled:opacity-50"
               style={{ lineHeight: 0 }}
               title="Refresh balances"
             >
               <RefreshCw className={`h-4 w-4 ${isLoadingBalances ? 'animate-spin' : ''}`} />
             </button>
           </div>
-          <div className="text-xs text-gray-600 dark:text-gray-400 mb-2">
+          <div className="text-xs text-zinc-600 dark:text-zinc-400 mb-2">
             Ensure the relayer address maintains a positive balance on all configured chains to cover transaction fees.
           </div>
           <div className="space-y-2">
@@ -335,11 +335,11 @@ export default function RelayerCard({
               return (
                 <div
                   key={config.blockchainId}
-                  className="flex items-center justify-between p-3 border rounded-md bg-gray-50 dark:bg-gray-900/20"
+                  className="flex items-center justify-between p-3 border rounded-md bg-zinc-50 dark:bg-zinc-900/20"
                 >
                   <div>
-                    <div className="text-xs font-medium text-gray-700 dark:text-gray-300">{chainInfo.name}</div>
-                    <div className="flex items-center gap-1 text-sm text-gray-500">
+                    <div className="text-xs font-medium text-zinc-700 dark:text-zinc-300">{chainInfo.name}</div>
+                    <div className="flex items-center gap-1 text-sm text-zinc-500">
                       {balances[config.blockchainId] !== undefined
                         ? `${parseFloat(balances[config.blockchainId]).toFixed(4)} ${chainInfo.coinName}`
                         : 'Loading...'}
@@ -375,7 +375,7 @@ export default function RelayerCard({
         <div className="mt-2">
           <button
             onClick={() => setIsExpanded(!isExpanded)}
-            className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100"
+            className="flex items-center gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100"
           >
             {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             {isExpanded ? 'Hide' : 'Show'} Chain Configuration
@@ -391,7 +391,7 @@ export default function RelayerCard({
         </div>
 
         {/* Primary Actions */}
-        <div className="mt-2 flex items-center justify-end gap-2 border-t border-gray-200 dark:border-gray-700 pt-3">
+        <div className="mt-2 flex items-center justify-end gap-2 border-t border-zinc-200 dark:border-zinc-700 pt-3">
           <Button
             onClick={() => onRestartRelayer(relayer)}
             variant="secondary"

@@ -470,7 +470,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                       />
                       <span className="text-sm">Enable Debug Trace</span>
                     </label>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
                       Enables debug APIs and detailed tracing capabilities
                     </p>
                   </div>
@@ -485,7 +485,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                       />
                       <span className="text-sm">Enable Transaction Indexing</span>
                     </label>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
                       Required for eth_getLogs and transaction lookups. Disable to save disk space.
                     </p>
                   </div>
@@ -499,7 +499,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                   onClick={() => setShowAdvancedSettings(!showAdvancedSettings)}
                   className="flex items-center justify-between w-full text-left"
                 >
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Advanced Settings</span>
+                  <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Advanced Settings</span>
                   <svg
                     className={`w-5 h-5 transition-transform ${showAdvancedSettings ? 'rotate-180' : ''}`}
                     fill="none"
@@ -512,7 +512,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
 
                 {showAdvancedSettings && (
                   <div className="space-y-4 mt-4">
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
                       For advanced configuration options, see the{' '}
                       <a
                         href="https://build.avax.network/docs/nodes/configure/configs-flags"
@@ -535,11 +535,11 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                     </span>
 
                     <div>
-                      <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Cache Settings</h4>
+                      <h4 className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">Cache Settings</h4>
 
                       <div className="space-y-3">
                         <div onMouseEnter={() => setHighlightPath('trieCleanCache')} onMouseLeave={clearHighlight}>
-                          <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                          <label className="block text-xs text-zinc-600 dark:text-zinc-400 mb-1">
                             Trie Clean Cache (MB)
                           </label>
                           <input
@@ -548,12 +548,12 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                             onChange={(e) => setTrieCleanCache(Math.max(0, parseInt(e.target.value) || 0))}
                             onFocus={() => setHighlightPath('trieCleanCache')}
                             onBlur={clearHighlight}
-                            className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                            className="w-full px-2 py-1.5 text-sm border border-zinc-300 dark:border-zinc-600 rounded-md dark:bg-zinc-700 dark:text-white"
                           />
                         </div>
 
                         <div onMouseEnter={() => setHighlightPath('trieDirtyCache')} onMouseLeave={clearHighlight}>
-                          <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                          <label className="block text-xs text-zinc-600 dark:text-zinc-400 mb-1">
                             Trie Dirty Cache (MB)
                           </label>
                           <input
@@ -562,12 +562,12 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                             onChange={(e) => setTrieDirtyCache(Math.max(0, parseInt(e.target.value) || 0))}
                             onFocus={() => setHighlightPath('trieDirtyCache')}
                             onBlur={clearHighlight}
-                            className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                            className="w-full px-2 py-1.5 text-sm border border-zinc-300 dark:border-zinc-600 rounded-md dark:bg-zinc-700 dark:text-white"
                           />
                         </div>
 
                         <div onMouseEnter={() => setHighlightPath('snapshotCache')} onMouseLeave={clearHighlight}>
-                          <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                          <label className="block text-xs text-zinc-600 dark:text-zinc-400 mb-1">
                             Snapshot Cache (MB)
                           </label>
                           <input
@@ -576,12 +576,12 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                             onChange={(e) => setSnapshotCache(Math.max(0, parseInt(e.target.value) || 0))}
                             onFocus={() => setHighlightPath('snapshotCache')}
                             onBlur={clearHighlight}
-                            className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                            className="w-full px-2 py-1.5 text-sm border border-zinc-300 dark:border-zinc-600 rounded-md dark:bg-zinc-700 dark:text-white"
                           />
                         </div>
 
                         <div onMouseEnter={() => setHighlightPath('acceptedCacheSize')} onMouseLeave={clearHighlight}>
-                          <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                          <label className="block text-xs text-zinc-600 dark:text-zinc-400 mb-1">
                             Accepted Cache Size (blocks)
                           </label>
                           <input
@@ -590,9 +590,9 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                             onChange={(e) => setAcceptedCacheSize(Math.max(1, parseInt(e.target.value) || 1))}
                             onFocus={() => setHighlightPath('acceptedCacheSize')}
                             onBlur={clearHighlight}
-                            className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                            className="w-full px-2 py-1.5 text-sm border border-zinc-300 dark:border-zinc-600 rounded-md dark:bg-zinc-700 dark:text-white"
                           />
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
                             Depth of accepted headers and logs cache
                           </p>
                         </div>
@@ -601,7 +601,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                           onMouseEnter={() => setHighlightPath('trieDirtyCommitTarget')}
                           onMouseLeave={clearHighlight}
                         >
-                          <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                          <label className="block text-xs text-zinc-600 dark:text-zinc-400 mb-1">
                             Trie Dirty Commit Target (MB)
                           </label>
                           <input
@@ -610,16 +610,16 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                             onChange={(e) => setTrieDirtyCommitTarget(Math.max(1, parseInt(e.target.value) || 1))}
                             onFocus={() => setHighlightPath('trieDirtyCommitTarget')}
                             onBlur={clearHighlight}
-                            className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                            className="w-full px-2 py-1.5 text-sm border border-zinc-300 dark:border-zinc-600 rounded-md dark:bg-zinc-700 dark:text-white"
                           />
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Memory limit before commit</p>
+                          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Memory limit before commit</p>
                         </div>
 
                         <div
                           onMouseEnter={() => setHighlightPath('triePrefetcherParallelism')}
                           onMouseLeave={clearHighlight}
                         >
-                          <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                          <label className="block text-xs text-zinc-600 dark:text-zinc-400 mb-1">
                             Trie Prefetcher Parallelism
                           </label>
                           <input
@@ -628,16 +628,16 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                             onChange={(e) => setTriePrefetcherParallelism(Math.max(1, parseInt(e.target.value) || 1))}
                             onFocus={() => setHighlightPath('triePrefetcherParallelism')}
                             onBlur={clearHighlight}
-                            className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                            className="w-full px-2 py-1.5 text-sm border border-zinc-300 dark:border-zinc-600 rounded-md dark:bg-zinc-700 dark:text-white"
                           />
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Max concurrent disk reads</p>
+                          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Max concurrent disk reads</p>
                         </div>
 
                         <div
                           onMouseEnter={() => setHighlightPath('stateSyncServerTrieCache')}
                           onMouseLeave={clearHighlight}
                         >
-                          <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                          <label className="block text-xs text-zinc-600 dark:text-zinc-400 mb-1">
                             State Sync Server Trie Cache (MB)
                           </label>
                           <input
@@ -646,9 +646,9 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                             onChange={(e) => setStateSyncServerTrieCache(Math.max(0, parseInt(e.target.value) || 0))}
                             onFocus={() => setHighlightPath('stateSyncServerTrieCache')}
                             onBlur={clearHighlight}
-                            className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                            className="w-full px-2 py-1.5 text-sm border border-zinc-300 dark:border-zinc-600 rounded-md dark:bg-zinc-700 dark:text-white"
                           />
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
                             Trie cache for state sync server
                           </p>
                         </div>
@@ -656,7 +656,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                     </div>
 
                     <div className="border-t pt-3">
-                      <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Metrics Settings</h4>
+                      <h4 className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">Metrics Settings</h4>
                       <div className="space-y-3">
                         <div onMouseEnter={() => setHighlightPath('metricsExpensive')} onMouseLeave={clearHighlight}>
                           <label className="flex items-center space-x-2">
@@ -668,9 +668,9 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                               onBlur={clearHighlight}
                               className="rounded"
                             />
-                            <span className="text-xs text-gray-600 dark:text-gray-400">Enable Expensive Metrics</span>
+                            <span className="text-xs text-zinc-600 dark:text-zinc-400">Enable Expensive Metrics</span>
                           </label>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-6">
+                          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 ml-6">
                             Enables debug-level metrics including Firewood metrics. May impact performance.
                           </p>
                         </div>
@@ -678,13 +678,13 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                     </div>
 
                     <div className="border-t pt-3">
-                      <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                      <h4 className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">
                         Performance Settings
                       </h4>
 
                       <div className="space-y-3">
                         <div onMouseEnter={() => setHighlightPath('commitInterval')} onMouseLeave={clearHighlight}>
-                          <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                          <label className="block text-xs text-zinc-600 dark:text-zinc-400 mb-1">
                             Commit Interval (blocks)
                           </label>
                           <input
@@ -693,30 +693,30 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                             onChange={(e) => setCommitInterval(Math.max(1, parseInt(e.target.value) || 1))}
                             onFocus={() => setHighlightPath('commitInterval')}
                             onBlur={clearHighlight}
-                            className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                            className="w-full px-2 py-1.5 text-sm border border-zinc-300 dark:border-zinc-600 rounded-md dark:bg-zinc-700 dark:text-white"
                           />
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
                             Interval to persist EVM and atomic tries
                           </p>
                         </div>
 
                         <div onMouseEnter={() => setHighlightPath('rpcGasCap')} onMouseLeave={clearHighlight}>
-                          <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">RPC Gas Cap</label>
+                          <label className="block text-xs text-zinc-600 dark:text-zinc-400 mb-1">RPC Gas Cap</label>
                           <input
                             type="number"
                             value={rpcGasCap}
                             onChange={(e) => setRpcGasCap(Math.max(0, parseInt(e.target.value) || 0))}
                             onFocus={() => setHighlightPath('rpcGasCap')}
                             onBlur={clearHighlight}
-                            className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                            className="w-full px-2 py-1.5 text-sm border border-zinc-300 dark:border-zinc-600 rounded-md dark:bg-zinc-700 dark:text-white"
                           />
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
                             Maximum gas limit for RPC calls
                           </p>
                         </div>
 
                         <div onMouseEnter={() => setHighlightPath('rpcTxFeeCap')} onMouseLeave={clearHighlight}>
-                          <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                          <label className="block text-xs text-zinc-600 dark:text-zinc-400 mb-1">
                             RPC Tx Fee Cap (AVAX)
                           </label>
                           <input
@@ -725,19 +725,19 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                             onChange={(e) => setRpcTxFeeCap(Math.max(0, parseInt(e.target.value) || 0))}
                             onFocus={() => setHighlightPath('rpcTxFeeCap')}
                             onBlur={clearHighlight}
-                            className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                            className="w-full px-2 py-1.5 text-sm border border-zinc-300 dark:border-zinc-600 rounded-md dark:bg-zinc-700 dark:text-white"
                           />
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Maximum transaction fee cap</p>
+                          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Maximum transaction fee cap</p>
                         </div>
                       </div>
                     </div>
 
                     <div className="border-t pt-3">
-                      <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">API Limits</h4>
+                      <h4 className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">API Limits</h4>
 
                       <div className="space-y-3">
                         <div onMouseEnter={() => setHighlightPath('batchRequestLimit')} onMouseLeave={clearHighlight}>
-                          <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                          <label className="block text-xs text-zinc-600 dark:text-zinc-400 mb-1">
                             Batch Request Limit
                           </label>
                           <input
@@ -746,9 +746,9 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                             onChange={(e) => setBatchRequestLimit(Math.max(0, parseInt(e.target.value) || 0))}
                             onFocus={() => setHighlightPath('batchRequestLimit')}
                             onBlur={clearHighlight}
-                            className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                            className="w-full px-2 py-1.5 text-sm border border-zinc-300 dark:border-zinc-600 rounded-md dark:bg-zinc-700 dark:text-white"
                           />
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
                             Max batched requests (0 = no limit)
                           </p>
                         </div>
@@ -757,7 +757,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                           onMouseEnter={() => setHighlightPath('batchResponseMaxSize')}
                           onMouseLeave={clearHighlight}
                         >
-                          <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                          <label className="block text-xs text-zinc-600 dark:text-zinc-400 mb-1">
                             Batch Response Max Size (bytes)
                           </label>
                           <input
@@ -766,9 +766,9 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                             onChange={(e) => setBatchResponseMaxSize(Math.max(0, parseInt(e.target.value) || 0))}
                             onFocus={() => setHighlightPath('batchResponseMaxSize')}
                             onBlur={clearHighlight}
-                            className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                            className="w-full px-2 py-1.5 text-sm border border-zinc-300 dark:border-zinc-600 rounded-md dark:bg-zinc-700 dark:text-white"
                           />
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
                             Max batch response size (default: 25MB)
                           </p>
                         </div>
@@ -776,11 +776,11 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                     </div>
 
                     <div className="border-t pt-3">
-                      <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Transaction & State</h4>
+                      <h4 className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">Transaction & State</h4>
 
                       <div className="space-y-3">
                         <div onMouseEnter={() => setHighlightPath('transactionHistory')} onMouseLeave={clearHighlight}>
-                          <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                          <label className="block text-xs text-zinc-600 dark:text-zinc-400 mb-1">
                             Transaction History (blocks)
                           </label>
                           <input
@@ -789,9 +789,9 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                             onChange={(e) => setTransactionHistory(Math.max(0, parseInt(e.target.value) || 0))}
                             onFocus={() => setHighlightPath('transactionHistory')}
                             onBlur={clearHighlight}
-                            className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                            className="w-full px-2 py-1.5 text-sm border border-zinc-300 dark:border-zinc-600 rounded-md dark:bg-zinc-700 dark:text-white"
                           />
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
                             Max blocks to keep tx indices. 0 = archive mode (all history)
                           </p>
                         </div>
@@ -806,11 +806,11 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                               onBlur={clearHighlight}
                               className="rounded"
                             />
-                            <span className="text-xs text-gray-600 dark:text-gray-400">
+                            <span className="text-xs text-zinc-600 dark:text-zinc-400">
                               Enable Transaction Indexing
                             </span>
                           </label>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-6">
+                          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 ml-6">
                             Index transactions for querying (uses more disk space)
                           </p>
                         </div>
@@ -825,9 +825,9 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                               onBlur={clearHighlight}
                               className="rounded"
                             />
-                            <span className="text-xs text-gray-600 dark:text-gray-400">Enable Preimages</span>
+                            <span className="text-xs text-zinc-600 dark:text-zinc-400">Enable Preimages</span>
                           </label>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-6">
+                          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 ml-6">
                             Record preimages (uses more disk)
                           </p>
                         </div>
@@ -842,9 +842,9 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                               onBlur={clearHighlight}
                               className="rounded"
                             />
-                            <span className="text-xs text-gray-600 dark:text-gray-400">Enable Local Transactions</span>
+                            <span className="text-xs text-zinc-600 dark:text-zinc-400">Enable Local Transactions</span>
                           </label>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-6">
+                          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 ml-6">
                             Treat local account txs as local
                           </p>
                         </div>
@@ -949,7 +949,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
 
                     {isRPC && (
                       <div className="border-t pt-3">
-                        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                        <h4 className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">
                           RPC-Specific Settings
                         </h4>
 
@@ -958,7 +958,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                             onMouseEnter={() => setHighlightPath('apiMaxBlocksPerRequest')}
                             onMouseLeave={clearHighlight}
                           >
-                            <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                            <label className="block text-xs text-zinc-600 dark:text-zinc-400 mb-1">
                               API Max Blocks Per Request
                             </label>
                             <input
@@ -967,9 +967,9 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                               onChange={(e) => setApiMaxBlocksPerRequest(Math.max(0, parseInt(e.target.value) || 0))}
                               onFocus={() => setHighlightPath('apiMaxBlocksPerRequest')}
                               onBlur={clearHighlight}
-                              className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                              className="w-full px-2 py-1.5 text-sm border border-zinc-300 dark:border-zinc-600 rounded-md dark:bg-zinc-700 dark:text-white"
                             />
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
                               0 = no limit. Limits blocks per getLogs request
                             </p>
                           </div>
@@ -987,11 +987,11 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                                 onBlur={clearHighlight}
                                 className="rounded"
                               />
-                              <span className="text-xs text-gray-600 dark:text-gray-400">
+                              <span className="text-xs text-zinc-600 dark:text-zinc-400">
                                 Allow Unfinalized Queries
                               </span>
                             </label>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-6">
+                            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 ml-6">
                               When enabled, allows queries using block tags like{' '}
                               <code className="px-1 py-0.5 bg-zinc-100 dark:bg-zinc-800 rounded text-[10px]">
                                 pending
@@ -1018,7 +1018,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                     )}
 
                     <div className="border-t pt-3">
-                      <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                      <h4 className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">
                         Profiling (Optional)
                       </h4>
 
@@ -1027,7 +1027,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                           onMouseEnter={() => setHighlightPath('continuousProfilerDir')}
                           onMouseLeave={clearHighlight}
                         >
-                          <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                          <label className="block text-xs text-zinc-600 dark:text-zinc-400 mb-1">
                             Continuous Profiler Directory
                           </label>
                           <input
@@ -1037,9 +1037,9 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                             onFocus={() => setHighlightPath('continuousProfilerDir')}
                             onBlur={clearHighlight}
                             placeholder="./profiles (leave empty to disable)"
-                            className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                            className="w-full px-2 py-1.5 text-sm border border-zinc-300 dark:border-zinc-600 rounded-md dark:bg-zinc-700 dark:text-white"
                           />
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
                             Directory for continuous profiler output
                           </p>
                         </div>
@@ -1049,7 +1049,7 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                             onMouseEnter={() => setHighlightPath('continuousProfilerFrequency')}
                             onMouseLeave={clearHighlight}
                           >
-                            <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                            <label className="block text-xs text-zinc-600 dark:text-zinc-400 mb-1">
                               Profiler Frequency
                             </label>
                             <input
@@ -1059,9 +1059,9 @@ function AvalancheGoDockerPrimaryNetworkInner() {
                               onFocus={() => setHighlightPath('continuousProfilerFrequency')}
                               onBlur={clearHighlight}
                               placeholder="15m"
-                              className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                              className="w-full px-2 py-1.5 text-sm border border-zinc-300 dark:border-zinc-600 rounded-md dark:bg-zinc-700 dark:text-white"
                             />
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
                               How often to create profiles (e.g., 15m, 1h)
                             </p>
                           </div>
@@ -1076,14 +1076,14 @@ function AvalancheGoDockerPrimaryNetworkInner() {
             {/* Configuration Preview */}
             <div className="lg:sticky lg:top-4 h-fit">
               <div className="border rounded-lg bg-white dark:bg-zinc-950 overflow-hidden">
-                <div className="border-b p-3 bg-gray-50 dark:bg-gray-900">
+                <div className="border-b p-3 bg-zinc-50 dark:bg-zinc-900">
                   <h4 className="text-sm font-semibold">Configuration Preview</h4>
                 </div>
                 <div className="max-h-[600px] overflow-auto p-3 bg-zinc-50 dark:bg-zinc-950">
                   {configJson && !configJson.startsWith('Error:') ? (
                     <SyntaxHighlightedJSON code={configJson} highlightedLines={highlightedLines} />
                   ) : (
-                    <div className="text-sm text-gray-500 dark:text-gray-400 text-center py-8">
+                    <div className="text-sm text-zinc-500 dark:text-zinc-400 text-center py-8">
                       {configJson.startsWith('Error:') ? configJson : 'Configure your node to see the chain config'}
                     </div>
                   )}

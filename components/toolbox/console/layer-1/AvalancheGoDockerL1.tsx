@@ -817,7 +817,7 @@ function AvalanchegoDockerInner() {
             {/* Configuration Preview */}
             <div className="lg:sticky lg:top-4 h-fit">
               <div className="border rounded-lg bg-white dark:bg-zinc-950 overflow-hidden">
-                <div className="border-b p-3 bg-gray-50 dark:bg-gray-900">
+                <div className="border-b p-3 bg-zinc-50 dark:bg-zinc-900">
                   <h4 className="text-sm font-semibold">Configuration Preview</h4>
                 </div>
                 <div className="max-h-[600px] overflow-auto p-3 bg-zinc-50 dark:bg-zinc-950">
@@ -1056,11 +1056,11 @@ sudo ufw status`
               <Accordions type="single" className="mt-4">
                 {isCustomVM && (
                   <Accordion title="Custom VM Configuration">
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                    <p className="text-sm text-zinc-600 dark:text-zinc-400">
                       This blockchain uses a non-standard Virtual Machine ID. The Docker command includes VM aliases
                       mapping.
                     </p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                    <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-2">
                       <strong>VM ID:</strong> {blockchainInfo.vmId}
                       <br />
                       <strong>Aliases to:</strong> {SUBNET_EVM_VM_ID}

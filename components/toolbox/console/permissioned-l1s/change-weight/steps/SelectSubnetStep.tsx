@@ -23,7 +23,8 @@ export default function SelectSubnetStep() {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
       <div className="space-y-4">
-        <p className="text-sm text-gray-500 mb-4">
+        <h2 className="text-lg font-semibold">Select L1 Subnet</h2>
+        <p className="text-sm text-zinc-500 mb-4">
           Choose the L1 subnet where you want to change the validator weight.
         </p>
         <SelectSubnetId

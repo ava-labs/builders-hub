@@ -28,10 +28,10 @@ export default function NodesList({
     return (
       <div className="text-center py-12">
         <div className="inline-flex items-center justify-center w-8 h-8 mb-3">
-          <div className="w-5 h-5 animate-spin rounded-full border-2 border-solid border-gray-300 border-r-transparent"></div>
+          <div className="w-5 h-5 animate-spin rounded-full border-2 border-solid border-zinc-300 border-r-transparent"></div>
         </div>
-        <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-1">Loading Nodes</h3>
-        <p className="text-sm text-gray-600 dark:text-gray-400">Fetching your node registrations...</p>
+        <h3 className="text-base font-medium text-zinc-900 dark:text-zinc-100 mb-1">Loading Nodes</h3>
+        <p className="text-sm text-zinc-600 dark:text-zinc-400">Fetching your node registrations...</p>
       </div>
     );
   }
@@ -60,7 +60,7 @@ export default function NodesList({
         <button
           onClick={onRefresh}
           disabled={isLoadingNodes}
-          className="p-1.5 rounded-md bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 text-xs font-medium text-gray-700 dark:text-gray-300"
+          className="p-1.5 rounded-md bg-zinc-100 dark:bg-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 text-xs font-medium text-zinc-700 dark:text-zinc-300"
           title="Refresh nodes"
         >
           <RefreshCw className={`w-3 h-3 ${isLoadingNodes ? 'animate-spin' : ''}`} />

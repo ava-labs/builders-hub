@@ -179,7 +179,7 @@ function UpgradeProxy({ onSuccess }: BaseConsoleToolProps) {
       <Steps>
         <Step>
           <h2 className="text-lg font-semibold">Select Proxy to Upgrade</h2>
-          <p className="text-sm text-gray-500">Select the proxy contract you want to upgrade.</p>
+          <p className="text-sm text-zinc-500">Select the proxy contract you want to upgrade.</p>
 
           <EVMAddressInput
             label="Proxy Address"
@@ -204,7 +204,7 @@ function UpgradeProxy({ onSuccess }: BaseConsoleToolProps) {
         </Step>
         <Step>
           <h2 className="text-lg font-semibold">Set new Implementation</h2>
-          <p className="text-sm text-gray-500">Enter the new implementation contract you want the Proxy to point to.</p>
+          <p className="text-sm text-zinc-500">Enter the new implementation contract you want the Proxy to point to.</p>
 
           <EVMAddressInput
             label="Desired Implementation"

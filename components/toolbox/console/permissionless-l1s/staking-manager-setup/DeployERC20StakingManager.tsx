@@ -31,8 +31,7 @@ const CONTRACT_SOURCES: ContractSource[] = [
     name: 'ERC20TokenStakingManager',
     filename: 'ERC20TokenStakingManager.sol',
     url: `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/validator-manager/ERC20TokenStakingManager.sol`,
-    description:
-      'Enables permissionless staking using ERC20 tokens. Extends PoSValidatorManager for custom token staking.',
+    description: 'Enables permissionless staking using ERC20 tokens. Extends StakingManager for custom token staking.',
   },
   {
     name: 'ValidatorMessages',

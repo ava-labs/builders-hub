@@ -88,7 +88,7 @@ export default function CreateNodeForm({
   };
 
   return (
-    <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-6 mb-6 not-prose">
+    <div className="rounded-lg border border-zinc-200 dark:border-zinc-700 p-6 mb-6 not-prose">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-xl font-bold">Create New Node</h3>
         <Button onClick={onClose} variant="outline" size="sm" className="!w-auto">

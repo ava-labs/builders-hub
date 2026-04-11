@@ -188,7 +188,7 @@ export default function RemoveDelegationBase({ tokenType, onSuccess }: RemoveDel
 
         <Step>
           <h2 className="text-lg font-semibold">Select Delegation to Remove</h2>
-          <p className="text-sm text-gray-500 mb-4">
+          <p className="text-sm text-zinc-500 mb-4">
             Select the delegation you want to remove from the dropdown or enter the delegation ID directly. Both active
             and completed delegations are shown.
           </p>
@@ -267,7 +267,7 @@ export default function RemoveDelegationBase({ tokenType, onSuccess }: RemoveDel
 
         <Step>
           <h2 className="text-lg font-semibold">Initiate Delegator Removal</h2>
-          <p className="text-sm text-gray-500 mb-4">
+          <p className="text-sm text-zinc-500 mb-4">
             Call the{' '}
             <a
               href="https://github.com/ava-labs/icm-contracts/blob/main/contracts/validator-manager/IStakingManager.sol#L281"
@@ -305,7 +305,7 @@ export default function RemoveDelegationBase({ tokenType, onSuccess }: RemoveDel
 
         <Step>
           <h2 className="text-lg font-semibold">Submit P-Chain Transaction</h2>
-          <p className="text-sm text-gray-500 mb-4">
+          <p className="text-sm text-zinc-500 mb-4">
             Submit the weight update to the P-Chain. This step aggregates signatures from L1 validators and updates the
             validator&apos;s weight on the P-Chain to reflect the removed delegation.
           </p>
@@ -327,7 +327,7 @@ export default function RemoveDelegationBase({ tokenType, onSuccess }: RemoveDel
 
         <Step>
           <h2 className="text-lg font-semibold">Complete Delegator Removal</h2>
-          <p className="text-sm text-gray-500 mb-4">
+          <p className="text-sm text-zinc-500 mb-4">
             Finalize the delegation removal by calling{' '}
             <a
               href="https://github.com/ava-labs/icm-contracts/blob/main/contracts/validator-manager/StakingManager.sol"

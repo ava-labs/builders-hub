@@ -30,7 +30,7 @@ export default function L1SubnetStep({
   return (
     <Step>
       <h2 className="text-lg font-semibold">Select L1 Subnet</h2>
-      <p className="text-sm text-gray-500 mb-4">{description}</p>
+      <p className="text-sm text-zinc-500 mb-4">{description}</p>
       <div className="space-y-2">
         <SelectSubnetId
           value={subnetId}

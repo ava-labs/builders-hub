@@ -127,14 +127,14 @@ function DeployStakingManager({ initialTokenType = 'native' }: DeployStakingMana
         </div>
       </div>
 
-      <p className="text-sm text-gray-500">
+      <p className="text-sm text-zinc-500">
         This will deploy the <code>{isNative ? 'NativeTokenStakingManager' : 'ERC20TokenStakingManager'}</code> contract
         to the EVM network <code>{viemChain?.id}</code>.
         {isNative
           ? ' The Native Token Staking Manager enables permissionless staking on your L1 using the native token.'
           : ' The ERC20 Token Staking Manager enables permissionless staking on your L1 using a custom ERC20 token.'}
       </p>
-      <p className="text-sm text-gray-500">
+      <p className="text-sm text-zinc-500">
         Contract source:{' '}
         <a href={sourceUrl} target="_blank" rel="noreferrer">
           {isNative ? 'NativeTokenStakingManager.sol' : 'ERC20TokenStakingManager.sol'}
@@ -142,7 +142,7 @@ function DeployStakingManager({ initialTokenType = 'native' }: DeployStakingMana
         @ <code>{ICM_COMMIT.slice(0, 7)}</code>
       </p>
       {walletEVMAddress && (
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-zinc-500">
           Connected wallet: <code>{walletEVMAddress}</code>
         </p>
       )}

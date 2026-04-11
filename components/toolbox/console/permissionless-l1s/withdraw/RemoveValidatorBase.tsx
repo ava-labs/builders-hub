@@ -65,7 +65,7 @@ export default function RemoveValidatorBase({ tokenType }: RemoveValidatorBasePr
 
         <Step>
           <h2 className="text-lg font-semibold">Select Validator to Remove</h2>
-          <p className="text-sm text-gray-500 mb-4">
+          <p className="text-sm text-zinc-500 mb-4">
             Select the validator you want to remove. Only your own validators will be shown.
           </p>
 
@@ -94,7 +94,7 @@ export default function RemoveValidatorBase({ tokenType }: RemoveValidatorBasePr
 
         <Step>
           <h2 className="text-lg font-semibold">Initiate Validator Removal</h2>
-          <p className="text-sm text-gray-500 mb-4">
+          <p className="text-sm text-zinc-500 mb-4">
             Call the{' '}
             <a
               href="https://github.com/ava-labs/icm-contracts/blob/main/contracts/validator-manager/StakingManager.sol#L241"
@@ -125,7 +125,7 @@ export default function RemoveValidatorBase({ tokenType }: RemoveValidatorBasePr
 
         <Step>
           <h2 className="text-lg font-semibold">Submit P-Chain Transaction</h2>
-          <p className="text-sm text-gray-500 mb-4">
+          <p className="text-sm text-zinc-500 mb-4">
             Submit the weight update to the P-Chain. This step aggregates signatures from L1 validators and updates the
             validator&apos;s weight on the P-Chain to reflect the removal.
           </p>
@@ -147,7 +147,7 @@ export default function RemoveValidatorBase({ tokenType }: RemoveValidatorBasePr
 
         <Step>
           <h2 className="text-lg font-semibold">Complete Validator Removal</h2>
-          <p className="text-sm text-gray-500 mb-4">
+          <p className="text-sm text-zinc-500 mb-4">
             Finalize the validator removal by calling{' '}
             <a
               href="https://github.com/ava-labs/icm-contracts/blob/main/contracts/validator-manager/StakingManager.sol"
@@ -179,7 +179,7 @@ export default function RemoveValidatorBase({ tokenType }: RemoveValidatorBasePr
 
         <Step>
           <h2 className="text-lg font-semibold">Claim Delegation Fees (Optional)</h2>
-          <p className="text-sm text-gray-500 mb-4">
+          <p className="text-sm text-zinc-500 mb-4">
             If you had delegators, you can claim the accumulated delegation fees separately. These fees are based on the
             delegation fee percentage you set when registering the validator.
           </p>

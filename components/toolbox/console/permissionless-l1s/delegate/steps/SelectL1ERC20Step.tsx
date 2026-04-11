@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import SelectSubnetId from '@/components/toolbox/components/SelectSubnetId';
 import { ValidatorManagerDetails } from '@/components/toolbox/components/ValidatorManagerDetails';
-import SelectValidationID from '@/components/toolbox/components/SelectValidationID';
 import { useDelegateStore, useDelegateStoreApi } from '@/components/toolbox/stores/delegateStore';
 import { useValidatorManagerContext } from '@/components/toolbox/contexts/ValidatorManagerContext';
 import { useCreateChainStore } from '@/components/toolbox/stores/createChainStore';
@@ -14,13 +13,11 @@ export default function SelectL1ERC20Step() {
   const vmcCtx = useValidatorManagerContext();
   const createChainStoreSubnetId = useCreateChainStore()((state: { subnetId: string }) => state.subnetId);
 
-  // Stable setter references via selector — avoids infinite loop from
-  // subscribing to the entire store object in useEffect deps.
   const storeApi = useDelegateStoreApi();
   const setTokenType = storeApi((s) => s.setTokenType);
   const setSubnetIdL1 = storeApi((s) => s.setSubnetIdL1);
 
-  const [isValidatorManagerDetailsExpanded, setIsValidatorManagerDetailsExpanded] = useState<boolean>(true);
+  const [isExpanded, setIsExpanded] = useState<boolean>(true);
 
   useEffect(() => {
     if (!store.subnetIdL1 && createChainStoreSubnetId) {
@@ -35,10 +32,8 @@ export default function SelectL1ERC20Step() {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
       <div className="space-y-4">
-        <h2 className="text-lg font-semibold">Select L1 & Validator (ERC20 Token)</h2>
-        <p className="text-sm text-gray-500 mb-4">
-          Choose the L1 subnet and select an active validator to delegate your ERC20 tokens to.
-        </p>
+        <h2 className="text-lg font-semibold">Select L1 Subnet</h2>
+        <p className="text-sm text-zinc-500 mb-4">Choose the L1 subnet where you want to delegate ERC20 tokens.</p>
         <SelectSubnetId
           value={store.subnetIdL1}
           onChange={store.setSubnetIdL1}
@@ -48,25 +43,8 @@ export default function SelectL1ERC20Step() {
 
         {vmcCtx.ownerType && vmcCtx.ownerType !== 'StakingManager' && (
           <Alert variant="error">
-            This L1 is not using a Staking Manager. This tool is only for L1s with ERC20 Token Staking Managers.
+            This L1 is not using a Staking Manager. Delegation requires a permissionless L1.
           </Alert>
-        )}
-
-        <SelectValidationID
-          value={store.validationId}
-          onChange={(selection) => {
-            store.setValidationId(selection.validationId);
-            store.setNodeId(selection.nodeId);
-          }}
-          format="hex"
-          subnetId={store.subnetIdL1}
-        />
-
-        {store.nodeId && (
-          <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3 border border-green-200 dark:border-green-800">
-            <p className="text-xs text-green-700 dark:text-green-300 font-medium">Selected Validator</p>
-            <p className="text-sm font-mono text-green-900 dark:text-green-100 mt-1">{store.nodeId}</p>
-          </div>
         )}
       </div>
       {store.subnetIdL1 && (
@@ -86,8 +64,9 @@ export default function SelectL1ERC20Step() {
             isOwnerContract={vmcCtx.isOwnerContract}
             ownerType={vmcCtx.ownerType}
             isDetectingOwnerType={vmcCtx.isDetectingOwnerType}
-            isExpanded={isValidatorManagerDetailsExpanded}
-            onToggleExpanded={() => setIsValidatorManagerDetailsExpanded((prev) => !prev)}
+            isExpanded={isExpanded}
+            onToggleExpanded={() => setIsExpanded((prev) => !prev)}
+            staking={vmcCtx.staking}
           />
         </div>
       )}

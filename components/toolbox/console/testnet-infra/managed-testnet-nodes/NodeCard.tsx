@@ -84,13 +84,13 @@ export default function NodeCard({ node, onDeleteNode, isDeletingNode }: NodeCar
   }, [node.created_at]);
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors min-w-0">
+    <div className="bg-white dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors min-w-0">
       {/* Node Header */}
-      <div className="p-4 border-b border-gray-100 dark:border-gray-700">
+      <div className="p-4 border-b border-zinc-100 dark:border-zinc-700">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
             <div>
-              <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-1">
+              <h3 className="font-medium text-zinc-900 dark:text-zinc-100 mb-1">
                 {node.chain_name || 'Unnamed Chain'} {node.node_index ? `Node ${node.node_index}` : ''}
               </h3>
               <div className="flex items-center gap-3">
@@ -100,7 +100,7 @@ export default function NodeCard({ node, onDeleteNode, isDeletingNode }: NodeCar
                   {getStatusIcon(statusData.iconType)}
                   {statusData.label}
                 </span>
-                <span className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-1">
+                <span className="text-sm text-zinc-600 dark:text-zinc-400 flex items-center gap-1">
                   <Clock className="w-3 h-3" />
                   {formatTimeRemaining(timeRemaining)} remaining
                 </span>
@@ -109,7 +109,7 @@ export default function NodeCard({ node, onDeleteNode, isDeletingNode }: NodeCar
           </div>
 
           <div className="flex items-start gap-3">
-            <div className="text-right text-xs text-gray-500 dark:text-gray-400 space-y-1">
+            <div className="text-right text-xs text-zinc-500 dark:text-zinc-400 space-y-1">
               <div>
                 Created:{' '}
                 {new Date(node.created_at).toLocaleDateString('en-US', {
@@ -135,7 +135,7 @@ export default function NodeCard({ node, onDeleteNode, isDeletingNode }: NodeCar
       <div className="p-4 space-y-2 min-w-0">
         <div className="grid grid-cols-1 gap-2 min-w-0">
           <div className="flex items-center gap-2 min-w-0">
-            <span className="w-28 text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+            <span className="w-28 text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">
               Subnet ID
             </span>
             <CodeBlock lang="json" allowCopy={true}>
@@ -144,7 +144,7 @@ export default function NodeCard({ node, onDeleteNode, isDeletingNode }: NodeCar
           </div>
 
           <div className="flex items-center gap-2 min-w-0">
-            <span className="w-28 text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+            <span className="w-28 text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">
               Blockchain ID
             </span>
             <CodeBlock lang="json" allowCopy={true}>
@@ -153,7 +153,7 @@ export default function NodeCard({ node, onDeleteNode, isDeletingNode }: NodeCar
           </div>
 
           <div className="flex items-center gap-2 min-w-0">
-            <span className="w-28 text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+            <span className="w-28 text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">
               RPC URL
             </span>
             <CodeBlock lang="json" allowCopy={true}>
@@ -164,14 +164,14 @@ export default function NodeCard({ node, onDeleteNode, isDeletingNode }: NodeCar
 
         {/* info.getNodeID API Response */}
         <div className="mt-2 w-full max-w-full">
-          <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">info.getNodeID API Response</p>
+          <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-2">info.getNodeID API Response</p>
           <CodeBlock lang="json" allowCopy={true}>
             <Pre>{nodeInfoJson}</Pre>
           </CodeBlock>
         </div>
 
         {/* Primary Actions */}
-        <div className="mt-2 flex items-center justify-end gap-2 border-t border-gray-200 dark:border-gray-700 pt-3">
+        <div className="mt-2 flex items-center justify-end gap-2 border-t border-zinc-200 dark:border-zinc-700 pt-3">
           <Button
             onClick={handleConnectWallet}
             variant="secondary"

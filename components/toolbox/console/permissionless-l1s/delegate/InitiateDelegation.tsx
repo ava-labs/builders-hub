@@ -348,100 +348,64 @@ const InitiateDelegation: React.FC<InitiateDelegationProps> = ({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {error && <Alert variant="error">{error}</Alert>}
-
       {settingsError && <Alert variant="warning">{settingsError}</Alert>}
 
-      <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-lg p-4 border border-zinc-200 dark:border-zinc-700">
-        <h3 className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">
-          Delegation Registration ({tokenLabel} Staking)
-        </h3>
-
-        <div className="space-y-3">
-          {validationID && (
-            <div className="text-sm text-zinc-600 dark:text-zinc-400">
-              <p>
-                <strong>Validator ID:</strong> {validationID}
-              </p>
-            </div>
-          )}
-
-          <Input
-            label="Delegation Amount"
-            value={delegationAmount}
-            onChange={setDelegationAmount}
-            type="number"
-            min="0"
-            step="0.01"
-            placeholder="100"
-            disabled={isProcessing || isApproving}
-            helperText={
-              contractSettings
-                ? `Required: ${contractSettings.minimumStakeAmount} - ${contractSettings.maximumStakeAmount} tokens`
-                : `Amount of ${tokenLabel.toLowerCase()}s to delegate`
-            }
-          />
-
-          <div className="space-y-2">
-            <Input
-              label="Reward Recipient (optional)"
-              value={rewardRecipient}
-              onChange={setRewardRecipient}
-              placeholder={walletEVMAddress || '0x...'}
-              disabled={isProcessing || isApproving}
-              helperText="Address to receive delegation rewards (defaults to your address)"
-            />
-            <Button
-              onClick={() => walletEVMAddress && setRewardRecipient(walletEVMAddress)}
-              disabled={!walletEVMAddress || rewardRecipient === walletEVMAddress || isProcessing || isApproving}
-              variant="secondary"
-              size="sm"
-              className="w-full"
-            >
-              Use Connected Wallet Address
-            </Button>
-          </div>
+      {validationID && (
+        <div className="p-2 rounded-lg bg-zinc-50 dark:bg-zinc-800/50 text-xs">
+          <span className="text-zinc-500">Validator: </span>
+          <code className="text-zinc-700 dark:text-zinc-300 font-mono">
+            {validationID.slice(0, 18)}...{validationID.slice(-6)}
+          </code>
         </div>
-      </div>
+      )}
 
-      <Alert variant="info">
-        <p className="text-sm">
-          <strong>Next Steps After Delegation:</strong>
-        </p>
-        <ul className="list-disc list-inside text-sm mt-2 space-y-1">
-          <li>After initiating delegation, you'll receive a delegation ID</li>
-          <li>You'll need to submit a P-Chain transaction to update validator weight</li>
-          <li>Once the P-Chain accepts the weight change, complete the delegation</li>
-          <li>Your delegated {tokenLabel.toLowerCase()}s will be locked until removal</li>
-        </ul>
-      </Alert>
+      <Input
+        label="Delegation Amount"
+        value={delegationAmount}
+        onChange={setDelegationAmount}
+        type="number"
+        min="0"
+        step="0.01"
+        placeholder="100"
+        disabled={isProcessing || isApproving}
+        helperText={
+          contractSettings
+            ? `Min: ${contractSettings.minimumStakeAmount} · Max: ${contractSettings.maximumStakeAmount}`
+            : `Amount of ${tokenLabel.toLowerCase()}s to delegate`
+        }
+      />
+
+      <Input
+        label="Reward Recipient (optional)"
+        value={rewardRecipient}
+        onChange={setRewardRecipient}
+        placeholder={walletEVMAddress || '0x...'}
+        disabled={isProcessing || isApproving}
+        helperText="Defaults to your connected wallet address"
+      />
 
       {!isNative && erc20TokenAddress && (
-        <div className="space-y-2">
-          <Alert variant="warning">
-            <p className="text-sm">
-              <strong>ERC20 Token Approval Required:</strong> You must approve the staking manager to spend your tokens
-              before delegating.
-            </p>
-          </Alert>
-          <Button
-            onClick={handleApproveERC20}
-            disabled={isApproving || isProcessing || !delegationAmount}
-            loading={isApproving}
-            variant="secondary"
-          >
-            {isApproving ? 'Approving...' : `Approve ${delegationAmount || '0'} Tokens`}
-          </Button>
-        </div>
+        <Button
+          onClick={handleApproveERC20}
+          disabled={isApproving || isProcessing || !delegationAmount}
+          loading={isApproving}
+          variant="secondary"
+          className="w-full"
+        >
+          Approve {delegationAmount || '0'} Tokens
+        </Button>
       )}
 
       <Button
         onClick={handleInitiateDelegation}
         disabled={isProcessing || isApproving || !delegationAmount || !!txHash}
         loading={isProcessing}
+        variant="primary"
+        className="w-full"
       >
-        {isProcessing ? 'Processing...' : 'Initiate Delegation'}
+        Initiate Delegation
       </Button>
 
       {txHash && delegationID && <Success label="Delegation ID" value={delegationID} />}

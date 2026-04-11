@@ -792,10 +792,10 @@ export default function TokenBridge() {
       </div>
 
       {lastSendTxId && lastSendTxDetails && (
-        <div className="w-full border rounded-md bg-gray-50 dark:bg-gray-800">
+        <div className="w-full border rounded-md bg-zinc-50 dark:bg-zinc-800">
           <div className="flex w-full items-center justify-evenly p-6">
             <div className="flex flex-col items-center gap-1 flex-1 min-w-0">
-              <span className="text-gray-500 text-sm">UI</span>
+              <span className="text-zinc-500 text-sm">UI</span>
               <span className="font-mono text-base">
                 {lastSendTxDetails.source?.initiatedAt ? (
                   new Date(lastSendTxDetails.source.initiatedAt).toLocaleTimeString()
@@ -808,7 +808,7 @@ export default function TokenBridge() {
               <img src={selectedL1.logoUrl} alt={selectedL1.name} className="w-8 h-8 rounded-full mx-4" />
             )}
             <div className="flex flex-col items-center gap-1 flex-1 min-w-0">
-              <span className="text-gray-500 text-sm">{selectedL1!.name}</span>
+              <span className="text-zinc-500 text-sm">{selectedL1!.name}</span>
               <span className="font-mono text-base">
                 {lastSendTxDetails.source?.confirmedAt ? (
                   new Date(lastSendTxDetails.source.confirmedAt).toLocaleTimeString()
@@ -819,7 +819,7 @@ export default function TokenBridge() {
             </div>
             {destL1?.logoUrl && <img src={destL1.logoUrl} alt={destL1.name} className="w-8 h-8 rounded-full mx-4" />}
             <div className="flex flex-col items-center gap-1 flex-1 min-w-0">
-              <span className="text-gray-500 text-sm">{destL1!.name}</span>
+              <span className="text-zinc-500 text-sm">{destL1!.name}</span>
               <span className="font-mono text-base">
                 {lastSendTxDetails.destination?.confirmedAt ? (
                   new Date(lastSendTxDetails.destination.confirmedAt).toLocaleTimeString()
