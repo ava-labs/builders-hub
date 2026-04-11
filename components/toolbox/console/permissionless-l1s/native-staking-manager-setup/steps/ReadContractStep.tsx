@@ -20,9 +20,10 @@ export default function ReadContractStep() {
   const selectedL1 = useSelectedL1();
   const chainPublicClient = useChainPublicClient();
 
-  // Auto-fill subnet ID from the currently selected L1
+  // Auto-fill subnet ID from the currently selected L1 (skip primary network)
+  const PRIMARY_NETWORK = '11111111111111111111111111111111LpoYY';
   useEffect(() => {
-    if (selectedL1?.subnetId && !subnetIdInput) {
+    if (selectedL1?.subnetId && selectedL1.subnetId !== PRIMARY_NETWORK && !subnetIdInput) {
       setSubnetIdInput(selectedL1.subnetId);
     }
   }, [selectedL1?.subnetId, subnetIdInput]);
@@ -125,31 +126,38 @@ export default function ReadContractStep() {
   );
 
   return (
-    <div className="space-y-4 max-w-2xl">
-      <SelectSubnetId
-        value={subnetIdInput}
-        onChange={setSubnetIdInput}
-        hidePrimaryNetwork
-        label="L1 (Subnet ID)"
-        helperText="Select the L1 whose Native Staking Manager you want to inspect."
-      />
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+      <div className="space-y-4">
+        <SelectSubnetId
+          value={subnetIdInput}
+          onChange={setSubnetIdInput}
+          hidePrimaryNetwork
+          label="L1 (Subnet ID)"
+          helperText="Select the L1 whose Native Staking Manager you want to inspect."
+        />
+      </div>
 
-      <ValidatorManagerDetails
-        validatorManagerAddress={validatorManagerAddress || null}
-        blockchainId={blockchainId || null}
-        subnetId={subnetIdInput}
-        isLoading={isLoadingVMC}
-        signingSubnetId={signingSubnetId}
-        contractTotalWeight={contractTotalWeight}
-        l1WeightError={l1WeightError}
-        isLoadingL1Weight={isLoadingL1Weight}
-        contractOwner={contractOwner}
-        ownershipError={ownershipError}
-        isLoadingOwnership={isLoadingOwnership}
-        ownerType={ownerType}
-        isDetectingOwnerType={isDetectingOwnerType}
-        staking={staking}
-      />
+      {subnetIdInput && (
+        <div className="lg:sticky lg:top-4 lg:self-start">
+          <ValidatorManagerDetails
+            validatorManagerAddress={validatorManagerAddress || null}
+            blockchainId={blockchainId || null}
+            subnetId={subnetIdInput}
+            isLoading={isLoadingVMC}
+            signingSubnetId={signingSubnetId}
+            contractTotalWeight={contractTotalWeight}
+            l1WeightError={l1WeightError}
+            isLoadingL1Weight={isLoadingL1Weight}
+            contractOwner={contractOwner}
+            ownershipError={ownershipError}
+            isLoadingOwnership={isLoadingOwnership}
+            ownerType={ownerType}
+            isDetectingOwnerType={isDetectingOwnerType}
+            staking={staking}
+            isExpanded
+          />
+        </div>
+      )}
     </div>
   );
 }

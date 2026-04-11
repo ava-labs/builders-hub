@@ -65,7 +65,7 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
   useEffect(() => {
     if (createChainStoreSubnetId && !subnetId) {
       setSubnetId(createChainStoreSubnetId);
-    } else if (selectedL1?.subnetId && !subnetId) {
+    } else if (selectedL1?.subnetId && selectedL1.subnetId !== '11111111111111111111111111111111LpoYY' && !subnetId) {
       setSubnetId(selectedL1.subnetId);
     }
   }, [createChainStoreSubnetId, selectedL1, subnetId]);

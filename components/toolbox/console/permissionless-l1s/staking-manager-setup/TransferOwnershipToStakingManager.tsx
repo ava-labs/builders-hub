@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { useToolboxStore } from '@/components/toolbox/stores/toolboxStore';
 import { TransferOwnership } from '@/components/toolbox/console/permissioned-l1s/multisig-setup/TransferOwnership';
 import {
@@ -11,7 +10,6 @@ import {
 import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
 import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
 import { ContractDeployViewer, type ContractSource } from '@/components/console/contract-deploy-viewer';
-import { StepFlowCard } from '@/components/toolbox/components/StepCard';
 import { Alert } from '@/components/toolbox/components/Alert';
 import versions from '@/scripts/versions.json';
 
@@ -35,44 +33,19 @@ const CONTRACT_SOURCES: ContractSource[] = [
 
 function TransferOwnershipToStakingManager({ onSuccess }: BaseConsoleToolProps) {
   const { nativeStakingManagerAddress, erc20StakingManagerAddress } = useToolboxStore();
-  const [transferComplete, setTransferComplete] = useState(false);
 
   // Prefer ERC20 if both are present
   const stakingManagerAddress = erc20StakingManagerAddress || nativeStakingManagerAddress;
-  const stakingManagerType = erc20StakingManagerAddress ? 'ERC20 Token' : 'Native Token';
-
-  function handleTransferSuccess() {
-    setTransferComplete(true);
-    onSuccess?.();
-  }
 
   return (
     <ContractDeployViewer contracts={CONTRACT_SOURCES}>
       <div className="flex flex-col rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
         <div className="p-5 space-y-4">
-          <StepFlowCard
-            step={1}
-            title="Transfer Ownership to Staking Manager"
-            description="The Staking Manager needs ownership of the Validator Manager to register validators and manage the validator set."
-            isComplete={transferComplete}
-          >
-            {stakingManagerAddress && (
-              <div className="mt-2">
-                <span className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
-                  {stakingManagerType} Staking Manager:{' '}
-                </span>
-                <code className="px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-mono text-xs break-all">
-                  {stakingManagerAddress}
-                </code>
-              </div>
-            )}
-          </StepFlowCard>
-
           {!stakingManagerAddress && (
             <Alert variant="warning">No staking manager address found. Deploy and initialize first.</Alert>
           )}
 
-          <TransferOwnership onSuccess={handleTransferSuccess} defaultNewOwnerAddress={stakingManagerAddress} />
+          <TransferOwnership onSuccess={onSuccess} defaultNewOwnerAddress={stakingManagerAddress} />
         </div>
 
         {/* Footer */}

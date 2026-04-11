@@ -33,10 +33,10 @@ const MINTER_ROLE = keccak256(toHex('MINTER_ROLE'));
 
 const ERC20_MINTING_SOURCES: ContractSource[] = [
   {
-    name: 'ExampleERC20Mintable',
-    filename: 'ExampleERC20Mintable.sol',
-    url: `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/mocks/ExampleERC20Mintable.sol`,
-    description: 'ERC20 token with AccessControl. The MINTER_ROLE must be granted to the staking manager.',
+    name: 'ExampleERC20',
+    filename: 'ExampleERC20.sol',
+    url: `https://raw.githubusercontent.com/ava-labs/icm-contracts/${ICM_COMMIT}/contracts/mocks/ExampleERC20.sol`,
+    description: 'ERC20 token with minting support. The MINTER_ROLE must be granted to the staking manager.',
   },
 ];
 
