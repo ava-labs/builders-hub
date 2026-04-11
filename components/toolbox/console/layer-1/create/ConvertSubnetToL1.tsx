@@ -20,6 +20,7 @@ import { Step, Steps } from 'fumadocs-ui/components/steps';
 import Link from 'next/link';
 import { AlertTriangle } from 'lucide-react';
 import { CoreWalletTransactionButton } from '@/components/toolbox/components/CoreWalletTransactionButton';
+import { Success } from '@/components/toolbox/components/Success';
 import { useSubmitPChainTx } from '@/components/toolbox/hooks/useSubmitPChainTx';
 
 const metadata: ConsoleToolMetadata = {
@@ -47,6 +48,7 @@ function ConvertToL1({ onSuccess }: BaseConsoleToolProps) {
     chainID: storeChainID,
     managerAddress: validatorManagerAddress,
     setManagerAddress: setValidatorManagerAddress,
+    convertToL1TxId,
     setConvertToL1TxId,
   } = useCreateChainStore()();
 
@@ -205,6 +207,9 @@ function ConvertToL1({ onSuccess }: BaseConsoleToolProps) {
           >
             {selection.subnet?.isL1 ? 'Already Converted' : 'Convert to L1'}
           </CoreWalletTransactionButton>
+          {convertToL1TxId && (
+            <Success label="ConvertSubnetToL1Tx" value={convertToL1TxId} isTestnet={isTestnet} xpChain="P" />
+          )}
         </Step>
       </Steps>
     </div>

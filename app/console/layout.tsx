@@ -74,7 +74,7 @@ function ConsoleContent({ children }: { children: ReactNode }) {
           </SidebarInset>
         </SidebarProvider>
       </LayoutWrapper>
-      <Toaster position="bottom-right" richColors expand={true} visibleToasts={5}/>
+      <Toaster position="top-right" richColors expand={true} visibleToasts={3} offset={64} />
       <ConsoleBadgeNotification />
       <OnboardingTour />
       <WelcomeModal />
