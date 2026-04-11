@@ -16,6 +16,7 @@ import ValidatorSelector from "./ValidatorSelector";
 import { formatAvaxBalance } from "@/components/toolbox/coreViem/utils/format";
 import { SDKCodeViewer, SDKCodeSource } from "@/components/console/sdk-code-viewer";
 import { CliAlternative } from "@/components/console/cli-alternative";
+import useConsoleNotifications from "@/hooks/useConsoleNotifications";
 
 // TypeScript code showing the P-Chain disable operation
 const DISABLE_VALIDATOR_CODE = `// Disable an L1 Validator directly on the P-Chain
@@ -71,6 +72,7 @@ const metadata: ConsoleToolMetadata = {
 function DisableValidator({ onSuccess }: BaseConsoleToolProps) {
   const { pChainAddress, isTestnet } = useWalletStore();
   const { coreWalletClient } = useConnectedWallet();
+  const { notify } = useConsoleNotifications();
 
   const {
     subnetId,
@@ -146,10 +148,12 @@ function DisableValidator({ onSuccess }: BaseConsoleToolProps) {
       if (!freshClient) throw new Error("Core wallet client lost after network mode switch. Please reconnect.");
 
       // Pass validation ID as-is - the SDK expects CB58 format from the P-Chain
-      const hash = await freshClient.disableL1Validator({
+      const txPromise = freshClient.disableL1Validator({
         validationId: selectedValidator.validationId,
         disableAuth: [authIndex],
       });
+      notify('disableL1Validator', txPromise);
+      const hash = await txPromise;
 
       if (previousChainId) await restoreCoreChain(previousChainId);
 

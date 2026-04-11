@@ -19,6 +19,7 @@ import { WalletRequirementsConfigKey } from "../../hooks/useWalletRequirements"
 import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } from "../../components/WithConsoleToolMetadata"
 import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext"
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/githubUrl"
+import useConsoleNotifications from "@/hooks/useConsoleNotifications"
 import { SDKCodeViewer, type SDKCodeSource } from "@/components/console/sdk-code-viewer"
 import { CliAlternative } from "@/components/console/cli-alternative"
 import { cn } from "@/lib/utils"
@@ -81,6 +82,7 @@ function ValidatorBalanceIncrease({ onSuccess }: BaseConsoleToolProps) {
   const updatePChainBalance = useWalletStore((s) => s.updatePChainBalance)
   const pChainBalance = useWalletStore((s) => s.balances.pChain)
   const { coreWalletClient } = useConnectedWallet()
+  const { notify } = useConsoleNotifications()
 
   useEffect(() => {
     if (pChainAddress) {
@@ -124,10 +126,12 @@ function ValidatorBalanceIncrease({ onSuccess }: BaseConsoleToolProps) {
       const freshClient = useWalletStore.getState().coreWalletClient;
       if (!freshClient) throw new Error("Core wallet client lost after network mode switch. Please reconnect.");
 
-      const txHash = await freshClient.increaseL1ValidatorBalance({
+      const txPromise = freshClient.increaseL1ValidatorBalance({
         validationId: validatorSelection.validationId,
         balanceInAvax: amountNumber,
       })
+      notify('increaseL1ValidatorBalance', txPromise)
+      const txHash = await txPromise
 
       if (previousChainId) await restoreCoreChain(previousChainId)
 

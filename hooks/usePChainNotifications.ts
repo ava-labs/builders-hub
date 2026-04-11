@@ -11,8 +11,8 @@ const getPChainTxExplorerURL = (txID: string, isTestnet: boolean) => {
     return `https://${isTestnet ? "subnets-test" : "subnets"}.avax.network/p-chain/tx/${txID}`;
 };
 
-export type PChainAction = 'createSubnet' | 'createChain' | 'convertToL1' | 'addPermissionlessValidator' | 'registerL1Validator' | 'setL1ValidatorWeight' | 'exportCross' | 'importCross';
-export const PChainActionList = ['createSubnet', 'createChain', 'convertToL1', 'addPermissionlessValidator', 'registerL1Validator', 'setL1ValidatorWeight', 'exportCross', 'importCross'];
+export type PChainAction = 'createSubnet' | 'createChain' | 'convertToL1' | 'addPermissionlessValidator' | 'registerL1Validator' | 'setL1ValidatorWeight' | 'increaseL1ValidatorBalance' | 'disableL1Validator' | 'exportCross' | 'importCross';
+export const PChainActionList = ['createSubnet', 'createChain', 'convertToL1', 'addPermissionlessValidator', 'registerL1Validator', 'setL1ValidatorWeight', 'increaseL1ValidatorBalance', 'disableL1Validator', 'exportCross', 'importCross'];
 
 type PChainNotificationConfig = {
     loadingMessage: string;
@@ -57,6 +57,18 @@ const configs: Record<PChainAction, PChainNotificationConfig> = {
         successMessage: 'Validator weight set successfully',
         errorMessagePrefix: 'Failed to set validator weight: ',
         eventType: 'validator_weight_set',
+    },
+    increaseL1ValidatorBalance: {
+        loadingMessage: 'Signing IncreaseL1ValidatorBalanceTx with Core...',
+        successMessage: 'Validator balance increased successfully',
+        errorMessagePrefix: 'Failed to increase validator balance: ',
+        eventType: 'validator_balance_increased',
+    },
+    disableL1Validator: {
+        loadingMessage: 'Signing DisableL1ValidatorTx with Core...',
+        successMessage: 'Validator disabled successfully',
+        errorMessagePrefix: 'Failed to disable validator: ',
+        eventType: 'validator_disabled',
     },
     exportCross: {
         loadingMessage: 'Signing cross-chain export with Core...',
