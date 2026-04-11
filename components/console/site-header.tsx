@@ -14,9 +14,10 @@ import dynamic from "next/dynamic";
 import { Fragment } from "react";
 import { useBreadcrumbs } from "@/hooks/use-breadcrumbs";
 import { pathToBreadcrumb } from "./breadcrumbs-mapping";
-import { History, HelpCircle, Gamepad2, Book, MessageCircle } from "lucide-react";
+import { HelpCircle, Gamepad2, Book, MessageCircle } from "lucide-react";
 import Link from "next/link";
 import { NotificationCenter } from "./notification-center";
+import { ConsoleNotificationPanel } from "./notification-panel";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -84,11 +85,7 @@ export function SiteHeader() {
             orientation="vertical"
             className="h-4!"
           />
-          <Link href="/console/history">
-            <Button variant="ghost" size="icon" title="Transaction History">
-              <History className="h-4 w-4" />
-            </Button>
-          </Link>
+          <ConsoleNotificationPanel />
           <div data-tour="notifications">
             <NotificationCenter />
           </div>
