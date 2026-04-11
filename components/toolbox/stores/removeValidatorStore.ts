@@ -1,7 +1,5 @@
-import { create } from "zustand";
-import { persist, createJSONStorage } from "zustand/middleware";
-import { useWalletStore } from "./walletStore";
-import { localStorageComp, STORE_VERSION } from "./utils";
+import { createFlowStore } from "./createFlowStore";
+import { STORE_VERSION } from "./utils";
 
 interface RemoveValidatorState {
   subnetIdL1: string;
@@ -32,66 +30,48 @@ const initialValues = {
   globalSuccess: null as string | null,
 };
 
-const storeCache: { testnet?: ReturnType<typeof createStore>; mainnet?: ReturnType<typeof createStore> } = {};
+const { getStore: getRemoveValidatorStore, useStore: useRemoveValidatorStore } =
+  createFlowStore<RemoveValidatorState>({
+    name: "remove-validator-store",
+    storeCreator: (set, isTestnet) => ({
+      ...initialValues,
 
-const createStore = (isTestnet: boolean) =>
-  create<RemoveValidatorState>()(
-    persist(
-      (set) => ({
-        ...initialValues,
+      setSubnetIdL1: (subnetIdL1: string) =>
+        set({
+          subnetIdL1,
+          nodeId: "",
+          validationId: "",
+          initiateRemovalTxHash: "",
+          pChainTxId: "",
+          globalError: null,
+          globalSuccess: null,
+        }),
 
-        setSubnetIdL1: (subnetIdL1: string) =>
-          set({
-            subnetIdL1,
-            nodeId: "",
-            validationId: "",
-            initiateRemovalTxHash: "",
-            pChainTxId: "",
-            globalError: null,
-            globalSuccess: null,
-          }),
+      setNodeId: (nodeId: string) => set({ nodeId }),
 
-        setNodeId: (nodeId: string) => set({ nodeId }),
+      setValidationId: (validationId: string) =>
+        set({ validationId, initiateRemovalTxHash: "", pChainTxId: "", globalError: null, globalSuccess: null }),
 
-        setValidationId: (validationId: string) =>
-          set({ validationId, initiateRemovalTxHash: "", pChainTxId: "", globalError: null, globalSuccess: null }),
+      setInitiateRemovalTxHash: (initiateRemovalTxHash: string) =>
+        set({ initiateRemovalTxHash, pChainTxId: "", globalError: null, globalSuccess: null }),
 
-        setInitiateRemovalTxHash: (initiateRemovalTxHash: string) =>
-          set({ initiateRemovalTxHash, pChainTxId: "", globalError: null, globalSuccess: null }),
+      setPChainTxId: (pChainTxId: string) =>
+        set({ pChainTxId, globalError: null, globalSuccess: null }),
 
-        setPChainTxId: (pChainTxId: string) =>
-          set({ pChainTxId, globalError: null, globalSuccess: null }),
+      setGlobalError: (globalError: string | null) => set({ globalError }),
+      setGlobalSuccess: (globalSuccess: string | null) => set({ globalSuccess }),
 
-        setGlobalError: (globalError: string | null) => set({ globalError }),
-        setGlobalSuccess: (globalSuccess: string | null) => set({ globalSuccess }),
+      reset: () => {
+        set({ ...initialValues });
+        window?.localStorage.removeItem(
+          `${STORE_VERSION}-remove-validator-store-${isTestnet ? "testnet" : "mainnet"}`
+        );
+      },
+    }),
+    partialize: (state) => {
+      const { globalError, globalSuccess, ...rest } = state;
+      return rest;
+    },
+  });
 
-        reset: () => {
-          set({ ...initialValues });
-          window?.localStorage.removeItem(
-            `${STORE_VERSION}-remove-validator-store-${isTestnet ? "testnet" : "mainnet"}`
-          );
-        },
-      }),
-      {
-        name: `${STORE_VERSION}-remove-validator-store-${isTestnet ? "testnet" : "mainnet"}`,
-        storage: createJSONStorage(localStorageComp),
-        partialize: (state) => {
-          const { globalError, globalSuccess, ...rest } = state;
-          return rest;
-        },
-      }
-    )
-  );
-
-export const getRemoveValidatorStore = (isTestnet: boolean) => {
-  const key = isTestnet ? "testnet" : "mainnet";
-  if (!storeCache[key]) {
-    storeCache[key] = createStore(isTestnet);
-  }
-  return storeCache[key]!;
-};
-
-export function useRemoveValidatorStore() {
-  const { isTestnet } = useWalletStore();
-  return getRemoveValidatorStore(Boolean(isTestnet))();
-}
+export { getRemoveValidatorStore, useRemoveValidatorStore };

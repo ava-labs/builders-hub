@@ -1,7 +1,5 @@
-import { create } from "zustand";
-import { persist, createJSONStorage, combine } from 'zustand/middleware'
-import { useWalletStore } from "./walletStore";
-import { localStorageComp, STORE_VERSION } from "./utils";
+import { createFlowStore } from "./createFlowStore";
+import { STORE_VERSION } from "./utils";
 
 const createChainInitialState = {
     subnetId: "",
@@ -16,14 +14,29 @@ const createChainInitialState = {
     validatorWeights: Array(100).fill(100) as number[],
     nodePopJsons: [""] as string[],
     blueprint: null as string | null,
-}
+};
 
-// Cache store instances to ensure the same instance is returned for each network
-const storeCache: { testnet?: ReturnType<typeof createStore>; mainnet?: ReturnType<typeof createStore> } = {};
+type CreateChainState = typeof createChainInitialState & {
+    setSubnetID: (subnetId: string) => void;
+    setChainName: (chainName: string) => void;
+    setChainID: (chainID: string) => void;
+    setManagerAddress: (managerAddress: string) => void;
+    setGenesisData: (genesisData: string) => void;
+    setTargetBlockRate: (targetBlockRate: number) => void;
+    setGasLimit: (gasLimit: number) => void;
+    setEvmChainId: (evmChainId: number) => void;
+    setConvertToL1TxId: (convertToL1TxId: string) => void;
+    setValidatorWeights: (validatorWeights: number[]) => void;
+    setNodePopJsons: (nodePopJsons: string[]) => void;
+    setBlueprint: (blueprint: string | null) => void;
+    reset: () => void;
+};
 
-const createStore = (isTestnet: boolean) => create(
-    persist(
-        combine(createChainInitialState, (set) => ({
+const { getStore: getCreateChainStore, useStoreApi: useCreateChainStore } =
+    createFlowStore<CreateChainState>({
+        name: "create-chain-store",
+        storeCreator: (set, isTestnet) => ({
+            ...createChainInitialState,
             setSubnetID: (subnetId: string) => set({ subnetId }),
             setChainName: (chainName: string) => set({ chainName }),
             setChainID: (chainID: string) => set({ chainID }),
@@ -40,24 +53,7 @@ const createStore = (isTestnet: boolean) => create(
             reset: () => {
                 window?.localStorage.removeItem(`${STORE_VERSION}-create-chain-store-${isTestnet ? 'testnet' : 'mainnet'}`);
             },
-        })),
-        {
-            name: `${STORE_VERSION}-create-chain-store-${isTestnet ? 'testnet' : 'mainnet'}`,
-            storage: createJSONStorage(localStorageComp),
-        },
-    ),
-);
+        }),
+    });
 
-export const getCreateChainStore = (isTestnet: boolean) => {
-    const key = isTestnet ? 'testnet' : 'mainnet';
-    if (!storeCache[key]) {
-        storeCache[key] = createStore(isTestnet);
-    }
-    return storeCache[key]!;
-}
-
-export const useCreateChainStore = () => {
-    const { isTestnet } = useWalletStore();
-    return getCreateChainStore(Boolean(isTestnet))
-}
-
+export { getCreateChainStore, useCreateChainStore };

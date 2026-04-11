@@ -1,6 +1,9 @@
 "use client";
 
 import React, { createContext, useContext, useMemo } from "react";
+import { useVMCAddress } from "@/components/toolbox/hooks/useVMCAddress";
+import { useVMCDetails } from "@/components/toolbox/hooks/useVMCDetails";
+import { useChainPublicClient } from "@/components/toolbox/hooks/useChainPublicClient";
 import { useValidatorManagerDetails } from "@/components/toolbox/hooks/useValidatorManagerDetails";
 
 type ValidatorManagerDetailsReturn = ReturnType<typeof useValidatorManagerDetails>;
@@ -20,24 +23,59 @@ export function ValidatorManagerProvider({
   subnetId: string;
   children: React.ReactNode;
 }) {
-  const details = useValidatorManagerDetails({ subnetId });
+  const chainPublicClient = useChainPublicClient();
+  const { validatorManagerAddress, blockchainId, signingSubnetId, isLoading, error } = useVMCAddress(subnetId);
+  const {
+    contractTotalWeight,
+    l1WeightError,
+    isLoadingL1Weight,
+    contractOwner,
+    ownershipError,
+    isLoadingOwnership,
+    isOwnerContract,
+    ownerType,
+    isDetectingOwnerType,
+    ownershipStatus,
+    refetchOwnership,
+  } = useVMCDetails(validatorManagerAddress || null, chainPublicClient);
 
   const value = useMemo<ValidatorManagerContextType>(() => {
     const isContractInitialized =
-      !!details.validatorManagerAddress && !details.error;
+      !!validatorManagerAddress && !error;
 
     const isValidatorSetInitialized =
       isContractInitialized &&
-      details.contractTotalWeight > 0n &&
-      !details.l1WeightError;
+      contractTotalWeight > 0n &&
+      !l1WeightError;
 
     return {
-      ...details,
+      validatorManagerAddress,
+      blockchainId,
+      signingSubnetId,
+      isLoading,
+      error,
+      contractTotalWeight,
+      l1WeightError,
+      isLoadingL1Weight,
+      contractOwner,
+      ownershipError,
+      isLoadingOwnership,
+      isOwnerContract,
+      ownerType,
+      isDetectingOwnerType,
+      ownershipStatus,
+      refetchOwnership,
       subnetId,
       isContractInitialized,
       isValidatorSetInitialized,
     };
-  }, [details, subnetId]);
+  }, [
+    validatorManagerAddress, blockchainId, signingSubnetId, isLoading, error,
+    contractTotalWeight, l1WeightError, isLoadingL1Weight,
+    contractOwner, ownershipError, isLoadingOwnership, isOwnerContract,
+    ownerType, isDetectingOwnerType, ownershipStatus, refetchOwnership,
+    subnetId,
+  ]);
 
   return (
     <ValidatorManagerContext.Provider value={value}>
