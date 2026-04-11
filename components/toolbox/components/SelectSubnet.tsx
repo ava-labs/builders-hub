@@ -17,12 +17,14 @@ export default function SelectSubnet({
   error,
   onlyNotConverted = false,
   hidePrimaryNetwork = false,
+  hideDetails = false,
 }: {
   value: string;
   onChange: (selection: SubnetSelection) => void;
   error?: string | null;
   onlyNotConverted?: boolean;
   hidePrimaryNetwork?: boolean;
+  hideDetails?: boolean;
 }) {
   const { getSubnetById } = useAvalancheSDKChainkit();
   const [subnetDetails, setSubnetDetails] = useState<Record<string, Subnet>>({});
@@ -96,7 +98,7 @@ export default function SelectSubnet({
       />
 
       {/* Display subnet details when a subnet is selected */}
-      {value && <BlockchainDetailsDisplay subnet={currentSubnet} isLoading={!!isLoadingCurrent} />}
+      {!hideDetails && value && <BlockchainDetailsDisplay subnet={currentSubnet} isLoading={!!isLoadingCurrent} />}
     </div>
   );
 }

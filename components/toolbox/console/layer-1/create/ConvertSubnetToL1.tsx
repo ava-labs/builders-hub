@@ -127,7 +127,13 @@ function ConvertToL1({ onSuccess }: BaseConsoleToolProps) {
       <Steps>
         <Step>
           <h3 className="text-sm font-semibold mb-3">Select Subnet</h3>
-          <SelectSubnet value={selection.subnetId} onChange={setSelection} error={null} onlyNotConverted={true} />
+          <SelectSubnet
+            value={selection.subnetId}
+            onChange={setSelection}
+            error={null}
+            onlyNotConverted={true}
+            hideDetails
+          />
         </Step>
 
         <Step>
