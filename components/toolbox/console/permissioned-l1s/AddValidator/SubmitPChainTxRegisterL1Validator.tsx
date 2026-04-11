@@ -10,6 +10,7 @@ import { decodeAbiParameters } from 'viem';
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
 import { ensureCoreNetworkMode, restoreCoreChain } from '@/components/toolbox/coreViem';
+import { Check } from 'lucide-react';
 
 interface SubmitPChainTxRegisterL1ValidatorProps {
   subnetIdL1: string;
@@ -42,7 +43,6 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
   const [txSuccess, setTxSuccess] = useState<string | null>(null);
   const [unsignedWarpMessage, setUnsignedWarpMessage] = useState<string | null>(null);
   const [signedWarpMessage, setSignedWarpMessage] = useState<string | null>(null);
-  const [evmTxHashError, setEvmTxHashError] = useState<string | null>(null);
   const [manualPChainTxId, setManualPChainTxId] = useState('');
 
   useEffect(() => {
@@ -74,7 +74,7 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
           throw new Error("Failed to get warp message from transaction receipt.");
         }
 
-        let unsignedWarpMessage: string | null = null;
+        let extractedWarpMessage: string | null = null;
         const warpMessageTopic = "0x56600c567728a800c0aa927500f831cb451df66a7af570eb4df4dfbf4674887d";
         const warpPrecompileAddress = "0x0200000000000000000000000000000000000005";
 
@@ -89,39 +89,37 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
               [{ type: 'bytes', name: 'message' }],
               warpEventLog.data as `0x${string}`
             );
-            unsignedWarpMessage = decodedMessage as string;
+            extractedWarpMessage = decodedMessage as string;
           } catch {
-            unsignedWarpMessage = warpEventLog.data;
+            extractedWarpMessage = warpEventLog.data;
           }
-        } else {
-          if (receipt.logs.length > 1 && receipt.logs[1].data) {
-            try {
-              const [decodedMessage] = decodeAbiParameters(
-                [{ type: 'bytes', name: 'message' }],
-                receipt.logs[1].data as `0x${string}`
-              );
-              unsignedWarpMessage = decodedMessage as string;
-            } catch {
-              unsignedWarpMessage = receipt.logs[1].data;
-            }
-          } else if (receipt.logs[0].data) {
-            try {
-              const [decodedMessage] = decodeAbiParameters(
-                [{ type: 'bytes', name: 'message' }],
-                receipt.logs[0].data as `0x${string}`
-              );
-              unsignedWarpMessage = decodedMessage as string;
-            } catch {
-              unsignedWarpMessage = receipt.logs[0].data;
-            }
+        } else if (receipt.logs.length > 1 && receipt.logs[1].data) {
+          try {
+            const [decodedMessage] = decodeAbiParameters(
+              [{ type: 'bytes', name: 'message' }],
+              receipt.logs[1].data as `0x${string}`
+            );
+            extractedWarpMessage = decodedMessage as string;
+          } catch {
+            extractedWarpMessage = receipt.logs[1].data;
+          }
+        } else if (receipt.logs[0].data) {
+          try {
+            const [decodedMessage] = decodeAbiParameters(
+              [{ type: 'bytes', name: 'message' }],
+              receipt.logs[0].data as `0x${string}`
+            );
+            extractedWarpMessage = decodedMessage as string;
+          } catch {
+            extractedWarpMessage = receipt.logs[0].data;
           }
         }
 
-        if (!unsignedWarpMessage) {
+        if (!extractedWarpMessage) {
           throw new Error("Could not extract warp message from transaction.");
         }
 
-        setUnsignedWarpMessage(unsignedWarpMessage);
+        setUnsignedWarpMessage(extractedWarpMessage);
         setErrorState(null);
       } catch (err: any) {
         const message = err instanceof Error ? err.message : String(err);
@@ -143,39 +141,31 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
       return;
     }
 
-    const evmTxValidation = !evmTxHashState.trim() ? "EVM transaction hash is required" : null;
-    setEvmTxHashError(evmTxValidation);
-
-    if (evmTxValidation) {
-      setErrorState(evmTxValidation);
-      onError(evmTxValidation);
+    if (!evmTxHashState.trim()) {
+      setErrorState("EVM transaction hash is required.");
+      onError("EVM transaction hash is required.");
       return;
     }
-
     if (!subnetIdL1) {
       setErrorState("L1 Subnet ID is required.");
       onError("L1 Subnet ID is required.");
       return;
     }
-
     if (!validatorBalance) {
       setErrorState("Validator balance is required.");
       onError("Validator balance is required.");
       return;
     }
-
     if (!blsProofOfPossession) {
       setErrorState("BLS Proof of Possession is required.");
       onError("BLS Proof of Possession is required.");
       return;
     }
-
     if (!unsignedWarpMessage) {
       setErrorState("Unsigned warp message not found. Check the transaction hash.");
       onError("Unsigned warp message not found.");
       return;
     }
-
     if (isCoreWallet && !pChainAddress) {
       setErrorState("P-Chain address is missing. Please connect your wallet.");
       onError("P-Chain address is missing.");
@@ -186,6 +176,7 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
     try {
       const aggregateSignaturePromise = aggregateSignature({
         message: unsignedWarpMessage,
+        signingSubnetId: subnetIdL1,
       });
       notify({
         type: 'local',
@@ -201,10 +192,11 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
       }
 
       // Ensure Core Wallet is in the correct network mode for P-Chain ops.
-      // Switching to an L1 chain can silently flip Core into mainnet mode.
       const previousChainId = await ensureCoreNetworkMode(isTestnet);
+      const freshClient = useWalletStore.getState().coreWalletClient;
+      if (!freshClient) throw new Error("Core wallet client lost after network mode switch. Please reconnect.");
 
-      const registerL1ValidatorPromise = coreWalletClient!.registerL1Validator({
+      const registerL1ValidatorPromise = freshClient.registerL1Validator({
         balance: validatorBalance.trim(),
         blsProofOfPossession: blsProofOfPossession.trim(),
         signedWarpMessage: signedMessage,
@@ -216,7 +208,7 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
       // Restore the L1 chain if we had to switch for the P-Chain op
       if (previousChainId) await restoreCoreChain(previousChainId);
 
-      setTxSuccess(`P-Chain transaction successful! ID: ${pChainTxId}`);
+      setTxSuccess(pChainTxId);
       onSuccess(pChainTxId);
     } catch (err: any) {
       let message = err instanceof Error ? err.message : String(err);
@@ -224,7 +216,7 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
       if (message.includes('User rejected')) {
         message = 'Transaction was rejected by user';
       } else if (message.includes('insufficient funds')) {
-        message = 'Insufficient funds for transaction';
+        message = 'Insufficient P-Chain balance for transaction';
       } else if (message.includes('nonce')) {
         message = 'Transaction nonce error. Please try again.';
       }
@@ -238,7 +230,6 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
 
   const handleTxHashChange = (value: string) => {
     setEvmTxHashState(value);
-    setEvmTxHashError(null);
     setErrorState(null);
     setTxSuccess(null);
     setSignedWarpMessage(null);
@@ -250,7 +241,7 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
       setErrorState("P-Chain transaction ID is required");
       return;
     }
-    setTxSuccess(`P-Chain transaction submitted! ID: ${manualPChainTxId}`);
+    setTxSuccess(manualPChainTxId);
     onSuccess(manualPChainTxId);
   };
 
@@ -275,55 +266,149 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
     );
   }
 
-  return (
-    <div className="space-y-4">
-      <Input
-        label="initiateValidatorRegistration Transaction Hash"
-        value={evmTxHashState}
-        onChange={handleTxHashChange}
-        placeholder="Enter the transaction hash from step 4 (0x...)"
-        disabled={isProcessing || txSuccess !== null}
-        error={evmTxHashError}
-      />
+  const step1Complete = !!unsignedWarpMessage;
+  const step2Complete = !!signedWarpMessage;
+  const step3Complete = !!txSuccess;
+  const hasInsufficientBalance = !!(userPChainBalanceNavax && validatorBalance && BigInt(Math.round(Number(validatorBalance) * 1e9)) > userPChainBalanceNavax);
 
-      {(validatorBalance || blsProofOfPossession) && (
-        <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 px-4 py-3 space-y-3">
-          {validatorBalance && (
-            <div className="flex items-baseline justify-between">
-              <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Initial Balance</span>
-              <span className="text-sm font-mono text-zinc-800 dark:text-zinc-200">{validatorBalance} AVAX</span>
-            </div>
-          )}
-          {userPChainBalanceNavax && validatorBalance && BigInt(Math.round(Number(validatorBalance) * 1e9)) > userPChainBalanceNavax && (
-            <p className="text-xs text-red-600 dark:text-red-400">
-              Exceeds P-Chain balance ({(Number(userPChainBalanceNavax) / 1e9).toFixed(2)} AVAX)
-            </p>
-          )}
-          {blsProofOfPossession && (
-            <div className="space-y-1">
-              <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">BLS Proof of Possession</span>
-              <div className="text-xs font-mono text-zinc-600 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-800/50 rounded border border-zinc-200 dark:border-zinc-700/50 px-3 py-2 break-all">
-                {blsProofOfPossession}
-              </div>
-            </div>
-          )}
-        </div>
+  return (
+    <div className="space-y-3">
+      {error && (
+        <Alert variant="error">{error}</Alert>
       )}
 
-      <Button
-        onClick={handleSubmitPChainTx}
-        disabled={isProcessing || !evmTxHashState.trim() || !validatorBalance || !blsProofOfPossession || !unsignedWarpMessage || txSuccess !== null || (!!signedWarpMessage && !isCoreWallet)}
-      >
-        {isProcessing ? 'Processing...' : (isCoreWallet ? 'Sign & Submit to P-Chain' : 'Aggregate Signatures')}
-      </Button>
-
-      {!isCoreWallet && signedWarpMessage && !txSuccess && (
-        <div className="space-y-3">
-          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 border border-blue-200 dark:border-blue-800">
-            <p className="text-sm font-medium text-blue-700 dark:text-blue-300">
-              Signatures aggregated successfully. Run this command to submit the P-Chain transaction:
-            </p>
+      {/* Step 1: Extract Warp Message */}
+      <div className={`p-3 rounded-xl border transition-colors ${
+        step1Complete
+          ? "bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800"
+          : "bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700"
+      }`}>
+        <div className="flex items-start gap-3">
+          <div className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
+            step1Complete
+              ? "bg-green-500 text-white"
+              : "bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300"
+          }`}>
+            {step1Complete ? <Check className="w-3 h-3" /> : "1"}
           </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Extract Warp Message</h3>
+            <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+              Enter the EVM transaction hash to extract the unsigned Warp message
+            </p>
+            <div className="mt-2">
+              <Input
+                label="initiateValidatorRegistration Transaction Hash"
+                value={evmTxHashState}
+                onChange={handleTxHashChange}
+                placeholder="Enter the transaction hash from the previous step (0x...)"
+                disabled={isProcessing || txSuccess !== null}
+              />
+            </div>
+            {step1Complete && (
+              <div className="mt-2 space-y-1">
+                {(validatorBalance || blsProofOfPossession) && (
+                  <div className="space-y-1.5">
+                    {validatorBalance && (
+                      <div className="flex items-center gap-1.5 text-xs">
+                        <span className="text-green-600 dark:text-green-400 font-medium">Initial Balance:</span>
+                        <code className="bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded text-[10px] font-mono">{validatorBalance} AVAX</code>
+                      </div>
+                    )}
+                    {hasInsufficientBalance && (
+                      <p className="text-xs text-red-600 dark:text-red-400">
+                        Exceeds P-Chain balance ({(Number(userPChainBalanceNavax) / 1e9).toFixed(2)} AVAX)
+                      </p>
+                    )}
+                    {blsProofOfPossession && (
+                      <details>
+                        <summary className="text-[10px] text-zinc-400 cursor-pointer hover:text-zinc-600 dark:hover:text-zinc-300">
+                          Show BLS Proof of Possession ({blsProofOfPossession.length / 2} bytes)
+                        </summary>
+                        <div className="mt-1">
+                          <DynamicCodeBlock lang="text" code={blsProofOfPossession} />
+                        </div>
+                      </details>
+                    )}
+                  </div>
+                )}
+                <details className="mt-1">
+                  <summary className="text-[10px] text-zinc-400 cursor-pointer hover:text-zinc-600 dark:hover:text-zinc-300">
+                    Show unsigned Warp message ({unsignedWarpMessage ? unsignedWarpMessage.length / 2 : 0} bytes)
+                  </summary>
+                  <div className="mt-1">
+                    <DynamicCodeBlock lang="text" code={unsignedWarpMessage || ''} />
+                  </div>
+                </details>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Step 2: Aggregate Signatures & Submit */}
+      <div className={`p-3 rounded-xl border transition-colors ${
+        step2Complete
+          ? "bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800"
+          : step1Complete
+          ? "bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700"
+          : "bg-zinc-50/50 dark:bg-zinc-800/20 border-zinc-200/50 dark:border-zinc-800 opacity-50"
+      }`}>
+        <div className="flex items-start gap-3">
+          <div className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
+            step2Complete
+              ? "bg-green-500 text-white"
+              : step1Complete
+              ? "bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300"
+              : "bg-zinc-200/50 dark:bg-zinc-800 text-zinc-400"
+          }`}>
+            {step2Complete ? <Check className="w-3 h-3" /> : "2"}
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className={`text-sm font-medium ${step1Complete ? "text-zinc-900 dark:text-zinc-100" : "text-zinc-400 dark:text-zinc-600"}`}>
+              Sign & Submit to P-Chain
+            </h3>
+            <p className={`mt-1 text-xs ${step1Complete ? "text-zinc-500 dark:text-zinc-400" : "text-zinc-400 dark:text-zinc-600"}`}>
+              Aggregate BLS signatures from L1 validators and submit <code className="px-1 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-[10px] font-mono">RegisterL1ValidatorTx</code>
+            </p>
+
+            {step2Complete ? (
+              <div className="mt-2 space-y-1">
+                <div className="flex items-center gap-1.5 text-green-600 dark:text-green-400">
+                  <Check className="w-3.5 h-3.5" />
+                  <span className="text-xs font-medium">Signatures aggregated</span>
+                </div>
+                <details>
+                  <summary className="text-[10px] text-zinc-400 cursor-pointer hover:text-zinc-600 dark:hover:text-zinc-300">
+                    Show signed Warp message ({signedWarpMessage ? signedWarpMessage.length / 2 : 0} bytes)
+                  </summary>
+                  <div className="mt-1">
+                    <DynamicCodeBlock lang="text" code={signedWarpMessage || ''} />
+                  </div>
+                </details>
+              </div>
+            ) : step1Complete && !step3Complete ? (
+              <div className="mt-2">
+                <Button
+                  onClick={handleSubmitPChainTx}
+                  disabled={isProcessing || !unsignedWarpMessage || !validatorBalance || !blsProofOfPossession}
+                  loading={isProcessing}
+                  className="w-full"
+                >
+                  {isProcessing ? 'Processing...' : (isCoreWallet ? 'Sign & Submit to P-Chain' : 'Aggregate Signatures')}
+                </Button>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      </div>
+
+      {/* Non-Core: CLI command */}
+      {!isCoreWallet && signedWarpMessage && !txSuccess && (
+        <div className="p-3 rounded-xl border bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700 space-y-3">
+          <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+            Run this command to submit the P-Chain transaction:
+          </p>
           <DynamicCodeBlock lang="bash" code={generateCLICommand()} />
           <Input
             label="P-Chain Transaction ID"
@@ -340,14 +425,11 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
         </div>
       )}
 
-      {error && (
-        <Alert variant="error">{error}</Alert>
-      )}
-
+      {/* Step 3: Success */}
       {txSuccess && (
         <Success
-          label="Transaction Hash"
-          value={txSuccess.replace('P-Chain transaction successful! ID: ', '')}
+          label="P-Chain Transaction ID"
+          value={txSuccess}
         />
       )}
     </div>

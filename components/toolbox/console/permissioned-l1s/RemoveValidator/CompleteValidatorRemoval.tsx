@@ -16,6 +16,7 @@ import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicC
 import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import ValidatorManagerABI from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
+import { Check } from 'lucide-react';
 
 interface CompleteValidatorRemovalProps {
   subnetIdL1: string;
@@ -153,6 +154,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
       const aggregateSignaturePromise = aggregateSignature({
         message: bytesToHex(removeValidatorMessage),
         justification: bytesToHex(justification),
+        signingSubnetId,
       });
       notify({
         type: 'local',
@@ -227,19 +229,14 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
     );
   }
 
+  const step1Complete = !!extractedData;
+  const step2Complete = !!transactionHash;
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {error && (
         <Alert variant="error">{error}</Alert>
       )}
-
-      <Input
-        label="P-Chain SetL1ValidatorWeightTx ID"
-        value={pChainTxId}
-        onChange={setPChainTxId}
-        placeholder="Enter the P-Chain SetL1ValidatorWeightTx ID from step 3"
-        disabled={isProcessing}
-      />
 
       {isLoadingOwnership && (
         <div className="text-sm text-zinc-500 dark:text-zinc-400">
@@ -247,24 +244,117 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
         </div>
       )}
 
-      <Button
-        onClick={handleCompleteRemoval}
-        disabled={isProcessing || !pChainTxId.trim() || !!successMessage || (isContractOwner === false && !useMultisig) || isLoadingOwnership || (!isCoreWallet && !!pChainSignature)}
-      >
-        {isLoadingOwnership ? 'Checking ownership...' : (isProcessing ? 'Processing...' : (isCoreWallet ? 'Sign & Complete Validator Removal' : 'Aggregate Signatures'))}
-      </Button>
-
-      {!isCoreWallet && pChainSignature && !transactionHash && (
-        <div className="space-y-3">
-          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 border border-blue-200 dark:border-blue-800">
-            <p className="text-sm font-medium text-blue-700 dark:text-blue-300">
-              Signatures aggregated. Run this command to complete the validator removal:
-            </p>
+      {/* Step 1: Enter P-Chain Transaction */}
+      <div className={`p-3 rounded-xl border transition-colors ${
+        step1Complete
+          ? "bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800"
+          : "bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700"
+      }`}>
+        <div className="flex items-start gap-3">
+          <div className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
+            step1Complete
+              ? "bg-green-500 text-white"
+              : "bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300"
+          }`}>
+            {step1Complete ? <Check className="w-3 h-3" /> : "1"}
           </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Enter P-Chain Transaction</h3>
+            <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+              Provide the P-Chain SetL1ValidatorWeightTx ID to extract validator weight data
+            </p>
+            <div className="mt-2">
+              <Input
+                label="P-Chain SetL1ValidatorWeightTx ID"
+                value={pChainTxId}
+                onChange={setPChainTxId}
+                placeholder="Enter the P-Chain SetL1ValidatorWeightTx ID from step 3"
+                disabled={isProcessing || !!transactionHash}
+              />
+            </div>
+            {step1Complete && extractedData && (
+              <div className="mt-2 space-y-1">
+                <div className="flex items-center gap-1.5 text-xs text-green-700 dark:text-green-400 font-mono">
+                  <span className="text-green-600 font-sans font-medium">Validation ID:</span>
+                  <code className="bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded text-[10px]">{extractedData.validationID}</code>
+                </div>
+                <div className="flex items-center gap-1.5 text-xs">
+                  <span className="text-green-600 dark:text-green-400 font-medium">Weight:</span>
+                  <code className="bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded text-[10px] font-mono">{extractedData.weight.toString()}</code>
+                </div>
+                <div className="flex items-center gap-1.5 text-xs">
+                  <span className="text-green-600 dark:text-green-400 font-medium">Nonce:</span>
+                  <code className="bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded text-[10px] font-mono">{extractedData.nonce.toString()}</code>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Step 2: Aggregate & Complete Removal */}
+      <div className={`p-3 rounded-xl border transition-colors ${
+        step2Complete
+          ? "bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800"
+          : step1Complete || isProcessing
+          ? "bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700"
+          : "bg-zinc-50/50 dark:bg-zinc-800/20 border-zinc-200/50 dark:border-zinc-800 opacity-50"
+      }`}>
+        <div className="flex items-start gap-3">
+          <div className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
+            step2Complete
+              ? "bg-green-500 text-white"
+              : step1Complete || isProcessing
+              ? "bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300"
+              : "bg-zinc-200/50 dark:bg-zinc-800 text-zinc-400"
+          }`}>
+            {step2Complete ? <Check className="w-3 h-3" /> : "2"}
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className={`text-sm font-medium ${step1Complete || isProcessing ? "text-zinc-900 dark:text-zinc-100" : "text-zinc-400 dark:text-zinc-600"}`}>
+              Aggregate & Complete Removal
+            </h3>
+            <p className={`mt-1 text-xs ${step1Complete || isProcessing ? "text-zinc-500 dark:text-zinc-400" : "text-zinc-400 dark:text-zinc-600"}`}>
+              Aggregate BLS signatures and submit the completeValidatorRemoval transaction
+            </p>
+
+            {step2Complete ? (
+              <div className="mt-2 flex items-center gap-1.5 text-green-600 dark:text-green-400">
+                <Check className="w-3.5 h-3.5" />
+                <span className="text-xs font-medium">Validator removal completed</span>
+              </div>
+            ) : pChainSignature && !isCoreWallet ? (
+              <div className="mt-2 flex items-center gap-1.5 text-green-600 dark:text-green-400">
+                <Check className="w-3.5 h-3.5" />
+                <span className="text-xs font-medium">Signatures aggregated</span>
+              </div>
+            ) : !step2Complete ? (
+              <div className="mt-2">
+                <Button
+                  onClick={handleCompleteRemoval}
+                  disabled={isProcessing || !pChainTxId.trim() || !!successMessage || (isContractOwner === false && !useMultisig) || isLoadingOwnership || (!isCoreWallet && !!pChainSignature)}
+                  loading={isProcessing}
+                  className="w-full"
+                >
+                  {isLoadingOwnership ? 'Checking ownership...' : (isProcessing ? 'Processing...' : (isCoreWallet ? 'Sign & Complete Validator Removal' : 'Aggregate Signatures'))}
+                </Button>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      </div>
+
+      {/* Non-Core: CLI command panel after aggregation */}
+      {!isCoreWallet && pChainSignature && !transactionHash && (
+        <div className="p-3 rounded-xl border bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700 space-y-3">
+          <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+            Signatures aggregated. Run this command to complete the validator removal:
+          </p>
           <DynamicCodeBlock lang="bash" code={generateCastCommand()} />
         </div>
       )}
 
+      {/* Success */}
       {transactionHash && (
         <Success
           label="Transaction Hash"

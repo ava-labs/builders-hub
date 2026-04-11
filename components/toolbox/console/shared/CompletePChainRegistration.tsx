@@ -19,6 +19,7 @@ import { fetchRegisterL1ValidatorData } from './fetchRegisterL1ValidatorData';
 import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
 import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
+import { Check } from 'lucide-react';
 
 export type ManagerType = 'PoA' | 'PoS-Native' | 'PoS-ERC20';
 export type OwnerType = 'PoAManager' | 'StakingManager' | 'EOA' | null;
@@ -30,11 +31,11 @@ export interface CompletePChainRegistrationProps {
     signingSubnetId?: string;
     onSuccess: (data: { txHash: string; message: string }) => void;
     onError: (message: string) => void;
-    
+
     // Manager configuration
     managerType: ManagerType;
     managerAddress: string;
-    
+
     // For PoA: ownership and multisig
     ownershipState?: 'contract' | 'currentWallet' | 'differentEOA' | 'loading' | 'error';
     contractOwner?: string | null;
@@ -135,7 +136,7 @@ const CompletePChainRegistration: React.FC<CompletePChainRegistrationProps> = ({
             onError("Wallet or chain configuration is not properly initialized.");
             return false;
         }
-        
+
         // PoA-specific ownership checks
         if (isPoA) {
             if (ownershipState === 'differentEOA' && !useMultisig && !useStakingManager) {
@@ -154,7 +155,7 @@ const CompletePChainRegistration: React.FC<CompletePChainRegistrationProps> = ({
                 return false;
             }
         }
-        
+
         return true;
     };
 
@@ -182,7 +183,7 @@ const CompletePChainRegistration: React.FC<CompletePChainRegistrationProps> = ({
 
             // Step 2: Get the underlying ValidatorManager address for validation ID query
             let validationIdQueryAddress = managerAddress;
-            
+
             if (isPoS || useStakingManager) {
                 try {
                     const queryAddress = isPoS ? managerAddress : contractOwner;
@@ -191,7 +192,7 @@ const CompletePChainRegistration: React.FC<CompletePChainRegistrationProps> = ({
                         abi: managerType === 'PoS-ERC20' ? ERC20TokenStakingManager.abi : NativeTokenStakingManager.abi,
                         functionName: 'getStakingManagerSettings',
                     }) as any;
-                    
+
                     validationIdQueryAddress = settings.manager;
                 } catch (err) {
                     // Failed to get ValidatorManager from settings, use manager address as fallback
@@ -235,13 +236,14 @@ const CompletePChainRegistration: React.FC<CompletePChainRegistrationProps> = ({
             const aggregateSignaturePromise = aggregateSignature({
                 message: bytesToHex(l1ValidatorRegistrationMessage),
                 justification: bytesToHex(justification),
+                signingSubnetId: signingSubnetId || subnetIdL1,
             });
-            
+
             notify({
                 type: 'local',
                 name: 'Aggregate Signatures'
             }, aggregateSignaturePromise);
-            
+
             const signature = await aggregateSignaturePromise;
             setPChainSignature(signature.signedMessage);
 
@@ -352,101 +354,163 @@ const CompletePChainRegistration: React.FC<CompletePChainRegistrationProps> = ({
         (isPoA && ownershipState === 'differentEOA' && !useMultisig && !useStakingManager) ||
         (!isCoreWallet && !!pChainSignature);
 
+    const step1Complete = !!extractedData;
+    const step2Complete = !!txHash;
+
     return (
-        <div className="space-y-4">
+        <div className="space-y-3">
             {error && (
                 <Alert variant="error">{error}</Alert>
             )}
 
-            <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-lg p-4 border border-zinc-200 dark:border-zinc-700">
-                <h3 className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">
-                    Complete Registration ({tokenLabel})
-                </h3>
-
-                <div className="space-y-3">
-                    {validationID && (
-                        <div className="text-sm text-zinc-600 dark:text-zinc-400">
-                            <p><strong>Validation ID:</strong> {validationID}</p>
+            {/* Step 1: Enter P-Chain Transaction */}
+            <div className={`p-3 rounded-xl border transition-colors ${
+                step1Complete
+                    ? "bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800"
+                    : "bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700"
+            }`}>
+                <div className="flex items-start gap-3">
+                    <div className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
+                        step1Complete
+                            ? "bg-green-500 text-white"
+                            : "bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300"
+                    }`}>
+                        {step1Complete ? <Check className="w-3 h-3" /> : "1"}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Enter P-Chain Transaction</h3>
+                        <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                            Provide the P-Chain transaction ID to extract the registration data
+                        </p>
+                        <div className="mt-2">
+                            <Input
+                                label="P-Chain Transaction ID"
+                                value={pChainTxIdState}
+                                onChange={setPChainTxIdState}
+                                placeholder="Enter the P-Chain transaction ID from the previous step"
+                                disabled={isProcessing}
+                                helperText="The transaction ID from the P-Chain validator registration"
+                            />
                         </div>
-                    )}
-
-                    <Input
-                        label="P-Chain Transaction ID"
-                        value={pChainTxIdState}
-                        onChange={setPChainTxIdState}
-                        placeholder="Enter the P-Chain transaction ID from the previous step"
-                        disabled={isProcessing}
-                        helperText="The transaction ID from the P-Chain validator registration"
-                    />
-                </div>
-            </div>
-
-            {extractedData && (
-                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
-                    <h4 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">
-                        Extracted Registration Data
-                    </h4>
-                    <div className="space-y-1 text-xs font-mono">
-                        <p><span className="text-blue-600 dark:text-blue-400">Node ID:</span> {extractedData.nodeID}</p>
-                        <p><span className="text-blue-600 dark:text-blue-400">Weight:</span> {extractedData.weight.toString()}</p>
-                        {extractedData.validationId && (
-                            <p><span className="text-blue-600 dark:text-blue-400">Validation ID:</span> {extractedData.validationId}</p>
+                        {step1Complete && (
+                            <div className="mt-2 space-y-1">
+                                <div className="flex items-center gap-1.5 text-xs">
+                                    <span className="text-green-600 dark:text-green-400 font-medium">Node ID:</span>
+                                    <code className="bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded text-[10px] font-mono">{extractedData.nodeID}</code>
+                                </div>
+                                <div className="flex items-center gap-1.5 text-xs">
+                                    <span className="text-green-600 dark:text-green-400 font-medium">Weight:</span>
+                                    <code className="bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded text-[10px] font-mono">{extractedData.weight.toString()}</code>
+                                </div>
+                                {extractedData.validationId && (
+                                    <div className="flex items-center gap-1.5 text-xs">
+                                        <span className="text-green-600 dark:text-green-400 font-medium">Validation ID:</span>
+                                        <code className="bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded text-[10px] font-mono">{extractedData.validationId}</code>
+                                    </div>
+                                )}
+                                {validationID && !extractedData.validationId && (
+                                    <div className="flex items-center gap-1.5 text-xs">
+                                        <span className="text-green-600 dark:text-green-400 font-medium">Validation ID:</span>
+                                        <code className="bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded text-[10px] font-mono">{validationID}</code>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                        {!step1Complete && validationID && (
+                            <div className="mt-2">
+                                <div className="flex items-center gap-1.5 text-xs">
+                                    <span className="text-zinc-500 dark:text-zinc-400 font-medium">Validation ID:</span>
+                                    <code className="bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded text-[10px] font-mono">{validationID}</code>
+                                </div>
+                            </div>
                         )}
                     </div>
                 </div>
-            )}
+            </div>
 
-            {pChainSignature && (
-                <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3 border border-green-200 dark:border-green-800">
-                    <p className="text-xs text-green-700 dark:text-green-300">
-                        P-Chain signature aggregated successfully
-                    </p>
-                </div>
-            )}
-
-            {isLoadingOwnership && (
-                <div className="text-sm text-zinc-500 dark:text-zinc-400">
-                    Checking contract ownership...
-                </div>
-            )}
-
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                Ensure the P-Chain registration is confirmed before proceeding. The warp message will be aggregated and submitted to complete registration.
-            </p>
-
-            <Button
-                onClick={handleCompleteRegistration}
-                disabled={isButtonDisabled}
-                loading={isProcessing}
-            >
-                {isLoadingOwnership ? 'Checking ownership...' : (isProcessing ? 'Processing...' : (isCoreWallet ? 'Complete Validator Registration' : 'Aggregate Signatures'))}
-            </Button>
-
-            {!isCoreWallet && pChainSignature && !txHash && (
-                <div className="space-y-3">
-                    <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 border border-blue-200 dark:border-blue-800">
-                        <p className="text-sm font-medium text-blue-700 dark:text-blue-300">
-                            Signatures aggregated. Run this command to complete the validator registration:
-                        </p>
+            {/* Step 2: Aggregate & Complete Registration */}
+            <div className={`p-3 rounded-xl border transition-colors ${
+                step2Complete
+                    ? "bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800"
+                    : step1Complete
+                    ? "bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700"
+                    : "bg-zinc-50/50 dark:bg-zinc-800/20 border-zinc-200/50 dark:border-zinc-800 opacity-50"
+            }`}>
+                <div className="flex items-start gap-3">
+                    <div className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
+                        step2Complete
+                            ? "bg-green-500 text-white"
+                            : step1Complete
+                            ? "bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300"
+                            : "bg-zinc-200/50 dark:bg-zinc-800 text-zinc-400"
+                    }`}>
+                        {step2Complete ? <Check className="w-3 h-3" /> : "2"}
                     </div>
+                    <div className="flex-1 min-w-0">
+                        <h3 className={`text-sm font-medium ${step1Complete ? "text-zinc-900 dark:text-zinc-100" : "text-zinc-400 dark:text-zinc-600"}`}>
+                            Aggregate & Complete Registration
+                        </h3>
+                        <p className={`mt-1 text-xs ${step1Complete ? "text-zinc-500 dark:text-zinc-400" : "text-zinc-400 dark:text-zinc-600"}`}>
+                            Aggregate BLS signatures and submit the registration transaction ({tokenLabel})
+                        </p>
+
+                        {isLoadingOwnership && step1Complete && (
+                            <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
+                                Checking contract ownership...
+                            </p>
+                        )}
+
+                        {pChainSignature && !step2Complete && (
+                            <div className="mt-2 flex items-center gap-1.5 text-green-600 dark:text-green-400">
+                                <Check className="w-3.5 h-3.5" />
+                                <span className="text-xs font-medium">Signatures aggregated</span>
+                            </div>
+                        )}
+
+                        {step2Complete ? (
+                            <div className="mt-2 flex items-center gap-1.5 text-green-600 dark:text-green-400">
+                                <Check className="w-3.5 h-3.5" />
+                                <span className="text-xs font-medium">Registration completed</span>
+                            </div>
+                        ) : step1Complete && !(!isCoreWallet && pChainSignature) ? (
+                            <div className="mt-2">
+                                <Button
+                                    onClick={handleCompleteRegistration}
+                                    disabled={isButtonDisabled}
+                                    loading={isProcessing}
+                                    className="w-full"
+                                >
+                                    {isLoadingOwnership ? 'Checking ownership...' : (isProcessing ? 'Processing...' : (isCoreWallet ? 'Complete Validator Registration' : 'Aggregate Signatures'))}
+                                </Button>
+                            </div>
+                        ) : null}
+                    </div>
+                </div>
+            </div>
+
+            {/* Non-Core: CLI command after aggregation */}
+            {!isCoreWallet && pChainSignature && !txHash && (
+                <div className="p-3 rounded-xl border bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700 space-y-3">
+                    <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                        Signatures aggregated. Run this command to complete the validator registration:
+                    </p>
                     <DynamicCodeBlock lang="bash" code={generateCastCommand()} />
                 </div>
             )}
 
+            {/* Success */}
             {txHash && (
-                <>
-                    <Success
-                        label="Transaction Hash"
-                        value={txHash}
-                    />
-                    {registrationComplete && (
-                        <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-md">
-                            <p className="text-sm text-green-800 dark:text-green-200">
-                                <strong>Success!</strong> Your validator is now registered and active on the L1.
-                            </p>
-                        </div>
-                    )}
-                </>
+                <Success
+                    label="Transaction Hash"
+                    value={txHash}
+                />
+            )}
+            {registrationComplete && (
+                <div className="p-3 rounded-xl border bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800">
+                    <p className="text-sm text-green-800 dark:text-green-200">
+                        <strong>Success!</strong> Your validator is now registered and active on the L1.
+                    </p>
+                </div>
             )}
         </div>
     );
