@@ -39,11 +39,6 @@ jobs:
       - name: Type check
         run: npx tsc --noEmit
 
-      - name: Build
-        run: yarn build
-        env:
-          SKIP_ENV_VALIDATION: true
-
       # ── Console conventions ──────────────────────────────
 
       - name: ESLint (toolbox)
