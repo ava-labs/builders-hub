@@ -129,7 +129,7 @@ export function UserButton() {
             {
               (session?.user?.custom_attributes.includes('devrel') || session?.user?.custom_attributes?.includes('hackathonCreator')) && (
                 <DropdownMenuItem asChild className='cursor-pointer'>
-                  <Link href='/events/edit'>Edit Hackathons</Link>
+                  <Link href='/events/edit'>Event Management</Link>
                 </DropdownMenuItem>
               )
             }
