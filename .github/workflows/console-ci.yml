@@ -1,12 +1,20 @@
-name: CI
+name: Console CI
 
 on:
   pull_request:
     branches:
       - master
+    paths:
+      - 'components/toolbox/**'
+      - 'app/console/**'
+      - 'hooks/useConsoleNotifications.ts'
+      - 'hooks/useEVMNotifications.ts'
+      - 'hooks/usePChainNotifications.ts'
+      - 'contracts/**'
+      - 'content/academy/**'
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: console-ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
