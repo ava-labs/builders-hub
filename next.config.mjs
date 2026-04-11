@@ -2111,6 +2111,11 @@ const config = {
   },
   async rewrites() {
     return [
+      // Root section .md URLs (e.g., /docs.md -> section index)
+      { source: '/docs.md', destination: '/api/raw/docs' },
+      { source: '/academy.md', destination: '/api/raw/academy' },
+      { source: '/blog.md', destination: '/api/raw/blog' },
+      { source: '/integrations.md', destination: '/api/raw/integrations' },
       // Rewrite .md requests to serve raw markdown content
       {
         source: '/docs/:path*.md',

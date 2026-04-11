@@ -20,6 +20,31 @@ export async function proxy(req: NextRequest) {
     return new Response(null, { status: 204 });
   }
 
+  // Content negotiation: serve markdown when Accept: text/markdown is requested
+  const contentPrefixes = ['/docs/', '/academy/', '/blog/', '/integrations/'];
+  const isContentPath = contentPrefixes.some(prefix => pathname.startsWith(prefix));
+  const acceptHeader = req.headers.get('accept') || '';
+  const wantsMarkdown = acceptHeader.includes('text/markdown');
+
+  // Protected academy sub-paths must NOT skip auth
+  const protectedAcademySuffixes = ['/get-certificate', '/certificate'];
+  const isProtectedAcademyPath = pathname.startsWith('/academy/') &&
+    protectedAcademySuffixes.some(suffix => pathname.endsWith(suffix));
+
+  if (wantsMarkdown && isContentPath && !isProtectedAcademyPath) {
+    const apiUrl = new URL(`/api/raw${pathname}`, req.url);
+    const rewriteResponse = NextResponse.rewrite(apiUrl);
+    rewriteResponse.headers.set('Vary', 'Accept');
+    return rewriteResponse;
+  }
+
+  // For content paths without markdown request, add Vary header and pass through
+  if (isContentPath && !isProtectedAcademyPath) {
+    const contentResponse = NextResponse.next();
+    contentResponse.headers.set('Vary', 'Accept');
+    return contentResponse;
+  }
+
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
   const isAuthenticated = !!token;
   const isLoginPage = pathname === "/login";
@@ -93,6 +118,7 @@ export async function proxy(req: NextRequest) {
 
 export const config = {
   matcher: [
+    // Auth-protected paths
     "/hackathons/registration-form/:path*",
     "/hackathons/project-submission/:path*",
     "/hackathons/edit/:path*",
@@ -104,5 +130,10 @@ export const config = {
     "/academy/:path*/certificate",
     "/console/utilities/data-api-keys",
     "/grants/:path+",
+    // Content paths for Accept: text/markdown negotiation
+    "/docs/:path*",
+    "/academy/:path*",
+    "/blog/:path*",
+    "/integrations/:path*",
   ],
 };

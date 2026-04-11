@@ -15,6 +15,7 @@ import {
   nodesOptions,
   toolingOptions,
 } from '@/components/navigation/docs-nav-config';
+import { DecorativeGrid } from '@/components/ui/decorative-grid';
 
 interface DocsLayoutWrapperProps {
   children: ReactNode;
@@ -121,7 +122,7 @@ export function DocsLayoutWrapper({
       <DocsNavbarToggle />
       <DocsSubNav />
       <DocsLayout {...docsOptions}>
-        <span
+        {/*<span
           className="absolute inset-0 z-[-1] h-[64rem] max-h-screen overflow-hidden"
           style={{
             backgroundImage:
@@ -214,6 +215,8 @@ export function DocsLayoutWrapper({
           </defs>
         </svg>
       </span>
+      */}
+      <DecorativeGrid />
       {children}
     </DocsLayout>
     </div>
