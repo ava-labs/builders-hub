@@ -128,6 +128,10 @@ const useEVMNotifications = () => {
                     });
                     const receipt = await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
 
+                    if (receipt.status === 'reverted') {
+                        throw new Error(`Transaction reverted (hash: ${hash})`);
+                    }
+
                     // For deployments, include the deployed contract address
                     if (options.type === 'deploy' && receipt.contractAddress) {
                         logData = {

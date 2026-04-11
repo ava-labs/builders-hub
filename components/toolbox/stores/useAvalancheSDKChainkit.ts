@@ -65,13 +65,8 @@ export const useAvalancheSDKChainkit = (customNetwork?: "mainnet" | "fuji") => {
                 signatureAggregatorRequest.justification = justification;
             }
 
-            // NOTE: signingSubnetId is accepted by the SDK type but the underlying
-            // aggregator service uses kebab-case field names. The SDK forwards
-            // camelCase which gets silently ignored. The service infers the signing
-            // subnet from the sourceChainID in the message, which works correctly
-            // when the source chain IS the L1. For P-Chain-sourced messages (e.g.
-            // ConvertSubnetToL1Tx), the justification bytes carry the subnet ID.
-            // Tracked: SDK should map signingSubnetId → signing-subnet-id.
+            // If omitted, the Glacier aggregator service resolves the signing
+            // subnet from the sourceChainID in the warp message.
             if (signingSubnetId) {
                 signatureAggregatorRequest.signingSubnetId = signingSubnetId;
             }
