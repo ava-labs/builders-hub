@@ -1,8 +1,5 @@
 import { useERC20Token, ERC20TokenHook } from '../../useERC20Token';
-import { useWalletStore } from '../../../stores/walletStore';
-import { useViemChainStore } from '../../../stores/toolboxStore';
-import useConsoleNotifications from '@/hooks/useConsoleNotifications';
-import { useResolvedWalletClient } from '../../useResolvedWalletClient';
+import { useContractActions } from '../useContractActions';
 import ExampleERC20Abi from '@/contracts/icm-contracts/compiled/ExampleERC20.json';
 import { parseEther } from 'viem';
 
@@ -28,104 +25,21 @@ export function useExampleERC20(tokenAddress: string | null): ExampleERC20Hook {
   // Get base ERC20 functionality
   const erc20Token = useERC20Token(tokenAddress, ExampleERC20Abi.abi);
 
-  // Get additional dependencies for write functions
-  const { walletEVMAddress } = useWalletStore();
-  const viemChain = useViemChainStore();
-  const { notify } = useConsoleNotifications();
-  const walletClient = useResolvedWalletClient();
+  // Get contract actions for additional write functions
+  const contract = useContractActions(tokenAddress, ExampleERC20Abi.abi);
 
   // Additional write functions
-  const mint = async (to: string, amount: string): Promise<string> => {
-    if (!walletClient || !tokenAddress || !walletEVMAddress || !viemChain) {
-      throw new Error('Wallet not connected or contract not ready');
-    }
+  const mint = (to: string, amount: string) =>
+    contract.write('mint', [to, parseEther(amount)], 'Mint ExampleERC20 Token');
 
-    const writePromise = walletClient!.writeContract({
-      address: tokenAddress as `0x${string}`,
-      abi: ExampleERC20Abi.abi,
-      functionName: 'mint',
-      args: [to, parseEther(amount)],
-      chain: viemChain,
-      account: walletEVMAddress as `0x${string}`,
-      gas: BigInt(1_000_000),
-    });
+  const burn = (amount: string) =>
+    contract.write('burn', [parseEther(amount)], 'Burn ExampleERC20 Token');
 
-    notify({
-      type: 'call',
-      name: 'Mint ExampleERC20 Token'
-    }, writePromise, viemChain);
+  const burnFrom = (from: string, amount: string) =>
+    contract.write('burnFrom', [from, parseEther(amount)], 'Burn From ExampleERC20 Token');
 
-    return await writePromise;
-  };
-
-  const burn = async (amount: string): Promise<string> => {
-    if (!walletClient || !tokenAddress || !walletEVMAddress || !viemChain) {
-      throw new Error('Wallet not connected or contract not ready');
-    }
-
-    const writePromise = walletClient!.writeContract({
-      address: tokenAddress as `0x${string}`,
-      abi: ExampleERC20Abi.abi,
-      functionName: 'burn',
-      args: [parseEther(amount)],
-      chain: viemChain,
-      account: walletEVMAddress as `0x${string}`,
-      gas: BigInt(1_000_000),
-    });
-
-    notify({
-      type: 'call',
-      name: 'Burn ExampleERC20 Token'
-    }, writePromise, viemChain);
-
-    return await writePromise;
-  };
-
-  const burnFrom = async (from: string, amount: string): Promise<string> => {
-    if (!walletClient || !tokenAddress || !walletEVMAddress || !viemChain) {
-      throw new Error('Wallet not connected or contract not ready');
-    }
-
-    const writePromise = walletClient!.writeContract({
-      address: tokenAddress as `0x${string}`,
-      abi: ExampleERC20Abi.abi,
-      functionName: 'burnFrom',
-      args: [from, parseEther(amount)],
-      chain: viemChain,
-      account: walletEVMAddress as `0x${string}`,
-      gas: BigInt(1_000_000),
-    });
-
-    notify({
-      type: 'call',
-      name: 'Burn From ExampleERC20 Token'
-    }, writePromise, viemChain);
-
-    return await writePromise;
-  };
-
-  const grantRole = async (role: string, account: string): Promise<string> => {
-    if (!walletClient || !tokenAddress || !walletEVMAddress || !viemChain) {
-      throw new Error('Wallet not connected or contract not ready');
-    }
-
-    const writePromise = walletClient!.writeContract({
-      address: tokenAddress as `0x${string}`,
-      abi: ExampleERC20Abi.abi,
-      functionName: 'grantRole',
-      args: [role as `0x${string}`, account as `0x${string}`],
-      chain: viemChain,
-      account: walletEVMAddress as `0x${string}`,
-      gas: BigInt(1_000_000),
-    });
-
-    notify({
-      type: 'call',
-      name: 'Grant Role'
-    }, writePromise, viemChain);
-
-    return await writePromise;
-  };
+  const grantRole = (role: string, account: string) =>
+    contract.write('grantRole', [role as `0x${string}`, account as `0x${string}`], 'Grant Role');
 
   // Return composition of base ERC20 and additional functions
   return {

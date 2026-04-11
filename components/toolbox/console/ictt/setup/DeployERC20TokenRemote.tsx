@@ -61,7 +61,7 @@ function DeployERC20TokenRemote() {
   const selectedL1 = useSelectedL1();
   const { deploy, isDeploying } = useContractDeployer();
   const [sourceChainId, setSourceChainId] = useState<string>("");
-  const [teleporterManager, setTeleporterManager] = useState(walletEVMAddress);
+  const [teleporterManager, setTeleporterManager] = useState<string>(walletEVMAddress);
   const [localError, setLocalError] = useState("");
   const [tokenName, setTokenName] = useState("");
   const [tokenSymbol, setTokenSymbol] = useState("");

@@ -186,8 +186,7 @@ const InitiateDelegatorRemoval: React.FC<InitiateDelegatorRemovalProps> = ({
                 )
                 : await erc20StakingManager.forceInitiateDelegatorRemoval(
                     delegationID as `0x${string}`,
-                    false, // includeUptimeProof
-                    msgIndex
+                    false // includeUptimeProof
                 );
 
             setTxHash(hash);

@@ -1,17 +1,9 @@
-import { useWalletStore } from '../../../stores/walletStore';
-import { useViemChainStore } from '../../../stores/toolboxStore';
-import { readContract } from 'viem/actions';
-import useConsoleNotifications from '@/hooks/useConsoleNotifications';
-import { useWallet } from '../../useWallet';
-import { useResolvedWalletClient } from '../../useResolvedWalletClient';
+import { useContractActions } from '../useContractActions';
 import ERC20TokenRemoteAbi from '@/contracts/icm-contracts/compiled/ERC20TokenRemote.json';
 import NativeTokenRemoteAbi from '@/contracts/icm-contracts/compiled/NativeTokenRemote.json';
-import { TokenType, SendTokensInput } from './useTokenHome';
+import type { TokenType, SendTokensInput, TokenMultiplier } from '../types';
 
-export interface TokenMultiplier {
-  numerator: bigint;
-  denominator: bigint;
-}
+export type { TokenMultiplier } from '../types';
 
 export interface TokenRemoteHook {
   // Read functions - ERC20-like
@@ -77,346 +69,63 @@ export function useTokenRemote(
   tokenType: TokenType,
   customAbi?: any
 ): TokenRemoteHook {
-  const { walletEVMAddress } = useWalletStore();
-  const viemChain = useViemChainStore();
-  const { notify } = useConsoleNotifications();
-  const { avalancheWalletClient } = useWallet();
-  const walletClient = useResolvedWalletClient();
-
-  // Auto-select ABI based on token type if not provided
   const abi = customAbi ?? (
     tokenType === 'erc20'
       ? ERC20TokenRemoteAbi.abi
       : NativeTokenRemoteAbi.abi
   );
 
-  const isReady = Boolean(contractAddress && walletClient && viemChain);
+  const contract = useContractActions(contractAddress, abi);
 
   // Read functions - ERC20-like
-  const name = async (): Promise<string> => {
-    if (!avalancheWalletClient || !contractAddress) throw new Error('Contract not ready');
-
-    return await readContract(avalancheWalletClient as any, {
-      address: contractAddress as `0x${string}`,
-      abi: abi,
-      functionName: 'name',
-      args: []
-    }) as string;
-  };
-
-  const symbol = async (): Promise<string> => {
-    if (!avalancheWalletClient || !contractAddress) throw new Error('Contract not ready');
-
-    return await readContract(avalancheWalletClient as any, {
-      address: contractAddress as `0x${string}`,
-      abi: abi,
-      functionName: 'symbol',
-      args: []
-    }) as string;
-  };
-
-  const decimals = async (): Promise<number> => {
-    if (!avalancheWalletClient || !contractAddress) throw new Error('Contract not ready');
-
-    return await readContract(avalancheWalletClient as any, {
-      address: contractAddress as `0x${string}`,
-      abi: abi,
-      functionName: 'decimals',
-      args: []
-    }) as number;
-  };
-
-  const balanceOf = async (account: string): Promise<bigint> => {
-    if (!avalancheWalletClient || !contractAddress) throw new Error('Contract not ready');
-
-    return await readContract(avalancheWalletClient as any, {
-      address: contractAddress as `0x${string}`,
-      abi: abi,
-      functionName: 'balanceOf',
-      args: [account]
-    }) as bigint;
-  };
-
-  const totalSupply = async (): Promise<bigint> => {
-    if (!avalancheWalletClient || !contractAddress) throw new Error('Contract not ready');
-
-    return await readContract(avalancheWalletClient as any, {
-      address: contractAddress as `0x${string}`,
-      abi: abi,
-      functionName: 'totalSupply',
-      args: []
-    }) as bigint;
-  };
-
-  const allowance = async (owner: string, spender: string): Promise<bigint> => {
-    if (!avalancheWalletClient || !contractAddress) throw new Error('Contract not ready');
-
-    return await readContract(avalancheWalletClient as any, {
-      address: contractAddress as `0x${string}`,
-      abi: abi,
-      functionName: 'allowance',
-      args: [owner, spender]
-    }) as bigint;
-  };
+  const name = () => contract.read('name') as Promise<string>;
+  const symbol = () => contract.read('symbol') as Promise<string>;
+  const decimals = () => contract.read('decimals') as Promise<number>;
+  const balanceOf = (account: string) => contract.read('balanceOf', [account]) as Promise<bigint>;
+  const totalSupply = () => contract.read('totalSupply') as Promise<bigint>;
+  const allowance = (ownerAddr: string, spender: string) => contract.read('allowance', [ownerAddr, spender]) as Promise<bigint>;
 
   // Read functions - Remote-specific
-  const getTokenHomeAddress = async (): Promise<string> => {
-    if (!avalancheWalletClient || !contractAddress) throw new Error('Contract not ready');
-
-    return await readContract(avalancheWalletClient as any, {
-      address: contractAddress as `0x${string}`,
-      abi: abi,
-      functionName: 'getTokenHomeAddress',
-      args: []
-    }) as string;
-  };
-
-  const getTokenHomeBlockchainID = async (): Promise<string> => {
-    if (!avalancheWalletClient || !contractAddress) throw new Error('Contract not ready');
-
-    return await readContract(avalancheWalletClient as any, {
-      address: contractAddress as `0x${string}`,
-      abi: abi,
-      functionName: 'getTokenHomeBlockchainID',
-      args: []
-    }) as string;
-  };
-
-  const getBlockchainID = async (): Promise<string> => {
-    if (!avalancheWalletClient || !contractAddress) throw new Error('Contract not ready');
-
-    return await readContract(avalancheWalletClient as any, {
-      address: contractAddress as `0x${string}`,
-      abi: abi,
-      functionName: 'getBlockchainID',
-      args: []
-    }) as string;
-  };
-
-  const getTokenMultiplier = async (): Promise<TokenMultiplier> => {
-    if (!avalancheWalletClient || !contractAddress) throw new Error('Contract not ready');
-
-    const result = await readContract(avalancheWalletClient as any, {
-      address: contractAddress as `0x${string}`,
-      abi: abi,
-      functionName: 'getTokenMultiplier',
-      args: []
-    });
-
-    return result as TokenMultiplier;
-  };
-
-  const getInitialReserveImbalance = async (): Promise<bigint> => {
-    if (!avalancheWalletClient || !contractAddress) throw new Error('Contract not ready');
-
-    return await readContract(avalancheWalletClient as any, {
-      address: contractAddress as `0x${string}`,
-      abi: abi,
-      functionName: 'getInitialReserveImbalance',
-      args: []
-    }) as bigint;
-  };
-
-  const getIsCollateralized = async (): Promise<boolean> => {
-    if (!avalancheWalletClient || !contractAddress) throw new Error('Contract not ready');
-
-    return await readContract(avalancheWalletClient as any, {
-      address: contractAddress as `0x${string}`,
-      abi: abi,
-      functionName: 'getIsCollateralized',
-      args: []
-    }) as boolean;
-  };
-
-  const getMultiplyOnRemote = async (): Promise<boolean> => {
-    if (!avalancheWalletClient || !contractAddress) throw new Error('Contract not ready');
-
-    return await readContract(avalancheWalletClient as any, {
-      address: contractAddress as `0x${string}`,
-      abi: abi,
-      functionName: 'getMultiplyOnRemote',
-      args: []
-    }) as boolean;
-  };
-
-  const owner = async (): Promise<string> => {
-    if (!avalancheWalletClient || !contractAddress) throw new Error('Contract not ready');
-
-    return await readContract(avalancheWalletClient as any, {
-      address: contractAddress as `0x${string}`,
-      abi: abi,
-      functionName: 'owner',
-      args: []
-    }) as string;
-  };
-
-  const getMinTeleporterVersion = async (): Promise<bigint> => {
-    if (!avalancheWalletClient || !contractAddress) throw new Error('Contract not ready');
-
-    return await readContract(avalancheWalletClient as any, {
-      address: contractAddress as `0x${string}`,
-      abi: abi,
-      functionName: 'getMinTeleporterVersion',
-      args: []
-    }) as bigint;
-  };
-
-  const isTeleporterAddressPaused = async (address: string): Promise<boolean> => {
-    if (!avalancheWalletClient || !contractAddress) throw new Error('Contract not ready');
-
-    return await readContract(avalancheWalletClient as any, {
-      address: contractAddress as `0x${string}`,
-      abi: abi,
-      functionName: 'isTeleporterAddressPaused',
-      args: [address]
-    }) as boolean;
-  };
+  const getTokenHomeAddress = () => contract.read('getTokenHomeAddress') as Promise<string>;
+  const getTokenHomeBlockchainID = () => contract.read('getTokenHomeBlockchainID') as Promise<string>;
+  const getBlockchainID = () => contract.read('getBlockchainID') as Promise<string>;
+  const getTokenMultiplier = () => contract.read('getTokenMultiplier') as Promise<TokenMultiplier>;
+  const getInitialReserveImbalance = () => contract.read('getInitialReserveImbalance') as Promise<bigint>;
+  const getIsCollateralized = () => contract.read('getIsCollateralized') as Promise<boolean>;
+  const getMultiplyOnRemote = () => contract.read('getMultiplyOnRemote') as Promise<boolean>;
+  const owner = () => contract.read('owner') as Promise<string>;
+  const getMinTeleporterVersion = () => contract.read('getMinTeleporterVersion') as Promise<bigint>;
+  const isTeleporterAddressPaused = (address: string) => contract.read('isTeleporterAddressPaused', [address]) as Promise<boolean>;
 
   // Write functions - ERC20-like
-  const transfer = async (to: string, amount: bigint): Promise<string> => {
-    if (!walletClient || !contractAddress || !walletEVMAddress || !viemChain) {
-      throw new Error('Wallet not connected or contract not ready');
-    }
+  const transfer = (to: string, amount: bigint) =>
+    contract.write('transfer', [to, amount], 'Transfer Token Remote');
 
-    const writePromise = walletClient!.writeContract({
-      address: contractAddress as `0x${string}`,
-      abi: abi,
-      functionName: 'transfer',
-      args: [to, amount],
-      chain: viemChain,
-      account: walletEVMAddress as `0x${string}`,
-      gas: BigInt(1_000_000),
-    });
+  const approve = (spender: string, amount: bigint) =>
+    contract.write('approve', [spender, amount], 'Approve Token Remote');
 
-    notify({
-      type: 'call',
-      name: 'Transfer Token Remote'
-    }, writePromise, viemChain);
-
-    return await writePromise;
-  };
-
-  const approve = async (spender: string, amount: bigint): Promise<string> => {
-    if (!walletClient || !contractAddress || !walletEVMAddress || !viemChain) {
-      throw new Error('Wallet not connected or contract not ready');
-    }
-
-    const writePromise = walletClient!.writeContract({
-      address: contractAddress as `0x${string}`,
-      abi: abi,
-      functionName: 'approve',
-      args: [spender, amount],
-      chain: viemChain,
-      account: walletEVMAddress as `0x${string}`,
-      gas: BigInt(1_000_000),
-    });
-
-    notify({
-      type: 'call',
-      name: 'Approve Token Remote'
-    }, writePromise, viemChain);
-
-    return await writePromise;
-  };
-
-  const transferFrom = async (from: string, to: string, amount: bigint): Promise<string> => {
-    if (!walletClient || !contractAddress || !walletEVMAddress || !viemChain) {
-      throw new Error('Wallet not connected or contract not ready');
-    }
-
-    const writePromise = walletClient!.writeContract({
-      address: contractAddress as `0x${string}`,
-      abi: abi,
-      functionName: 'transferFrom',
-      args: [from, to, amount],
-      chain: viemChain,
-      account: walletEVMAddress as `0x${string}`,
-      gas: BigInt(1_000_000),
-    });
-
-    notify({
-      type: 'call',
-      name: 'Transfer From Token Remote'
-    }, writePromise, viemChain);
-
-    return await writePromise;
-  };
+  const transferFrom = (from: string, to: string, amount: bigint) =>
+    contract.write('transferFrom', [from, to, amount], 'Transfer From Token Remote');
 
   // Write functions - Remote-specific
-  const send = async (input: SendTokensInput, amount: bigint): Promise<string> => {
-    if (!walletClient || !contractAddress || !walletEVMAddress || !viemChain) {
-      throw new Error('Wallet not connected or contract not ready');
-    }
+  const send = (input: SendTokensInput, amount: bigint) =>
+    contract.write(
+      'send',
+      [input, amount],
+      `Send ${tokenType === 'erc20' ? 'ERC20' : 'Native'} Token Remote`
+    );
 
-    const writePromise = walletClient!.writeContract({
-      address: contractAddress as `0x${string}`,
-      abi: abi,
-      functionName: 'send',
-      args: [input, amount],
-      chain: viemChain,
-      account: walletEVMAddress as `0x${string}`,
-      gas: BigInt(1_000_000),
-    });
+  const sendAndCall = (input: any, amount: bigint) =>
+    contract.write(
+      'sendAndCall',
+      [input, amount],
+      `Send And Call ${tokenType === 'erc20' ? 'ERC20' : 'Native'} Token Remote`
+    );
 
-    notify({
-      type: 'call',
-      name: `Send ${tokenType === 'erc20' ? 'ERC20' : 'Native'} Token Remote`
-    }, writePromise, viemChain);
+  const registerWithHome = (feeInfo: readonly [`0x${string}`, bigint]) =>
+    contract.write('registerWithHome', [feeInfo], 'Register Token Remote With Home');
 
-    return await writePromise;
-  };
-
-  const sendAndCall = async (input: any, amount: bigint): Promise<string> => {
-    if (!walletClient || !contractAddress || !walletEVMAddress || !viemChain) {
-      throw new Error('Wallet not connected or contract not ready');
-    }
-
-    const writePromise = walletClient!.writeContract({
-      address: contractAddress as `0x${string}`,
-      abi: abi,
-      functionName: 'sendAndCall',
-      args: [input, amount],
-      chain: viemChain,
-      account: walletEVMAddress as `0x${string}`,
-      gas: BigInt(1_000_000),
-    });
-
-    notify({
-      type: 'call',
-      name: `Send And Call ${tokenType === 'erc20' ? 'ERC20' : 'Native'} Token Remote`
-    }, writePromise, viemChain);
-
-    return await writePromise;
-  };
-
-  const registerWithHome = async (
-    feeInfo: readonly [`0x${string}`, bigint]
-  ): Promise<string> => {
-    if (!walletClient || !contractAddress || !walletEVMAddress || !viemChain) {
-      throw new Error('Wallet not connected or contract not ready');
-    }
-
-    const config: any = {
-      address: contractAddress as `0x${string}`,
-      abi: abi,
-      functionName: 'registerWithHome',
-      args: [feeInfo],
-      chain: viemChain,
-      account: walletEVMAddress as `0x${string}`,
-      gas: BigInt(1_000_000),
-    };
-
-    const writePromise = walletClient!.writeContract(config);
-
-    notify({
-      type: 'call',
-      name: 'Register Token Remote With Home'
-    }, writePromise, viemChain);
-
-    return await writePromise;
-  };
-
-  const initialize = async (
+  const initialize = (
     teleporterRegistryAddress: string,
     teleporterManager: string,
     tokenHomeBlockchainID: string,
@@ -425,140 +134,31 @@ export function useTokenRemote(
     tokenName: string,
     tokenSymbol: string,
     tokenDecimals: number
-  ): Promise<string> => {
-    if (!walletClient || !contractAddress || !walletEVMAddress || !viemChain) {
-      throw new Error('Wallet not connected or contract not ready');
-    }
+  ) => contract.write(
+    'initialize',
+    [teleporterRegistryAddress, teleporterManager, tokenHomeBlockchainID, tokenHomeAddress, tokenHomeDecimals, tokenName, tokenSymbol, tokenDecimals],
+    `Initialize ${tokenType === 'erc20' ? 'ERC20' : 'Native'} Token Remote`
+  );
 
-    const writePromise = walletClient!.writeContract({
-      address: contractAddress as `0x${string}`,
-      abi: abi,
-      functionName: 'initialize',
-      args: [
-        teleporterRegistryAddress,
-        teleporterManager,
-        tokenHomeBlockchainID,
-        tokenHomeAddress,
-        tokenHomeDecimals,
-        tokenName,
-        tokenSymbol,
-        tokenDecimals
-      ],
-      chain: viemChain,
-      account: walletEVMAddress as `0x${string}`,
-      gas: BigInt(1_000_000),
-    });
+  const transferOwnership = (newOwner: string) =>
+    contract.write('transferOwnership', [newOwner], 'Transfer Token Remote Ownership');
 
-    notify({
-      type: 'call',
-      name: `Initialize ${tokenType === 'erc20' ? 'ERC20' : 'Native'} Token Remote`
-    }, writePromise, viemChain);
+  const updateMinTeleporterVersion = (minTeleporterVersion: bigint) =>
+    contract.write('updateMinTeleporterVersion', [minTeleporterVersion], 'Update Min Teleporter Version');
 
-    return await writePromise;
-  };
+  const pauseTeleporterAddress = (address: string) =>
+    contract.write('pauseTeleporterAddress', [address], 'Pause Teleporter Address');
 
-  const transferOwnership = async (newOwner: string): Promise<string> => {
-    if (!walletClient || !contractAddress || !walletEVMAddress || !viemChain) {
-      throw new Error('Wallet not connected or contract not ready');
-    }
-
-    const writePromise = walletClient!.writeContract({
-      address: contractAddress as `0x${string}`,
-      abi: abi,
-      functionName: 'transferOwnership',
-      args: [newOwner],
-      chain: viemChain,
-      account: walletEVMAddress as `0x${string}`,
-      gas: BigInt(1_000_000),
-    });
-
-    notify({
-      type: 'call',
-      name: 'Transfer Token Remote Ownership'
-    }, writePromise, viemChain);
-
-    return await writePromise;
-  };
-
-  const updateMinTeleporterVersion = async (minTeleporterVersion: bigint): Promise<string> => {
-    if (!walletClient || !contractAddress || !walletEVMAddress || !viemChain) {
-      throw new Error('Wallet not connected or contract not ready');
-    }
-
-    const writePromise = walletClient!.writeContract({
-      address: contractAddress as `0x${string}`,
-      abi: abi,
-      functionName: 'updateMinTeleporterVersion',
-      args: [minTeleporterVersion],
-      chain: viemChain,
-      account: walletEVMAddress as `0x${string}`,
-      gas: BigInt(1_000_000),
-    });
-
-    notify({
-      type: 'call',
-      name: 'Update Min Teleporter Version'
-    }, writePromise, viemChain);
-
-    return await writePromise;
-  };
-
-  const pauseTeleporterAddress = async (address: string): Promise<string> => {
-    if (!walletClient || !contractAddress || !walletEVMAddress || !viemChain) {
-      throw new Error('Wallet not connected or contract not ready');
-    }
-
-    const writePromise = walletClient!.writeContract({
-      address: contractAddress as `0x${string}`,
-      abi: abi,
-      functionName: 'pauseTeleporterAddress',
-      args: [address],
-      chain: viemChain,
-      account: walletEVMAddress as `0x${string}`,
-      gas: BigInt(1_000_000),
-    });
-
-    notify({
-      type: 'call',
-      name: 'Pause Teleporter Address'
-    }, writePromise, viemChain);
-
-    return await writePromise;
-  };
-
-  const unpauseTeleporterAddress = async (address: string): Promise<string> => {
-    if (!walletClient || !contractAddress || !walletEVMAddress || !viemChain) {
-      throw new Error('Wallet not connected or contract not ready');
-    }
-
-    const writePromise = walletClient!.writeContract({
-      address: contractAddress as `0x${string}`,
-      abi: abi,
-      functionName: 'unpauseTeleporterAddress',
-      args: [address],
-      chain: viemChain,
-      account: walletEVMAddress as `0x${string}`,
-      gas: BigInt(1_000_000),
-    });
-
-    notify({
-      type: 'call',
-      name: 'Unpause Teleporter Address'
-    }, writePromise, viemChain);
-
-    return await writePromise;
-  };
+  const unpauseTeleporterAddress = (address: string) =>
+    contract.write('unpauseTeleporterAddress', [address], 'Unpause Teleporter Address');
 
   return {
-    // Read functions - ERC20-like
     name,
     symbol,
     decimals,
     balanceOf,
     totalSupply,
     allowance,
-
-    // Read functions - Remote-specific
     getTokenHomeAddress,
     getTokenHomeBlockchainID,
     getBlockchainID,
@@ -569,13 +169,9 @@ export function useTokenRemote(
     owner,
     getMinTeleporterVersion,
     isTeleporterAddressPaused,
-
-    // Write functions - ERC20-like
     transfer,
     approve,
     transferFrom,
-
-    // Write functions - Remote-specific
     send,
     sendAndCall,
     registerWithHome,
@@ -584,10 +180,8 @@ export function useTokenRemote(
     updateMinTeleporterVersion,
     pauseTeleporterAddress,
     unpauseTeleporterAddress,
-
-    // Metadata
     contractAddress,
     tokenType,
-    isReady
+    isReady: contract.isReady,
   };
 }

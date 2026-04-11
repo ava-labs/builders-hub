@@ -1,9 +1,4 @@
-import { useWalletStore } from '../../../stores/walletStore';
-import { useViemChainStore } from '../../../stores/toolboxStore';
-import { readContract } from 'viem/actions';
-import useConsoleNotifications from '@/hooks/useConsoleNotifications';
-import { useWallet } from '../../useWallet';
-import { useResolvedWalletClient } from '../../useResolvedWalletClient';
+import { useContractActions } from '../useContractActions';
 import ProxyAdminAbi from '@/contracts/openzeppelin-4.9/compiled/ProxyAdmin.json';
 
 export interface ProxyAdminHook {
@@ -32,156 +27,26 @@ export function useProxyAdmin(
   contractAddress: string | null,
   abi?: any
 ): ProxyAdminHook {
-  const { walletEVMAddress } = useWalletStore();
-  const viemChain = useViemChainStore();
-  const { notify } = useConsoleNotifications();
-  const { avalancheWalletClient } = useWallet();
-  const walletClient = useResolvedWalletClient();
-
-  const contractAbi = abi ?? ProxyAdminAbi.abi;
-  const isReady = Boolean(contractAddress && walletClient && viemChain);
-
-  // Read functions
-  const owner = async (): Promise<string> => {
-    if (!avalancheWalletClient || !contractAddress) throw new Error('Contract not ready');
-
-    return await readContract(avalancheWalletClient as any, {
-      address: contractAddress as `0x${string}`,
-      abi: contractAbi,
-      functionName: 'owner',
-      args: []
-    }) as string;
-  };
-
-  const getProxyImplementation = async (proxy: string): Promise<string> => {
-    if (!avalancheWalletClient || !contractAddress) throw new Error('Contract not ready');
-
-    return await readContract(avalancheWalletClient as any, {
-      address: contractAddress as `0x${string}`,
-      abi: contractAbi,
-      functionName: 'getProxyImplementation',
-      args: [proxy]
-    }) as string;
-  };
-
-  const getProxyAdmin = async (proxy: string): Promise<string> => {
-    if (!avalancheWalletClient || !contractAddress) throw new Error('Contract not ready');
-
-    return await readContract(avalancheWalletClient as any, {
-      address: contractAddress as `0x${string}`,
-      abi: contractAbi,
-      functionName: 'getProxyAdmin',
-      args: [proxy]
-    }) as string;
-  };
-
-  // Write functions
-  const transferOwnership = async (newOwner: string): Promise<string> => {
-    if (!walletClient || !contractAddress || !walletEVMAddress || !viemChain) {
-      throw new Error('Wallet not connected or contract not ready');
-    }
-
-    const writePromise = walletClient!.writeContract({
-      address: contractAddress as `0x${string}`,
-      abi: contractAbi,
-      functionName: 'transferOwnership',
-      args: [newOwner],
-      chain: viemChain,
-      account: walletEVMAddress as `0x${string}`,
-      gas: BigInt(1_000_000),
-    });
-
-    notify({
-      type: 'call',
-      name: 'Transfer Proxy Admin Ownership'
-    }, writePromise, viemChain);
-
-    return await writePromise;
-  };
-
-  const upgrade = async (proxy: string, implementation: string): Promise<string> => {
-    if (!walletClient || !contractAddress || !walletEVMAddress || !viemChain) {
-      throw new Error('Wallet not connected or contract not ready');
-    }
-
-    const writePromise = walletClient!.writeContract({
-      address: contractAddress as `0x${string}`,
-      abi: contractAbi,
-      functionName: 'upgrade',
-      args: [proxy, implementation],
-      chain: viemChain,
-      account: walletEVMAddress as `0x${string}`,
-      gas: BigInt(1_000_000),
-    });
-
-    notify({
-      type: 'call',
-      name: 'Upgrade Proxy'
-    }, writePromise, viemChain);
-
-    return await writePromise;
-  };
-
-  const upgradeAndCall = async (proxy: string, implementation: string, data: string): Promise<string> => {
-    if (!walletClient || !contractAddress || !walletEVMAddress || !viemChain) {
-      throw new Error('Wallet not connected or contract not ready');
-    }
-
-    const writePromise = walletClient!.writeContract({
-      address: contractAddress as `0x${string}`,
-      abi: contractAbi,
-      functionName: 'upgradeAndCall',
-      args: [proxy, implementation, data],
-      chain: viemChain,
-      account: walletEVMAddress as `0x${string}`,
-      gas: BigInt(1_000_000),
-    });
-
-    notify({
-      type: 'call',
-      name: 'Upgrade And Call Proxy'
-    }, writePromise, viemChain);
-
-    return await writePromise;
-  };
-
-  const changeProxyAdmin = async (proxy: string, newAdmin: string): Promise<string> => {
-    if (!walletClient || !contractAddress || !walletEVMAddress || !viemChain) {
-      throw new Error('Wallet not connected or contract not ready');
-    }
-
-    const writePromise = walletClient!.writeContract({
-      address: contractAddress as `0x${string}`,
-      abi: contractAbi,
-      functionName: 'changeProxyAdmin',
-      args: [proxy, newAdmin],
-      chain: viemChain,
-      account: walletEVMAddress as `0x${string}`,
-      gas: BigInt(1_000_000),
-    });
-
-    notify({
-      type: 'call',
-      name: 'Change Proxy Admin'
-    }, writePromise, viemChain);
-
-    return await writePromise;
-  };
+  const contract = useContractActions(contractAddress, abi ?? ProxyAdminAbi.abi);
 
   return {
     // Read functions
-    owner,
-    getProxyImplementation,
-    getProxyAdmin,
+    owner: () => contract.read('owner') as Promise<string>,
+    getProxyImplementation: (proxy) => contract.read('getProxyImplementation', [proxy]) as Promise<string>,
+    getProxyAdmin: (proxy) => contract.read('getProxyAdmin', [proxy]) as Promise<string>,
 
     // Write functions
-    transferOwnership,
-    upgrade,
-    upgradeAndCall,
-    changeProxyAdmin,
+    transferOwnership: (newOwner) =>
+      contract.write('transferOwnership', [newOwner], 'Transfer Proxy Admin Ownership'),
+    upgrade: (proxy, implementation) =>
+      contract.write('upgrade', [proxy, implementation], 'Upgrade Proxy'),
+    upgradeAndCall: (proxy, implementation, data) =>
+      contract.write('upgradeAndCall', [proxy, implementation, data], 'Upgrade And Call Proxy'),
+    changeProxyAdmin: (proxy, newAdmin) =>
+      contract.write('changeProxyAdmin', [proxy, newAdmin], 'Change Proxy Admin'),
 
     // Metadata
-    contractAddress,
-    isReady
+    contractAddress: contract.contractAddress,
+    isReady: contract.isReady,
   };
 }

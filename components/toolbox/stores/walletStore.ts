@@ -18,7 +18,7 @@ interface WalletState {
 
   // Wallet connection data
   walletChainId: number;
-  walletEVMAddress: string;
+  walletEVMAddress: `0x${string}` | '';
   pChainAddress: string;
   coreEthAddress: string;
 
@@ -53,7 +53,7 @@ interface WalletActions {
   // Simplified setters - group related updates
   updateWalletConnection: (data: {
     coreWalletClient?: CoreWalletClientType | null;
-    walletEVMAddress?: string;
+    walletEVMAddress?: `0x${string}` | '';
     walletChainId?: number;
     pChainAddress?: string;
     coreEthAddress?: string;
@@ -72,7 +72,7 @@ interface WalletActions {
   // Legacy individual setters for backward compatibility
   setCoreWalletClient: (coreWalletClient: CoreWalletClientType | null) => void;
   setWalletChainId: (walletChainId: number) => void;
-  setWalletEVMAddress: (walletEVMAddress: string) => void;
+  setWalletEVMAddress: (walletEVMAddress: `0x${string}` | '') => void;
   setAvalancheNetworkID: (avalancheNetworkID: typeof networkIDs.FujiID | typeof networkIDs.MainnetID) => void;
   setPChainAddress: (pChainAddress: string) => void;
   setCoreEthAddress: (coreEthAddress: string) => void;
@@ -123,7 +123,7 @@ export const useWalletStore = create<WalletStore>((set, get) => {
         : http(avalancheFuji.rpcUrls.default.http[0]),
     }),
     walletChainId: 0,
-    walletEVMAddress: "",
+    walletEVMAddress: "" as `0x${string}` | '',
     avalancheNetworkID: networkIDs.FujiID as typeof networkIDs.FujiID | typeof networkIDs.MainnetID,
     pChainAddress: "",
     coreEthAddress: "",
@@ -144,7 +144,7 @@ export const useWalletStore = create<WalletStore>((set, get) => {
     selectedToken: null,
 
     // Actions
-    updateWalletConnection: (data: { coreWalletClient?: CoreWalletClientType | null; walletEVMAddress?: string; walletChainId?: number; pChainAddress?: string; coreEthAddress?: string; }) => {
+    updateWalletConnection: (data: { coreWalletClient?: CoreWalletClientType | null; walletEVMAddress?: `0x${string}` | ''; walletChainId?: number; pChainAddress?: string; coreEthAddress?: string; }) => {
       set((state) => ({ ...state, ...data }));
     },
 
@@ -208,7 +208,7 @@ export const useWalletStore = create<WalletStore>((set, get) => {
     // Legacy individual setters for backward compatibility
     setCoreWalletClient: (coreWalletClient: CoreWalletClientType | null) => set({ coreWalletClient }),
     setWalletChainId: (walletChainId: number) => set({ walletChainId }),
-    setWalletEVMAddress: (walletEVMAddress: string) => set({ walletEVMAddress }),
+    setWalletEVMAddress: (walletEVMAddress: `0x${string}` | '') => set({ walletEVMAddress }),
     setAvalancheNetworkID: (avalancheNetworkID: typeof networkIDs.FujiID | typeof networkIDs.MainnetID) => set({ avalancheNetworkID }),
     setPChainAddress: (pChainAddress: string) => set({ pChainAddress }),
     setCoreEthAddress: (coreEthAddress: string) => set({ coreEthAddress }),

@@ -1,11 +1,5 @@
-import { useWalletStore } from '../../../stores/walletStore';
-import { useViemChainStore } from '../../../stores/toolboxStore';
-import { readContract } from 'viem/actions';
-import useConsoleNotifications from '@/hooks/useConsoleNotifications';
-import { useResolvedWalletClient } from '../../useResolvedWalletClient';
 import PoAManagerAbi from '@/contracts/icm-contracts/compiled/PoAManager.json';
-import { useChainPublicClient } from '../../useChainPublicClient';
-import { parseContractError } from '../parseContractError';
+import { useContractActions } from '../useContractActions';
 import { PChainOwner, ValidatorData } from '../core/useValidatorManager';
 
 export interface PoAManagerHook {
@@ -44,272 +38,46 @@ export function usePoAManager(
   contractAddress: string | null,
   abi?: any
 ): PoAManagerHook {
-  const { walletEVMAddress } = useWalletStore();
-  const viemChain = useViemChainStore();
-  const { notify } = useConsoleNotifications();
-  const walletClient = useResolvedWalletClient();
-  const chainPublicClient = useChainPublicClient();
-
-  const contractAbi = abi ?? PoAManagerAbi.abi;
-  const isReady = Boolean(contractAddress && walletClient && viemChain);
-  const isReadReady = Boolean(contractAddress && chainPublicClient);
-
-  const write = async <T>(fn: () => Promise<T>): Promise<T> => {
-    try { return await fn(); } catch (err) { throw new Error(parseContractError(err)); }
-  };
-
-  // Read functions
-  const owner = async (): Promise<string> => {
-    if (!chainPublicClient || !contractAddress) throw new Error('Contract not ready');
-
-    return await readContract(chainPublicClient as any, {
-      address: contractAddress as `0x${string}`,
-      abi: contractAbi,
-      functionName: 'owner',
-      args: []
-    }) as string;
-  };
-
-  const getValidator = async (validationID: string): Promise<ValidatorData> => {
-    if (!chainPublicClient || !contractAddress) throw new Error('Contract not ready');
-
-    const result = await readContract(chainPublicClient as any, {
-      address: contractAddress as `0x${string}`,
-      abi: contractAbi,
-      functionName: 'getValidator',
-      args: [validationID]
-    });
-
-    return result as ValidatorData;
-  };
-
-  // Write functions
-  const completeValidatorRegistration = async (messageIndex: number, accessList?: any[]): Promise<string> => {
-    if (!walletClient || !contractAddress || !walletEVMAddress || !viemChain) {
-      throw new Error('Wallet not connected or contract not ready');
-    }
-
-    const txConfig: any = {
-      address: contractAddress as `0x${string}`,
-      abi: contractAbi,
-      functionName: 'completeValidatorRegistration',
-      args: [messageIndex],
-      chain: viemChain,
-      account: walletEVMAddress as `0x${string}`,
-      gas: BigInt(1_000_000),
-    };
-
-    if (accessList) {
-      txConfig.accessList = accessList;
-    }
-
-    const writePromise = walletClient.writeContract(txConfig);
-
-    notify({
-      type: 'call',
-      name: 'Complete Validator Registration'
-    }, writePromise, viemChain);
-
-    return await write(() => writePromise);
-  };
-
-  const completeValidatorRemoval = async (messageIndex: number, accessList?: any[]): Promise<string> => {
-    if (!walletClient || !contractAddress || !walletEVMAddress || !viemChain) {
-      throw new Error('Wallet not connected or contract not ready');
-    }
-
-    const txConfig: any = {
-      address: contractAddress as `0x${string}`,
-      abi: contractAbi,
-      functionName: 'completeValidatorRemoval',
-      args: [messageIndex],
-      chain: viemChain,
-      account: walletEVMAddress as `0x${string}`,
-      gas: BigInt(1_000_000),
-    };
-
-    if (accessList) {
-      txConfig.accessList = accessList;
-    }
-
-    const writePromise = walletClient.writeContract(txConfig);
-
-    notify({
-      type: 'call',
-      name: 'Complete Validator Removal'
-    }, writePromise, viemChain);
-
-    return await write(() => writePromise);
-  };
-
-  const completeValidatorWeightUpdate = async (messageIndex: number, accessList?: any[]): Promise<string> => {
-    if (!walletClient || !contractAddress || !walletEVMAddress || !viemChain) {
-      throw new Error('Wallet not connected or contract not ready');
-    }
-
-    const txConfig: any = {
-      address: contractAddress as `0x${string}`,
-      abi: contractAbi,
-      functionName: 'completeValidatorWeightUpdate',
-      args: [messageIndex],
-      chain: viemChain,
-      account: walletEVMAddress as `0x${string}`,
-      gas: BigInt(1_000_000),
-    };
-
-    if (accessList) {
-      txConfig.accessList = accessList;
-    }
-
-    const writePromise = walletClient.writeContract(txConfig);
-
-    notify({
-      type: 'call',
-      name: 'Complete Validator Weight Update'
-    }, writePromise, viemChain);
-
-    return await write(() => writePromise);
-  };
-
-  const initiateValidatorRegistration = async (
-    nodeID: string,
-    blsPublicKey: string,
-    remainingBalanceOwner: PChainOwner,
-    disableOwner: PChainOwner,
-    weight: bigint
-  ): Promise<string> => {
-    if (!walletClient || !contractAddress || !walletEVMAddress || !viemChain) {
-      throw new Error('Wallet not connected or contract not ready');
-    }
-
-    const writePromise = walletClient.writeContract({
-      address: contractAddress as `0x${string}`,
-      abi: contractAbi,
-      functionName: 'initiateValidatorRegistration',
-      args: [nodeID, blsPublicKey, remainingBalanceOwner, disableOwner, weight],
-      chain: viemChain,
-      account: walletEVMAddress as `0x${string}`,
-      gas: BigInt(1_000_000),
-    });
-
-    notify({
-      type: 'call',
-      name: 'Initiate Validator Registration (PoA)'
-    }, writePromise, viemChain);
-
-    return await write(() => writePromise);
-  };
-
-  const initiateValidatorRemoval = async (validationID: string): Promise<string> => {
-    if (!walletClient || !contractAddress || !walletEVMAddress || !viemChain) {
-      throw new Error('Wallet not connected or contract not ready');
-    }
-
-    const writePromise = walletClient.writeContract({
-      address: contractAddress as `0x${string}`,
-      abi: contractAbi,
-      functionName: 'initiateValidatorRemoval',
-      args: [validationID],
-      chain: viemChain,
-      account: walletEVMAddress as `0x${string}`,
-      gas: BigInt(1_000_000),
-    });
-
-    notify({
-      type: 'call',
-      name: 'Initiate Validator Removal (PoA)'
-    }, writePromise, viemChain);
-
-    return await write(() => writePromise);
-  };
-
-  const initiateValidatorWeightUpdate = async (validationID: string, weight: bigint): Promise<string> => {
-    if (!walletClient || !contractAddress || !walletEVMAddress || !viemChain) {
-      throw new Error('Wallet not connected or contract not ready');
-    }
-
-    const writePromise = walletClient.writeContract({
-      address: contractAddress as `0x${string}`,
-      abi: contractAbi,
-      functionName: 'initiateValidatorWeightUpdate',
-      args: [validationID, weight],
-      chain: viemChain,
-      account: walletEVMAddress as `0x${string}`,
-      gas: BigInt(1_000_000),
-    });
-
-    notify({
-      type: 'call',
-      name: 'Initiate Validator Weight Update (PoA)'
-    }, writePromise, viemChain);
-
-    return await write(() => writePromise);
-  };
-
-  const transferOwnership = async (newOwner: string): Promise<string> => {
-    if (!walletClient || !contractAddress || !walletEVMAddress || !viemChain) {
-      throw new Error('Wallet not connected or contract not ready');
-    }
-
-    const writePromise = walletClient.writeContract({
-      address: contractAddress as `0x${string}`,
-      abi: contractAbi,
-      functionName: 'transferOwnership',
-      args: [newOwner],
-      chain: viemChain,
-      account: walletEVMAddress as `0x${string}`,
-      gas: BigInt(1_000_000),
-    });
-
-    notify({
-      type: 'call',
-      name: 'Transfer PoA Manager Ownership'
-    }, writePromise, viemChain);
-
-    return await write(() => writePromise);
-  };
-
-  const transferValidatorManagerOwnership = async (newOwner: string): Promise<string> => {
-    if (!walletClient || !contractAddress || !walletEVMAddress || !viemChain) {
-      throw new Error('Wallet not connected or contract not ready');
-    }
-
-    const writePromise = walletClient.writeContract({
-      address: contractAddress as `0x${string}`,
-      abi: contractAbi,
-      functionName: 'transferValidatorManagerOwnership',
-      args: [newOwner],
-      chain: viemChain,
-      account: walletEVMAddress as `0x${string}`,
-      gas: BigInt(1_000_000),
-    });
-
-    notify({
-      type: 'call',
-      name: 'Transfer Validator Manager Ownership (via PoA)'
-    }, writePromise, viemChain);
-
-    return await write(() => writePromise);
-  };
+  const { read, write, isReady, isReadReady } = useContractActions(
+    contractAddress,
+    abi ?? PoAManagerAbi.abi
+  );
 
   return {
     // Read functions
-    owner,
-    getValidator,
+    owner: () =>
+      read('owner') as Promise<string>,
+    getValidator: (validationID) =>
+      read('getValidator', [validationID]) as Promise<ValidatorData>,
 
     // Write functions
-    completeValidatorRegistration,
-    completeValidatorRemoval,
-    completeValidatorWeightUpdate,
-    initiateValidatorRegistration,
-    initiateValidatorRemoval,
-    initiateValidatorWeightUpdate,
-    transferOwnership,
-    transferValidatorManagerOwnership,
+    completeValidatorRegistration: (messageIndex, accessList?) =>
+      write('completeValidatorRegistration', [messageIndex], 'Complete Validator Registration', { accessList }),
+
+    completeValidatorRemoval: (messageIndex, accessList?) =>
+      write('completeValidatorRemoval', [messageIndex], 'Complete Validator Removal', { accessList }),
+
+    completeValidatorWeightUpdate: (messageIndex, accessList?) =>
+      write('completeValidatorWeightUpdate', [messageIndex], 'Complete Validator Weight Update', { accessList }),
+
+    initiateValidatorRegistration: (nodeID, blsPublicKey, remainingBalanceOwner, disableOwner, weight) =>
+      write('initiateValidatorRegistration', [nodeID, blsPublicKey, remainingBalanceOwner, disableOwner, weight], 'Initiate Validator Registration (PoA)'),
+
+    initiateValidatorRemoval: (validationID) =>
+      write('initiateValidatorRemoval', [validationID], 'Initiate Validator Removal (PoA)'),
+
+    initiateValidatorWeightUpdate: (validationID, weight) =>
+      write('initiateValidatorWeightUpdate', [validationID, weight], 'Initiate Validator Weight Update (PoA)'),
+
+    transferOwnership: (newOwner) =>
+      write('transferOwnership', [newOwner], 'Transfer PoA Manager Ownership'),
+
+    transferValidatorManagerOwnership: (newOwner) =>
+      write('transferValidatorManagerOwnership', [newOwner], 'Transfer Validator Manager Ownership (via PoA)'),
 
     // Metadata
     contractAddress,
     isReady,
-    isReadReady
+    isReadReady,
   };
 }
