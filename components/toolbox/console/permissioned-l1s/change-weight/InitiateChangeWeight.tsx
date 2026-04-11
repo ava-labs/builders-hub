@@ -5,7 +5,6 @@ import { Button } from '@/components/toolbox/components/Button';
 import SelectValidationID, { ValidationSelection } from '@/components/toolbox/components/SelectValidationID';
 import { getValidatorWeight } from '@/components/toolbox/coreViem/hooks/getValidatorWeight';
 import { validateStakePercentage } from '@/components/toolbox/coreViem/hooks/getTotalStake';
-import { Success } from '@/components/toolbox/components/Success';
 import { Alert } from '@/components/toolbox/components/Alert';
 import { MultisigOption } from '@/components/toolbox/components/MultisigOption';
 import { useValidatorManager } from '@/components/toolbox/hooks/contracts';
@@ -284,15 +283,6 @@ const InitiateChangeWeight: React.FC<InitiateChangeWeightProps> = ({
       )}
 
       {error && <Alert variant="error">{error}</Alert>}
-
-      {txSuccess && (
-        <Success
-          label="Transaction Hash"
-          value={txSuccess
-            .replace('Transaction successful! Hash: ', '')
-            .replace('Multisig transaction proposed! Hash: ', '')}
-        />
-      )}
     </div>
   );
 };

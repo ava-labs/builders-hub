@@ -4,7 +4,6 @@ import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedWalletClient';
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { Button } from '@/components/toolbox/components/Button';
-import { Success } from '@/components/toolbox/components/Success';
 import ExampleERC20ABI from '@/contracts/icm-contracts/compiled/ExampleERC20.json';
 import { createPublicClient, http, formatUnits, parseUnits, Address, Chain } from 'viem';
 import { Input, Suggestion } from '@/components/toolbox/components/Input';
@@ -728,9 +727,6 @@ function AddCollateral() {
             Refresh Status
           </Button>
         </div>
-
-        {lastApprovalTxId && <Success label="Approval Transaction ID" value={lastApprovalTxId} />}
-        {lastAddCollateralTxId && <Success label="Add Collateral Transaction ID" value={lastAddCollateralTxId} />}
       </div>
 
       <ContractFunctionViewer

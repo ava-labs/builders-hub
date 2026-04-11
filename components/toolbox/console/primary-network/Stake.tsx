@@ -22,7 +22,6 @@ import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubU
 import { Alert } from '@/components/toolbox/components/Alert';
 import { SDKCodeViewer, type SDKCodeSource } from '@/components/console/sdk-code-viewer';
 import { CliAlternative } from '@/components/console/cli-alternative';
-import { Success } from '@/components/toolbox/components/Success';
 import Link from 'next/link';
 
 const STAKE_VALIDATOR_SOURCE = `import type { AvalanchePChainWalletClient } from "@avalanche-sdk/client";
@@ -258,7 +257,6 @@ function Stake({ onSuccess }: BaseConsoleToolProps) {
       <div>
         {txId ? (
           <div className="space-y-4">
-            <Success label="Validator Staked" value={txId} isTestnet={isTestnet} xpChain="P" />
             <Button
               variant="secondary"
               onClick={() => {

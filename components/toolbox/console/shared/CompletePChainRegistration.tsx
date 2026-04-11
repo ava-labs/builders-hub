@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { Button } from '@/components/toolbox/components/Button';
 import { Input } from '@/components/toolbox/components/Input';
-import { Success } from '@/components/toolbox/components/Success';
 import { Alert } from '@/components/toolbox/components/Alert';
 import { GetRegistrationJustification } from '@/components/toolbox/console/permissioned-l1s/validator-manager/justification';
 import { packWarpIntoAccessList } from '@/components/toolbox/console/permissioned-l1s/validator-manager/packWarp';
@@ -462,8 +461,6 @@ const CompletePChainRegistration: React.FC<CompletePChainRegistrationProps> = ({
         </div>
       )}
 
-      {/* Success */}
-      {txHash && <Success label="Transaction Hash" value={txHash} />}
       {registrationComplete && (
         <div className="p-3 rounded-xl border bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800">
           <p className="text-sm text-green-800 dark:text-green-200">

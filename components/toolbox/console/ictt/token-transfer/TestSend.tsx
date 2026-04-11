@@ -7,7 +7,6 @@ import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedWalletClient';
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { Button } from '@/components/toolbox/components/Button';
-import { Success } from '@/components/toolbox/components/Success';
 import ERC20TokenHomeABI from '@/contracts/icm-contracts/compiled/ERC20TokenHome.json';
 import NativeTokenHomeABI from '@/contracts/icm-contracts/compiled/NativeTokenHome.json';
 import NativeTokenRemoteABI from '@/contracts/icm-contracts/compiled/NativeTokenRemote.json';
@@ -792,10 +791,6 @@ export default function TokenBridge() {
         </Button>
       </div>
 
-      {lastApprovalTxId && <Success label="Approval Transaction ID" value={lastApprovalTxId} />}
-      {/* {lastSendTxId && (
-                <Success label="Send Transaction ID" value={lastSendTxId} />
-            )} */}
       {lastSendTxId && lastSendTxDetails && (
         <div className="w-full border rounded-md bg-gray-50 dark:bg-gray-800">
           <div className="flex w-full items-center justify-evenly p-6">

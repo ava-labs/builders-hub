@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { Button } from '@/components/toolbox/components/Button';
 import { Input } from '@/components/toolbox/components/Input';
-import { Success } from '@/components/toolbox/components/Success';
 import { Alert } from '@/components/toolbox/components/Alert';
 import { bytesToHex, hexToBytes, encodeFunctionData, Abi } from 'viem';
 import { GetRegistrationJustification } from '../validator-manager/justification';
@@ -374,9 +373,6 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
           <DynamicCodeBlock lang="bash" code={generateCastCommand()} />
         </div>
       )}
-
-      {/* Success */}
-      {transactionHash && <Success label="Transaction Hash" value={transactionHash} />}
     </div>
   );
 };

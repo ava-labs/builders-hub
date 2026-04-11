@@ -17,7 +17,6 @@ import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubU
 import { AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { CoreWalletTransactionButton } from '@/components/toolbox/components/CoreWalletTransactionButton';
-import { Success } from '@/components/toolbox/components/Success';
 import { useSubmitPChainTx } from '@/components/toolbox/hooks/useSubmitPChainTx';
 
 // Import Genesis Wizard components
@@ -274,8 +273,6 @@ function CreateChain({ onSuccess, embedded = false }: CreateChainProps) {
           )}
         </Step>
       </Steps>
-
-      {chainID && <Success label="Chain Created" value={chainID} />}
     </div>
   );
 }

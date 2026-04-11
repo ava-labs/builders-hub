@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
 import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { Button } from '@/components/toolbox/components/Button';
-import { Success } from '@/components/toolbox/components/Success';
 import { Alert } from '@/components/toolbox/components/Alert';
 import { useNativeTokenStakingManager, useERC20TokenStakingManager } from '@/components/toolbox/hooks/contracts';
 import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedWalletClient';
@@ -133,14 +132,11 @@ const ClaimDelegationFees: React.FC<ClaimDelegationFeesProps> = ({
       </Button>
 
       {txHash && (
-        <>
-          <Success label="Transaction Hash" value={txHash} />
-          <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-md">
-            <p className="text-sm text-green-800 dark:text-green-200">
-              <strong>Success!</strong> Delegation fees have been claimed and transferred to your address.
-            </p>
-          </div>
-        </>
+        <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-md">
+          <p className="text-sm text-green-800 dark:text-green-200">
+            <strong>Success!</strong> Delegation fees have been claimed and transferred to your address.
+          </p>
+        </div>
       )}
 
       <Alert variant="warning">

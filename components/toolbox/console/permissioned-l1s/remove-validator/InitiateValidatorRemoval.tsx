@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { Button } from '@/components/toolbox/components/Button';
 import SelectValidationID, { ValidationSelection } from '@/components/toolbox/components/SelectValidationID';
-import { Success } from '@/components/toolbox/components/Success';
 import { Alert } from '@/components/toolbox/components/Alert';
 import { MultisigOption } from '@/components/toolbox/components/MultisigOption';
 import { useValidatorManager } from '@/components/toolbox/hooks/contracts';
@@ -291,16 +290,6 @@ const InitiateValidatorRemoval: React.FC<InitiateValidatorRemovalProps> = ({
       )}
 
       {error && <Alert variant="error">{error}</Alert>}
-
-      {txSuccess && (
-        <Success
-          label="Transaction Hash"
-          value={txSuccess
-            .replace('Transaction successful! Hash: ', '')
-            .replace('Fallback transaction successful! Hash: ', '')
-            .replace('Multisig transaction proposed! Hash: ', '')}
-        />
-      )}
     </div>
   );
 };

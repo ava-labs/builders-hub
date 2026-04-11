@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { Button } from '@/components/toolbox/components/Button';
 import { Input } from '@/components/toolbox/components/Input';
-import { Success } from '@/components/toolbox/components/Success';
 import { Alert } from '@/components/toolbox/components/Alert';
 import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
@@ -441,11 +440,6 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
       {/* Non-Core: CLI command panel */}
       {!isCoreWallet && signedWarpMessage && !txSuccess && (
         <PChainManualSubmit cliCommand={generateCLICommand()} onSubmit={handleContinueWithManualTxId} />
-      )}
-
-      {/* Success */}
-      {txSuccess && (
-        <Success label="Transaction Hash" value={txSuccess.replace('P-Chain transaction successful! ID: ', '')} />
       )}
     </div>
   );

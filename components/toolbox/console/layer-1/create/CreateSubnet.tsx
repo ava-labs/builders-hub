@@ -14,7 +14,6 @@ import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalle
 import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
 import Link from 'next/link';
 import { CoreWalletTransactionButton } from '@/components/toolbox/components/CoreWalletTransactionButton';
-import { Success } from '@/components/toolbox/components/Success';
 import { useSubmitPChainTx } from '@/components/toolbox/hooks/useSubmitPChainTx';
 
 const metadata: ConsoleToolMetadata = {
@@ -86,9 +85,6 @@ function CreateSubnet(_props: BaseConsoleToolProps) {
       >
         Create Subnet
       </CoreWalletTransactionButton>
-
-      {/* Success display */}
-      {subnetId && <Success label="Subnet Created" value={subnetId} />}
 
       {/* "or" divider */}
       <div className="relative">

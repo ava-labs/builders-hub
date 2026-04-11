@@ -442,12 +442,7 @@ const InitiateDelegation: React.FC<InitiateDelegationProps> = ({
         {isProcessing ? 'Processing...' : 'Initiate Delegation'}
       </Button>
 
-      {txHash && (
-        <>
-          <Success label="Transaction Hash" value={txHash} />
-          {delegationID && <Success label="Delegation ID" value={delegationID} />}
-        </>
-      )}
+      {txHash && delegationID && <Success label="Delegation ID" value={delegationID} />}
     </div>
   );
 };

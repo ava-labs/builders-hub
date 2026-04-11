@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import { Steps, Step } from 'fumadocs-ui/components/steps';
-import { Success } from '@/components/toolbox/components/Success';
 import InitiateValidatorRegistration from '@/components/toolbox/console/permissionless-l1s/stake/InitiateValidatorRegistration';
 import CompletePChainRegistration from '@/components/toolbox/console/shared/CompletePChainRegistration';
 import SubmitPChainTxRegisterL1Validator from '@/components/toolbox/console/permissioned-l1s/add-validator/SubmitPChainTxRegisterL1Validator';
@@ -148,12 +147,6 @@ export default function StakeValidator({ tokenType, onSuccess }: StakeValidatorP
             }}
             onError={(message) => setGlobalError(message)}
           />
-
-          {pChainTxId && (
-            <div className="mt-4">
-              <Success label="P-Chain Transaction ID" value={pChainTxId} />
-            </div>
-          )}
         </Step>
 
         <Step>

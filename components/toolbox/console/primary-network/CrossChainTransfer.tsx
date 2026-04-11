@@ -6,7 +6,6 @@ import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { pvm, Utxo, TransferOutput, evm } from '@avalabs/avalanchejs';
 import { getRPCEndpoint } from '@/components/toolbox/coreViem/utils/rpc';
 import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
-import { Success } from '@/components/toolbox/components/Success';
 import { AmountInput } from '@/components/toolbox/components/AmountInput';
 import { StepIndicator } from '@/components/toolbox/components/StepCard';
 import { useConnectedWallet } from '@/components/toolbox/contexts/ConnectedWalletContext';
@@ -610,16 +609,6 @@ console.log("Import tx:", txnResponse.txHash);`,
             </div>
           )}
 
-          {/* Export success */}
-          {completedExportTxId && completedExportTxId !== 'utxo-available' && (
-            <Success
-              label="Export Completed"
-              value={completedExportTxId}
-              isTestnet={isTestnet}
-              xpChain={completedExportXPChain}
-            />
-          )}
-
           {/* Waiting for UTXOs after export */}
           {completedExportTxId && availableUTXOs.length === 0 && !exportLoading && (
             <div className="flex items-center justify-center gap-2 py-3 text-sm text-muted-foreground">
@@ -673,12 +662,6 @@ console.log("Import tx:", txnResponse.txHash);`,
           {/* Transfer complete */}
           {importTxId && (
             <>
-              <Success
-                label="Transfer Complete"
-                value={importTxId}
-                isTestnet={isTestnet}
-                xpChain={completedImportXPChain}
-              />
               <Button
                 variant="secondary"
                 onClick={() => {

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { Button } from '@/components/toolbox/components/Button';
 import { Input } from '@/components/toolbox/components/Input';
-import { Success } from '@/components/toolbox/components/Success';
 import { Alert } from '@/components/toolbox/components/Alert';
 import { packWarpIntoAccessList } from '@/components/toolbox/console/permissioned-l1s/validator-manager/packWarp';
 import { hexToBytes, bytesToHex, encodeFunctionData, Abi } from 'viem';
@@ -490,20 +489,14 @@ const CompletePChainWeightUpdate: React.FC<CompletePChainWeightUpdateProps> = ({
         </div>
       </div>
 
-      {/* Success */}
-      {txHash && (
-        <div className="space-y-2">
-          <Success label="Transaction Hash" value={txHash} />
-          {updateComplete && (
-            <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-md">
-              <p className="text-sm text-green-800 dark:text-green-200">
-                <strong>Success!</strong>{' '}
-                {isDelegation
-                  ? "Your delegation is now active. You will earn rewards based on the validator's performance."
-                  : 'The validator weight has been updated successfully.'}
-              </p>
-            </div>
-          )}
+      {txHash && updateComplete && (
+        <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-md">
+          <p className="text-sm text-green-800 dark:text-green-200">
+            <strong>Success!</strong>{' '}
+            {isDelegation
+              ? "Your delegation is now active. You will earn rewards based on the validator's performance."
+              : 'The validator weight has been updated successfully.'}
+          </p>
         </div>
       )}
     </div>

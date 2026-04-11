@@ -4,7 +4,6 @@ import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicC
 import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { Button } from '@/components/toolbox/components/Button';
 import { Input } from '@/components/toolbox/components/Input';
-import { Success } from '@/components/toolbox/components/Success';
 import { Alert } from '@/components/toolbox/components/Alert';
 import NativeTokenStakingManager from '@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json';
 import ERC20TokenStakingManager from '@/contracts/icm-contracts/compiled/ERC20TokenStakingManager.json';
@@ -326,22 +325,17 @@ const CompleteDelegatorRemoval: React.FC<CompleteDelegatorRemovalProps> = ({
         {isProcessing ? 'Processing...' : 'Complete Delegator Removal & Receive Rewards'}
       </Button>
 
-      {txHash && (
-        <>
-          <Success label="Transaction Hash" value={txHash} />
-          {rewardInfo && rewardInfo.rewardsDistributed && (
-            <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-md">
-              <p className="text-sm text-green-800 dark:text-green-200">
-                <strong>Success!</strong> Delegation has been removed and rewards have been distributed.
-              </p>
-              {rewardInfo.stakeReturned !== '0' && (
-                <p className="text-sm text-green-800 dark:text-green-200 mt-1">
-                  <strong>Stake Returned:</strong> {rewardInfo.stakeReturned} (weight units)
-                </p>
-              )}
-            </div>
+      {txHash && rewardInfo && rewardInfo.rewardsDistributed && (
+        <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-md">
+          <p className="text-sm text-green-800 dark:text-green-200">
+            <strong>Success!</strong> Delegation has been removed and rewards have been distributed.
+          </p>
+          {rewardInfo.stakeReturned !== '0' && (
+            <p className="text-sm text-green-800 dark:text-green-200 mt-1">
+              <strong>Stake Returned:</strong> {rewardInfo.stakeReturned} (weight units)
+            </p>
           )}
-        </>
+        </div>
       )}
 
       <Alert variant="warning">

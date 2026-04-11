@@ -3,7 +3,6 @@ import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { Button } from '@/components/toolbox/components/Button';
 import { ConvertToL1Validator } from '@/components/toolbox/components/ValidatorListInput';
 import { validateStakePercentage } from '@/components/toolbox/coreViem/hooks/getTotalStake';
-import { Success } from '@/components/toolbox/components/Success';
 import { parseNodeID, parsePChainAddress } from '@/components/toolbox/coreViem/utils/ids';
 import { MultisigOption } from '@/components/toolbox/components/MultisigOption';
 import { getValidationIdHex } from '@/components/toolbox/coreViem/hooks/getValidationID';
@@ -354,16 +353,6 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
       )}
 
       {error && <Alert variant="error">{error}</Alert>}
-
-      {txSuccess && (
-        <Success
-          label="Transaction Hash"
-          value={txSuccess
-            .replace('Transaction successful! Hash: ', '')
-            .replace('Fallback transaction successful! Hash: ', '')
-            .replace('Multisig transaction proposed! Hash: ', '')}
-        />
-      )}
     </div>
   );
 };

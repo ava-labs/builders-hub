@@ -4,7 +4,6 @@ import { useL1ByChainId, useSelectedL1 } from '@/components/toolbox/stores/l1Lis
 import { useToolboxStore, useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { Button } from '@/components/toolbox/components/Button';
-import { Success } from '@/components/toolbox/components/Success';
 import ERC20TokenRemoteABI from '@/contracts/icm-contracts/compiled/ERC20TokenRemote.json';
 import ERC20TokenHomeABI from '@/contracts/icm-contracts/compiled/ERC20TokenHome.json';
 import { Abi, createPublicClient, http, PublicClient, zeroAddress } from 'viem';
@@ -243,12 +242,6 @@ function RegisterWithHome() {
         >
           Register Remote with Home
         </Button>
-
-        {lastTxId && (
-          <div className="space-y-2">
-            <Success label="Registration Transaction ID" value={lastTxId ?? ''} />
-          </div>
-        )}
 
         {isCheckingRegistration && (
           <div className="text-zinc-500 dark:text-zinc-400">Checking registration status...</div>

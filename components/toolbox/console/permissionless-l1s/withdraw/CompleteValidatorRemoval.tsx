@@ -4,7 +4,6 @@ import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicC
 import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { Button } from '@/components/toolbox/components/Button';
 import { Input } from '@/components/toolbox/components/Input';
-import { Success } from '@/components/toolbox/components/Success';
 import { Alert } from '@/components/toolbox/components/Alert';
 import { hexToBytes, bytesToHex } from 'viem';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
@@ -309,17 +308,12 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
         </div>
       )}
 
-      {txHash && (
-        <>
-          <Success label="Transaction Hash" value={txHash} />
-          {rewardInfo?.rewardsDistributed && (
-            <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-md">
-              <p className="text-sm text-green-800 dark:text-green-200">
-                <strong>Success!</strong> Validator has been removed and rewards have been distributed.
-              </p>
-            </div>
-          )}
-        </>
+      {txHash && rewardInfo?.rewardsDistributed && (
+        <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-md">
+          <p className="text-sm text-green-800 dark:text-green-200">
+            <strong>Success!</strong> Validator has been removed and rewards have been distributed.
+          </p>
+        </div>
       )}
     </div>
   );

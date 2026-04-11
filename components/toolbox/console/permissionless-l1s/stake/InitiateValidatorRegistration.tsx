@@ -420,12 +420,7 @@ const InitiateValidatorRegistration: React.FC<InitiateValidatorRegistrationProps
         {isProcessing ? 'Processing...' : 'Initiate Validator Registration'}
       </Button>
 
-      {txHash && (
-        <>
-          <Success label="Transaction Hash" value={txHash} />
-          {validationID && <Success label="Validation ID" value={validationID} />}
-        </>
-      )}
+      {txHash && validationID && <Success label="Validation ID" value={validationID} />}
     </div>
   );
 };

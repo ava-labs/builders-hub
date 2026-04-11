@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { Button } from '@/components/toolbox/components/Button';
 import { Input } from '@/components/toolbox/components/Input';
-import { Success } from '@/components/toolbox/components/Success';
 import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { Alert } from '@/components/toolbox/components/Alert';
@@ -319,9 +318,6 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
       {!isCoreWallet && signedWarpMessage && !txSuccess && (
         <PChainManualSubmit cliCommand={generateCLICommand()} onSubmit={handleContinueWithManualTxId} />
       )}
-
-      {/* Step 3: Success */}
-      {txSuccess && <Success label="P-Chain Transaction ID" value={txSuccess} />}
     </div>
   );
 };

@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { Button } from '@/components/toolbox/components/Button';
-import { Success } from '@/components/toolbox/components/Success';
 
 interface StepFlowFooterProps {
   globalSuccess: string | null;
@@ -19,8 +18,6 @@ export default function StepFlowFooter({
 }: StepFlowFooterProps) {
   return (
     <>
-      {globalSuccess && <Success label={successLabel} value={globalSuccess} />}
-
       {showReset && (
         <Button onClick={onReset} variant="secondary" className="mt-6">
           Reset All Steps

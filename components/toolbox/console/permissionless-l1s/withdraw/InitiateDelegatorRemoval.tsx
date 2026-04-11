@@ -4,7 +4,6 @@ import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicC
 import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { Button } from '@/components/toolbox/components/Button';
 import { Input } from '@/components/toolbox/components/Input';
-import { Success } from '@/components/toolbox/components/Success';
 import { Alert } from '@/components/toolbox/components/Alert';
 import NativeTokenStakingManager from '@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json';
 import ERC20TokenStakingManager from '@/contracts/icm-contracts/compiled/ERC20TokenStakingManager.json';
@@ -289,8 +288,6 @@ const InitiateDelegatorRemoval: React.FC<InitiateDelegatorRemovalProps> = ({
       >
         {isProcessing ? 'Processing...' : 'Initiate Delegator Removal'}
       </Button>
-
-      {txHash && <Success label="Transaction Hash" value={txHash} />}
     </div>
   );
 };
