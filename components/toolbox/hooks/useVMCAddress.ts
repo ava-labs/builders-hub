@@ -85,9 +85,9 @@ export function useVMCAddress(subnetId: string): VMCAddressResult {
 
                 // The signing subnet is the parent subnet of the chain where the VMC
                 // is deployed. Warp messages originate from that chain, so its subnet's
-                // validators must sign. This is NOT always the L1's own subnet — for PoS
-                // L1s the VMC may be on the L1's own chain (same subnet) or on C-Chain
-                // (primary network subnet).
+                // validators must sign. This is NOT always the L1's own subnet — both
+                // PoA and PoS L1s can have the VMC deployed on any chain (e.g. C-Chain
+                // on the primary network, or the L1's own chain).
                 const vmcSubnetId = blockchainInfoForVMC.subnetId;
 
                 setValidatorManagerAddress(vmcAddress);
