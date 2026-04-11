@@ -151,9 +151,10 @@ export function InitializeStakingManagerInner({ onSuccess, initialStakingType }:
   const isErc20 = stakingType === 'erc20';
   const stakingAbi = isErc20 ? ERC20TokenStakingManager.abi : NativeTokenStakingManager.abi;
 
-  // Auto-fill subnet ID from selected L1
+  // Auto-fill subnet ID from selected L1, but NOT from primary network
+  const PRIMARY_NETWORK_SUBNET_ID = '11111111111111111111111111111111LpoYY';
   useEffect(() => {
-    if (selectedL1?.subnetId && !subnetIdInput) {
+    if (selectedL1?.subnetId && selectedL1.subnetId !== PRIMARY_NETWORK_SUBNET_ID && !subnetIdInput) {
       setSubnetIdInput(selectedL1.subnetId);
     }
   }, [selectedL1?.subnetId, subnetIdInput]);
