@@ -6,14 +6,14 @@ import { Success } from '@/components/toolbox/components/Success';
 import { Alert } from '@/components/toolbox/components/Alert';
 import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
-import { decodeAbiParameters } from 'viem';
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
-import { ensureCoreNetworkMode, restoreCoreChain } from '@/components/toolbox/coreViem';
+import { useSubmitPChainTx } from '@/components/toolbox/hooks/useSubmitPChainTx';
 import { Check } from 'lucide-react';
 import { extractWarpMessageFromReceipt, validateAndCleanTxHash } from '@/components/toolbox/utils/warp';
 import { PChainManualSubmit } from '@/components/toolbox/components/PChainManualSubmit';
 import { StepFlowCard } from '@/components/toolbox/components/StepCard';
+import { parsePChainError } from '@/components/toolbox/hooks/contracts';
 
 export interface WeightUpdateEventData {
     validationID: `0x${string}`;
@@ -65,6 +65,7 @@ const SubmitPChainTxWeightUpdate: React.FC<SubmitPChainTxWeightUpdateProps> = ({
     const isCoreWallet = walletType === 'core';
     const { aggregateSignature } = useAvalancheSDKChainkit();
     const { notify } = useConsoleNotifications();
+    const { submitPChainTx } = useSubmitPChainTx();
 
     const [evmTxHash, setEvmTxHash] = useState(initialEvmTxHash || '');
     const [isProcessing, setIsProcessing] = useState(false);
@@ -221,47 +222,24 @@ const SubmitPChainTxWeightUpdate: React.FC<SubmitPChainTxWeightUpdateProps> = ({
                 return;
             }
 
-            // Ensure Core Wallet is in the correct network mode for P-Chain ops.
-            // Switching to an L1 chain can silently flip Core into mainnet mode.
-            const previousChainId = await ensureCoreNetworkMode(isTestnet);
-
-            // After mode switch, chainChanged fires and creates a new coreWalletClient
-            // targeting the correct network. We must re-read from the store — the closure
-            // captured the OLD client which may be configured for the wrong P-Chain.
-            const freshClient = useWalletStore.getState().coreWalletClient;
-            if (!freshClient) {
-                throw new Error("Core wallet client lost after network mode switch. Please reconnect.");
-            }
-
             // Step 2: Submit to P-Chain using setL1ValidatorWeight
-            const pChainTxIdPromise = freshClient.setL1ValidatorWeight({
-                signedWarpMessage: signedMessage,
+            const pChainTxId = await submitPChainTx(async (client) => {
+                const pChainTxIdPromise = client.setL1ValidatorWeight({
+                    signedWarpMessage: signedMessage,
+                });
+
+                notify({
+                    type: 'local',
+                    name: 'Submit P-Chain Transaction'
+                }, pChainTxIdPromise);
+
+                return pChainTxIdPromise;
             });
-
-            notify({
-                type: 'local',
-                name: 'Submit P-Chain Transaction'
-            }, pChainTxIdPromise);
-
-            const pChainTxId = await pChainTxIdPromise;
-
-            // Restore the L1 chain if we had to switch for the P-Chain op
-            if (previousChainId) await restoreCoreChain(previousChainId);
 
             setTxSuccess(pChainTxId);
             onSuccess(pChainTxId, eventData || undefined);
         } catch (err: any) {
-            let message = err instanceof Error ? err.message : String(err);
-
-            if (message.includes('User rejected')) {
-                message = 'Transaction was rejected by user';
-            } else if (message.includes('insufficient funds')) {
-                message = 'Insufficient P-Chain balance for transaction';
-            } else if (message.includes('execution reverted')) {
-                message = `Transaction reverted: ${message}`;
-            } else if (message.includes('nonce')) {
-                message = 'Transaction nonce error. Please try again.';
-            }
+            const message = parsePChainError(err);
 
             setErrorState(`P-Chain transaction failed: ${message}`);
             onError(`P-Chain transaction failed: ${message}`);

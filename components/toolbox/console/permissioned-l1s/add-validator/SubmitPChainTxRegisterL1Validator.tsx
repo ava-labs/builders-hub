@@ -8,11 +8,12 @@ import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { Alert } from '@/components/toolbox/components/Alert';
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
-import { ensureCoreNetworkMode, restoreCoreChain } from '@/components/toolbox/coreViem';
+import { useSubmitPChainTx } from '@/components/toolbox/hooks/useSubmitPChainTx';
 import { Check } from 'lucide-react';
 import { extractWarpMessageFromReceipt, validateAndCleanTxHash } from '@/components/toolbox/utils/warp';
 import { PChainManualSubmit } from '@/components/toolbox/components/PChainManualSubmit';
 import { StepFlowCard } from '@/components/toolbox/components/StepCard';
+import { parsePChainError } from '@/components/toolbox/hooks/contracts';
 
 interface SubmitPChainTxRegisterL1ValidatorProps {
   subnetIdL1: string;
@@ -39,6 +40,7 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
   const isCoreWallet = walletType === 'core';
   const { aggregateSignature } = useAvalancheSDKChainkit();
   const { notify } = useConsoleNotifications();
+  const { submitPChainTx } = useSubmitPChainTx();
   const [evmTxHashState, setEvmTxHashState] = useState(evmTxHash || '');
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setErrorState] = useState<string | null>(null);
@@ -141,35 +143,20 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
         return;
       }
 
-      // Ensure Core Wallet is in the correct network mode for P-Chain ops.
-      const previousChainId = await ensureCoreNetworkMode(isTestnet);
-      const freshClient = useWalletStore.getState().coreWalletClient;
-      if (!freshClient) throw new Error("Core wallet client lost after network mode switch. Please reconnect.");
-
-      const registerL1ValidatorPromise = freshClient.registerL1Validator({
-        balance: validatorBalance.trim(),
-        blsProofOfPossession: blsProofOfPossession.trim(),
-        signedWarpMessage: signedMessage,
+      const pChainTxId = await submitPChainTx(async (client) => {
+        const registerL1ValidatorPromise = client.registerL1Validator({
+          balance: validatorBalance!.trim(),
+          blsProofOfPossession: blsProofOfPossession!.trim(),
+          signedWarpMessage: signedMessage,
+        });
+        notify('registerL1Validator', registerL1ValidatorPromise);
+        return registerL1ValidatorPromise;
       });
-      notify('registerL1Validator', registerL1ValidatorPromise);
-
-      const pChainTxId = await registerL1ValidatorPromise;
-
-      // Restore the L1 chain if we had to switch for the P-Chain op
-      if (previousChainId) await restoreCoreChain(previousChainId);
 
       setTxSuccess(pChainTxId);
       onSuccess(pChainTxId);
     } catch (err: any) {
-      let message = err instanceof Error ? err.message : String(err);
-
-      if (message.includes('User rejected')) {
-        message = 'Transaction was rejected by user';
-      } else if (message.includes('insufficient funds')) {
-        message = 'Insufficient P-Chain balance for transaction';
-      } else if (message.includes('nonce')) {
-        message = 'Transaction nonce error. Please try again.';
-      }
+      const message = parsePChainError(err);
 
       setErrorState(`P-Chain transaction failed: ${message}`);
       onError(`P-Chain transaction failed: ${message}`);

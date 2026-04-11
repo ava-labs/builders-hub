@@ -18,6 +18,7 @@ export * from './utilities';
 
 // Error parsing
 export { parseContractError } from './parseContractError';
+export { parsePChainError } from './parsePChainError';
 
 // Base hook for contract interactions
 export { useContractActions } from './useContractActions';

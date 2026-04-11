@@ -10,13 +10,14 @@ import { BaseConsoleToolProps, ConsoleToolMetadata, withConsoleToolMetadata } fr
 import { useConnectedWallet } from "@/components/toolbox/contexts/ConnectedWalletContext";
 import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/githubUrl";
 import { Alert } from "../../../components/Alert";
-import { ensureCoreNetworkMode, restoreCoreChain } from "@/components/toolbox/coreViem";
+import { useSubmitPChainTx } from "@/components/toolbox/hooks/useSubmitPChainTx";
 import { useDisableL1Validator, ValidatorData } from "./DisableL1ValidatorContext";
 import ValidatorSelector from "./ValidatorSelector";
 import { formatAvaxBalance } from "@/components/toolbox/coreViem/utils/format";
 import { SDKCodeViewer, SDKCodeSource } from "@/components/console/sdk-code-viewer";
 import { CliAlternative } from "@/components/console/cli-alternative";
 import useConsoleNotifications from "@/hooks/useConsoleNotifications";
+import { parsePChainError } from "@/components/toolbox/hooks/contracts";
 
 // TypeScript code showing the P-Chain disable operation
 const DISABLE_VALIDATOR_CODE = `// Disable an L1 Validator directly on the P-Chain
@@ -73,6 +74,7 @@ function DisableValidator({ onSuccess }: BaseConsoleToolProps) {
   const { pChainAddress, isTestnet } = useWalletStore();
   const { coreWalletClient } = useConnectedWallet();
   const { notify } = useConsoleNotifications();
+  const { submitPChainTx } = useSubmitPChainTx();
 
   const {
     subnetId,
@@ -140,29 +142,22 @@ function DisableValidator({ onSuccess }: BaseConsoleToolProps) {
     setError(null);
 
     try {
-      // Ensure Core Wallet is in the correct network mode for P-Chain ops
-      const previousChainId = await ensureCoreNetworkMode(isTestnet);
-      // Re-read the client from the store after mode switch — the closure's client
-      // may be configured for the wrong network.
-      const freshClient = useWalletStore.getState().coreWalletClient;
-      if (!freshClient) throw new Error("Core wallet client lost after network mode switch. Please reconnect.");
-
       // Pass validation ID as-is - the SDK expects CB58 format from the P-Chain
-      const txPromise = freshClient.disableL1Validator({
-        validationId: selectedValidator.validationId,
-        disableAuth: [authIndex],
+      const hash = await submitPChainTx(async (client) => {
+        const txPromise = client.disableL1Validator({
+          validationId: selectedValidator!.validationId,
+          disableAuth: [authIndex],
+        });
+        notify('disableL1Validator', txPromise);
+        return txPromise;
       });
-      notify('disableL1Validator', txPromise);
-      const hash = await txPromise;
-
-      if (previousChainId) await restoreCoreChain(previousChainId);
 
       setTxHash(hash);
       setOperationSuccessful(true);
       onSuccess?.();
     } catch (err) {
       console.error("Error disabling validator:", err);
-      setError(err instanceof Error ? err.message : "An unknown error occurred");
+      setError(parsePChainError(err));
     } finally {
       setIsProcessing(false);
     }

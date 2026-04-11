@@ -8,11 +8,12 @@ import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalanch
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
-import { ensureCoreNetworkMode, restoreCoreChain } from '@/components/toolbox/coreViem';
+import { useSubmitPChainTx } from '@/components/toolbox/hooks/useSubmitPChainTx';
 import { Check } from 'lucide-react';
 import { WARP_PRECOMPILE_ADDRESS, WARP_MESSAGE_TOPIC, validateAndCleanTxHash } from '@/components/toolbox/utils/warp';
 import { PChainManualSubmit } from '@/components/toolbox/components/PChainManualSubmit';
 import { StepFlowCard } from '@/components/toolbox/components/StepCard';
+import { parsePChainError } from '@/components/toolbox/hooks/contracts';
 
 interface SubmitPChainTxRemovalProps {
   subnetIdL1: string;
@@ -40,6 +41,7 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
   const isCoreWallet = walletType === 'core';
   const { aggregateSignature } = useAvalancheSDKChainkit();
   const { notify } = useConsoleNotifications();
+  const { submitPChainTx } = useSubmitPChainTx();
   const [evmTxHash, setEvmTxHash] = useState(initialEvmTxHash || '');
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setErrorState] = useState<string | null>(null);
@@ -258,37 +260,19 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
         return;
       }
 
-      // Ensure Core Wallet is in the correct network mode for P-Chain ops
-      const previousChainId = await ensureCoreNetworkMode(isTestnet);
-      // Re-read the client from the store after mode switch — the closure's client
-      // may be configured for the wrong network.
-      const freshClient = useWalletStore.getState().coreWalletClient;
-      if (!freshClient) throw new Error("Core wallet client lost after network mode switch. Please reconnect.");
-
       // Step 2: Submit to P-Chain
-      const pChainTxIdPromise = freshClient.setL1ValidatorWeight({
-        signedWarpMessage: signedMessage,
+      const pChainTxId = await submitPChainTx(async (client) => {
+        const pChainTxIdPromise = client.setL1ValidatorWeight({
+          signedWarpMessage: signedMessage,
+        });
+        notify('setL1ValidatorWeight', pChainTxIdPromise);
+        return pChainTxIdPromise;
       });
-      notify('setL1ValidatorWeight', pChainTxIdPromise);
-      const pChainTxId = await pChainTxIdPromise;
-
-      if (previousChainId) await restoreCoreChain(previousChainId);
 
       setTxSuccess(`P-Chain transaction successful! ID: ${pChainTxId}`);
       onSuccess(pChainTxId, eventData);
     } catch (err: any) {
-      let message = err instanceof Error ? err.message : String(err);
-
-      // Handle specific error types
-      if (message.includes('User rejected')) {
-        message = 'Transaction was rejected by user';
-      } else if (message.includes('insufficient funds')) {
-        message = 'Insufficient funds for transaction';
-      } else if (message.includes('execution reverted')) {
-        message = `Transaction reverted: ${message}`;
-      } else if (message.includes('nonce')) {
-        message = 'Transaction nonce error. Please try again.';
-      }
+      const message = parsePChainError(err);
 
       setErrorState(`P-Chain transaction failed: ${message}`);
       onError(`P-Chain transaction failed: ${message}`);

@@ -14,7 +14,7 @@ import { AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { CoreWalletTransactionButton } from "@/components/toolbox/components/CoreWalletTransactionButton";
 import { Success } from "@/components/toolbox/components/Success";
-import { ensureCoreNetworkMode, restoreCoreChain } from "@/components/toolbox/coreViem";
+import { useSubmitPChainTx } from "@/components/toolbox/hooks/useSubmitPChainTx";
 
 // Import Genesis Wizard components
 import { GenesisWizard } from "@/components/toolbox/components/genesis/GenesisWizard";
@@ -45,6 +45,7 @@ function CreateChain({ onSuccess, embedded = false }: CreateChainProps) {
     const coreWalletClient = useWalletStore((s) => s.coreWalletClient);
     const { isTestnet } = useWalletStore();
     const { notify } = useConsoleNotifications();
+    const { submitPChainTx } = useSubmitPChainTx();
 
     const [isCreatingChain, setIsCreatingChain] = useState(false);
     const [localChainName, setLocalChainName] = useState<string>(generateRandomChainName());
@@ -66,27 +67,20 @@ function CreateChain({ onSuccess, embedded = false }: CreateChainProps) {
         setIsCreatingChain(true);
 
         try {
-            // Ensure Core Wallet is in the correct network mode for P-Chain ops
-            const previousChainId = await ensureCoreNetworkMode(isTestnet);
-            // Re-read the client from the store after mode switch — the closure's client
-            // may be configured for the wrong network.
-            const freshClient = useWalletStore.getState().coreWalletClient;
-            if (!freshClient) throw new Error("Core wallet client lost after network mode switch. Please reconnect.");
+            const txID = await submitPChainTx(async (client) => {
+                const createChainTx = client.createChain({
+                    chainName: localChainName,
+                    subnetId: subnetId,
+                    vmId,
+                    fxIds: [],
+                    genesisData: genesisData,
+                    subnetAuth: [0],
+                })
 
-            const createChainTx = freshClient.createChain({
-                chainName: localChainName,
-                subnetId: subnetId,
-                vmId,
-                fxIds: [],
-                genesisData: genesisData,
-                subnetAuth: [0],
-            })
+                notify('createChain', createChainTx);
 
-            notify('createChain', createChainTx);
-
-            const txID = await createChainTx;
-
-            if (previousChainId) await restoreCoreChain(previousChainId);
+                return createChainTx;
+            });
 
             setChainID(txID);
             setChainName(localChainName);

@@ -16,7 +16,7 @@ import { Step, Steps } from 'fumadocs-ui/components/steps';
 import Link from "next/link";
 import { AlertTriangle } from "lucide-react";
 import { CoreWalletTransactionButton } from "@/components/toolbox/components/CoreWalletTransactionButton";
-import { ensureCoreNetworkMode, restoreCoreChain } from "@/components/toolbox/coreViem";
+import { useSubmitPChainTx } from "@/components/toolbox/hooks/useSubmitPChainTx";
 
 const metadata: ConsoleToolMetadata = {
     title: "Convert Subnet to L1",
@@ -50,6 +50,7 @@ function ConvertToL1({ onSuccess }: BaseConsoleToolProps) {
     const [isConverting, setIsConverting] = useState(false);
 
     const { notify } = useConsoleNotifications();
+    const { submitPChainTx } = useSubmitPChainTx();
 
     function buildConvertCliCommand() {
         const parts = [
@@ -85,26 +86,19 @@ function ConvertToL1({ onSuccess }: BaseConsoleToolProps) {
         setIsConverting(true);
 
         try {
-            // Ensure Core Wallet is in the correct network mode for P-Chain ops
-            const previousChainId = await ensureCoreNetworkMode(isTestnet);
-            // Re-read the client from the store after mode switch — the closure's client
-            // may be configured for the wrong network.
-            const freshClient = useWalletStore.getState().coreWalletClient;
-            if (!freshClient) throw new Error("Core wallet client lost after network mode switch. Please reconnect.");
+            const txID = await submitPChainTx(async (client) => {
+                const convertSubnetToL1Tx = client.convertToL1({
+                    subnetId: selection.subnetId,
+                    chainId: validatorManagerChainID,
+                    managerAddress: validatorManagerAddress,
+                    subnetAuth: [0],
+                    validators
+                });
 
-            const convertSubnetToL1Tx = freshClient.convertToL1({
-                subnetId: selection.subnetId,
-                chainId: validatorManagerChainID,
-                managerAddress: validatorManagerAddress,
-                subnetAuth: [0],
-                validators
+                notify('convertToL1', convertSubnetToL1Tx);
+
+                return convertSubnetToL1Tx;
             });
-
-            notify('convertToL1', convertSubnetToL1Tx);
-
-            const txID = await convertSubnetToL1Tx;
-
-            if (previousChainId) await restoreCoreChain(previousChainId);
 
             setConvertToL1TxId(txID);
             onSuccess?.();

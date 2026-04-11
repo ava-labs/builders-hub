@@ -11,7 +11,7 @@ import { generateConsoleToolGitHubUrl } from "@/components/toolbox/utils/githubU
 import Link from "next/link";
 import { CoreWalletTransactionButton } from "@/components/toolbox/components/CoreWalletTransactionButton";
 import { Success } from "@/components/toolbox/components/Success";
-import { ensureCoreNetworkMode, restoreCoreChain } from "@/components/toolbox/coreViem";
+import { useSubmitPChainTx } from "@/components/toolbox/hooks/useSubmitPChainTx";
 
 const metadata: ConsoleToolMetadata = {
     title: "Create Subnet",
@@ -30,6 +30,7 @@ function CreateSubnet(_props: BaseConsoleToolProps) {
     const { pChainAddress, isTestnet } = useWalletStore();
     const coreWalletClient = useWalletStore((s) => s.coreWalletClient);
     const { notify } = useConsoleNotifications();
+    const { submitPChainTx } = useSubmitPChainTx();
     const [isCreatingSubnet, setIsCreatingSubnet] = useState(false);
 
     async function handleCreateSubnet() {
@@ -38,22 +39,15 @@ function CreateSubnet(_props: BaseConsoleToolProps) {
         setIsCreatingSubnet(true);
 
         try {
-            // Ensure Core Wallet is in the correct network mode for P-Chain ops
-            const previousChainId = await ensureCoreNetworkMode(isTestnet);
-            // Re-read the client from the store after mode switch — the closure's client
-            // may be configured for the wrong network.
-            const freshClient = useWalletStore.getState().coreWalletClient;
-            if (!freshClient) throw new Error("Core wallet client lost after network mode switch. Please reconnect.");
+            const txID = await submitPChainTx(async (client) => {
+                const createSubnetTx = client.createSubnet({
+                    subnetOwners: [pChainAddress]
+                });
 
-            const createSubnetTx = freshClient.createSubnet({
-                subnetOwners: [pChainAddress]
+                notify('createSubnet', createSubnetTx);
+
+                return createSubnetTx;
             });
-
-            notify('createSubnet', createSubnetTx);
-
-            const txID = await createSubnetTx;
-
-            if (previousChainId) await restoreCoreChain(previousChainId);
 
             setSubnetID(txID);
         } finally {

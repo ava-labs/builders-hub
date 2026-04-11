@@ -23,7 +23,8 @@ import useConsoleNotifications from "@/hooks/useConsoleNotifications"
 import { SDKCodeViewer, type SDKCodeSource } from "@/components/console/sdk-code-viewer"
 import { CliAlternative } from "@/components/console/cli-alternative"
 import { cn } from "@/lib/utils"
-import { ensureCoreNetworkMode, restoreCoreChain } from "@/components/toolbox/coreViem"
+import { parsePChainError } from "@/components/toolbox/hooks/contracts"
+import { useSubmitPChainTx } from "@/components/toolbox/hooks/useSubmitPChainTx"
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
@@ -83,6 +84,7 @@ function ValidatorBalanceIncrease({ onSuccess }: BaseConsoleToolProps) {
   const pChainBalance = useWalletStore((s) => s.balances.pChain)
   const { coreWalletClient } = useConnectedWallet()
   const { notify } = useConsoleNotifications()
+  const { submitPChainTx } = useSubmitPChainTx()
 
   useEffect(() => {
     if (pChainAddress) {
@@ -119,21 +121,14 @@ function ValidatorBalanceIncrease({ onSuccess }: BaseConsoleToolProps) {
         return
       }
 
-      // Ensure Core Wallet is in the correct network mode for P-Chain ops
-      const previousChainId = await ensureCoreNetworkMode(isTestnet)
-      // Re-read the client from the store after mode switch — the closure's client
-      // may be configured for the wrong network.
-      const freshClient = useWalletStore.getState().coreWalletClient;
-      if (!freshClient) throw new Error("Core wallet client lost after network mode switch. Please reconnect.");
-
-      const txPromise = freshClient.increaseL1ValidatorBalance({
-        validationId: validatorSelection.validationId,
-        balanceInAvax: amountNumber,
+      const txHash = await submitPChainTx(async (client) => {
+        const txPromise = client.increaseL1ValidatorBalance({
+          validationId: validatorSelection.validationId,
+          balanceInAvax: amountNumber,
+        })
+        notify('increaseL1ValidatorBalance', txPromise)
+        return txPromise
       })
-      notify('increaseL1ValidatorBalance', txPromise)
-      const txHash = await txPromise
-
-      if (previousChainId) await restoreCoreChain(previousChainId)
 
       setValidatorTxId(txHash)
       setOperationSuccessful(true)
@@ -143,7 +138,7 @@ function ValidatorBalanceIncrease({ onSuccess }: BaseConsoleToolProps) {
       await updatePChainBalance()
     } catch (error) {
       console.error("Error increasing validator balance:", error)
-      setError(error instanceof Error ? error.message : "An unknown error occurred.")
+      setError(parsePChainError(error))
     } finally {
       setLoading(false)
     }
