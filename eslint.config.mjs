@@ -26,12 +26,37 @@ export default tseslint.config(
   },
 
   // ---------------------------------------------------------------
-  // Rule 1 & 2: Toolbox-wide — block direct wagmi useWalletClient
-  //             and warn on console.log.
-  //
-  //             Hooks and contexts are EXCLUDED from the wagmi
-  //             restriction because they are the wrapper layer that
-  //             legitimately calls useWalletClient.
+  // Toolbox-wide: unused imports/vars + no console.log
+  // ---------------------------------------------------------------
+  {
+    files: ["components/toolbox/**/*.ts", "components/toolbox/**/*.tsx"],
+    plugins: {
+      "@typescript-eslint": tseslint.plugin,
+    },
+    languageOptions: {
+      parser: tseslint.parser,
+    },
+    rules: {
+      // Block unused imports and variables. Prefix with _ to opt out.
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+          ignoreRestSiblings: true,
+        },
+      ],
+
+      // Block console.log — use console.warn/error for legitimate logging.
+      "no-console": ["error", { allow: ["warn", "error"] }],
+    },
+  },
+
+  // ---------------------------------------------------------------
+  // Wagmi guard: block direct useWalletClient in consumer code.
+  // Hooks and contexts are EXCLUDED because they are the wrapper
+  // layer that legitimately calls useWalletClient.
   // ---------------------------------------------------------------
   {
     files: ["components/toolbox/**/*.ts", "components/toolbox/**/*.tsx"],
@@ -43,7 +68,6 @@ export default tseslint.config(
       parser: tseslint.parser,
     },
     rules: {
-      // Block wagmi's useWalletClient — use the project wrapper instead.
       "no-restricted-imports": [
         "error",
         {
@@ -57,28 +81,6 @@ export default tseslint.config(
           ],
         },
       ],
-
-      // Warn on console.log but allow console.warn / console.error.
-      "no-console": ["warn", { allow: ["warn", "error"] }],
-    },
-  },
-
-  // ---------------------------------------------------------------
-  // Hooks and contexts still get the no-console rule (but NOT the
-  // wagmi restriction).
-  // ---------------------------------------------------------------
-  {
-    files: [
-      "components/toolbox/hooks/**/*.ts",
-      "components/toolbox/hooks/**/*.tsx",
-      "components/toolbox/contexts/**/*.ts",
-      "components/toolbox/contexts/**/*.tsx",
-    ],
-    languageOptions: {
-      parser: tseslint.parser,
-    },
-    rules: {
-      "no-console": ["warn", { allow: ["warn", "error"] }],
     },
   },
 
