@@ -233,13 +233,7 @@ const SubmitPChainTxWeightUpdate: React.FC<SubmitPChainTxWeightUpdateProps> = ({
           signedWarpMessage: signedMessage,
         });
 
-        notify(
-          {
-            type: 'local',
-            name: 'Submit P-Chain Transaction',
-          },
-          pChainTxIdPromise,
-        );
+        notify('setL1ValidatorWeight', pChainTxIdPromise);
 
         return pChainTxIdPromise;
       });
