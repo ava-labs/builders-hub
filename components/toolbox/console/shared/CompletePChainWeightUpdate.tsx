@@ -325,7 +325,7 @@ const CompletePChainWeightUpdate: React.FC<CompletePChainWeightUpdateProps> = ({
         (isChangeWeight && isContractOwner === false && !useMultisig) ||
         (!isCoreWallet && !!pChainSignature);
 
-    const step1Complete = !!extractedData;
+    const step1Complete = !!pChainTxIdState.trim() && (!isDelegation || !!delegationIDState.trim());
     const step2Complete = !!txHash;
 
     return (

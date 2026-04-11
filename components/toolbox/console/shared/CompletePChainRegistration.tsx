@@ -335,7 +335,7 @@ const CompletePChainRegistration: React.FC<CompletePChainRegistrationProps> = ({
         (isPoA && ownershipState === 'differentEOA' && !useMultisig && !useStakingManager) ||
         (!isCoreWallet && !!pChainSignature);
 
-    const step1Complete = !!extractedData;
+    const step1Complete = !!pChainTxIdState.trim();
     const step2Complete = !!txHash;
 
     return (
@@ -356,7 +356,7 @@ const CompletePChainRegistration: React.FC<CompletePChainRegistrationProps> = ({
                                 helperText="The transaction ID from the P-Chain validator registration"
                             />
                         </div>
-                        {step1Complete && (
+                        {extractedData && (
                             <div className="mt-2 space-y-1">
                                 <div className="flex items-center gap-1.5 text-xs">
                                     <span className="text-green-600 dark:text-green-400 font-medium">Node ID:</span>

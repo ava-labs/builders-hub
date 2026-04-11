@@ -222,7 +222,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
     );
   }
 
-  const step1Complete = !!extractedData;
+  const step1Complete = !!pChainTxId.trim();
   const step2Complete = !!transactionHash;
 
   return (
